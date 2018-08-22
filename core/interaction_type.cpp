@@ -65,12 +65,6 @@ InteractionType::InteractionType(SLiMSim &p_sim, slim_objectid_t p_interaction_t
 		spatiality_ = 3;
 	else
 		EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): illegal spatiality string value" << EidosTerminate();
-	
-	// Correct our reciprocality for sex-segregation.  Basically, male-male, female-female, and *-* interactions
-	// can be reciprocal because the receivers are the same set of individuals as the exerters; others cannot be,
-	// although some subset of the full interaction may indeed be reciprocal (we're not smart enough to use that).
-	if (receiver_sex_ != exerter_sex_)
-		reciprocal_ = false;
 }
 
 InteractionType::~InteractionType(void)
@@ -90,30 +84,21 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	if (data_iter == data_.end())
 	{
 		// No entry in our map table for this subpop_id, so we need to make a new entry
-		subpop_data = &(data_.insert(std::pair<slim_objectid_t, InteractionsData>(subpop_id, InteractionsData(p_subpop->parent_subpop_size_, p_subpop->parent_first_male_index_))).first->second);
+		subpop_data = &(data_.insert(std::pair<slim_objectid_t, InteractionsData>(subpop_id, InteractionsData(subpop_size, p_subpop->parent_first_male_index_))).first->second);
 	}
 	else
 	{
 		// There is an existing entry, so we need to rehabilitate that entry by recycling its elements safely
 		subpop_data = &(data_iter->second);
 		
-		if (subpop_data->individual_count_ != subpop_size)
-		{
-			// The population has changed size, so we will realloc buffers as needed.  If buffers have not yet been
-			// allocated, we don't need to allocate them now; we will continue to defer until they are needed.
-			int matrix_size = subpop_size * subpop_size;
-			
-			if (subpop_data->distances_)
-				subpop_data->distances_ = (double *)realloc(subpop_data->distances_, matrix_size * sizeof(double));
-			
-			if (subpop_data->strengths_)
-				subpop_data->strengths_ = (double *)realloc(subpop_data->strengths_, matrix_size * sizeof(double));
-			
-			subpop_data->individual_count_ = subpop_size;
-		}
-		
+		subpop_data->individual_count_ = subpop_size;
 		subpop_data->first_male_index_ = p_subpop->parent_first_male_index_;
 		subpop_data->kd_node_count_ = 0;
+		
+		// If the sparse array has not yet been allocated, we will continue to defer until it is needed
+		// It will never be allocated for non-spatial models, or for models that use only the k-d tree
+		if (subpop_data->dist_str_)
+			subpop_data->dist_str_->Reset();
 		
 		// Ensure that other parts of the subpop data block are correctly reset to the same state that Invalidate()
 		// uses; normally this has already been done by Initialize(), but not necessarily.
@@ -134,9 +119,11 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		subpop_data->evaluation_interaction_callbacks_.clear();
 	}
 	
-	// At this point, positions_ is guaranteed to be nullptr; distances_ and strengths_ are either (1) nullptr,
-	// or (2) allocated, but containing garbage.  Now we mark ourselves evaluated and fill in the buffers as needed.
+	// At this point, positions_ is guaranteed to be nullptr; dist_str_ is either (1) nullptr,
+	// or (2) allocated but empty.  Now we mark ourselves evaluated and fill in buffers as needed.
 	subpop_data->evaluated_ = true;
+	subpop_data->distances_calculated_ = false;
+	subpop_data->strengths_calculated_ = false;
 	
 	// At a minimum, fetch positional data from the subpopulation; this is guaranteed to be present (for spatiality > 0)
 	if (spatiality_ > 0)
@@ -427,25 +414,23 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	
 	subpop_data->evaluation_interaction_callbacks_ = sim.ScriptBlocksMatching(generation, SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id);
 	
-	// If we're supposed to evaluate it immediately, do so
+	// We have an "immediate" flag that defaults to F; interactions are evaluated lazily by default.  Since the
+	// dist_str_ sparse array needs to be set up in a sequential fashion, we have to evaluate all interactions
+	// as a single bulk operation.  However, the distances will not be evaluated until needed, and likewise for
+	// the strengths; we can at least defer those operations until they are actually called for.  This way if a
+	// model doesn't use distances or strengths at all (just asking for neighbors using the k-d tree, for example),
+	// the interaction calculation overhead will be avoided.
 	if (p_immediate)
 	{
-		// We do not set up the kd-tree here, because we don't know whether or not we'll use it, and we have all the
-		// information we need to set it up later (since it doesn't depend on interactions or even distances).
-		// Note that if distances_ and strengths_ are allocated, they contain garbage; CalculateAllInteractions()
-		// expects that, so we don't fix it in this code path, to avoid writing values to memory twice.
-		CalculateAllInteractions(p_subpop);
+		// We could fill strengths in simultaneously with distances, for simple cases at least (no callbacks, simple
+		// interaction function, etc.), but it probably isn't worth the additional code complexity; filling strengths is
+		// generally fast anyway, so even if this eliminated all strength-fill overhead it wouldn't make much difference.
+		CalculateAllDistances(p_subpop);
+		CalculateAllStrengths(p_subpop);
 	}
 	else
 	{
-		// We don't know whether we will be queried about distances or strengths at all; the user may only be interested in
-		// using the kd-tree facility to do nearest-neighbor searches.  So we do not allocate distances_ or strengths_ here.
-		// If they are already allocated, however, they presently contain garbage, so we have to clean them up.
-		if (subpop_data->distances_)
-			InitializeDistances(*subpop_data);
-		
-		if (subpop_data->strengths_)
-			InitializeStrengths(*subpop_data);
+		// distances_calculated_ and strengths_calculated_ remain false here; the sparse array will be constructed on demand
 	}
 }
 
@@ -472,12 +457,17 @@ void InteractionType::Invalidate(void)
 	{
 		InteractionsData &data = data_iter.second;
 		data.evaluated_ = false;
+		data.distances_calculated_ = false;
+		data.strengths_calculated_ = false;
 		
 		if (data.positions_)
 		{
 			free(data.positions_);
 			data.positions_ = nullptr;
 		}
+		
+		if (data.dist_str_)
+			data.dist_str_->Reset();
 		
 		if (data.kd_nodes_)
 		{
@@ -491,605 +481,320 @@ void InteractionType::Invalidate(void)
 	}
 }
 
-void InteractionType::CalculateAllInteractions(Subpopulation *p_subpop)
+void InteractionType::CalculateAllDistances(Subpopulation *p_subpop)
 {
 	slim_objectid_t subpop_id = p_subpop->subpopulation_id_;
-	slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
-	Individual **subpop_individuals = p_subpop->parent_individuals_.data();
 	InteractionsData &subpop_data = data_[subpop_id];
-	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
-	bool no_callbacks = (callbacks.size() == 0);
 	
-	// When this method is called, distances_ and strengths_ may be nullptr, or they may be allocated.  If they are allocated,
-	// they contain garbage, so we have to be a bit careful.  If we have any sort of sex-segregation going on, we want to
-	// force allocation and initialization of strengths_, since that will give us sex-segregation info set up to make the
-	// interaction calculations more efficient.  If sex-segregation is not enabled, we want to force allocation but not
-	// initialization of strengths_, since we will overwrite every entry anyway.  We always want to force allocation but not
-	// initialization of distances_, because we will overwrite all values in it whether we are sex-segregated or not.
-	bool is_sex_segregated = ((receiver_sex_ != IndividualSex::kUnspecified) || (exerter_sex_ != IndividualSex::kUnspecified));
-	
-	if (is_sex_segregated)
+	if (!subpop_data.distances_calculated_)
 	{
-		// Sex-segregation of some type; force allocation of both, and initialization of strengths_
-		if (!subpop_data.distances_)
-			subpop_data.distances_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
-		if (!subpop_data.strengths_)
-			subpop_data.strengths_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
-		InitializeStrengths(subpop_data);
-	}
-	else
-	{
-		// No sex-segregation; force allocation but not initialization
-		if (!subpop_data.distances_)
-			subpop_data.distances_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
-		if (!subpop_data.strengths_)
-			subpop_data.strengths_ = (double *)malloc(subpop_size * subpop_size * sizeof(double));
-	}
-	
-	if (spatiality_ == 0)
-	{
-		// Non-spatial interactions do not involve distances
-		if (!reciprocal_)
+		if (!subpop_data.evaluated_)
+			EIDOS_TERMINATION << "ERROR (InteractionType::CalculateAllDistances): interaction has not yet been evaluated." << EidosTerminate();
+		
+		if (spatiality_ > 0)
 		{
-			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
-			int receiving_index = 0;
-			double *receiving_strength = subpop_data.strengths_;
-			Individual **receiving_individual = subpop_individuals;
+			// Here we use the k-d tree to find all interacting pairs, and calculate their distances.
+			// This does not use reciprocality at all, but I don't think there's a good way to do so, so that's OK.
+			EnsureKDTreePresent(subpop_data);
 			
-			while (receiving_index < subpop_size)
+			slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
+			
+			if (subpop_data.dist_str_)
+				subpop_data.dist_str_->Reset(subpop_size, subpop_size);
+			else
+				subpop_data.dist_str_ = new SparseArray(subpop_size, subpop_size);
+			
+			double *position_data = subpop_data.positions_;
+			int start_row = 0, after_end_row = subpop_size, row;
+			
+			if (receiver_sex_ == IndividualSex::kUnspecified)
+				;
+			else if (receiver_sex_ == IndividualSex::kMale)
+				start_row = subpop_data.first_male_index_;
+			else if (receiver_sex_ == IndividualSex::kFemale)
+				after_end_row = subpop_data.first_male_index_;
+			else
+				EIDOS_TERMINATION << "ERROR (InteractionType::CalculateAllDistances): (internal error) unrecognized value for receiver_sex_." << EidosTerminate();
+			
+			if (exerter_sex_ == IndividualSex::kUnspecified)
 			{
-				int exerting_index = 0;
-				double *exerting_strength = receiving_strength;		// follow the row of receiver data
-				Individual **exerting_individual = subpop_individuals;
-				
-				// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
-				// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
-				if (is_sex_segregated)
+				// Without a specified exerter sex, we can add each exerter with no sex test
+				switch (spatiality_)
 				{
-					while (exerting_index < subpop_size)
-					{
-						if (std::isnan(*exerting_strength))
-						{
-							// Calculate the interaction strength; no need to check for self-interaction here
-							if (no_callbacks)
-								*exerting_strength = CalculateStrengthNoCallbacks(NAN);
-							else
-								*exerting_strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-						}
-						
-						exerting_index++; exerting_strength++; exerting_individual++;
-					}
+					case 1:
+						for (row = start_row; row < after_end_row; row++)
+							BuildSA_1(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_);
+						break;
+					case 2:
+						for (row = start_row; row < after_end_row; row++)
+							BuildSA_2(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
+						break;
+					case 3:
+						for (row = start_row; row < after_end_row; row++)
+							BuildSA_3(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
+						break;
 				}
-				else
-				{
-					while (exerting_index < subpop_size)
-					{
-						if (receiving_index == exerting_index)
-						{
-							// Individuals exert no interaction strength on themselves
-							*exerting_strength = 0;
-						}
-						else
-						{
-							// Calculate the interaction strength
-							if (no_callbacks)
-								*exerting_strength = CalculateStrengthNoCallbacks(NAN);
-							else
-								*exerting_strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-						}
-						
-						exerting_index++; exerting_strength++; exerting_individual++;
-					}
-				}
-				
-				receiving_index++; receiving_strength += subpop_size; receiving_individual++;
 			}
+			else
+			{
+				// With a specified exerter sex, we use a special version of BuildSA_X() that tests for that by range
+				int start_exerter = 0, after_end_exerter = subpop_size;
+				
+				if (exerter_sex_ == IndividualSex::kMale)
+					start_exerter = subpop_data.first_male_index_;
+				else if (exerter_sex_ == IndividualSex::kFemale)
+					after_end_exerter = subpop_data.first_male_index_;
+				else
+					EIDOS_TERMINATION << "ERROR (InteractionType::CalculateAllDistances): (internal error) unrecognized value for exerter_sex_." << EidosTerminate();
+				
+				switch (spatiality_)
+				{
+					case 1:
+						for (row = start_row; row < after_end_row; row++)
+							BuildSA_SS_1(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, start_exerter, after_end_exerter);
+						break;
+					case 2:
+						for (row = start_row; row < after_end_row; row++)
+							BuildSA_SS_2(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, start_exerter, after_end_exerter, 0);
+						break;
+					case 3:
+						for (row = start_row; row < after_end_row; row++)
+							BuildSA_SS_3(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, start_exerter, after_end_exerter, 0);
+						break;
+				}
+			}
+			
+			subpop_data.dist_str_->Finished();
+			subpop_data.distances_calculated_ = true;
 		}
 		else
 		{
-			// Reciprocality, so we will do the top-right half and mirror it down into the bottom-left half
-			// This is essentially parallel to the code above, but with twice the pointers and half the work
-			int receiving_index = 0;
-			double *receiving_strength = subpop_data.strengths_;
-			double *mirror_receiving_strength = subpop_data.strengths_;
-			Individual **receiving_individual = subpop_individuals;
-			
-			while (receiving_index < subpop_size)
-			{
-				int exerting_index = receiving_index;
-				double *exerting_strength = receiving_strength + exerting_index;
-				double *mirror_exerting_strength = mirror_receiving_strength + exerting_index * subpop_size;
-				Individual **exerting_individual = subpop_individuals + exerting_index;
-				
-				if (is_sex_segregated)
-				{
-					while (exerting_index < subpop_size)
-					{
-						if (std::isnan(*exerting_strength))
-						{
-							double strength;
-							
-							if (no_callbacks)
-								strength = CalculateStrengthNoCallbacks(NAN);
-							else
-								strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							
-							*exerting_strength = strength;
-							*mirror_exerting_strength = strength;
-						}
-						
-						exerting_index++; exerting_strength++; exerting_individual++; mirror_exerting_strength += subpop_size;
-					}
-				}
-				else
-				{
-					while (exerting_index < subpop_size)
-					{
-						double strength;
-						
-						if (receiving_index == exerting_index)
-						{
-							strength = 0;
-						}
-						else
-						{
-							if (no_callbacks)
-								strength = CalculateStrengthNoCallbacks(NAN);
-							else
-								strength = CalculateStrengthWithCallbacks(NAN, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-						}
-						
-						*exerting_strength = strength;
-						*mirror_exerting_strength = strength;
-						
-						exerting_index++; exerting_strength++; exerting_individual++; mirror_exerting_strength += subpop_size;
-					}
-				}
-				
-				receiving_index++; receiving_strength += subpop_size; receiving_individual++; mirror_receiving_strength++;
-			}
+			// Non-spatial interactions do not cache anything, since their cache would have to be NxN, which is unacceptable
 		}
 	}
-	else if (periodic_x_ || periodic_y_ || periodic_z_)
+}
+
+void InteractionType::CalculateAllStrengths(Subpopulation *p_subpop)
+{
+	slim_objectid_t subpop_id = p_subpop->subpopulation_id_;
+	InteractionsData &subpop_data = data_[subpop_id];
+	
+	if (!subpop_data.strengths_calculated_)
 	{
-		// Spatial with at least one periodic dimension; we call out to CalculateDistanceWithPeriodicity() in this case.
-		// Otherwise this section is identical to the non-periodic section below, which inlines its distance calculations.
-		if (!reciprocal_)
+		if (!subpop_data.evaluated_)
+			EIDOS_TERMINATION << "ERROR (InteractionType::CalculateAllStrengths): interaction has not yet been evaluated." << EidosTerminate();
+		
+		if (spatiality_ > 0)
 		{
-			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
-			int receiving_index = 0;
-			double *receiving_position = subpop_data.positions_;
-			double *receiving_distance = subpop_data.distances_;
-			double *receiving_strength = subpop_data.strengths_;
-			Individual **receiving_individual = subpop_individuals;
+			if (!subpop_data.distances_calculated_)
+				CalculateAllDistances(p_subpop);
 			
-			while (receiving_index < subpop_size)
+			// Here we scan through the pre-existing sparse array for interacting pairs,
+			// and fill in interaction strength values calculated for each.
+			slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
+			Individual **subpop_individuals = p_subpop->parent_individuals_.data();
+			std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+			SparseArray &dist_str = *subpop_data.dist_str_;
+			
+			if (callbacks.size() == 0)
 			{
-				int exerting_index = 0;
-				double *exerting_position = subpop_data.positions_;
-				double *exerting_distance = receiving_distance;		// follow the row of receiver data
-				double *exerting_strength = receiving_strength;		// follow the row of receiver data
-				Individual **exerting_individual = subpop_individuals;
-				
-				// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
-				// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
-				if (is_sex_segregated)
+				// No callbacks; strength calculations come from the interaction function only
+				// We do not use reciprocity here, as searching for the mirrored entry would probably take longer than just calculating twice
+				for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 				{
-					while (exerting_index < subpop_size)
+					uint32_t row_nnz, *row_columns;
+					sa_distance_t *row_distances;
+					sa_strength_t *row_strengths;
+					
+					dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+					
+					// CalculateStrengthNoCallbacks() is basically inlined here, moved outside the loop; see that function for comments
+					switch (if_type_)
 					{
-						// First, we always calculate the distance
-						double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
-						
-						*exerting_distance = distance;
-						
-						// Then we calculate the strength, only if it is NAN; no need to check for self-interaction here
-						if (std::isnan(*exerting_strength))
+						case IFType::kFixed:
 						{
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									*exerting_strength = CalculateStrengthNoCallbacks(distance);
-								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							}
-							else
-								*exerting_strength = 0.0;
+							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+								row_strengths[col_iter] = (sa_strength_t)if_param1_;
+							break;
 						}
+						case IFType::kLinear:
+						{
+							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+							{
+								sa_distance_t distance = row_distances[col_iter];
+								
+								row_strengths[col_iter] = (sa_strength_t)(if_param1_ * (1.0 - distance / max_distance_));
+							}
+							break;
+						}
+						case IFType::kExponential:
+						{
+							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+							{
+								sa_distance_t distance = row_distances[col_iter];
+								
+								row_strengths[col_iter] = (sa_strength_t)(if_param1_ * exp(-if_param2_ * distance));
+							}
+							break;
+						}
+						case IFType::kNormal:
+						{
+							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+							{
+								sa_distance_t distance = row_distances[col_iter];
+								
+								row_strengths[col_iter] = (sa_strength_t)(if_param1_ * exp(-(distance * distance) / (2.0 * if_param2_ * if_param2_)));
+							}
+							break;
+						}
+						case IFType::kCauchy:
+						{
+							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+							{
+								sa_distance_t distance = row_distances[col_iter];
+								double temp = distance / if_param2_;
+								
+								row_strengths[col_iter] = (sa_strength_t)(if_param1_ / (1.0 + temp * temp));
+							}
+							break;
+						}
+						default:
+						{
+							// should never be hit, but this is the base case
+							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+							{
+								sa_distance_t distance = row_distances[col_iter];
+								
+								row_strengths[col_iter] = (sa_strength_t)CalculateStrengthNoCallbacks(distance);
+							}
+							
+							EIDOS_TERMINATION << "ERROR (InteractionType::CalculateAllStrengths): (internal error) unimplemented IFType case." << EidosTerminate();
+						}
+					}
+				}
+			}
+			else
+			{
+				// Callbacks; strength calculations need to include callback effects
+				// We use reciprocality here, partly for speed and partly to guarantee that A->B == B->A even for stochastic or
+				// state-dependent interaction() callbacks, where calling the callback twice might yield different results.
+				// The tricky thing is that with sex-segregation some strengths may be mirrored while others are not.  For
+				// example, a "MF" interaction has no reciprocal interactions (females exert upon males, exclusively), a "MM"
+				// interaction has only reciprocal interactions (males exert upon males, bidirectionally), but with a "*M"
+				// interaction some interactions are reciprocal (from males to males) while others are not (from males to
+				// females).  So we have three cases: not reciprocal, fully reciprocal, and partially reciprocal.  Note that
+				// these situations are already represented in the structure of the sparse array; if a given interaction is
+				// not reciprocal, the mirror entry for it will not exist in the sparse array.  So we have two goals: to
+				// avoid wasting time looking for mirror entries that aren't there, and to know when a mirror entry *is*
+				// present so that we can confidently skip a calculation knowing that it will be (or has been) filled for us
+				// by the mirror entry.
+				if (!reciprocal_ ||
+					(reciprocal_ && (receiver_sex_ == IndividualSex::kMale) && (exerter_sex_ == IndividualSex::kFemale)) ||
+					(reciprocal_ && (receiver_sex_ == IndividualSex::kFemale) && (exerter_sex_ == IndividualSex::kMale)))
+				{
+					// Not reciprocal (although the reciprocal_ flag may be set).  Each sparse array strength gets calculated.
+					for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
+					{
+						uint32_t row_nnz, *row_columns;
+						sa_distance_t *row_distances;
+						sa_strength_t *row_strengths;
 						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
+						dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+						
+						for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+						{
+							uint32_t col = row_columns[col_iter];
+							sa_distance_t distance = row_distances[col_iter];
+							sa_strength_t strength = (sa_strength_t)CalculateStrengthWithCallbacks(distance, subpop_individuals[row], subpop_individuals[col], p_subpop, callbacks);
+							
+							row_strengths[col_iter] = strength;
+						}
+					}
+				}
+				else if (reciprocal_ && (receiver_sex_ == exerter_sex_))
+				{
+					// Fully reciprocal; exerters and receivers are the same.  We calculate when row <= col, and when
+					// row < col we find the mirror entry and place the calculated value there too.  When row > col,
+					// we assume that the strength will be (or has been) filled in by the mirror entry.
+					for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
+					{
+						uint32_t row_nnz, *row_columns;
+						sa_distance_t *row_distances;
+						sa_strength_t *row_strengths;
+						
+						dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+						
+						for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+						{
+							uint32_t col = row_columns[col_iter];
+							
+							if (row <= col)
+							{
+								sa_distance_t distance = row_distances[col_iter];
+								sa_strength_t strength = (sa_strength_t)CalculateStrengthWithCallbacks(distance, subpop_individuals[row], subpop_individuals[col], p_subpop, callbacks);
+								
+								row_strengths[col_iter] = strength;
+								
+								if (row < col)
+									dist_str.PatchStrength(col, row, strength);
+							}
+						}
 					}
 				}
 				else
 				{
-					while (exerting_index < subpop_size)
+					// Partially reciprocal; there is partial overlap between exerters and receivers.  Basically, for
+					// *->F, *->M, M->*, and F->* interactions there is a reciprocal portion that is either M<->M or
+					// F<->F, and then there is a non-reciprocal portion that is M->F or F->M.  For each interacting
+					// pair, we look at the individuals involved; if their sexes are the same, then the interaction is
+					// reciprocal and we mirror it as above, whereas if their sexes are different the interaction is
+					// non-reciprocal and we simply calculate it.
+					for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 					{
-						if (receiving_index == exerting_index)
+						uint32_t row_nnz, *row_columns;
+						sa_distance_t *row_distances;
+						sa_strength_t *row_strengths;
+						
+						dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+						
+						for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
 						{
-							// Individuals are at zero distance from themselves, but exert no interaction strength
-							*exerting_distance = 0;
-							*exerting_strength = 0;
-						}
-						else
-						{
-							// Calculate the distance and the interaction strength
-							double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
+							uint32_t col = row_columns[col_iter];
+							Individual *receiver = subpop_individuals[row];
+							Individual *exerter = subpop_individuals[col];
 							
-							*exerting_distance = distance;
-							
-							if (distance <= max_distance_)
+							if (receiver->sex_ == exerter->sex_)
 							{
-								if (no_callbacks)
-									*exerting_strength = CalculateStrengthNoCallbacks(distance);
-								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
+								// same sex, so we have reciprocality
+								if (row <= col)
+								{
+									sa_distance_t distance = row_distances[col_iter];
+									sa_strength_t strength = (sa_strength_t)CalculateStrengthWithCallbacks(distance, receiver, exerter, p_subpop, callbacks);
+									
+									row_strengths[col_iter] = strength;
+									
+									if (row < col)
+										dist_str.PatchStrength(col, row, strength);
+								}
 							}
 							else
-								*exerting_strength = 0.0;
+							{
+								// different sexes, no reciprocality
+								sa_distance_t distance = row_distances[col_iter];
+								sa_strength_t strength = (sa_strength_t)CalculateStrengthWithCallbacks(distance, receiver, exerter, p_subpop, callbacks);
+								
+								row_strengths[col_iter] = strength;
+							}
 						}
-						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
 					}
 				}
-				
-				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
 			}
+			
+			subpop_data.strengths_calculated_ = true;
 		}
 		else
 		{
-			// Reciprocality, so we will do the top-right half and mirror it down into the bottom-left half
-			// This is essentially parallel to the code above, but with twice the pointers and half the work
-			int receiving_index = 0;
-			double *receiving_position = subpop_data.positions_;
-			double *receiving_distance = subpop_data.distances_;
-			double *mirror_receiving_distance = subpop_data.distances_;
-			double *receiving_strength = subpop_data.strengths_;
-			double *mirror_receiving_strength = subpop_data.strengths_;
-			Individual **receiving_individual = subpop_individuals;
-			
-			while (receiving_index < subpop_size)
-			{
-				int exerting_index = receiving_index;
-				double *exerting_position = subpop_data.positions_ + exerting_index * SLIM_MAX_DIMENSIONALITY;
-				double *exerting_distance = receiving_distance + exerting_index;
-				double *mirror_exerting_distance = mirror_receiving_distance + exerting_index * subpop_size;
-				double *exerting_strength = receiving_strength + exerting_index;
-				double *mirror_exerting_strength = mirror_receiving_strength + exerting_index * subpop_size;
-				Individual **exerting_individual = subpop_individuals;
-				
-				if (is_sex_segregated)
-				{
-					while (exerting_index < subpop_size)
-					{
-						double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
-						
-						*exerting_distance = distance;
-						*mirror_exerting_distance = distance;
-						
-						if (std::isnan(*exerting_strength))
-						{
-							double strength;
-							
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(distance);
-								else
-									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							}
-							else
-								strength = 0.0;
-							
-							*exerting_strength = strength;
-							*mirror_exerting_strength = strength;
-						}
-						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
-						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
-					}
-				}
-				else
-				{
-					while (exerting_index < subpop_size)
-					{
-						if (receiving_index == exerting_index)
-						{
-							*exerting_distance = 0;
-							*exerting_strength = 0;
-							// no need to set *mirror_exerting_distance or *mirror_exerting_strength, they point to the same memory
-						}
-						else
-						{
-							double distance = CalculateDistanceWithPeriodicity(exerting_position, receiving_position, subpop_data);
-							
-							*exerting_distance = distance;
-							*mirror_exerting_distance = distance;
-							
-							double strength;
-							
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(distance);
-								else
-									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							}
-							else
-								strength = 0.0;
-							
-							*exerting_strength = strength;
-							*mirror_exerting_strength = strength;
-						}
-						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
-						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
-					}
-				}
-				
-				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
-				mirror_receiving_distance++; mirror_receiving_strength++;
-			}
-		}
-	}
-	else
-	{
-		// Spatial interactions involve distances, so we need to calculate those, too.  This is the no-periodicity case.
-		if (!reciprocal_)
-		{
-			// No reciprocality, so we don't need to mirror; just go through strengths_ sequentially
-			int receiving_index = 0;
-			double *receiving_position = subpop_data.positions_;
-			double *receiving_distance = subpop_data.distances_;
-			double *receiving_strength = subpop_data.strengths_;
-			Individual **receiving_individual = subpop_individuals;
-			
-			while (receiving_index < subpop_size)
-			{
-				int exerting_index = 0;
-				double *exerting_position = subpop_data.positions_;
-				double *exerting_distance = receiving_distance;		// follow the row of receiver data
-				double *exerting_strength = receiving_strength;		// follow the row of receiver data
-				Individual **exerting_individual = subpop_individuals;
-				
-				// The inner loop depends on sex-segregation.  If it is enabled, we need to check the existing strength value
-				// and fill only when necessary; if not, we fill in all values with no check because we're overwriting garbage.
-				if (is_sex_segregated)
-				{
-					while (exerting_index < subpop_size)
-					{
-						// First, we always calculate the distance; we've already fetched the cache lines containing the
-						// positions, and we would need to at least write a NAN for the distance, so we should just do it.
-						// We skip the check for self-interaction here; the distance will come out 0, and we avoid a test
-						// and branch.  For large population sizes, that will matter more than doing the work one extra time.
-						double distance;
-						
-						if (spatiality_ == 1)
-						{
-							distance = fabs(exerting_position[0] - receiving_position[0]);
-						}
-						else if (spatiality_ == 2)
-						{
-							double distance_x = (exerting_position[0] - receiving_position[0]);
-							double distance_y = (exerting_position[1] - receiving_position[1]);
-							
-							distance = sqrt(distance_x * distance_x + distance_y * distance_y);
-						}
-						else // if (spatiality_ == 3)
-						{
-							double distance_x = (exerting_position[0] - receiving_position[0]);
-							double distance_y = (exerting_position[1] - receiving_position[1]);
-							double distance_z = (exerting_position[2] - receiving_position[2]);
-							
-							distance = sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
-						}
-						
-						*exerting_distance = distance;
-						
-						// Then we calculate the strength, only if it is NAN; no need to check for self-interaction here
-						if (std::isnan(*exerting_strength))
-						{
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									*exerting_strength = CalculateStrengthNoCallbacks(distance);
-								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							}
-							else
-								*exerting_strength = 0.0;
-						}
-						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
-					}
-				}
-				else
-				{
-					while (exerting_index < subpop_size)
-					{
-						if (receiving_index == exerting_index)
-						{
-							// Individuals are at zero distance from themselves, but exert no interaction strength
-							*exerting_distance = 0;
-							*exerting_strength = 0;
-						}
-						else
-						{
-							// Calculate the distance and the interaction strength
-							double distance;
-							
-							if (spatiality_ == 1)
-							{
-								distance = fabs(exerting_position[0] - receiving_position[0]);
-							}
-							else if (spatiality_ == 2)
-							{
-								double distance_x = (exerting_position[0] - receiving_position[0]);
-								double distance_y = (exerting_position[1] - receiving_position[1]);
-								
-								distance = sqrt(distance_x * distance_x + distance_y * distance_y);
-							}
-							else // if (spatiality_ == 3)
-							{
-								double distance_x = (exerting_position[0] - receiving_position[0]);
-								double distance_y = (exerting_position[1] - receiving_position[1]);
-								double distance_z = (exerting_position[2] - receiving_position[2]);
-								
-								distance = sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
-							}
-							
-							*exerting_distance = distance;
-							
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									*exerting_strength = CalculateStrengthNoCallbacks(distance);
-								else
-									*exerting_strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							}
-							else
-								*exerting_strength = 0.0;
-						}
-						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
-					}
-				}
-				
-				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
-			}
-		}
-		else
-		{
-			// Reciprocality, so we will do the top-right half and mirror it down into the bottom-left half
-			// This is essentially parallel to the code above, but with twice the pointers and half the work
-			int receiving_index = 0;
-			double *receiving_position = subpop_data.positions_;
-			double *receiving_distance = subpop_data.distances_;
-			double *mirror_receiving_distance = subpop_data.distances_;
-			double *receiving_strength = subpop_data.strengths_;
-			double *mirror_receiving_strength = subpop_data.strengths_;
-			Individual **receiving_individual = subpop_individuals;
-			
-			while (receiving_index < subpop_size)
-			{
-				int exerting_index = receiving_index;
-				double *exerting_position = subpop_data.positions_ + exerting_index * SLIM_MAX_DIMENSIONALITY;
-				double *exerting_distance = receiving_distance + exerting_index;
-				double *mirror_exerting_distance = mirror_receiving_distance + exerting_index * subpop_size;
-				double *exerting_strength = receiving_strength + exerting_index;
-				double *mirror_exerting_strength = mirror_receiving_strength + exerting_index * subpop_size;
-				Individual **exerting_individual = subpop_individuals;
-				
-				if (is_sex_segregated)
-				{
-					while (exerting_index < subpop_size)
-					{
-						double distance;
-						
-						if (spatiality_ == 1)
-						{
-							distance = fabs(exerting_position[0] - receiving_position[0]);
-						}
-						else if (spatiality_ == 2)
-						{
-							double distance_x = (exerting_position[0] - receiving_position[0]);
-							double distance_y = (exerting_position[1] - receiving_position[1]);
-							
-							distance = sqrt(distance_x * distance_x + distance_y * distance_y);
-						}
-						else // if (spatiality_ == 3)
-						{
-							double distance_x = (exerting_position[0] - receiving_position[0]);
-							double distance_y = (exerting_position[1] - receiving_position[1]);
-							double distance_z = (exerting_position[2] - receiving_position[2]);
-							
-							distance = sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
-						}
-						
-						*exerting_distance = distance;
-						*mirror_exerting_distance = distance;
-						
-						if (std::isnan(*exerting_strength))
-						{
-							double strength;
-							
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(distance);
-								else
-									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							}
-							else
-								strength = 0.0;
-							
-							*exerting_strength = strength;
-							*mirror_exerting_strength = strength;
-						}
-						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
-						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
-					}
-				}
-				else
-				{
-					while (exerting_index < subpop_size)
-					{
-						if (receiving_index == exerting_index)
-						{
-							*exerting_distance = 0;
-							*exerting_strength = 0;
-							// no need to set *mirror_exerting_distance or *mirror_exerting_strength, they point to the same memory
-						}
-						else
-						{
-							double distance;
-							
-							if (spatiality_ == 1)
-							{
-								distance = fabs(exerting_position[0] - receiving_position[0]);
-							}
-							else if (spatiality_ == 2)
-							{
-								double distance_x = (exerting_position[0] - receiving_position[0]);
-								double distance_y = (exerting_position[1] - receiving_position[1]);
-								
-								distance = sqrt(distance_x * distance_x + distance_y * distance_y);
-							}
-							else // if (spatiality_ == 3)
-							{
-								double distance_x = (exerting_position[0] - receiving_position[0]);
-								double distance_y = (exerting_position[1] - receiving_position[1]);
-								double distance_z = (exerting_position[2] - receiving_position[2]);
-								
-								distance = sqrt(distance_x * distance_x + distance_y * distance_y + distance_z * distance_z);
-							}
-							
-							*exerting_distance = distance;
-							*mirror_exerting_distance = distance;
-							
-							double strength;
-							
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(distance);
-								else
-									strength = CalculateStrengthWithCallbacks(distance, *receiving_individual, *exerting_individual, p_subpop, callbacks);
-							}
-							else
-								strength = 0.0;
-							
-							*exerting_strength = strength;
-							*mirror_exerting_strength = strength;
-						}
-						
-						exerting_index++; exerting_position += SLIM_MAX_DIMENSIONALITY; exerting_distance++; exerting_strength++; exerting_individual++;
-						mirror_exerting_distance += subpop_size; mirror_exerting_strength += subpop_size;
-					}
-				}
-				
-				receiving_index++; receiving_position += SLIM_MAX_DIMENSIONALITY; receiving_distance += subpop_size; receiving_strength += subpop_size; receiving_individual++;
-				mirror_receiving_distance++; mirror_receiving_strength++;
-			}
+			// Non-spatial interactions do not cache anything, since their cache would have to be NxN, which is unacceptable
 		}
 	}
 }
@@ -1233,9 +938,12 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 {
 	// CAUTION: This method should only be called when p_distance <= max_distance_ (or is NAN).
 	// It is the caller's responsibility to do that filtering, for performance reasons!
-	// NOTE: The caller does *not* need to guarantee that this is not a self-interaction.
-	// That is taken care of automatically by the logic in EnsureStrengthsPresent(), which
-	// zeroes out all self-interactions at the outset.  This will never be called in that case.
+	// NOTE: The caller does *not* need to guarantee that this is not a self-interaction,
+	// or is not ruled out by sex-selectivity; that is taken care of automatically by the
+	// logic in CalculateAllDistances().  (If CalculateAllDistances() is not involved, then
+	// ruling out the self-interaction case is indeed the caller's responsibility.)
+	
+	// MAINTAIN IN PARALLEL: InteractionType::CalculateAllStrengths()
 	switch (if_type_)
 	{
 		case IFType::kFixed:
@@ -1258,9 +966,10 @@ double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Indivi
 {
 	// CAUTION: This method should only be called when p_distance <= max_distance_ (or is NAN).
 	// It is the caller's responsibility to do that filtering, for performance reasons!
-	// NOTE: The caller does *not* need to guarantee that this is not a self-interaction.
-	// That is taken care of automatically by the logic in EnsureStrengthsPresent(), which
-	// zeroes out all self-interactions at the outset.  This will never be called in that case.
+	// NOTE: The caller does *not* need to guarantee that this is not a self-interaction,
+	// or is not ruled out by sex-selectivity; that is taken care of automatically by the
+	// logic in CalculateAllDistances().  (If CalculateAllDistances() is not involved, then
+	// ruling out the self-interaction case is indeed the caller's responsibility.)
 	double strength = CalculateStrengthNoCallbacks(p_distance);
 	
 	strength = ApplyInteractionCallbacks(p_receiver, p_exerter, p_subpop, strength, p_distance, p_interaction_callbacks);
@@ -1377,157 +1086,6 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	return p_strength;
 }
 
-void InteractionType::EnsureDistancesPresent(InteractionsData &p_subpop_data)
-{
-	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureDistancesPresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
-	
-	if (!p_subpop_data.distances_ && spatiality_)
-	{
-		int subpop_size = p_subpop_data.individual_count_;
-		int matrix_size = subpop_size * subpop_size;
-		
-		p_subpop_data.distances_ = (double *)malloc(matrix_size * sizeof(double));
-		
-		InitializeDistances(p_subpop_data);
-	}
-}
-
-void InteractionType::InitializeDistances(InteractionsData &p_subpop_data)
-{
-	double *values = p_subpop_data.distances_;
-	slim_popsize_t subpop_size = p_subpop_data.individual_count_;
-	int matrix_size = subpop_size * subpop_size;
-	
-	// Fill with NAN initially, to mark that the distance values have not been calculated.
-	// The compiler is smart enough to replace this with _platform_memset_pattern16...(),
-	// so it ends up being as optimized as it can get, probably, on OS X at least.
-	double *value_ptr = values;
-	double *values_end = values + matrix_size;
-	
-	while (value_ptr < values_end)
-		*(value_ptr++) = NAN;
-	
-	// Set distances between an individual and itself to zero.  By doing this here, we
-	// save a little work elsewhere, but unlike the case of EnsureStrengthsPresent(), this
-	// is non-essential; it's just an optimization.
-	for (int ind_index = 0; ind_index < subpop_size; ++ind_index)
-		values[ind_index * (subpop_size + 1)] = 0.0;
-}
-
-void InteractionType::EnsureStrengthsPresent(InteractionsData &p_subpop_data)
-{
-	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureStrengthsPresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
-	
-	if (!p_subpop_data.distances_ && spatiality_)
-		EnsureDistancesPresent(p_subpop_data);
-	
-	if (!p_subpop_data.strengths_)
-	{
-		int subpop_size = p_subpop_data.individual_count_;
-		int matrix_size = subpop_size * subpop_size;
-		
-		p_subpop_data.strengths_ = (double *)malloc(matrix_size * sizeof(double));
-		
-		InitializeStrengths(p_subpop_data);
-	}
-}
-
-void InteractionType::InitializeStrengths(InteractionsData &p_subpop_data)
-{
-	double *values = p_subpop_data.strengths_;
-	slim_popsize_t subpop_size = p_subpop_data.individual_count_;
-	int matrix_size = subpop_size * subpop_size;
-	bool is_sex_segregated = ((receiver_sex_ != IndividualSex::kUnspecified) || (exerter_sex_ != IndividualSex::kUnspecified));
-	
-	if (is_sex_segregated)
-	{
-		// If we have some sort of sex-segregation going on, we take the slow path here.  We
-		// set interactions that are enabled by the sex-segregation to NAN, to indicate that
-		// they need to be calculated; others are set to 0.0 to short-circuit calculation.
-		// This is not just an optimization; it is how sex-segregation works at all.
-		slim_popsize_t first_male_index = p_subpop_data.first_male_index_;
-		int receiving_index = 0;
-		double *receiving_strength = p_subpop_data.strengths_;
-		
-		while (receiving_index < subpop_size)
-		{
-			int exerting_index = 0;
-			double *exerting_strength = receiving_strength;		// follow the row of receiver data
-			
-			if (((receiver_sex_ == IndividualSex::kMale) && (receiving_index < first_male_index)) || ((receiver_sex_ == IndividualSex::kFemale) && (receiving_index >= first_male_index)))
-			{
-				// The receiver is the wrong sex; the whole row can be filled with 0.0 (no interaction)
-				while (exerting_index < subpop_size)
-				{
-					*exerting_strength = 0.0;
-					exerting_index++; exerting_strength++;
-				}
-			}
-			else
-			{
-				// The receiver is of the right sex; only the exerter now needs to be checked
-				if (exerter_sex_ == IndividualSex::kMale)
-				{
-					// 0.0 (no interaction) for female exerters, NAN (uncalculated) for male exerters
-					while (exerting_index < first_male_index)
-					{
-						*exerting_strength = 0.0;
-						exerting_index++; exerting_strength++;
-					}
-					while (exerting_index < subpop_size)
-					{
-						*exerting_strength = NAN;
-						exerting_index++; exerting_strength++;
-					}
-				}
-				else if (exerter_sex_ == IndividualSex::kFemale)
-				{
-					// NAN (uncalculated) for female exerters, 0.0 (no interaction) for male exerters
-					while (exerting_index < first_male_index)
-					{
-						*exerting_strength = NAN;
-						exerting_index++; exerting_strength++;
-					}
-					while (exerting_index < subpop_size)
-					{
-						*exerting_strength = 0.0;
-						exerting_index++; exerting_strength++;
-					}
-				}
-				else if (exerter_sex_ == IndividualSex::kUnspecified)
-				{
-					// NAN (uncalculated) for all exerters
-					while (exerting_index < subpop_size)
-					{
-						*exerting_strength = NAN;
-						exerting_index++; exerting_strength++;
-					}
-				}
-			}
-			
-			receiving_index++; receiving_strength += subpop_size;
-		}
-	}
-	else
-	{
-		// Fill with NAN initially, to mark that the distance values have not been calculated.
-		// The compiler is smart enough to replace this with _platform_memset_pattern16...(),
-		// so it ends up being as optimized as it can get, probably, on OS X at least.
-		double *value_ptr = values;
-		double *values_end = values + matrix_size;
-		
-		while (value_ptr < values_end)
-			*(value_ptr++) = NAN;
-	}
-	
-	// Set interactions between an individual and itself to zero.  By doing this here, we
-	// eliminate the need to check for this case elsewhere; even when a strength has not
-	// been cached in general, it can be assumed that self-interactions are cached.
-	for (int ind_index = 0; ind_index < subpop_size; ++ind_index)
-		values[ind_index * (subpop_size + 1)] = 0.0;
-}
 
 #pragma mark -
 #pragma mark k-d tree construction
@@ -2099,7 +1657,7 @@ void InteractionType::CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLef
 
 
 #pragma mark -
-#pragma mark k-d tree neighbor searches
+#pragma mark k-d tree sparse array building
 #pragma mark -
 
 inline __attribute__((always_inline)) double dist_sq1(SLiM_kdNode *a, double *b)
@@ -2149,6 +1707,334 @@ inline __attribute__((always_inline)) double dist_sq3(SLiM_kdNode *a, double *b)
 	return 0.0;
 #endif
 }
+
+// add neighbors to the sparse array in 1D
+void InteractionType::BuildSA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array)
+{
+	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSA_1(root->left, nd, p_focal_individual_index, p_sparse_array);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSA_1(root->right, nd, p_focal_individual_index, p_sparse_array);
+	}
+	else
+	{
+		if (root->right)
+			BuildSA_1(root->right, nd, p_focal_individual_index, p_sparse_array);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSA_1(root->left, nd, p_focal_individual_index, p_sparse_array);
+	}
+}
+
+// add neighbors to the sparse array in 2D
+#if 0
+// recursive algorithm, perhaps a bit slow but the compiler seems to do a good job with it actually
+void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSA_2(root->left, nd, p_focal_individual_index, p_sparse_array, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSA_2(root->right, nd, p_focal_individual_index, p_sparse_array, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSA_2(root->right, nd, p_focal_individual_index, p_sparse_array, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSA_2(root->left, nd, p_focal_individual_index, p_sparse_array, p_phase);
+	}
+}
+#else
+// non-recursive algorithm: barely a speed improvement as it turns out, and unsafe right now since it doesn't check for blowing out its stack.
+// for a test with 100,000 individuals, the recursive algorithm takes 55.61s, this takes 51.51s (only one replicate run).
+// I guess I'll use this version; I've made the stack plenty deep so it shouldn't ever run out.  So why not, it's faster.
+// But for now, I don't think I will do the same for the (less common) 1D and 3D cases, to keep the code base simple.
+// I'm a bit surprised by how slow this is – more than 50% of total runtime for that test model.  Maybe Boyana will have ideas.
+static SLiM_kdNode *(recurse_root[1000]);
+static int (recurse_phase[1000]);
+
+void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
+{
+	int recurse_top = 0;
+	double local_max_distance_sq = max_distance_sq_;	// put a few non-local things into local variables so the compiler can cache them in registers
+	double local_nd_0 = nd[0], local_nd_1 = nd[1];
+	
+recurse_SA_2:
+	double root_x_0 = root->x[0], root_x_1 = root->x[1];
+	double d = (root_x_0 - local_nd_0)*(root_x_0 - local_nd_0) + (root_x_1 - local_nd_1)*(root_x_1 - local_nd_1);
+	double dx = (p_phase == 0) ? (root_x_0 - local_nd_0) : (root_x_1 - local_nd_1);
+	double dx2 = dx * dx;
+	
+	if ((d <= local_max_distance_sq) && (root->individual_index_ != p_focal_individual_index))
+		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if ((dx2 <= local_max_distance_sq) && (root->right))
+		{
+			// We want to do root->right after root->left
+			if (root->left)
+			{
+				// We have root->left to do as well, so we need to push (root = root->right, phase = p_phase) for later
+				recurse_root[recurse_top] = root->right;
+				recurse_phase[recurse_top] = p_phase;
+				recurse_top++;
+				
+				// And then do root->left
+				root = root->left;
+				goto recurse_SA_2;
+			}
+			else
+			{
+				// We don't have root->left to do, so we can do root->right immediately
+				root = root->right;
+				goto recurse_SA_2;
+			}
+		}
+		else if (root->left)
+		{
+			// We have only root->left to do, so we can do it immediately
+			root = root->left;
+			goto recurse_SA_2;
+		}
+	}
+	else
+	{
+		if ((dx2 <= local_max_distance_sq) && (root->left))
+		{
+			// We want to do root->left after root->right
+			if (root->right)
+			{
+				// We have root->right to do as well, so we need to push (root = root->left, phase = p_phase) for later
+				recurse_root[recurse_top] = root->left;
+				recurse_phase[recurse_top] = p_phase;
+				recurse_top++;
+				
+				// And then do root->right
+				root = root->right;
+				goto recurse_SA_2;
+			}
+			else
+			{
+				// We don't have root->right to do, so we can do root->left immediately
+				root = root->left;
+				goto recurse_SA_2;
+			}
+		}
+		else if (root->right)
+		{
+			// We have only root->right to do, so we can do it immediately
+			root = root->right;
+			goto recurse_SA_2;
+		}
+	}
+	// We have finished a recursion, so we can pop a task off our stack and loop back
+	if (recurse_top)
+	{
+		--recurse_top;
+		root = recurse_root[recurse_top];
+		p_phase = recurse_phase[recurse_top];
+		
+		goto recurse_SA_2;
+	}
+}
+#endif
+
+// add neighbors to the sparse array in 3D
+void InteractionType::BuildSA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
+{
+	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSA_3(root->left, nd, p_focal_individual_index, p_sparse_array, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSA_3(root->right, nd, p_focal_individual_index, p_sparse_array, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSA_3(root->right, nd, p_focal_individual_index, p_sparse_array, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSA_3(root->left, nd, p_focal_individual_index, p_sparse_array, p_phase);
+	}
+}
+
+// add neighbors to the sparse array in 1D (exerter sex-specific)
+void InteractionType::BuildSA_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter)
+{
+	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
+		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSA_SS_1(root->left, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSA_SS_1(root->right, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter);
+	}
+	else
+	{
+		if (root->right)
+			BuildSA_SS_1(root->right, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSA_SS_1(root->left, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter);
+	}
+}
+
+// add neighbors to the sparse array in 2D (exerter sex-specific)
+void InteractionType::BuildSA_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
+		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSA_SS_2(root->left, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSA_SS_2(root->right, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSA_SS_2(root->right, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSA_SS_2(root->left, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+	}
+}
+
+// add neighbors to the sparse array in 3D (exerter sex-specific)
+void InteractionType::BuildSA_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase)
+{
+	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
+		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSA_SS_3(root->left, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSA_SS_3(root->right, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSA_SS_3(root->right, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSA_SS_3(root->left, nd, p_focal_individual_index, p_sparse_array, start_exerter, after_end_exerter, p_phase);
+	}
+}
+
+
+#pragma mark -
+#pragma mark k-d tree neighbor searches
+#pragma mark -
 
 // find the one best neighbor in 1D
 void InteractionType::FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist)
@@ -2709,1627 +2595,6 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 	}
 }
 
-#pragma mark -
-#pragma mark k-d tree total strength calculation
-#pragma mark -
-
-// the functions below can work with the globals here to execute callbacks; it would be slightly faster to replicate all the code
-// and eliminate the if (!gSLiM_Recursive_callbacks), but that is only hit when we find a neighbor with an uncalculated strength
-static Subpopulation *gSLiM_Recursive_subpop = nullptr;
-static Individual *gSLiM_Recursive_receiver = nullptr;
-static std::vector<SLiMEidosBlock*> *gSLiM_Recursive_callbacks = nullptr;
-
-// total all neighbor strengths in 1D
-double InteractionType::TotalNeighborStrengthA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths)
-{
-	double dx = root->x[0] - nd[0];
-	double distance = fabs(dx);
-	double total = 0.0;
-	
-	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
-	
-	if (distance <= max_distance_)
-	{
-		slim_popsize_t root_individual_index = root->individual_index_;
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		total += strength;
-	}
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_1(root->left, nd, p_focal_strengths);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_1(root->right, nd, p_focal_strengths);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_1(root->right, nd, p_focal_strengths);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_1(root->left, nd, p_focal_strengths);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size)
-{
-	double dx = root->x[0] - nd[0];
-	double distance = fabs(dx);
-	double total = 0.0;
-	
-	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
-	
-	if (distance <= max_distance_)
-	{
-		slim_popsize_t root_individual_index = root->individual_index_;
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		total += strength;
-	}
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_1_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, subpop_size);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_1_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, subpop_size);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_1_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, subpop_size);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_1_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, subpop_size);
-	}
-	
-	return total;
-}
-
-// total all neighbor strengths in 2D
-double InteractionType::TotalNeighborStrengthA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		total += strength;
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_2(root->left, nd, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_2(root->right, nd, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_2(root->right, nd, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_2(root->left, nd, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-		*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		total += strength;
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_2_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_2_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_2_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_2_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	
-	return total;
-}
-
-// total all neighbor strengths in 3D
-double InteractionType::TotalNeighborStrengthA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		total += strength;
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_3(root->left, nd, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_3(root->right, nd, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_3(root->right, nd, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_3(root->left, nd, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-		*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		total += strength;
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_3_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_3_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_3_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_3_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	
-	return total;
-}
-
-// Now come PERIODIC versions of the above methods, called whenever periodic boundary conditions are enabled for any of the
-// interaction dimensions.  This is necessary because with periodic boundaries we have a problem: for any given interaction
-// there is more than one spatial pairing for that interaction, between different mirrored pairs.  We consider the pairing
-// with the minimum distance to be "canonical", and all other pairings should be ignored (i.e., have interaction strength
-// zero).  We are guaranteed that the canonical pairing is the one that falls inside the maximum interaction distance (if
-// any of the pairings does), and in the k-d tree code that's the only simple way to tell since we only have the positions
-// for the current nodes (which might or might not be mirrors) and we don't know what the spatial bounds are.  We're just
-// too deep in the weeds at this point.  So.  We need to avoid caching an incorrect (non-canonical) distance in the
-// distance matrix, so we only fill in distances if they are less than the max interaction distance.  This fixes a bug
-// where incorrect (non-canonical) distances were getting filled in some cases.  I branched the code for this periodic
-// case so that the non-periodic case is not slowed down by flag checks etc., and can still always fill in distances.  Note
-// that the 1-D case does not need to be treated separately here because its code does not use the distance cache anyway;
-// it will never fill in an incorrect distance.  BCH 1/25/2018
-
-// In addition, for these TotalNeighborStrength...() methods, we need to guarantee that in the periodic case we count the
-// interaction strength for a pair only once, even though we might visit the pair more than once during our neighbor search.
-// Multiple visitation is possible, even though only the canonical pair will be within the maximum distance, because we
-// might (1) visit the canonical pair first and cache its distance and strength, and then (2) visit a non-canonical mirror
-// pair later, fetch the cached distance, and thus try to re-count.  It would really be simpler if we just didn't use the
-// distance cache at all in the periodic case, honestly; but it is too big a performance win to give up on.  BCH 1/25/2018
-
-double InteractionType::TotalNeighborStrengthA_1_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths)
-{
-	double dx = root->x[0] - nd[0];
-	double distance = fabs(dx);
-	double total = 0.0;
-	
-	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
-	
-	if (distance <= max_distance_)
-	{
-		slim_popsize_t root_individual_index = root->individual_index_;
-		
-		if (!p_visited_buf[root_individual_index])
-		{
-			double strength = p_focal_strengths[root_individual_index];
-			
-			if (std::isnan(strength))
-			{
-				if (!gSLiM_Recursive_callbacks)
-					strength = CalculateStrengthNoCallbacks(distance);
-				else
-					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-				
-				p_focal_strengths[root_individual_index] = strength;
-			}
-			
-			total += strength;
-			p_visited_buf[root_individual_index] = true;
-		}
-	}
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_1_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_1_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_1_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_1_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_1_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size)
-{
-	double dx = root->x[0] - nd[0];
-	double distance = fabs(dx);
-	double total = 0.0;
-	
-	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
-	
-	if (distance <= max_distance_)
-	{
-		slim_popsize_t root_individual_index = root->individual_index_;
-		
-		if (!p_visited_buf[root_individual_index])
-		{
-			double strength = p_focal_strengths[root_individual_index];
-			
-			if (std::isnan(strength))
-			{
-				if (!gSLiM_Recursive_callbacks)
-					strength = CalculateStrengthNoCallbacks(distance);
-				else
-					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-				
-				p_focal_strengths[root_individual_index] = strength;
-				*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-			}
-			
-			total += strength;
-			p_visited_buf[root_individual_index] = true;
-		}
-	}
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
-		
-		if (distance > max_distance_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_1_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, subpop_size);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_2_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-			p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		if (!p_visited_buf[root_individual_index])
-		{
-			double strength = p_focal_strengths[root_individual_index];
-			
-			if (std::isnan(strength))
-			{
-				if (!gSLiM_Recursive_callbacks)
-					strength = CalculateStrengthNoCallbacks(distance);
-				else
-					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-				
-				p_focal_strengths[root_individual_index] = strength;
-			}
-			
-			total += strength;
-			p_visited_buf[root_individual_index] = true;
-		}
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_2_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_2_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_2_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_2_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-		{
-			p_focal_distances[root_individual_index] = distance;
-			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-		}
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		if (!p_visited_buf[root_individual_index])
-		{
-			double strength = p_focal_strengths[root_individual_index];
-			
-			if (std::isnan(strength))
-			{
-				if (!gSLiM_Recursive_callbacks)
-					strength = CalculateStrengthNoCallbacks(distance);
-				else
-					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-				
-				p_focal_strengths[root_individual_index] = strength;
-				*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-			}
-			
-			total += strength;
-			p_visited_buf[root_individual_index] = true;
-		}
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_2_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_3_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-			p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		if (!p_visited_buf[root_individual_index])
-		{
-			double strength = p_focal_strengths[root_individual_index];
-			
-			if (std::isnan(strength))
-			{
-				if (!gSLiM_Recursive_callbacks)
-					strength = CalculateStrengthNoCallbacks(distance);
-				else
-					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-				
-				p_focal_strengths[root_individual_index] = strength;
-			}
-			
-			total += strength;
-			p_visited_buf[root_individual_index] = true;
-		}
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_3_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_3_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_3_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_3_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_focal_distances, p_phase);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrengthA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-		{
-			p_focal_distances[root_individual_index] = distance;
-			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-		}
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	double total = 0.0;
-	
-	if (distance <= max_distance_)
-	{
-		if (!p_visited_buf[root_individual_index])
-		{
-			double strength = p_focal_strengths[root_individual_index];
-			
-			if (std::isnan(strength))
-			{
-				if (!gSLiM_Recursive_callbacks)
-					strength = CalculateStrengthNoCallbacks(distance);
-				else
-					strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-				
-				p_focal_strengths[root_individual_index] = strength;
-				*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-			}
-			
-			total += strength;
-			p_visited_buf[root_individual_index] = true;
-		}
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->right)
-			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->right, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-		
-		if (dx2 > max_distance_sq_) return total;
-		
-		if (root->left)
-			total += TotalNeighborStrengthA_3_reciprocal_PERIODIC(root->left, nd, p_visited_buf, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_phase);
-	}
-	
-	return total;
-}
-
-double InteractionType::TotalNeighborStrength(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual)
-{
-	if (spatiality_ == 0)
-	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
-	}
-	else if (!p_subpop_data.kd_nodes_)
-	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) the k-d tree has not been constructed." << EidosTerminate();
-	}
-	else if (!p_subpop_data.kd_root_)
-	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::TotalNeighborStrength): (internal error) the k-d tree is rootless." << EidosTerminate();
-	}
-	else
-	{
-		slim_popsize_t focal_index = p_excluded_individual->index_;
-		int subpop_size = (int)p_subpop_data.individual_count_;
-		double *focal_strengths = p_subpop_data.strengths_ + focal_index * subpop_size;
-		double *mirror_strengths = p_subpop_data.strengths_ + focal_index;				// for reciprocality
-		double *focal_distances = p_subpop_data.distances_ + focal_index * subpop_size;
-		double *mirror_distances = p_subpop_data.distances_ + focal_index;				// for reciprocality
-		std::vector<SLiMEidosBlock*> &callbacks = p_subpop_data.evaluation_interaction_callbacks_;
-		bool periodicity_enabled = (periodic_x_ || periodic_y_ || periodic_z_);
-		
-		if (callbacks.size() == 0)
-		{
-			// No callbacks; we can assume that the callback-related globals are nilled out
-			if (!periodicity_enabled)
-			{
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: return TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths);
-						case 2: return TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
-						case 3: return TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0);
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: return TotalNeighborStrengthA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size);
-						case 2: return TotalNeighborStrengthA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
-						case 3: return TotalNeighborStrengthA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
-					}
-				}
-			}
-			else
-			{
-				// for the periodic case we need to prevent multiple-counting so we need a buffer of visited flags; we alloc it statically
-				static uint8_t *s_visited_buf = nullptr;
-				static int s_visited_buf_size = -1;
-				
-				if (s_visited_buf_size < subpop_size)
-				{
-					s_visited_buf = (uint8_t *)realloc(s_visited_buf, subpop_size * sizeof(uint8_t));
-					s_visited_buf_size = subpop_size;
-				}
-				
-				EIDOS_BZERO(s_visited_buf, subpop_size * sizeof(uint8_t));
-				
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: return TotalNeighborStrengthA_1_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths);
-						case 2: return TotalNeighborStrengthA_2_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0);
-						case 3: return TotalNeighborStrengthA_3_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0);
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: return TotalNeighborStrengthA_1_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, subpop_size);
-						case 2: return TotalNeighborStrengthA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
-						case 3: return TotalNeighborStrengthA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0);
-					}
-				}
-			}
-			
-			return 0.0;
-		}
-		else
-		{
-			// We have callbacks, so populate our callback-related globals
-			gSLiM_Recursive_subpop = p_subpop;
-			gSLiM_Recursive_receiver = p_excluded_individual;
-			gSLiM_Recursive_callbacks = &callbacks;
-			
-			double total;
-			
-			if (!periodicity_enabled)
-			{
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: total = TotalNeighborStrengthA_1(p_subpop_data.kd_root_, p_point, focal_strengths); break;
-						case 2: total = TotalNeighborStrengthA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
-						case 3: total = TotalNeighborStrengthA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, 0); break;
-						default: total = 0.0; break;
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: total = TotalNeighborStrengthA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size); break;
-						case 2: total = TotalNeighborStrengthA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
-						case 3: total = TotalNeighborStrengthA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
-						default: total = 0.0; break;
-					}
-				}
-			}
-			else
-			{
-				// for the periodic case we need to prevent multiple-counting so we need a buffer of visited flags; we alloc it statically
-				static uint8_t *s_visited_buf = nullptr;
-				static int s_visited_buf_size = -1;
-				
-				if (s_visited_buf_size < subpop_size)
-				{
-					s_visited_buf = (uint8_t *)realloc(s_visited_buf, subpop_size * sizeof(uint8_t));
-					s_visited_buf_size = subpop_size;
-				}
-				
-				EIDOS_BZERO(s_visited_buf, subpop_size * sizeof(uint8_t));
-				
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: total = TotalNeighborStrengthA_1_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths); break;
-						case 2: total = TotalNeighborStrengthA_2_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0); break;
-						case 3: total = TotalNeighborStrengthA_3_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, focal_distances, 0); break;
-						default: total = 0.0; break;
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: total = TotalNeighborStrengthA_1_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, subpop_size); break;
-						case 2: total = TotalNeighborStrengthA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
-						case 3: total = TotalNeighborStrengthA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, s_visited_buf, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, 0); break;
-						default: total = 0.0; break;
-					}
-				}
-			}
-			
-			gSLiM_Recursive_subpop = nullptr;
-			gSLiM_Recursive_receiver = nullptr;
-			gSLiM_Recursive_callbacks = nullptr;
-			
-			return total;
-		}
-	}
-}
-
-
-#pragma mark -
-#pragma mark k-d tree neighbor strength fetching
-#pragma mark -
-
-// fetch all neighbor strengths in 1D
-void InteractionType::FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_result_vec)
-{
-	double dx = root->x[0] - nd[0];
-	double distance = fabs(dx);
-	
-	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
-	
-	if (distance <= max_distance_)
-	{
-		slim_popsize_t root_individual_index = root->individual_index_;
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_1(root->left, nd, p_focal_strengths, p_result_vec);
-		
-		if (distance > max_distance_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_1(root->right, nd, p_focal_strengths, p_result_vec);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_1(root->right, nd, p_focal_strengths, p_result_vec);
-		
-		if (distance > max_distance_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_1(root->left, nd, p_focal_strengths, p_result_vec);
-	}
-}
-
-void InteractionType::FillNeighborStrengthsA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size, double *p_result_vec)
-{
-	double dx = root->x[0] - nd[0];
-	double distance = fabs(dx);
-	
-	// Note we don't use p_focal_distances[] in 1D; it doesn't seem to be worth the overhead, since we need dx anyway...
-	
-	if (distance <= max_distance_)
-	{
-		slim_popsize_t root_individual_index = root->individual_index_;
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_1_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, subpop_size, p_result_vec);
-		
-		if (distance > max_distance_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_1_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, subpop_size, p_result_vec);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_1_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, subpop_size, p_result_vec);
-		
-		if (distance > max_distance_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_1_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, subpop_size, p_result_vec);
-	}
-}
-
-// fetch all neighbor strengths in 2D
-void InteractionType::FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_2(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_2(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_2(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_2(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-}
-
-void InteractionType::FillNeighborStrengthsA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-		*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_2_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_2_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_2_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_2_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-}
-
-// fetch all neighbor strengths in 3D
-void InteractionType::FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_3(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_3(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_3(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_3(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-}
-
-void InteractionType::FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		p_focal_distances[root_individual_index] = distance;
-		*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_3_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_3_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_3_reciprocal(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_3_reciprocal(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-}
-
-// Now come PERIODIC versions of the above methods, called whenever periodic boundary conditions are enabled for any of the
-// interaction dimensions.  This is necessary because with periodic boundaries we have a problem: for any given interaction
-// there is more than one spatial pairing for that interaction, between different mirrored pairs.  We consider the pairing
-// with the minimum distance to be "canonical", and all other pairings should be ignored (i.e., have interaction strength
-// zero).  We are guaranteed that the canonical pairing is the one that falls inside the maximum interaction distance (if
-// any of the pairings does), and in the k-d tree code that's the only simple way to tell since we only have the positions
-// for the current nodes (which might or might not be mirrors) and we don't know what the spatial bounds are.  We're just
-// too deep in the weeds at this point.  So.  We need to avoid caching an incorrect (non-canonical) distance in the
-// distance matrix, so we only fill in distances if they are less than the max interaction distance.  This fixes a bug
-// where incorrect (non-canonical) distances were getting filled in some cases.  I branched the code for this periodic
-// case so that the non-periodic case is not slowed down by flag checks etc., and can still always fill in distances.  Note
-// that the 1-D case does not need to be treated separately here because its code does not use the distance cache anyway;
-// it will never fill in an incorrect distance.  BCH 1/25/2018
-
-void InteractionType::FillNeighborStrengthsA_2_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-			p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_2_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_2_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_2_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_2_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-}
-
-void InteractionType::FillNeighborStrengthsA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq2(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-		{
-			p_focal_distances[root_individual_index] = distance;
-			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-		}
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_2_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-}
-
-void InteractionType::FillNeighborStrengthsA_3_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-			p_focal_distances[root_individual_index] = distance;
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_3_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_3_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_3_PERIODIC(root->right, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_3_PERIODIC(root->left, nd, p_focal_strengths, p_focal_distances, p_result_vec, p_phase);
-	}
-}
-
-void InteractionType::FillNeighborStrengthsA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase)
-{
-	slim_popsize_t root_individual_index = root->individual_index_;
-	double distance = p_focal_distances[root_individual_index];
-	
-	if (std::isnan(distance))
-	{
-		distance = sqrt(dist_sq3(root, nd));
-		
-		// PERIODIC: we can only fill in the distance cache if we know that this is the canonical (i.e. minimum) distance for the pair
-		if (distance <= max_distance_)
-		{
-			p_focal_distances[root_individual_index] = distance;
-			*(p_mirror_distances + root_individual_index * subpop_size) = distance;
-		}
-	}
-	
-	double dx = root->x[p_phase] - nd[p_phase];
-	double dx2 = dx * dx;
-	
-	if (distance <= max_distance_)
-	{
-		double strength = p_focal_strengths[root_individual_index];
-		
-		if (std::isnan(strength))
-		{
-			if (!gSLiM_Recursive_callbacks)
-				strength = CalculateStrengthNoCallbacks(distance);
-			else
-				strength = CalculateStrengthWithCallbacks(distance, gSLiM_Recursive_receiver, gSLiM_Recursive_subpop->parent_individuals_[root_individual_index], gSLiM_Recursive_subpop, *gSLiM_Recursive_callbacks);
-			
-			p_focal_strengths[root_individual_index] = strength;
-			*(p_mirror_strengths + root_individual_index * subpop_size) = strength;
-		}
-		
-		p_result_vec[root_individual_index] = strength;
-	}
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->right, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			FillNeighborStrengthsA_3_reciprocal_PERIODIC(root->left, nd, p_focal_strengths, p_mirror_strengths, p_focal_distances, p_mirror_distances, subpop_size, p_result_vec, p_phase);
-	}
-}
-
-void InteractionType::FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, double *p_result_vec)
-{
-	if (spatiality_ == 0)
-	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
-	}
-	else if (!p_subpop_data.kd_nodes_)
-	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) the k-d tree has not been constructed." << EidosTerminate();
-	}
-	else if (!p_subpop_data.kd_root_)
-	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillNeighborStrengths): (internal error) the k-d tree is rootless." << EidosTerminate();
-	}
-	else
-	{
-		slim_popsize_t focal_index = p_excluded_individual->index_;
-		int subpop_size = (int)p_subpop_data.individual_count_;
-		double *focal_strengths = p_subpop_data.strengths_ + focal_index * subpop_size;
-		double *mirror_strengths = p_subpop_data.strengths_ + focal_index;				// for reciprocality
-		double *focal_distances = p_subpop_data.distances_ + focal_index * subpop_size;
-		double *mirror_distances = p_subpop_data.distances_ + focal_index;				// for reciprocality
-		std::vector<SLiMEidosBlock*> &callbacks = p_subpop_data.evaluation_interaction_callbacks_;
-		bool periodicity_enabled = (periodic_x_ || periodic_y_ || periodic_z_);
-		
-		if (callbacks.size() == 0)
-		{
-			// No callbacks; we can assume that the callback-related globals are nilled out
-			if (!periodicity_enabled)
-			{
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-					}
-				}
-			}
-			else
-			{
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-					}
-				}
-			}
-		}
-		else
-		{
-			// We have callbacks, so populate our callback-related globals
-			gSLiM_Recursive_subpop = p_subpop;
-			gSLiM_Recursive_receiver = p_excluded_individual;
-			gSLiM_Recursive_callbacks = &callbacks;
-			
-			if (!periodicity_enabled)
-			{
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-					}
-				}
-			}
-			else
-			{
-				if (!reciprocal_)
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1(p_subpop_data.kd_root_, p_point, focal_strengths, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, focal_distances, p_result_vec, 0); break;
-					}
-				}
-				else
-				{
-					switch (spatiality_)
-					{
-						case 1: FillNeighborStrengthsA_1_reciprocal(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, subpop_size, p_result_vec); break;
-						case 2: FillNeighborStrengthsA_2_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-						case 3: FillNeighborStrengthsA_3_reciprocal_PERIODIC(p_subpop_data.kd_root_, p_point, focal_strengths, mirror_strengths, focal_distances, mirror_distances, subpop_size, p_result_vec, 0); break;
-					}
-				}
-			}
-			
-			gSLiM_Recursive_subpop = nullptr;
-			gSLiM_Recursive_receiver = nullptr;
-			gSLiM_Recursive_callbacks = nullptr;
-		}
-	}
-}
-
 
 //
 //	Eidos support
@@ -4476,6 +2741,9 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 		case gID_distanceToPoint:			return ExecuteMethod_distanceToPoint(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_drawByStrength:			return ExecuteMethod_drawByStrength(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_evaluate:					return ExecuteMethod_evaluate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_interactingNeighborCount:	return ExecuteMethod_interactingNeighborCount(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_interactionDistance:		return ExecuteMethod_interactionDistance(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_nearestInteractingNeighbors:	return ExecuteMethod_nearestInteractingNeighbors(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_nearestNeighbors:			return ExecuteMethod_nearestNeighbors(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_nearestNeighborsOfPoint:	return ExecuteMethod_nearestNeighborsOfPoint(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setInteractionFunction:	return ExecuteMethod_setInteractionFunction(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -4487,7 +2755,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 }
 
 //
-//	*********************	– (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
+//	*********************	– (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
@@ -4527,10 +2795,6 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
 	
-	EnsureDistancesPresent(subpop_data);
-	
-	double *ind1_distances = subpop_data.distances_ + ind1_index * subpop1_size;
-	double *mirror_ind1_distances = subpop_data.distances_ + ind1_index;			// used when reciprocality is enabled
 	double *position_data = subpop_data.positions_;
 	double *ind1_position = position_data + ind1_index * SLIM_MAX_DIMENSIONALITY;
 	bool periodicity_enabled = (periodic_x_ || periodic_y_ || periodic_z_);
@@ -4540,76 +2804,22 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 		// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(subpop1_size);
 		
-		if (!reciprocal_)
+		if (periodicity_enabled)
 		{
-			// No reciprocality, so we don't mirror
-			if (periodicity_enabled)
+			for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
 			{
-				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
-				{
-					double distance = ind1_distances[ind2_index];
-					
-					if (std::isnan(distance))
-					{
-						distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
-						ind1_distances[ind2_index] = distance;
-					}
-					
-					result_vec->set_float_no_check(distance, ind2_index);
-				}
-			}
-			else
-			{
-				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
-				{
-					double distance = ind1_distances[ind2_index];
-					
-					if (std::isnan(distance))
-					{
-						distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-						ind1_distances[ind2_index] = distance;
-					}
-					
-					result_vec->set_float_no_check(distance, ind2_index);
-				}
+				double distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
+				
+				result_vec->set_float_no_check(distance, ind2_index);
 			}
 		}
 		else
 		{
-			// Reciprocality; mirror all values that we calculate
-			if (periodicity_enabled)
+			for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
 			{
-				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size)
-				{
-					double distance = ind1_distances[ind2_index];
-					
-					if (std::isnan(distance))
-					{
-						distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
-						ind1_distances[ind2_index] = distance;
-						
-						*(mirror_ind1_distances) = distance;
-					}
-					
-					result_vec->set_float_no_check(distance, ind2_index);
-				}
-			}
-			else
-			{
-				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size)
-				{
-					double distance = ind1_distances[ind2_index];
-					
-					if (std::isnan(distance))
-					{
-						distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
-						ind1_distances[ind2_index] = distance;
-						
-						*(mirror_ind1_distances) = distance;
-					}
-					
-					result_vec->set_float_no_check(distance, ind2_index);
-				}
+				double distance = CalculateDistance(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY);
+				
+				result_vec->set_float_no_check(distance, ind2_index);
 			}
 		}
 		
@@ -4628,22 +2838,12 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind2_index_in_subpop = ind2->index_;
-			double distance = ind1_distances[ind2_index_in_subpop];
+			double distance;
 			
-			if (std::isnan(distance))
-			{
-				if (periodicity_enabled)
-					distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY, subpop_data);
-				else
-					distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
-				
-				ind1_distances[ind2_index_in_subpop] = distance;
-				
-				// If reciprocality is enabled, push the calculated distance into the reciprocal entry.  There's
-				// enough cruft in this version of the loop that it doesn't seem worth cloning the whole loop.
-				if (reciprocal_)
-					*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
-			}
+			if (periodicity_enabled)
+				distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY, subpop_data);
+			else
+				distance = CalculateDistance(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
 			
 			result_vec->set_float_no_check(distance, ind2_index);
 		}
@@ -4743,6 +2943,70 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 	return EidosValue_SP(result_vec);
 }
 
+// a helper function for ExecuteMethod_drawByStrength() that does the draws using a vector of weights
+static void DrawByWeights(int draw_count, const double *weights, int n_weights, double weight_total, std::vector<int> &draw_indices)
+{
+	// Draw individuals; we do this using either the GSL or linear search, depending on the query size
+	// This choice is somewhat problematic.  I empirically determined at what query size the GSL started
+	// to pay off despite the overhead of setup with gsl_ran_discrete_preproc().  However, I did that for
+	// a particular subpopulation size; and the crossover point might also depend upon the distribution
+	// of strength values in the subpopulation.  I'm not going to worry about this too much, though; it
+	// is not really answerable in general, and a crossover of 50 seems reasonable.  For small counts,
+	// linear search won't take that long anyway, and there must be a limit >= 1 where linear is faster
+	// than the GSL; and for large counts the GSL is surely a win.  Trying to figure out exactly where
+	// the crossover is in all cases would be overkill; my testing indicates the performance difference
+	// between the two methods is not really that large anyway.
+	if (weight_total > 0.0)
+	{
+		if (draw_count > 50)		// the empirically determined crossover point in performance
+		{
+			// Use gsl_ran_discrete() to do the drawing
+			gsl_ran_discrete_t *gsl_lookup = gsl_ran_discrete_preproc(n_weights, weights);
+			
+			for (int64_t draw_index = 0; draw_index < draw_count; ++draw_index)
+			{
+				int hit_index = (int)gsl_ran_discrete(EIDOS_GSL_RNG, gsl_lookup);
+				
+				draw_indices.push_back(hit_index);
+			}
+			
+			gsl_ran_discrete_free(gsl_lookup);
+		}
+		else
+		{
+			// Use linear search to do the drawing
+			for (int64_t draw_index = 0; draw_index < draw_count; ++draw_index)
+			{
+				double the_rose_in_the_teeth = Eidos_rng_uniform(EIDOS_GSL_RNG) * weight_total;
+				double cumulative_weight = 0.0;
+				int hit_index;
+				
+				for (hit_index = 0; hit_index < n_weights; ++hit_index)
+				{
+					double weight = weights[hit_index];
+					
+					cumulative_weight += weight;
+					
+					if (the_rose_in_the_teeth <= cumulative_weight)
+						break;
+				}
+				
+				// We might overrun the end, due to roundoff error; if so, attribute it to the first non-zero weight entry
+				if (hit_index >= n_weights)
+				{
+					for (hit_index = 0; hit_index < n_weights; ++hit_index)
+						if (weights[hit_index] > 0.0)
+							break;
+					if (hit_index >= n_weights)
+						hit_index = 0;
+				}
+				
+				draw_indices.push_back(hit_index);
+			}
+		}
+	}
+}
+
 //	*********************	– (object<Individual>)drawByStrength(object<Individual>$ individual, [integer$ count = 1])
 //
 EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -4762,198 +3026,114 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	
 	// Check the count
 	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count > 0." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count >= 0." << EidosTerminate();
 	
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
-	// Find the neighbors
-	InteractionsData &subpop_data = subpop_data_iter->second;
-	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
-	bool no_callbacks = (callbacks.size() == 0);
-	EidosValue_Object_vector neighbors(gSLiM_Individual_Class);
+	// If the individual cannot receive this interaction type, no draws can occur
+	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != individual->sex_))
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	if (spatiality_ == 0)
 	{
-		EnsureStrengthsPresent(subpop_data);
+		std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+		bool no_callbacks = (callbacks.size() == 0);
+		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		double total_interaction_strength = 0.0;
+		std::vector<double> cached_strength;
+		std::vector<Individual *> &individuals = subpop->parent_individuals_;
 		
-		// For non-spatial interactions, just use the subpop's vector of individuals
-		std::vector<Individual *> &parents = subpop->parent_individuals_;
-		
-		neighbors.resize_no_initialize(subpop_size);
-		
-		for (int parent_index = 0; parent_index < subpop_size; ++parent_index)
-			neighbors.set_object_element_no_check(parents[parent_index], parent_index);
-	}
-	else
-	{
-		EnsureKDTreePresent(subpop_data);
-		EnsureStrengthsPresent(subpop_data);
-		
-		// For spatial interactions, find all neighbors, up to the subpopulation size
-		double *position_data = subpop_data.positions_;
-		double *ind_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
-		
-		neighbors.reserve(subpop_size);
-		FindNeighbors(subpop, subpop_data, ind_position, subpop_size, neighbors, individual);
-	}
-	
-	// Total the interaction strengths with all neighbors; this has the side effect of caching all relevant strengths
-	EidosObjectElement * const *neighbor_data = neighbors.data();
-	int neighbor_count = (int)neighbors.size();
-	double total_interaction_strength = 0.0;
-	std::vector<double> cached_strength;
-	
-	cached_strength.reserve((int)count);
-	
-	if (spatiality_ == 0)
-	{
-		double *ind1_strengths = subpop_data.strengths_ + ind_index * subpop_size;
-		double *mirror_ind1_strengths = subpop_data.strengths_ + ind_index;			// used when reciprocality is enabled
-		
-		for (int neighbor_index = 0; neighbor_index < neighbor_count; ++neighbor_index)
+		for (slim_popsize_t exerter_index_in_subpop = 0; exerter_index_in_subpop < subpop_size; ++exerter_index_in_subpop)
 		{
-			EidosObjectElement *neighbor = neighbor_data[neighbor_index];
-			Individual *ind2 = (Individual *)neighbor;
+			Individual *exerter = individuals[exerter_index_in_subpop];
+			double strength = 0;
 			
-			slim_popsize_t ind2_index_in_subpop = ind2->index_;
-			double strength = ind1_strengths[ind2_index_in_subpop];
-			
-			if (std::isnan(strength))
+			if (exerter_index_in_subpop != ind_index)
 			{
-				if (no_callbacks)
-					strength = CalculateStrengthNoCallbacks(NAN);
-				else
-					strength = CalculateStrengthWithCallbacks(NAN, individual, ind2, subpop, callbacks);
-				
-				ind1_strengths[ind2_index_in_subpop] = strength;
-				
-				if (reciprocal_)
-					*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
-			}
-			
-			total_interaction_strength += strength;
-			cached_strength.emplace_back(strength);
-		}
-	}
-	else
-	{
-		double *ind1_strengths = subpop_data.strengths_ + ind_index * subpop_size;
-		double *mirror_ind1_strengths = subpop_data.strengths_ + ind_index;			// for reciprocality
-		double *ind1_distances = subpop_data.distances_ + ind_index * subpop_size;
-		double *mirror_ind1_distances = subpop_data.distances_ + ind_index;			// for reciprocality
-		double *position_data = subpop_data.positions_;
-		double *ind1_position = position_data + ind_index * SLIM_MAX_DIMENSIONALITY;
-		
-		for (int neighbor_index = 0; neighbor_index < neighbor_count; ++neighbor_index)
-		{
-			EidosObjectElement *neighbor = neighbor_data[neighbor_index];
-			Individual *ind2 = (Individual *)neighbor;
-			
-			slim_popsize_t ind2_index_in_subpop = ind2->index_;
-			double strength = ind1_strengths[ind2_index_in_subpop];
-			
-			if (std::isnan(strength))
-			{
-				double distance = ind1_distances[ind2_index_in_subpop];
-				
-				if (std::isnan(distance))
-				{
-					// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
-					distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY, subpop_data);
-					ind1_distances[ind2_index_in_subpop] = distance;
-					
-					if (reciprocal_)
-						*(mirror_ind1_distances + ind2_index_in_subpop * subpop_size) = distance;
-				}
-				
-				if (distance <= max_distance_)
+				if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
 				{
 					if (no_callbacks)
-						strength = CalculateStrengthNoCallbacks(distance);
+						strength = CalculateStrengthNoCallbacks(NAN);
 					else
-						strength = CalculateStrengthWithCallbacks(distance, individual, ind2, subpop, callbacks);
+						strength = CalculateStrengthWithCallbacks(NAN, individual, exerter, subpop, callbacks);
 				}
-				else
-				{
-					strength = 0.0;
-				}
-				
-				ind1_strengths[ind2_index_in_subpop] = strength;
-				
-				if (reciprocal_)
-					*(mirror_ind1_strengths + ind2_index_in_subpop * subpop_size) = strength;
 			}
 			
 			total_interaction_strength += strength;
 			cached_strength.emplace_back(strength);
 		}
+		
+		if (total_interaction_strength > 0.0)
+		{
+			std::vector<int> strength_indices;
+			
+			result_vec->resize_no_initialize(count);
+			DrawByWeights((int)count, cached_strength.data(), subpop_size, total_interaction_strength, strength_indices);
+			
+			for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+			{
+				int strength_index = strength_indices[result_index];
+				Individual *chosen_individual = individuals[strength_index];
+				
+				result_vec->set_object_element_no_check(chosen_individual, result_index);
+			}
+		}
+		
+		return EidosValue_SP(result_vec);
 	}
-	
-	// Draw individuals; we do this using either the GSL or linear search, depending on the query size
-	// This choice is somewhat problematic.  I empirically determined at what query size the GSL started
-	// to pay off despite the overhead of setup with gsl_ran_discrete_preproc().  However, I did that for
-	// a particular subpopulation size; and the crossover point might also depend upon the distribution
-	// of strength values in the subpopulation.  I'm not going to worry about this too much, though; it
-	// is not really answerable in general, and a crossover of 50 seems reasonable.  For small counts,
-	// linear search won't take that long anyway, and there must be a limit >= 1 where linear is faster
-	// than the GSL; and for large counts the GSL is surely a win.  Trying to figure out exactly where
-	// the crossover is in all cases would be overkill; my testing indicates the performance difference
-	// between the two methods is not really that large anyway.
-	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	if (total_interaction_strength > 0.0)
+	else
 	{
-		result_vec->resize_no_initialize(count);
+		CalculateAllStrengths(subpop);
 		
-		EidosValue_Object_vector *result_direct = result_vec->ObjectElementVector_Mutable();
+		// Get the sparse array data
+		SparseArray &sa = *subpop_data.dist_str_;
+		uint32_t row_nnz;
+		const uint32_t *row_columns;
+		const sa_strength_t *strengths;
+		std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
 		
-		if (count > 50)		// the empirically determined crossover point in performance
+		strengths = sa.StrengthsForRow(ind_index, &row_nnz, &row_columns);
+		
+		// Total the interaction strengths, and gather a vector of strengths as doubles
+		double total_interaction_strength = 0.0;
+		
+		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
 		{
-			// Use gsl_ran_discrete() to do the drawing
-			gsl_ran_discrete_t *gsl_lookup = gsl_ran_discrete_preproc(cached_strength.size(), cached_strength.data());
+			sa_strength_t strength = strengths[col_index];
 			
-			for (int64_t draw_index = 0; draw_index < count; ++draw_index)
-			{
-				int hit_index = (int)gsl_ran_discrete(EIDOS_GSL_RNG, gsl_lookup);
-				
-				result_direct->set_object_element_no_check(neighbor_data[hit_index], draw_index);
-			}
-			
-			gsl_ran_discrete_free(gsl_lookup);
+			total_interaction_strength += strength;
+			double_strengths.push_back((double)strength);
 		}
-		else
+		
+		// Draw individuals
+		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		
+		if (total_interaction_strength > 0.0)
 		{
-			// Use linear search to do the drawing
-			for (int64_t draw_index = 0; draw_index < count; ++draw_index)
+			std::vector<int> strength_indices;
+			std::vector<Individual *> &parents = subpop->parent_individuals_;
+			
+			result_vec->resize_no_initialize(count);
+			DrawByWeights((int)count, double_strengths.data(), row_nnz, total_interaction_strength, strength_indices);
+			
+			for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
 			{
-				double the_rose_in_the_teeth = Eidos_rng_uniform(EIDOS_GSL_RNG) * total_interaction_strength;
-				double cumulative_strength = 0.0;
-				int neighbors_size = (int)neighbors.size();
-				int hit_index;
+				int strength_index = strength_indices[result_index];
+				Individual *chosen_individual = parents[row_columns[strength_index]];
 				
-				for (hit_index = 0; hit_index < neighbors_size; ++hit_index)
-				{
-					double strength = cached_strength[hit_index];
-					
-					cumulative_strength += strength;
-					
-					if (the_rose_in_the_teeth <= cumulative_strength)
-						break;
-				}
-				if (hit_index >= neighbors_size)
-					hit_index = neighbors_size - 1;
-				
-				result_direct->set_object_element_no_check(neighbor_data[hit_index], draw_index);
+				result_vec->set_object_element_no_check(chosen_individual, result_index);
 			}
 		}
+		
+		return EidosValue_SP(result_vec);
 	}
-	
-	return EidosValue_SP(result_vec);
 }
 
 //	*********************	- (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
@@ -4988,6 +3168,270 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	– (integer)interactingNeighborCount(object<Individual> individual)
+//
+EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *individual_value = p_arguments[0].get();
+	int individual_count = individual_value->Count();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that the interaction be spatial." << EidosTerminate();
+	
+	if (individual_count == 1)
+	{
+		// Check the individual and subpop
+		Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
+		Subpopulation *subpop = &(individual->subpopulation_);
+		slim_objectid_t subpop_id = subpop->subpopulation_id_;
+		int ind_index = individual->index_;
+		auto subpop_data_iter = data_.find(subpop_id);
+		
+		if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
+		
+		// Find the neighbors
+		CalculateAllDistances(subpop);
+		
+		InteractionsData &subpop_data = subpop_data_iter->second;
+		SparseArray &sa = *subpop_data.dist_str_;
+		uint32_t row_nnz;
+		const uint32_t *row_columns;
+		
+		sa.DistancesForRow(ind_index, &row_nnz, &row_columns);
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(row_nnz));
+	}
+	else
+	{
+		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(individual_count);
+		
+		// Try to do the subpop-level bookkeeping as little as possible
+		Individual *individual0 = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
+		Subpopulation *subpop = &(individual0->subpopulation_);
+		slim_objectid_t subpop_id = subpop->subpopulation_id_;
+		auto subpop_data_iter = data_.find(subpop_id);
+		
+		if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
+		
+		CalculateAllDistances(subpop);
+		
+		SparseArray *sa = subpop_data_iter->second.dist_str_;
+		
+		if (individual_count > 0)
+		{
+			for (int focal_ind_index = 0; focal_ind_index < individual_count; ++focal_ind_index)
+			{
+				Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(focal_ind_index, nullptr);
+				int ind_index = individual->index_;
+				Subpopulation *ind_subpop = &(individual->subpopulation_);
+				
+				if (ind_subpop != subpop)
+				{
+					// switched subpops, so make sure we're up to speed
+					subpop = ind_subpop;
+					subpop_id = subpop->subpopulation_id_;
+					subpop_data_iter = data_.find(subpop_id);
+					
+					if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
+					
+					CalculateAllDistances(subpop);
+					sa = subpop_data_iter->second.dist_str_;
+				}
+				
+				uint32_t row_nnz;
+				const uint32_t *row_columns;
+				
+				sa->DistancesForRow(ind_index, &row_nnz, &row_columns);
+				
+				result_vec->set_int_no_check(row_nnz, focal_ind_index);
+			}
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
+}
+
+//
+//	*********************	– (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *receiver_value = p_arguments[0].get();
+	EidosValue *exerters_value = p_arguments[1].get();
+	
+	int exerter_count = exerters_value->Count();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that the interaction be spatial." << EidosTerminate();
+	
+	// receiver_value is guaranteed to be singleton; let's get the info on it
+	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop1 = &(receiver->subpopulation_);
+	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
+	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
+	int receiver_index = receiver->index_;
+	auto subpop_data_iter = data_.find(subpop1_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
+	
+	CalculateAllDistances(subpop1);
+	
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	SparseArray &sa = *subpop_data.dist_str_;
+	uint32_t row_nnz;
+	const uint32_t *row_columns;
+	const sa_distance_t *distances;
+	
+	distances = sa.DistancesForRow(receiver_index, &row_nnz, &row_columns);
+	
+	if (exerters_value->Type() == EidosValueType::kValueNULL)
+	{
+		// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
+		// Make a vector big enough, initialize it to INFINITY, and fill in values from the sparse array
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(subpop1_size);
+		double *result_ptr = result_vec->data();
+		
+		for (int exerter_index = 0; exerter_index < subpop1_size; ++exerter_index)
+			*(result_ptr + exerter_index) = INFINITY;
+		
+		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+			*(result_ptr + row_columns[col_index]) = distances[col_index];
+		
+		return EidosValue_SP(result_vec);
+	}
+	else
+	{
+		// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
+		// Each individual in individuals2 requires a linear search through the row, unfortunately
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerter_count);
+		
+		for (int exerter_index = 0; exerter_index < exerter_count; ++exerter_index)
+		{
+			Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
+			
+			if (subpop1 != &(exerter->subpopulation_))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that all individuals be in the same subpopulation." << EidosTerminate();
+			
+			uint32_t exerter_index_in_subpop = (uint32_t)exerter->index_;
+			double distance = INFINITY;
+			
+			for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+				if (row_columns[col_index] == exerter_index_in_subpop)
+				{
+					distance = distances[col_index];
+					break;
+				}
+			
+			result_vec->set_float_no_check(distance, exerter_index);
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
+}
+
+//	*********************	– (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
+//
+EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *individual_value = p_arguments[0].get();
+	EidosValue *count_value = p_arguments[1].get();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the interaction be spatial." << EidosTerminate();
+	
+	// Check the individual and subpop
+	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop = &(individual->subpopulation_);
+	slim_objectid_t subpop_id = subpop->subpopulation_id_;
+	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+	int ind_index = individual->index_;
+	auto subpop_data_iter = data_.find(subpop_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
+	
+	// Check the count
+	int64_t count = count_value->IntAtIndex(0, nullptr);
+	
+	if (count < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires count >= 0." << EidosTerminate();
+	if (count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	if (count > subpop_size)
+		count = subpop_size;
+	
+	// Find the neighbors
+	CalculateAllDistances(subpop);
+	
+	std::vector<Individual *> &individuals = subpop->parent_individuals_;
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	SparseArray &sa = *subpop_data.dist_str_;
+	uint32_t row_nnz;
+	const uint32_t *row_columns;
+	const sa_distance_t *distances;
+	
+	distances = sa.DistancesForRow(ind_index, &row_nnz, &row_columns);
+	
+	if (count >= row_nnz)
+	{
+		// return all of the individuals in the row
+		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(row_nnz);
+		
+		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+			result_vec->set_object_element_no_check(individuals[row_columns[col_index]], col_index);
+		
+		return EidosValue_SP(result_vec);
+	}
+	else if (count == 1)
+	{
+		// return the individual in the row with the smallest distance
+		uint32_t min_col_index = UINT32_MAX;
+		double min_distance = INFINITY;
+		
+		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+			if (distances[col_index] < min_distance)
+			{
+				min_distance = distances[col_index];
+				min_col_index = col_index;
+			}
+		
+		if (min_distance < INFINITY)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(individuals[row_columns[min_col_index]], gSLiM_Individual_Class));
+	}
+	else	// (count < nnz)
+	{
+		// return the <count> individuals with the smallest distances
+		std::vector<std::pair<uint32_t, sa_distance_t>> neighbors;
+		
+		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+			neighbors.push_back(std::pair<uint32_t, sa_distance_t>(col_index, distances[col_index]));
+		
+		std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sa_distance_t> &l, const std::pair<uint32_t, sa_distance_t> &r) {
+			return l.second < r.second;
+		});
+		
+		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(count);
+		
+		for (uint32_t neighbor_index = 0; neighbor_index < count; ++neighbor_index)
+		{
+			Individual *ind = individuals[row_columns[neighbors[neighbor_index].first]];
+			
+			result_vec->set_object_element_no_check(ind, neighbor_index);
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+}
+
 //	*********************	– (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
 //
 EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -5014,7 +3458,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires count > 0." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires count >= 0." << EidosTerminate();
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
@@ -5070,7 +3514,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count > 0." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count >= 0." << EidosTerminate();
 	
 	if (count > subpop_size)
 		count = subpop_size;
@@ -5191,215 +3635,78 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	– (float)strength(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
+//	*********************	– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL])
 //
 EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *individuals1_value = p_arguments[0].get();
-	EidosValue *individuals2_value = p_arguments[1].get();
+	EidosValue *receiver_value = p_arguments[0].get();
+	EidosValue *exerters_value = p_arguments[1].get();
 	
-	EidosValue *individuals1 = individuals1_value, *individuals2 = individuals2_value;
-	int count1 = individuals1->Count(), count2 = individuals2->Count();
+	int exerter_count = exerters_value->Count();
 	
-	if ((count1 != 1) && (count2 != 1))
-	{
-		if ((count1 == 0) && (count2 == 0))
-			return gStaticEidosValue_Float_ZeroVec;
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that either individuals1 or individuals2 be singleton." << EidosTerminate();
-	}
-	
-	// Rearrange so that if either vector is non-singleton, it is the second that is non-singleton (one-to-many)
-	if (count1 != 1)
-	{
-		std::swap(individuals1, individuals2);
-		std::swap(count1, count2);
-	}
-	
-	// individuals1 is guaranteed to be singleton; let's get the info on it
-	Individual *ind1 = (Individual *)individuals1->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop1 = &(ind1->subpopulation_);
+	// receiver_value is guaranteed to be singleton; let's get the info on it
+	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop1 = &(receiver->subpopulation_);
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
-	int ind1_index = ind1->index_;
+	int receiver_index = receiver->index_;
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
-	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
-	bool no_callbacks = (callbacks.size() == 0);
-	
-	EnsureStrengthsPresent(subpop_data);
 	
 	if (spatiality_)
 	{
-		//
-		// Spatial case; distances used
-		//
+		CalculateAllStrengths(subpop1);
 		
-		double *ind1_strengths = subpop_data.strengths_ + ind1_index * subpop1_size;
-		double *mirror_ind1_strengths = subpop_data.strengths_ + ind1_index;			// for reciprocality
-		double *ind1_distances = subpop_data.distances_ + ind1_index * subpop1_size;
-		double *mirror_ind1_distances = subpop_data.distances_ + ind1_index;			// for reciprocality
-		double *position_data = subpop_data.positions_;
-		double *ind1_position = position_data + ind1_index * SLIM_MAX_DIMENSIONALITY;
+		SparseArray &sa = *subpop_data.dist_str_;
+		uint32_t row_nnz;
+		const uint32_t *row_columns;
+		const sa_strength_t *strengths;
 		
-		if (individuals2->Type() == EidosValueType::kValueNULL)
+		strengths = sa.StrengthsForRow(receiver_index, &row_nnz, &row_columns);
+		
+		if (exerters_value->Type() == EidosValueType::kValueNULL)
 		{
-			// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
+			// NULL means return strengths to individuals1 (which must be singleton) from all individuals in the subpopulation
+			// Make a vector big enough, initialize it to 0, and fill in values from the sparse array
 			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(subpop1_size);
+			double *result_ptr = result_vec->data();
 			
-			if (std::isinf(max_distance_))
-			{
-				// This is the brute-force approach – loop through the subpop, calculate distances and strengths for everyone.
-				// If the interaction is non-local (max_distance_ of INF) then this makes sense; all this work will need to be done.
-				if (!reciprocal_)
-				{
-					for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
-					{
-						double strength = ind1_strengths[ind2_index];
-						
-						if (std::isnan(strength))
-						{
-							double distance = ind1_distances[ind2_index];
-							
-							if (std::isnan(distance))
-							{
-								// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
-								distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
-								ind1_distances[ind2_index] = distance;
-							}
-							
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(distance);
-								else
-									strength = CalculateStrengthWithCallbacks(distance, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
-							}
-							else
-							{
-								strength = 0.0;
-							}
-							
-							ind1_strengths[ind2_index] = strength;
-						}
-						
-						result_vec->set_float_no_check(strength, ind2_index);
-					}
-				}
-				else
-				{
-					for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_distances += subpop1_size, mirror_ind1_strengths += subpop1_size)
-					{
-						double strength = ind1_strengths[ind2_index];
-						
-						if (std::isnan(strength))
-						{
-							double distance = ind1_distances[ind2_index];
-							
-							if (std::isnan(distance))
-							{
-								// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
-								distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index * SLIM_MAX_DIMENSIONALITY, subpop_data);
-								ind1_distances[ind2_index] = distance;
-								*(mirror_ind1_distances) = distance;
-							}
-							
-							if (distance <= max_distance_)
-							{
-								if (no_callbacks)
-									strength = CalculateStrengthNoCallbacks(distance);
-								else
-									strength = CalculateStrengthWithCallbacks(distance, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
-							}
-							else
-							{
-								strength = 0.0;
-							}
-							
-							ind1_strengths[ind2_index] = strength;
-							*(mirror_ind1_strengths) = strength;
-						}
-						
-						result_vec->set_float_no_check(strength, ind2_index);
-					}
-				}
-			}
-			else
-			{
-				// If the interaction is local, this approach should be much more efficient: allocate a results vector,
-				// fill it with zeros as the default value, and then find all neighbors and fill in their strengths.
-				// Zeroing out the vector is still O(N), but the constant is much smaller, and the rest is then < O(N).
-				// In point of fact, performance measurements indicate that with wide (but non-INF) interactions, this
-				// k-d tree case can be somewhat (~20%) slower than the brute-force method above, because all of the
-				// interactions need to be calculated anyway, and here we add the k-d tree construction and traversal
-				// overhead, plus making twice as many memory writes (one for zeros, one for values).  But the difference
-				// is not large, so I'm not too worried.  The big goal is to make it so that simulations involving large
-				// spatial areas with large numbers of individuals and highly localized interactions perform as well as
-				// possible, and this k-d tree case ensures that.
-				result_vec->resize_no_initialize(subpop1_size);	// this does *not* value-initialize, so we need to zero-fill
-				
-				double *result_data = result_vec->data();
-				
-				EIDOS_BZERO(result_data, subpop1_size * sizeof(double));
-				
-				EnsureKDTreePresent(subpop_data);
-				FillNeighborStrengths(subpop1, subpop_data, ind1_position, ind1, result_data);
-			}
+			EIDOS_BZERO(result_ptr, subpop1_size * sizeof(double));
+			
+			for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+				*(result_ptr + row_columns[col_index]) = strengths[col_index];
 			
 			return EidosValue_SP(result_vec);
 		}
 		else
 		{
-			// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count2);
+			// Otherwise, individuals1 is singleton, and exerters_value is any length, so we loop over exerters_value
+			// Each individual in exerters_value requires a linear search through the row, unfortunately
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerter_count);
 			
-			for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
+			for (int exerter_index = 0; exerter_index < exerter_count; ++exerter_index)
 			{
-				Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
+				Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 				
-				if (subpop1 != &(ind2->subpopulation_))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
+				if (subpop1 != &(exerter->subpopulation_))
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 				
-				slim_popsize_t ind2_index_in_subpop = ind2->index_;
-				double strength = ind1_strengths[ind2_index_in_subpop];
+				uint32_t exerter_index_in_subpop = (uint32_t)exerter->index_;
+				double strength = 0;
 				
-				if (std::isnan(strength))
-				{
-					double distance = ind1_distances[ind2_index_in_subpop];
-					
-					if (std::isnan(distance))
+				for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+					if (row_columns[col_index] == exerter_index_in_subpop)
 					{
-						// We just always use CalculateDistanceWithPeriodicity() here; this is not the slow part of this method...
-						distance = CalculateDistanceWithPeriodicity(ind1_position, position_data + ind2_index_in_subpop * SLIM_MAX_DIMENSIONALITY, subpop_data);
-						ind1_distances[ind2_index_in_subpop] = distance;
-						
-						if (reciprocal_)
-							*(mirror_ind1_distances + ind2_index_in_subpop * subpop1_size) = distance;
+						strength = strengths[col_index];
+						break;
 					}
-					
-					if (distance <= max_distance_)
-					{
-						if (no_callbacks)
-							strength = CalculateStrengthNoCallbacks(distance);
-						else
-							strength = CalculateStrengthWithCallbacks(distance, ind1, ind2, subpop1, callbacks);
-					}
-					else
-					{
-						strength = 0.0;
-					}
-					
-					ind1_strengths[ind2_index_in_subpop] = strength;
-					
-					if (reciprocal_)
-						*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
-				}
 				
-				result_vec->set_float_no_check(strength, ind2_index);
+				result_vec->set_float_no_check(strength, exerter_index);
 			}
 			
 			return EidosValue_SP(result_vec);
@@ -5408,88 +3715,83 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	else
 	{
 		//
-		// Non-spatial case; no distances used
+		// Non-spatial case; no distances used.  We have to worry about sex-segregation; it is not handled for us.
 		//
+		std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+		bool no_callbacks = (callbacks.size() == 0);
 		
-		double *ind1_strengths = subpop_data.strengths_ + ind1_index * subpop1_size;
-		double *mirror_ind1_strengths = subpop_data.strengths_ + ind1_index;			// for reciprocality
-		
-		if (individuals2->Type() == EidosValueType::kValueNULL)
+		if (exerters_value->Type() == EidosValueType::kValueNULL)
 		{
-			// NULL means return strengths from individuals1 (which must be singleton) to all individuals in the subpopulation
+			// NULL means return strengths to individuals1 (which must be singleton) from all individuals in the subpopulation
 			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(subpop1_size);
 			
-			if (!reciprocal_)
+			if ((receiver_sex_ == IndividualSex::kUnspecified) || (receiver_sex_ == receiver->sex_))
 			{
-				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index)
+				// The receiver can receive interactions, so evaluate them
+				for (int exerter_index = 0; exerter_index < subpop1_size; ++exerter_index)
 				{
-					double strength = ind1_strengths[ind2_index];
+					double strength = 0;
 					
-					if (std::isnan(strength))
+					if (exerter_index != receiver_index)
 					{
-						if (no_callbacks)
-							strength = CalculateStrengthNoCallbacks(NAN);
-						else
-							strength = CalculateStrengthWithCallbacks(NAN, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
+						Individual *exerter = subpop1->parent_individuals_[exerter_index];
 						
-						ind1_strengths[ind2_index] = strength;
+						if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
+						{
+							if (no_callbacks)
+								strength = CalculateStrengthNoCallbacks(NAN);
+							else
+								strength = CalculateStrengthWithCallbacks(NAN, receiver, exerter, subpop1, callbacks);
+						}
 					}
 					
-					result_vec->set_float_no_check(strength, ind2_index);
+					result_vec->set_float_no_check(strength, exerter_index);
 				}
 			}
 			else
 			{
-				for (int ind2_index = 0; ind2_index < subpop1_size; ++ind2_index, mirror_ind1_strengths += subpop1_size)
-				{
-					double strength = ind1_strengths[ind2_index];
-					
-					if (std::isnan(strength))
-					{
-						if (no_callbacks)
-							strength = CalculateStrengthNoCallbacks(NAN);
-						else
-							strength = CalculateStrengthWithCallbacks(NAN, ind1, subpop1->parent_individuals_[ind2_index], subpop1, callbacks);
-						
-						ind1_strengths[ind2_index] = strength;
-						*(mirror_ind1_strengths) = strength;
-					}
-					
-					result_vec->set_float_no_check(strength, ind2_index);
-				}
+				// This individual can't receive this interaction type at all, so the result vector is all zero
+				EIDOS_BZERO(result_vec->data(), subpop1_size * sizeof(double));
 			}
 			
 			return EidosValue_SP(result_vec);
 		}
 		else
 		{
-			// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count2);
+			// Otherwise, individuals1 is singleton, and exerters_value is any length, so we loop over exerters_value
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerter_count);
 			
-			for (int ind2_index = 0; ind2_index < count2; ++ind2_index)
+			if ((receiver_sex_ == IndividualSex::kUnspecified) || (receiver_sex_ == receiver->sex_))
 			{
-				Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
-				
-				if (subpop1 != &(ind2->subpopulation_))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
-				
-				slim_popsize_t ind2_index_in_subpop = ind2->index_;
-				double strength = ind1_strengths[ind2_index_in_subpop];
-				
-				if (std::isnan(strength))
+				// The receiver can receive interactions, so evaluate them
+				for (int exerter_index = 0; exerter_index < exerter_count; ++exerter_index)
 				{
-					if (no_callbacks)
-						strength = CalculateStrengthNoCallbacks(NAN);
-					else
-						strength = CalculateStrengthWithCallbacks(NAN, ind1, ind2, subpop1, callbacks);
+					Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 					
-					ind1_strengths[ind2_index_in_subpop] = strength;
+					if (subpop1 != &(exerter->subpopulation_))
+						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 					
-					if (reciprocal_)
-						*(mirror_ind1_strengths + ind2_index_in_subpop * subpop1_size) = strength;
+					slim_popsize_t exerter_index_in_subpop = exerter->index_;
+					double strength = 0;
+					
+					if (exerter_index_in_subpop != receiver_index)
+					{
+						if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
+						{
+							if (no_callbacks)
+								strength = CalculateStrengthNoCallbacks(NAN);
+							else
+								strength = CalculateStrengthWithCallbacks(NAN, receiver, exerter, subpop1, callbacks);
+						}
+					}
+					
+					result_vec->set_float_no_check(strength, exerter_index);
 				}
-				
-				result_vec->set_float_no_check(strength, ind2_index);
+			}
+			else
+			{
+				// This individual can't receive this interaction type at all, so the result vector is all zero
+				EIDOS_BZERO(result_vec->data(), exerter_count * sizeof(double));
 			}
 			
 			return EidosValue_SP(result_vec);
@@ -5524,30 +3826,62 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	
 	InteractionsData &subpop_data = subpop_data_iter->second;
 	
-	EnsureStrengthsPresent(subpop_data);
-	EnsureKDTreePresent(subpop_data);
+	CalculateAllStrengths(subpop);
 	
-	// Loop over the requested individuals and get the totals
-	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count);
-	
-	for (int ind_index = 0; ind_index < count; ++ind_index)
+	if (count == 1)
 	{
-		Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+		// Just one value, so we can return a singleton and skip some work
+		SparseArray &sa = *subpop_data.dist_str_;
+		slim_popsize_t ind_index_in_subpop = first_ind->index_;
 		
-		if (subpop != &(individual->subpopulation_))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << EidosTerminate();
+		// Get the sparse array data
+		uint32_t row_nnz;
+		const uint32_t *row_columns;
+		const sa_strength_t *strengths;
 		
-		slim_popsize_t ind_index_in_subpop = individual->index_;
-		double *position_data = subpop_data.positions_;
-		double *ind_position = position_data + ind_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+		strengths = sa.StrengthsForRow(ind_index_in_subpop, &row_nnz, &row_columns);
 		
-		// use the k-d tree to find neighbors, and total their strengths
-		double total_strength = TotalNeighborStrength(subpop, subpop_data, ind_position, individual);
+		// Total the interaction strengths
+		double total_strength = 0.0;
 		
-		result_vec->set_float_no_check(total_strength, ind_index);
+		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+			total_strength += strengths[col_index];
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(total_strength));
 	}
-	
-	return EidosValue_SP(result_vec);
+	else
+	{
+		// Loop over the requested individuals and get the totals
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count);
+		SparseArray &sa = *subpop_data.dist_str_;
+		
+		for (int ind_index = 0; ind_index < count; ++ind_index)
+		{
+			Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+			
+			if (subpop != &(individual->subpopulation_))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << EidosTerminate();
+			
+			slim_popsize_t ind_index_in_subpop = individual->index_;
+			
+			// Get the sparse array data
+			uint32_t row_nnz;
+			const uint32_t *row_columns;
+			const sa_strength_t *strengths;
+			
+			strengths = sa.StrengthsForRow(ind_index_in_subpop, &row_nnz, &row_columns);
+			
+			// Total the interaction strengths
+			double total_strength = 0.0;
+			
+			for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+				total_strength += strengths[col_index];
+			
+			result_vec->set_float_no_check(total_strength, ind_index);
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
 }
 
 //	*********************	– (void)unevaluate(void)
@@ -5623,10 +3957,13 @@ const std::vector<const EidosMethodSignature *> *InteractionType_Class::Methods(
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactingNeighborCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactionDistance, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestInteractingNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("subpop", gSLiM_Subpopulation_Class)->AddFloat("point")->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskVOID))->AddString_S("functionType")->AddEllipsis());
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_unevaluate, kEidosValueMaskVOID)));
 		
@@ -5652,8 +3989,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& p_source)
 	first_male_index_ = p_source.first_male_index_;
 	kd_node_count_ = p_source.kd_node_count_;
 	positions_ = p_source.positions_;
-	distances_ = p_source.distances_;
-	strengths_ = p_source.strengths_;
+	dist_str_ = p_source.dist_str_;
 	kd_nodes_ = p_source.kd_nodes_;
 	kd_root_ = p_source.kd_root_;
 	
@@ -5663,8 +3999,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& p_source)
 	p_source.first_male_index_ = 0;
 	p_source.kd_node_count_ = 0;
 	p_source.positions_ = nullptr;
-	p_source.distances_ = nullptr;
-	p_source.strengths_ = nullptr;
+	p_source.dist_str_ = nullptr;
 	p_source.kd_nodes_ = nullptr;
 	p_source.kd_root_ = nullptr;
 }
@@ -5675,10 +4010,8 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
 	{
 		if (positions_)
 			free(positions_);
-		if (distances_)
-			free(distances_);
-		if (strengths_)
-			free(strengths_);
+		if (dist_str_)
+			delete dist_str_;
 		if (kd_nodes_)
 			free(kd_nodes_);
 		
@@ -5688,8 +4021,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
 		first_male_index_ = p_source.first_male_index_;
 		kd_node_count_ = p_source.kd_node_count_;
 		positions_ = p_source.positions_;
-		distances_ = p_source.distances_;
-		strengths_ = p_source.strengths_;
+		dist_str_ = p_source.dist_str_;
 		kd_nodes_ = p_source.kd_nodes_;
 		kd_root_ = p_source.kd_root_;
 		
@@ -5699,8 +4031,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
 		p_source.first_male_index_ = 0;
 		p_source.kd_node_count_ = 0;
 		p_source.positions_ = nullptr;
-		p_source.distances_ = nullptr;
-		p_source.strengths_ = nullptr;
+		p_source.dist_str_ = nullptr;
 		p_source.kd_nodes_ = nullptr;
 		p_source.kd_root_ = nullptr;
 	}
@@ -5724,16 +4055,10 @@ _InteractionsData::~_InteractionsData(void)
 		positions_ = nullptr;
 	}
 	
-	if (distances_)
+	if (dist_str_)
 	{
-		free(distances_);
-		distances_ = nullptr;
-	}
-	
-	if (strengths_)
-	{
-		free(strengths_);
-		strengths_ = nullptr;
+		delete dist_str_;
+		dist_str_ = nullptr;
 	}
 	
 	if (kd_nodes_)

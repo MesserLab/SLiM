@@ -1235,8 +1235,8 @@ migrant => (logical$)\
 \f0\fs20  otherwise.\
 In WF models, this flag is set at the point when a new child is generated if it is a migrant (i.e., if its source subpopulation is not the same as its subpopulation), and remains valid, with the same value, for the rest of the individual\'92s lifetime.\
 In nonWF models, this flag is 
-\f2\fs18 \cf2 F
-\f0\fs20 \cf2  for all new individuals, is set to 
+\f2\fs18 F
+\f0\fs20  for all new individuals, is set to 
 \f2\fs18 F
 \f0\fs20  in all individuals at the end of the reproduction generation cycle stage, and is set to 
 \f2\fs18 T
@@ -1860,9 +1860,10 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 
 \f2\i0\fs18 \cf0 \'96\'a0(float)distance(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
 \f3 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns a vector containing distances between individuals in 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a vector containing distances between individuals in 
 \f2\fs18 individuals1
 \f0\fs20  and 
 \f2\fs18 individuals2
@@ -1870,36 +1871,41 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \f2\fs18 individuals1
 \f0\fs20  or 
 \f2\fs18 individuals2
-\f0\fs20  must be singleton, so that the distances evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating distances for many to many individuals cannot be done in a single call.  \cf2 \expnd0\expndtw0\kerning0
-(There is one exception: if both 
+\f0\fs20  must be singleton, so that the distances evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating distances for many to many individuals cannot be done in a single call.  (There is one exception: if both 
 \f2\fs18 individuals1
 \f0\fs20  and 
 \f2\fs18 individuals2
 \f0\fs20  are zero-length or 
 \f2\fs18 NULL
-\f0\fs20 , a zero-length 
-\f2\fs18 float
-\f0\fs20  vector will be returned.)  \cf0 \kerning1\expnd0\expndtw0 If 
+\f0\fs20 , a zero-length float vector will be returned.)  If 
 \f2\fs18 individuals2
 \f0\fs20  is 
 \f2\fs18 NULL
 \f0\fs20  (the default), then 
 \f2\fs18 individuals1
-\f0\fs20  must be singleton, and a vector of the distances from that individual to all individuals in its subpopulation (including itself) is returned; this case may be handled by the k-d tree engine for greater speed, so supplying 
+\f0\fs20  must be singleton, and a vector of the distances from that individual to all individuals in its subpopulation (including itself) is returned; this case may be handled differently internally, for greater speed, so supplying 
 \f2\fs18 NULL
-\f0\fs20  is preferable to supplying the vector of all individuals in the subpopulation explicitly even though that should produce identical results.\
+\f0\fs20  is preferable to supplying the vector of all individuals in the subpopulation explicitly even though that should produce identical results.  If the 
+\f2\fs18 InteractionType
+\f0\fs20  is non-spatial, this method may not be called.\
 Importantly, distances are calculated according to the spatiality of the 
 \f2\fs18 InteractionType
 \f0\fs20  (as declared in 
 \f2\fs18 initializeInteractionType()
-\f0\fs20 ) not the dimensionality of the model as a whole (as declared in 
+\f0\fs20 ), not the dimensionality of the model as a whole (as declared in 
 \f2\fs18 initializeSLiMOptions()
-\f0\fs20 ).  The distances are therefore interaction distances: the distances that are used to calculate interaction strengths.  If the 
-\f2\fs18 InteractionType
-\f0\fs20  is non-spatial, this method may not be called.\
+\f0\fs20 ).  The distances returned are therefore the distances that would be used to calculate interaction strengths.  However, 
+\f2\fs18 distance()
+\f0\fs20  will return finite distances for all pairs of individuals, even if the individuals are non-interacting; the 
+\f2\fs18 distance()
+\f0\fs20  between an individual and itself will thus be 
+\f2\fs18 0
+\f0\fs20 .  See 
+\f2\fs18 interactionDistance()
+\f0\fs20  for an alternative distance definition.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(float)distanceToPoint(object<Individual>\'a0individuals1, float\'a0point)
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(float)distanceToPoint(object<Individual>\'a0individuals1, float\'a0point)
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1945,20 +1951,20 @@ Returns a vector containing distances between individuals in
 
 \f2\fs18 \cf0 \'96\'a0(object<Individual>)drawByStrength(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])
 \f3 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns up to 
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns up to 
 \f2\fs18 count
 \f0\fs20  individuals drawn from the subpopulation of 
 \f2\fs18 individual
-\f3\fs20 .
-\f0   The probability of drawing particular individuals is proportional to their strength of interaction with 
+\f0\fs20 .  The probability of drawing particular individuals is proportional to the strength of interaction they exert upon 
 \f2\fs18 individual
 \f0\fs20 .  This method may be used with either spatial or non-spatial interactions, but will be more efficient with spatial interactions that set a short maximum interaction distance.  Draws are done with replacement, so the same individual may be drawn more than once; sometimes using 
 \f2\fs18 unique()
 \f0\fs20  on the result of this call is therefore desirable.  If more than one draw will be needed, it is much more efficient to use a single call to 
 \f2\fs18 drawByStrength()
-\f0\fs20 , rather than drawing individuals one at a time.  Note that if no individuals have a non-zero interaction with 
+\f0\fs20 , rather than drawing individuals one at a time.  Note that if no individuals exert a non-zero interaction upon 
 \f2\fs18 individual
 \f0\fs20 , the vector returned will be zero-length; it is important to consider this possibility.\
 If the needed interaction strengths have already been calculated, those cached values are simply used.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
@@ -1966,7 +1972,7 @@ If the needed interaction strengths have already been calculated, those cached v
 \f0\fs20  callbacks.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)evaluate([No<Subpopulation>\'a0subpops\'a0=\'a0NULL], [logical$\'a0immediate\'a0=\'a0F])
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)evaluate([No<Subpopulation>\'a0subpops\'a0=\'a0NULL], [logical$\'a0immediate\'a0=\'a0F])
 \f3 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1986,6 +1992,7 @@ If
 \f0\fs20 , the interaction will immediately and synchronously evaluate all interactions between all individuals in the subpopulation(s), calling any applicable 
 \f2\fs18 interaction()
 \f0\fs20  callbacks as necessary.  However, depending upon what queries are later executed, this may represent considerable wasted computation, since it is an O(N\super 2\nosupersub ) operation.  Immediate evaluation usually generates only a slight performance improvement even if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is that deferred calculation of interactions would lead to incorrect results due to changes in model state.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 You must explicitly call 
 \f2\fs18 evaluate()
@@ -2006,6 +2013,7 @@ You must explicitly call
 \f0\fs20  event, while an interaction that influences fitness or mortality should usually be evaluated in an 
 \f2\fs18 early()
 \f0\fs20  event (and an interaction that affects both may need to be evaluated at both times).\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If an interaction is never evaluated for a given subpopulation, it is guaranteed that there will be essentially no memory or computational overhead associated with the interaction for that subpopulation.  Furthermore, attempting to query an interaction for an individual in a subpopulation that has not been evaluated is guaranteed to raise an error.
 \f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -2028,20 +2036,120 @@ You must explicitly call
 \f2\fs18 SLiMEidosDictionary
 \f0\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f3 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(integer)interactingNeighborCount(object<Individual>\'a0individuals)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns the number of interacting individuals for each individual in 
+\f2\fs18 individuals
+\f0\fs20 , within the maximum interaction distance according to the distance metric of the 
+\f2\fs18 InteractionType
+\f0\fs20 .  More specifically, this method counts the number of individuals which can 
+\i exert
+\i0  an interaction 
+\i upon
+\i0  each focal individual; it does not count individuals which only 
+\i feel
+\i0  an interaction 
+\i from
+\i0  a focal individual.  This method is similar to 
+\f2\fs18 nearestInteractingNeighbors()
+\f0\fs20  (when passed a large count so as to guarantee that all interacting individuals are returned), but this method returns only a count of the interacting individuals, not a vector containing the individuals.  This method may also be called in a vectorized fashion, with a non-singleton vector of individuals, unlike 
+\f2\fs18 nearestInteractingNeighbors()
+\f0\fs20 .\
+Note that this method uses interaction eligibility as a criterion; it will not count neighbors that cannot exert an interaction upon a focal individual (due to sex-segregation, e.g.).  (It also does not count a focal individual as a neighbor of itself.)\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Individual>)nearestNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])
-\f3 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs18 \cf2 \'96\'a0(float)interactionDistance(object<Individual>$\'a0receiver, [No<Individual>\'a0exerters\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns up to 
+\f0\fs20 \cf2 Returns a vector containing interaction-dependent distances between 
+\f2\fs18 receiver
+\f0\fs20  and individuals in 
+\f2\fs18 exerters
+\f0\fs20  that exert an interaction strength upon 
+\f2\fs18 receiver
+\f0\fs20 .  If 
+\f2\fs18 exerters
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  (the default), then a vector of the interaction-dependent distances from 
+\f2\fs18 receiver
+\f0\fs20  to all individuals in its subpopulation (including 
+\f2\fs18 receiver
+\f0\fs20  itself) is returned; this case may be handled much more efficiently than if a vector of all individuals in the subpopulation is explicitly provided.  If the 
+\f2\fs18 InteractionType
+\f0\fs20  is non-spatial, this method may not be called.\
+Importantly, distances are calculated according to the spatiality of the 
+\f2\fs18 InteractionType
+\f0\fs20  (as declared in 
+\f2\fs18 initializeInteractionType()
+\f0\fs20 ), not the dimensionality of the model as a whole (as declared in 
+\f2\fs18 initializeSLiMOptions()
+\f0\fs20 ).  The distances returned are therefore the distances that would be used to calculate interaction strengths.  In addition, 
+\f2\fs18 interactionDistance()
+\f0\fs20  will return 
+\f2\fs18 INF
+\f0\fs20  as the distance between 
+\f2\fs18 receiver
+\f0\fs20  and any individual which does not exert an interaction upon 
+\f2\fs18 receiver
+\f0\fs20 ; the 
+\f2\fs18 interactionDistance()
+\f0\fs20  between an individual and itself will thus be 
+\f2\fs18 INF
+\f0\fs20 , and likewise for pairs excluded from interacting by the sex segregation or max distance of the interaction type.  See 
+\f2\fs18 distance()
+\f0\fs20  for an alternative distance definition.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(object<Individual>)nearestInteractingNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns up to 
+\f2\fs18 count
+\f0\fs20  interacting individuals that are spatially closest to 
+\f2\fs18 individual
+\f0\fs20 , according to the distance metric of the 
+\f2\fs18 InteractionType
+\f0\fs20 .  More specifically, this method returns only individuals which can 
+\i exert
+\i0  an interaction 
+\i upon
+\i0  the focal individual; it does not include individuals that only 
+\i feel
+\i0  an interaction 
+\i from
+\i0  the focal individual.  To obtain all of the interacting individuals within the maximum interaction distance of 
+\f2\fs18 individual
+\f0\fs20 , simply pass a value for 
+\f2\fs18 count
+\f0\fs20  that is greater than or equal to the size of 
+\f2\fs18 individual
+\f0\fs20 \'92s subpopulation.  Note that if fewer than 
+\f2\fs18 count
+\f0\fs20  interacting individuals are within the maximum interaction distance, the vector returned may be shorter than 
+\f2\fs18 count
+\f0\fs20 , or even zero-length; it is important to check for this possibility even when requesting a single neighbor.  If only the number of interacting individuals is needed, use 
+\f2\fs18 interactingNeighborCount()
+\f0\fs20  instead.\
+Note that this method uses interaction eligibility as a criterion; it will not return neighbors that cannot exert an interaction upon the focal individual (due to sex-segregation, e.g.).  (It will also never return the focal individual as a neighbor of itself.)  To find all neighbors of the focal individual, whether they can interact with it or not, use 
+\f2\fs18 nearestNeighbors()
+\f0\fs20 .\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(object<Individual>)nearestNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns up to 
 \f2\fs18 count
 \f0\fs20  individuals that are spatially closest to 
 \f2\fs18 individual
 \f0\fs20 , according to the distance metric of the 
 \f2\fs18 InteractionType
-\f3\fs20 .
-\f0   To obtain all of the individuals within the maximum interaction distance of 
+\f0\fs20 .  To obtain all of the individuals within the maximum interaction distance of 
 \f2\fs18 individual
 \f0\fs20 , simply pass a value for 
 \f2\fs18 count
@@ -2052,9 +2160,12 @@ You must explicitly call
 \f0\fs20  individuals are within the maximum interaction distance, the vector returned may be shorter than 
 \f2\fs18 count
 \f0\fs20 , or even zero-length; it is important to check for this possibility even when requesting a single neighbor.\
+Note that this method does not use interaction eligibility as a criterion; it will return neighbors that could not interact with the focal individual due to sex-segregation.  (It will never return the focal individual as a neighbor of itself, however.)  To find only neighbors that are eligible to exert an interaction upon the focal individual, use 
+\f2\fs18 nearestInteractingNeighbors()
+\f0\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$\'a0subpop, float\'a0point, [integer$\'a0count\'a0=\'a01])
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$\'a0subpop, float\'a0point, [integer$\'a0count\'a0=\'a01])
 \f3 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2142,42 +2253,30 @@ The interaction function for an interaction type is normally a constant in simul
 \f3 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(float)strength(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
-\f3 \
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(float)strength(object<Individual>$\'a0receiver, [No<Individual>\'a0exerters\'a0=\'a0NULL])\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns a vector containing interaction strengths between individuals in 
-\f2\fs18 individuals1
-\f0\fs20  and 
-\f2\fs18 individuals2
-\f0\fs20 .  At least one of 
-\f2\fs18 individuals1
-\f0\fs20  or 
-\f2\fs18 individuals2
-\f0\fs20  must be singleton, so that the strengths evaluated are either from one individual to many, or from many to one (which are equivalent, in fact); evaluating strengths for many to many individuals cannot be done in a single call.  \cf2 \expnd0\expndtw0\kerning0
-(There is one exception: if both 
-\f2\fs18 individuals1
-\f0\fs20  and 
-\f2\fs18 individuals2
-\f0\fs20  are zero-length or 
-\f2\fs18 NULL
-\f0\fs20 , a zero-length 
-\f2\fs18 float
-\f0\fs20  vector will be returned.)  \cf0 \kerning1\expnd0\expndtw0 If 
-\f2\fs18 individuals2
+\f0\fs20 \cf2 Returns a vector containing the interaction strengths exerted upon 
+\f2\fs18 receiver
+\f0\fs20  by the individuals in 
+\f2\fs18 exerters
+\f0\fs20 .  If 
+\f2\fs18 exerters
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), then 
-\f2\fs18 individuals1
-\f0\fs20  must be singleton, and a vector of the interaction strengths from that individual to all individuals in its subpopulation (including itself) is returned; this case may be handled by the k-d tree engine for greater speed, so supplying 
-\f2\fs18 NULL
-\f0\fs20  is preferable to supplying the vector of all individuals in the subpopulation explicitly even though that should produce identical results.\
+\f0\fs20  (the default), then a vector of the interaction strengths exerted by all individuals in the subpopulation of 
+\f2\fs18 receiver
+\f0\fs20  (including 
+\f2\fs18 receiver
+\f0\fs20  itself) is returned; this case may be handled much more efficiently than if a vector of all individuals in the subpopulation is explicitly provided.\
+If the strengths of interactions exerted by a single individual upon multiple individuals is needed instead (the inverse of what this method provides), multiple calls to this method will be necessary, one per pairwise interaction queried; the interaction engine is not optimized for the inverse case, and so it will likely be quite slow to compute.  If the interaction is reciprocal and sex-symmetric, the opposite query should provide identical results in a single efficient call (because then the interactions exerted are equal to the interactions received); otherwise, the best approach might be to define a second interaction type representing the inverse interaction that you wish to be able to query efficiently.\
 If the needed interaction strengths have already been calculated, those cached values are simply returned.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
 \f2\fs18 interaction()
 \f0\fs20  callbacks.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(float)totalOfNeighborStrengths(object<Individual>\'a0individuals)
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(float)totalOfNeighborStrengths(object<Individual>\'a0individuals)
 \f3 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3481,6 +3580,7 @@ Beginning with SLiM 3.0, the
 \f0\fs20  is 
 \f2\fs18 T
 \f0\fs20 , ages will be output for nonWF models.  In WF simulations, the ages parameter will be ignored.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
@@ -5063,7 +5163,7 @@ Note that this method is only for use in nonWF models, in which there is a disti
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
-(object<Individual>)sampleIndividuals(integer$\'a0size, [logical$\'a0replace\'a0=\'a0F], [No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL]\cf2 , [Nl$\'a0migrant\'a0=\'a0NULL]\cf2 )
+(object<Individual>)sampleIndividuals(integer$\'a0size, [logical$\'a0replace\'a0=\'a0F], [No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL])
 \f3 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5102,7 +5202,7 @@ Returns a vector of individuals, of size less than or equal to parameter
 \f2\fs18 maxAge
 \f0\fs20 , if non-
 \f2\fs18 NULL
-\f0\fs20 , may specify a minimum or maximum age for the individuals to be drawn, in nonWF models.  \cf2 Parameter 
+\f0\fs20 , may specify a minimum or maximum age for the individuals to be drawn, in nonWF models.  Parameter 
 \f2\fs18 migrant
 \f0\fs20 , if non-
 \f2\fs18 NULL
@@ -5112,7 +5212,7 @@ Returns a vector of individuals, of size less than or equal to parameter
 \f2\fs18 T
 \f0\fs20  will require that individuals be migrants, 
 \f2\fs18 F
-\f0\fs20  will require that they not be).  \cf2 If the candidate pool is smaller than the requested sample size, all eligible candidates will be returned (in randomized order); the result will be a zero-length vector if no eligible candidates exist (unlike 
+\f0\fs20  will require that they not be).  If the candidate pool is smaller than the requested sample size, all eligible candidates will be returned (in randomized order); the result will be a zero-length vector if no eligible candidates exist (unlike 
 \f2\fs18 sample()
 \f0\fs20 ).\
 This method is similar to getting the 
@@ -5352,7 +5452,7 @@ Returns a vector of individuals subset from the individuals in the target subpop
 \f2\fs18 maxAge
 \f0\fs20 , if non-
 \f2\fs18 NULL
-\f0\fs20 , may specify a minimum or maximum age for the individuals to be returned, in nonWF models.\cf2   Parameter 
+\f0\fs20 , may specify a minimum or maximum age for the individuals to be returned, in nonWF models.  Parameter 
 \f2\fs18 migrant
 \f0\fs20 , if non-
 \f2\fs18 NULL
@@ -5362,7 +5462,7 @@ Returns a vector of individuals subset from the individuals in the target subpop
 \f2\fs18 T
 \f0\fs20  will require that individuals be migrants, 
 \f2\fs18 F
-\f0\fs20  will require that they not be).\cf2 \
+\f0\fs20  will require that they not be).\
 This method is shorthand for getting the 
 \f2\fs18 individuals
 \f0\fs20  property of the subpopulation, and then using operator 

@@ -23,10 +23,262 @@
 #include "mutation_run.h"
 #include "slim_sim.h"
 #include "subpopulation.h"
+#include "sparse_array.h"
 
 #include <string>
 #include <vector>
 
+
+void TestSparseArray(void);
+void TestSparseArray(void)
+{
+#if 0
+	{
+		// This should succeed and contain six elements
+		SparseArray sa(5, 5);
+		uint32_t row0cols[] = {0, 3, 2};
+		double row0dists[] = {0, 3, 2};
+		double row0strengths[] = {0.05, 0.35, 0.25};
+		uint32_t row1cols[] = {4};
+		double row1dists[] = {4};
+		double row1strengths[] = {1.45};
+		uint32_t row3cols[] = {4, 1};
+		double row3dists[] = {4, 1};
+		double row3strengths[] = {3.45, 3.15};
+		
+		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
+		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
+		sa.AddRowInteractions(2, nullptr, nullptr, nullptr, 0);
+		sa.AddRowInteractions(3, row3cols, row3dists, row3strengths, 2);
+		sa.Finished();
+		
+		std::cout << sa << std::endl;
+	}
+#endif
+	
+#if 0
+	{
+		// This should succeed and contain six elements, identical to the previous
+		SparseArray sa(5, 5);
+		
+		sa.AddEntryInteraction(0, 0, 0, 0.05);
+		sa.AddEntryInteraction(0, 3, 3, 0.35);
+		sa.AddEntryInteraction(0, 2, 2, 0.25);
+		sa.AddEntryInteraction(1, 4, 4, 1.45);
+		sa.AddEntryInteraction(3, 4, 4, 3.45);
+		sa.AddEntryInteraction(3, 1, 1, 3.15);
+		sa.Finished();
+		
+		std::cout << sa << std::endl;
+	}
+#endif
+
+#if 0
+	{
+		// This should fail because row 1 is added twice
+		SparseArray sa(5, 5);
+		uint32_t row0cols[] = {0, 3, 2};
+		double row0dists[] = {0, 3, 2};
+		double row0strengths[] = {0.05, 0.35, 0.25};
+		uint32_t row1cols[] = {4};
+		double row1dists[] = {4};
+		double row1strengths[] = {1.45};
+		
+		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
+		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
+		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
+	}
+#endif
+	
+#if 0
+	{
+		// This should fail because row 0 is after row 1
+		SparseArray sa(5, 5);
+		uint32_t row0cols[] = {0, 3, 2};
+		double row0dists[] = {0, 3, 2};
+		double row0strengths[] = {0.05, 0.35, 0.25};
+		uint32_t row1cols[] = {4};
+		double row1dists[] = {4};
+		double row1strengths[] = {1.45};
+		
+		sa.AddRowInteractions(0, nullptr, nullptr, nullptr, 0);
+		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
+		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
+	}
+#endif
+	
+#if 0
+	{
+		// This should fail because row 0 is not added first
+		SparseArray sa(5, 5);
+		uint32_t row1cols[] = {4};
+		double row1dists[] = {4};
+		double row1strengths[] = {1.45};
+		
+		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
+	}
+#endif
+	
+#if 0
+	{
+		// This should fail because rows are added out of order
+		SparseArray sa(5, 5);
+		
+		sa.AddEntryInteraction(0, 0, 0, 0.05);
+		sa.AddEntryInteraction(1, 4, 4, 1.45);
+		sa.AddEntryInteraction(0, 3, 3, 0.35);
+		sa.Finished();
+		
+		std::cout << sa << std::endl;
+	}
+#endif
+	
+#if 0
+	{
+		// This should fail because a row is added that is beyond bounds
+		SparseArray sa(5, 5);
+		
+		sa.AddEntryInteraction(5, 0, 0, 0.05);
+		sa.Finished();
+		
+		std::cout << sa << std::endl;
+	}
+#endif
+	
+#if 0
+	{
+		// This should fail because a column is added that is beyond bounds
+		SparseArray sa(5, 5);
+		
+		sa.AddEntryInteraction(0, 5, 0, 0.05);
+		sa.Finished();
+		
+		std::cout << sa << std::endl;
+	}
+#endif
+	
+#if 0
+	{
+		// stress test by creating a large number of sparse arrays by entry and cross-checking them
+		for (int trial = 0; trial < 10000; ++trial)
+		{
+			double *distances = (double *)calloc(100 * 100, sizeof(double));
+			double *strengths = (double *)calloc(100 * 100, sizeof(double));
+			int n_entries = random() % 5000;
+			
+			for (int entry = 1; entry <= n_entries; ++entry)
+			{
+				int entry_index = random() % 10000;
+				
+				distances[entry_index] = entry;
+				strengths[entry_index] = random();
+			}
+			
+			SparseArray sa(100, 100);
+			
+			for (int row = 0; row < 100; row++)
+				for (int col = 0; col < 100; ++col)
+					if (*(distances + row + col * 100) != 0)
+						sa.AddEntryInteraction(row, col, *(distances + row + col * 100), *(strengths + row + col * 100));
+			sa.Finished();
+			
+			for (int col = 0; col < 100; ++col)
+				for (int row = 0; row < 100; row++)
+					if (*(distances + row + col * 100) == 0)
+					{
+						if (!isinf(sa.Distance(row, col)))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance defined that should be undefined." << EidosTerminate(nullptr);
+						if (sa.Strength(row, col) != 0)
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength defined that should be undefined." << EidosTerminate(nullptr);
+					}
+					else
+					{
+						double distance = sa.Distance(row, col);
+						double strength = sa.Strength(row, col);
+						
+						if (isinf(distance))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance undefined that should be defined." << EidosTerminate(nullptr);
+						if (strength == 0)
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength undefined that should be defined." << EidosTerminate(nullptr);
+						if (distance != *(distances + row + col * 100))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance mismatch." << EidosTerminate(nullptr);
+						if (strength != *(strengths + row + col * 100))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength mismatch." << EidosTerminate(nullptr);
+					}
+			
+			free(distances);
+			free(strengths);
+		}
+	}
+#endif
+	
+#if 0
+	{
+		// stress test by creating a large number of sparse arrays by row and cross-checking them
+		for (int trial = 0; trial < 10000; ++trial)
+		{
+			double *distances = (double *)calloc(100 * 100, sizeof(double));
+			double *strengths = (double *)calloc(100 * 100, sizeof(double));
+			int n_entries = random() % 5000;
+			
+			for (int entry = 1; entry <= n_entries; ++entry)
+			{
+				int entry_index = random() % 10000;
+				
+				distances[entry_index] = entry;
+				strengths[entry_index] = random();
+			}
+			
+			SparseArray sa(100, 100);
+			
+			for (int row = 0; row < 100; row++)
+			{
+				std::vector<uint32_t> columns;
+				std::vector<double> row_distances;
+				std::vector<double> row_strengths;
+				
+				for (int col = 0; col < 100; ++col)
+					if (*(distances + row + col * 100) != 0)
+					{
+						columns.push_back(col);
+						row_distances.push_back(*(distances + row + col * 100));
+						row_strengths.push_back(*(strengths + row + col * 100));
+					}
+				
+				sa.AddRowInteractions(row, columns.data(), row_distances.data(), row_strengths.data(), (uint32_t)columns.size());
+			}
+			sa.Finished();
+			
+			for (int col = 0; col < 100; ++col)
+				for (int row = 0; row < 100; row++)
+					if (*(distances + row + col * 100) == 0)
+					{
+						if (!isinf(sa.Distance(row, col)))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance defined that should be undefined." << EidosTerminate(nullptr);
+						if (sa.Strength(row, col) != 0)
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength defined that should be undefined." << EidosTerminate(nullptr);
+					}
+					else
+					{
+						double distance = sa.Distance(row, col);
+						double strength = sa.Strength(row, col);
+						
+						if (isinf(distance))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance undefined that should be defined." << EidosTerminate(nullptr);
+						if (strength == 0)
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength undefined that should be defined." << EidosTerminate(nullptr);
+						if (distance != *(distances + row + col * 100))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance mismatch." << EidosTerminate(nullptr);
+						if (strength != *(strengths + row + col * 100))
+							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength mismatch." << EidosTerminate(nullptr);
+					}
+			
+			free(distances);
+			free(strengths);
+		}
+	}
+#endif
+}
 
 void SLiM_WarmUp(void)
 {
@@ -49,6 +301,9 @@ void SLiM_WarmUp(void)
 		// Check for a memory limit and prepare for memory-limit testing
 		Eidos_CheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
+		
+		// Test sparse arrays; these are not structured as unit tests at the moment
+		TestSparseArray();
 		
 		//std::cout << "sizeof(Mutation) == " << sizeof(Mutation) << std::endl;
 	}
@@ -452,8 +707,11 @@ const std::string gStr_outputVCF = "outputVCF";
 const std::string gStr_output = "output";
 const std::string gStr_evaluate = "evaluate";
 const std::string gStr_distance = "distance";
+const std::string gStr_interactionDistance = "interactionDistance";
 const std::string gStr_distanceToPoint = "distanceToPoint";
 const std::string gStr_nearestNeighbors = "nearestNeighbors";
+const std::string gStr_nearestInteractingNeighbors = "nearestInteractingNeighbors";
+const std::string gStr_interactingNeighborCount = "interactingNeighborCount";
 const std::string gStr_nearestNeighborsOfPoint = "nearestNeighborsOfPoint";
 const std::string gStr_setInteractionFunction = "setInteractionFunction";
 const std::string gStr_strength = "strength";
@@ -746,8 +1004,11 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_output, gID_output);
 		Eidos_RegisterStringForGlobalID(gStr_evaluate, gID_evaluate);
 		Eidos_RegisterStringForGlobalID(gStr_distance, gID_distance);
+		Eidos_RegisterStringForGlobalID(gStr_interactionDistance, gID_interactionDistance);
 		Eidos_RegisterStringForGlobalID(gStr_distanceToPoint, gID_distanceToPoint);
 		Eidos_RegisterStringForGlobalID(gStr_nearestNeighbors, gID_nearestNeighbors);
+		Eidos_RegisterStringForGlobalID(gStr_nearestInteractingNeighbors, gID_nearestInteractingNeighbors);
+		Eidos_RegisterStringForGlobalID(gStr_interactingNeighborCount, gID_interactingNeighborCount);
 		Eidos_RegisterStringForGlobalID(gStr_nearestNeighborsOfPoint, gID_nearestNeighborsOfPoint);
 		Eidos_RegisterStringForGlobalID(gStr_setInteractionFunction, gID_setInteractionFunction);
 		Eidos_RegisterStringForGlobalID(gStr_strength, gID_strength);

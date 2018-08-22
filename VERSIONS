@@ -12,6 +12,12 @@ development head:
 	add JSON for Modern C++ (https://github.com/nlohmann/json) version 3.1.2 to SLiM for .trees provenance generation/parsing
 	extend SLiM's .trees file provenance info (tskit schema stuff, script text, seed, parameters, os environment, file_version==0.2)
 	fixed a inefficient bottleneck in recipe 13.4 (reading MS format files)
+	greatly increase the performance and memory usage of the InteractionType spatial engine for big models (add sparse array for caching pairwise interactions)
+		this breaks backward reproducibility in some models, because distances/strengths are now internally rounded to float instead of double
+	add interactionDistance() method to InteractionType, returning INF as the distance for non-interacting pairs (including self-self distance)
+	add nearestInteractingNeighbors() method to InteractionType, excluding non-interacting pairs from the returned set of neighbors
+	add interactingNeighborCount() method to InteractionType, to get a count without getting identities
+	changed the semantics of strength(); the first argument must now be a singleton individual, and it returns strengths exerted upon that individual (old semantics were ill-defined and broken for non-reciprocal interactions)
 
 
 3.0 (build 1750; Eidos version 2.0):

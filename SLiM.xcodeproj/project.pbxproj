@@ -508,6 +508,8 @@
 		98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D701E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D711E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
+		98DC39942127D52000025211 /* sparse_array.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC39922127D52000025211 /* sparse_array.cpp */; };
+		98DC39952127D52000025211 /* sparse_array.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC39922127D52000025211 /* sparse_array.cpp */; };
 		98DC7BBB1DF13CD60037A1DD /* TipsWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98DC7BB91DF13CD50037A1DD /* TipsWindow.xib */; };
 		98DE4C131B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C141B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
@@ -1006,6 +1008,8 @@
 		98D524681F2EB4DD005AD9A6 /* EidosPrettyprinter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosPrettyprinter.mm; sourceTree = "<group>"; };
 		98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = interaction_type.cpp; sourceTree = "<group>"; };
 		98DB3D6E1E6122AE00E2C200 /* interaction_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = interaction_type.h; sourceTree = "<group>"; };
+		98DC39922127D52000025211 /* sparse_array.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sparse_array.cpp; sourceTree = "<group>"; };
+		98DC39932127D52000025211 /* sparse_array.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sparse_array.h; sourceTree = "<group>"; };
 		98DC7BBA1DF13CD50037A1DD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/TipsWindow.xib; sourceTree = "<group>"; };
 		98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_property_signature.cpp; sourceTree = "<group>"; };
 		98DE4C121B6F9657004FDF5F /* eidos_property_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_property_signature.h; sourceTree = "<group>"; };
@@ -1238,6 +1242,8 @@
 				98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */,
 				98E9A69B1A3CD542000AD4FC /* polymorphism.h */,
 				98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */,
+				98DC39932127D52000025211 /* sparse_array.h */,
+				98DC39922127D52000025211 /* sparse_array.cpp */,
 				98DB3D6E1E6122AE00E2C200 /* interaction_type.h */,
 				98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */,
 				98AB597A1B2531F10077CB4A /* slim_eidos_block.h */,
@@ -2329,6 +2335,7 @@
 				D0A758F720A4CC9800132D2F /* text_input.c in Sources */,
 				98C821A31C7A99F000548839 /* pow_int.c in Sources */,
 				98C8212F1C7A980000548839 /* lognormal.c in Sources */,
+				98DC39942127D52000025211 /* sparse_array.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2524,6 +2531,7 @@
 				986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */,
 				98D4C2041A701D5A00FFB083 /* SLiMWindowController.mm in Sources */,
 				98D4C2071A704EA700FFB083 /* PopulationView.mm in Sources */,
+				98DC39952127D52000025211 /* sparse_array.cpp in Sources */,
 				98332B121FDBD0F500274FF0 /* init.c in Sources */,
 				986926EB1AA6B7480000E138 /* GraphView_PopulationVisualization.mm in Sources */,
 				98DE4C221B713F37004FDF5F /* ScriptMod_ChangeSelfing.mm in Sources */,

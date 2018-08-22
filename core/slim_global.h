@@ -535,8 +535,11 @@ extern const std::string gStr_outputVCF;
 extern const std::string gStr_output;
 extern const std::string gStr_evaluate;
 extern const std::string gStr_distance;
+extern const std::string gStr_interactionDistance;
 extern const std::string gStr_distanceToPoint;
 extern const std::string gStr_nearestNeighbors;
+extern const std::string gStr_nearestInteractingNeighbors;
+extern const std::string gStr_interactingNeighborCount;
 extern const std::string gStr_nearestNeighborsOfPoint;
 extern const std::string gStr_setInteractionFunction;
 extern const std::string gStr_strength;
@@ -793,8 +796,11 @@ enum _SLiMGlobalStringID : int {
 	gID_output,
 	gID_evaluate,
 	gID_distance,
+	gID_interactionDistance,
 	gID_distanceToPoint,
 	gID_nearestNeighbors,
+	gID_nearestInteractingNeighbors,
+	gID_interactingNeighborCount,
 	gID_nearestNeighborsOfPoint,
 	gID_setInteractionFunction,
 	gID_strength,

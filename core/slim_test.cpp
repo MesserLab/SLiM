@@ -2950,19 +2950,19 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 1); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 50); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], -1); stop(); }", 1, 567, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], -1); stop(); }", 1, 567, "requires count >= 0", __LINE__);
 		
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return 2.0; }", 1, 567, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return 2.0; }", 1, 567, "requires count >= 0", __LINE__);
 		
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return strength * 2.0; }", 1, 567, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return strength * 2.0; }", 1, 567, "requires count >= 0", __LINE__);
 		
 		// Test InteractionType – (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.evaluate(); i1.evaluate(); stop(); }", __LINE__);
@@ -2973,13 +2973,13 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.evaluate(NULL, immediate=T); stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 581, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 581, "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, 5.0, -1), ind[integer(0)])) stop(); }", 1, 581, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, 5.0, -1), ind[integer(0)])) stop(); }", 1, 581, "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, 5.0, 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, 19.0, 1), ind[8])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(sortBy(i1.nearestNeighborsOfPoint(p1, 19.0, 3), 'index'), ind[c(7,8,9)])) stop(); }", __LINE__);
@@ -3014,31 +3014,22 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		if (!sex_seg_on)
 		{
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (i1.strength(ind[0], ind[2]) == 1.0) stop(); }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(1.0, 1.0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(1.0, 1.0))) stop(); }", __LINE__);
-			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 1.0) stop(); }", 1, 571, "either individuals1 or individuals2 be", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(1.0, 0.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5]), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5], NULL), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 			
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 2.0) stop(); } interaction(i1) { return 2.0; }", 1, 571, "either individuals1 or individuals2 be", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(2.0, 0.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", 1, 571, "either individuals1 or individuals2 be", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(2.0, 0.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
@@ -3120,19 +3111,19 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], 1); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], 50); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], -1); stop(); }", 1, 560, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], -1); stop(); }", 1, 560, "requires count >= 0", __LINE__);
 		
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return 2.0; }", 1, 560, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return 2.0; }", 1, 560, "requires count >= 0", __LINE__);
 		
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return strength * 2.0; }", 1, 560, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return strength * 2.0; }", 1, 560, "requires count >= 0", __LINE__);
 		
 		// Test InteractionType – (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.evaluate(); i1.evaluate(); stop(); }", __LINE__);
@@ -3143,13 +3134,13 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.evaluate(NULL, immediate=T); stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 574, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 574, "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0), -1), ind[integer(0)])) stop(); }", 1, 574, "requires count > 0", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0), -1), ind[integer(0)])) stop(); }", 1, 574, "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0), 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(" + (use_first_coordinate ? "19.0, 0.0" : "0.0, 19.0") + "), 1), ind[8])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(sortBy(i1.nearestNeighborsOfPoint(p1, c(" + (use_first_coordinate ? "19.0, 0.0" : "0.0, 19.0") + "), 3), 'index'), ind[c(7,8,9)])) stop(); }", __LINE__);
@@ -3184,31 +3175,22 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		if (!sex_seg_on)
 		{
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (i1.strength(ind[0], ind[2]) == 1.0) stop(); }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(1.0, 1.0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(1.0, 1.0))) stop(); }", __LINE__);
-			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 1.0) stop(); }", 1, 564, "either individuals1 or individuals2 be", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(1.0, 0.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5]), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5], NULL), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 			
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 2.0) stop(); } interaction(i1) { return 2.0; }", 1, 564, "either individuals1 or individuals2 be", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(2.0, 0.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 			
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", 1, 564, "either individuals1 or individuals2 be", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(2.0, 0.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
@@ -3274,19 +3256,19 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], 1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], 50); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], -1); stop(); }", 1, 553, "requires count > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], -1); stop(); }", 1, 553, "requires count >= 0", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return 2.0; }", 1, 553, "requires count > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return 2.0; }", 1, 553, "requires count >= 0", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return strength * 2.0; }", 1, 553, "requires count > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return strength * 2.0; }", 1, 553, "requires count >= 0", __LINE__);
 	
 	// Test InteractionType – (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.evaluate(); i1.evaluate(); stop(); }", __LINE__);
@@ -3297,13 +3279,13 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.evaluate(NULL, immediate=T); stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 567, "requires count > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 567, "requires count >= 0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0, 0.0), -1), ind[integer(0)])) stop(); }", 1, 567, "requires count > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0, 0.0), -1), ind[integer(0)])) stop(); }", 1, 567, "requires count >= 0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0, 0.0), 0), ind[integer(0)])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(19.0, 0.0, 0.0), 1), ind[8])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(sortBy(i1.nearestNeighborsOfPoint(p1, c(19.0, 0.0, 0.0), 3), 'index'), ind[c(7,8,9)])) stop(); }", __LINE__);
@@ -3338,31 +3320,22 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	if (!sex_seg_on)
 	{
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (i1.strength(ind[0], ind[2]) == 1.0) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(1.0, 1.0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(1.0, 1.0))) stop(); }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 1.0) stop(); }", 1, 557, "either individuals1 or individuals2 be", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(1.0, 0.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5]), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5], NULL), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 2.0) stop(); } interaction(i1) { return 2.0; }", 1, 557, "either individuals1 or individuals2 be", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(2.0, 0.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (i1.strength(ind[0:1], ind[2:3]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", 1, 557, "either individuals1 or individuals2 be", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5], ind[c(0, 5, 9, 8, 1)]), c(2.0, 0.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[integer(0)], ind[8]), float(0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
@@ -3456,19 +3429,16 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	if (!sex_seg_on)
 	{
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (i1.strength(ind[0], ind[2]) == 1.0) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[0:1], ind[2]), c(1.0, 1.0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[0], ind[2:3]), c(1.0, 1.0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[5]), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[5], NULL), c(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return 2.0; }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return 2.0; }", __LINE__);
 
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[0:1], ind[2]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[0], ind[2:3]), c(2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);

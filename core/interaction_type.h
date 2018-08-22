@@ -39,6 +39,7 @@
 #include "slim_global.h"
 #include "slim_eidos_block.h"
 #include "slim_eidos_dictionary.h"
+#include "sparse_array.h"
 
 
 class SLiMSim;
@@ -89,7 +90,7 @@ struct _InteractionsData
 	// unless the subpopulation size changes (which forces a reallocation).  This is important because these blocks can be so large
 	// that they are considered "large blocks" by malloc, triggering some very slow processing such as madvise() that is to be
 	// avoided at all costs.
-	bool evaluated_;
+	bool evaluated_, distances_calculated_, strengths_calculated_;
 	std::vector<SLiMEidosBlock*> evaluation_interaction_callbacks_;
 	
 	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
@@ -99,8 +100,7 @@ struct _InteractionsData
 	double bounds_x1_, bounds_y1_, bounds_z1_;	// copied from the Subpopulation; the zero-bound in each dimension is guaranteed to be zero *if* the dimension is periodic
 	
 	double *positions_ = nullptr;			// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions
-	double *distances_ = nullptr;			// individual_count_ ^ 2 entries, holding distances between pairs of individuals
-	double *strengths_ = nullptr;			// individual_count_ ^ 2 entries, holding interaction strengths between pairs of individuals
+	SparseArray *dist_str_ = nullptr;		// a sparse array of interaction distances/strengths between individuals, individual_count_ x individual_count_
 	SLiM_kdNode *kd_nodes_ = nullptr;		// individual_count_ entries, holding the nodes of the k-d tree
 	SLiM_kdNode *kd_root_ = nullptr;		// the root of the k-d tree
 	
@@ -149,15 +149,14 @@ private:
 	
 	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each subpopulation
 	
-	void CalculateAllInteractions(Subpopulation *p_subpop);
+	void CalculateAllDistances(Subpopulation *p_subpop);
+	void CalculateAllStrengths(Subpopulation *p_subpop);
+	
 	double CalculateDistance(double *p_position1, double *p_position2);
 	double CalculateDistanceWithPeriodicity(double *p_position1, double *p_position2, InteractionsData &p_subpop_data);
+	
 	double CalculateStrengthNoCallbacks(double p_distance);
 	double CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
-	void EnsureDistancesPresent(InteractionsData &p_subpop_data);
-	void InitializeDistances(InteractionsData &p_subpop_data);
-	void EnsureStrengthsPresent(InteractionsData &p_subpop_data);
-	void InitializeStrengths(InteractionsData &p_subpop_data);
 	
 	SLiM_kdNode *FindMedian_p0(SLiM_kdNode *start, SLiM_kdNode *end);
 	SLiM_kdNode *FindMedian_p1(SLiM_kdNode *start, SLiM_kdNode *end);
@@ -183,6 +182,13 @@ private:
 	int CheckKDTree3_p2(SLiM_kdNode *t);
 	void CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
 	
+	void BuildSA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array);
+	void BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase);
+	void BuildSA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase);
+	void BuildSA_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter);
+	void BuildSA_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
+	void BuildSA_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
+	
 	void FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist);
 	void FindNeighbors1_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
 	void FindNeighbors1_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
@@ -194,32 +200,6 @@ private:
 	void FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase);
 	void FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual);
 	
-	double TotalNeighborStrengthA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths);
-	double TotalNeighborStrengthA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, int p_phase);
-	double TotalNeighborStrengthA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, int p_phase);
-	double TotalNeighborStrengthA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size);
-	double TotalNeighborStrengthA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
-	double TotalNeighborStrengthA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
-	double TotalNeighborStrengthA_1_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths);
-	double TotalNeighborStrengthA_2_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase);
-	double TotalNeighborStrengthA_3_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_focal_distances, int p_phase);
-	double TotalNeighborStrengthA_1_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size);
-	double TotalNeighborStrengthA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
-	double TotalNeighborStrengthA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, uint8_t *p_visited_buf, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, int p_phase);
-	double TotalNeighborStrength(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual);
-	
-	void FillNeighborStrengthsA_1(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_result_vec);
-	void FillNeighborStrengthsA_2(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase);
-	void FillNeighborStrengthsA_3(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase);
-	void FillNeighborStrengthsA_1_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, int subpop_size, double *p_result_vec);
-	void FillNeighborStrengthsA_2_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
-	void FillNeighborStrengthsA_3_reciprocal(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
-	void FillNeighborStrengthsA_2_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase);
-	void FillNeighborStrengthsA_3_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_focal_distances, double *p_result_vec, int p_phase);
-	void FillNeighborStrengthsA_2_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
-	void FillNeighborStrengthsA_3_reciprocal_PERIODIC(SLiM_kdNode *root, double *nd, double *p_focal_strengths, double *p_mirror_strengths, double *p_focal_distances, double *p_mirror_distances, int subpop_size, double *p_result_vec, int p_phase);
-	void FillNeighborStrengths(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, Individual *p_excluded_individual, double *p_result_vec);
-
 public:
 	
 	slim_objectid_t interaction_type_id_;		// the id by which this interaction type is indexed in the chromosome
@@ -235,7 +215,7 @@ public:
 	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);
 	bool AnyEvaluated(void);
 	void Invalidate(void);
-
+	
 	// apply interaction() callbacks to an interaction strength; the return value is the final interaction strength
 	double ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
 	
@@ -256,6 +236,9 @@ public:
 	EidosValue_SP ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_interactingNeighborCount(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_interactionDistance(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_nearestInteractingNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_nearestNeighborsOfPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
