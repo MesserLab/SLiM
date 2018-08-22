@@ -22,7 +22,7 @@
 
 #include <ostream>
 #include <cmath>
-
+#include <string.h>
 
 #pragma mark -
 #pragma mark SparseArray
@@ -421,7 +421,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const SparseArray &p_array)
 			sa_distance_t distance = p_array.Distance(row, col);
 			sa_strength_t strength = p_array.Strength(row, col);
 			
-			if (isfinite(distance))
+			if (std::isfinite(distance))
 				p_outstream << "   (" << row << ", " << col << ") == {" << distance << ", " << strength << "}" << std::endl;
 		}
 	}
