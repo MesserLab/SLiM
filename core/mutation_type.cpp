@@ -319,6 +319,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			return sel_coeff;
 		}
 	}
+	EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): (internal error) unexpected dfe_type_ value." << EidosTerminate();
 }
 
 // This is unused except by debugging code and in the debugger itself

@@ -489,6 +489,7 @@ std::string StringForGenomeType(GenomeType p_genome_type)
 		case GenomeType::kXChromosome:	return gStr_X;		// SEX ONLY
 		case GenomeType::kYChromosome:	return gStr_Y;		// SEX ONLY
 	}
+	EIDOS_TERMINATION << "ERROR (StringForGenomeType): (internal error) unexpected p_genome_type value." << EidosTerminate();
 }
 
 std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
@@ -506,6 +507,7 @@ std::string StringForIndividualSex(IndividualSex p_sex)
 		case IndividualSex::kFemale:			return "F";		// SEX ONLY
 		case IndividualSex::kMale:				return "M";		// SEX ONLY
 	}
+	EIDOS_TERMINATION << "ERROR (StringForIndividualSex): (internal error) unexpected p_sex value." << EidosTerminate();
 }
 
 std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)

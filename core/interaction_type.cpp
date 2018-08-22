@@ -960,6 +960,7 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 			return (if_param1_ / (1.0 + temp * temp));													// fmax / (1+(d/λ)^2)
 		}
 	}
+	EIDOS_TERMINATION << "ERROR (InteractionType::CalculateStrengthNoCallbacks): (internal error) unexpected if_type_ value." << EidosTerminate();
 }
 
 double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
