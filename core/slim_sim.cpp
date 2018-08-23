@@ -9382,11 +9382,19 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosFitnessCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a fitness(), mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
-	const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
-	EidosObjectElement * const *oe_buffer = ind_vector->data();
-	Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-	AddIndividualsToTable(ind_buffer, ind_count, &tables, true);
-
+	if (individuals_value->Count() == 1)
+	{
+		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
+		AddIndividualsToTable(&ind, 1, &tables, true);
+	}
+	else
+	{
+		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
+		EidosObjectElement * const *oe_buffer = ind_vector->data();
+		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
+		AddIndividualsToTable(ind_buffer, ind_count, &tables, true);
+	}
+	
 	return gStaticEidosValueVOID;
 }
 
