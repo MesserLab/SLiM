@@ -341,6 +341,45 @@ void Subpopulation::MakeMemoryPools(size_t p_individual_capacity)
 	}
 }
 
+Genome *Subpopulation::_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
+{
+	// This gets called if a null genome is requested but the null junkyard is empty, or if a non-null genome is requested
+	// but the non-null junkyard is empty; so we know that the primary junkyard for the request cannot service the request.
+	// If the other junkyard has a genome, we want to repurpose it; this prevents one junkyard from filling up with an
+	// ever-growing number of genomes while requests to the other junkyard create new genomes (which can happen because
+	// genomes can be transmogrified between null and non-null after creation).  We create a new genome only if both
+	// junkyards are empty.
+	if (p_is_null)
+	{
+		if (genome_junkyard_nonnull.size())
+		{
+			Genome *back = genome_junkyard_nonnull.back();
+			genome_junkyard_nonnull.pop_back();
+			
+			// got a non-null genome (guaranteed cleared to nullptr by FreeSubpopGenome()), need to repurpose it to be a null genome
+			back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
+			
+			return back;
+		}
+	}
+	else
+	{
+		if (genome_junkyard_null.size())
+		{
+			Genome *back = genome_junkyard_null.back();
+			genome_junkyard_null.pop_back();
+			
+			// got a null genome, need to repurpose it to be a non-null genome cleared to nullptr
+			back->ReinitializeGenomeNullptr(p_genome_type, p_mutrun_count, p_mutrun_length);
+			
+			return back;
+		}
+	}
+	
+	return new (genome_pool_->AllocateChunk()) Genome(this, p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
+}
+
+#ifdef SLIM_WF_ONLY
 void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear)
 {
 	SLiMSim &sim = population_.sim_;
@@ -461,36 +500,22 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 	}
 }
 
-#ifdef SLIM_WF_ONLY
-// given the subpop size and sex ratio currently set for the child generation, make new genomes to fit
-// this method is called when a new subpop is created, a subpop size changes, or sex ratio changes
-void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders, bool p_record_in_treeseq)
+// Reconfigure the child generation to match the set size, sex ratio, etc.  This may involve removing existing individuals,
+// or adding new ones.  It may also involve transmogrifying existing individuals to a new sex, etc.  It can also transmogrify
+// genomes between a null and non-null state, as a side effect of changing sex.  So this code is really gross and invasive.
+void Subpopulation::GenerateChildrenToFitWF()
 {
 	SLiMSim &sim = population_.sim_;
-	bool pedigrees_enabled = (!p_placeholders) && sim.PedigreesEnabled();
-	bool recording_tree_sequence = (!p_placeholders) && p_record_in_treeseq && sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
-	if (p_make_child_generation)
-	{
-		cached_child_genomes_value_.reset();
-		cached_child_individuals_value_.reset();
-	}
-	else
-	{
-		cached_parent_genomes_value_.reset();
-		cached_parent_individuals_value_.reset();
-	}
-	
-	std::vector<Individual *> &individuals = (p_make_child_generation ? child_individuals_ : parent_individuals_);
-	std::vector<Genome *> &genomes = (p_make_child_generation ? child_genomes_ : parent_genomes_);
-	slim_popsize_t &subpop_size = (p_make_child_generation ? child_subpop_size_ : parent_subpop_size_);
+	cached_child_genomes_value_.reset();
+	cached_child_individuals_value_.reset();
 	
 	// First, make the number of Individual objects match, and make the corresponding Genome changes
-	int old_individual_count = (int)individuals.size();
-	int new_individual_count = subpop_size;
+	int old_individual_count = (int)child_individuals_.size();
+	int new_individual_count = child_subpop_size_;
 	
 	if (new_individual_count > old_individual_count)
 	{
@@ -499,36 +524,35 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			MakeMemoryPools(new_individual_count * 2);	// room for parents and children
 		
 		// We also have to make space for the pointers to the genomes and individuals
-		genomes.reserve(new_individual_count * 2);
-		individuals.reserve(new_individual_count);
+		child_genomes_.reserve(new_individual_count * 2);
+		child_individuals_.reserve(new_individual_count);
 		
 		for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
 		{
 			// allocate out of our object pools
-			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
-			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
+			// BCH 23 August 2018: passing false to NewSubpopGenome() for p_is_null is sometimes inaccurate, but should
+			// be harmless.  If the genomes are ultimately destined to be null genomes, their mutruns buffer will get
+			// freed again below.  Now that the disposed genome junkyards can supply each other when empty, there should
+			// be no bigger consequence than that performance hit.  It might be nice to figure out, here, what type of
+			// genome we will eventually want at this position, and make the right kind up front; but that is a
+			// substantial hassle, and this should only matter in unusual models (very large-magnitude population size
+			// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
+			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
 			
-			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
-			{
-				sim.SetCurrentNewIndividual(individual);
-				sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
-			}
-			
-			genomes.push_back(genome1);
-			genomes.push_back(genome2);
-			individuals.push_back(individual);
+			child_genomes_.push_back(genome1);
+			child_genomes_.push_back(genome2);
+			child_individuals_.push_back(individual);
 		}
 	}
 	else if (new_individual_count < old_individual_count)
 	{
 		for (int old_index = new_individual_count; old_index < old_individual_count; ++old_index)
 		{
-			Genome *genome1 = genomes[old_index * 2];
-			Genome *genome2 = genomes[old_index * 2 + 1];
-			Individual *individual = individuals[old_index];
+			Genome *genome1 = child_genomes_[old_index * 2];
+			Genome *genome2 = child_genomes_[old_index * 2 + 1];
+			Individual *individual = child_individuals_[old_index];
 			
 			// dispose of the genomes and individual
 			FreeSubpopGenome(genome1);
@@ -538,15 +562,15 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
 		}
 		
-		genomes.resize(new_individual_count * 2);
-		individuals.resize(new_individual_count);
+		child_genomes_.resize(new_individual_count * 2);
+		child_individuals_.resize(new_individual_count);
 	}
 	
 	// Next, fix the type of each genome, and clear them all, and fix individual sex if necessary
 	if (sex_enabled_)
 	{
-		double &sex_ratio = (p_make_child_generation ? child_sex_ratio_ : parent_sex_ratio_);
-		slim_popsize_t &first_male_index = (p_make_child_generation ? child_first_male_index_ : parent_first_male_index_);
+		double &sex_ratio = child_sex_ratio_;
+		slim_popsize_t &first_male_index = child_first_male_index_;
 		
 		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(sex_ratio * new_individual_count));	// round in favor of males, arbitrarily
 		
@@ -554,26 +578,26 @@ void Subpopulation::GenerateIndividualsToFitWF(bool p_make_child_generation, boo
 		
 		if (first_male_index <= 0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFitWF): sex ratio of " << sex_ratio << " produced no females." << EidosTerminate();
-		else if (first_male_index >= subpop_size)
+		else if (first_male_index >= child_subpop_size_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFitWF): sex ratio of " << sex_ratio << " produced no males." << EidosTerminate();
 		
-		WipeIndividualsAndGenomes(individuals, genomes, new_individual_count, first_male_index, p_make_child_generation);
+		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, first_male_index, true);
 	}
 	else
 	{
-		WipeIndividualsAndGenomes(individuals, genomes, new_individual_count, -1, p_make_child_generation);	// make hermaphrodites
+		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, -1, true);	// make hermaphrodites
 	}
 }
 #endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
-// given the initial subpop size, make new genomes and individuals to fit; very parallel to GenerateIndividualsToFitWF()
-// unlike GenerateIndividualsToFitWF(), this method is called only when a new subpopulation is created
-void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
+// Generate new individuals to fill out a freshly created subpopulation, including recording in the tree
+// sequence unless this is the result of addSubpopSplit() (which does its own recording since parents are
+// involved in that case).  This handles both the WF and nonWF cases, which are very similar.
+void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq)
 {
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
-	bool recording_tree_sequence = sim.RecordingTreeSequence();
+	bool recording_tree_sequence = p_record_in_treeseq && sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -582,24 +606,88 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 	cached_parent_individuals_value_.reset();
 	
 	if (parent_individuals_.size() || parent_genomes_.size())
-		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateIndividualsToFitNonWF): (internal error) individuals or genomes already present in GenerateIndividualsToFitNonWF()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) individuals or genomes already present in GenerateParentsToFit()." << EidosTerminate();
+	if ((parent_subpop_size_ == 0) && !p_allow_zero_size)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) subpop size of 0 requested." << EidosTerminate();
 	
-	// First, make the number of Individual objects match, and make the corresponding Genome changes
+	// Make sure our memory pools for genomes and individuals are allocated
+	if (!genome_pool_ && !individual_pool_)
+		MakeMemoryPools(parent_subpop_size_ * 2);	// room for parents and children
+	
+	// We also have to make space for the pointers to the genomes and individuals
+	parent_genomes_.reserve(parent_subpop_size_ * 2);
+	parent_individuals_.reserve(parent_subpop_size_);
+	
+	// Now create new individuals and genomes appropriate for the requested sex ratio and subpop size
+	MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+	
+	if (sex_enabled_)
 	{
-		// Make sure our memory pools for genomes and individuals are allocated
-		if (!genome_pool_ && !individual_pool_)
-			MakeMemoryPools(parent_subpop_size_ * 2);	// room for parents and children
+		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(p_sex_ratio * parent_subpop_size_));	// round in favor of males, arbitrarily
+		slim_popsize_t first_male_index = parent_subpop_size_ - total_males;
 		
-		// We also have to make space for the pointers to the genomes and individuals
-		parent_genomes_.reserve(parent_subpop_size_ * 2);
-		parent_individuals_.reserve(parent_subpop_size_);
+		parent_first_male_index_ = first_male_index;
 		
+		if (p_require_both_sexes)
+		{
+			if (first_male_index <= 0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): sex ratio of " << p_sex_ratio << " produced no females." << EidosTerminate();
+			else if (first_male_index >= parent_subpop_size_)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): sex ratio of " << p_sex_ratio << " produced no males." << EidosTerminate();
+		}
+		
+		// Make females and then males
 		for (int new_index = 0; new_index < parent_subpop_size_; ++new_index)
 		{
-			// allocate out of our object pools
-			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
-			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, true);
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, 0, /* initial fitness for new subpops */ 1.0);
+			bool is_female = (new_index < first_male_index);
+			Genome *genome1, *genome2;
+			
+			switch (modeled_chromosome_type_)
+			{
+				case GenomeType::kAutosome:
+				{
+					genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+					genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					
+					genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+					genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					break;
+				}
+				case GenomeType::kXChromosome:
+				{
+					genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kXChromosome, false);
+					genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+					
+					if (is_female)
+					{
+						genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kXChromosome, false);
+						genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+					}
+					else
+					{
+						genome2 = NewSubpopGenome(0, 0, GenomeType::kYChromosome, true);
+					}
+					break;
+				}
+				case GenomeType::kYChromosome:
+				{
+					genome1 = NewSubpopGenome(0, 0, GenomeType::kXChromosome, true);
+					
+					if (is_female)
+					{
+						genome2 = NewSubpopGenome(0, 0, GenomeType::kXChromosome, true);
+					}
+					else
+					{
+						genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kYChromosome, false);
+						genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
+					}
+					break;
+				}
+			}
+			
+			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -614,24 +702,35 @@ void Subpopulation::GenerateIndividualsToFitNonWF(double p_sex_ratio)
 			parent_individuals_.push_back(individual);
 		}
 	}
-	
-	// Next, fix the type of each genome, and clear them all, and fix individual sex if necessary
-	if (sex_enabled_)
-	{
-		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(p_sex_ratio * parent_subpop_size_));	// round in favor of males, arbitrarily
-		
-		parent_first_male_index_ = parent_subpop_size_ - total_males;
-		
-		// There is no requirement that a population have males or females, in nonWF, so we do not do the check here that we do for WF models...
-		
-		WipeIndividualsAndGenomes(parent_individuals_, parent_genomes_, parent_subpop_size_, parent_first_male_index_, false);
-	}
 	else
 	{
-		WipeIndividualsAndGenomes(parent_individuals_, parent_genomes_, parent_subpop_size_, -1, false);	// make hermaphrodites
+		// Make hermaphrodites
+		for (int new_index = 0; new_index < parent_subpop_size_; ++new_index)
+		{
+			// allocate out of our object pools
+			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+			
+			// start new parental genomes out with a shared empty mutrun; can't be nullptr like child genomes can
+			genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+			genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+			
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
+			
+			// TREE SEQUENCE RECORDING
+			if (recording_tree_sequence)
+			{
+				sim.SetCurrentNewIndividual(individual);
+				sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+			}
+			
+			parent_genomes_.push_back(genome1);
+			parent_genomes_.push_back(genome2);
+			parent_individuals_.push_back(individual);
+		}
 	}
 }
-#endif  // SLIM_NONWF_ONLY
 
 void Subpopulation::CheckIndividualIntegrity(void)
 {
@@ -918,16 +1017,16 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
-		GenerateIndividualsToFitWF(false, false, p_record_in_treeseq);	// make parent generation, not placeholders
-		GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
+		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
+		GenerateChildrenToFitWF();
 	}
 	else
 	{
-		GenerateIndividualsToFitNonWF(0.0);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateIndividualsToFitWF(false, false, p_source_subpop);
-	GenerateIndividualsToFitWF(true, true, true);
+	GenerateParentsToFitWF(p_record_in_treeseq);
+	GenerateChildrenToFitWF();
 #elif defined(SLIM_NONWF_ONLY)
 	if (p_source_subpop)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): (internal error) Subpopulation can be constructed with a source subpop only in the WF case." << EidosTerminate();
@@ -966,16 +1065,16 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
-		GenerateIndividualsToFitWF(false, false, p_record_in_treeseq);	// make parent generation, not placeholders
-		GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders
+		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
+		GenerateChildrenToFitWF();
 	}
 	else
 	{
-		GenerateIndividualsToFitNonWF(p_sex_ratio);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateIndividualsToFitWF(false, false, p_source_subpop);
-	GenerateIndividualsToFitWF(true, true, true);
+	GenerateParentsToFitWF(p_record_in_treeseq);
+	GenerateChildrenToFitWF();
 #elif defined(SLIM_NONWF_ONLY)
 	if (p_source_subpop)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): (internal error) Subpopulation can be constructed with a source subpop only in the WF case." << EidosTerminate();
@@ -2848,7 +2947,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	
 	// The parental genomes, which have now been swapped into the child genome vactor, no longer fit the bill.  We need to throw them out and generate new genome vectors.
 	if (will_need_new_children)
-		GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
+		GenerateChildrenToFitWF();
 }
 #endif	// SLIM_WF_ONLY
 
@@ -4014,6 +4113,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			}
 			
 			// make the transmogrified individual and genomes, from our own pools
+			// passing p_is_null==true to NewSubpopGenome() is correct here; we transfer mutruns from the old genomes, so
+			// we get a new null genome from the pool, and then after swapping a null genome will be returned to the pool
 			Genome *genome1_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
 			Genome *genome2_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
 			Individual *migrant_transmogrified = new (individual_pool_->AllocateChunk()) Individual(*this, -1, -1, genome1_transmogrified, genome2_transmogrified, IndividualSex::kHermaphrodite, -1, NAN);
@@ -4910,7 +5011,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 	child_sex_ratio_ = sex_ratio;
-	GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
+	GenerateChildrenToFitWF();
 	
 	return gStaticEidosValueVOID;
 }

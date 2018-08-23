@@ -306,7 +306,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 	{
 		// After we change the subpop size, we need to generate new children genomes to fit the new requirements
 		p_subpop.child_subpop_size_ = p_subpop_size;
-		p_subpop.GenerateIndividualsToFitWF(true, true, true);		// make child generation, placeholders, tree-seq record
+		p_subpop.GenerateChildrenToFitWF();
 	}
 }
 #endif	// SLIM_WF_ONLY

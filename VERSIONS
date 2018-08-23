@@ -18,6 +18,8 @@ development head:
 	add nearestInteractingNeighbors() method to InteractionType, excluding non-interacting pairs from the returned set of neighbors
 	add interactingNeighborCount() method to InteractionType, to get a count without getting identities
 	changed the semantics of strength(); the first argument must now be a singleton individual, and it returns strengths exerted upon that individual (old semantics were ill-defined and broken for non-reciprocal interactions)
+	rememberIndividuals() now actually remembers individuals in the tree sequence, as well as (what it did before) their associated nodes
+	fix issues with genome recycling and subpop initialization, which could result in nodes in .trees files being marked as null genomes incorrectly and could cause memory usage to increase without bound
 
 
 3.0 (build 1750; Eidos version 2.0):

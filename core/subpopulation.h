@@ -273,6 +273,7 @@ public:
 	void MakeMemoryPools(size_t p_individual_capacity);
 	
 	// Returns a new genome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
+	Genome *_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null);	// internal use only
 	inline __attribute__((always_inline)) Genome *NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
 	{
 		if (p_is_null)
@@ -317,7 +318,7 @@ public:
 			}
 		}
 		
-		return new (genome_pool_->AllocateChunk()) Genome(this, p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
+		return _NewSubpopGenome(p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
 	}
 	
 	// Frees a genome object (puts it in one of the junkyards), clearing it to nullptr to keep our bookkeeping straight
@@ -332,13 +333,11 @@ public:
 		}
 	}
 	
-	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear);
 #ifdef SLIM_WF_ONLY
-	void GenerateIndividualsToFitWF(bool p_make_child_generation, bool p_placeholders, bool p_record_in_treeseq);		// given the set subpop size and sex ratio, make new genomes and individuals to fit
+	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear);
+	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation genomes and individuals to fit
 #endif	// SLIM_WF_ONLY
-#ifdef SLIM_NONWF_ONLY
-	void GenerateIndividualsToFitNonWF(double p_sex_ratio);									// given the initial subpop size, make new genomes and individuals to fit
-#endif  // SLIM_NONWF_ONLY
+	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq);	// given the set subpop size and requested sex ratio, make new genomes and individuals to fit
 	void CheckIndividualIntegrity(void);
 	
 	IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid
