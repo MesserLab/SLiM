@@ -4711,8 +4711,8 @@ table_collection_check_edge_ordering(table_collection_t *self)
 {
     int ret = 0;
     table_size_t j;
-    node_id_t parent, last_parent, child, last_child;
-    double left, last_left;
+    node_id_t parent, last_parent = 0, child, last_child = 0;	// initializing in SLiM's copy to suppress warnings until this is fixed in tskit
+    double left, last_left = 0;									// initializing in SLiM's copy to suppress warnings until this is fixed in tskit
     const double *time = self->nodes->time;
     bool *parent_seen = calloc(self->nodes->num_rows, sizeof(bool));
 
