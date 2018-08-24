@@ -5464,6 +5464,10 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// Unmark "first generation" nodes as samples (but, retaining their information!)
 	UnmarkFirstGenerationSamples(&output_tables);
 	
+	// Rebase the times in the nodes to be in msprime-land; see _InstantiateSLiMObjectsFromTables() for the inverse operation
+	for (size_t node_index = 0; node_index < output_tables.nodes->num_rows; ++node_index)
+		output_tables.nodes->time[node_index] += generation_;
+	
     // Add a row to the Provenance table to record current state
     WriteProvenanceTable(&output_tables);
 	
@@ -6702,6 +6706,10 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	
 	ReadProvenanceTable(&tables, &provinence_gen, &remembered_genome_count, &file_model_type);
 	SetGeneration(provinence_gen);
+	
+	// rebase the times in the nodes to be in SLiM-land; see WriteTreeSequence for the inverse operation
+	for (size_t node_index = 0; node_index < tables.nodes->num_rows; ++node_index)
+		tables.nodes->time[node_index] -= generation_;
 	
 	// allocate and set up the tree_sequence object that contains all the tree sequences
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
