@@ -56,6 +56,7 @@
 extern "C" {
 #endif
 #include "kastore.h"
+#include "../treerec/tskit/slim.h"
 #include "../treerec/tskit/trees.h"
 #include "../treerec/tskit/text_input.h"
 #include "../treerec/tskit/tables.h"
@@ -4876,8 +4877,18 @@ void SLiMSim::DerivedStatesToAscii(table_collection_t *p_tables)
 	mutation_table_free(&mutations_copy);
 }
 
-void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, table_collection_t *p_tables, bool p_addToRemembered)
+void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, table_collection_t *p_tables, bool p_finalGeneration)
 {
+    // We use currently use this function in two ways:
+    //  (1) to retain individuals to be forever remembered (p_finalGeneration is true), or
+    //  (2) to retain the final generation in the tree sequence (p_finalGeneration is false).
+    // So, in case (1) we set the REMEMBERED flag in the individual table, 
+    // and in case (2) we set the ALIVE flag.  Individuals who are permanently
+    // remembered but still alive when the tree sequence is written out will
+    // have this method called on them twice, first (1), then (2), so they get both flags set.
+	
+	bool addToRemembered = ! p_finalGeneration;
+
     // construct the map of currently remembered individuals first
     std::vector<slim_pedigreeid_t> remembered_individuals;
     for (size_t j = 0; j < p_tables->individuals->num_rows; j++)
@@ -4885,6 +4896,8 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
         IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals->metadata + p_tables->individuals->metadata_offset[j]);
         remembered_individuals.push_back(metadata_rec->pedigree_id_);
     }
+
+    uint32_t flags = (p_finalGeneration ? SLIM_TSK_INDIVIDUAL_ALIVE : SLIM_TSK_INDIVIDUAL_REMEMBERED);
     
     for (size_t j = 0; j < p_num_individuals; j++)
     {
@@ -4903,7 +4916,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
         if (ind_pos == remembered_individuals.end()) {
             // This individual is not already in the tables.
             individual_id_t msp_individual = individual_table_add_row(p_tables->individuals,
-                    0 /* flags */, location.data(), (uint32_t)location.size(),
+                    flags /* flags */, location.data(), (uint32_t)location.size(), 
                     (char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
             if (msp_individual < 0) handle_error("individual_table_add_row", msp_individual);
             
@@ -4914,7 +4927,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             p_tables->nodes->individual[ind->genome2_->msp_node_id_] = msp_individual;
 
             // update remembered genomes
-            if (p_addToRemembered)
+            if (addToRemembered)
             {
                 remembered_genomes_.push_back(ind->genome1_->msp_node_id_);
                 remembered_genomes_.push_back(ind->genome2_->msp_node_id_);
@@ -4939,6 +4952,8 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             memcpy(p_tables->individuals->metadata
                     + p_tables->individuals->metadata_offset[msp_individual],
                     &metadata_rec, sizeof(IndividualMetadataRec));
+            uint32_t current_flags = p_tables->individuals->flags[msp_individual];
+            p_tables->individuals->flags[msp_individual] = (current_flags | flags);
         }
     }
 }
@@ -4948,7 +4963,7 @@ void SLiMSim::AddCurrentGenerationToIndividuals(table_collection_t *p_tables)
 	for (auto subpop_iter : population_)
 	{
         AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(),
-                              subpop_iter.second->parent_individuals_.size(), p_tables, false);
+                              subpop_iter.second->parent_individuals_.size(), p_tables, true);
 	}
 }
 
@@ -9393,14 +9408,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (individuals_value->Count() == 1)
 	{
 		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
-		AddIndividualsToTable(&ind, 1, &tables, true);
+		AddIndividualsToTable(&ind, 1, &tables, false);
 	}
 	else
 	{
 		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
 		EidosObjectElement * const *oe_buffer = ind_vector->data();
 		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-		AddIndividualsToTable(ind_buffer, ind_count, &tables, true);
+		AddIndividualsToTable(ind_buffer, ind_count, &tables, false);
 	}
 	
 	return gStaticEidosValueVOID;
