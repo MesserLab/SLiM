@@ -85,6 +85,7 @@ std::string StringForEidosValueType(const EidosValueType p_type)
 		case EidosValueType::kValueFloat:		return gEidosStr_float;
 		case EidosValueType::kValueObject:		return gEidosStr_object;
 	}
+	EIDOS_TERMINATION << "ERROR (StringForEidosValueType): (internal error) unrecognized EidosValueType." << EidosTerminate();
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
