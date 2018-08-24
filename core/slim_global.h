@@ -343,10 +343,10 @@ enum class MutationStackPolicy : char {
 #pragma mark Tree sequences
 #pragma mark -
 	
-#define SLIM_TSK_INDIVIDUAL_ALIVE       (1 << 16)
-#define SLIM_TSK_INDIVIDUAL_REMEMBERED  (1 << 17)
-#define SLIM_TSK_INDIVIDUAL_FIRST_GEN   (1 << 18)
-	
+#define SLIM_TSK_INDIVIDUAL_ALIVE       ((uint32_t)(1 << 16))
+#define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((uint32_t)(1 << 17))
+#define SLIM_TSK_INDIVIDUAL_FIRST_GEN   ((uint32_t)(1 << 18))
+
 
 // *******************************************************************************************************************
 //

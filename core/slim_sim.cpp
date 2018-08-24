@@ -3826,7 +3826,7 @@ void SLiMSim::SimplifyTreeSequence(void)
     ret = table_collection_deduplicate_sites(&tables, 0);
     if (ret < 0) handle_error("deduplicate_sites", ret);
 	
-	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_SITES, NULL);
+	ret = table_collection_simplify(&tables, samples.data(), samples.size(), MSP_FILTER_SITES | MSP_FILTER_INDIVIDUALS, NULL);
     if (ret != 0) handle_error("simplifier_run", ret);
 	
     // update map of remembered_genomes_
@@ -4902,9 +4902,11 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
     for (node_id_t nid : remembered_genomes_) 
     {
         individual_id_t msp_individual = p_tables->nodes->individual[nid];
-        assert((msp_individual >= 0) && (msp_individual < p_tables->indivduals->num_rows));
+        assert((msp_individual >= 0) && ((table_size_t)msp_individual < p_tables->individuals->num_rows));
         IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals->metadata + p_tables->individuals->metadata_offset[msp_individual]);
-        remembered_individuals.push_back(metadata_rec->pedigree_id_);
+        
+		if ((remembered_individuals.size() == 0) || (metadata_rec->pedigree_id_ != remembered_individuals.back()))
+			remembered_individuals.push_back(metadata_rec->pedigree_id_);
     }
 
     for (size_t j = 0; j < p_num_individuals; j++)
@@ -5006,13 +5008,46 @@ void SLiMSim::RemarkFirstGenerationSamples(table_collection_t *p_tables)
 		individual_id_t ind = p_tables->nodes->individual[j];
 		if (ind != MSP_NULL_INDIVIDUAL)
 		{
-			assert(ind >= 0 && ind < p_tables->individuals->num_rows);
+			assert((ind >= 0) && ((table_size_t)ind < p_tables->individuals->num_rows));
 			if (p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
 			{
 				p_tables->nodes->flags[j] = (p_tables->nodes->flags[j] | MSP_NODE_IS_SAMPLE);
 			}
 		}
 	}
+}
+
+void SLiMSim::FixAliveIndividuals(table_collection_t *p_tables)
+{
+	// This does two things.  (1) It strips off individuals from the end of the table that are alive
+	// but not remembered or first-generation (they were added to the table just before writing, and
+	// should not live there).  (2) It clear the "alive" flag from all remaining individuals in the
+	// table, since they should not be marked as "alive" apart from on disk.
+	individual_id_t j;
+	
+	for (j = p_tables->individuals->num_rows - 1; j >= 0; j--)
+	{
+		uint32_t flags = p_tables->individuals->flags[j];
+		
+		// break at the first individual that we do not want to strip off
+		if (!(flags & SLIM_TSK_INDIVIDUAL_ALIVE) || (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) || (flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN))
+			break;
+	}
+	
+	// truncate the individual table after the last one to keep
+	if (j + 1 < (int)p_tables->individuals->num_rows)
+		individual_table_truncate(p_tables->individuals, j + 1);
+	
+	// zero out the node references to stripped individuals
+	for (size_t node_id = 0; node_id < p_tables->nodes->num_rows; ++node_id)
+	{
+		if (p_tables->nodes->individual[node_id] > j)
+			p_tables->nodes->individual[node_id] = MSP_NULL_INDIVIDUAL;
+	}
+	
+	// clear the alive flags of the remaining entries
+	for ( ; j >= 0; j--)
+		p_tables->individuals->flags[j] &= (~SLIM_TSK_INDIVIDUAL_ALIVE);
 }
 
 void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
@@ -5730,7 +5765,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			ret = table_collection_deduplicate_sites(tables_copy, 0);
 			if (ret < 0) handle_error("deduplicate_sites", ret);
 			
-			ret = table_collection_simplify(tables_copy, samples.data(), samples.size(), MSP_FILTER_SITES, NULL);
+			ret = table_collection_simplify(tables_copy, samples.data(), samples.size(), MSP_FILTER_SITES | MSP_FILTER_INDIVIDUALS, NULL);
 			if (ret != 0) handle_error("simplifier_run", ret);
             
 		// must build indexes before compute mutation parents
@@ -6414,7 +6449,7 @@ void SLiMSim::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 	
 	for (size_t sample_index = 0; sample_index < sample_count; ++sample_index)
 	{
-		node_id_t sample_node_id = vg->sample_index_map[sample_index];
+		node_id_t sample_node_id = vg->samples[sample_index];
 		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
 		
 		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
@@ -6573,7 +6608,7 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	
 	for (size_t sample_index = 0; sample_index < sample_count; ++sample_index)
 	{
-		node_id_t sample_node_id = vg->sample_index_map[sample_index];
+		node_id_t sample_node_id = vg->samples[sample_index];
 		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
 		
 		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
@@ -6704,37 +6739,6 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tree_sequence_free()", ret);
 	free(ts);
 	
-	// Get rid of the individuals table now that we're done using it; we're not supposed to have one while running
-	individual_table_clear(tables.individuals);
-	
-	// Also, we have to reset the individual column in the node table
-#if 1
-	// This is the quick and dirty way; -1 is MSP_NULL_INDIVIDUAL
-	memset(tables.nodes->individual, 0xff, tables.nodes->num_rows * sizeof(individual_id_t));
-#else
-	// This is the safer way, but involves lots of copying and allocating and freeing
-	node_table_t node_table_clone;
-	
-	ret = node_table_alloc(&node_table_clone, 0, 0);
-	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_alloc()", ret);
-	
-	ret = node_table_copy(tables.nodes, &node_table_clone);
-	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_copy()", ret);
-	
-	ret = node_table_set_columns(tables.nodes,
-						   node_table_clone.num_rows,
-						   node_table_clone.flags,
-						   node_table_clone.time,
-						   node_table_clone.population,
-						   NULL /* individual_id_t *individual */,
-						   node_table_clone.metadata,
-						   node_table_clone.metadata_offset);
-	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_set_columns()", ret);
-	
-	ret = node_table_free(&node_table_clone);
-	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables node_table_free()", ret);
-#endif
-	
 	// Set up the remembered genomes, which are now the first remembered_genome_count node table entries
 	if (remembered_genomes_.size() != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): (internal error) remembered_genomes_ is not empty." << EidosTerminate();
@@ -6744,6 +6748,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 
     // Re-mark the FIRST_GEN individuals as samples so the persist through simplify
     RemarkFirstGenerationSamples(&tables);
+	
+	// Remove individuals that are alive but !(rememebered | first_gen), and clear alive flags
+	FixAliveIndividuals(&tables);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
