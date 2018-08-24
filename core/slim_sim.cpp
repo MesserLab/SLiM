@@ -5968,6 +5968,10 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		ret = tree_sequence_get_individual(p_ts, individual_index, &individual);
 		if (ret != 0) handle_error("__TabulateSubpopulationsFromTreeSequence tree_sequence_get_individual", ret);
 		
+		// tabulate only individuals marked as being alive; everybody else in the table is irrelevant to us during load
+		if (!(individual.flags & SLIM_TSK_INDIVIDUAL_ALIVE))
+			continue;
+		
 		// fetch the metadata for this individual
 		if (individual.metadata_length != sizeof(IndividualMetadataRec))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
