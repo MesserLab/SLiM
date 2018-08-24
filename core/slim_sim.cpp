@@ -5062,13 +5062,13 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 	j["software"]["version"] = SLIM_VERSION_STRING;
 	
 	j["slim"]["file_version"] = SLIM_TREES_FILE_VERSION;	// 0.2 for this provenance format, 0.1 for the old format above
-	j["slim"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
 	j["slim"]["generation"] = Generation();
 	j["slim"]["remembered_node_count"] = (long)remembered_genomes_.size();
-	j["slim"]["model"] = script_->String();
-	j["slim"]["seed"] = original_seed_;
 	
 	j["parameters"]["command"] = cli_params_;
+	j["parameters"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
+	j["parameters"]["model"] = script_->String();
+	j["parameters"]["seed"] = original_seed_;
 	
 	std::string provenance_str = j.dump(4);
 	
@@ -5260,7 +5260,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 	else if (file_version_02.is_string() && (file_version_02 == "0.2"))
 	{
 		try {
-			model_type_str = j["slim"]["model_type"];
+			model_type_str = j["parameters"]["model_type"];
 			gen_ll = j["slim"]["generation"];
 			rem_count_ll = j["slim"]["remembered_node_count"];
 		}
