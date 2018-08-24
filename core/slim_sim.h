@@ -510,6 +510,7 @@ public:
     void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, table_collection_t *p_tables, uint32_t p_flags);
 	void AddCurrentGenerationToIndividuals(table_collection_t *p_tables);
 	void UnmarkFirstGenerationSamples(table_collection_t *p_tables);
+	void RemarkFirstGenerationSamples(table_collection_t *p_tables);
 	void WritePopulationTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables);
 	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count, SLiMModelType *p_model_type);
