@@ -56,7 +56,6 @@
 extern "C" {
 #endif
 #include "kastore.h"
-#include "../treerec/tskit/slim.h"
 #include "../treerec/tskit/trees.h"
 #include "../treerec/tskit/text_input.h"
 #include "../treerec/tskit/tables.h"
@@ -4890,6 +4889,13 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
     // remembered but still alive when the tree sequence is written out will
     // have this method called on them twice, first (1), then (2), so they get both flags set;
 	// simliarly for individuals who are in the first generation but are also later remembered.
+
+	// do this so that we can access the internal tables from outside,
+	// by passing in nullptr
+	if (p_tables == nullptr)
+	{
+		p_tables = &tables;
+	}
 	
     // construct the map of currently remembered individuals first
     std::vector<slim_pedigreeid_t> remembered_individuals;
@@ -4952,8 +4958,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             memcpy(p_tables->individuals->metadata
                     + p_tables->individuals->metadata_offset[msp_individual],
                     &metadata_rec, sizeof(IndividualMetadataRec));
-            uint32_t current_flags = p_tables->individuals->flags[msp_individual];
-            p_tables->individuals->flags[msp_individual] = (current_flags | p_flags);
+			p_tables->individuals->flags[msp_individual] |= p_flags;
 			
             // Check node table
             assert(ind->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows
@@ -4971,6 +4976,24 @@ void SLiMSim::AddCurrentGenerationToIndividuals(table_collection_t *p_tables)
         AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(),
                               subpop_iter.second->parent_individuals_.size(), 
 							  p_tables, SLIM_TSK_INDIVIDUAL_ALIVE);
+	}
+}
+
+void SLiMSim::UnmarkFirstGenerationSamples(table_collection_t *p_tables)
+{
+	for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
+	{
+		if (p_tables->nodes->flags[j] & MSP_NODE_IS_SAMPLE)
+		{
+			individual_id_t ind = p_tables->nodes->individual[j];
+			assert(ind >= 0 && ind < p_tables->individuals->num_rows);
+			if ((p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
+					&& !(p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_REMEMBERED)
+					&& !(p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_ALIVE))
+			{
+				p_tables->nodes->flags[j] = (p_tables->nodes->flags[j] & !MSP_NODE_IS_SAMPLE);
+			}
+		}
 	}
 }
 
@@ -5374,8 +5397,12 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	ret = table_collection_compute_mutation_parents(&output_tables, 0);
 	if (ret < 0) handle_error("compute_mutation_parents", ret);
 	
-	// Add an individual table to the table collection; individuals information comes from the time of output, not creation
+	// Add information about the current generation to the individual table; 
+	// this modifies "remembered" individuals, since information comes from the
+	// time of output, not creation
 	AddCurrentGenerationToIndividuals(&output_tables);
+	// Unmark "first generation" nodes as samples (but, retaining their information!)
+	UnmarkFirstGenerationSamples(&output_tables);
 	
     // Add a row to the Provenance table to record current state
     WriteProvenanceTable(&output_tables);
