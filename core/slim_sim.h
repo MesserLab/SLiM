@@ -507,8 +507,9 @@ public:
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
-    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, table_collection_t *p_tables, bool p_addToRemembered);
+    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, table_collection_t *p_tables, uint32_t p_flags);
 	void AddCurrentGenerationToIndividuals(table_collection_t *p_tables);
+	void UnmarkFirstGenerationSamples(table_collection_t *p_tables);
 	void WritePopulationTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables);
 	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count, SLiMModelType *p_model_type);
