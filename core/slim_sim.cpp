@@ -4963,8 +4963,8 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             // Check node table
             assert(ind->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows
                    && ind->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows);
-            assert(p_tables->nodes->individual[ind->genome1_->msp_node_id_] == msp_individual);
-            assert(p_tables->nodes->individual[ind->genome2_->msp_node_id_] == msp_individual);
+            assert(p_tables->nodes->individual[ind->genome1_->msp_node_id_] == (individual_id_t)msp_individual);
+            assert(p_tables->nodes->individual[ind->genome2_->msp_node_id_] == (individual_id_t)msp_individual);
         }
     }
 }
@@ -4986,7 +4986,7 @@ void SLiMSim::UnmarkFirstGenerationSamples(table_collection_t *p_tables)
 		if (p_tables->nodes->flags[j] & MSP_NODE_IS_SAMPLE)
 		{
 			individual_id_t ind = p_tables->nodes->individual[j];
-			assert(ind >= 0 && ind < p_tables->individuals->num_rows);
+			assert((ind >= 0) && ((table_size_t)ind < p_tables->individuals->num_rows));
 			if ((p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
 					&& !(p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 					&& !(p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_ALIVE))

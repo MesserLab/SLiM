@@ -337,6 +337,19 @@ enum class MutationStackPolicy : char {
 
 // *******************************************************************************************************************
 //
+//	TSKIT/tree sequence tables related
+//
+#pragma mark -
+#pragma mark Tree sequences
+#pragma mark -
+	
+#define SLIM_TSK_INDIVIDUAL_ALIVE       (1 << 16)
+#define SLIM_TSK_INDIVIDUAL_REMEMBERED  (1 << 17)
+#define SLIM_TSK_INDIVIDUAL_FIRST_GEN   (1 << 18)
+	
+
+// *******************************************************************************************************************
+//
 //	Global strings and IDs
 //
 #pragma mark -
@@ -870,18 +883,6 @@ enum _SLiMGlobalStringID : int {
 	gID_recombination,
 	gID_reproduction,
 };
-
-// *******************************************************************************************************************
-//
-//	TSKIT/tree sequence tables related
-//
-#pragma mark -
-#pragma mark Tree sequences
-#pragma mark -
-
-#define SLIM_TSK_INDIVIDUAL_ALIVE       (1 << 16)
-#define SLIM_TSK_INDIVIDUAL_REMEMBERED  (1 << 17)
-#define SLIM_TSK_INDIVIDUAL_FIRST_GEN   (1 << 18)
 
 #endif /* defined(__SLiM__slim_global__) */
 
