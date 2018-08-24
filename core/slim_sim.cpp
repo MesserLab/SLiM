@@ -5070,9 +5070,12 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 	j["parameters"]["model"] = script_->String();
 	j["parameters"]["seed"] = original_seed_;
 	
-	j["metadata"]["individuals"]["flags"]["16"] = "SLIM_TSK_INDIVIDUAL_ALIVE: the individual was alive at the time the file was written";
-	j["metadata"]["individuals"]["flags"]["17"] = "SLIM_TSK_INDIVIDUAL_REMEMBERED: the individual was requested by the user to be remembered";
-	j["metadata"]["individuals"]["flags"]["18"] = "SLIM_TSK_INDIVIDUAL_FIRST_GEN: the individual was in the first generation of a new population";
+	j["metadata"]["individuals"]["flags"]["16"]["name"] = "SLIM_TSK_INDIVIDUAL_ALIVE";
+	j["metadata"]["individuals"]["flags"]["16"]["description"] = "the individual was alive at the time the file was written";
+	j["metadata"]["individuals"]["flags"]["17"]["name"] = "SLIM_TSK_INDIVIDUAL_REMEMBERED";
+	j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be remembered";
+	j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_FIRST_GEN";
+	j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was in the first generation of a new population";
 	
 	std::string provenance_str = j.dump(4);
 	
