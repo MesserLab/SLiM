@@ -4899,9 +4899,11 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	
     // construct the map of currently remembered individuals first
     std::vector<slim_pedigreeid_t> remembered_individuals;
-    for (size_t j = 0; j < p_tables->individuals->num_rows; j++)
+    for (node_id_t nid : remembered_genomes_) 
     {
-        IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals->metadata + p_tables->individuals->metadata_offset[j]);
+        individual_id_t msp_individual = p_tables->nodes->individual[nid];
+        assert((msp_individual >= 0) && (msp_individual < p_tables->indivduals->num_rows));
+        IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals->metadata + p_tables->individuals->metadata_offset[msp_individual]);
         remembered_individuals.push_back(metadata_rec->pedigree_id_);
     }
 
@@ -4992,6 +4994,22 @@ void SLiMSim::UnmarkFirstGenerationSamples(table_collection_t *p_tables)
 					&& !(p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_ALIVE))
 			{
 				p_tables->nodes->flags[j] = (p_tables->nodes->flags[j] & !MSP_NODE_IS_SAMPLE);
+			}
+		}
+	}
+}
+
+void SLiMSim::RemarkFirstGenerationSamples(table_collection_t *p_tables)
+{
+	for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
+	{
+		individual_id_t ind = p_tables->nodes->individual[j];
+		if (ind != MSP_NULL_INDIVIDUAL)
+		{
+			assert(ind >= 0 && ind < p_tables->individuals->num_rows);
+			if (p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
+			{
+				p_tables->nodes->flags[j] = (p_tables->nodes->flags[j] | MSP_NODE_IS_SAMPLE);
 			}
 		}
 	}
@@ -6723,6 +6741,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	
 	for (size_t i = 0; i < remembered_genome_count; ++i)
 		remembered_genomes_.push_back((node_id_t)i);
+
+    // Re-mark the FIRST_GEN individuals as samples so the persist through simplify
+    RemarkFirstGenerationSamples(&tables);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
