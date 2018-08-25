@@ -5505,6 +5505,29 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// this modifies "remembered" individuals, since information comes from the
 	// time of output, not creation
 	AddCurrentGenerationToIndividuals(&output_tables);
+	
+	// We need the individual table's order, for alive individuals, to match that of
+	// SLiM so that when we read back in it doesn't cause a reordering as a side effect
+	std::vector<int> individual_map;
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		
+		for (Individual *individual : subpop->parent_individuals_)
+		{
+			// find individual in the individuals table
+			// its index should be translated to slim_index
+			// all other rows should just get lumped at the end (or the beginning)
+			node_id_t node_id = individual->genome1_->msp_node_id_;
+			individual_id_t ind_id = output_tables.nodes->individual[node_id];
+			
+			individual_map.push_back(ind_id);
+		}
+	}
+	
+	ReorderIndividualTable(&output_tables, individual_map);
+	
 	// Unmark "first generation" nodes as samples (but, retaining their information!)
 	UnmarkFirstGenerationSamples(&output_tables);
 	
