@@ -3775,59 +3775,63 @@ void SLiMSim::handle_error(std::string msg, int err)
 
 void SLiMSim::ReorderIndividualTable(table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped)
 {
-    // Modifies the tables in place so that individual number individual_map[k]
-    // becomes the k-th individual in the new tables.
-    // Discard unmapped individuals unless p_keep_unmapped is true, in which case put them at the end.
+	// Modifies the tables in place so that individual number individual_map[k]
+	// becomes the k-th individual in the new tables.
+	// Discard unmapped individuals unless p_keep_unmapped is true, in which case put them at the end.
 
-    size_t num_individuals = p_tables->individuals->num_rows;
-    std::vector<individual_id_t> inverse_map;
-    for (size_t j = 0; j < num_individuals; j++)
-        inverse_map.push_back(MSP_NULL_INDIVIDUAL);
-    for (individual_id_t j = 0; (size_t) j < p_individual_map.size(); j++)
-        inverse_map[p_individual_map[j]] = j;
-    if (p_keep_unmapped)
-    {
-        individual_id_t next_id = (individual_id_t) p_individual_map.size();
-        for (individual_id_t j = 0; (size_t) j < inverse_map.size(); j++)
-        {
-            if (inverse_map[j] == MSP_NULL_INDIVIDUAL)
-            {
-                p_individual_map.push_back(j);
-                inverse_map.push_back(next_id);
-                next_id++;
-            }
-        }
-    }
+	size_t num_individuals = p_tables->individuals->num_rows;
+	std::vector<individual_id_t> inverse_map;
+	for (size_t j = 0; j < num_individuals; j++)
+	{
+		inverse_map.push_back(MSP_NULL_INDIVIDUAL);
+	}
+	for (individual_id_t j = 0; (size_t) j < p_individual_map.size(); j++)
+	{
+		inverse_map[p_individual_map[j]] = j;
+	}
+	if (p_keep_unmapped)
+	{
+		for (individual_id_t j = 0; (size_t) j < inverse_map.size(); j++)
+		{
+			if (inverse_map[j] == MSP_NULL_INDIVIDUAL)
+			{
+				inverse_map[j] = p_individual_map.size();
+				p_individual_map.push_back(j);
+			}
+		}
+	}
 
-    // TODO this only needs to copy the individual table
-	table_collection_t tables_copy;
-	int ret = table_collection_alloc(&tables_copy, MSP_ALLOC_TABLES);
-	if (ret < 0) handle_error("reoreder_individuals", ret);
-	ret = table_collection_copy(p_tables, &tables_copy);
-	if (ret < 0) handle_error("reoreder_individuals", ret);
+	individual_table_t individuals_copy;
+	int ret = individual_table_alloc(&individuals_copy, 0, 0, 0);
+	if (ret < 0) handle_error("reorder_individuals", ret);
+	ret = individual_table_copy(p_tables->individuals, &individuals_copy);
+	if (ret < 0) handle_error("reorder_individuals", ret);
 
-    individual_table_clear(p_tables->individuals);
+	individual_table_clear(p_tables->individuals);
 
-    for (individual_id_t k : p_individual_map)
-    {
-        assert((size_t) k < tables_copy.individuals->num_rows);
-        uint32_t flags = tables_copy.individuals->flags[k];
-        double *location = tables_copy.individuals->location + tables_copy.individuals->location_offset[k];
-        size_t location_length = tables_copy.individuals->location_offset[k+1] - tables_copy.individuals->location_offset[k];
-        const char *metadata = tables_copy.individuals->metadata + tables_copy.individuals->metadata_offset[k];
-        size_t metadata_length = tables_copy.individuals->metadata_offset[k+1] - tables_copy.individuals->metadata_offset[k];
-        individual_table_add_row(p_tables->individuals,
-                flags, location, location_length, metadata, metadata_length);
-    }
+	for (individual_id_t k : p_individual_map)
+	{
+		assert((size_t) k < individuals_copy.num_rows);
+		uint32_t flags = individuals_copy.flags[k];
+		double *location = individuals_copy.location + individuals_copy.location_offset[k];
+		size_t location_length = individuals_copy.location_offset[k+1] - individuals_copy.location_offset[k];
+		const char *metadata = individuals_copy.metadata + individuals_copy.metadata_offset[k];
+		size_t metadata_length = individuals_copy.metadata_offset[k+1] - individuals_copy.metadata_offset[k];
+		individual_table_add_row(p_tables->individuals,
+				flags, location, location_length, metadata, metadata_length);
+	}
 
-    for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
-    {
-        individual_id_t old_indiv = p_tables->nodes->individual[j];
-        if (old_indiv >= 0)
-        {
-            p_tables->nodes->individual[j] = inverse_map[old_indiv];
-        }
-    }
+	assert(p_tables->individuals->num_rows == p_individual_map.size());
+
+	for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
+	{
+		individual_id_t old_indiv = p_tables->nodes->individual[j];
+		if (old_indiv >= 0)
+		{
+			p_tables->nodes->individual[j] = inverse_map[old_indiv];
+		}
+	}
+
 }
 
 void SLiMSim::SimplifyTreeSequence(void)
@@ -3842,7 +3846,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	std::vector<node_id_t> samples;
 	
-    // the remembered_genomes_ come first in the list of samples
+	// the remembered_genomes_ come first in the list of samples
     for (node_id_t sid : remembered_genomes_) 
         samples.push_back(sid);
 	
@@ -5503,17 +5507,14 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		
 		for (Individual *individual : subpop->parent_individuals_)
 		{
-			// find individual in the individuals table
-			// its index should be translated to slim_index
-			// all other rows should just get lumped at the end (or the beginning)
 			node_id_t node_id = individual->genome1_->msp_node_id_;
 			individual_id_t ind_id = output_tables.nodes->individual[node_id];
 			
 			individual_map.push_back(ind_id);
 		}
 	}
-	
-	ReorderIndividualTable(&output_tables, individual_map, false);
+	// all other individuals in the table will be retained, at the end
+	ReorderIndividualTable(&output_tables, individual_map, true);
 	
 	// Unmark "first generation" nodes as samples (but, retaining their information!)
 	UnmarkFirstGenerationSamples(&output_tables);
@@ -6811,8 +6812,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
     // Re-mark the FIRST_GEN individuals as samples so the persist through simplify
     RemarkFirstGenerationSamples(&tables);
 	
-	// Remove individuals that are alive but !(rememebered | first_gen), and clear alive flags
+	// Clear ALIVE flags
 	FixAliveIndividuals(&tables);
+	// Remove individuals that are !(rememebered | first_gen)
     std::vector<individual_id_t> individual_map;
     for (individual_id_t j = 0; (size_t) j < tables.individuals->num_rows; j++)
     {
