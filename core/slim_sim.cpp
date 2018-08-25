@@ -3799,6 +3799,7 @@ void SLiMSim::ReorderIndividualTable(table_collection_t *p_tables, std::vector<i
 				p_individual_map.push_back(j);
 			}
 		}
+        assert(p_individual_map.size() == p_tables->individuals->num_rows);
 	}
 
 	individual_table_t individuals_copy;
@@ -5496,7 +5497,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// this modifies "remembered" individuals, since information comes from the
 	// time of output, not creation
 	AddCurrentGenerationToIndividuals(&output_tables);
-	
+
 	// We need the individual table's order, for alive individuals, to match that of
 	// SLiM so that when we read back in it doesn't cause a reordering as a side effect
 	std::vector<int> individual_map;
@@ -5513,6 +5514,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			individual_map.push_back(ind_id);
 		}
 	}
+
 	// all other individuals in the table will be retained, at the end
 	ReorderIndividualTable(&output_tables, individual_map, true);
 	
