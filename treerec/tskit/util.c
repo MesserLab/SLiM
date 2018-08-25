@@ -295,6 +295,9 @@ msp_strerror_internal(int err)
                 "of multiple bottlenecks happening at the same time or because of "
                 "numerical imprecision with very small population sizes.";
             break;
+        case MSP_ERR_ONLY_INFINITE_SITES:
+            ret = "Only infinite sites mutations are supported for this operation.";
+            break;
 
         case MSP_ERR_IO:
             if (errno != 0) {

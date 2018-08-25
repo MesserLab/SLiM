@@ -590,7 +590,7 @@ tree_sequence_get_pairwise_diversity(tree_sequence_t *self,
         }
         for (j = 0; j < num_sites; j++) {
             if (sites[j].mutations_length != 1) {
-                ret = MSP_ERR_UNSUPPORTED_OPERATION;
+                ret = MSP_ERR_ONLY_INFINITE_SITES;
                 goto out;
             }
             for (k = 0; k < sites[j].mutations_length; k++) {
