@@ -3773,6 +3773,50 @@ void SLiMSim::handle_error(std::string msg, int err)
 	EIDOS_TERMINATION << msg << ": " << msp_strerror(err) << EidosTerminate();
 }
 
+void SLiMSim::ReorderIndividualTable(table_collection_t *p_tables, individual_id_t *p_individual_map, size_t p_num_mapped_individuals)
+{
+    // Modifies the tables in place so that individual number individual_map[k]
+    // becomes the k-th individual in the new tables.
+
+    size_t num_individuals = p_tables->individuals->num_rows;
+    individual_id_t *inverse_map[num_individuals];
+    for (size_t j = 0; j < num_individuals; j++)
+        inverse_map[j] = -1;
+    for (size_t j = 0; j < p_num_mapped_individuals; j++)
+        inverse_map[p_individual_map[j]] = j;
+
+    // TODO this only needs to copy the individual table
+	table_collection_t tables_copy;
+	int ret = table_collection_alloc(&tables_copy, MSP_ALLOC_TABLES);
+	if (ret < 0) handle_error("reoreder_individuals", ret);
+	ret = table_collection_copy(&p_tables, &tables_copy);
+	if (ret < 0) handle_error("reoreder_individuals", ret);
+
+    individual_table_clear(p_tables->individuals);
+
+    for (size_t j = 0; j < p_num_mapped_individuals; j++)
+    {
+        individual_id_t k = p_individual_map[j];
+        assert(k < tables_copy.individuals->num_rows);
+        uint32_t flags = tables_copy.individuals->flags[k];
+        double *location = tables_copy.individuals->location + tables_copy.individuals->location_offset[k];
+        size_t location_length = tables_copy.individuals->location_offset[k+1] - tables_copy.individuals->location_offset[k];
+        const char *metadata = tables_copy.individuals->metadata + tables_copy.individuals->metadata_offset[k];
+        size_t metadata_length = tables_copy.individuals->metadata_offset[k+1] - tables_copy.individuals->metadata_offset[k];
+        individual_table_add_row(p_tables->individuals,
+                flags, location, location_length, metadata, metadata_length);
+    }
+
+    for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
+    {
+        individual_id_t old_indiv = p_tables->nodes->individual[j];
+        if (old_indiv >= 0)
+        {
+            p_tables->nodes->individual[j] = inverse_map[old_indiv];
+        }
+    }
+}
+
 void SLiMSim::SimplifyTreeSequence(void)
 {
 #if DEBUG
