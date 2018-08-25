@@ -516,6 +516,7 @@ public:
 	void WriteProvenanceTable(table_collection_t *p_tables);
 	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count, SLiMModelType *p_model_type);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
+    void ReorderIndividualTable(table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);
 	void CheckAutoSimplification(void);

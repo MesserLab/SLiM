@@ -3773,6 +3773,67 @@ void SLiMSim::handle_error(std::string msg, int err)
 	EIDOS_TERMINATION << msg << ": " << msp_strerror(err) << EidosTerminate();
 }
 
+void SLiMSim::ReorderIndividualTable(table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped)
+{
+	// Modifies the tables in place so that individual number individual_map[k]
+	// becomes the k-th individual in the new tables.
+	// Discard unmapped individuals unless p_keep_unmapped is true, in which case put them at the end.
+
+	size_t num_individuals = p_tables->individuals->num_rows;
+	std::vector<individual_id_t> inverse_map;
+	for (size_t j = 0; j < num_individuals; j++)
+	{
+		inverse_map.push_back(MSP_NULL_INDIVIDUAL);
+	}
+	for (individual_id_t j = 0; (size_t) j < p_individual_map.size(); j++)
+	{
+		inverse_map[p_individual_map[j]] = j;
+	}
+	if (p_keep_unmapped)
+	{
+		for (individual_id_t j = 0; (size_t) j < inverse_map.size(); j++)
+		{
+			if (inverse_map[j] == MSP_NULL_INDIVIDUAL)
+			{
+				inverse_map[j] = p_individual_map.size();
+				p_individual_map.push_back(j);
+			}
+		}
+	}
+
+	individual_table_t individuals_copy;
+	int ret = individual_table_alloc(&individuals_copy, 0, 0, 0);
+	if (ret < 0) handle_error("reorder_individuals", ret);
+	ret = individual_table_copy(p_tables->individuals, &individuals_copy);
+	if (ret < 0) handle_error("reorder_individuals", ret);
+
+	individual_table_clear(p_tables->individuals);
+
+	for (individual_id_t k : p_individual_map)
+	{
+		assert((size_t) k < individuals_copy.num_rows);
+		uint32_t flags = individuals_copy.flags[k];
+		double *location = individuals_copy.location + individuals_copy.location_offset[k];
+		size_t location_length = individuals_copy.location_offset[k+1] - individuals_copy.location_offset[k];
+		const char *metadata = individuals_copy.metadata + individuals_copy.metadata_offset[k];
+		size_t metadata_length = individuals_copy.metadata_offset[k+1] - individuals_copy.metadata_offset[k];
+		individual_table_add_row(p_tables->individuals,
+				flags, location, location_length, metadata, metadata_length);
+	}
+
+	assert(p_tables->individuals->num_rows == p_individual_map.size());
+
+	for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
+	{
+		individual_id_t old_indiv = p_tables->nodes->individual[j];
+		if (old_indiv >= 0)
+		{
+			p_tables->nodes->individual[j] = inverse_map[old_indiv];
+		}
+	}
+
+}
+
 void SLiMSim::SimplifyTreeSequence(void)
 {
 #if DEBUG
@@ -3785,7 +3846,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	std::vector<node_id_t> samples;
 	
-    // the remembered_genomes_ come first in the list of samples
+	// the remembered_genomes_ come first in the list of samples
     for (node_id_t sid : remembered_genomes_) 
         samples.push_back(sid);
 	
@@ -5019,34 +5080,8 @@ void SLiMSim::RemarkFirstGenerationSamples(table_collection_t *p_tables)
 
 void SLiMSim::FixAliveIndividuals(table_collection_t *p_tables)
 {
-	// This does two things.  (1) It strips off individuals from the end of the table that are alive
-	// but not remembered or first-generation (they were added to the table just before writing, and
-	// should not live there).  (2) It clear the "alive" flag from all remaining individuals in the
-	// table, since they should not be marked as "alive" apart from on disk.
-	individual_id_t j;
-	
-	for (j = p_tables->individuals->num_rows - 1; j >= 0; j--)
-	{
-		uint32_t flags = p_tables->individuals->flags[j];
-		
-		// break at the first individual that we do not want to strip off
-		if (!(flags & SLIM_TSK_INDIVIDUAL_ALIVE) || (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) || (flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN))
-			break;
-	}
-	
-	// truncate the individual table after the last one to keep
-	if (j + 1 < (int)p_tables->individuals->num_rows)
-		individual_table_truncate(p_tables->individuals, j + 1);
-	
-	// zero out the node references to stripped individuals
-	for (size_t node_id = 0; node_id < p_tables->nodes->num_rows; ++node_id)
-	{
-		if (p_tables->nodes->individual[node_id] > j)
-			p_tables->nodes->individual[node_id] = MSP_NULL_INDIVIDUAL;
-	}
-	
-	// clear the alive flags of the remaining entries
-	for ( ; j >= 0; j--)
+	// This clears the alive flags of the remaining entries
+	for (size_t j = 0; j < p_tables->individuals->num_rows; j++)
 		p_tables->individuals->flags[j] &= (~SLIM_TSK_INDIVIDUAL_ALIVE);
 }
 
@@ -5461,6 +5496,26 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// this modifies "remembered" individuals, since information comes from the
 	// time of output, not creation
 	AddCurrentGenerationToIndividuals(&output_tables);
+	
+	// We need the individual table's order, for alive individuals, to match that of
+	// SLiM so that when we read back in it doesn't cause a reordering as a side effect
+	std::vector<int> individual_map;
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		
+		for (Individual *individual : subpop->parent_individuals_)
+		{
+			node_id_t node_id = individual->genome1_->msp_node_id_;
+			individual_id_t ind_id = output_tables.nodes->individual[node_id];
+			
+			individual_map.push_back(ind_id);
+		}
+	}
+	// all other individuals in the table will be retained, at the end
+	ReorderIndividualTable(&output_tables, individual_map, true);
+	
 	// Unmark "first generation" nodes as samples (but, retaining their information!)
 	UnmarkFirstGenerationSamples(&output_tables);
 	
@@ -6757,8 +6812,17 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
     // Re-mark the FIRST_GEN individuals as samples so the persist through simplify
     RemarkFirstGenerationSamples(&tables);
 	
-	// Remove individuals that are alive but !(rememebered | first_gen), and clear alive flags
+	// Clear ALIVE flags
 	FixAliveIndividuals(&tables);
+	// Remove individuals that are !(rememebered | first_gen)
+    std::vector<individual_id_t> individual_map;
+    for (individual_id_t j = 0; (size_t) j < tables.individuals->num_rows; j++)
+    {
+        uint32_t flags = tables.individuals->flags[j];
+        if ((flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) || (flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN))
+            individual_map.push_back(j);
+    }
+    ReorderIndividualTable(&tables, individual_map, false);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
