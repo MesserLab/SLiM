@@ -5156,7 +5156,7 @@ void SLiMSim::WritePopulationTable(table_collection_t *p_tables)
 	}
 }
 
-void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
+void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables, bool p_use_newlines)
 {
 	int ret = 0;
 	time_t timer;
@@ -5211,7 +5211,12 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables)
 	j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_FIRST_GEN";
 	j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was in the first generation of a new population";
 	
-	std::string provenance_str = j.dump(4);
+	std::string provenance_str;
+	
+	if (p_use_newlines)
+		provenance_str = j.dump(4);
+	else
+		provenance_str = j.dump();
 	
 	//std::cout << "Provenance output: \n" << provenance_str << std::endl;
 	
@@ -5525,8 +5530,9 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	for (size_t node_index = 0; node_index < output_tables.nodes->num_rows; ++node_index)
 		output_tables.nodes->time[node_index] += generation_;
 	
-    // Add a row to the Provenance table to record current state
-    WriteProvenanceTable(&output_tables);
+	// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
+	// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
+    WriteProvenanceTable(&output_tables, /* p_use_newlines */ p_binary);
 	
 	// Write out the copied tables
     if (p_binary)
