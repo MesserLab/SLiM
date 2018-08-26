@@ -3795,7 +3795,7 @@ void SLiMSim::ReorderIndividualTable(table_collection_t *p_tables, std::vector<i
 		{
 			if (inverse_map[j] == MSP_NULL_INDIVIDUAL)
 			{
-				inverse_map[j] = p_individual_map.size();
+				inverse_map[j] = (individual_id_t)p_individual_map.size();
 				p_individual_map.push_back(j);
 			}
 		}
