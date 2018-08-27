@@ -7157,6 +7157,18 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	if (((receiver_sex != IndividualSex::kUnspecified) || (exerter_sex != IndividualSex::kUnspecified)) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() sexSegregation value other than '**' unsupported in non-sexual simulation." << EidosTerminate();
 	
+	if ((required_dimensionality > 0) && std::isinf(max_distance))
+	{
+		if (!gEidosSuppressWarnings)
+		{
+			if (!warned_no_max_distance_)
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() called to configure a spatial interaction type with no maximum distance; this may result in very poor performance." << std::endl;
+				warned_no_max_distance_ = true;
+			}
+		}
+	}
+	
 	InteractionType *new_interaction_type = new InteractionType(*this, map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
 	
 	interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));

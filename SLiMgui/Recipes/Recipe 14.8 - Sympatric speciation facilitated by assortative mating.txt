@@ -14,15 +14,14 @@ initialize() {
 	initializeGenomicElement(g1, 0, 1e5 - 1);
 	initializeRecombinationRate(1e-8);
 	
-	initializeInteractionType(1, "x", reciprocal=T);     // competition
+	initializeInteractionType(1, "x", reciprocal=T, maxDistance=sigma_C * 3);     // competition
 	i1.setInteractionFunction("n", 1.0, sigma_C);
 	
-	initializeInteractionType(2, "x", reciprocal=T);     // mate choice
+	initializeInteractionType(2, "x", reciprocal=T, maxDistance=sigma_M * 3);     // mate choice
 	i2.setInteractionFunction("n", 1.0, sigma_M);
 }
 1 late() {
 	sim.addSubpop("p1", 500);
-	
 	p1.setSpatialBounds(c(0.0, 10.0));
 }
 1: late() {

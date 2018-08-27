@@ -21,6 +21,9 @@ development head:
 	rememberIndividuals() now actually remembers individuals in the tree sequence, as well as (what it did before) their associated nodes
 	fix issues with genome recycling and subpop initialization, which could result in nodes in .trees files being marked as null genomes incorrectly and could cause memory usage to increase without bound
 	bug fix: incorrect neutral dynamics for WF models with no non-neutral muttypes, no fitness() callbacks, but using fitnessScaling to modify fitness
+	added remembering of the initial generation, to enable recapitation
+	change .trees files to have rebased times on write, to simplify pyslim and reduce user error
+	add a warning for spatial interaction types with no max distance
 
 
 3.0 (build 1750; Eidos version 2.0):
