@@ -1651,7 +1651,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 #ifdef SLIM_WF_ONLY
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
-		UpdateWFFitnessBuffers(pure_neutral);
+		UpdateWFFitnessBuffers(pure_neutral && !Individual::s_any_individual_fitness_scaling_set_);
 #endif	// SLIM_WF_ONLY
 }
 
