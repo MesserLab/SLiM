@@ -5167,7 +5167,7 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables, bool p_use_newl
 	
 	j["slim"]["file_version"] = SLIM_TREES_FILE_VERSION;	// 0.2 for this provenance format, 0.1 for the old format above
 	j["slim"]["generation"] = Generation();
-	j["slim"]["remembered_node_count"] = (long)remembered_genomes_.size();
+	//j["slim"]["remembered_node_count"] = (long)remembered_genomes_.size();	// no longer writing this key!
 	
 	j["parameters"]["command"] = cli_params_;
 	j["parameters"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
@@ -5199,7 +5199,7 @@ void SLiMSim::WriteProvenanceTable(table_collection_t *p_tables, bool p_use_newl
 #endif
 }
 
-void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count, SLiMModelType *p_model_type)
+void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type)
 {
 #if 0
 	// Old provenance reading code; this can handle file_version 0.1 only
@@ -5359,14 +5359,19 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 	auto file_version_02 = j["slim"]["file_version"];
 	
 	std::string model_type_str;
-	long long gen_ll, rem_count_ll;
+	long long gen_ll;
 	
 	if (file_version_01.is_string() && (file_version_01 == "0.1"))
 	{
+		// We actually don't have any chance of being able to read SLiM 3.0 .trees files in, I guess;
+		// all the new individuals table stuff, the addition of the population table, etc., mean that
+		// it would just be a huge headache to try to do this.  So let's throw an error up front.
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): file_version is 0.1 in .trees file; this file cannot be read.  SLiM 3.1 cannot read saved .trees files from prior versions of SLiM; sorry." << EidosTerminate();
+		
 		try {
 			model_type_str = j["model_type"];
 			gen_ll = j["generation"];
-			rem_count_ll = j["remembered_node_count"];
+			//rem_count_ll = j["remembered_node_count"];	// no longer using this key
 		}
 		catch (...)
 		{
@@ -5378,7 +5383,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 		try {
 			model_type_str = j["parameters"]["model_type"];
 			gen_ll = j["slim"]["generation"];
-			rem_count_ll = j["slim"]["remembered_node_count"];
+			//rem_count_ll = j["slim"]["remembered_node_count"];	// no longer using this key
 		}
 		catch (...)
 		{
@@ -5411,12 +5416,6 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): generation value out of range; this file cannot be read." << EidosTerminate();
 	
 	*p_generation = (slim_generation_t)gen_ll;
-	
-	// bounds-check the remembered genome count
-	if (rem_count_ll < 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): remembered node count value out of range; this file cannot be read." << EidosTerminate();
-	
-	*p_remembered_genome_count = (size_t)rem_count_ll;
 #endif
 }
 
@@ -6738,11 +6737,12 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 {
 	// first, check the provenance table to make sure this is a SLiM-compatible file of a version we understand
 	// if it is, set the generation from the provenance data
+	// note that ReadProvenanceTable() presently throws an exception if asked to read a SLiM 3.0 .trees file;
+	// the changes in the tables, metadata, etc., were just too extensive for it to be reasonable to do...
 	slim_generation_t provinence_gen;
-	size_t remembered_genome_count;
 	SLiMModelType file_model_type;
 	
-	ReadProvenanceTable(&tables, &provinence_gen, &remembered_genome_count, &file_model_type);
+	ReadProvenanceTable(&tables, &provinence_gen, &file_model_type);
 	SetGeneration(provinence_gen);
 	
 	// rebase the times in the nodes to be in SLiM-land; see WriteTreeSequence for the inverse operation
@@ -6785,18 +6785,31 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tree_sequence_free()", ret);
 	free(ts);
 	
-	// Set up the remembered genomes, which are now the first remembered_genome_count node table entries
+	// Figure out how many remembered genomes we have; each remembered individual has two remembered genomes
+	size_t remembered_genome_count = 0;
+	
+	for (individual_id_t j = 0; (size_t) j < tables.individuals->num_rows; j++)
+	{
+		uint32_t flags = tables.individuals->flags[j];
+		if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
+			remembered_genome_count += 2;
+	}
+	
+	// Set up the remembered genomes, which are (we assume) the first remembered_genome_count node table entries
+	// We could instead simply loop over the nodes and see if the individual they point to is remembered, which would
+	// not require that remembered genomes be the first rows in the node table, if we ever want to relax that assumption.
 	if (remembered_genomes_.size() != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): (internal error) remembered_genomes_ is not empty." << EidosTerminate();
 	
 	for (size_t i = 0; i < remembered_genome_count; ++i)
 		remembered_genomes_.push_back((node_id_t)i);
-
+	
     // Re-mark the FIRST_GEN individuals as samples so the persist through simplify
     RemarkFirstGenerationSamples(&tables);
 	
 	// Clear ALIVE flags
 	FixAliveIndividuals(&tables);
+	
 	// Remove individuals that are !(rememebered | first_gen)
     std::vector<individual_id_t> individual_map;
     for (individual_id_t j = 0; (size_t) j < tables.individuals->num_rows; j++)

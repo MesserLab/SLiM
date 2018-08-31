@@ -515,7 +515,7 @@ public:
 	void FixAliveIndividuals(table_collection_t *p_tables);
 	void WritePopulationTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables, bool p_use_newlines);
-	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, size_t *p_remembered_genome_count, SLiMModelType *p_model_type);
+	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
     void ReorderIndividualTable(table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void SimplifyTreeSequence(void);
