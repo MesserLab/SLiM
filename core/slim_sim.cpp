@@ -5368,6 +5368,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 		// it would just be a huge headache to try to do this.  So let's throw an error up front.
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): file_version is 0.1 in .trees file; this file cannot be read.  SLiM 3.1 cannot read saved .trees files from prior versions of SLiM; sorry." << EidosTerminate();
 		
+		/*
 		try {
 			model_type_str = j["model_type"];
 			gen_ll = j["generation"];
@@ -5377,6 +5378,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 		{
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): error reading provenance value (file_version 0.1); this file cannot be read." << EidosTerminate();
 		}
+		 */
 	}
 	else if (file_version_02.is_string() && (file_version_02 == "0.2"))
 	{
