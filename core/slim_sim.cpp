@@ -6788,12 +6788,13 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	free(ts);
 	
 	// Figure out how many remembered genomes we have; each remembered individual has two remembered genomes
+	// First-generation individuals are also "remembered" in the present design, and so must be included
 	size_t remembered_genome_count = 0;
 	
 	for (individual_id_t j = 0; (size_t) j < tables.individuals->num_rows; j++)
 	{
 		uint32_t flags = tables.individuals->flags[j];
-		if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
+		if (flags & (SLIM_TSK_INDIVIDUAL_REMEMBERED | SLIM_TSK_INDIVIDUAL_FIRST_GEN))
 			remembered_genome_count += 2;
 	}
 	
