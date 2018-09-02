@@ -25,6 +25,7 @@ development head:
 	change .trees files to have rebased times on write, to simplify pyslim and reduce user error
 	add a warning for spatial interaction types with no max distance
 	add recipe 13.19, biased gene conversion
+	add recipe 16.10, recapitation
 
 
 3.0 (build 1750; Eidos version 2.0):
