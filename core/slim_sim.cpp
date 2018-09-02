@@ -3945,11 +3945,47 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	
 	for (; ret == 1; ret = sparse_tree_next(&t))
 	{
+#if 0
+		// If we didn't retain FIRST_GEN ancestors in the tree, this logic would suffice: >1 root means not coalesced
 		if (t.right_sib[t.left_root] != MSP_NULL_NODE)
 		{
 			fully_coalesced = false;
 			break;
 		}
+#else
+		// But we do retain FIRST_GEN ancestors in the tree, so we need to be smarter; nodes for the first gen
+		// ancestors will always be present, giving >1 root in each tree even when we have coalesced.  What we
+		// need to know is: how many roots are there that have >0 children?  The first gen ancestors that are
+		// unreferenced by the extant individuals will have zero children.  If we have exactly one root with >0
+		// children, we have coalesced.  Note that in the first generation, we will have zero roots with >0
+		// children; that is also a non-coalescent situation, then.
+		int active_root_count = 0;
+		node_id_t root_index = t.left_root;
+		
+		do
+		{
+			// if the root has children, it is active
+			if (t.left_child[root_index] != MSP_NULL_NODE)
+			{
+				active_root_count++;
+				if (active_root_count >= 2)
+				{
+					fully_coalesced = false;
+					break;
+				}
+			}
+			
+			// go to the next root in this tree
+			root_index = t.right_sib[root_index];
+		}
+		while (root_index != MSP_NULL_NODE);
+		
+		if (active_root_count == 0)
+			fully_coalesced = false;
+		
+		if (!fully_coalesced)
+			break;
+#endif
 	}
 	if (ret < 0) handle_error("sparse_tree_next", ret);
 	
