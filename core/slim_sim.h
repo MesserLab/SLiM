@@ -344,6 +344,7 @@ private:
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	
+    // TODO: add underscores
 	table_collection_t tables;
 	table_collection_position_t table_position;
 	
