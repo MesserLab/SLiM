@@ -3873,7 +3873,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 		}
 	}
 	
-	// our tables copy needs to have a population table to be able to sort it
+	// the tables need to have a population table to be able to sort it
 	WritePopulationTable(&tables);
 	
 	// sort the table collection
@@ -6854,6 +6854,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	if (remembered_genomes_.size() != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): (internal error) remembered_genomes_ is not empty." << EidosTerminate();
 	
+    // TODO: look these up from the individual table
 	for (size_t i = 0; i < remembered_genome_count; ++i)
 		remembered_genomes_.push_back((node_id_t)i);
 	

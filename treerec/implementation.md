@@ -1,5 +1,99 @@
 # Notes on implementation
 
+## Individual tracking
+
+Both individuals and nodes (= genomes) have flags. We use individual flags for
+internal bookkeeping in SLiM; while msprime uses the SAMPLE flag of nodes.
+
+0. The first generation individuals get entered into the individual table, with
+    the `INDIVIDUAL_FIRST_GEN` flag, so we know to keep these around through simplify.
+    Their genomes' node IDs are also added to `remembered_genomes_`.
+
+1. Every new individuals' genomes each get the `NODE_IS_SAMPLE` flag,
+    because the SAMPLE flag means that we have whole-genome information about a genome,
+    which at this point we do. Node times are recorded as the number of generations
+    before the start of the simulation (i.e., -1 * sim.generation).
+
+2. Individuals who we call RememberIndividuals on are added to the individual table,
+    with the `INDIVIDUAL_REMEMBERED` flag,
+    and their genomes' node IDs are added to `remembered_genomes_`.
+
+3. Simplify, if it occurs, first constructs the list of nodes to maintain as samples
+    by starting with `remembered_genomes_`, and then adding the genomes of the current
+    generation.  All individuals in the individual table should be maintained, because
+    they are all pointed to by nodes in this list. It also updates the `msp_node_id_`
+    property of the currently alive SLiM genomes. After simplify, only nodes that are
+    in `remembered_genomes_` are marked with `NODE_IS_SAMPLE`.
+
+4. On output, we copy the tables, and with these tables,
+    add the current generation to the individual table, 
+    marked with the `INDIVIDUAL_ALIVE` flag,;
+    reorder the individual tables so that the the currently alive ones come first,
+    and in the order they currently exist in the population;
+    simplify;
+    and remove the `NODE_IS_SAMPLE` flag from nodes whose individuals are
+    FIRST_GEN but not REMEMBERED or ALIVE.
+    Also, node times have the current generation added to them, so they are in units
+    of number of generations before the end of the simulation.
+
+5. On input from tables, we use the `INDIVIDUAL_ALIVE` flag to decide who is currently alive,
+    and use the `INDIVIDUAL_FIRST_GEN` and `INDIVIDUAL_REMEMBERED` flags to
+    decide which genomes to add to `remembered_genomes_`.
+    We also add the `NODE_IS_SAMPLE` flag to nodes whose individuals are FIRST_GEN,
+    and remove the individuals that are not FIRST_GEN or REMEMBERED (and therefore
+    only ALIVE) from the individual table;
+    and also remove all ALIVE flags from individuals.
+    `msp_node_id_` is set based on the nodes that point to that individual in the tables.
+    Also, node times have the current generation subtracted from them, so they are in units
+    of number of generations before the start of the simulation.
+
+
+Internal state:
+
+- `tables.individuals`:
+
+    * who's in the table: FIRST_GEN and/or REMEMBERED
+    * flags: everyone is FIRST_GEN and/or REMEMBERED (never ALIVE)
+
+- `tables.nodes`:
+
+    * NODE_IS_SAMPLE flag: **unused** by SLiM; but set if they are in FIRST_GEN
+      and/or REMEMBERED individuals, or if they're from a generation since the
+      last simplify (or the current generation, if that just happened)
+
+    * individual column: if their individual is FIRST_GEN or REMEMBERED
+
+        - created by AddIndividualsToTable, called by RememberIndividuals and at initialization
+
+    * time: (-1) * birth generation.
+
+- `remembered_genomes_`: the node IDs of genomes whose individuals are FIRST_GEN or REMBEMBERED
+
+    * initialized at the start of each new, not-from-anywhere-else subpopulation
+    * added to by RememberIndividuals
+    * updated by Simplify
+
+- `msp_node_id_` properties of currently alive SLiM individual `genome1_` and `genome2_`:
+    always contains an ID of the node table.
+
+    * created when a new individual is created, by `node_table_add_row()`
+    * updated by Simplify
+
+State at output:
+
+- `tables.individuals`:
+
+    * who's in the table: FIRST_GEN and/or REMEMBERED and/or ALIVE
+    * flags: everyone is FIRST_GEN and/or REMEMBERED and/or ALIVE
+    * reordered by ReorderIndividualTable so that order matches currently alive ones
+
+- `tables.nodes`:
+
+    * NODE_IS_SAMPLE flag: if they are REMEMBERED and/or ALIVE
+    * individual column: if they are REMEMBERED and/or ALIVE and/or FIRST_GEN
+    * time: (current generation - birth generation)
+
+
 ## Mutation recording
 
 ### Alleles
