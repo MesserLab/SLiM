@@ -32,11 +32,6 @@
 #include <vector>
 #include <iostream>
 
-//TREE SEQUENCE 
-//adding this so I can write tables to txt file for debugging
-//TODO remove when done.
-#include <fstream>  
-
 #include "slim_global.h"
 #include "mutation.h"
 #include "mutation_type.h"
@@ -344,9 +339,8 @@ private:
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	
-    // TODO: add underscores
-	table_collection_t tables;
-	table_collection_position_t table_position;
+	table_collection_t tables_;
+	table_collection_position_t table_position_;
 	
     std::vector<node_id_t> remembered_genomes_;
 	//Individual *current_new_individual_;
