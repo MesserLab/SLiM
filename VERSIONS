@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+3.1 (build 1817; Eidos version 2.1):
 	dmvnorm() function added to Eidos, parallel to dnorm() but for multivariate Gaussian distributions
 	add JSON for Modern C++ (https://github.com/nlohmann/json) version 3.1.2 to SLiM for .trees provenance generation/parsing
 	extend SLiM's .trees file provenance info (tskit schema stuff, script text, seed, parameters, os environment, file_version==0.2)
@@ -27,7 +30,6 @@ development head:
 	add recipe 13.19, biased gene conversion
 	add recipe 16.10, recapitation
 	fix coalescence checking to work even when individuals are remembered
-
 
 3.0 (build 1750; Eidos version 2.0):
 	add initializeSLiMModelType() function to choose SLiM's model type (WF or nonWF, at present), and modelType property on SLiMSim to access it
