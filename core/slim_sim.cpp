@@ -4128,9 +4128,10 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
 
-	// add genome node
+	// add genome node; we mark all nodes with MSP_NODE_IS_SAMPLE here because we have full genealogical information on all of them
+	// (until simplify, which clears MSP_NODE_IS_SAMPLE from nodes that are not kept in the sample).
 	double time = (double) -1 * (tree_seq_generation_ + tree_seq_generation_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_generation_offset_
-	uint32_t flags = 1;
+	uint32_t flags = MSP_NODE_IS_SAMPLE;
 	GenomeMetadataRec metadata_rec;
 	
 	MetadataForGenome(p_new_genome, &metadata_rec);
@@ -5103,12 +5104,17 @@ void SLiMSim::UnmarkFirstGenerationSamples(table_collection_t *p_tables)
 		if (p_tables->nodes->flags[j] & MSP_NODE_IS_SAMPLE)
 		{
 			individual_id_t ind = p_tables->nodes->individual[j];
-			assert((ind >= 0) && ((table_size_t)ind < p_tables->individuals->num_rows));
-			if ((p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
+			
+			// nodes may be samples and yet not have an indiviual, if we have not called simplify() before writing out (simplify=F)
+			if (ind >= 0)
+			{
+				assert((table_size_t)ind < p_tables->individuals->num_rows);
+				if ((p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
 					&& !(p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 					&& !(p_tables->individuals->flags[ind] & SLIM_TSK_INDIVIDUAL_ALIVE))
-			{
-				p_tables->nodes->flags[j] = (p_tables->nodes->flags[j] & !MSP_NODE_IS_SAMPLE);
+				{
+					p_tables->nodes->flags[j] = (p_tables->nodes->flags[j] & !MSP_NODE_IS_SAMPLE);
+				}
 			}
 		}
 	}
@@ -5118,6 +5124,7 @@ void SLiMSim::RemarkFirstGenerationSamples(table_collection_t *p_tables)
 {
 	// add an "is sample" flag to first-generation individuals, re-marking them after
 	// reading individuals in; undoes the effect of UnmarkFirstGenerationSamples() on load
+	// this needs to be performed because otherwise msprime complains that nodes in the sample are not marked with MSP_NODE_IS_SAMPLE
 	for (size_t j = 0; j < p_tables->nodes->num_rows; j++)
 	{
 		individual_id_t ind = p_tables->nodes->individual[j];
@@ -6893,7 +6900,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	for (size_t i = 0; i < remembered_genome_count; ++i)
 		remembered_genomes_.push_back((node_id_t)i);
 	
-    // Re-mark the FIRST_GEN individuals as samples so the persist through simplify
+    // Re-mark the FIRST_GEN individuals as samples so they persist through simplify
     RemarkFirstGenerationSamples(&tables);
 	
 	// Clear ALIVE flags
