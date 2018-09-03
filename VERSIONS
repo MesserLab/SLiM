@@ -26,6 +26,7 @@ development head:
 	add a warning for spatial interaction types with no max distance
 	add recipe 13.19, biased gene conversion
 	add recipe 16.10, recapitation
+	fix coalescence checking to work even when individuals are remembered
 
 
 3.0 (build 1750; Eidos version 2.0):

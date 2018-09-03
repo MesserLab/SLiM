@@ -3910,13 +3910,11 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckCoalescenceAfterSimplification): (internal error) coalescence check called with recording or checking off." << EidosTerminate();
 #endif
 	
-	bool fully_coalesced = true;
-	int ret;
-	
 	// Copy the table collection; Jerome says this is unnecessary since table_collection_build_indexes()
 	// does not modify the core information in the table collection, but just adds some separate indices.
 	// However, we also need to add a population table, so really it is best to make a copy I think.
 	table_collection_t tables_copy;
+	int ret;
 	
 	ret = table_collection_alloc(&tables_copy, MSP_ALLOC_TABLES);
 	if (ret < 0) handle_error("table_collection_alloc", ret);
@@ -3924,7 +3922,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	ret = table_collection_copy(&tables, &tables_copy);
 	if (ret < 0) handle_error("table_collection_copy", ret);
 	
-	// our tables copy needs to have a population table now, since this is required to build a tree sequence
+	// Our tables copy needs to have a population table now, since this is required to build a tree sequence
 	WritePopulationTable(&tables_copy);
 	
 	ret = table_collection_build_indexes(&tables_copy, 0);
@@ -3935,59 +3933,111 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	ret = tree_sequence_load_tables(&ts, &tables_copy, 0);
 	if (ret < 0) handle_error("tree_sequence_load_tables", ret);
 	
-	// iterate through the trees and see how many roots there are; if >1, not coalesced
-	sparse_tree_t t;
+	// Collect a vector of all extant genome node IDs
+	std::vector<node_id_t> all_extant_nodes;
 	
-	sparse_tree_alloc(&t, &ts, 0);
+	for (auto subpop_iter : population_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		std::vector<Genome *> &genomes = subpop->parent_genomes_;
+		slim_popsize_t genome_count = subpop->parent_subpop_size_;
+		Genome **genome_ptr = genomes.data();
+		
+		for (slim_popsize_t genome_index = 0; genome_index < genome_count; ++genome_index)
+			all_extant_nodes.push_back(genome_ptr[genome_index]->msp_node_id_);
+	}
+	
+	int64_t extant_node_count = (int64_t)all_extant_nodes.size();
+	
+	// Iterate through the trees to check coalescence; this is a bit tricky because of retained first-gen ancestors
+	// and other remembered individuals.  We use the sparse tree's "tracked samples" feature, tracking extant individuals
+	// only, to find out whether all extant individuals are under a single root (coalesced), or under multiple roots
+	// (not coalesced).  Doing this requires a scan through all the roots at each site, which is very slow if we have
+	// indeed coalesced, but if we are far from coalescence we will usually be able to determine that in the scan of the
+	// first tree (because every site will probably be uncoalesced), which seems like the right performance trade-off.
+	sparse_tree_t t;
+	bool fully_coalesced = true;
+	
+	sparse_tree_alloc(&t, &ts, MSP_SAMPLE_COUNTS);
+	if (ret < 0) handle_error("sparse_tree_alloc", ret);
+	
+	sparse_tree_set_tracked_samples(&t, extant_node_count, all_extant_nodes.data());
+	if (ret < 0) handle_error("sparse_tree_set_tracked_samples", ret);
 	
 	ret = sparse_tree_first(&t);
 	if (ret < 0) handle_error("sparse_tree_first", ret);
 	
-	for (; ret == 1; ret = sparse_tree_next(&t))
+	for (; (ret == 1) && fully_coalesced; ret = sparse_tree_next(&t))
 	{
 #if 0
-		// If we didn't retain FIRST_GEN ancestors in the tree, this logic would suffice: >1 root means not coalesced
+		// If we didn't retain FIRST_GEN ancestors, or remember genomes, >1 root would mean not coalesced
 		if (t.right_sib[t.left_root] != MSP_NULL_NODE)
 		{
 			fully_coalesced = false;
 			break;
 		}
 #else
-		// But we do retain FIRST_GEN ancestors in the tree, so we need to be smarter; nodes for the first gen
-		// ancestors will always be present, giving >1 root in each tree even when we have coalesced.  What we
-		// need to know is: how many roots are there that have >0 children?  The first gen ancestors that are
-		// unreferenced by the extant individuals will have zero children.  If we have exactly one root with >0
-		// children, we have coalesced.  Note that in the first generation, we will have zero roots with >0
-		// children; that is also a non-coalescent situation, then.
-		int active_root_count = 0;
-		node_id_t root_index = t.left_root;
-		
-		do
+		// But we do have retained/remembered nodes in the tree, so we need to be smarter; nodes for the first gen
+		// ancestors will always be present, giving >1 root in each tree even when we have coalesced, and the
+		// remembered individuals may mean that more than one root node has children, too, even when we have
+		// coalesced.  What we need to know is: how many roots are there that have >0 *extant* children?  This
+		// is what we use the tracked samples for; they are extant individuals.
+		for (node_id_t root = t.left_root; root != MSP_NULL_NODE; root = t.right_sib[root])
 		{
-			// if the root has children, it is active
-			if (t.left_child[root_index] != MSP_NULL_NODE)
-			{
-				active_root_count++;
-				if (active_root_count >= 2)
-				{
-					fully_coalesced = false;
-					break;
-				}
-			}
+			int64_t num_tracked = t.num_tracked_samples[root];
 			
-			// go to the next root in this tree
-			root_index = t.right_sib[root_index];
+			if ((num_tracked > 0) && (num_tracked < extant_node_count))
+			{
+				fully_coalesced = false;
+				break;
+			}
 		}
-		while (root_index != MSP_NULL_NODE);
-		
-		if (active_root_count == 0)
-			fully_coalesced = false;
-		
-		if (!fully_coalesced)
-			break;
 #endif
 	}
 	if (ret < 0) handle_error("sparse_tree_next", ret);
+	
+	// CHECKBACK; getting different results from new vs. old algorithm, so try the old algorithm here
+	// Interestingly, this seems to indicate that after simplification we have a root node *with* children but with *no* tracked samples!
+#if 0
+	if (fully_coalesced)
+	{
+		ret = sparse_tree_first(&t);
+		if (ret < 0) handle_error("sparse_tree_first", ret);
+		
+		for (; ret == 1; ret = sparse_tree_next(&t))
+		{
+			int active_root_count = 0;
+			node_id_t root_index = t.left_root;
+			
+			do
+			{
+				// if the root has children, it is active
+				if (t.left_child[root_index] != MSP_NULL_NODE)
+				{
+					std::cout << "active root found, tracked sample count == " << t.num_tracked_samples[root_index] << std::endl;
+					
+					active_root_count++;
+					if (active_root_count >= 2)
+					{
+						fully_coalesced = false;
+						break;
+					}
+				}
+				
+				// go to the next root in this tree
+				root_index = t.right_sib[root_index];
+			}
+			while (root_index != MSP_NULL_NODE);
+			
+			if (active_root_count == 0)
+				fully_coalesced = false;
+			
+			if (!fully_coalesced)
+				break;
+		}
+		if (ret < 0) handle_error("sparse_tree_next", ret);
+	}
+#endif
 	
 	ret = sparse_tree_free(&t);
 	if (ret < 0) handle_error("sparse_tree_free", ret);
