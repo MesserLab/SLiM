@@ -3940,7 +3940,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		std::vector<Genome *> &genomes = subpop->parent_genomes_;
-		slim_popsize_t genome_count = subpop->parent_subpop_size_;
+		slim_popsize_t genome_count = subpop->parent_subpop_size_ * 2;
 		Genome **genome_ptr = genomes.data();
 		
 		for (slim_popsize_t genome_index = 0; genome_index < genome_count; ++genome_index)
@@ -3995,49 +3995,6 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 #endif
 	}
 	if (ret < 0) handle_error("sparse_tree_next", ret);
-	
-	// CHECKBACK; getting different results from new vs. old algorithm, so try the old algorithm here
-	// Interestingly, this seems to indicate that after simplification we have a root node *with* children but with *no* tracked samples!
-#if 0
-	if (fully_coalesced)
-	{
-		ret = sparse_tree_first(&t);
-		if (ret < 0) handle_error("sparse_tree_first", ret);
-		
-		for (; ret == 1; ret = sparse_tree_next(&t))
-		{
-			int active_root_count = 0;
-			node_id_t root_index = t.left_root;
-			
-			do
-			{
-				// if the root has children, it is active
-				if (t.left_child[root_index] != MSP_NULL_NODE)
-				{
-					std::cout << "active root found, tracked sample count == " << t.num_tracked_samples[root_index] << std::endl;
-					
-					active_root_count++;
-					if (active_root_count >= 2)
-					{
-						fully_coalesced = false;
-						break;
-					}
-				}
-				
-				// go to the next root in this tree
-				root_index = t.right_sib[root_index];
-			}
-			while (root_index != MSP_NULL_NODE);
-			
-			if (active_root_count == 0)
-				fully_coalesced = false;
-			
-			if (!fully_coalesced)
-				break;
-		}
-		if (ret < 0) handle_error("sparse_tree_next", ret);
-	}
-#endif
 	
 	ret = sparse_tree_free(&t);
 	if (ret < 0) handle_error("sparse_tree_free", ret);
