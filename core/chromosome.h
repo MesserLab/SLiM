@@ -168,6 +168,9 @@ public:
 	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, vector<GESubrange> &p_subranges);
 	void ChooseMutationRunLayout(int p_preferred_count);
 	
+	inline bool UsingSingleRecombinationMap(void) const { return single_recombination_map_; }
+	inline bool UsingSingleMutationMap(void) const { return single_mutation_map_; }
+	
 	// draw the number of mutations that occur, based on the overall mutation rate
 	int DrawMutationCount(IndividualSex p_sex) const;
 	

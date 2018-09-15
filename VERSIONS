@@ -8,6 +8,13 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	fix a bug that could result in incorrect parent2, parent2Genome1, and parent2Genome2 values in modifyChild() callbacks in clonal models; should not impact correct model code
+	fix incorrect values for isCloning / isSelfing in modifyChild() callbacks in nonWF models using addCloned() / addSelfed()
+	fix incorrect modifyChild() callback source in nonWF models using addCloned(), addCrossed(), and addSelfed(); they were getting the list of callbacks from the target subpopulation
+	fix crash in addEmpty() that nobody noticed because nobody uses it
+	add a new addRecombinant() method that allows easier modeling of haploids, horizontal gene transfer, and pre-planned recombination breakpoints
+	add recipe 15.13 (modeling clonal haploids in nonWF models with addRecombinant())
+	add recipe 15.14 (modeling clonal haploid bacteria with horizontal gene transfer)
 
 
 3.1 (build 1817; Eidos version 2.1):

@@ -1222,6 +1222,7 @@
 						  @"– addCloned()",
 						  @"– addCrossed()",
 						  @"– addEmpty()",
+						  @"– addRecombinant()",
 						  @"– addSelfed()",
 						  @"– removeSubpopulation()",
 						  @"– takeMigrants()",

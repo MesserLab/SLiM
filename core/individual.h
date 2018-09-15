@@ -146,6 +146,16 @@ public:
 		pedigree_g4_ = p_parent2.pedigree_p2_;
 	}
 	
+	// This alternative to TrackPedigreeWithParents() is used when the parents are not known, as in
+	// addEmpty() and addRecombined(); the unset ivars are set to -1 by the Individual constructor
+	inline __attribute__((always_inline)) void TrackPedigreeWithoutParents()
+	{
+		pedigree_id_ = gSLiM_next_pedigree_id++;
+		
+		genome1_->genome_id_ = pedigree_id_ * 2;
+		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
+	}
+	
 	double RelatednessToIndividual(Individual &p_ind);
 	
 	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID()			{ return pedigree_id_; }

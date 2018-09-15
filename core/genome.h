@@ -95,6 +95,7 @@ private:
 	MutationRun_SP *mutruns_;									// mutation runs; nullptr if a null genome OR an empty genome
 	
 	Subpopulation *subpop_;										// NOT OWNED: the Subpopulation this genome belongs to
+	Individual *individual_;									// NOT OWNED: the Individual this genome belongs to
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// TREE SEQUENCE RECORDING
@@ -214,7 +215,12 @@ public:
 			MutationRun_SP *mutrun_sp = mutruns_ + run_index;
 			MutationRun *mutrun = mutrun_sp->get();
 			
-			if (mutrun->size() != 0)
+			if (!mutrun)
+			{
+				// If the MutationRun is currently nullptr, we need to make a new empty mutrun
+				*mutrun_sp = MutationRun_SP(MutationRun::NewMutationRun());
+			}
+			else if (mutrun->size() != 0)
 			{
 				// If the MutationRun is private to us, we can just empty it out, otherwise we replace it with a new empty one
 				if (mutrun->UseCount() == 1)

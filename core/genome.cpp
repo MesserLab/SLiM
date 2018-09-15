@@ -45,7 +45,7 @@ slim_mutrun_index_t Genome::s_bulk_operation_mutrun_index_ = -1;
 std::unordered_map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
 
 
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), genome_id_(-1)
+Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), individual_(nullptr), genome_id_(-1)
 {
 	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)
@@ -2023,31 +2023,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
-	
-	if (!sim.warned_early_mutation_remove_)
-	{
-		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
-		{
-			if (!gEidosSuppressWarnings)
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
-				sim.warned_early_mutation_remove_ = true;
-			}
-		}
-		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
-		{
-			if (!gEidosSuppressWarnings)
-			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until the partway through the next generation." << std::endl;
-				sim.warned_early_mutation_remove_ = true;
-			}
-		}
-	}
-	
 	Population &pop = sim.ThePopulation();
 	slim_generation_t generation = sim.Generation();
 	bool create_substitutions = substitute_value->LogicalAtIndex(0, nullptr);
 	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
+	bool any_nonneutral_removed = false;
 	
 	if (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 	{
@@ -2123,6 +2103,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		
 		// invalidate cached mutation refcounts; refcounts have changed
 		pop.cached_tally_genome_count_ = 0;
+		
+		// in this code path we just assume that nonneutral mutations might have been removed
+		any_nonneutral_removed = true;
 	}
 	else
 	{
@@ -2131,7 +2114,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		std::vector<Mutation *> mutations_to_remove;
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
-			mutations_to_remove.push_back((Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr));
+		{
+			Mutation *mut = (Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr);
+			
+			mutations_to_remove.push_back(mut);
+			
+			if (mut->selection_coeff_ != 0.0)
+				any_nonneutral_removed = true;
+		}
 		
 		std::sort(mutations_to_remove.begin(), mutations_to_remove.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
 		
@@ -2357,6 +2347,27 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				
 				for (slim_position_t position : genome_positions)
 					sim.RecordNewDerivedState(target_genome, position, *target_genome->derived_mutation_ids_at_position(position));
+			}
+		}
+	}
+	
+	// issue a warning if removeMutations() was called at a questionable time, but only if the mutations removed were non-neutral
+	if (any_nonneutral_removed && !sim.warned_early_mutation_remove_)
+	{
+		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		{
+			if (!gEidosSuppressWarnings)
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+				sim.warned_early_mutation_remove_ = true;
+			}
+		}
+		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
+		{
+			if (!gEidosSuppressWarnings)
+			{
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until the partway through the next generation." << std::endl;
+				sim.warned_early_mutation_remove_ = true;
 			}
 		}
 	}

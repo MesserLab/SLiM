@@ -652,8 +652,8 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 		// a zero-based random number, that means we need a +1 here as well.
 		//
 		// The key fact here is that a recombination breakpoint position of 1 means "break to the left of the base at position 1" –
-		// the breakpoint falls between bases, to the left of the bse at the specified number.  This is a consequence of the logic
-		// is the crossover-mutation code, which copies mutations as long as their position is *less than* the position of the next
+		// the breakpoint falls between bases, to the left of the base at the specified number.  This is a consequence of the logic
+		// in the crossover-mutation code, which copies mutations as long as their position is *less than* the position of the next
 		// breakpoint.  When their position is *equal*, the breakpoint gets serviced by switching strands.  That logic causes the
 		// breakpoints to fall to the left of their designated base.
 		//

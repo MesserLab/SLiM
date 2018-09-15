@@ -3605,6 +3605,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_addCloned:				return ExecuteMethod_addCloned(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_addCrossed:			return ExecuteMethod_addCrossed(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_addEmpty:				return ExecuteMethod_addEmpty(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_addRecombinant:		return ExecuteMethod_addRecombinant(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_addSelfed:				return ExecuteMethod_addSelfed(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -3756,11 +3757,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex);
 	population_.DoClonalMutation(&parent_subpop, *genome2, parent_genome_2, child_sex);
 	
-	// Run the candidate past modifyChild() callbacks
+	// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
 	bool proposed_child_accepted = true;
 	
-	if (registered_modify_child_callbacks_.size())
-		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent->index_, parent->index_, false, false, this, this, registered_modify_child_callbacks_);
+	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	
+	if (modify_child_callbacks_.size())
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, &parent_genome_1, &parent_genome_1, parent, &parent_genome_2, &parent_genome_2, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
 	
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	if (proposed_child_accepted)
@@ -3845,10 +3848,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks);
 	population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks);
 	
-	// Run the candidate past modifyChild() callbacks
-	if (registered_modify_child_callbacks_.size())
+	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
+	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent1_subpop.registered_modify_child_callbacks_;
+	
+	if (modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1->index_, parent2->index_, false, false, this, this, registered_modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1, parent1->genome1_, parent1->genome2_, parent2, parent2->genome1_, parent2->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
 		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		if (proposed_child_accepted) gui_offspring_crossed_++;
@@ -3892,12 +3897,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	
 	if (pedigrees_enabled)
-	{
-		// no pedigree information to record (it is initialized to -1 by the constructor
-	}
+		individual->TrackPedigreeWithoutParents();
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -3908,20 +3911,311 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	}
 	
 	// set up empty mutation runs, since we're not calling DoCrossoverMutation() or DoClonalMutation()
+#if DEBUG
+	genome1->check_cleared_to_nullptr();
+	genome2->check_cleared_to_nullptr();
+#endif
+	
 	genome1->clear_to_empty();
 	genome2->clear_to_empty();
 	
-	// Run the candidate past modifyChild() callbacks
+	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
 	bool proposed_child_accepted = true;
 	
 	if (registered_modify_child_callbacks_.size())
-		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, -1, -1, false, false, this, this, registered_modify_child_callbacks_);
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 	
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	if (proposed_child_accepted) gui_offspring_empty_++;
 #endif
 	
 	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+}
+
+//	*********************	– (No<Individual>$)addRecombinant(No<Genome>$ strand1, No<Genome>$ strand2, Ni breaks1,
+//															  No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2, [Nfs$ sex = NULL])
+//
+EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMSim &sim = population_.sim_;
+	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() is not available in WF models." << EidosTerminate();
+	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
+	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called from a nested callback." << EidosTerminate();
+	
+	bool pedigrees_enabled = sim.PedigreesEnabled();
+	Chromosome &chromosome = sim.TheChromosome();
+	int32_t mutrun_count = chromosome.mutrun_count_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	
+	// Note that empty Genome vectors are not legal values for the strandX parameters; the strands must either be NULL or singleton.
+	// If strand1 and strand2 are both NULL, breaks1 must be NULL/empty, and the offspring genome will be empty and will not receive mutations.
+	// If strand1 is non-NULL and strand2 is NULL, breaks1 must be NULL/empty, and the offspring genome will be cloned with mutations.
+	// If strand1 and strand2 are both non-NULL, breaks1 must be non-NULL but need not be sorted, and recombination with mutations will occur.
+	// If strand1 is NULL and strand2 is non-NULL, that is presently an error, but may be given a meaning later.
+	// The same is true, mutatis mutandis, for strand3, strand4, and breaks2.  The sex parameter is interpreted as in addCrossed().
+	EidosValue *strand1_value = p_arguments[0].get();
+	EidosValue *strand2_value = p_arguments[1].get();
+	EidosValue *breaks1_value = p_arguments[2].get();
+	EidosValue *strand3_value = p_arguments[3].get();
+	EidosValue *strand4_value = p_arguments[4].get();
+	EidosValue *breaks2_value = p_arguments[5].get();
+	EidosValue *sex_value = p_arguments[6].get();
+	
+	// Get the genomes for the supplied strands, or nullptr for NULL
+	Genome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand1_value->ObjectElementAtIndex(0, nullptr));
+	Genome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand2_value->ObjectElementAtIndex(0, nullptr));
+	Genome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand3_value->ObjectElementAtIndex(0, nullptr));
+	Genome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand4_value->ObjectElementAtIndex(0, nullptr));
+	
+	// The parental strands must be visible in the subpopulation, and we need to be able to find them to check their sex
+	Individual *strand1_parent = (strand1 ? strand1->individual_ : nullptr);
+	Individual *strand2_parent = (strand2 ? strand2->individual_ : nullptr);
+	Individual *strand3_parent = (strand3 ? strand3->individual_ : nullptr);
+	Individual *strand4_parent = (strand4 ? strand4->individual_ : nullptr);
+	
+	if ((strand1 && (strand1_parent->index_ == -1)) || (strand2 && (strand2_parent->index_ == -1)) ||
+		(strand3 && (strand3_parent->index_ == -1)) || (strand4 && (strand4_parent->index_ == -1)))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): a parental strand is not visible in the subpopulation (i.e., belongs to a new juvenile)." << EidosTerminate();
+	
+	// If both strands are non-NULL for a pair, they must be the same type of genome
+	if (strand1 && strand2 && (strand1->Type() != strand2->Type()))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are not the same type of genome, and thus cannot recombine." << EidosTerminate();
+	if (strand3 && strand4 && (strand3->Type() != strand4->Type()))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are not the same type of genome, and thus cannot recombine." << EidosTerminate();
+	
+	// If the first strand of a pair is NULL, the second must also be NULL
+	if (!strand1 && strand2)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): if strand1 is NULL, strand2 must also be NULL." << EidosTerminate();
+	if (!strand3 && strand4)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): if strand3 is NULL, strand4 must also be NULL." << EidosTerminate();
+	
+	// If both pairs have a non-NULL genome, they must both be autosomal or both be non-autosomal (this should never be hit)
+	if (strand1 && strand3 &&
+		(((strand1->Type() == GenomeType::kAutosome) && (strand3->Type() != GenomeType::kAutosome)) || 
+		 ((strand3->Type() == GenomeType::kAutosome) && (strand1->Type() != GenomeType::kAutosome))))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): autosomal genomes cannot be mixed with non-autosomal genomes." << EidosTerminate();
+	
+	// The first pair cannot be Y chromosomes; those must be supplied in the second pair (if at all)
+	if (strand1 && (strand1->Type() == GenomeType::kYChromosome))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the Y chromosome must be supplied as the second pair of strands in sexual models." << EidosTerminate();
+	
+	// Figure out what sex we're generating, and what that implies about the offspring genomes
+	if ((sex_value->Type() == EidosValueType::kValueNULL) && strand3)
+	{
+		// NULL can mean "infer the child sex from the strands given"; do that here
+		// if strand3 is supplied and is a sex chromosome, it determines the sex of the offspring (strand4 must be NULL or matching type)
+		static EidosValue_SP static_sex_string_F;
+		static EidosValue_SP static_sex_string_M;
+		
+		if (!static_sex_string_F) static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
+		if (!static_sex_string_M) static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("M"));
+		
+		if (strand3->Type() == GenomeType::kXChromosome)
+			sex_value = static_sex_string_F.get();
+		else if (strand3->Type() == GenomeType::kYChromosome)
+			sex_value = static_sex_string_M.get();
+	}
+	
+	GenomeType genome1_type, genome2_type;
+	bool genome1_null, genome2_null;
+	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+	
+	// Check that the chosen sex makes sense with respect to the strands given
+	if (strand1 && genome1_type != strand1->Type())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand1 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
+	if (strand3 && genome2_type != strand3->Type())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand3 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
+	
+	// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or a half-NULL pair, but must be supplied for a non-NULL pair
+	if ((breaks1_value->Count() != 0) && !strand2)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
+	if ((breaks2_value->Count() != 0) && !strand4)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
+	if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are both supplied, so breaks1 may not be NULL (but may be empty)." << EidosTerminate();
+	if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are both supplied, so breaks2 may not be NULL (but may be empty)." << EidosTerminate();
+	
+	// Sort and unique and bounds-check the breakpoints
+	std::vector<slim_position_t> breakvec1, breakvec2;
+	
+	if (breaks1_value->Count())
+	{
+		for (int break_index = 0; break_index < breaks1_value->Count(); ++break_index)
+			breakvec1.push_back(SLiMCastToPositionTypeOrRaise(breaks1_value->IntAtIndex(break_index, nullptr)));
+		
+		std::sort(breakvec1.begin(), breakvec1.end());
+		breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
+		
+		if (breakvec1.back() > chromosome.last_position_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+		
+		// handle a breakpoint at position 0, which swaps the initial strand; DoRecombinantMutation() does not like this
+		if (breakvec1.front() == 0)
+		{
+			breakvec1.erase(breakvec1.begin());
+			std::swap(strand1, strand2);
+			std::swap(strand1_parent, strand2_parent);
+			std::swap(strand1_value, strand2_value);
+		}
+	}
+	
+	if (breaks2_value->Count())
+	{
+		for (int break_index = 0; break_index < breaks2_value->Count(); ++break_index)
+			breakvec2.push_back(SLiMCastToPositionTypeOrRaise(breaks2_value->IntAtIndex(break_index, nullptr)));
+		
+		std::sort(breakvec2.begin(), breakvec2.end());
+		breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
+		
+		if (breakvec2.back() > chromosome.last_position_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+		
+		// handle a breakpoint at position 0, which swaps the initial strand; DoRecombinantMutation() does not like this
+		if (breakvec2.front() == 0)
+		{
+			breakvec2.erase(breakvec2.begin());
+			std::swap(strand3, strand4);
+			std::swap(strand3_parent, strand4_parent);
+			std::swap(strand3_value, strand4_value);
+		}
+	}
+	
+	// Make the new individual as a candidate
+	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
+	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	
+	if (pedigrees_enabled)
+		individual->TrackPedigreeWithoutParents();
+	
+	// TREE SEQUENCE RECORDING
+	if (sim.RecordingTreeSequence())
+		sim.SetCurrentNewIndividual(individual);
+	
+	// Construct the first child genome, depending upon whether recombination is requested, etc.
+	if (strand1)
+	{
+		if (strand2 && breakvec1.size())
+		{
+			// determine the sex of the "parent"; we need this to choose the mutation rate map for new mutations
+			// if we can't figure out a consistent sex, and we need one because we have separate mutation rate maps, it is an error
+			// this seems unlikely to bite anybody, so it is not worth adding another parameter to allow it to be resolved
+			IndividualSex parent_sex = IndividualSex::kHermaphrodite;
+			
+			if (sex_enabled_ && !chromosome.UsingSingleMutationMap())
+			{
+				if (strand1_parent && strand2_parent)
+				{
+					if (strand1_parent->sex_ == strand2_parent->sex_)
+						parent_sex = strand1_parent->sex_;
+				}
+				else if (strand1_parent)
+					parent_sex = strand1_parent->sex_;
+				else if (strand2_parent)
+					parent_sex = strand2_parent->sex_;
+				
+				if (parent_sex == IndividualSex::kHermaphrodite)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
+			}
+			
+			// both strands are non-NULL and we have a breakpoint, so we do recombination between them
+			if (sim.RecordingTreeSequence())
+				sim.RecordNewGenome(&breakvec1, genome1, strand1, strand2);
+			
+			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome1, strand1, strand2, parent_sex, breakvec1);
+		}
+		else
+		{
+			// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
+			if (sim.RecordingTreeSequence())
+				sim.RecordNewGenome(nullptr, genome1, strand1, nullptr);
+			
+			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome1, *strand1, child_sex);
+		}
+	}
+	else
+	{
+		// both strands are NULL, so we make a new empty genome, as addEmpty() does
+		if (sim.RecordingTreeSequence())
+			sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+		
+		genome1->clear_to_empty();
+	}
+	
+	// Construct the second child genome, depending upon whether recombination is requested, etc.
+	if (strand3)
+	{
+		if (strand4 && breakvec2.size())
+		{
+			// determine the sex of the "parent"; we need this to choose the mutation rate map for new mutations
+			// if we can't figure out a consistent sex, and we need one because we have separate mutation rate maps, it is an error
+			// this seems unlikely to bite anybody, so it is not worth adding another parameter to allow it to be resolved
+			IndividualSex parent_sex = IndividualSex::kHermaphrodite;
+			
+			if (sex_enabled_ && !chromosome.UsingSingleMutationMap())
+			{
+				if (strand3_parent && strand4_parent)
+				{
+					if (strand3_parent->sex_ == strand4_parent->sex_)
+						parent_sex = strand3_parent->sex_;
+				}
+				else if (strand3_parent)
+					parent_sex = strand3_parent->sex_;
+				else if (strand4_parent)
+					parent_sex = strand4_parent->sex_;
+				
+				if (parent_sex == IndividualSex::kHermaphrodite)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
+			}
+			
+			// both strands are non-NULL and we have a breakpoint, so we do recombination between them
+			if (sim.RecordingTreeSequence())
+				sim.RecordNewGenome(&breakvec2, genome2, strand3, strand4);
+			
+			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome2, strand3, strand4, parent_sex, breakvec2);
+		}
+		else
+		{
+			// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
+			if (sim.RecordingTreeSequence())
+				sim.RecordNewGenome(nullptr, genome2, strand3, nullptr);
+			
+			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome2, *strand3, child_sex);
+		}
+	}
+	else
+	{
+		// both strands are NULL, so we make a new empty genome, as addEmpty() does
+		if (sim.RecordingTreeSequence())
+			sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+		
+		genome2->clear_to_empty();
+	}
+	
+	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
+	if (registered_modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, /* p_parent1 */ nullptr, strand1, strand2, /* p_parent2 */ nullptr, strand3, strand4, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+		
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+		if (proposed_child_accepted) gui_offspring_crossed_++;
+#endif
+		
+		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
+	}
+	else
+	{
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+		gui_offspring_crossed_++;
+#endif
+		
+		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
+	}
 }
 
 //	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent)
@@ -3978,10 +4272,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
 	population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
 	
-	// Run the candidate past modifyChild() callbacks
-	if (registered_modify_child_callbacks_.size())
+	// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
+	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	
+	if (modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent->index_, parent->index_, false, false, this, this, registered_modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, parent->genome1_, parent->genome2_, parent, parent->genome1_, parent->genome2_, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
 		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		if (proposed_child_accepted) gui_offspring_selfed_++;
@@ -6093,6 +6389,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Genome_Class)->AddObject_SN("strand2", gSLiM_Genome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Genome_Class)->AddObject_SN("strand4", gSLiM_Genome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskVOID)));

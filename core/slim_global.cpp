@@ -692,6 +692,7 @@ const std::string gStr_setSubpopulationSize = "setSubpopulationSize";
 const std::string gStr_addCloned = "addCloned";
 const std::string gStr_addCrossed = "addCrossed";
 const std::string gStr_addEmpty = "addEmpty";
+const std::string gStr_addRecombinant = "addRecombinant";
 const std::string gStr_addSelfed = "addSelfed";
 const std::string gStr_takeMigrants = "takeMigrants";
 const std::string gStr_removeSubpopulation = "removeSubpopulation";
@@ -989,6 +990,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_addCloned, gID_addCloned);
 		Eidos_RegisterStringForGlobalID(gStr_addCrossed, gID_addCrossed);
 		Eidos_RegisterStringForGlobalID(gStr_addEmpty, gID_addEmpty);
+		Eidos_RegisterStringForGlobalID(gStr_addRecombinant, gID_addRecombinant);
 		Eidos_RegisterStringForGlobalID(gStr_addSelfed, gID_addSelfed);
 		Eidos_RegisterStringForGlobalID(gStr_takeMigrants, gID_takeMigrants);
 		Eidos_RegisterStringForGlobalID(gStr_removeSubpopulation, gID_removeSubpopulation);

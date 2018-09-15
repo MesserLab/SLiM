@@ -734,7 +734,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 #endif	// SLIM_WF_ONLY
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_genome1, Genome *p_child_genome2, IndividualSex p_child_sex, slim_popsize_t p_parent1_index, slim_popsize_t p_parent2_index, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
+bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_genome1, Genome *p_child_genome2, IndividualSex p_child_sex, Individual *p_parent1, Genome *p_parent1Genome1, Genome *p_parent1Genome2, Individual *p_parent2, Genome *p_parent2Genome1, Genome *p_parent2Genome2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -781,43 +781,13 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			}
 			
 			if (modify_child_callback->contains_parent1_)
-			{
-				if (p_parent1_index == -1)
-				{
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent1, gStaticEidosValueNULL);
-				}
-				else
-				{
-					Individual *parent1 = p_source_subpop->parent_individuals_[p_parent1_index];
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent1, parent1->CachedEidosValue());
-				}
-			}
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent1, p_parent1 ? p_parent1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_parent1Genome1_)
-			{
-				if (p_parent1_index == -1)
-				{
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, gStaticEidosValueNULL);
-				}
-				else
-				{
-					Genome *parent1_genome1 = p_source_subpop->parent_genomes_[p_parent1_index * 2];
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, parent1_genome1->CachedEidosValue());
-				}
-			}
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, p_parent1Genome1 ? p_parent1Genome1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_parent1Genome2_)
-			{
-				if (p_parent1_index == -1)
-				{
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, gStaticEidosValueNULL);
-				}
-				else
-				{
-					Genome *parent1_genome2 = p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1];
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, parent1_genome2->CachedEidosValue());
-				}
-			}
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, p_parent1Genome2 ? p_parent1Genome2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_isSelfing_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_isSelfing, p_is_selfing ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -826,49 +796,19 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 				callback_symbols.InitializeConstantSymbolEntry(gID_isCloning, p_is_cloning ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			
 			if (modify_child_callback->contains_parent2_)
-			{
-				if (p_parent1_index == -1)
-				{
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent2, gStaticEidosValueNULL);
-				}
-				else
-				{
-					Individual *parent2 = p_source_subpop->parent_individuals_[p_parent2_index];
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent2, parent2->CachedEidosValue());
-				}
-			}
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent2, p_parent2 ? p_parent2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_parent2Genome1_)
-			{
-				if (p_parent1_index == -1)
-				{
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, gStaticEidosValueNULL);
-				}
-				else
-				{
-					Genome *parent2_genome1 = p_source_subpop->parent_genomes_[p_parent2_index * 2];
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, parent2_genome1->CachedEidosValue());
-				}
-			}
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, p_parent2Genome1 ? p_parent2Genome1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_parent2Genome2_)
-			{
-				if (p_parent1_index == -1)
-				{
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, gStaticEidosValueNULL);
-				}
-				else
-				{
-					Genome *parent2_genome2 = p_source_subpop->parent_genomes_[p_parent2_index * 2 + 1];
-					callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, parent2_genome2->CachedEidosValue());
-				}
-			}
+				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, p_parent2Genome2 ? p_parent2Genome2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_subpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_subpop->SymbolTableEntry().second);
+				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_target_subpop->SymbolTableEntry().second);
 			
 			if (modify_child_callback->contains_sourceSubpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_sourceSubpop, p_source_subpop->SymbolTableEntry().second);
+				callback_symbols.InitializeConstantSymbolEntry(gID_sourceSubpop, p_source_subpop ? p_source_subpop->SymbolTableEntry().second : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			try
 			{
@@ -1298,8 +1238,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *child = p_subpop.child_individuals_[child_index];
 						Genome *child_genome1 = p_subpop.child_genomes_[child_index * 2];
 						Genome *child_genome2 = p_subpop.child_genomes_[child_index * 2 + 1];
+						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
+						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
-						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1, parent2, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
+						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
 							// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 							// we need to even change the source subpop for our next attempt.  In this case, however, we have no migration.
@@ -1374,8 +1316,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *child = p_subpop.child_individuals_[child_count];
 						Genome *child_genome1 = p_subpop.child_genomes_[child_count * 2];
 						Genome *child_genome2 = p_subpop.child_genomes_[child_count * 2 + 1];
+						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
+						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
-						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, IndividualSex::kHermaphrodite, parent1, parent2, false, false, &p_subpop, &source_subpop, *modify_child_callbacks))
+						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, IndividualSex::kHermaphrodite, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
 							// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
 							child_genome1->clear_to_nullptr();
@@ -1720,8 +1664,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *child = p_subpop.child_individuals_[child_index];
 					Genome *child_genome1 = p_subpop.child_genomes_[child_index * 2];
 					Genome *child_genome2 = p_subpop.child_genomes_[child_index * 2 + 1];
+					Individual *parent1_ind = source_subpop->parent_individuals_[parent1];
+					Individual *parent2_ind = source_subpop->parent_individuals_[parent2];
 					
-					if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1, parent2, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
+					if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
 					{
 						// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 						// we need to even change the source subpop for our next attempt, so that differential mortality between different
@@ -3152,7 +3098,541 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 #endif
 }
 
-void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex)
+// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
+void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome *p_parent_genome_1, Genome *p_parent_genome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints)
+{
+	// This is parallel to DoCrossoverMutation(), but is provided with parental genomes and breakpoints.
+	// It is called only by Subpopulation::ExecuteMethod_addRecombinant() to execute the user's plan.
+#ifdef DEBUG
+	if (p_breakpoints.size() == 0)
+		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Called with an empty breakpoint array." << EidosTerminate();
+	if (!p_parent_genome_1 || !p_parent_genome_2)
+		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Null genome pointer." << EidosTerminate();
+	
+	GenomeType child_genome_type = p_child_genome.Type();
+	GenomeType parent1_genome_type = p_parent_genome_1->Type();
+	GenomeType parent2_genome_type = p_parent_genome_2->Type();
+	
+	if (parent1_genome_type != parent2_genome_type)
+		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Parental genomes are of different types." << EidosTerminate();
+	if (child_genome_type != parent1_genome_type)
+		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Child and parental genomes are of different types." << EidosTerminate();
+	if (p_child_genome.IsNull() || p_parent_genome_1->IsNull() || p_parent_genome_2->IsNull())
+		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Null genome for child or parent." << EidosTerminate();
+#endif
+	
+	// determine how many mutations and breakpoints we have
+	Chromosome &chromosome = sim_.TheChromosome();
+	int num_mutations = chromosome.DrawMutationCount(p_parent_sex);
+	
+	// we need a defined end breakpoint, so we add it now
+	p_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 1);
+	
+	// TREE SEQUENCE RECORDING
+	bool recording_tree_sequence_mutations = sim_.RecordingTreeSequenceMutations();
+	
+	// mutations are usually rare, so let's streamline the case where none occur
+	if (num_mutations == 0)
+	{
+		//
+		// no mutations, but we do have crossovers, so we just need to interleave the two parental genomes
+		//
+		
+		// start with a clean slate in the child genome; we now expect child genomes to be cleared for us
+#if DEBUG
+		p_child_genome.check_cleared_to_nullptr();
+#endif
+		
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		Genome *parent_genome = p_parent_genome_1;
+		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
+		int mutrun_count = p_child_genome.mutrun_count_;
+		int first_uncompleted_mutrun = 0;
+		int break_index_max = static_cast<int>(p_breakpoints.size());
+		
+		for (int break_index = 0; break_index < break_index_max; break_index++)
+		{
+			slim_position_t breakpoint = p_breakpoints[break_index];
+			slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+			
+			// Copy over mutation runs until we arrive at the run in which the breakpoint occurs
+			while (break_mutrun_index > first_uncompleted_mutrun)
+			{
+				p_child_genome.mutruns_[first_uncompleted_mutrun] = parent_genome->mutruns_[first_uncompleted_mutrun];
+				++first_uncompleted_mutrun;
+				
+				if (first_uncompleted_mutrun >= mutrun_count)
+					break;
+			}
+			
+			// Now we are supposed to process a breakpoint in first_uncompleted_mutrun; check whether that means we're done
+			if (first_uncompleted_mutrun >= mutrun_count)
+				break;
+			
+			// The break occurs to the left of the base position of the breakpoint; check whether that is between runs
+			if (breakpoint > break_mutrun_index * mutrun_length)
+			{
+				// The breakpoint occurs *inside* the run, so process the run by copying mutations and switching strands
+				int this_mutrun_index = first_uncompleted_mutrun;
+				const MutationIndex *parent1_iter		= p_parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+				const MutationIndex *parent2_iter		= p_parent_genome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+				const MutationIndex *parent1_iter_max	= p_parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+				const MutationIndex *parent2_iter_max	= p_parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+				const MutationIndex *parent_iter		= parent1_iter;
+				const MutationIndex *parent_iter_max	= parent1_iter_max;
+				MutationRun *child_mutrun = p_child_genome.WillCreateRun(this_mutrun_index);
+				
+				while (true)
+				{
+					// while there are still old mutations in the parent before the current breakpoint...
+					while (parent_iter != parent_iter_max)
+					{
+						MutationIndex current_mutation = *parent_iter;
+						
+						if ((mut_block_ptr + current_mutation)->position_ >= breakpoint)
+							break;
+						
+						// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
+						child_mutrun->emplace_back(current_mutation);
+						
+						parent_iter++;
+					}
+					
+					// we have reached the breakpoint, so swap parents; we want the "current strand" variables to change, so no std::swap()
+					parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;	p_parent_genome_1 = p_parent_genome_2;
+					parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;		p_parent_genome_2 = parent_genome;
+					parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_genome = p_parent_genome_1;
+					
+					// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+					while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
+						parent_iter++;
+					
+					// we have now handled the current breakpoint, so move on to the next breakpoint; advance the enclosing for loop here
+					break_index++;
+					
+					// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+					if (break_index == break_index_max)
+						break;
+					
+					// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
+					breakpoint = p_breakpoints[break_index];
+					break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+					
+					// if the next breakpoint is outside this mutation run, then finish the run and break out
+					if (break_mutrun_index > this_mutrun_index)
+					{
+						while (parent_iter != parent_iter_max)
+							child_mutrun->emplace_back(*(parent_iter++));
+						
+						break_index--;	// the outer loop will want to handle the current breakpoint again at the mutation-run level
+						break;
+					}
+				}
+				
+				// We have completed this run
+				++first_uncompleted_mutrun;
+			}
+			else
+			{
+				// The breakpoint occurs *between* runs, so just switch parent strands and the breakpoint is handled
+				p_parent_genome_1 = p_parent_genome_2;
+				p_parent_genome_2 = parent_genome;
+				parent_genome = p_parent_genome_1;
+			}
+		}
+	}
+	else
+	{
+		// we have at least one new mutation, so set up for that case (which splits into two cases below)
+		
+		// start with a clean slate in the child genome; we now expect child genomes to be cleared for us
+#if DEBUG
+		p_child_genome.check_cleared_to_nullptr();
+#endif
+		
+		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
+		int mutrun_count = p_child_genome.mutrun_count_;
+		
+		// create vector with the mutations to be added
+		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
+		
+		for (int k = 0; k < num_mutations; k++)
+		{
+			MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());
+			
+			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+			
+			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+		}
+		
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
+		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
+		
+		MutationIndex mutation_iter_mutation_index;
+		slim_position_t mutation_iter_pos;
+		
+		if (mutation_iter != mutation_iter_max) {
+			mutation_iter_mutation_index = *mutation_iter;
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+		} else {
+			mutation_iter_mutation_index = -1;
+			mutation_iter_pos = SLIM_INF_BASE_POSITION;
+		}
+		
+		slim_mutrun_index_t mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+		
+		Genome *parent_genome = p_parent_genome_1;
+		int first_uncompleted_mutrun = 0;
+		
+		//
+		// mutations and crossovers; this is the most complex case
+		//
+		int break_index_max = static_cast<int>(p_breakpoints.size());
+		int break_index = 0;
+		slim_position_t breakpoint = p_breakpoints[break_index];
+		slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+		
+		while (true)	// loop over breakpoints until we have handled the last one, which comes at the end
+		{
+			if (mutation_mutrun_index < break_mutrun_index)
+			{
+				// Copy over mutation runs until we arrive at the run in which the mutation occurs
+				while (mutation_mutrun_index > first_uncompleted_mutrun)
+				{
+					p_child_genome.mutruns_[first_uncompleted_mutrun] = parent_genome->mutruns_[first_uncompleted_mutrun];
+					++first_uncompleted_mutrun;
+					
+					// We can't be done, since we have a mutation waiting to be placed, so we don't need to check
+				}
+				
+				// Mutations can't occur between mutation runs the way breakpoints can, so we don't need to check that either
+			}
+			else
+			{
+				// Copy over mutation runs until we arrive at the run in which the breakpoint occurs
+				while (break_mutrun_index > first_uncompleted_mutrun)
+				{
+					p_child_genome.mutruns_[first_uncompleted_mutrun] = parent_genome->mutruns_[first_uncompleted_mutrun];
+					++first_uncompleted_mutrun;
+					
+					if (first_uncompleted_mutrun >= mutrun_count)
+						break;
+				}
+				
+				// Now we are supposed to process a breakpoint in first_uncompleted_mutrun; check whether that means we're done
+				if (first_uncompleted_mutrun >= mutrun_count)
+					break;
+				
+				// If the breakpoint occurs *between* runs, just switch parent strands and the breakpoint is handled
+				if (breakpoint == break_mutrun_index * mutrun_length)
+				{
+					p_parent_genome_1 = p_parent_genome_2;
+					p_parent_genome_2 = parent_genome;
+					parent_genome = p_parent_genome_1;
+					
+					// go to next breakpoint; this advances the for loop
+					if (++break_index == break_index_max)
+						break;
+					
+					breakpoint = p_breakpoints[break_index];
+					break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+					
+					continue;
+				}
+			}
+			
+			// The event occurs *inside* the run, so process the run by copying mutations and switching strands
+			int this_mutrun_index = first_uncompleted_mutrun;
+			MutationRun *child_mutrun = p_child_genome.WillCreateRun(this_mutrun_index);
+			const MutationIndex *parent1_iter		= p_parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+			const MutationIndex *parent1_iter_max	= p_parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+			const MutationIndex *parent_iter		= parent1_iter;
+			const MutationIndex *parent_iter_max	= parent1_iter_max;
+			
+			if (break_mutrun_index == this_mutrun_index)
+			{
+				const MutationIndex *parent2_iter		= p_parent_genome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+				const MutationIndex *parent2_iter_max	= p_parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+				
+				if (mutation_mutrun_index == this_mutrun_index)
+				{
+					//
+					// =====  this_mutrun_index has both breakpoint(s) and new mutation(s); this is the really nasty case
+					//
+					
+					while (true)
+					{
+						// while there are still old mutations in the parent before the current breakpoint...
+						while (parent_iter != parent_iter_max)
+						{
+							MutationIndex current_mutation = *parent_iter;
+							slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
+							
+							if (current_mutation_pos >= breakpoint)
+								break;
+							
+							// add any new mutations that occur before the parental mutation; we know the parental mutation is in this run, so these are too
+							while (mutation_iter_pos < current_mutation_pos)
+							{
+								Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+								MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+								
+								if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+								{
+									// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
+									child_mutrun->emplace_back(mutation_iter_mutation_index);
+									mutation_registry_.emplace_back(mutation_iter_mutation_index);
+									
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+									if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+										new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+#endif
+									
+									// TREE SEQUENCE RECORDING
+									if (recording_tree_sequence_mutations)
+										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								}
+								else
+								{
+									// The mutation was rejected by the stacking policy, so we have to dispose of it
+									// We no longer delete mutation objects; instead, we remove them from our shared pool
+									new_mut->~Mutation();
+									SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+								}
+								
+								if (++mutation_iter != mutation_iter_max) {
+									mutation_iter_mutation_index = *mutation_iter;
+									mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+								} else {
+									mutation_iter_mutation_index = -1;
+									mutation_iter_pos = SLIM_INF_BASE_POSITION;
+								}
+								
+								mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+							}
+							
+							// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
+							child_mutrun->emplace_back(current_mutation);
+							
+							parent_iter++;
+						}
+						
+						// add any new mutations that occur before the breakpoint; for these we have to check that they fall within this mutation run
+						while ((mutation_iter_pos < breakpoint) && (mutation_mutrun_index == this_mutrun_index))
+						{
+							Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+							MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+							
+							if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+							{
+								// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
+								child_mutrun->emplace_back(mutation_iter_mutation_index);
+								mutation_registry_.emplace_back(mutation_iter_mutation_index);
+								
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+								if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+									new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+#endif
+								
+								// TREE SEQUENCE RECORDING
+								if (recording_tree_sequence_mutations)
+									sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							}
+							else
+							{
+								// The mutation was rejected by the stacking policy, so we have to dispose of it
+								// We no longer delete mutation objects; instead, we remove them from our shared pool
+								new_mut->~Mutation();
+								SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+							}
+							
+							if (++mutation_iter != mutation_iter_max) {
+								mutation_iter_mutation_index = *mutation_iter;
+								mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+							} else {
+								mutation_iter_mutation_index = -1;
+								mutation_iter_pos = SLIM_INF_BASE_POSITION;
+							}
+							
+							mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+						}
+						
+						// we have finished the parental mutation run; if the breakpoint we are now working toward lies beyond the end of the
+						// current mutation run, then we have completed this run and can exit to the outer loop which will handle the rest
+						if (break_mutrun_index > this_mutrun_index)
+							break;		// the outer loop will want to handle this breakpoint again at the mutation-run level
+						
+						// we have reached the breakpoint, so swap parents; we want the "current strand" variables to change, so no std::swap()
+						parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;	p_parent_genome_1 = p_parent_genome_2;
+						parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;		p_parent_genome_2 = parent_genome;
+						parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_genome = p_parent_genome_1;
+						
+						// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+						while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
+							parent_iter++;
+						
+						// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
+						if (++break_index == break_index_max)
+							break;
+						
+						// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
+						breakpoint = p_breakpoints[break_index];
+						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+					}
+					
+					// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+					if (break_index == break_index_max)
+						break;
+					
+					// We have completed this run
+					++first_uncompleted_mutrun;
+				}
+				else
+				{
+					//
+					// =====  this_mutrun_index has only breakpoint(s), no new mutations
+					//
+					
+					while (true)
+					{
+						// while there are still old mutations in the parent before the current breakpoint...
+						while (parent_iter != parent_iter_max)
+						{
+							MutationIndex current_mutation = *parent_iter;
+							
+							if ((mut_block_ptr + current_mutation)->position_ >= breakpoint)
+								break;
+							
+							// add the old mutation; no need to check for a duplicate here since the parental genome is already duplicate-free
+							child_mutrun->emplace_back(current_mutation);
+							
+							parent_iter++;
+						}
+						
+						// we have reached the breakpoint, so swap parents; we want the "current strand" variables to change, so no std::swap()
+						parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;	p_parent_genome_1 = p_parent_genome_2;
+						parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;		p_parent_genome_2 = parent_genome;
+						parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_genome = p_parent_genome_1;
+						
+						// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+						while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
+							parent_iter++;
+						
+						// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
+						if (++break_index == break_index_max)
+							break;
+						
+						// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
+						breakpoint = p_breakpoints[break_index];
+						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+						
+						// if the next breakpoint is outside this mutation run, then finish the run and break out
+						if (break_mutrun_index > this_mutrun_index)
+						{
+							while (parent_iter != parent_iter_max)
+								child_mutrun->emplace_back(*(parent_iter++));
+							
+							break;	// the outer loop will want to handle this breakpoint again at the mutation-run level
+						}
+					}
+					
+					// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+					if (break_index == break_index_max)
+						break;
+					
+					// We have completed this run
+					++first_uncompleted_mutrun;
+				}
+			}
+			else if (mutation_mutrun_index == this_mutrun_index)
+			{
+				//
+				// =====  this_mutrun_index has only new mutation(s), no breakpoints
+				//
+				
+				// add any additional new mutations that occur before the end of the mutation run; there is at least one
+				do
+				{
+					// add any parental mutations that occur before or at the next new mutation's position
+					while (parent_iter != parent_iter_max)
+					{
+						MutationIndex current_mutation = *parent_iter;
+						slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
+						
+						if (current_mutation_pos > mutation_iter_pos)
+							break;
+						
+						child_mutrun->emplace_back(current_mutation);
+						parent_iter++;
+					}
+					
+					// add the new mutation, which might overlap with the last added old mutation
+					Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+					MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+					
+					if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+					{
+						// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
+						child_mutrun->emplace_back(mutation_iter_mutation_index);
+						mutation_registry_.emplace_back(mutation_iter_mutation_index);
+						
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+						if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+							new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+#endif
+						
+						// TREE SEQUENCE RECORDING
+						if (recording_tree_sequence_mutations)
+							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+					}
+					else
+					{
+						// The mutation was rejected by the stacking policy, so we have to dispose of it
+						// We no longer delete mutation objects; instead, we remove them from our shared pool
+						new_mut->~Mutation();
+						SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+					}
+					
+					if (++mutation_iter != mutation_iter_max) {
+						mutation_iter_mutation_index = *mutation_iter;
+						mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+					} else {
+						mutation_iter_mutation_index = -1;
+						mutation_iter_pos = SLIM_INF_BASE_POSITION;
+					}
+					
+					mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+				}
+				while (mutation_mutrun_index == this_mutrun_index);
+				
+				// finish up any parental mutations that come after the last new mutation in the mutation run
+				while (parent_iter != parent_iter_max)
+					child_mutrun->emplace_back(*(parent_iter++));
+				
+				// We have completed this run
+				++first_uncompleted_mutrun;
+			}
+			else
+			{
+				EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) logic fail." << EidosTerminate();
+			}
+		}
+		
+		MutationRun::FreeMutationRun(&mutations_to_add);
+	}
+	
+	// debugging check
+#if 0
+	for (int i = 0; i < child_genome.mutrun_count_; ++i)
+		if (child_genome.mutruns_[i].get() == nullptr)
+			EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) null mutation run left at end of recombination-mutation." << EidosTerminate();
+#endif
+}
+
+void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex)
 {
 #pragma unused(p_child_sex)
 #ifdef DEBUG
@@ -3203,7 +3683,7 @@ void Population::DoClonalMutation(Subpopulation *p_source_subpop, Genome &p_chil
 		
 		for (int k = 0; k < num_mutations; k++)
 		{
-			MutationIndex new_mutation = chromosome.DrawNewMutation(p_child_sex, p_source_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
+			MutationIndex new_mutation = chromosome.DrawNewMutation(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
