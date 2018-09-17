@@ -162,6 +162,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rdunif",			Eidos_ExecuteFunction_rdunif,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt_O("min", gStaticEidosValue_Integer0)->AddInt_O("max", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgeom",				Eidos_ExecuteFunction_rgeom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddFloat("p"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			Eidos_ExecuteFunction_rlnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("meanlog", gStaticEidosValue_Float0)->AddNumeric_O("sdlog", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rmvnorm",			Eidos_ExecuteFunction_rmvnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",				Eidos_ExecuteFunction_rnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
@@ -5028,6 +5029,83 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << shape << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_gamma(EIDOS_GSL_RNG, shape, mean / shape), draw_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(integer)rgeom(integer$ n, float p)
+EidosValue_SP Eidos_ExecuteFunction_rgeom(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	EidosValue *arg_p = p_arguments[1].get();
+	int arg_p_count = arg_p->Count();
+	bool p_singleton = (arg_p_count == 1);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	if (!p_singleton && (arg_p_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires p to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	// Note that there are two different definitions of the geometric distribution (see https://en.wikipedia.org/wiki/Geometric_distribution).
+	// We follow R in using the definition that is supported on the set {0, 1, 2, 3, ...}.  Unfortunately, gsl_ran_geometric() uses the other
+	// definition, which is supported on the set {1, 2, 3, ...}.  The GSL's version does not allow p==1.0, so we have to special-case that.
+	// Otherwise, the result of our definition is equal to the result from the GSL's definition minus 1; the GSL uses the "shifted geometric".
+	
+	if (p_singleton)
+	{
+		double p0 = arg_p->FloatAtIndex(0, nullptr);
+		
+		if ((p0 <= 0.0) || (p0 > 1.0))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << p0 << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_draws == 1)
+		{
+			if (p0 == 1.0)	// special-case p==1.0
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_geometric(EIDOS_GSL_RNG, p0) - 1));
+		}
+		else
+		{
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
+			result_SP = EidosValue_SP(int_result);
+			
+			if (p0 == 1.0)	// special-case p==1.0
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->set_int_no_check(0, draw_index);
+			else
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->set_int_no_check(gsl_ran_geometric(EIDOS_GSL_RNG, p0) - 1, draw_index);
+		}
+	}
+	else
+	{
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+		{
+			double p = arg_p->FloatAtIndex(draw_index, nullptr);
+			
+			if ((p <= 0.0) || (p >= 1.0))
+			{
+				if (p == 1.0)	// special-case p==1.0; inside here to avoid an extra comparison per loop in the standard case
+				{
+					int_result->set_int_no_check(0, draw_index);
+					continue;
+				}
+				
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << p << " supplied)." << EidosTerminate(nullptr);
+			}
+			
+			int_result->set_int_no_check(gsl_ran_geometric(EIDOS_GSL_RNG, p) - 1, draw_index);
 		}
 	}
 	

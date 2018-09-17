@@ -5246,6 +5246,20 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("rgamma(2, c(0.1, 10, 1), 10.0);", 0, "requires mean to be of length");
 	EidosAssertScriptRaise("rgamma(2, 10.0, c(0.1, 10, 1));", 0, "requires shape to be of length");
 	
+	// rgeom()
+	EidosAssertScriptSuccess("rgeom(0, 1.0);", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptSuccess("rgeom(5, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0, 0, 0}));
+	EidosAssertScriptSuccess("setSeed(1); rgeom(5, 0.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 10, 1, 10}));
+	EidosAssertScriptSuccess("setSeed(1); rgeom(5, 0.4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 4, 0, 4}));
+	EidosAssertScriptSuccess("setSeed(5); rgeom(5, 0.01);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{31, 31, 299, 129, 58}));
+	EidosAssertScriptSuccess("setSeed(2); rgeom(1, 0.0001);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4866}));
+	EidosAssertScriptSuccess("setSeed(3); rgeom(6, c(1, 0.1, 0.01, 0.001, 0.0001, 0.00001));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 13, 73, 2860, 8316, 282489}));
+	EidosAssertScriptRaise("rgeom(-1, 1.0);", 0, "requires n to be");
+	EidosAssertScriptRaise("rgeom(0, 0.0);", 0, "requires 0.0 < p <= 1.0");
+	EidosAssertScriptRaise("rgeom(0, 1.1);", 0, "requires 0.0 < p <= 1.0");
+	EidosAssertScriptRaise("rgeom(2, c(0.0, 0.0));", 0, "requires 0.0 < p <= 1.0");
+	EidosAssertScriptRaise("rgeom(2, c(0.5, 1.1));", 0, "requires 0.0 < p <= 1.0");
+	
 	// rlnorm()
 	EidosAssertScriptSuccess("rlnorm(0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rlnorm(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);

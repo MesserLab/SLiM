@@ -15,6 +15,7 @@ development head:
 	add a new addRecombinant() method that allows easier modeling of haploids, horizontal gene transfer, and pre-planned recombination breakpoints
 	add recipe 15.13 (modeling clonal haploids in nonWF models with addRecombinant())
 	add recipe 15.14 (modeling clonal haploid bacteria with horizontal gene transfer)
+	add rgeom() function to Eidos for draws from a geometric distribution
 
 
 3.1 (build 1817; Eidos version 2.1):
