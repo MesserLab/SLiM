@@ -16,6 +16,7 @@ development head:
 	add recipe 15.13 (modeling clonal haploids in nonWF models with addRecombinant())
 	add recipe 15.14 (modeling clonal haploid bacteria with horizontal gene transfer)
 	add rgeom() function to Eidos for draws from a geometric distribution
+	optimization of property & method dispatch (signature lookup, specifically), using lookup tables instead of hash tables
 
 
 3.1 (build 1817; Eidos version 2.1):

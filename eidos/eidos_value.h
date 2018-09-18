@@ -1257,9 +1257,14 @@ public:
 class EidosObjectClass
 {
 protected:
-	std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> property_signatures_;
-	std::unordered_map<EidosGlobalStringID, const EidosMethodSignature *> method_signatures_;
+	// cached dispatch tables; these are lookup tables, indexed by EidosGlobalStringID property / method ids
 	bool dispatches_cached_ = false;
+	
+	const EidosPropertySignature *(*property_signatures_dispatch_) = nullptr;
+	int32_t property_signatures_dispatch_capacity_ = 0;
+	
+	const EidosMethodSignature *(*method_signatures_dispatch_) = nullptr;
+	int32_t method_signatures_dispatch_capacity_ = 0;
 	
 public:
 	EidosObjectClass(const EidosObjectClass &p_original) = delete;		// no copy-construct
@@ -1284,10 +1289,8 @@ public:
 		if (!dispatches_cached_)
 			RaiseForDispatchUninitialized();
 #endif
-		auto find_iter = property_signatures_.find(p_property_id);
-		
-		if (find_iter != property_signatures_.end())
-			return find_iter->second;
+		if (p_property_id < (EidosGlobalStringID)property_signatures_dispatch_capacity_)
+			return property_signatures_dispatch_[p_property_id];
 		
 		return nullptr;
 	}
@@ -1298,10 +1301,8 @@ public:
 		if (!dispatches_cached_)
 			RaiseForDispatchUninitialized();
 #endif
-		auto find_iter = method_signatures_.find(p_method_id);
-		
-		if (find_iter != method_signatures_.end())
-			return find_iter->second;
+		if (p_method_id < (EidosGlobalStringID)method_signatures_dispatch_capacity_)
+			return method_signatures_dispatch_[p_method_id];
 		
 		return nullptr;
 	}

@@ -3531,29 +3531,47 @@ const std::string &EidosObjectClass::ElementType(void) const
 void EidosObjectClass::CacheDispatchTables(void)
 {
 	if (dispatches_cached_)
-		EIDOS_TERMINATION << "ERROR (EidosObjectClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObjectClass::CacheDispatchTables): (internal error) dispatch tables already initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
 	
 	{
 		const std::vector<const EidosPropertySignature *> *properties = Properties();
+		int32_t last_id = -1;
 		
 		for (const EidosPropertySignature *sig : *properties)
-		{
-			EidosGlobalStringID id = sig->property_id_;
-			
-			property_signatures_.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(id, sig));
-		}
+			last_id = std::max(last_id, (int32_t)sig->property_id_);
+		
+		property_signatures_dispatch_capacity_ = last_id + 1;
+		
+		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
+		if (property_signatures_dispatch_capacity_ > 512)
+			EIDOS_TERMINATION << "ERROR (EidosObjectClass::CacheDispatchTables): (internal error) property dispatch table unreasonably large for class " << ElementType() << "." << EidosTerminate(nullptr);
+		
+		property_signatures_dispatch_ = (const EidosPropertySignature **)calloc(property_signatures_dispatch_capacity_, sizeof(EidosPropertySignature *));
+		
+		for (const EidosPropertySignature *sig : *properties)
+			property_signatures_dispatch_[sig->property_id_] = sig;
 	}
 	
 	{
 		const std::vector<const EidosMethodSignature *> *methods = Methods();
+		int32_t last_id = -1;
 		
 		for (const EidosMethodSignature *sig : *methods)
-		{
-			EidosGlobalStringID id = sig->call_id_;
-			
-			method_signatures_.emplace(std::pair<EidosGlobalStringID, const EidosMethodSignature *>(id, sig));
-		}
+			last_id = std::max(last_id, (int32_t)sig->call_id_);
+		
+		method_signatures_dispatch_capacity_ = last_id + 1;
+		
+		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
+		if (method_signatures_dispatch_capacity_ > 512)
+			EIDOS_TERMINATION << "ERROR (EidosObjectClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ElementType() << "." << EidosTerminate(nullptr);
+		
+		method_signatures_dispatch_ = (const EidosMethodSignature **)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature *));
+		
+		for (const EidosMethodSignature *sig : *methods)
+			method_signatures_dispatch_[sig->call_id_] = sig;
 	}
+	
+	//std::cout << ElementType() << " property/method lookup table capacities: " << property_signatures_dispatch_capacity_ << " / " << method_signatures_dispatch_capacity_ << " (" << ((property_signatures_dispatch_capacity_ + method_signatures_dispatch_capacity_) * sizeof(EidosPropertySignature *)) << " bytes)" << std::endl;
 	
 	dispatches_cached_ = true;
 }
