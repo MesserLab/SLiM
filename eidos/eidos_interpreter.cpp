@@ -2055,39 +2055,99 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 
 EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 {
-	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_MemberRef()");
-	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_MemberRef", 2);
+#if defined(DEBUG) || defined(EIDOS_GUI)
+	if (logging_execution_)
+	{
+		// When logging execution, use the slow path so everything gets logged correctly
+		EIDOS_ENTRY_EXECUTION_LOG("Evaluate_MemberRef()");
+		EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_MemberRef", 2);
+		
+		EidosToken *operator_token = p_node->token_;
+		EidosValue_SP result_SP;
+		
+		const EidosASTNode *first_child_node = p_node->children_[0];
+		EidosValue_SP first_child_value = FastEvaluateNode(first_child_node);
+		EidosValueType first_child_type = first_child_value->Type();
+		
+		if (first_child_type != EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(operator_token);
+		
+		EidosASTNode *second_child_node = p_node->children_[1];
+		EidosToken *second_child_token = second_child_node->token_;
+		
+		if (second_child_token->token_type_ != EidosTokenType::kTokenIdentifier)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
+		
+		// If an error occurs inside a function or method call, we want to highlight the call
+		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
+		
+		// We offload the actual work to GetPropertyOfElements() to keep things simple here
+		result_SP = static_cast<EidosValue_Object *>(first_child_value.get())->GetPropertyOfElements(second_child_node->cached_stringID_);
+		
+		// Forget the function token, since it is not responsible for any future errors
+		EidosScript::RestoreErrorPosition(error_pos_save);
+		
+		EIDOS_EXIT_EXECUTION_LOG("Evaluate_MemberRef()");
+		return result_SP;
+	}
+#endif
 	
+	// When not logging execution, we can use a fast code path that assumes no logging
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
-	EidosValue_SP first_child_value = FastEvaluateNode(p_node->children_[0]);
-	EidosValueType first_child_type = first_child_value->Type();
+	const EidosASTNode *first_child_node = p_node->children_[0];
 	
-	if (first_child_type != EidosValueType::kValueObject)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(operator_token);
+	if (first_child_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+	{
+		// <identifier>.<identifier> is an extremely common pattern so we optimize for it here
+		// with Evaluate_Identifier_RAW(), which avoids EidosValue_SP, call logging, and other overhead
+		EidosValue *first_child_value = Evaluate_Identifier_RAW(first_child_node);
+		EidosValueType first_child_type = first_child_value->Type();
+		
+		if (first_child_type != EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(operator_token);
+		
+		EidosASTNode *second_child_node = p_node->children_[1];
+		EidosToken *second_child_token = second_child_node->token_;
+		
+		if (second_child_token->token_type_ != EidosTokenType::kTokenIdentifier)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
+		
+		// If an error occurs inside a function or method call, we want to highlight the call
+		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
+		
+		// We offload the actual work to GetPropertyOfElements() to keep things simple here
+		result_SP = static_cast<EidosValue_Object *>(first_child_value)->GetPropertyOfElements(second_child_node->cached_stringID_);
+		
+		// Forget the function token, since it is not responsible for any future errors
+		EidosScript::RestoreErrorPosition(error_pos_save);
+	}
+	else
+	{
+		// the general <expression>.<identifier> case has to use EidosValue_SP
+		EidosValue_SP first_child_value = FastEvaluateNode(first_child_node);
+		EidosValueType first_child_type = first_child_value->Type();
+		
+		if (first_child_type != EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) operand type " << first_child_type << " is not supported by the '.' operator." << EidosTerminate(operator_token);
+		
+		EidosASTNode *second_child_node = p_node->children_[1];
+		EidosToken *second_child_token = second_child_node->token_;
+		
+		if (second_child_token->token_type_ != EidosTokenType::kTokenIdentifier)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
+		
+		// If an error occurs inside a function or method call, we want to highlight the call
+		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
+		
+		// We offload the actual work to GetPropertyOfElements() to keep things simple here
+		result_SP = static_cast<EidosValue_Object *>(first_child_value.get())->GetPropertyOfElements(second_child_node->cached_stringID_);
+		
+		// Forget the function token, since it is not responsible for any future errors
+		EidosScript::RestoreErrorPosition(error_pos_save);
+	}
 	
-	EidosASTNode *second_child_node = p_node->children_[1];
-	EidosToken *second_child_token = second_child_node->token_;
-	
-	if (second_child_token->token_type_ != EidosTokenType::kTokenIdentifier)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
-	
-	// If an error occurs inside a function or method call, we want to highlight the call
-	EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
-	
-	// We offload the actual work to GetPropertyOfElements() to keep things simple here
-	EidosGlobalStringID property_string_ID = second_child_node->cached_stringID_;
-	result_SP = static_cast<EidosValue_Object *>(first_child_value.get())->GetPropertyOfElements(property_string_ID);
-	
-	// Forget the function token, since it is not responsible for any future errors
-	EidosScript::RestoreErrorPosition(error_pos_save);
-	
-	// check result; this should never happen, since GetProperty should check
-	if (!result_SP)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): undefined property " << Eidos_StringForGlobalStringID(property_string_ID) << "." << EidosTerminate(operator_token);		// CODE COVERAGE: This is dead code
-	
-	EIDOS_EXIT_EXECUTION_LOG("Evaluate_MemberRef()");
 	return result_SP;
 }
 
@@ -5072,9 +5132,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 	EidosValue_SP result_SP = p_node->cached_literal_value_;
 	
 	if (!result_SP)
-	{
-		result_SP = EidosValue_SP(global_symbols_->GetValueOrRaiseForASTNode(p_node));	// raises if undefined
-	}
+		result_SP = global_symbols_->GetValueOrRaiseForASTNode(p_node);	// raises if undefined
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Identifier()");
 	return result_SP;

@@ -157,6 +157,15 @@ public:
 	EidosValue_SP Evaluate_Number(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_String(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Identifier(const EidosASTNode *p_node);
+	inline __attribute__((always_inline)) EidosValue *Evaluate_Identifier_RAW(const EidosASTNode *p_node)
+	{
+		// this is a fast inline version of Evaluate_Identifier() that returns a raw EidosValue *
+		// it also skips call logging (in DEBUG and SLiMgui), and assumes no value is cached (because
+		// this code path is used when the expectation is that we're fetching an object from the symbol table)
+		// use a cached value from EidosASTNode::_OptimizeConstants() if present
+		
+		return global_symbols_->GetValueRawOrRaiseForASTNode(p_node);	// raises if undefined
+	}
 	EidosValue_SP Evaluate_If(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Do(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_While(const EidosASTNode *p_node);
