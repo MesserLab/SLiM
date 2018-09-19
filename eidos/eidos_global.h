@@ -27,6 +27,7 @@
 #include <vector>
 #include <string>
 #include <float.h>
+#include <string.h>
 
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 #include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui and the Eidos GUI (the latter for the timing test code)
