@@ -32,16 +32,13 @@
  will be used the whole way along and a refcount increment/decrement will not happen at all.  EidosValue_SP values are
  returned, too, rather than references, since the caller will be taking their shared ownership of the object.
  
- EidosSymbolTable stores symbols internally and searches them linearly unless (1) it gets more than a threshold number of
- symbols, or (2) it is told at construction not to.  If either of those conditions is met, it will switch to using a
- std::unordered_map to store its symbols and search for them with a hash lookup.  The goal here is to allow small symbol
- tables to be made and discarded very quickly, for applications such as callbacks where the cost of constructing a
- std::unordered_map would be very large compared to the speedup of a few lookups, but to also offer hash table performance
- for symbols tables that are larger or longer-lived.
- 
  EidosSymbolTable does not use strings to identify symbols in practice, although conceptually it does.  In practice, it
  uses EidosGlobalStringID, which is an integer type that represents a uniqued string.  This allows greater speed, since
  strings get uniqued only once, and an integer key can be used from then onward.
+
+ EidosSymbolTable stores symbols internally in a lookup table by uniqued string id, allowing O(1) lookup.  Setting values
+ is also O(1) thanks to the lookup table; we just need to set the value in the right slot, plus a bit of bookkeeping to
+ track which indices have been set so that we can clear them later.
  
  */
 
@@ -51,7 +48,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <unordered_map>
 
 #include "eidos_value.h"
 #include "eidos_ast_node.h"
@@ -68,27 +64,21 @@ extern EidosSymbolTable *gEidosConstantsSymbolTable;
 typedef std::pair<EidosGlobalStringID, EidosValue_SP> EidosSymbolTableEntry;
 
 
-// Used by EidosSymbolTable for the slots in its internal fixed-size symbol array
+// Used by EidosSymbolTable for the slots in its lookup table.  The lookup table is a data structure that as
+// far as I know doesn't have a name; it was designed to fit the symbol table's purpose here.  Basically, we
+// want a reuseable table that can be quickly set up with values, quickly cleared back to an empty state, and
+// quickly queried.  The solution is to keep defined values in slots in the lookup table, indexed by the id
+// of the uniqued symbol name, *and* to keep a linked list running through the used slots so we can find them
+// quickly.  The result is a very sparsely populated table, with zeros at all undefined slots, that we can
+// set a new value into in O(1), query a value in O(1), and clear back to an unused state in O(n) where n is
+// the number of defined slots.  Slot 0 of the table, corresponding to gEidosID_none (which should never have
+// a value associated with it), provides the index of the first defined entry (or 0 if the table is empty).
+// New entries are added at the beginning of the list.  The only slow operation is removing a single defined
+// value, which is O(n) because we don't have a prev_ pointer, but that is a rare operation.
 typedef struct {
 	EidosValue_SP symbol_value_SP_;			// our shared pointer to the EidosValue for the symbol
-	EidosGlobalStringID symbol_name_;		// the name of the symbol, but as a uniqued EidosGlobalStringID
-} EidosSymbolTable_InternalSlot;
-
-// A shared pool of internal slot buffers; used by EidosSymbolTable internally to minimize construction/destruction
-extern std::vector<EidosSymbolTable_InternalSlot *> gEidos_EidosSymbolTable_InternalSlotPool;
-
-
-// As an optimization, EidosSymbolTable contains a small buffer within itself, of this size, to avoid malloc/free.
-// The size here is just a guess as to a threshold that will allow most simple scripts sufficient room.
-// Even when an EidosSymbolTable is constructed once and used a lot, this internal table is likely to be
-// faster up to some threshold size, because calculating hash values for strings is not particularly fast;
-// a linear search through the internal table is often faster than a single hash table lookup.  The critical
-// size threshold will be platform-dependent; the point is that the internal table is a good thing.
-// BCH 1/18/2018: This used to be 30, which was just pulled out of a hat I think.  I've done a bit of testing
-// now, and I am guessing the performance crossover point might be around 10-15, although it will depend a lot
-// on the specific usage pattern.  I'm setting it to 16 so that all of the SLiM constants tables for callbacks
-// fit inside the internal table, avoiding thrashing on hash table creation/destruction (plus, power of two).
-#define EIDOS_SYMBOL_TABLE_BASE_SIZE		16
+	uint32_t next_;							// the index of the next symbol that has been defined
+} EidosSymbolTableSlot;
 
 
 // Symbol tables can come in various types.  This is mostly hidden from clients of this class.  The intrinsic
@@ -121,18 +111,10 @@ class EidosSymbolTable
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	// In this design, a whole symbol table either contains constants or variables; a mix is allowed using a parent symbol table to hold constants
 	EidosSymbolTableType table_type_;
 	
-	// This flag indicates which storage strategy we are using
-	bool using_internal_symbols_;
-	
-	// If using_internal_symbols_==true, we are using this fixed-size symbol array, taken from a shared pool
-	EidosSymbolTable_InternalSlot *internal_symbols_;	// nullptr, or points to a buffer of size EIDOS_SYMBOL_TABLE_BASE_SIZE
-	size_t internal_symbol_count_;
-	
-	// If using_internal_symbols_==false, we have switched over to this external hash table utilizing std::unordered_map.
-	std::unordered_map<EidosGlobalStringID, EidosValue_SP> hash_symbols_;
+	EidosSymbolTableSlot *slots_;		// a lookup table indexed by EidosGlobalStringID (uint32_t); see EidosSymbolTableSlot
+	uint32_t capacity_;					// the capacity of the lookup table (max id value, not max number of variables)
 	
 	// Symbol tables can be chained.  This is invisible to the user; there appears to be a single global symbol table for a given
 	// interpreter, which responds to all requests.  Behind the scenes, however, requests get passed up the symbol table chain
@@ -147,43 +129,18 @@ private:
 	// Utility methods called by the public methods to do the real work
 	std::vector<std::string> _SymbolNames(bool p_include_constants, bool p_include_variables) const;
 	EidosValue_SP _GetValue(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
+	EidosValue *_GetValue_RAW(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
 	EidosValue_SP _GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const;
 	void _RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant);
 	void _InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
-	void _SwitchToHash(void);
-	
-	inline __attribute__((always_inline)) void EnsureInternalSymbolsExist(void)
-	{
-		if (!internal_symbols_)
-		{
-			if (gEidos_EidosSymbolTable_InternalSlotPool.size())
-			{
-				internal_symbols_ = gEidos_EidosSymbolTable_InternalSlotPool.back();
-				gEidos_EidosSymbolTable_InternalSlotPool.pop_back();
-			}
-			else
-			{
-				// We assume that clearing to zero constitutes initialization for EidosSymbolTable_InternalSlot
-				internal_symbols_ = (EidosSymbolTable_InternalSlot *)calloc(EIDOS_SYMBOL_TABLE_BASE_SIZE, sizeof(EidosSymbolTable_InternalSlot));
-			}
-		}
-	}
-	void CheckInternalSymbolsNullptr(void);
-	inline __attribute__((always_inline)) void ReturnInternalSymbolsToPool(void)
-	{
-#if DEBUG
-		CheckInternalSymbolsNullptr();
-#endif
-		gEidos_EidosSymbolTable_InternalSlotPool.push_back(internal_symbols_);
-		internal_symbols_ = nullptr;
-	}
+	void _ResizeToFitSymbol(EidosGlobalStringID p_symbol_name);
 	
 public:
 	
-	EidosSymbolTable(const EidosSymbolTable&) = delete;																	// no copying
-	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;														// no copying
-	explicit EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash=false);	// standard constructor
-	~EidosSymbolTable(void);																							// destructor
+	EidosSymbolTable(const EidosSymbolTable&) = delete;													// no copying
+	EidosSymbolTable& operator=(const EidosSymbolTable&) = delete;										// no copying
+	explicit EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table);		// standard constructor
+	~EidosSymbolTable(void);																			// destructor
 	
 	// symbol access; these are variables defined in the global namespace
 	inline __attribute__((always_inline)) std::vector<std::string> ReadOnlySymbols(void) const { return _SymbolNames(true, false); }
@@ -210,6 +167,11 @@ public:
 	// Get a value, with an optional token used if the call raises due to an undefined symbol
 	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode(const EidosASTNode *p_symbol_node) const { return _GetValue(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
 	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
+	
+	// Get a value, with an optional token used if the call raises due to an undefined symbol; these variants return an unwrapped EidosValue *
+	// These should be used only when the caller needs the symbol for temporary use and will be able to know not to free the value after use
+	inline __attribute__((always_inline)) EidosValue *GetValueRawOrRaiseForASTNode(const EidosASTNode *p_symbol_node) const { return _GetValue_RAW(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
+	inline __attribute__((always_inline)) EidosValue *GetValueRawOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue_RAW(p_symbol_name, nullptr); }
 	
 	// Special getters that return a boolean flag, true if the fetched symbol is a constant
 	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode_IsConst(const EidosASTNode *p_symbol_node, bool *p_is_const) const { return _GetValue_IsConst(p_symbol_node->cached_stringID_, p_symbol_node->token_, p_is_const); }

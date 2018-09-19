@@ -30,19 +30,56 @@
 #include <cmath>
 
 
-// Internal slot buffers come from here, when possible, and always go back to here.  Buffers held by this pool
-// are always of size EIDOS_SYMBOL_TABLE_BASE_SIZE, and are guaranteed initialized to zero.  We used to just
-// declare internal_symbols_ as EidosSymbolTable_InternalSlot internal_symbols_[EIDOS_SYMBOL_TABLE_BASE_SIZE],
-// making it a fixed-size inlined buffer of slots.  The problem was that every time a symbol table was created
-// all of those slots would be constructed by C++, and every time a symbol table was destructed all those slots
-// would be destructed, even if the symbol table never actually used any slots at all (such as the variables
-// table for a callback that doesn't define any local symbols).  That was a big waste of time.  We know how
-// many slots we are using (internal_symbol_count_) and we can manage the slots much more efficiently ourselves.
-// To do that, though, the slots have to be external to EidosSymbolTable.  Thus, a shared pool of slot buffers.
-// The win doesn't actually come from the use of the shared pool (since before, the slot buffer was inline in
-// EidosSymbolTable, and thus did not cause any extra allocation/deallocation); the win comes from being able
-// to minimize construction/destruction of the slots.
-std::vector<EidosSymbolTable_InternalSlot *> gEidos_EidosSymbolTable_InternalSlotPool;
+//
+//	Shared pools of reusable objects for EidosSymbolTable
+//
+#pragma mark -
+#pragma mark pool management
+#pragma mark -
+
+std::vector<EidosSymbolTableSlot *> gEidosSymbolTable_TablePool;
+uint32_t gEidosSymbolTable_TablePool_table_capacity = 1024;		// adequate for most scripts; can increase dynamically
+
+static inline __attribute__((always_inline)) EidosSymbolTableSlot *GetZeroedTableFromPool(uint32_t *p_capacity)
+{
+	// Get a zeroed table from the pool, or make a new one
+	*p_capacity = gEidosSymbolTable_TablePool_table_capacity;
+	
+	if (gEidosSymbolTable_TablePool.size())
+	{
+		EidosSymbolTableSlot *ret = gEidosSymbolTable_TablePool.back();
+		gEidosSymbolTable_TablePool.pop_back();
+		return ret;
+	}
+	
+	return (EidosSymbolTableSlot *)calloc(gEidosSymbolTable_TablePool_table_capacity, sizeof(EidosSymbolTableSlot));
+}
+
+static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSymbolTableSlot *p_table, uint32_t p_capacity)
+{
+	if (p_capacity > gEidosSymbolTable_TablePool_table_capacity)
+	{
+		// If the returning table is bigger than those in the pool, we want to increase the pool capacity
+		// to match; free all tables in the pool, then do the capacity increase for the pool
+		for (EidosSymbolTableSlot *table : gEidosSymbolTable_TablePool)
+			free(table);
+		
+		gEidosSymbolTable_TablePool.clear();
+		
+		//std::cout << "old symbol table pool's table capacity of " << gEidosSymbolTable_TablePool_table_capacity << " increasing to " << p_capacity << std::endl;
+		gEidosSymbolTable_TablePool_table_capacity = p_capacity;
+	}
+	else if (p_capacity < gEidosSymbolTable_TablePool_table_capacity)
+	{
+		// If the returning table is smaller than those in the pool, it is worthless; it's probably
+		// faster to free it and calloc() a new one than to realloc() and zero the old one
+		free(p_table);
+		return;
+	}
+	
+	// Free the zeroed table back to the pool
+	gEidosSymbolTable_TablePool.emplace_back(p_table);
+}
 
 
 //
@@ -52,8 +89,11 @@ std::vector<EidosSymbolTable_InternalSlot *> gEidos_EidosSymbolTable_InternalSlo
 #pragma mark EidosSymbolTable
 #pragma mark -
 
-EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table, bool p_start_with_hash) : table_type_(p_table_type), using_internal_symbols_(!p_start_with_hash), internal_symbol_count_(0), internal_symbols_(nullptr)
+EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table) : table_type_(p_table_type)
 {
+	// allocate the lookup table
+	slots_ = GetZeroedTableFromPool(&capacity_);
+	
 	if (!p_parent_table)
 	{
 		// If no parent table is given, then we construct a base table for Eidos containing the standard constants.
@@ -123,15 +163,19 @@ EidosSymbolTable::~EidosSymbolTable(void)
 	
 	table_type_ = EidosSymbolTableType::kINVALID_TABLE_TYPE;
 	
-	if (internal_symbols_)
+	// slots_ may have symbols defined in it, so we need to zero out the used slots for re-use.  Remember that
+	// the slot at index 0 never has a value defined, and its next_ value is the start of the linked list.
+	EidosSymbolTableSlot *slot = slots_;
+	
+	for (uint32_t index = slot->next_; index != 0; index = slot->next_)
 	{
-		// internal_symbols_ may have symbols defined in it, so we need to zero out the used slots for re-use.
-		// Note we don't bother zeroing out symbol_name_; that is unnecessary and would just waste time.
-		for (size_t slot_index = 0; slot_index < internal_symbol_count_; ++slot_index)
-			internal_symbols_[slot_index].symbol_value_SP_.reset();
-		
-		ReturnInternalSymbolsToPool();
+		slot->next_ = 0;
+		slot = slots_ + index;
+		slot->symbol_value_SP_.reset();
 	}
+	
+	// then return the table to the pools for reuse
+	FreeZeroedTableToPool(slots_, capacity_);
 	
 	// In general, every symbol table has its own lifetime, and a single table might be the parent table for many other
 	// symbol tables (in the way that the intrinsic constants table is used as the root parent for all symbol table
@@ -146,34 +190,19 @@ EidosSymbolTable::~EidosSymbolTable(void)
 	}
 }
 
-void EidosSymbolTable::CheckInternalSymbolsNullptr(void)
-{
-	for (int slot_index = 0; slot_index < EIDOS_SYMBOL_TABLE_BASE_SIZE; ++slot_index)
-		if (internal_symbols_[slot_index].symbol_value_SP_)
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::CheckInternalSymbolsNullptr): (internal error) internal symbols buffer not cleared before being returned to the shared pool." << EidosTerminate(nullptr);
-}
-
 std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants, bool p_include_variables) const
 {
 	std::vector<std::string> symbol_names;
 	
-	// start with the symbols from our chained symbol table
+	// recurse to get the symbols from our chained symbol table
 	if (chain_symbol_table_)
 		symbol_names = chain_symbol_table_->_SymbolNames(p_include_constants, p_include_variables);
 	
 	if ((p_include_constants && (table_type_ != EidosSymbolTableType::kVariablesTable)) ||
 		(p_include_variables && (table_type_ == EidosSymbolTableType::kVariablesTable)))
 	{
-		if (using_internal_symbols_)
-		{
-			for (size_t symbol_index = 0; symbol_index < internal_symbol_count_; ++symbol_index)
-				symbol_names.emplace_back(Eidos_StringForGlobalStringID(internal_symbols_[symbol_index].symbol_name_));
-		}
-		else
-		{
-			for (auto symbol_slot_iter = hash_symbols_.begin(); symbol_slot_iter != hash_symbols_.end(); ++symbol_slot_iter)
-				symbol_names.emplace_back(Eidos_StringForGlobalStringID(symbol_slot_iter->first));
-		}
+		for (EidosGlobalStringID symbol = slots_->next_; symbol != 0; symbol = (slots_ + symbol)->next_)
+			symbol_names.emplace_back(Eidos_StringForGlobalStringID(symbol));
 	}
 	
 	return symbol_names;
@@ -182,46 +211,15 @@ std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants
 bool EidosSymbolTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 {
 	// Conceptually, this is a recursive function that walks up the symbol table chain.  Doing the recursive calls
-	// is a bit slow, though, so I have unwrapped the recursion.  Here's the original recursive code:
+	// is a bit slow, though, so I have unwrapped the recursion.
 	
-	/*
-	if (using_internal_symbols_)
-	{
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (int symbol_index = (int)internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-			if (internal_symbols_[symbol_index].symbol_name_ == p_symbol_name)
-				return true;
-	}
-	else
-	{
-		if (hash_symbols_.find(p_symbol_name) != hash_symbols_.end())
-			return true;
-	}
-	
-	// We didn't get a hit, so try our chained table
-	if (chain_symbol_table_)
-		return chain_symbol_table_->ContainsSymbol(p_symbol_name);
-	
-	return false;
-	*/
-	
-	// Here's the unwrapped code, which should behave identically:
 	const EidosSymbolTable *current_table = this;
 	
 	do
 	{
-		if (current_table->using_internal_symbols_)
-		{
-			// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-			for (int symbol_index = (int)current_table->internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-				if (current_table->internal_symbols_[symbol_index].symbol_name_ == p_symbol_name)
-					return true;
-		}
-		else
-		{
-			if (current_table->hash_symbols_.find(p_symbol_name) != current_table->hash_symbols_.end())
-				return true;
-		}
+		// try current_table
+		if (current_table->slots_[p_symbol_name].symbol_value_SP_)
+			return true;
 		
 		// We didn't get a hit, so try our chained table
 		current_table = current_table->chain_symbol_table_;
@@ -233,28 +231,22 @@ bool EidosSymbolTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 
 bool EidosSymbolTable::ContainsSymbol_IsConstant(EidosGlobalStringID p_symbol_name, bool *p_is_const) const
 {
-	if (using_internal_symbols_)
+	// This follows ContainsSymbol() but adds a flag indicating whether the symbol is defined as a constant.
+	const EidosSymbolTable *current_table = this;
+	
+	do
 	{
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (int symbol_index = (int)internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-			if (internal_symbols_[symbol_index].symbol_name_ == p_symbol_name)
-			{
-				*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
-				return true;
-			}
-	}
-	else
-	{
-		if (hash_symbols_.find(p_symbol_name) != hash_symbols_.end())
+		// try current_table
+		if (current_table->slots_[p_symbol_name].symbol_value_SP_)
 		{
-			*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
+			*p_is_const = (current_table->table_type_ != EidosSymbolTableType::kVariablesTable);
 			return true;
 		}
+		
+		// We didn't get a hit, so try our chained table
+		current_table = current_table->chain_symbol_table_;
 	}
-	
-	// We didn't get a hit, so try our chained table
-	if (chain_symbol_table_)
-		return chain_symbol_table_->ContainsSymbol_IsConstant(p_symbol_name, p_is_const);
+	while (current_table);
 	
 	*p_is_const = false;
 	return false;
@@ -262,22 +254,19 @@ bool EidosSymbolTable::ContainsSymbol_IsConstant(EidosGlobalStringID p_symbol_na
 
 bool EidosSymbolTable::SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) const
 {
-	if (using_internal_symbols_)
-	{
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (int symbol_index = (int)internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-			if (internal_symbols_[symbol_index].symbol_name_ == p_symbol_name)
-				return true;
-	}
-	else
-	{
-		if (hash_symbols_.find(p_symbol_name) != hash_symbols_.end())
-			return true;
-	}
+	// This follows ContainsSymbol() but follows parent_symbol_table_ instead of chain_symbol_table_.
+	const EidosSymbolTable *current_table = this;
 	
-	// We didn't get a hit, so try our parent table (not our chained table; this method searches the full parent chain)
-	if (parent_symbol_table_)
-		return parent_symbol_table_->SymbolDefinedAnywhere(p_symbol_name);
+	do
+	{
+		// try current_table
+		if (current_table->slots_[p_symbol_name].symbol_value_SP_)
+			return true;
+		
+		// We didn't get a hit, so try our parent table
+		current_table = current_table->parent_symbol_table_;
+	}
+	while (current_table);
 	
 	return false;
 }
@@ -285,57 +274,18 @@ bool EidosSymbolTable::SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) 
 EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const
 {
 	// Conceptually, this is a recursive function that walks up the symbol table chain.  Doing the recursive calls
-	// is a bit slow, though, so I have unwrapped the recursion.  Here's the original recursive code:
-	
-	/*
-	if (using_internal_symbols_)
-	{
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (int symbol_index = (int)internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-		{
-			const EidosSymbolTable_InternalSlot *symbol_slot = internal_symbols_ + symbol_index;
-			
-			if (symbol_slot->symbol_name_ == p_symbol_name)
-				return symbol_slot->symbol_value_SP_;
-		}
-	}
-	else
-	{
-		auto symbol_slot_iter = hash_symbols_.find(p_symbol_name);
-		
-		if (symbol_slot_iter != hash_symbols_.end())
-			return symbol_slot_iter->second;
-	}
-	
-	// We didn't get a hit, so try our chained table
-	if (chain_symbol_table_)
-		return chain_symbol_table_->_GetValue(p_symbol_name, p_symbol_token);
-	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
-	*/
-	
-	// Here's the unwrapped code, which should behave identically:
+	// is a bit slow, though, so I have unwrapped the recursion.
 	const EidosSymbolTable *current_table = this;
 	
 	do
 	{
-		if (current_table->using_internal_symbols_)
+		// try the current table, if the symbol is within its capacity
+		if (p_symbol_name < current_table->capacity_)
 		{
-			// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-			for (int symbol_index = (int)current_table->internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-			{
-				const EidosSymbolTable_InternalSlot *symbol_slot = current_table->internal_symbols_ + symbol_index;
-				
-				if (symbol_slot->symbol_name_ == p_symbol_name)
-					return symbol_slot->symbol_value_SP_;
-			}
-		}
-		else
-		{
-			auto symbol_slot_iter = current_table->hash_symbols_.find(p_symbol_name);
+			EidosValue_SP slot_value(current_table->slots_[p_symbol_name].symbol_value_SP_);
 			
-			if (symbol_slot_iter != current_table->hash_symbols_.end())
-				return symbol_slot_iter->second;
+			if (slot_value)
+			return slot_value;
 		}
 		
 		// We didn't get a hit, so try our chained table
@@ -346,72 +296,46 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
-// same as above except for handling the p_is_const flag
+EidosValue *EidosSymbolTable::_GetValue_RAW(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const
+{
+	// This follows _GetValue() but returns a raw EidosValue * for temporary use
+	const EidosSymbolTable *current_table = this;
+	
+	do
+	{
+		// try the current table, if the symbol is within its capacity
+		if (p_symbol_name < current_table->capacity_)
+		{
+			EidosValue *slot_value = current_table->slots_[p_symbol_name].symbol_value_SP_.get();
+			
+			if (slot_value)
+				return slot_value;
+		}
+		
+		// We didn't get a hit, so try our chained table
+		current_table = current_table->chain_symbol_table_;
+	}
+	while (current_table);
+	
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_RAW): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+}
+
 EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const
 {
-	// Conceptually, this is a recursive function that walks up the symbol table chain.  Doing the recursive calls
-	// is a bit slow, though, so I have unwrapped the recursion.  Here's the original recursive code:
-	
-	/*
-	if (using_internal_symbols_)
-	{
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (int symbol_index = (int)internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-		{
-			const EidosSymbolTable_InternalSlot *symbol_slot = internal_symbols_ + symbol_index;
-			
-			if (symbol_slot->symbol_name_ == p_symbol_name)
-			{
-				*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
-				return symbol_slot->symbol_value_SP_;
-			}
-		}
-	}
-	else
-	{
-		auto symbol_slot_iter = hash_symbols_.find(p_symbol_name);
-		
-		if (symbol_slot_iter != hash_symbols_.end())
-		{
-			*p_is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
-			return symbol_slot_iter->second;
-		}
-	}
-	
-	// We didn't get a hit, so try our chained table
-	if (chain_symbol_table_)
-		return chain_symbol_table_->_GetValue_IsConst(p_symbol_name, p_symbol_token, p_is_const);	// the chain sets p_is_const
-	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
-	*/
-	
-	// Here's the unwrapped code, which should behave identically:
+	// This follows _GetValue() but provides the p_is_const flag
 	const EidosSymbolTable *current_table = this;
 	
 	do
 	{
-		if (current_table->using_internal_symbols_)
+		// try the current table, if the symbol is within its capacity
+		if (p_symbol_name < current_table->capacity_)
 		{
-			// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-			for (int symbol_index = (int)current_table->internal_symbol_count_ - 1; symbol_index >= 0; --symbol_index)
-			{
-				const EidosSymbolTable_InternalSlot *symbol_slot = current_table->internal_symbols_ + symbol_index;
-				
-				if (symbol_slot->symbol_name_ == p_symbol_name)
-				{
-					*p_is_const = (current_table->table_type_ != EidosSymbolTableType::kVariablesTable);
-					return symbol_slot->symbol_value_SP_;
-				}
-			}
-		}
-		else
-		{
-			auto symbol_slot_iter = current_table->hash_symbols_.find(p_symbol_name);
+			EidosValue_SP slot_value(current_table->slots_[p_symbol_name].symbol_value_SP_);
 			
-			if (symbol_slot_iter != current_table->hash_symbols_.end())
+			if (slot_value)
 			{
 				*p_is_const = (current_table->table_type_ != EidosSymbolTableType::kVariablesTable);
-				return symbol_slot_iter->second;
+				return slot_value;
 			}
 		}
 		
@@ -423,30 +347,21 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
-void EidosSymbolTable::_SwitchToHash(void)
+void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
 {
-	if (using_internal_symbols_)
+	uint32_t new_capacity = capacity_;
+	
+	while (p_symbol_name >= new_capacity)
+		new_capacity <<= 1;
+	
+	if (new_capacity > capacity_)
 	{
-		for (size_t symbol_index = 0; symbol_index < internal_symbol_count_; ++symbol_index)
-		{
-			EidosSymbolTable_InternalSlot &old_symbol_slot = internal_symbols_[symbol_index];
-			
-			// if we own the symbol name, we can move it to the new hash table entry, otherwise a copy is necessary
-			hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(old_symbol_slot.symbol_name_, std::move(old_symbol_slot.symbol_value_SP_)));
-			
-			// clean up the internal slot
-			old_symbol_slot.symbol_value_SP_.reset();
-		}
-		
-		if (internal_symbols_)
-		{
-			// internal_symbols_ was already cleared by the code above, so we just need to return the buffer to the pool
-			ReturnInternalSymbolsToPool();
-		}
-		
-		using_internal_symbols_ = false;
-		internal_symbol_count_ = 0;
+		slots_ = (EidosSymbolTableSlot *)realloc(slots_, new_capacity * sizeof(EidosSymbolTableSlot));
+		EIDOS_BZERO(slots_ + capacity_, (new_capacity - capacity_) * sizeof(EidosSymbolTableSlot));
+		capacity_ = new_capacity;
 	}
+	else
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_ResizeToFitSymbol): (internal error) unnecessary resize." << EidosTerminate();
 }
 
 void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
@@ -457,62 +372,27 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 	if ((p_value->UseCount() != 1) || p_value->Invisible())
 		p_value = p_value->CopyValues();
 	
-	if (using_internal_symbols_)
-	{
-		int symbol_slot;
-		
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (symbol_slot = (int)internal_symbol_count_ - 1; symbol_slot >= 0; --symbol_slot)
-			if (internal_symbols_[symbol_slot].symbol_name_ == p_symbol_name)
-				break;
-		
-		if (symbol_slot == -1)
-		{
-			// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
-			// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
-			if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
-			
-			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
-			{
-				EnsureInternalSymbolsExist();
-				
-				EidosSymbolTable_InternalSlot *new_symbol_slot_ptr = internal_symbols_ + internal_symbol_count_;
-				
-				new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
-				new_symbol_slot_ptr->symbol_name_ = p_symbol_name;
-				
-				++internal_symbol_count_;
-				return;
-			}
-			
-			_SwitchToHash();
-		}
-		else
-		{
-			// The symbol is already defined in this table, so it can be redefined (illegal cases were caught above already).
-			// We replace the existing symbol value, of course.  Everything else gets inherited, since we're replacing the value in an existing slot;
-			// we can continue using the same symbol name, name length, constness (since that is guaranteed to be false here), etc.
-			internal_symbols_[symbol_slot].symbol_value_SP_ = std::move(p_value);
-			return;
-		}
-	}
+	// Make sure we have capacity
+	if (p_symbol_name >= capacity_)
+		_ResizeToFitSymbol(p_symbol_name);
 	
-	// fall-through to the hash table case
-	auto existing_symbol_slot_iter = hash_symbols_.find(p_symbol_name);
-	
-	if (existing_symbol_slot_iter == hash_symbols_.end())
+	// Define the symbol if it is not already defined above us
+	if (!slots_[p_symbol_name].symbol_value_SP_)
 	{
 		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 		// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 		if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 		
-		hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
+		// set the value into the unused slot and add it to the front of the linked list
+		slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
+		slots_[p_symbol_name].next_ = slots_[0].next_;
+		slots_[0].next_ = p_symbol_name;
 	}
 	else
 	{
-		existing_symbol_slot_iter->second = std::move(p_value);
+		// set the value into the already used slot; no linked list maintenance needed
+		slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
 	}
 }
 
@@ -528,62 +408,27 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 	if (p_value->Invisible())
 		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): (internal) no copy requested with invisible value." << EidosTerminate(nullptr);
 	
-	if (using_internal_symbols_)
-	{
-		int symbol_slot;
-		
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (symbol_slot = (int)internal_symbol_count_ - 1; symbol_slot >= 0; --symbol_slot)
-			if (internal_symbols_[symbol_slot].symbol_name_ == p_symbol_name)
-				break;
-		
-		if (symbol_slot == -1)
-		{
-			// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
-			// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
-			if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-				EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
-			
-			if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
-			{
-				EnsureInternalSymbolsExist();
-				
-				EidosSymbolTable_InternalSlot *new_symbol_slot_ptr = internal_symbols_ + internal_symbol_count_;
-				
-				new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
-				new_symbol_slot_ptr->symbol_name_ = p_symbol_name;
-				
-				++internal_symbol_count_;
-				return;
-			}
-			
-			_SwitchToHash();
-		}
-		else
-		{
-			// The symbol is already defined in this table, so it can be redefined (illegal cases were caught above already).
-			// We replace the existing symbol value, of course.  Everything else gets inherited, since we're replacing the value in an existing slot;
-			// we can continue using the same symbol name, name length, constness (since that is guaranteed to be false here), etc.
-			internal_symbols_[symbol_slot].symbol_value_SP_ = std::move(p_value);
-			return;
-		}
-	}
+	// Make sure we have capacity
+	if (p_symbol_name >= capacity_)
+		_ResizeToFitSymbol(p_symbol_name);
 	
-	// fall-through to the hash table case
-	auto existing_symbol_slot_iter = hash_symbols_.find(p_symbol_name);
-	
-	if (existing_symbol_slot_iter == hash_symbols_.end())
+	// Define the symbol if it is not already defined above us
+	if (!slots_[p_symbol_name].symbol_value_SP_)
 	{
 		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 		// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 		if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 		
-		hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
+		// set the value into the unused slot and add it to the front of the linked list
+		slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
+		slots_[p_symbol_name].next_ = slots_[0].next_;
+		slots_[0].next_ = p_symbol_name;
 	}
 	else
 	{
-		existing_symbol_slot_iter->second = std::move(p_value);
+		// set the value into the already used slot; no linked list maintenance needed
+		slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
 	}
 }
 
@@ -642,53 +487,11 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 
 void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant)
 {
-	if (using_internal_symbols_)
+	if (p_symbol_name < capacity_)
 	{
-		int symbol_slot;
+		EidosSymbolTableSlot *slot = slots_ + p_symbol_name;
 		
-		// We can compare global string IDs; since all symbol names should be uniqued, this should be safe
-		for (symbol_slot = (int)internal_symbol_count_ - 1; symbol_slot >= 0; --symbol_slot)
-			if (internal_symbols_[symbol_slot].symbol_name_ == p_symbol_name)
-				break;
-		
-		if (symbol_slot >= 0)
-		{
-			if (table_type_ != EidosSymbolTableType::kVariablesTable)
-			{
-				if (table_type_ == EidosSymbolTableType::kEidosIntrinsicConstantsTable)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is an intrinsic Eidos constant and thus cannot be removed." << EidosTerminate(nullptr);
-				if (!p_remove_constant)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << EidosTerminate(nullptr);
-			}
-			
-			EidosSymbolTable_InternalSlot *existing_symbol_slot_ptr = internal_symbols_ + symbol_slot;
-			
-			// clean up the slot being removed
-			existing_symbol_slot_ptr->symbol_value_SP_.reset();
-			
-			// remove the slot from the vector
-			EidosSymbolTable_InternalSlot *backfill_symbol_slot_ptr = internal_symbols_ + (--internal_symbol_count_);
-			
-			if (existing_symbol_slot_ptr != backfill_symbol_slot_ptr)
-			{
-				*existing_symbol_slot_ptr = std::move(*backfill_symbol_slot_ptr);
-				
-				// clean up the backfill slot
-				backfill_symbol_slot_ptr->symbol_value_SP_.reset();
-			}
-		}
-		else
-		{
-			// If it wasn't defined in us, then it might be defined in the chain
-			if (chain_symbol_table_)
-				chain_symbol_table_->_RemoveSymbol(p_symbol_name, p_remove_constant);
-		}
-	}
-	else
-	{
-		auto remove_iter = hash_symbols_.find(p_symbol_name);
-		
-		if (remove_iter != hash_symbols_.end())
+		if (slot->symbol_value_SP_)
 		{
 			// We found the symbol in ourselves, so remove it unless we are a constant table
 			if (table_type_ != EidosSymbolTableType::kVariablesTable)
@@ -699,15 +502,34 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << EidosTerminate(nullptr);
 			}
 			
-			hash_symbols_.erase(remove_iter);
-		}
-		else
-		{
-			// If it wasn't defined in us, then it might be defined in the chain
-			if (chain_symbol_table_)
-				chain_symbol_table_->_RemoveSymbol(p_symbol_name, p_remove_constant);
+			slot->symbol_value_SP_.reset();
+			
+			// Now we need to fix the linked list, which is O(n): we have to find the previous entry that points to this entry
+			EidosGlobalStringID index = 0;
+			
+			do
+			{
+				EidosSymbolTableSlot *search_slot = slots_ + index;
+				EidosGlobalStringID search_next = search_slot->next_;
+				
+				if (search_next == p_symbol_name)
+				{
+					search_slot->next_ = slot->next_;
+					slot->next_ = 0;
+					break;
+				}
+				
+				index = search_next;
+			}
+			while (index != 0);
+			
+			return;
 		}
 	}
+	
+	// If it wasn't defined in us, then it might be defined in the chain
+	if (chain_symbol_table_)
+		chain_symbol_table_->_RemoveSymbol(p_symbol_name, p_remove_constant);
 }
 
 void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
@@ -719,60 +541,33 @@ void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symb
 		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_InitializeConstantSymbolEntry): (internal error) this method should be called only on constant symbol tables." << EidosTerminate(nullptr);
 #endif
 	
-	// we assume that this symbol is not yet defined, for maximal set-up speed
-	if (using_internal_symbols_)
-	{
-		if (internal_symbol_count_ < EIDOS_SYMBOL_TABLE_BASE_SIZE)
-		{
-			EnsureInternalSymbolsExist();
-			
-			EidosSymbolTable_InternalSlot *new_symbol_slot_ptr = internal_symbols_ + internal_symbol_count_;
-			
-			new_symbol_slot_ptr->symbol_value_SP_ = std::move(p_value);
-			new_symbol_slot_ptr->symbol_name_ = p_symbol_name;
-			
-			++internal_symbol_count_;
-			return;
-		}
-		
-		_SwitchToHash();
-	}
+	// Make sure we have capacity
+	if (p_symbol_name >= capacity_)
+		_ResizeToFitSymbol(p_symbol_name);
 	
-	// fall-through to the hash table case
-	hash_symbols_.insert(std::pair<EidosGlobalStringID, EidosValue_SP>(p_symbol_name, std::move(p_value)));
+	// We assume that this symbol is not yet defined, for maximal set-up speed
+	slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
+	slots_[p_symbol_name].next_ = slots_[0].next_;
+	slots_[0].next_ = p_symbol_name;
 }
 
 void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
 {
-	// start with the symbols from our chained symbol table
+	// recurse to get the symbols from our chained symbol table
 	if (chain_symbol_table_)
 		chain_symbol_table_->AddSymbolsToTypeTable(p_type_table);
 	
-	if (using_internal_symbols_)
+	for (EidosGlobalStringID symbol = slots_->next_; symbol != 0; )
 	{
-		for (size_t symbol_index = 0; symbol_index < internal_symbol_count_; ++symbol_index)
-		{
-			EidosValue *symbol_value = internal_symbols_[symbol_index].symbol_value_SP_.get();
-			EidosValueType symbol_type = symbol_value->Type();
-			EidosValueMask symbol_type_mask = (1 << (int)symbol_type);
-			const EidosObjectClass *symbol_class = ((symbol_type == EidosValueType::kValueObject) ? ((EidosValue_Object *)symbol_value)->Class() : nullptr);
-			EidosTypeSpecifier symbol_type_specifier = EidosTypeSpecifier{symbol_type_mask, symbol_class};
-			
-			p_type_table->SetTypeForSymbol(internal_symbols_[symbol_index].symbol_name_, symbol_type_specifier);
-		}
-	}
-	else
-	{
-		for (auto symbol_slot_iter = hash_symbols_.begin(); symbol_slot_iter != hash_symbols_.end(); ++symbol_slot_iter)
-		{
-			EidosValue *symbol_value = symbol_slot_iter->second.get();
-			EidosValueType symbol_type = symbol_value->Type();
-			EidosValueMask symbol_type_mask = (1 << (int)symbol_type);
-			const EidosObjectClass *symbol_class = ((symbol_type == EidosValueType::kValueObject) ? ((EidosValue_Object *)symbol_value)->Class() : nullptr);
-			EidosTypeSpecifier symbol_type_specifier = EidosTypeSpecifier{symbol_type_mask, symbol_class};
-			
-			p_type_table->SetTypeForSymbol(symbol_slot_iter->first, symbol_type_specifier);
-		}
+		EidosSymbolTableSlot *slot = slots_ + symbol;
+		EidosValue *symbol_value = slot->symbol_value_SP_.get();
+		EidosValueType symbol_type = symbol_value->Type();
+		EidosValueMask symbol_type_mask = (1 << (int)symbol_type);
+		const EidosObjectClass *symbol_class = ((symbol_type == EidosValueType::kValueObject) ? ((EidosValue_Object *)symbol_value)->Class() : nullptr);
+		EidosTypeSpecifier symbol_type_specifier = EidosTypeSpecifier{symbol_type_mask, symbol_class};
+		
+		p_type_table->SetTypeForSymbol(symbol, symbol_type_specifier);
+		symbol = slot->next_;
 	}
 }
 

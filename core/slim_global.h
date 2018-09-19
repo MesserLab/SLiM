@@ -884,7 +884,11 @@ enum _SLiMGlobalStringID : int {
 	gID_modifyChild,
 	gID_recombination,
 	gID_reproduction,
+	
+	gID_LastSLiMEntry	// must come last
 };
+
+static_assert((int)gID_LastSLiMEntry <= (int)gEidosID_LastContextEntry, "the Context's last EidosGlobalStringID is greater than Eidos's upper limit");
 
 #endif /* defined(__SLiM__slim_global__) */
 

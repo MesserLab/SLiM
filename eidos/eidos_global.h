@@ -562,14 +562,11 @@ enum _EidosGlobalStringID : uint32_t
 {
 	gEidosID_none = 0,
 	
-	gEidosID_methodSignature,
-	gEidosID_size,
-	gEidosID_length,
-	gEidosID_propertySignature,
-	gEidosID_str,
-	gEidosID_type,
-	gEidosID_source,
-	gEidosID_applyValue,
+	gEidosID__TestElement,
+	gEidosID__yolk,
+	gEidosID__increment,
+	gEidosID__cubicYolk,
+	gEidosID__squareTest,
 	
 	gEidosID_T,
 	gEidosID_F,
@@ -579,11 +576,14 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_INF,
 	gEidosID_NAN,
 	
-	gEidosID__TestElement,
-	gEidosID__yolk,
-	gEidosID__increment,
-	gEidosID__cubicYolk,
-	gEidosID__squareTest,
+	gEidosID_methodSignature,
+	gEidosID_size,
+	gEidosID_length,
+	gEidosID_propertySignature,
+	gEidosID_str,
+	gEidosID_type,
+	gEidosID_source,
+	gEidosID_applyValue,
 	
 	gEidosID_weights,
 	gEidosID_c,
@@ -598,7 +598,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 10000	// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 300		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
