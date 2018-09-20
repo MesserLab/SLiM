@@ -1039,18 +1039,20 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #endif
 	
 #ifdef SLIM_WF_ONLY
-	// Set up to draw random individuals, based initially on equal fitnesses
-	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
-	cached_fitness_capacity_ = parent_subpop_size_;
-	cached_fitness_size_ = parent_subpop_size_;
-	
-	double *fitness_buffer_ptr = cached_parental_fitness_;
-	
-	for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
-		*(fitness_buffer_ptr++) = 1.0;
-	
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	{
+		// Set up to draw random individuals, based initially on equal fitnesses
+		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+		cached_fitness_capacity_ = parent_subpop_size_;
+		cached_fitness_size_ = parent_subpop_size_;
+		
+		double *fitness_buffer_ptr = cached_parental_fitness_;
+		
+		for (slim_popsize_t i = 0; i < parent_subpop_size_; i++)
+			*(fitness_buffer_ptr++) = 1.0;
+		
 		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
+	}
 #endif	// SLIM_WF_ONLY
 }
 
@@ -1087,32 +1089,32 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #endif
 	
 #ifdef SLIM_WF_ONLY
-	// Set up to draw random females, based initially on equal fitnesses
-	cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
-	cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
-	cached_fitness_capacity_ = parent_subpop_size_;
-	cached_fitness_size_ = parent_subpop_size_;
-	
-	double *fitness_buffer_ptr = cached_parental_fitness_;
-	double *male_buffer_ptr = cached_male_fitness_;
-	
-	for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
-	{
-		*(fitness_buffer_ptr++) = 1.0;
-		*(male_buffer_ptr++) = 0.0;				// this vector has 0 for all females, for mateChoice() callbacks
-	}
-	
-	// Set up to draw random males, based initially on equal fitnesses
-	slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
-	
-	for (slim_popsize_t i = 0; i < num_males; i++)
-	{
-		*(fitness_buffer_ptr++) = 1.0;
-		*(male_buffer_ptr++) = 1.0;
-	}
-	
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
+		// Set up to draw random females, based initially on equal fitnesses
+		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+		cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
+		cached_fitness_capacity_ = parent_subpop_size_;
+		cached_fitness_size_ = parent_subpop_size_;
+		
+		double *fitness_buffer_ptr = cached_parental_fitness_;
+		double *male_buffer_ptr = cached_male_fitness_;
+		
+		for (slim_popsize_t i = 0; i < parent_first_male_index_; i++)
+		{
+			*(fitness_buffer_ptr++) = 1.0;
+			*(male_buffer_ptr++) = 0.0;				// this vector has 0 for all females, for mateChoice() callbacks
+		}
+		
+		// Set up to draw random males, based initially on equal fitnesses
+		slim_popsize_t num_males = parent_subpop_size_ - parent_first_male_index_;
+		
+		for (slim_popsize_t i = 0; i < num_males; i++)
+		{
+			*(fitness_buffer_ptr++) = 1.0;
+			*(male_buffer_ptr++) = 1.0;
+		}
+		
 		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 	}
