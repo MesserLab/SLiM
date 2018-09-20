@@ -3220,6 +3220,22 @@ void Subpopulation::IncrementIndividualAges(void)
 }
 #endif  // SLIM_NONWF_ONLY
 
+size_t Subpopulation::MemoryUsageForParentTables(void)
+{
+	size_t usage = 0;
+	
+	if (lookup_parent_)
+		usage += lookup_parent_->K * (sizeof(size_t) + sizeof(double));
+	
+	if (lookup_female_parent_)
+		usage += lookup_female_parent_->K * (sizeof(size_t) + sizeof(double));
+	
+	if (lookup_male_parent_)
+		usage += lookup_male_parent_->K * (sizeof(size_t) + sizeof(double));
+	
+	return usage;
+}
+
 
 //
 //	Eidos support

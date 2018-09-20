@@ -447,6 +447,8 @@ public:
 #endif
 	}
 	
+	// Memory usage tallying, for outputUsage()
+	size_t MemoryUsageForParentTables(void);
 	
 	//
 	// Eidos support

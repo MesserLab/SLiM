@@ -46,14 +46,11 @@ size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable)
 	
 	usage = gEidosSymbolTable_TablePool.size() * gEidosSymbolTable_TablePool_table_capacity * sizeof(EidosSymbolTableSlot);
 	
-	const EidosSymbolTable *current_table = p_currentTable;
-	
-	do
+	while (p_currentTable)
 	{
-		usage += current_table->capacity_ * sizeof(EidosSymbolTableSlot);
-		current_table = current_table->parent_symbol_table_;
+		usage += p_currentTable->capacity_ * sizeof(EidosSymbolTableSlot);
+		p_currentTable = p_currentTable->parent_symbol_table_;
 	}
-	while (current_table);
 	
 	return usage;
 }
