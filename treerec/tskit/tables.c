@@ -233,7 +233,7 @@ node_table_expand_metadata(node_table_t *self, table_size_t additional_length)
     table_size_t new_size = self->max_metadata_length + increment;
 
     if ((self->metadata_length + additional_length) > self->max_metadata_length) {
-        ret = expand_column((void **) &self->metadata, new_size, sizeof(char *));
+        ret = expand_column((void **) &self->metadata, new_size, sizeof(char));
         if (ret != 0) {
             goto out;
         }
