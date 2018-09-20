@@ -219,6 +219,11 @@ public:
 	// apply interaction() callbacks to an interaction strength; the return value is the final interaction strength
 	double ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
 	
+	// Memory usage tallying, for outputUsage()
+	size_t MemoryUsageForKDTrees(void);
+	size_t MemoryUsageForPositions(void);
+	size_t MemoryUsageForSparseArrays(void);
+	
 	
 	//
 	// Eidos support

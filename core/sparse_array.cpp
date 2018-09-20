@@ -371,6 +371,16 @@ void SparseArray::InteractionsForRow(uint32_t p_row, uint32_t *p_row_nnz, uint32
 		*p_row_strengths = strengths_ + offset;
 }
 
+size_t SparseArray::MemoryUsage(void)
+{
+	size_t usage = 0;
+	
+	usage += sizeof(uint32_t) * (nrows_ + 1);
+	usage += (sizeof(uint32_t) + sizeof(sa_distance_t) + sizeof(sa_strength_t)) * (nnz_capacity_);
+	
+	return usage;
+}
+
 std::ostream &operator<<(std::ostream &p_outstream, const SparseArray &p_array)
 {
 	p_outstream << "SparseArray: " << p_array.nrows_set_ << " x " << p_array.ncols_;

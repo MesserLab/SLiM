@@ -166,6 +166,8 @@ extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parall
 void SLiM_CreateMutationBlock(void);
 void SLiM_IncreaseMutationBlockCapacity(void);
 void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry);
+size_t SLiM_MemoryUsageForMutationBlock(void);
+size_t SLiM_MemoryUsageForMutationRefcounts(void);
 
 inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(void)
 {

@@ -681,6 +681,10 @@ public:
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 	
+	// Memory usage tallying, for outputUsage()
+	size_t MemoryUsageForMutationIndexBuffers(void);
+	size_t MemoryUsageForNonneutralCaches(void);
+	
 	// Eidos_intrusive_ptr support
 	inline __attribute__((always_inline)) uint32_t UseCount() const { return intrusive_ref_count_; }
 	

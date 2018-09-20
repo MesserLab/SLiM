@@ -501,6 +501,7 @@ extern const std::string gStr_mutationCounts;
 extern const std::string gStr_outputFixedMutations;
 extern const std::string gStr_outputFull;
 extern const std::string gStr_outputMutations;
+extern const std::string gStr_outputUsage;
 extern const std::string gStr_readFromPopulationFile;
 extern const std::string gStr_recalculateFitness;
 extern const std::string gStr_registerEarlyEvent;
@@ -763,6 +764,7 @@ enum _SLiMGlobalStringID : int {
 	gID_outputFixedMutations,
 	gID_outputFull,
 	gID_outputMutations,
+	gID_outputUsage,
 	gID_readFromPopulationFile,
 	gID_recalculateFitness,
 	gID_registerEarlyEvent,

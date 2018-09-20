@@ -829,6 +829,45 @@ void Chromosome::DoGeneConversion(std::vector<slim_position_t> &p_crossovers, st
 	}
 }
 
+size_t Chromosome::MemoryUsageForMutationMaps(void)
+{
+	size_t usage = 0;
+	
+	usage = (mutation_rates_H_.size() + mutation_rates_M_.size() + mutation_rates_F_.size()) * sizeof(double);
+	usage += (mutation_end_positions_H_.size() + mutation_end_positions_M_.size() + mutation_end_positions_F_.size()) * sizeof(slim_position_t);
+	usage += (mutation_subranges_H_.size() + mutation_subranges_M_.size() + mutation_subranges_F_.size()) * sizeof(GESubrange);
+	
+	if (lookup_mutation_H_)
+		usage += lookup_mutation_H_->K * (sizeof(size_t) + sizeof(double));
+	
+	if (lookup_mutation_M_)
+		usage += lookup_mutation_M_->K * (sizeof(size_t) + sizeof(double));
+	
+	if (lookup_mutation_F_)
+		usage += lookup_mutation_F_->K * (sizeof(size_t) + sizeof(double));
+	
+	return usage;
+}
+
+size_t Chromosome::MemoryUsageForRecombinationMaps(void)
+{
+	size_t usage = 0;
+	
+	usage = (recombination_rates_H_.size() + recombination_rates_M_.size() + recombination_rates_F_.size()) * sizeof(double);
+	usage += (recombination_end_positions_H_.size() + recombination_end_positions_M_.size() + recombination_end_positions_F_.size()) * sizeof(slim_position_t);
+	
+	if (lookup_recombination_H_)
+		usage += lookup_recombination_H_->K * (sizeof(size_t) + sizeof(double));
+	
+	if (lookup_recombination_M_)
+		usage += lookup_recombination_M_->K * (sizeof(size_t) + sizeof(double));
+	
+	if (lookup_recombination_F_)
+		usage += lookup_recombination_F_->K * (sizeof(size_t) + sizeof(double));
+	
+	return usage;
+}
+
 
 //
 // Eidos support

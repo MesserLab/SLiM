@@ -193,9 +193,14 @@ public:
 	// the symbol table chain themselves in some way, since normally the chain is encapsulated by this class.
 	inline __attribute__((always_inline)) EidosSymbolTable *ChainSymbolTable(void) { return chain_symbol_table_; }
 	inline __attribute__((always_inline)) EidosSymbolTable *ParentSymbolTable(void) { return parent_symbol_table_; }
+
+	friend size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable);
 };
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);
+
+// Memory usage tallying, for outputUsage()
+size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable);
 
 
 #endif /* defined(__Eidos__eidos_symbol_table__) */

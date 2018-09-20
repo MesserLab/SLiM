@@ -674,6 +674,18 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 	}
 }
 
+size_t MutationRun::MemoryUsageForMutationIndexBuffers(void)
+{
+	if (mutations_ == mutations_buffer_)
+		return 0;
+	else
+		return mutation_capacity_ * sizeof(MutationIndex);
+}
+
+size_t MutationRun::MemoryUsageForNonneutralCaches(void)
+{
+	return nonneutral_mutation_capacity_ * sizeof(MutationIndex);
+}
 
 
 

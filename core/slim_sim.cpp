@@ -6963,6 +6963,148 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	return _InstantiateSLiMObjectsFromTables(p_interpreter);
 }
 
+size_t SLiMSim::MemoryUsageForTables(table_collection_t &p_tables)
+{
+	table_collection_t &t = p_tables;
+	size_t usage = 0;
+	
+	if (t.individuals)
+	{
+		usage += sizeof(individual_table_t);
+		
+		if (t.individuals->flags)
+			usage += t.individuals->max_rows * sizeof(uint32_t);
+		if (t.individuals->location_offset)
+			usage += t.individuals->max_rows * sizeof(table_size_t);
+		if (t.individuals->metadata_offset)
+			usage += t.individuals->max_rows * sizeof(table_size_t);
+		
+		if (t.individuals->location)
+			usage += t.individuals->max_location_length * sizeof(double);
+		if (t.individuals->metadata)
+			usage += t.individuals->max_metadata_length * sizeof(char);
+	}
+	
+	if (t.nodes)
+	{
+		usage += sizeof(node_table_t);
+		
+		if (t.nodes->flags)
+			usage += t.nodes->max_rows * sizeof(uint32_t);
+		if (t.nodes->time)
+			usage += t.nodes->max_rows * sizeof(double);
+		if (t.nodes->population)
+			usage += t.nodes->max_rows * sizeof(population_id_t);
+		if (t.nodes->individual)
+			usage += t.nodes->max_rows * sizeof(individual_id_t);
+		if (t.nodes->metadata_offset)
+			usage += t.nodes->max_rows * sizeof(table_size_t);
+		
+		if (t.nodes->metadata)
+			usage += t.nodes->max_metadata_length * sizeof(char);
+	}
+	
+	if (t.edges)
+	{
+		usage += sizeof(edge_table_t);
+		
+		if (t.edges->left)
+			usage += t.edges->max_rows * sizeof(double);
+		if (t.edges->right)
+			usage += t.edges->max_rows * sizeof(double);
+		if (t.edges->parent)
+			usage += t.edges->max_rows * sizeof(node_id_t);
+		if (t.edges->child)
+			usage += t.edges->max_rows * sizeof(node_id_t);
+	}
+	
+	if (t.migrations)
+	{
+		usage += sizeof(migration_table_t);
+		
+		if (t.migrations->source)
+			usage += t.migrations->max_rows * sizeof(population_id_t);
+		if (t.migrations->dest)
+			usage += t.migrations->max_rows * sizeof(population_id_t);
+		if (t.migrations->node)
+			usage += t.migrations->max_rows * sizeof(node_id_t);
+		if (t.migrations->left)
+			usage += t.migrations->max_rows * sizeof(double);
+		if (t.migrations->right)
+			usage += t.migrations->max_rows * sizeof(double);
+		if (t.migrations->time)
+			usage += t.migrations->max_rows * sizeof(double);
+	}
+	
+	if (t.sites)
+	{
+		usage += sizeof(site_table_t);
+		
+		if (t.sites->position)
+			usage += t.sites->max_rows * sizeof(double);
+		if (t.sites->ancestral_state_offset)
+			usage += t.sites->max_rows * sizeof(table_size_t);
+		if (t.sites->metadata_offset)
+			usage += t.sites->max_rows * sizeof(table_size_t);
+		
+		if (t.sites->ancestral_state)
+			usage += t.sites->max_ancestral_state_length * sizeof(char);
+		if (t.sites->metadata)
+			usage += t.sites->max_metadata_length * sizeof(char);
+	}
+	
+	if (t.mutations)
+	{
+		usage += sizeof(mutation_table_t);
+		
+		if (t.mutations->node)
+			usage += t.mutations->max_rows * sizeof(node_id_t);
+		if (t.mutations->site)
+			usage += t.mutations->max_rows * sizeof(site_id_t);
+		if (t.mutations->parent)
+			usage += t.mutations->max_rows * sizeof(mutation_id_t);
+		if (t.mutations->derived_state_offset)
+			usage += t.mutations->max_rows * sizeof(table_size_t);
+		if (t.mutations->metadata_offset)
+			usage += t.mutations->max_rows * sizeof(table_size_t);
+		
+		if (t.mutations->derived_state)
+			usage += t.mutations->max_derived_state_length * sizeof(char);
+		if (t.mutations->metadata)
+			usage += t.mutations->max_metadata_length * sizeof(char);
+	}
+	
+	if (t.populations)
+	{
+		usage += sizeof(population_table_t);
+		
+		if (t.populations->metadata_offset)
+			usage += t.populations->max_rows * sizeof(table_size_t);
+		
+		if (t.populations->metadata)
+			usage += t.populations->max_metadata_length * sizeof(char);
+	}
+	
+	if (t.provenances)
+	{
+		usage += sizeof(provenance_table_t);
+		
+		if (t.provenances->timestamp_offset)
+			usage += t.provenances->max_rows * sizeof(table_size_t);
+		if (t.provenances->record_offset)
+			usage += t.provenances->max_rows * sizeof(table_size_t);
+		
+		if (t.provenances->timestamp)
+			usage += t.provenances->max_timestamp_length * sizeof(char);
+		if (t.provenances->record)
+			usage += t.provenances->max_record_length * sizeof(char);
+	}
+	
+	usage += remembered_genomes_.size() * sizeof(node_id_t);
+	
+	return usage;
+}
+
 
 //
 //	Eidos support
@@ -8451,6 +8593,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_outputFixedMutations:			return ExecuteMethod_outputFixedMutations(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_outputFull:					return ExecuteMethod_outputFull(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_outputMutations:				return ExecuteMethod_outputMutations(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_outputUsage:					return ExecuteMethod_outputUsage(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_readFromPopulationFile:		return ExecuteMethod_readFromPopulationFile(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_recalculateFitness:			return ExecuteMethod_recalculateFitness(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_registerEarlyEvent:
@@ -9139,7 +9282,367 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	return gStaticEidosValueVOID;
 }
+
+static void PrintBytes(std::ostream &p_out, size_t p_bytes)
+{
+	p_out << p_bytes << " bytes";
+	
+	if (p_bytes > 1024L * 1024L * 1024L * 1024L)
+		p_out << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0)) << " TB" << ")";
+	else if (p_bytes > 1024L * 1024L * 1024L)
+		p_out << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0)) << " GB" << ")";
+	else if (p_bytes > 1024L * 1024L)
+		p_out << " (" << (p_bytes / (1024.0 * 1024.0)) << " MB" << ")";
+	else if (p_bytes > 1024)
+		p_out << " (" << (p_bytes / 1024.0) << " K" << ")";
+	
+	p_out << std::endl;
+}
+
+//	*********************	– (void)outputUsage()
+//
+EidosValue_SP SLiMSim::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	std::ostream &out = p_interpreter.ExecutionOutputStream();
+	
+	// Save flags/precision and set to precision 1
+	std::ios_base::fmtflags oldflags = out.flags();
+	std::streamsize oldprecision = out.precision();
+	out << std::fixed << std::setprecision(1);
+	
+	// Gather genomes
+	std::vector<Genome *> all_genomes, all_genomes_in_use;
+	size_t genome_pool_usage = 0, individual_pool_usage = 0;
+	
+	for (auto iter : population_)
+	{
+		Subpopulation &subpop = *iter.second;
+		
+		all_genomes.insert(all_genomes.end(), subpop.parent_genomes_.begin(), subpop.parent_genomes_.end());
+		all_genomes.insert(all_genomes.end(), subpop.child_genomes_.begin(), subpop.child_genomes_.end());
+		all_genomes.insert(all_genomes.end(), subpop.nonWF_offspring_genomes_.begin(), subpop.nonWF_offspring_genomes_.end());
+		all_genomes.insert(all_genomes.end(), subpop.genome_junkyard_nonnull.begin(), subpop.genome_junkyard_nonnull.end());
+		all_genomes.insert(all_genomes.end(), subpop.genome_junkyard_null.begin(), subpop.genome_junkyard_null.end());
+		
+		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.parent_genomes_.begin(), subpop.parent_genomes_.end());
+		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.child_genomes_.begin(), subpop.child_genomes_.end());
+		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.nonWF_offspring_genomes_.begin(), subpop.nonWF_offspring_genomes_.end());
+		
+		genome_pool_usage += subpop.genome_pool_->MemoryUsageForAllNodes();
+		individual_pool_usage += subpop.individual_pool_->MemoryUsageForAllNodes();
+	}
+	
+	// Print header
+	out << "Memory usage summary:" << std::endl;
+	size_t usage, total_usage = 0;
+	
+	// Chromosome
+	{
+		Chromosome &chr = chromosome_;
+		
+		usage = sizeof(Chromosome);
+		out << "   Chromosome object: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		usage = chr.MemoryUsageForMutationMaps();
+		out << "      Mutation rate maps: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		usage = chr.MemoryUsageForRecombinationMaps();
+		out << "      Recombination rate maps: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+	}
+	
+	// Genome
+	{
+		usage = all_genomes.size() * sizeof(Genome);
+		out << "   Genome objects (" << all_genomes.size() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		size_t unused_pool_usage = genome_pool_usage - usage;
+		
+		usage = 0;
+		for (Genome *genome : all_genomes)
+			usage += genome->MemoryUsageForMutrunBuffers();
+		out << "      External MutationRun* buffers: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		out << "      Unused pool space: ";
+		PrintBytes(out, unused_pool_usage);
+		total_usage += unused_pool_usage;
+	}
+	
+	// GenomicElement
+	{
+		usage = sizeof(GenomicElement) * chromosome_.GenomicElementCount();
+		out << "   GenomicElement objects (" << chromosome_.GenomicElementCount() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+	}
+	
+	// GenomicElementType
+	{
+		usage = sizeof(GenomicElementType) * genomic_element_types_.size();
+		out << "   GenomicElementType objects (" << genomic_element_types_.size() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+	}
+	
+	// Individual
+	{
+		int count = 0;
+		usage = 0;
+		
+		for (auto iter : population_)
+		{
+			Subpopulation &subpop = *iter.second;
 			
+			count += (subpop.parent_subpop_size_ + subpop.child_subpop_size_ + subpop.nonWF_offspring_individuals_.size());
+		}
+		
+		usage += count * sizeof(Individual);
+		out << "   Individual objects (" << count << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		size_t unused_pool_usage = individual_pool_usage - usage;
+		
+		out << "      Unused pool space: ";
+		PrintBytes(out, unused_pool_usage);
+		total_usage += unused_pool_usage;
+	}
+	
+	// InteractionType
+	{
+		usage = sizeof(InteractionType) * interaction_types_.size();
+		out << "   InteractionType objects (" << interaction_types_.size() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		if (interaction_types_.size())
+		{
+			usage = 0;
+			for (auto iter : interaction_types_)
+				usage += iter.second->MemoryUsageForKDTrees();
+			out << "      k-d trees: ";
+			PrintBytes(out, usage);
+			total_usage += usage;
+			
+			usage = 0;
+			for (auto iter : interaction_types_)
+				usage += iter.second->MemoryUsageForPositions();
+			out << "      position caches: ";
+			PrintBytes(out, usage);
+			total_usage += usage;
+			
+			usage = 0;
+			for (auto iter : interaction_types_)
+				usage += iter.second->MemoryUsageForSparseArrays();
+			out << "      sparse arrays: ";
+			PrintBytes(out, usage);
+			total_usage += usage;
+		}
+	}
+	
+	// Mutation
+	{
+		usage = sizeof(Mutation) * population_.mutation_registry_.size();
+		out << "   Mutation objects (" << population_.mutation_registry_.size() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		size_t block_usage = SLiM_MemoryUsageForMutationBlock();
+		size_t pool_unused = block_usage - usage;
+		size_t refcounts_usage = SLiM_MemoryUsageForMutationRefcounts();
+		
+		out << "      Refcount buffer: ";
+		PrintBytes(out, refcounts_usage);
+		total_usage += refcounts_usage;
+		
+		out << "      Unused pool space: ";
+		PrintBytes(out, pool_unused);
+		total_usage += pool_unused;
+	}
+	
+	// MutationRun
+	{
+		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int count = 0;
+		size_t usage_mutindex_buffers = 0;
+		size_t usage_nonneutral_buffers = 0;
+		
+		for (Genome *genome : all_genomes_in_use)
+		{
+			MutationRun_SP *mutruns = genome->mutruns_;
+			int32_t mutrun_count = genome->mutrun_count_;
+			
+			for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			{
+				MutationRun *mutrun = mutruns[mutrun_index].get();
+				
+				if (mutrun)
+				{
+					if (mutrun->operation_id_ != operation_id)
+					{
+						mutrun->operation_id_ = operation_id;
+						count++;
+						usage_mutindex_buffers += mutrun->MemoryUsageForMutationIndexBuffers();
+						usage_nonneutral_buffers += mutrun->MemoryUsageForNonneutralCaches();
+					}
+				}
+			}
+		}
+		
+		usage = count * sizeof(MutationRun);
+		out << "   MutationRun objects (" << count << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		usage = count * sizeof(MutationRun);
+		out << "      External MutationIndex buffers: ";
+		PrintBytes(out, usage_mutindex_buffers);
+		total_usage += usage_mutindex_buffers;
+		
+		usage = count * sizeof(MutationRun);
+		out << "      Nonneutral mutation caches: ";
+		PrintBytes(out, usage_mutindex_buffers);
+		total_usage += usage_mutindex_buffers;
+		
+		usage = MutationRun::s_freed_mutation_runs_.size() * sizeof(MutationRun);
+		out << "      Unused pool space: ";
+		PrintBytes(out, usage_mutindex_buffers);
+		total_usage += usage_mutindex_buffers;
+	}
+	
+	// MutationType
+	{
+		usage = sizeof(MutationType) * mutation_types_.size();
+		out << "   MutationType objects (" << mutation_types_.size() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+	}
+	
+	// SLiMSim (including the Population object)
+	{
+		usage = sizeof(SLiMSim) - sizeof(Chromosome);	// Chromosome is handled separately above
+		out << "   SLiMSim object: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		usage = 0;
+		if (recording_tree_)
+			usage += MemoryUsageForTables(tables_);
+		out << "      Tree-sequence tables: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+	}
+	
+	// Subpopulation
+	{
+		usage = sizeof(Subpopulation) * population_.size();
+		out << "   Subpopulation objects (" << population_.size() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		usage = 0;
+		for (auto iter : population_)
+		{
+			Subpopulation &subpop = *iter.second;
+			
+			if (subpop.cached_parental_fitness_)
+				usage += subpop.cached_fitness_capacity_ * sizeof(double);
+			if (subpop.cached_male_fitness_)
+				usage += subpop.cached_fitness_capacity_ * sizeof(double);
+		}
+		out << "      Fitness caches: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		size_t display_buffer_usage = 0;
+		usage = 0;
+		for (auto iter : population_)
+		{
+			Subpopulation &subpop = *iter.second;
+			
+			for (auto iter_map : subpop.spatial_maps_)
+			{
+				SpatialMap &map = *iter_map.second;
+				
+				if (map.values_)
+				{
+					if (map.spatiality_ == 1)
+						usage += map.grid_size_[0] * sizeof(double);
+					else if (map.spatiality_ == 2)
+						usage += map.grid_size_[0] * map.grid_size_[1] * sizeof(double);
+					else if (map.spatiality_ == 3)
+						usage += map.grid_size_[0] * map.grid_size_[1] * map.grid_size_[2] * sizeof(double);
+				}
+				if (map.red_components_)
+					usage += map.n_colors_ * sizeof(float) * 3;
+				if (map.display_buffer_)
+					display_buffer_usage += map.buffer_width_ * map.buffer_height_ * sizeof(uint8_t) * 3;
+			}
+		}
+		out << "      Spatial maps: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		if (display_buffer_usage)
+		{
+			out << "      Spatial map display (SLiMgui): ";
+			PrintBytes(out, display_buffer_usage);
+			total_usage += display_buffer_usage;
+		}
+	}
+	
+	// Substitution
+	{
+		usage = sizeof(Substitution) * population_.substitutions_.size();
+		out << "   Substitution objects (" << population_.substitutions_.size() << "): ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+	}
+	
+	// Eidos usage
+	{
+		out << "   Eidos: " << std::endl;
+		
+		usage = gEidosASTNodePool->MemoryUsageForAllNodes();
+		out << "      EidosASTNode pool: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		usage = MemoryUsageForSymbolTables(&p_interpreter.SymbolTable());
+		out << "      EidosSymbolTable pool: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+		
+		usage = gEidosValuePool->MemoryUsageForAllNodes();
+		out << "      EidosValue pool: ";
+		PrintBytes(out, usage);
+		total_usage += usage;
+	}
+	
+	// missing: EidosCallSignature, EidosPropertySignature, EidosScript, EidosToken, function map, global strings and ids and maps, std::strings in various objects
+	// that sort of overhead should be fairly constant, though, and should be dwarfed by the overhead of the objects above in bigger models
+	
+	out << "   # Total accounted for: ";
+	PrintBytes(out, total_usage);
+	out << std::endl;
+	
+	// Restore flags/precision
+	out.flags(oldflags);
+	out.precision(oldprecision);
+	
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	- (integer$)readFromPopulationFile(string$ filePath)
 //
 EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -9737,6 +10240,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputUsage, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("generation", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));

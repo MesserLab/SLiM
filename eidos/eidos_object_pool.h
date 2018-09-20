@@ -132,6 +132,19 @@ public:
 		}
 	}
 	
+	size_t MemoryUsageForAllNodes(void)
+	{
+		size_t usage = 0;
+		_Node *node = &_firstNode;
+		while(node)
+		{
+			_Node *nextNode = node->_nextNode;
+			usage += node->_capacity * _itemSize;
+			node = nextNode;
+		}
+		return usage;
+	}
+	
 	// usage: new (gXPool->AllocateChunk()) ObjectType(... parameters ...);
 	inline __attribute__((always_inline)) void *AllocateChunk()
 	{

@@ -535,6 +535,7 @@ public:
 	slim_generation_t _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter);								// given tree-seq tables, makes individuals, genomes, and mutations
 	slim_generation_t _InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime text file
 	slim_generation_t _InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime binary file
+	size_t MemoryUsageForTables(table_collection_t &p_tables);
 	
 	//
 	// Eidos support
@@ -585,6 +586,7 @@ public:
 	EidosValue_SP ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_outputFull(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_outputMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

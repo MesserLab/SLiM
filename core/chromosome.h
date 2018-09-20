@@ -170,6 +170,7 @@ public:
 	
 	inline bool UsingSingleRecombinationMap(void) const { return single_recombination_map_; }
 	inline bool UsingSingleMutationMap(void) const { return single_mutation_map_; }
+	inline size_t GenomicElementCount(void) const { return size(); }
 	
 	// draw the number of mutations that occur, based on the overall mutation rate
 	int DrawMutationCount(IndividualSex p_sex) const;
@@ -198,6 +199,10 @@ public:
 	// internal methods for throwing errors from inline functions when assumptions about the configuration of maps are violated
 	void MutationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	void RecombinationMapConfigError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
+	
+	// Memory usage tallying, for outputUsage()
+	size_t MemoryUsageForMutationMaps(void);
+	size_t MemoryUsageForRecombinationMaps(void);
 	
 	
 	//

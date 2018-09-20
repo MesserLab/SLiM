@@ -1087,6 +1087,42 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	return p_strength;
 }
 
+size_t InteractionType::MemoryUsageForKDTrees(void)
+{
+	size_t usage = 0;
+	
+	for (auto &iter : data_)
+	{
+		const InteractionsData &data = iter.second;
+		usage += sizeof(SLiM_kdNode) * data.individual_count_;
+	}
+	
+	return usage;
+}
+
+size_t InteractionType::MemoryUsageForPositions(void)
+{
+	size_t usage = 0;
+	
+	for (auto &iter : data_)
+	{
+		const InteractionsData &data = iter.second;
+		usage += sizeof(double) * data.individual_count_;
+	}
+	
+	return usage;
+}
+
+size_t InteractionType::MemoryUsageForSparseArrays(void)
+{
+	size_t usage = 0;
+	
+	for (auto &iter : data_)
+		usage += iter.second.dist_str_->MemoryUsage();
+	
+	return usage;
+}
+
 
 #pragma mark -
 #pragma mark k-d tree construction

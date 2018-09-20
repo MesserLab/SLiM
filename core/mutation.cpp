@@ -160,6 +160,16 @@ void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_regi
 #endif
 }
 
+size_t SLiM_MemoryUsageForMutationBlock(void)
+{
+	return gSLiM_Mutation_Block_Capacity * sizeof(Mutation);
+}
+
+size_t SLiM_MemoryUsageForMutationRefcounts(void)
+{
+	return gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t);
+}
+
 
 #pragma mark -
 #pragma mark Mutation

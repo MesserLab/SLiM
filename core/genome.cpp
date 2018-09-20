@@ -1301,6 +1301,14 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	}
 }
 
+size_t Genome::MemoryUsageForMutrunBuffers(void)
+{
+	if (mutruns_ == run_buffer_)
+		return 0;
+	else
+		return mutrun_count_ * sizeof(MutationRun_SP);
+}
+
 
 //
 //	Genome_Class

@@ -142,6 +142,9 @@ public:
 	const sa_distance_t *DistancesForRow(uint32_t p_row, uint32_t *p_row_nnz, const uint32_t **p_row_columns) const;
 	const sa_strength_t *StrengthsForRow(uint32_t p_row, uint32_t *p_row_nnz, const uint32_t **p_row_columns) const;
 	
+	// Memory usage tallying, for outputUsage()
+	size_t MemoryUsage(void);
+	
 	// Non-const access, for filling in strength values after the fact (among other uses)
 	void InteractionsForRow(uint32_t p_row, uint32_t *p_row_nnz, uint32_t **p_row_columns, sa_distance_t **p_row_distances, sa_strength_t **p_row_strengths);
 	

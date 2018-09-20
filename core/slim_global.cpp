@@ -662,6 +662,7 @@ const std::string gStr_mutationCounts = "mutationCounts";
 const std::string gStr_outputFixedMutations = "outputFixedMutations";
 const std::string gStr_outputFull = "outputFull";
 const std::string gStr_outputMutations = "outputMutations";
+const std::string gStr_outputUsage = "outputUsage";
 const std::string gStr_readFromPopulationFile = "readFromPopulationFile";
 const std::string gStr_recalculateFitness = "recalculateFitness";
 const std::string gStr_registerEarlyEvent = "registerEarlyEvent";
@@ -960,6 +961,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_outputFixedMutations, gID_outputFixedMutations);
 		Eidos_RegisterStringForGlobalID(gStr_outputFull, gID_outputFull);
 		Eidos_RegisterStringForGlobalID(gStr_outputMutations, gID_outputMutations);
+		Eidos_RegisterStringForGlobalID(gStr_outputUsage, gID_outputUsage);
 		Eidos_RegisterStringForGlobalID(gStr_readFromPopulationFile, gID_readFromPopulationFile);
 		Eidos_RegisterStringForGlobalID(gStr_recalculateFitness, gID_recalculateFitness);
 		Eidos_RegisterStringForGlobalID(gStr_registerEarlyEvent, gID_registerEarlyEvent);

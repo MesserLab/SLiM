@@ -3618,9 +3618,18 @@ Beginning with SLiM 3.0, the
 \f2\fs18 late()
 \f0\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f3 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)outputUsage(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Output the current memory usage of the simulation to Eidos\'92s output stream.  The specifics of what is printed, and in what format, should not be relied upon as they may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.\cf2   Note that it does not capture 
+\i all
+\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf0 Read from a population initialization file, whether in text or binary format as previously specified to 

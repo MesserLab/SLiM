@@ -361,6 +361,9 @@ public:
 	// print the sample represented by genomes, using "vcf" format
 	static void PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics);
 	
+	// Memory usage tallying, for outputUsage()
+	size_t MemoryUsageForMutrunBuffers(void);
+	
 	
 	//
 	// Eidos support
