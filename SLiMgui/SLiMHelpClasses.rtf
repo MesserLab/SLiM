@@ -3591,11 +3591,14 @@ Beginning with SLiM 3.0, the
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Output all of the given mutations.  This can be used to output all mutations of a given mutation type, for example.  If the optional parameter 
+\f0\fs20 \cf0 Output all of the given mutations.  This can be used to output all mutations of a given mutation type, for example.  \cf2 \expnd0\expndtw0\kerning0
+If the optional parameter 
 \f2\fs18 filePath
 \f0\fs20  is 
 \f2\fs18 NULL
-\f0\fs20  (the default), output will be sent to Eidos\'92s output stream, overwriting that file if 
+\f0\fs20  (the default), output will be sent to Eidos\'92s output stream (see section 4.2.1).  Otherwise, output will be sent to the filesystem path specified by 
+\f2\fs18 filePath
+\f0\fs20 , overwriting that file if 
 \f2\fs18 append
 \f0\fs20  if 
 \f2\fs18 F
@@ -3603,16 +3606,8 @@ Beginning with SLiM 3.0, the
 \f2\fs18 append
 \f0\fs20  is 
 \f2\fs18 T
-\f3\fs20 .
-\f0   Otherwise, output will be sent to the filesystem path specified by 
-\f2\fs18 filePath
-\f3\fs20 .
-\f0   If output is sent to a file, it will be 
-\i appended
-\i0  to that file, unlike all other SLiM output methods (which replace an existing file).  This is done because tracking mutations is generally done over many generations, with new tracking data being output in each generation; if appending is not desired, use the Eidos 
-\f2\fs18 deleteFile()
-\f0\fs20  function to remove any pre-existing file prior to output
-\f3 .\
+\f0\fs20 .
+\f3 \cf0 \kerning1\expnd0\expndtw0 \
 
 \f0 Output is generally done in a 
 \f2\fs18 late()
@@ -3624,9 +3619,9 @@ Beginning with SLiM 3.0, the
 \'96\'a0(void)outputUsage(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf2 Output the current memory usage of the simulation to Eidos\'92s output stream.  The specifics of what is printed, and in what format, should not be relied upon as they may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.\cf2   Note that it does not capture 
+\f0\fs20 \cf2 Output the current memory usage of the simulation to Eidos\'92s output stream.  The specifics of what is printed, and in what format, should not be relied upon as they may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.  Note that it does not capture 
 \i all
-\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.\cf2 \
+\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\
