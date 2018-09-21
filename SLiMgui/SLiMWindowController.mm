@@ -1417,6 +1417,10 @@
 	
 	[content eidosAppendString:[NSString stringWithFormat:@"Profile block external overhead: %0.2f ticks (%0.4g s)\n", gEidos_ProfileOverheadTicks, gEidos_ProfileOverheadSeconds] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Profile block internal lag: %0.2f ticks (%0.4g s)\n", gEidos_ProfileLagTicks, gEidos_ProfileLagSeconds] attributes:optima13_d];
+	[content eidosAppendString:@"\n" attributes:optima8_d];
+	
+	[content eidosAppendString:[NSString stringWithFormat:@"Average generation SLiM memory use: %@\n", [NSString stringForByteCount:sim->profile_total_memory_usage_.totalMemoryUsage / sim->total_memory_tallies_]] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Final generation SLiM memory use: %@\n", [NSString stringForByteCount:sim->profile_last_memory_usage_.totalMemoryUsage]] attributes:optima13_d];
 	
 	
 	//
@@ -1895,6 +1899,254 @@
 	}
 #endif
 	
+	{
+		//
+		//	Memory usage metrics
+		//
+		SLiM_MemoryUsage &mem_tot = sim->profile_total_memory_usage_;
+		SLiM_MemoryUsage &mem_last = sim->profile_last_memory_usage_;
+		int64_t div = sim->total_memory_tallies_;
+		double ddiv = sim->total_memory_tallies_;
+		double average_total = mem_tot.totalMemoryUsage / ddiv;
+		double final_total = mem_last.totalMemoryUsage;
+		
+		[content eidosAppendString:@"\n" attributes:menlo11_d];
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		[content eidosAppendString:@"SLiM memory usage (average / final generation)\n" attributes:optima14b_d];
+		[content eidosAppendString:@"\n" attributes:optima3_d];
+		
+		// Chromosome
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : Chromosome object\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeMutationRateMaps / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeMutationRateMaps total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : mutation rate maps\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeRecombinationRateMaps / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeRecombinationRateMaps total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : recombination rate maps\n" attributes:optima13_d];
+		
+		// Genome
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot.genomeObjects_count / ddiv, mem_last.genomeObjects_count] attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeExternalBuffers / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeExternalBuffers total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : external MutationRun* buffers\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
+		
+		// GenomicElement
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomicElementObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomicElementObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElement objects (%0.2f / %lld)\n", mem_tot.genomicElementObjects_count / ddiv, mem_last.genomicElementObjects_count] attributes:optima13_d];
+		
+		// GenomicElementType
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomicElementTypeObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomicElementTypeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElementType objects (%0.2f / %lld)\n", mem_tot.genomicElementTypeObjects_count / ddiv, mem_last.genomicElementTypeObjects_count] attributes:optima13_d];
+		
+		// Individual
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.individualObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.individualObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Individual objects (%0.2f / %lld)\n", mem_tot.individualObjects_count / ddiv, mem_last.individualObjects_count] attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.individualUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.individualUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
+		
+		// InteractionType
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypeObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : InteractionType objects (%0.2f / %lld)\n", mem_tot.interactionTypeObjects_count / ddiv, mem_last.interactionTypeObjects_count] attributes:optima13_d];
+		
+		if (mem_tot.interactionTypeObjects_count || mem_last.interactionTypeObjects_count)
+		{
+			[content eidosAppendString:@"   " attributes:menlo11_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypeKDTrees / div total:average_total attributes:menlo11_d]];
+			[content eidosAppendString:@" / " attributes:optima13_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypeKDTrees total:final_total attributes:menlo11_d]];
+			[content eidosAppendString:@" : k-d trees\n" attributes:optima13_d];
+			
+			[content eidosAppendString:@"   " attributes:menlo11_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypePositionCaches / div total:average_total attributes:menlo11_d]];
+			[content eidosAppendString:@" / " attributes:optima13_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypePositionCaches total:final_total attributes:menlo11_d]];
+			[content eidosAppendString:@" : position caches\n" attributes:optima13_d];
+			
+			[content eidosAppendString:@"   " attributes:menlo11_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypeSparseArrays / div total:average_total attributes:menlo11_d]];
+			[content eidosAppendString:@" / " attributes:optima13_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypeSparseArrays total:final_total attributes:menlo11_d]];
+			[content eidosAppendString:@" : sparse arrays\n" attributes:optima13_d];
+		}
+		
+		// Mutation
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Mutation objects (%0.2f / %lld)\n", mem_tot.mutationObjects_count / ddiv, mem_last.mutationObjects_count] attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRefcountBuffer / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRefcountBuffer total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : refcount buffer\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
+		
+		// MutationRun
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : MutationRun objects (%0.2f / %lld)\n", mem_tot.mutationRunObjects_count / ddiv, mem_last.mutationRunObjects_count] attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunExternalBuffers / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunExternalBuffers total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : external MutationIndex buffers\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunNonneutralCaches / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunNonneutralCaches total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : nonneutral mutation caches\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
+		
+		// MutationType
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationTypeObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationTypeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : MutationType objects (%0.2f / %lld)\n", mem_tot.mutationTypeObjects_count / ddiv, mem_last.mutationTypeObjects_count] attributes:optima13_d];
+		
+		// SLiMSim
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.slimsimObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.slimsimObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : SLiMSim object\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.slimsimTreeSeqTables / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.slimsimTreeSeqTables total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : tree-sequence tables\n" attributes:optima13_d];
+		
+		// Subpopulation
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Subpopulation objects (%0.2f / %lld)\n", mem_tot.subpopulationObjects_count / ddiv, mem_last.subpopulationObjects_count] attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationFitnessCaches / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationFitnessCaches total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : fitness caches\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationParentTables / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationParentTables total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : parent tables\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationSpatialMaps / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationSpatialMaps total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : spatial maps\n" attributes:optima13_d];
+		
+		if (mem_tot.subpopulationSpatialMapsDisplay || mem_last.subpopulationSpatialMapsDisplay)
+		{
+			[content eidosAppendString:@"   " attributes:menlo11_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationSpatialMapsDisplay / div total:average_total attributes:menlo11_d]];
+			[content eidosAppendString:@" / " attributes:optima13_d];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationSpatialMapsDisplay total:final_total attributes:menlo11_d]];
+			[content eidosAppendString:@" : spatial map display (SLiMgui only)\n" attributes:optima13_d];
+		}
+		
+		// Substitution
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.substitutionObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.substitutionObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Substitution objects (%0.2f / %lld)\n", mem_tot.substitutionObjects_count / ddiv, mem_last.substitutionObjects_count] attributes:optima13_d];
+		
+		// Eidos
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content eidosAppendString:@"Eidos:\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.eidosASTNodePool / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.eidosASTNodePool total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : EidosASTNode pool\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.eidosSymbolTablePool / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.eidosSymbolTablePool total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : EidosSymbolTable pool\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.eidosValuePool / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.eidosValuePool total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : EidosValue pool" attributes:optima13_d];
+	}
+	
 	// Set the attributed string into the profile report text view
 	NSTextStorage *ts = [profileTextView textStorage];
 	
@@ -1927,7 +2179,7 @@
 		
 		NSRange range = NSMakeRange(start, end - start + 1);
 		
-		NSColor *backgroundColor = [self colorForTimeFraction:Eidos_ElapsedProfileTime(count) / elapsedTime];
+		NSColor *backgroundColor = [NSColor slimColorForFraction:Eidos_ElapsedProfileTime(count) / elapsedTime];
 		
 		[script addAttribute:NSBackgroundColorAttributeName value:backgroundColor range:range];
 	}
@@ -1935,23 +2187,6 @@
 	// Then let child nodes color
 	for (const EidosASTNode *child : node->children_)
 		[self colorScript:script withProfileCountsFromNode:child elapsedTime:elapsedTime baseIndex:baseIndex];
-}
-
-#define SLIM_YELLOW_FRACTION 0.10
-#define SLIM_SATURATION 0.75
-
-- (NSColor *)colorForTimeFraction:(double)timeFraction
-{
-	if (timeFraction < SLIM_YELLOW_FRACTION)
-	{
-		// small fractions fall on a ramp from white (0.0) to yellow (SLIM_YELLOW_FRACTION)
-		return [NSColor colorWithCalibratedHue:(1.0 / 6.0) saturation:(timeFraction / SLIM_YELLOW_FRACTION) * SLIM_SATURATION brightness:1.0 alpha:1.0];
-	}
-	else
-	{
-		// larger fractions ramp from yellow (SLIM_YELLOW_FRACTION) to red (1.0)
-		return [NSColor colorWithCalibratedHue:(1.0 / 6.0) * (1.0 - (timeFraction - SLIM_YELLOW_FRACTION) / (1.0 - SLIM_YELLOW_FRACTION)) saturation:SLIM_SATURATION brightness:1.0 alpha:1.0];
-	}
 }
 
 - (void)startProfiling
@@ -2017,6 +2252,11 @@
 	sim->profile_mutrun_nonneutral_recache_total_ = 0;
 	sim->profile_max_mutation_index_ = 0;
 #endif
+	
+	// zero out memory usage metrics
+	EIDOS_BZERO(&sim->profile_last_memory_usage_, sizeof(SLiM_MemoryUsage));
+	EIDOS_BZERO(&sim->profile_total_memory_usage_, sizeof(SLiM_MemoryUsage));
+	sim->total_memory_tallies_ = 0;
 }
 
 - (void)endProfiling

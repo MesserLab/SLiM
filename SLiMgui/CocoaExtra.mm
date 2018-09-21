@@ -1157,8 +1157,54 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 }  
 @end  
 
+@implementation NSString (SLiMBytes)
++ (NSString *)stringForByteCount:(int64_t)bytes
+{
+	if (bytes > 512L * 1024L * 1024L * 1024L)
+		return [NSString stringWithFormat:@"%0.2f TB", bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0)];
+	else if (bytes > 512L * 1024L * 1024L)
+		return [NSString stringWithFormat:@"%0.2f GB", bytes / (1024.0 * 1024.0 * 1024.0)];
+	else if (bytes > 512L * 1024L)
+		return [NSString stringWithFormat:@"%0.2f MB", bytes / (1024.0 * 1024.0)];
+	else if (bytes > 512L)
+		return [NSString stringWithFormat:@"%0.2f KB", bytes / 1024.0];
+	else
+		return [NSString stringWithFormat:@"%lld bytes", bytes];
+}
+@end
 
+@implementation NSColor (SLiMHeatColors)
+#define SLIM_YELLOW_FRACTION 0.10
+#define SLIM_SATURATION 0.75
 
++ (NSColor *)slimColorForFraction:(double)fraction
+{
+	if (fraction < SLIM_YELLOW_FRACTION)
+	{
+		// small fractions fall on a ramp from white (0.0) to yellow (SLIM_YELLOW_FRACTION)
+		return [NSColor colorWithCalibratedHue:(1.0 / 6.0) saturation:(fraction / SLIM_YELLOW_FRACTION) * SLIM_SATURATION brightness:1.0 alpha:1.0];
+	}
+	else
+	{
+		// larger fractions ramp from yellow (SLIM_YELLOW_FRACTION) to red (1.0)
+		return [NSColor colorWithCalibratedHue:(1.0 / 6.0) * (1.0 - (fraction - SLIM_YELLOW_FRACTION) / (1.0 - SLIM_YELLOW_FRACTION)) saturation:SLIM_SATURATION brightness:1.0 alpha:1.0];
+	}
+}
+@end
+
+@implementation NSAttributedString (SLiMBytes)
++ (NSAttributedString *)attributedStringForByteCount:(int64_t)bytes total:(double)total attributes:(NSDictionary *)attrs
+{
+	NSString *byteString = [NSString stringForByteCount:bytes];
+	double fraction = bytes / total;
+	NSColor *fractionColor = [NSColor slimColorForFraction:fraction];
+	NSMutableDictionary *colorAttrs = [NSMutableDictionary dictionaryWithDictionary:attrs];
+	
+	[colorAttrs setObject:fractionColor forKey:NSBackgroundColorAttributeName];
+	
+	return [[[NSAttributedString alloc] initWithString:byteString attributes:colorAttrs] autorelease];
+}
+@end
 
 
 

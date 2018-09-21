@@ -1118,7 +1118,12 @@ size_t InteractionType::MemoryUsageForSparseArrays(void)
 	size_t usage = 0;
 	
 	for (auto &iter : data_)
-		usage += iter.second.dist_str_->MemoryUsage();
+	{
+		SparseArray *array = iter.second.dist_str_;
+		
+		if (array)
+			usage += iter.second.dist_str_->MemoryUsage();
+	}
 	
 	return usage;
 }

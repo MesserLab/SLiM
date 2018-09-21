@@ -175,100 +175,63 @@ static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMig
 #endif
 
 
-// Memory usage assessment; this can produce a report like this:
-/*
-	Memory usage summary:
-	   Chromosome object: 752 bytes
-		  Mutation rate maps: 56 bytes
-		  Recombination rate maps: 32 bytes
-	   Genome objects (2000): 192000 bytes (187.5 K)
-		  External MutationRun* buffers: 32000 bytes (31.2 K)
-		  Unused pool space: 4608 bytes (4.5 K)
-	   GenomicElement objects (1): 40 bytes
-	   GenomicElementType objects (1): 160 bytes
-	   Individual objects (1000): 232000 bytes (226.6 K)
-		  Unused pool space: 5568 bytes (5.4 K)
-	   InteractionType objects (2): 352 bytes
-		  k-d trees: 48000 bytes (46.9 K)
-		  position caches: 8000 bytes (7.8 K)
-		  sparse arrays: 1572872 bytes (1.5 MB)
-	   Mutation objects (725): 58000 bytes (56.6 K)
-		  Refcount buffer: 65536 bytes (64.0 K)
-		  Unused pool space: 1252720 bytes (1.2 MB)
-	   MutationRun objects (484): 34848 bytes (34.0 K)
-		  External MutationIndex buffers: 18496 bytes (18.1 K)
-		  Nonneutral mutation caches: 18496 bytes (18.1 K)
-		  Unused pool space: 18496 bytes (18.1 K)
-	   MutationType objects (2): 640 bytes
-	   SLiMSim object: 1624 bytes (1.6 K)
-		  Tree-sequence tables: 2200008 bytes (2.1 MB)
-	   Subpopulation objects (1): 752 bytes
-		  Fitness caches: 4000 bytes (3.9 K)
-		  Spatial maps: 224 bytes
-		  Spatial map display (SLiMgui): 168507 bytes (164.6 K)
-	   Substitution objects (0): 0 bytes
-	   Eidos: 
-		  EidosASTNode pool: 139264 bytes (136.0 K)
-		  EidosSymbolTable pool: 81920 bytes (80.0 K)
-		  EidosValue pool: 172032 bytes (168.0 K)
-	   # Total accounted for: 6332003 bytes (6.0 MB)
- */
+// Memory usage assessment as done by SLiMSim::TabulateMemoryUsage() is placed into this struct
 typedef struct
 {
-	int chromosomeObjects_count;
+	int64_t chromosomeObjects_count;
 	size_t chromosomeObjects;
 	size_t chromosomeMutationRateMaps;
 	size_t chromosomeRecombinationRateMaps;
 	
-	int genomeObjects_count;
+	int64_t genomeObjects_count;
 	size_t genomeObjects;
 	size_t genomeExternalBuffers;
 	size_t genomeUnusedPoolSpace;
 	size_t genomeUnusedPoolBuffers;
 	
-	int genomicElementObjects_count;
+	int64_t genomicElementObjects_count;
 	size_t genomicElementObjects;
 	
-	int genomicElementTypeObjects_count;
+	int64_t genomicElementTypeObjects_count;
 	size_t genomicElementTypeObjects;
 	
-	int individualObjects_count;
+	int64_t individualObjects_count;
 	size_t individualObjects;
 	size_t individualUnusedPoolSpace;
 	
-	int interactionTypeObjects_count;
+	int64_t interactionTypeObjects_count;
 	size_t interactionTypeObjects;
 	size_t interactionTypeKDTrees;
 	size_t interactionTypePositionCaches;
 	size_t interactionTypeSparseArrays;
 	
-	int mutationObjects_count;
+	int64_t mutationObjects_count;
 	size_t mutationObjects;
 	size_t mutationRefcountBuffer;
 	size_t mutationUnusedPoolSpace;
 	
-	int mutationRunObjects_count;
+	int64_t mutationRunObjects_count;
 	size_t mutationRunObjects;
 	size_t mutationRunExternalBuffers;
 	size_t mutationRunNonneutralCaches;
 	size_t mutationRunUnusedPoolSpace;
 	size_t mutationRunUnusedPoolBuffers;
 	
-	int mutationTypeObjects_count;
+	int64_t mutationTypeObjects_count;
 	size_t mutationTypeObjects;
 	
-	int slimsimObjects_count;
+	int64_t slimsimObjects_count;
 	size_t slimsimObjects;
 	size_t slimsimTreeSeqTables;
 	
-	int subpopulationObjects_count;
+	int64_t subpopulationObjects_count;
 	size_t subpopulationObjects;
 	size_t subpopulationFitnessCaches;
 	size_t subpopulationParentTables;
 	size_t subpopulationSpatialMaps;
 	size_t subpopulationSpatialMapsDisplay;
 	
-	int substitutionObjects_count;
+	int64_t substitutionObjects_count;
 	size_t substitutionObjects;
 	
 	size_t eidosASTNodePool;
@@ -323,6 +286,11 @@ public:
 	// PROFILING
 	eidos_profile_t profile_stage_totals_[7];										// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
 	eidos_profile_t profile_callback_totals_[10];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
+	
+	SLiM_MemoryUsage profile_last_memory_usage_;
+	SLiM_MemoryUsage profile_total_memory_usage_;
+	int64_t total_memory_tallies_;
+	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation
@@ -548,6 +516,7 @@ public:
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
+	void CollectSLiMguiMemoryUsageProfileInfo(void);
 #if SLIM_USE_NONNEUTRAL_CACHES
 	void CollectSLiMguiMutationProfileInfo(void);
 #endif

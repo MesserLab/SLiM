@@ -2732,6 +2732,12 @@ bool SLiMSim::_RunOneGeneration(void)
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		CollectSLiMguiMemoryUsageProfileInfo();
+#endif
+		
 		return true;
 	}
 	else
@@ -3163,6 +3169,11 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		CollectSLiMguiMemoryUsageProfileInfo();
+#endif
+		
 		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
 		// cache it, because it can change based upon changes in script registration / deregistration.
 		bool result;
@@ -3576,6 +3587,11 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		gEidosCurrentScript = nullptr;
 		gEidosExecutingRuntimeScript = false;
 		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		CollectSLiMguiMemoryUsageProfileInfo();
+#endif
+		
 		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
 		// cache it, because it can change based upon changes in script registration / deregistration.
 		bool result;
@@ -3807,7 +3823,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// Genome
 	{
-		p_usage->genomeObjects_count = (int)all_genomes_in_use.size();
+		p_usage->genomeObjects_count = (int64_t)all_genomes_in_use.size();
 		
 		p_usage->genomeObjects = sizeof(Genome) * p_usage->genomeObjects_count;
 		
@@ -3824,14 +3840,14 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// GenomicElement
 	{
-		p_usage->genomicElementObjects_count = (int)chromosome_.GenomicElementCount();
+		p_usage->genomicElementObjects_count = (int64_t)chromosome_.GenomicElementCount();
 		
 		p_usage->genomicElementObjects = sizeof(GenomicElement) * p_usage->genomicElementObjects_count;
 	}
 	
 	// GenomicElementType
 	{
-		p_usage->genomicElementTypeObjects_count = (int)genomic_element_types_.size();
+		p_usage->genomicElementTypeObjects_count = (int64_t)genomic_element_types_.size();
 		
 		p_usage->genomicElementTypeObjects = sizeof(GenomicElementType) * p_usage->genomicElementTypeObjects_count;
 	}
@@ -3853,7 +3869,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// InteractionType
 	{
-		p_usage->interactionTypeObjects_count = (int)interaction_types_.size();
+		p_usage->interactionTypeObjects_count = (int64_t)interaction_types_.size();
 		
 		p_usage->interactionTypeObjects = sizeof(InteractionType) * p_usage->interactionTypeObjects_count;
 		
@@ -3872,7 +3888,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// Mutation
 	{
-		p_usage->mutationObjects_count = (int)population_.mutation_registry_.size();
+		p_usage->mutationObjects_count = (int64_t)population_.mutation_registry_.size();
 		
 		p_usage->mutationObjects = sizeof(Mutation) * p_usage->mutationObjects_count;
 		
@@ -3924,7 +3940,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// MutationType
 	{
-		p_usage->mutationTypeObjects_count = (int)mutation_types_.size();
+		p_usage->mutationTypeObjects_count = (int64_t)mutation_types_.size();
 		
 		p_usage->mutationTypeObjects = sizeof(MutationType) * p_usage->mutationTypeObjects_count;
 	}
@@ -3940,7 +3956,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// Subpopulation
 	{
-		p_usage->subpopulationObjects_count = (int)population_.size();
+		p_usage->subpopulationObjects_count = (int64_t)population_.size();
 		
 		p_usage->subpopulationObjects = sizeof(Subpopulation) * p_usage->subpopulationObjects_count;
 		
@@ -4001,7 +4017,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// Substitution
 	{
-		p_usage->substitutionObjects_count = (int)population_.substitutions_.size();
+		p_usage->substitutionObjects_count = (int64_t)population_.substitutions_.size();
 		
 		p_usage->substitutionObjects = sizeof(Substitution) * p_usage->substitutionObjects_count;
 	}
@@ -4071,6 +4087,78 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	p_usage->totalMemoryUsage = total_usage;
 }
+
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+// PROFILING
+void SLiMSim::CollectSLiMguiMemoryUsageProfileInfo(void)
+{
+	TabulateMemoryUsage(&profile_last_memory_usage_, nullptr);
+	
+	profile_total_memory_usage_.chromosomeObjects_count += profile_last_memory_usage_.chromosomeObjects_count;
+	profile_total_memory_usage_.chromosomeObjects += profile_last_memory_usage_.chromosomeObjects;
+	profile_total_memory_usage_.chromosomeMutationRateMaps += profile_last_memory_usage_.chromosomeMutationRateMaps;
+	profile_total_memory_usage_.chromosomeRecombinationRateMaps += profile_last_memory_usage_.chromosomeRecombinationRateMaps;
+	
+	profile_total_memory_usage_.genomeObjects_count += profile_last_memory_usage_.genomeObjects_count;
+	profile_total_memory_usage_.genomeObjects += profile_last_memory_usage_.genomeObjects;
+	profile_total_memory_usage_.genomeExternalBuffers += profile_last_memory_usage_.genomeExternalBuffers;
+	profile_total_memory_usage_.genomeUnusedPoolSpace += profile_last_memory_usage_.genomeUnusedPoolSpace;
+	profile_total_memory_usage_.genomeUnusedPoolBuffers += profile_last_memory_usage_.genomeUnusedPoolBuffers;
+	
+	profile_total_memory_usage_.genomicElementObjects_count += profile_last_memory_usage_.genomicElementObjects_count;
+	profile_total_memory_usage_.genomicElementObjects += profile_last_memory_usage_.genomicElementObjects;
+	
+	profile_total_memory_usage_.genomicElementTypeObjects_count += profile_last_memory_usage_.genomicElementTypeObjects_count;
+	profile_total_memory_usage_.genomicElementTypeObjects += profile_last_memory_usage_.genomicElementTypeObjects;
+	
+	profile_total_memory_usage_.individualObjects_count += profile_last_memory_usage_.individualObjects_count;
+	profile_total_memory_usage_.individualObjects += profile_last_memory_usage_.individualObjects;
+	profile_total_memory_usage_.individualUnusedPoolSpace += profile_last_memory_usage_.individualUnusedPoolSpace;
+	
+	profile_total_memory_usage_.interactionTypeObjects_count += profile_last_memory_usage_.interactionTypeObjects_count;
+	profile_total_memory_usage_.interactionTypeObjects += profile_last_memory_usage_.interactionTypeObjects;
+	profile_total_memory_usage_.interactionTypeKDTrees += profile_last_memory_usage_.interactionTypeKDTrees;
+	profile_total_memory_usage_.interactionTypePositionCaches += profile_last_memory_usage_.interactionTypePositionCaches;
+	profile_total_memory_usage_.interactionTypeSparseArrays += profile_last_memory_usage_.interactionTypeSparseArrays;
+	
+	profile_total_memory_usage_.mutationObjects_count += profile_last_memory_usage_.mutationObjects_count;
+	profile_total_memory_usage_.mutationObjects += profile_last_memory_usage_.mutationObjects;
+	profile_total_memory_usage_.mutationRefcountBuffer += profile_last_memory_usage_.mutationRefcountBuffer;
+	profile_total_memory_usage_.mutationUnusedPoolSpace += profile_last_memory_usage_.mutationUnusedPoolSpace;
+	
+	profile_total_memory_usage_.mutationRunObjects_count += profile_last_memory_usage_.mutationRunObjects_count;
+	profile_total_memory_usage_.mutationRunObjects += profile_last_memory_usage_.mutationRunObjects;
+	profile_total_memory_usage_.mutationRunExternalBuffers += profile_last_memory_usage_.mutationRunExternalBuffers;
+	profile_total_memory_usage_.mutationRunNonneutralCaches += profile_last_memory_usage_.mutationRunNonneutralCaches;
+	profile_total_memory_usage_.mutationRunUnusedPoolSpace += profile_last_memory_usage_.mutationRunUnusedPoolSpace;
+	profile_total_memory_usage_.mutationRunUnusedPoolBuffers += profile_last_memory_usage_.mutationRunUnusedPoolBuffers;
+	
+	profile_total_memory_usage_.mutationTypeObjects_count += profile_last_memory_usage_.mutationTypeObjects_count;
+	profile_total_memory_usage_.mutationTypeObjects += profile_last_memory_usage_.mutationTypeObjects;
+	
+	profile_total_memory_usage_.slimsimObjects_count += profile_last_memory_usage_.slimsimObjects_count;
+	profile_total_memory_usage_.slimsimObjects += profile_last_memory_usage_.slimsimObjects;
+	profile_total_memory_usage_.slimsimTreeSeqTables += profile_last_memory_usage_.slimsimTreeSeqTables;
+	
+	profile_total_memory_usage_.subpopulationObjects_count += profile_last_memory_usage_.subpopulationObjects_count;
+	profile_total_memory_usage_.subpopulationObjects += profile_last_memory_usage_.subpopulationObjects;
+	profile_total_memory_usage_.subpopulationFitnessCaches += profile_last_memory_usage_.subpopulationFitnessCaches;
+	profile_total_memory_usage_.subpopulationParentTables += profile_last_memory_usage_.subpopulationParentTables;
+	profile_total_memory_usage_.subpopulationSpatialMaps += profile_last_memory_usage_.subpopulationSpatialMaps;
+	profile_total_memory_usage_.subpopulationSpatialMapsDisplay += profile_last_memory_usage_.subpopulationSpatialMapsDisplay;
+	
+	profile_total_memory_usage_.substitutionObjects_count += profile_last_memory_usage_.substitutionObjects_count;
+	profile_total_memory_usage_.substitutionObjects += profile_last_memory_usage_.substitutionObjects;
+	
+	profile_total_memory_usage_.eidosASTNodePool += profile_last_memory_usage_.eidosASTNodePool;
+	profile_total_memory_usage_.eidosSymbolTablePool += profile_last_memory_usage_.eidosSymbolTablePool;
+	profile_total_memory_usage_.eidosValuePool += profile_last_memory_usage_.eidosValuePool;
+	
+	profile_total_memory_usage_.totalMemoryUsage += profile_last_memory_usage_.totalMemoryUsage;
+	
+	total_memory_tallies_++;
+}
+#endif
 
 
 //
@@ -9598,7 +9686,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)outputUsage()
+//	*********************	– (void)outputUsage(void)
 //
 EidosValue_SP SLiMSim::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -9676,10 +9764,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id
 			out << "      k-d trees: ";
 			PrintBytes(out, usage.interactionTypeKDTrees);
 			
-			out << "      position caches: ";
+			out << "      Position caches: ";
 			PrintBytes(out, usage.interactionTypePositionCaches);
 			
-			out << "      sparse arrays: ";
+			out << "      Sparse arrays: ";
 			PrintBytes(out, usage.interactionTypeSparseArrays);
 		}
 	}

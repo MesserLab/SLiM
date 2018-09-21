@@ -114,6 +114,19 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 @interface SLiMLayoutRoundoffView : NSView
 @end
 
+@interface NSString (SLiMBytes)
++ (NSString *)stringForByteCount:(int64_t)bytes;
+@end
+
+@interface NSColor (SLiMHeatColors)
++ (NSColor *)slimColorForFraction:(double)fraction;
+@end
+
+@interface NSAttributedString (SLiMBytes)
++ (NSAttributedString *)attributedStringForByteCount:(int64_t)bytes total:(double)total attributes:(NSDictionary *)attrs;
+@end
+
+
 
 
 
