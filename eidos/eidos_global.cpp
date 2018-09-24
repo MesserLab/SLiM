@@ -44,6 +44,7 @@
 #include <limits>
 #include <cmath>
 #include <utility>
+#include <sys/param.h>
 
 // added for Eidos_mkstemps()
 #include <sys/stat.h>
@@ -1128,6 +1129,27 @@ std::string Eidos_ResolvedPath(std::string p_path)
 	}
 	
 	return path;
+}
+
+// Get the current working directory; oddly, C++ has no API for this
+std::string Eidos_CurrentDirectory(void)
+{
+	// buffer of size MAXPATHLEN * 8 to accommodate relatively long paths
+	static char *path_buffer = nullptr;
+	
+	if (!path_buffer)
+		path_buffer = (char *)malloc(MAXPATHLEN * 8 * sizeof(char));
+	
+	errno = 0;
+	char *buf = getcwd(path_buffer, MAXPATHLEN * 8 * sizeof(char));
+	
+	if (!buf)
+	{
+		std::cout << "Eidos_CurrentDirectory(): Unable to get the current working directory (error " << errno << ")" << std::endl;
+		return "ERROR";
+	}
+	
+	return buf;
 }
 
 // Remove a trailing slash in a path like ~/foo/bar/

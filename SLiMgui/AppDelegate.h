@@ -22,6 +22,8 @@
 #import <WebKit/WebView.h>
 #import <Quartz/Quartz.h>
 
+#include <string>
+
 
 @class SLiMWindowController;
 @class EidosTextView;
@@ -38,9 +40,12 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 {
+	std::string app_cwd_;	// the app's current working directory, set up by applicationWillFinishLaunching:
 }
 
 @property (nonatomic, retain) IBOutlet NSMenu *openRecipesMenu;
+
+- (std::string &)SLiMguiCurrentWorkingDirectory;
 
 - (IBAction)resetSuppressionFlags:(id)sender;
 

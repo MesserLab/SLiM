@@ -9119,16 +9119,9 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 EidosValue_SP Eidos_ExecuteFunction_getwd(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
+	std::string cwd = Eidos_CurrentDirectory();
 	
-	static char *path_buffer = nullptr;
-	
-	if (!path_buffer)
-		path_buffer = (char *)malloc(MAXPATHLEN * sizeof(char));
-	
-	char *buf = getcwd(path_buffer, MAXPATHLEN * sizeof(char));
-	std::string wd(buf);
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(wd));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(cwd));
 	
 	return result_SP;
 }
@@ -9180,15 +9173,9 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const EidosValue_SP *const p_arguments
 	EidosValue_SP result_SP(nullptr);
 	
 	// Get the path; this code is identical to getwd() above, except it makes the value invisible
-	static char *path_buffer = nullptr;
+	std::string cwd = Eidos_CurrentDirectory();
 	
-	if (!path_buffer)
-		path_buffer = (char *)malloc(MAXPATHLEN * sizeof(char));
-	
-	char *buf = getcwd(path_buffer, MAXPATHLEN * sizeof(char));
-	std::string wd(buf);
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(wd));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(cwd));
 	result_SP->SetInvisible(true);
 	
 	// Now set the path

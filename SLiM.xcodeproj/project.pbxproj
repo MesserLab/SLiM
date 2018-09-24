@@ -511,6 +511,8 @@
 		98DC39942127D52000025211 /* sparse_array.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC39922127D52000025211 /* sparse_array.cpp */; };
 		98DC39952127D52000025211 /* sparse_array.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC39922127D52000025211 /* sparse_array.cpp */; };
 		98DC7BBB1DF13CD60037A1DD /* TipsWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98DC7BB91DF13CD50037A1DD /* TipsWindow.xib */; };
+		98DD5F022155B857009062EE /* change_folder.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F002155B857009062EE /* change_folder.pdf */; };
+		98DD5F032155B857009062EE /* change_folder_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F012155B857009062EE /* change_folder_H.pdf */; };
 		98DE4C131B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C141B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C151B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
@@ -1011,6 +1013,8 @@
 		98DC39922127D52000025211 /* sparse_array.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sparse_array.cpp; sourceTree = "<group>"; };
 		98DC39932127D52000025211 /* sparse_array.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sparse_array.h; sourceTree = "<group>"; };
 		98DC7BBA1DF13CD50037A1DD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/TipsWindow.xib; sourceTree = "<group>"; };
+		98DD5F002155B857009062EE /* change_folder.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder.pdf; sourceTree = "<group>"; };
+		98DD5F012155B857009062EE /* change_folder_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder_H.pdf; sourceTree = "<group>"; };
 		98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_property_signature.cpp; sourceTree = "<group>"; };
 		98DE4C121B6F9657004FDF5F /* eidos_property_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_property_signature.h; sourceTree = "<group>"; };
 		98E9A6881A3CCFD0000AD4FC /* mutation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation.cpp; sourceTree = "<group>"; };
@@ -1775,6 +1779,8 @@
 		98D4C1E41A6FD8D600FFB083 /* buttons */ = {
 			isa = PBXGroup;
 			children = (
+				98DD5F012155B857009062EE /* change_folder_H.pdf */,
+				98DD5F002155B857009062EE /* change_folder.pdf */,
 				98C0943C1B7663DF00766A9A /* female_symbol.pdf */,
 				98C0943D1B7663DF00766A9A /* male_symbol.pdf */,
 				987AD8721B2CBDA70035D6C8 /* show_console_H.pdf */,
@@ -2070,6 +2076,7 @@
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
 				98D4C1E81A6FDE6E00FFB083 /* change_selfing_ratio.pdf in Resources */,
 				98DE4C1D1B713F25004FDF5F /* ScriptMod_AddSubpop.xib in Resources */,
+				98DD5F022155B857009062EE /* change_folder.pdf in Resources */,
 				98453F571A76004300C058CB /* open_type_drawer.pdf in Resources */,
 				98DE4C1B1B713F1A004FDF5F /* ScriptMod_RemoveSubpop.xib in Resources */,
 				980613B01FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib in Resources */,
@@ -2086,6 +2093,7 @@
 				98D4C1FE1A700DC100FFB083 /* recycle_H.pdf in Resources */,
 				98453F5D1A76004300C058CB /* show_mutations.pdf in Resources */,
 				987AD87A1B2CBE330035D6C8 /* execute_selection_H.pdf in Resources */,
+				98DD5F032155B857009062EE /* change_folder_H.pdf in Resources */,
 				98D4C1FC1A700DC100FFB083 /* play_H.pdf in Resources */,
 				98B40DFE1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib in Resources */,
 				989228341BAFB27300429674 /* SLiMHelpCallbacks.rtf in Resources */,

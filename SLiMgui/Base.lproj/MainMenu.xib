@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12118" systemVersion="16G1114" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12118"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14109"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -379,6 +379,13 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="J48-9s-tbA"/>
+                            <menuItem title="Change Working Directory..." id="acZ-a2-D3c">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="changeWorkingDirectory:" target="-1" id="CFg-Tr-6bV"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="RrU-a1-ejQ"/>
                             <menuItem title="Output Full Population State..." id="XhD-CB-edn">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -615,13 +622,13 @@ DQ
         <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <rect key="contentRect" x="272" y="199" width="268" height="431"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
             <view key="contentView" id="ae8-oN-lQF">
                 <rect key="frame" x="0.0" y="0.0" width="268" height="431"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="pFc-cT-SJr">
-                        <rect key="frame" x="32" y="200" width="125" height="18"/>
+                        <rect key="frame" x="32" y="200" width="124" height="18"/>
                         <buttonCell key="cell" type="check" title="In the script area" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="9pj-Hb-YGA">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -758,7 +765,7 @@ DQ
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1i1-DN-XAq">
+                    <textField verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1i1-DN-XAq">
                         <rect key="frame" x="34" y="260" width="30" height="22"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="30" id="vBs-sL-kPy"/>

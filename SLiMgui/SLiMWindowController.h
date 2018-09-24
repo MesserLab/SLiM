@@ -47,6 +47,8 @@
 	slim_pedigreeid_t sim_next_pedigree_id;
 	slim_mutationid_t sim_next_mutation_id;
 	bool sim_suppress_warnings;
+	std::string sim_working_dir;			// the current working dir that we will return to when executing SLiM/Eidos code
+	std::string sim_requested_working_dir;	// the last working dir set by the user with the SLiMgui button/menu; we return to it on recycle
 	
 	// play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
 	// and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib
@@ -278,6 +280,7 @@
 - (IBAction)toggleBrowserVisibility:(id)sender;
 - (IBAction)clearOutput:(id)sender;
 - (IBAction)dumpPopulationToOutput:(id)sender;
+- (IBAction)changeWorkingDirectory:(id)sender;
 
 - (IBAction)showRecombinationIntervalsButtonToggled:(id)sender;
 - (IBAction)showGenomicElementsButtonToggled:(id)sender;

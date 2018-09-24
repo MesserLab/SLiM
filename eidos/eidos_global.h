@@ -299,6 +299,9 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string Eidos_ResolvedPath(std::string p_path);
 
+// Get the current working directory; oddly, C++ has no API for this
+std::string Eidos_CurrentDirectory(void);
+
 // Remove a trailing slash in a path like ~/foo/bar/
 std::string Eidos_StripTrailingSlash(std::string p_path);
 

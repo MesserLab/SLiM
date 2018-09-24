@@ -91,6 +91,9 @@ typedef enum SLiMLaunchAction
 	SLiM_WarmUp();
 	Eidos_FinishWarmUp();
 	
+	// Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
+	app_cwd_ = Eidos_CurrentDirectory();
+	
 	// Create the Open Recipes menu
 	[openRecipesMenu removeAllItems];
 	
@@ -171,6 +174,11 @@ typedef enum SLiMLaunchAction
 		
 		[menuItem setTarget:[NSDocumentController sharedDocumentController]];
 	}
+}
+
+- (std::string &)SLiMguiCurrentWorkingDirectory
+{
+	return app_cwd_;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification

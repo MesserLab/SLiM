@@ -166,6 +166,11 @@
 		zoomedChromosomeShowsGenomicElements = NO;
 		zoomedChromosomeShowsMutations = YES;
 		zoomedChromosomeShowsFixedSubstitutions = NO;
+		
+		// We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
+		// Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
+		sim_working_dir = Eidos_ResolvedPath("~/Desktop");
+		sim_requested_working_dir = sim_working_dir;	// return to Desktop on recycle unless the user overrides it
 	}
 	
 	return self;
@@ -407,20 +412,13 @@
 		sim_next_mutation_id = 0;
 		sim_suppress_warnings = false;
 		
+		// The current working directory was set up in -init to be ~/Desktop, and should not be reset here; if the
+		// user has changed it, that change ought to stick across recycles.  So this bounces us back to the last dir chosen.
+		sim_working_dir = sim_requested_working_dir;
+		
 		[self setReachedSimulationEnd:NO];
 		[self setInvalidSimulation:NO];
 		hasImported = NO;
-		
-		// We set the working directory to ~/Desktop/, since it makes no sense for it to be at the location of the app.
-		// Note that each running simulation ought to track its own working directory, but we don't do that right now,
-		// so a simulation can have the wd changed out from under it by another simulation.  FIXME BCH 4/30/2018
-		std::string wd_path = Eidos_ResolvedPath("~/Desktop");
-		
-		errno = 0;
-		int retval = chdir(wd_path.c_str());
-		
-		if (retval == -1)
-			std::cerr << "The working directory could not be set to ~/Desktop by SLiMgui" << std::endl;
 	}
 	catch (...)
 	{
@@ -1007,6 +1005,8 @@
 	if (sel == @selector(clearOutput:))
 		return !(invalidSimulation);
 	if (sel == @selector(dumpPopulationToOutput:))
+		return !(invalidSimulation);
+	if (sel == @selector(changeWorkingDirectory:))
 		return !(invalidSimulation);
 	
 	if (sel == @selector(toggleConsoleVisibility:))
@@ -3007,6 +3007,39 @@
 	}
 }
 
+- (IBAction)changeWorkingDirectory:(id)sender
+{
+	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
+	
+	NSOpenPanel *op = [[NSOpenPanel openPanel] retain];
+	
+	[op setTitle:@"Choose Working Directory"];
+	[op setNameFieldLabel:@"Directory:"];
+	[op setMessage:@"Choose a current working directory for this model:"];
+	[op setExtensionHidden:NO];
+	[op setCanChooseFiles:NO];
+	[op setCanChooseDirectories:YES];
+	[op setCanCreateDirectories:YES];
+	
+	// try to make the panel start in the current working directory (not the last requested dir, the actual dir)
+	std::string cwd = sim_working_dir;
+	NSString *cwd_string = [NSString stringWithUTF8String:cwd.c_str()];
+	NSString *expanded_path = [cwd_string stringByStandardizingPath];
+	NSURL *url = [NSURL fileURLWithPath:expanded_path];
+	[op setDirectoryURL:url];
+	
+	[op beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
+		if (result == NSFileHandlingPanelOKButton)
+		{
+			NSURL *fileURL = [op URL];
+			const char *filePath = [fileURL fileSystemRepresentation];
+			
+			sim_working_dir = filePath;
+			sim_requested_working_dir = sim_working_dir;
+		}
+	}];
+}
+
 - (IBAction)showRecombinationIntervalsButtonToggled:(id)sender
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
@@ -3754,6 +3787,13 @@
 	gSLiM_next_pedigree_id = sim_next_pedigree_id;
 	gSLiM_next_mutation_id = sim_next_mutation_id;
 	gEidosSuppressWarnings = sim_suppress_warnings;
+	
+	// Set the current directory to its value for this window
+	errno = 0;
+	int retval = chdir(sim_working_dir.c_str());
+	
+	if (retval == -1)
+		NSLog(@"eidosConsoleWindowControllerWillExecuteScript: Unable to set the working directory to %s (error %d)", sim_working_dir.c_str(), errno);
 }
 
 - (void)eidosConsoleWindowControllerDidExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
@@ -3772,6 +3812,17 @@
 	
 	sim_suppress_warnings = gEidosSuppressWarnings;
 	gEidosSuppressWarnings = false;
+	
+	// Get the current working directory; each SLiM window has its own cwd, which may have been changed in script since ...WillExecuteScript:
+	sim_working_dir = Eidos_CurrentDirectory();
+	
+	// Return to the app's working directory when not running SLiM/Eidos code
+	std::string &app_cwd = [(AppDelegate *)[NSApp delegate] SLiMguiCurrentWorkingDirectory];
+	errno = 0;
+	int retval = chdir(app_cwd.c_str());
+	
+	if (retval == -1)
+		NSLog(@"eidosConsoleWindowControllerDidExecuteScript: Unable to set the working directory to %s (error %d)", app_cwd.c_str(), errno);
 }
 
 - (void)eidosConsoleWindowControllerConsoleWindowWillClose:(EidosConsoleWindowController *)eidosConsoleController

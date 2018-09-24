@@ -84,7 +84,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="740" y="50" width="1180" height="978"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1057"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
             <value key="minSize" type="size" width="650" height="100"/>
             <view key="contentView" id="esE-Q8-bJT">
                 <rect key="frame" x="0.0" y="0.0" width="1180" height="978"/>
@@ -1335,6 +1335,25 @@
                                                             </binding>
                                                         </connections>
                                                     </button>
+                                                    <button toolTip="change working directory" translatesAutoresizingMaskIntoConstraints="NO" id="Egy-bI-OBh">
+                                                        <rect key="frame" x="546" y="511" width="20" height="22"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="22" id="LZE-xd-FP4"/>
+                                                            <constraint firstAttribute="width" constant="20" id="m4D-2J-gZG"/>
+                                                        </constraints>
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="change_folder" imagePosition="overlaps" alignment="center" alternateImage="change_folder_H" state="on" imageScaling="proportionallyDown" inset="2" id="GRU-4T-yEL">
+                                                            <behavior key="behavior" lightByContents="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <action selector="changeWorkingDirectory:" target="-2" id="3nE-nX-o58"/>
+                                                            <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="wsb-nR-7wK">
+                                                                <dictionary key="options">
+                                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                                </dictionary>
+                                                            </binding>
+                                                        </connections>
+                                                    </button>
                                                 </subviews>
                                                 <constraints>
                                                     <constraint firstItem="kDh-Fw-f06" firstAttribute="leading" secondItem="CMF-cK-m13" secondAttribute="trailing" constant="3" id="7tm-sU-ZbI"/>
@@ -1343,8 +1362,10 @@
                                                     <constraint firstItem="kDh-Fw-f06" firstAttribute="top" secondItem="CMF-cK-m13" secondAttribute="top" id="Fe3-SF-24F"/>
                                                     <constraint firstItem="Fql-QB-8ET" firstAttribute="top" secondItem="xzw-Z6-mJs" secondAttribute="top" constant="26" id="HpL-4y-89B"/>
                                                     <constraint firstItem="25p-qC-Ntg" firstAttribute="bottom" secondItem="CMF-cK-m13" secondAttribute="bottom" constant="-2" id="Mfl-Lc-tvJ"/>
+                                                    <constraint firstItem="Egy-bI-OBh" firstAttribute="bottom" secondItem="jBY-mF-gPl" secondAttribute="bottom" id="R8x-Z3-wbX"/>
                                                     <constraint firstAttribute="bottom" secondItem="Fql-QB-8ET" secondAttribute="bottom" id="eG1-oE-QGw"/>
                                                     <constraint firstItem="kDh-Fw-f06" firstAttribute="bottom" secondItem="sTd-Ob-2rT" secondAttribute="bottom" id="ecm-kO-LbN"/>
+                                                    <constraint firstAttribute="trailing" secondItem="Egy-bI-OBh" secondAttribute="trailing" constant="9" id="ijE-xI-aMY"/>
                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="263" id="kXv-BX-gKL"/>
                                                     <constraint firstItem="sTd-Ob-2rT" firstAttribute="leading" secondItem="25p-qC-Ntg" secondAttribute="trailing" constant="20" id="oZk-Pk-Ch9"/>
                                                     <constraint firstItem="jBY-mF-gPl" firstAttribute="bottom" secondItem="sTd-Ob-2rT" secondAttribute="bottom" id="tPS-7E-bbp"/>
@@ -1951,6 +1972,8 @@
     <resources>
         <image name="add_subpop" width="72" height="72"/>
         <image name="change_cloning_rate" width="72" height="72"/>
+        <image name="change_folder" width="138" height="138"/>
+        <image name="change_folder_H" width="138" height="138"/>
         <image name="change_migration" width="72" height="72"/>
         <image name="change_selfing_ratio" width="72" height="72"/>
         <image name="change_sex_ratio" width="72" height="72"/>
