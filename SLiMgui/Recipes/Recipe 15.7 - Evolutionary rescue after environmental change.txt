@@ -1,3 +1,5 @@
+// Keywords: nonWF, non-Wright-Fisher, QTL, quantitative trait loci
+
 initialize() {
 	initializeSLiMModelType("nonWF");
 	defineConstant("K", 500);

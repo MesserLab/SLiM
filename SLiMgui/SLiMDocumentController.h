@@ -37,7 +37,10 @@
 - (SLiMDocument *)transientDocumentToReplace;
 - (void)replaceTransientDocument:(NSArray *)documents;
 
+- (void)openRecipeWithFilename:(NSString *)filename;
+
 - (IBAction)newNonWFDocument:(id)sender;
+- (IBAction)findRecipe:(id)sender;
 - (IBAction)openRecipe:(id)sender;
 
 @end

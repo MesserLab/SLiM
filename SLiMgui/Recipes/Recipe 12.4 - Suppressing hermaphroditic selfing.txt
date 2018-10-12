@@ -1,3 +1,5 @@
+// Keywords: selfing
+
 // NOTE: This model is now obsolete!  Is it now recommended
 // that you use this call in your initialize() callback
 // instead of following this recipe:

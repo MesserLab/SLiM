@@ -1,3 +1,5 @@
+// Keywords: nonWF, non-Wright-Fisher
+
 initialize() {
 	initializeSLiMModelType("nonWF");
 	defineConstant("K", 500);

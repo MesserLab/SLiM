@@ -1,3 +1,5 @@
+// Keywords: nonWF, non-Wright-Fisher, clonal, haploid
+
 initialize() {
 	initializeSLiMModelType("nonWF");
 	defineConstant("K", 500);	// carrying capacity

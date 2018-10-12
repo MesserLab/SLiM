@@ -1,3 +1,5 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
 initialize() {
 	defineConstant("N", 10000);  // pop size
 	defineConstant("L", 1e8);    // total chromosome length

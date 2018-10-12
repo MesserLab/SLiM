@@ -1,3 +1,5 @@
+// Keywords: 
+
 initialize() {
 	initializeSLiMOptions(keepPedigrees = T);
 	initializeMutationRate(1e-5);

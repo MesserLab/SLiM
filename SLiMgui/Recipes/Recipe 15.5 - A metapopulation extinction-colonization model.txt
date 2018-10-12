@@ -1,3 +1,5 @@
+// Keywords: nonWF, non-Wright-Fisher, migration, dispersal
+
 initialize() {
 	initializeSLiMModelType("nonWF");
 	defineConstant("K", 50);     // carrying capacity per subpop

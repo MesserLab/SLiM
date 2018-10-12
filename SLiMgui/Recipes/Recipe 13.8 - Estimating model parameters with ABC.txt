@@ -1,3 +1,5 @@
+// Keywords: 
+
 initialize() {
 	initializeMutationRate(mu);
 	initializeMutationType("m1", 0.5, "f", 0.0);

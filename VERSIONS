@@ -19,6 +19,7 @@ development head:
 	optimization of property & method dispatch (signature lookup, specifically), using lookup tables instead of hash tables
 	add outputUsage() method to dump memory usage of a simulation, incorporate this information into SLiMgui profile reports
 	add a button in SLiMgui to change the current working directory, correctly track the cwd when multiple SLiMgui windows are open, across recycles, etc.
+	add Find Recipe... panel in SLiMgui
 
 
 3.1 (build 1817; Eidos version 2.1):

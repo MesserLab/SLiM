@@ -1,3 +1,5 @@
+// Keywords: continuous space, continuous spatial landscape, reprising boundaries, QTL, quantitative trait loci, spatial competition, phenotypic competition, spatial mate choice
+
 initialize() {
 	defineConstant("sigma_C", 0.1);
 	defineConstant("sigma_K", 0.5);

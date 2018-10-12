@@ -1,3 +1,5 @@
+// Keywords: nucleotides, biased gene conversion
+
 initialize() {
 	defineConstant("L", 1e4);      // number of loci
 	

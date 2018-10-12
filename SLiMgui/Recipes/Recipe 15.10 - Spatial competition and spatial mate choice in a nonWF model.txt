@@ -1,3 +1,5 @@
+// Keywords: nonWF, non-Wright-Fisher, continuous space, continuous spatial landscape, periodic boundaries, selfing
+
 initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(dimensionality="xy", periodicity="xy");

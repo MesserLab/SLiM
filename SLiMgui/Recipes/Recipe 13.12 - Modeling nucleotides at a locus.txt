@@ -1,3 +1,5 @@
+// Keywords: nucleotides
+
 initialize() {
 	defineConstant("C", 10);      // number of loci
 	

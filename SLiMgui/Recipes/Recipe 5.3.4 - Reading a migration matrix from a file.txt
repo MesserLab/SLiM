@@ -1,3 +1,5 @@
+// Keywords: migration, dispersal
+
 initialize() {
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -10,6 +12,7 @@ initialize() {
 		sim.addSubpop(i, 1000);
 	subpops = sim.subpopulations;
 	
+	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
 	lines = readFile("~/Desktop/migration.csv");
 	lines = lines[substr(lines, 0, 1) != "//"];
 	

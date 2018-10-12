@@ -1,3 +1,5 @@
+// Keywords: QTL, quantitative trait loci, live plotting
+
 initialize() {
 	initializeMutationRate(1e-7);
 	

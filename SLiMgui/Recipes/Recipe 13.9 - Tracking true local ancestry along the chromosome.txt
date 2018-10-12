@@ -1,3 +1,5 @@
+// Keywords: migration, dispersal
+
 initialize() {
 	defineConstant("L", 1e4);                      // chromosome length
 	

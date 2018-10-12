@@ -1,3 +1,5 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
 // Part I of this recipe, which is a Python script, may be found in
 // the Recipes archive downloadable at https://messerlab.org/slim/
 

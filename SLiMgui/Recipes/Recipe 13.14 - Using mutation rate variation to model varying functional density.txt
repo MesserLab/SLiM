@@ -1,3 +1,5 @@
+// Keywords: mutation rate map, mutation map
+
 initialize() {
 	initializeMutationType("m1", 0.5, "f", -0.01);  // deleterious
 	initializeGenomicElementType("g1", m1, 1.0);

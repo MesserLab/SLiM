@@ -1,3 +1,5 @@
+// Keywords: continuous space, continuous spatial landscape, spatial map, reprising boundaries
+
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
 	initializeMutationRate(1e-7);
@@ -19,6 +21,7 @@ initialize() {
 	
 	p1.setSpatialBounds(c(0.0, 0.0, 540.0, 217.0));
 	
+	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
 	mapLines = rev(readFile("~/Desktop/world_map_540x217.txt"));
 	mapLines = sapply(mapLines, "strsplit(applyValue, '') == '#';");
 	mapValues = asFloat(mapLines);

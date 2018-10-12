@@ -1,3 +1,5 @@
+// Keywords: 
+
 initialize() {
 	initializeMutationRate(1e-5);
 	initializeMutationType("m1", 0.45, "f", 0.5);  // sweep mutation

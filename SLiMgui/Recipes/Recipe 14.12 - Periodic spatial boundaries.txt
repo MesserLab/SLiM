@@ -1,3 +1,5 @@
+// Keywords: continuous space, continuous spatial landscape, periodic boundaries
+
 initialize() {
 	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
 	initializeMutationRate(1e-7);

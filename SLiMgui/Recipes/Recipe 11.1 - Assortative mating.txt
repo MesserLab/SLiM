@@ -1,3 +1,5 @@
+// Keywords: migration, dispersal
+
 // Calculate the FST between two subpopulations
 function (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
 {

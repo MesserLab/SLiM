@@ -1206,6 +1206,30 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 }
 @end
 
+// Create a path for a temporary file; see https://stackoverflow.com/a/8307013/2752221
+// Code is originally from https://developer.apple.com/library/archive/samplecode/SimpleURLConnections/Introduction/Intro.html#//apple_ref/doc/uid/DTS40009245
+@implementation NSString (SLiMTempFiles)
++ (NSString *)slimPathForTemporaryFileWithPrefix:(NSString *)prefix
+{
+	NSString *  result;
+	CFUUIDRef   uuid;
+	CFStringRef uuidStr;
+	
+	uuid = CFUUIDCreate(NULL);
+	assert(uuid != NULL);
+	
+	uuidStr = CFUUIDCreateString(NULL, uuid);
+	assert(uuidStr != NULL);
+	
+	result = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"%@-%@", prefix, uuidStr]];
+	assert(result != nil);
+	
+	CFRelease(uuidStr);
+	CFRelease(uuid);
+	
+	return result;
+}
+@end
 
 
 

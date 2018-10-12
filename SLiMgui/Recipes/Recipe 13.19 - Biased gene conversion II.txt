@@ -1,3 +1,5 @@
+// Keywords: biased gene conversion
+
 initialize() {
 	defineConstant("L", 1e5);      // number of loci
 	
@@ -35,7 +37,7 @@ recombination() {
 	gcGC = sum(gcMuts.mutationType.tag);
 	take = (gcGC > 0);
 	
-	//catn("tract GC sum: " + gcGC + " – " + (take ? "TAKE" else "REJECT"));
+	//catn("tract GC sum: " + gcGC + " - " + (take ? "TAKE" else "REJECT"));
 	if (take)
 		return F;	// no change if we like the new tract
 	

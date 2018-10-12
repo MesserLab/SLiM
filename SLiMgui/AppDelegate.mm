@@ -84,19 +84,20 @@ typedef enum SLiMLaunchAction
 	[super dealloc];
 }
 
-- (void)applicationWillFinishLaunching:(NSNotification *)aNotification
+- (void)setUpRecipesMenu
 {
-	// Warm up our back ends before anything else happens
-	Eidos_WarmUp();
-	SLiM_WarmUp();
-	Eidos_FinishWarmUp();
-	
-	// Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
-	app_cwd_ = Eidos_CurrentDirectory();
-	
-	// Create the Open Recipes menu
 	[openRecipesMenu removeAllItems];
 	
+	// Add the Find Recipe... menu item and separator
+	{
+		NSMenuItem *menuItem = [openRecipesMenu addItemWithTitle:@"Find Recipe..." action:@selector(findRecipe:) keyEquivalent:@"O"];
+		
+		[menuItem setTarget:[NSDocumentController sharedDocumentController]];
+		
+		[openRecipesMenu addItem:[NSMenuItem separatorItem]];
+	}
+	
+	// Find recipes in our bundle
 	NSURL *urlForRecipesFolder = [[NSBundle mainBundle] URLForResource:@"Recipes" withExtension:@""];
 	NSFileManager *fm = [NSFileManager defaultManager];
 	NSDirectoryEnumerator *dirEnum = [fm enumeratorAtURL:urlForRecipesFolder includingPropertiesForKeys:@[NSURLNameKey, NSURLIsDirectoryKey] options:(NSDirectoryEnumerationSkipsHiddenFiles | NSDirectoryEnumerationSkipsSubdirectoryDescendants) errorHandler:nil];
@@ -114,11 +115,22 @@ typedef enum SLiMLaunchAction
 			
 			[fileURL getResourceValue:&name forKey:NSURLNameKey error:nil];
 			
-			if ([name hasPrefix:@"Recipe "] && [name hasSuffix:@".txt"])
+			if ([name hasPrefix:@"Recipe "])
 			{
-				NSString *trimmedName = [name substringWithRange:NSMakeRange(7, [name length] - 11)];
-				
-				[recipeNames addObject:trimmedName];
+				if ([name hasSuffix:@".txt"])
+				{
+					// Remove the .txt extension for SLiM models
+					NSString *trimmedName = [name substringWithRange:NSMakeRange(7, [name length] - 11)];
+					
+					[recipeNames addObject:trimmedName];
+				}
+				else if ([name hasSuffix:@".py"])
+				{
+					// Leave the .py extension for Python models
+					NSString *trimmedName = [name substringWithRange:NSMakeRange(7, [name length] - 7)];
+					
+					[recipeNames addObject:[trimmedName stringByAppendingString:@" 🐍"]];
+				}
 			}
 		}
 	}
@@ -128,17 +140,14 @@ typedef enum SLiMLaunchAction
 	}];
 	
 	NSString *previousItemChapter = nil;
+	NSMenu *chapterSubmenu = nil;
 	
 	for (NSString *recipeName in recipeNames)
 	{
 		NSUInteger firstDotIndex = [recipeName rangeOfString:@"."].location;
 		NSString *recipeChapter = (firstDotIndex != NSNotFound) ? [recipeName substringToIndex:firstDotIndex] : nil;
 		
-		// Add a separator item between recipes from different chapters
-		if (previousItemChapter && recipeChapter && ![recipeChapter isEqualToString:previousItemChapter])
-			[openRecipesMenu addItem:[NSMenuItem separatorItem]];
-		
-		// Add a section title item before each chapter
+		// Create a submenu for each chapter
 		if (recipeChapter && ![recipeChapter isEqualToString:previousItemChapter])
 		{
 			int recipeChapterValue = [recipeChapter intValue];
@@ -158,22 +167,49 @@ typedef enum SLiMLaunchAction
 				case 13:chapterName = @"Advanced models";													break;
 				case 14:chapterName = @"Continuous-space models and interactions";							break;
 				case 15:chapterName = @"Going beyond Wright-Fisher models: nonWF model recipes";			break;
-				case 16:chapterName = @"Tree-sequence recording: tracking population history and true local ancestry";			break;
+				case 16:chapterName = @"Tree-sequence recording: tracking population history";				break;
 				default: break;
 			}
 			
 			if (chapterName)
-				[openRecipesMenu addItemWithTitle:chapterName action:NULL keyEquivalent:@""];
+			{
+				NSString *fullChapterName = [NSString stringWithFormat:@"%d – %@", recipeChapterValue, chapterName];
+				NSMenuItem *mainItem = [openRecipesMenu addItemWithTitle:fullChapterName action:NULL keyEquivalent:@""];
+				
+				chapterSubmenu = [[[NSMenu alloc] init] autorelease];
+				
+				[mainItem setSubmenu:chapterSubmenu];
+			}
+			else
+			{
+				NSLog(@"unrecognized chapter value %d", recipeChapterValue);
+				NSBeep();
+				break;
+			}
 		}
 		
 		// Move on to the current chapter
 		previousItemChapter = recipeChapter;
 		
 		// And now add the menu item for the recipe
-		NSMenuItem *menuItem = [openRecipesMenu addItemWithTitle:recipeName action:@selector(openRecipe:) keyEquivalent:@""];
+		NSMenuItem *menuItem = [chapterSubmenu addItemWithTitle:recipeName action:@selector(openRecipe:) keyEquivalent:@""];
 		
 		[menuItem setTarget:[NSDocumentController sharedDocumentController]];
 	}
+}
+
+- (void)applicationWillFinishLaunching:(NSNotification *)aNotification
+{
+	// Warm up our back ends before anything else happens
+	Eidos_WarmUp();
+	SLiM_WarmUp();
+	Eidos_FinishWarmUp();
+	
+	// Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
+	app_cwd_ = Eidos_CurrentDirectory();
+	
+	// Create the Open Recipes menu
+	[self setUpRecipesMenu];
 }
 
 - (std::string &)SLiMguiCurrentWorkingDirectory

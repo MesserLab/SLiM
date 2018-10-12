@@ -21,6 +21,8 @@
 #import "SLiMDocumentController.h"
 #import "SLiMDocument.h"
 #import "SLiMPDFDocument.h"
+#import "FindRecipeController.h"
+#import "CocoaExtra.h"
 
 
 @implementation SLiMDocumentController
@@ -119,37 +121,94 @@
 	}
 }
 
+- (IBAction)findRecipe:(id)sender
+{
+	[FindRecipeController runFindRecipesPanel];
+}
+
+- (void)openRecipeWithFilename:(NSString *)filename
+{
+	if ([[filename pathExtension] isEqualToString:@"py"])
+	{
+		NSBundle *bundle = [NSBundle mainBundle];
+		NSURL *urlForRecipe = [bundle URLForResource:[filename stringByDeletingPathExtension] withExtension:[filename pathExtension] subdirectory:@"Recipes"];
+		
+		if (urlForRecipe)
+		{
+			// Duplicate the file into /tmp; there seems to be no protection against the user modifying files inside the app bundle!
+			// Setting the stationery bit wouldn't work either, I guess; I guess it would create a duplicate file inside the app bundle :-O
+			// This all seems pretty broken; maybe it's because I'm running under Xcode, but I want it to behave right even in that case.
+			// This at least prevents the user from seeing/modifying the file inside the app bundle, but it will have a weird name/path.
+			NSFileManager *fm = [NSFileManager defaultManager];
+			NSString *tempPath = [NSString slimPathForTemporaryFileWithPrefix:[filename stringByDeletingPathExtension]];
+			NSString *tempFile = [tempPath stringByAppendingPathExtension:@"py"];
+			
+			[fm copyItemAtPath:[urlForRecipe path] toPath:tempFile error:NULL];
+			
+			// Then open Python files in whatever app the user has set up for that
+			[[NSWorkspace sharedWorkspace] openFile:tempFile];
+		}
+	}
+	else if ([[filename pathExtension] isEqualToString:@"txt"])
+	{
+		NSBundle *bundle = [NSBundle mainBundle];
+		NSURL *urlForRecipe = [bundle URLForResource:[filename stringByDeletingPathExtension] withExtension:[filename pathExtension] subdirectory:@"Recipes"];
+		
+		if (urlForRecipe)
+		{
+			NSString *scriptString = [NSString stringWithContentsOfURL:urlForRecipe usedEncoding:NULL error:NULL];
+			
+			if (scriptString)
+			{
+				SLiMDocument *transientDoc = [self transientDocumentToReplace];
+				NSDocument *typelessDoc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:NO error:NULL];
+				
+				if (typelessDoc && [typelessDoc isKindOfClass:[SLiMDocument class]])
+				{
+					SLiMDocument *doc = (SLiMDocument *)typelessDoc;
+					
+					if (transientDoc)
+						[self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, doc, nil]];
+					
+					[doc makeWindowControllers];
+					[doc showWindows];
+					
+					[doc setDocumentScriptString:scriptString];
+					
+					NSString *recipeName = [filename stringByDeletingPathExtension];
+					
+					if ([recipeName hasPrefix:@"Recipe "])
+						recipeName = [recipeName substringFromIndex:7];
+					
+					[doc setRecipeName:recipeName];			// tell the doc it's a recipe doc, so it can manage its title properly
+					[[doc slimWindowController] synchronizeWindowTitleWithDocumentName];	// remake the window title
+				}
+			}
+		}
+	}
+	else
+	{
+		NSLog(@"Unrecognized recipe extension %@", [filename pathExtension]);
+		NSBeep();
+	}
+}
+
 - (IBAction)openRecipe:(id)sender
 {
 	NSString *recipeName = [sender title];
-	NSString *fullRecipeName = [NSString stringWithFormat:@"Recipe %@", recipeName];
-	NSBundle *bundle = [NSBundle mainBundle];
-	NSURL *urlForRecipe = [bundle URLForResource:fullRecipeName withExtension:@".txt" subdirectory:@"Recipes"];
 	
-	if (urlForRecipe)
+	if ([recipeName hasSuffix:@".py 🐍"])
 	{
-		NSString *scriptString = [NSString stringWithContentsOfURL:urlForRecipe usedEncoding:NULL error:NULL];
+		NSString *trimmedRecipeName = [recipeName stringByReplacingOccurrencesOfString:@" 🐍" withString:@""];
+		NSString *fullRecipeName = [NSString stringWithFormat:@"Recipe %@", trimmedRecipeName];
 		
-		if (scriptString)
-		{
-			SLiMDocument *transientDoc = [self transientDocumentToReplace];
-			NSDocument *typelessDoc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:NO error:NULL];
-			
-			if (typelessDoc && [typelessDoc isKindOfClass:[SLiMDocument class]])
-			{
-				SLiMDocument *doc = (SLiMDocument *)typelessDoc;
-				
-				if (transientDoc)
-					[self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, doc, nil]];
-				
-				[doc makeWindowControllers];
-				[doc showWindows];
-				
-				[doc setDocumentScriptString:scriptString];
-				[doc setRecipeName:recipeName];					// tell the doc it's a recipe doc, so it can manage its title properly
-				[[doc slimWindowController] synchronizeWindowTitleWithDocumentName];	// remake the window title
-			}
-		}
+		[self openRecipeWithFilename:fullRecipeName];
+	}
+	else
+	{
+		NSString *fullRecipeName = [[NSString stringWithFormat:@"Recipe %@", recipeName] stringByAppendingPathExtension:@"txt"];
+		
+		[self openRecipeWithFilename:fullRecipeName];
 	}
 }
 

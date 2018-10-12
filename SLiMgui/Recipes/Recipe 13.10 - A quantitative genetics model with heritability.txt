@@ -1,3 +1,5 @@
+// Keywords: QTL, quantitative trait loci
+
 initialize() {
 	defineConstant("h2", 0.1);     // target heritability
 

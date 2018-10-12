@@ -1,3 +1,5 @@
+// Keywords: tree-sequence recording, tree sequence recording, conditional sweep
+
 initialize() {
 	initializeTreeSeq();
 	initializeMutationRate(1e-8);

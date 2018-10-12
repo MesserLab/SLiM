@@ -1,3 +1,5 @@
+// Keywords: nonWF, non-Wright-Fisher
+
 function (i)readIntTable(s$ path)
 {
 	l = readFile(path);

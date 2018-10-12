@@ -126,7 +126,11 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 + (NSAttributedString *)attributedStringForByteCount:(int64_t)bytes total:(double)total attributes:(NSDictionary *)attrs;
 @end
 
-
+// Create a path for a temporary file; see https://stackoverflow.com/a/8307013/2752221
+// Code is originally from https://developer.apple.com/library/archive/samplecode/SimpleURLConnections/Introduction/Intro.html#//apple_ref/doc/uid/DTS40009245
+@interface NSString (SLiMTempFiles)
++ (NSString *)slimPathForTemporaryFileWithPrefix:(NSString *)prefix;
+@end
 
 
 

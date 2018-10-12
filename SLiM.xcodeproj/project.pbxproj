@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		98024742215D85880025D29C /* FindRecipePanel.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98024740215D85880025D29C /* FindRecipePanel.xib */; };
 		980613AD1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */; };
 		980613B01FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980613AE1FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib */; };
 		98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
@@ -114,6 +115,7 @@
 		98332B191FDBD16500274FF0 /* copy.c in Sources */ = {isa = PBXBuildFile; fileRef = 98332B161FDBD13D00274FF0 /* copy.c */; };
 		98332B1A1FDBD16500274FF0 /* copy.c in Sources */ = {isa = PBXBuildFile; fileRef = 98332B161FDBD13D00274FF0 /* copy.c */; };
 		98332B1B1FDBD16600274FF0 /* copy.c in Sources */ = {isa = PBXBuildFile; fileRef = 98332B161FDBD13D00274FF0 /* copy.c */; };
+		984252C3216FA9930019696A /* FindRecipeController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984252C2216FA9930019696A /* FindRecipeController.mm */; };
 		98453F401A75A12700C058CB /* dump_output_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3E1A75A12700C058CB /* dump_output_H.pdf */; };
 		98453F411A75A12700C058CB /* dump_output.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F3F1A75A12700C058CB /* dump_output.pdf */; };
 		98453F441A75AABE00C058CB /* syntax_help_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98453F421A75AABE00C058CB /* syntax_help_H.pdf */; };
@@ -604,6 +606,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		98024741215D85880025D29C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/FindRecipePanel.xib; sourceTree = "<group>"; };
 		980613AB1FAFD79100D379BA /* SLiMHaplotypeGraphView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMHaplotypeGraphView.h; sourceTree = "<group>"; };
 		980613AC1FAFD79100D379BA /* SLiMHaplotypeGraphView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeGraphView.mm; sourceTree = "<group>"; };
 		980613AF1FAFF16000D379BA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeGraphWindow.xib; sourceTree = "<group>"; };
@@ -723,6 +726,8 @@
 		98332B0F1FDBD09800274FF0 /* init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = init.c; path = block/init.c; sourceTree = "<group>"; };
 		98332B151FDBD13D00274FF0 /* copy_source.inc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.pascal; name = copy_source.inc; path = matrix/copy_source.inc; sourceTree = "<group>"; };
 		98332B161FDBD13D00274FF0 /* copy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = copy.c; path = matrix/copy.c; sourceTree = "<group>"; };
+		984252C1216FA9930019696A /* FindRecipeController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FindRecipeController.h; sourceTree = "<group>"; };
+		984252C2216FA9930019696A /* FindRecipeController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FindRecipeController.mm; sourceTree = "<group>"; };
 		98453F3E1A75A12700C058CB /* dump_output_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output_H.pdf; sourceTree = "<group>"; };
 		98453F3F1A75A12700C058CB /* dump_output.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = dump_output.pdf; sourceTree = "<group>"; };
 		98453F421A75AABE00C058CB /* syntax_help_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = syntax_help_H.pdf; sourceTree = "<group>"; };
@@ -1746,12 +1751,15 @@
 				98D4C2091A7086FF00FFB083 /* ChromosomeView.mm */,
 				984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */,
 				984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */,
+				984252C1216FA9930019696A /* FindRecipeController.h */,
+				984252C2216FA9930019696A /* FindRecipeController.mm */,
 				98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */,
 				98D4C1FF1A70192A00FFB083 /* SLiMWindow.xib */,
 				98D4C20B1A715F6100FFB083 /* AboutWindow.xib */,
 				98D4C2121A71838400FFB083 /* HelpWindow.xib */,
 				98EA965A1ECC2541006BA35B /* ProfileReport.xib */,
 				98ADD5B41ED2E4380027C27B /* PopulationViewOptionsSheet.xib */,
+				98024740215D85880025D29C /* FindRecipePanel.xib */,
 				9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */,
 				982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */,
 				989228331BAFB27300429674 /* SLiMHelpCallbacks.rtf */,
@@ -2015,6 +2023,7 @@
 				98EF4AB71ECDA5EA00CCDB09 /* profile.pdf in Resources */,
 				98A2FF891D7DF4D7007E3DB8 /* Recipes in Resources */,
 				98D4C1F51A70040400FFB083 /* play_step.pdf in Resources */,
+				98024742215D85880025D29C /* FindRecipePanel.xib in Resources */,
 				98CF264F1E42DBE200E392D8 /* slim.iconset in Resources */,
 				987AD87D1B2CBE4F0035D6C8 /* show_parse.pdf in Resources */,
 				98453F561A76004300C058CB /* open_type_drawer_H.pdf in Resources */,
@@ -2484,6 +2493,7 @@
 				98332ADD1FDBC0D700274FF0 /* dgemv.c in Sources */,
 				98C821491C7A983700548839 /* binomial_tpe.c in Sources */,
 				9850D8E9206309A0006BFD2E /* tables.c in Sources */,
+				984252C3216FA9930019696A /* FindRecipeController.mm in Sources */,
 				98606AEF1DED0DCD00821CFF /* mutation_run.cpp in Sources */,
 				98332B191FDBD16500274FF0 /* copy.c in Sources */,
 				9876E5F61ED5573700FF9762 /* tdist.c in Sources */,
@@ -2620,6 +2630,14 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
+		98024740215D85880025D29C /* FindRecipePanel.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				98024741215D85880025D29C /* Base */,
+			);
+			name = FindRecipePanel.xib;
+			sourceTree = "<group>";
+		};
 		980613AE1FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib */ = {
 			isa = PBXVariantGroup;
 			children = (

@@ -1,3 +1,5 @@
+// Keywords: continuous space, continuous spatial landscape, absorbing boundaries
+
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
 	initializeMutationRate(1e-7);

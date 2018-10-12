@@ -1,3 +1,5 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
 initialize() {
 	initializeTreeSeq(simplificationRatio=INF);
 	initializeMutationRate(0);

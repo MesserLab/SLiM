@@ -1,3 +1,5 @@
+// Keywords: QTL, quantitative trait loci, competition, assortative mating
+
 initialize() {
 	defineConstant("optimum", 5.0);
 	defineConstant("sigma_C", 0.4);
