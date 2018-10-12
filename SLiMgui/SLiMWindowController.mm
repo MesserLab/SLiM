@@ -4685,7 +4685,7 @@
 				
 				if (aTableColumn == interactionTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"m%lld", (int64_t)interactionTypeID];
+					return [NSString stringWithFormat:@"i%lld", (int64_t)interactionTypeID];
 				}
 				else if (aTableColumn == interactionTypeMaxDistanceColumn)
 				{
