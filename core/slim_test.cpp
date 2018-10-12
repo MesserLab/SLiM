@@ -949,8 +949,10 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:29)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(s1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(s1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=NULL); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);

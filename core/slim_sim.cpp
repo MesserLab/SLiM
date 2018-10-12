@@ -9935,7 +9935,17 @@ EidosValue_SP SLiMSim::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 	
 	return gStaticEidosValueVOID;
 }
-			
+
+void SLiMSim::CheckScheduling(slim_generation_t p_target_gen, SLiMGenerationStage p_target_stage)
+{
+	if (p_target_gen < generation_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckScheduling): event/callback scheduled for a past generation would not run." << EidosTerminate();
+	if ((p_target_gen == generation_) && (p_target_stage < generation_stage_))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckScheduling): event/callback scheduled for the current generation, but for a past generation cycle stage, would not run." << EidosTerminate();
+	if ((p_target_gen == generation_) && (p_target_stage == generation_stage_))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckScheduling): event/callback scheduled for the current generation, but for the currently executing generation cycle stage, would not run." << EidosTerminate();
+}
+
 //	*********************	– (object<SLiMEidosBlock>$)registerEarlyEvent(Nis$ id, string$ source, [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerLateEvent(Nis$ id, string$ source, [Ni$ start = NULL], [Ni$ end = NULL])
 //
@@ -9957,6 +9967,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID 
 	
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerEarlyLateEvent): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() requires start <= end." << EidosTerminate();
+	
+	SLiMGenerationStage target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ?
+		((p_method_id == gID_registerEarlyEvent) ? SLiMGenerationStage::kWFStage1ExecuteEarlyScripts : SLiMGenerationStage::kWFStage5ExecuteLateScripts) : 
+		((p_method_id == gID_registerEarlyEvent) ? SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts : SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+	
+	CheckScheduling(start_generation, target_stage);
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, (p_method_id == gID_registerEarlyEvent) ? SLiMEidosBlockType::SLiMEidosEventEarly : SLiMEidosBlockType::SLiMEidosEventLate, start_generation, end_generation);
 	
@@ -9995,6 +10011,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID
 	
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFitnessCallback): registerFitnessCallback() requires start <= end." << EidosTerminate();
+	
+	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage6CalculateFitness : SLiMGenerationStage::kNonWFStage3CalculateFitness);
 	
 	SLiMEidosBlockType block_type = ((mut_type_id == -2) ? SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback : SLiMEidosBlockType::SLiMEidosFitnessCallback);
 	
@@ -10035,6 +10053,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 	
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerInteractionCallback): registerInteractionCallback() requires start <= end." << EidosTerminate();
+	
+	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage7AdvanceGenerationCounter : SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter);
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_generation, end_generation);
 	
@@ -10083,6 +10103,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 	if (p_method_id == gID_registerMateChoiceCallback)					block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 	else if (p_method_id == gID_registerModifyChildCallback)			block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
 	else /* if (p_method_id == gID_registerRecombinationCallback) */	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+	
+	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage2GenerateOffspring : SLiMGenerationStage::kNonWFStage1GenerateOffspring);
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 	
@@ -10137,6 +10159,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 	if (start_generation > end_generation)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerReproductionCallback): registerReproductionCallback() requires start <= end." << EidosTerminate();
 	
+	CheckScheduling(start_generation, SLiMGenerationStage::kNonWFStage1GenerateOffspring);
+	
 	SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
 	
@@ -10165,8 +10189,46 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 	
 	if (block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 	{
-		// this should never be hit, because the user should have to way to get a reference to a function block
+		// this should never be hit, because the user should have no way to get a reference to a function block
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on user-defined function script blocks." << EidosTerminate();
+	}
+	
+	// Figure out what generation stage the rescheduled block executes in; this is annoying, but necessary for the new scheduling check call
+	SLiMGenerationStage stage;
+	
+	if (model_type_ == SLiMModelType::kModelTypeWF)
+	{
+		switch (block->type_)
+		{
+			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMGenerationStage::kWFStage5ExecuteLateScripts; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStage0PreGeneration; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMGenerationStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMGenerationStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMGenerationStage::kWFStage7AdvanceGenerationCounter; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
+			default: EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+		}
+	}
+	else
+	{
+		switch (block->type_)
+		{
+			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMGenerationStage::kNonWFStage6ExecuteLateScripts; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStage0PreGeneration; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMGenerationStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMGenerationStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			default: EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+		}
 	}
 	
 	if ((!start_null || !end_null) && generations_null)
@@ -10178,6 +10240,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 		
 		if (start > end)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): reschedule() requires start <= end." << EidosTerminate();
+		
+		CheckScheduling(start, stage);
 		
 		block->start_generation_ = start;
 		block->end_generation_ = end;
@@ -10203,8 +10267,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 		for (int gen_index = 0; gen_index < gen_count; ++gen_index)
 			generations.push_back(SLiMCastToGenerationTypeOrRaise(generations_value->IntAtIndex(gen_index, nullptr)));
 		
-		// next, sort the generation list
+		// next, sort the generation list and check that the first scheduling it requests is not in the past
 		std::sort(generations.begin(), generations.end());
+		
+		CheckScheduling(generations.front(), stage);
 		
 		// finally, go through the generation vector and schedule blocks for sequential runs
 		EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_SLiMEidosBlock_Class));

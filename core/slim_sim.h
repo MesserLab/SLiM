@@ -491,6 +491,7 @@ public:
 	void DeregisterScheduledScriptBlocks(void);
 	void DeregisterScheduledInteractionBlocks(void);
 	void ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block);			// execute a SLiMEidosBlock that defines a function
+	void CheckScheduling(slim_generation_t p_target_gen, SLiMGenerationStage p_target_stage);
 	
 	// Running generations
 	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
