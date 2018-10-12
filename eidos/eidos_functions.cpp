@@ -7867,7 +7867,11 @@ EidosValue_SP Eidos_ExecuteFunction_asString(const EidosValue_SP *const p_argume
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
+	if ((x_count == 0) && (x_value->Type() == EidosValueType::kValueNULL))
+	{
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_NULL));
+	}
+	else if (x_count == 1)
 	{
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(x_value->StringAtIndex(0, nullptr)));
 	}

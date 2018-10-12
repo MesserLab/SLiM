@@ -2196,12 +2196,25 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 		if ((first_child_type == EidosValueType::kValueString) || (second_child_type == EidosValueType::kValueString))
 		{
 			// If either operand is a string, then we are doing string concatenation, with promotion to strings if needed
-			if ((first_child_type == EidosValueType::kValueNULL) || (second_child_type == EidosValueType::kValueNULL))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the binary '+' operator does not support operands of type NULL." << EidosTerminate(operator_token);
+			// BCH 10/12/2018: Starting in Eidos 2.2, we allow string concatenation of NULL, which acts just as if the NULL were
+			// a singleton string vector containing "NULL".  It is handled by pretending that NULL is length 1 and special-casing.
+			if (first_child_type == EidosValueType::kValueNULL)
+			{
+				first_child_count = 1;
+				result_dim_source = second_child_value;
+			}
+			if (second_child_type == EidosValueType::kValueNULL)
+			{
+				second_child_count = 1;
+				result_dim_source = first_child_value;
+			}
 			
 			if ((first_child_count == 1) && (second_child_count == 1))
 			{
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(first_child_value->StringAtIndex(0, operator_token) + second_child_value->StringAtIndex(0, operator_token)));
+				const std::string &&first_string = (first_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : first_child_value->StringAtIndex(0, operator_token);
+				const std::string &&second_string = (second_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : second_child_value->StringAtIndex(0, operator_token);
+				
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(first_string + second_string));
 			}
 			else
 			{
@@ -2217,29 +2230,29 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				}
 				else if (first_child_count == 1)
 				{
-					std::string singleton_int = first_child_value->StringAtIndex(0, operator_token);
+					std::string singleton_string = (first_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : first_child_value->StringAtIndex(0, operator_token);
 					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
-						string_result->PushString(singleton_int + second_child_value->StringAtIndex(value_index, operator_token));
+						string_result->PushString(singleton_string + second_child_value->StringAtIndex(value_index, operator_token));
 					
 					result_SP = std::move(string_result_SP);
 				}
 				else if (second_child_count == 1)
 				{
-					std::string singleton_int = second_child_value->StringAtIndex(0, operator_token);
+					std::string singleton_string = (second_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : second_child_value->StringAtIndex(0, operator_token);
 					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + singleton_int);
+						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + singleton_string);
 					
 					result_SP = std::move(string_result_SP);
 				}
 				else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 				{
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(operator_token);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): the string concatenation '+' operator requires that either (1) both operands have the same size(), or (2) one operand has size() == 1, or (3) one operand is NULL." << EidosTerminate(operator_token);
 				}
 			}
 		}

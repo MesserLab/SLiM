@@ -20,6 +20,7 @@ development head:
 	add outputUsage() method to dump memory usage of a simulation, incorporate this information into SLiMgui profile reports
 	add a button in SLiMgui to change the current working directory, correctly track the cwd when multiple SLiMgui windows are open, across recycles, etc.
 	add Find Recipe... panel in SLiMgui
+	modify asString(NULL) to return "NULL", and the string-concatenation operator + to use "NULL" when NULL is concatenated; cat() and catn() still produce no output for NULL
 
 
 3.1 (build 1817; Eidos version 2.1):
