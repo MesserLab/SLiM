@@ -1726,7 +1726,7 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; gen.removeMutations(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000); gen.removeMutations(NULL, T); }", 1, 313, "substitute may not be T if", __LINE__);
 	
-	// Test Genome + (void)outputMS([Ns$ filePath])
+	// Test Genome + (void)outputMS([Ns$ filePath], [logical$ append = F], [logical$ filterMonomorphic = F])
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS(); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS(); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS(NULL); stop(); }", __LINE__);
@@ -2006,7 +2006,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(tag=0, migrant=T)) == 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], tag=0, migrant=T)) == 0) stop(); }", __LINE__);
 	
-	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex])
+	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex], [Ns$ filePath = NULL], [logical$ append = F], [logical$ filterMonomorphic = F])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, F); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, T); stop(); }", __LINE__);

@@ -6043,7 +6043,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
-void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const
+void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome, bool p_filter_monomorphic) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -6087,7 +6087,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 	}
 	
 	// print the sample using Genome's static member function
-	Genome::PrintGenomes_MS(p_out, sample, p_chromosome);
+	Genome::PrintGenomes_MS(p_out, sample, p_chromosome, p_filter_monomorphic);
 }
 
 // print sample of p_sample_size *individuals* (NOT genomes) from subpopulation p_subpop_id

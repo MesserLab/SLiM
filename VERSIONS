@@ -22,6 +22,7 @@ development head:
 	add Find Recipe... panel in SLiMgui
 	modify asString(NULL) to return "NULL", and the string-concatenation operator + to use "NULL" when NULL is concatenated; cat() and catn() still produce no output for NULL
 	scheduling a callback/event into the past now results in an error
+	add a parameter to outputMS() and outputMSSample() to allow only sites that are polymorphic within the sample to be output: filterMonomorphic=T
 
 
 3.1 (build 1817; Eidos version 2.1):

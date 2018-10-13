@@ -1043,7 +1043,7 @@ void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_gen
 }
 
 // print the sample represented by genomes, using "ms" format
-void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome)
+void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome, bool p_filter_monomorphic)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
@@ -1079,6 +1079,18 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 			sorted_polymorphisms.push_back(polymorphism_pair.second);
 		
 		std::sort(sorted_polymorphisms.begin(), sorted_polymorphisms.end());
+	}
+	
+	// if requested, remove polymorphisms that are not polymorphic within the sample
+	if (p_filter_monomorphic)
+	{
+		std::vector<Polymorphism> filtered_polymorphisms;
+		
+		for (Polymorphism &p : sorted_polymorphisms)
+			if (p.prevalence_ != sample_size)
+				filtered_polymorphisms.push_back(p);
+		
+		std::swap(sorted_polymorphisms, filtered_polymorphisms);
 	}
 	
 	// print header
@@ -1381,7 +1393,7 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
@@ -1924,7 +1936,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 }
 
 //	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
-//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
 //	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
@@ -1933,6 +1945,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *outputMultiallelics_value = ((p_method_id == gID_outputVCF) ? p_arguments[1].get() : nullptr);
 	EidosValue *append_value = ((p_method_id == gID_outputVCF) ? p_arguments[2].get() : p_arguments[1].get());
+	EidosValue *filterMonomorphic_value = ((p_method_id == gID_outputMS) ? p_arguments[2].get() : nullptr);
 	
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	Chromosome &chromosome = sim.TheChromosome();
@@ -1942,6 +1955,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	
 	if (p_method_id == gID_outputVCF)
 		output_multiallelics = outputMultiallelics_value->LogicalAtIndex(0, nullptr);
+	
+	// figure out if we're filtering out mutations that are monomorphic within the sample (MS output only)
+	bool filter_monomorphic = false;
+	
+	if (p_method_id == gID_outputMS)
+		filter_monomorphic = filterMonomorphic_value->LogicalAtIndex(0, nullptr);
 	
 	// Get all the genomes we're sampling from p_target
 	int sample_size = p_target->Count();
@@ -1972,7 +1991,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		if (p_method_id == gID_output)
 			Genome::PrintGenomes_SLiM(output_stream, genomes, -1);	// -1 represents unknown source subpopulation
 		else if (p_method_id == gID_outputMS)
-			Genome::PrintGenomes_MS(output_stream, genomes, chromosome);
+			Genome::PrintGenomes_MS(output_stream, genomes, chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
 			Genome::PrintGenomes_VCF(output_stream, genomes, output_multiallelics);
 	}
@@ -1995,7 +2014,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 					Genome::PrintGenomes_SLiM(outfile, genomes, -1);	// -1 represents unknown source subpopulation
 					break;
 				case gID_outputMS:
-					Genome::PrintGenomes_MS(outfile, genomes, chromosome);
+					Genome::PrintGenomes_MS(outfile, genomes, chromosome, filter_monomorphic);
 					break;
 				case gID_outputVCF:
 					Genome::PrintGenomes_VCF(outfile, genomes, output_multiallelics);

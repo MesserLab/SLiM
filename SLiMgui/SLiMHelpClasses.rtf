@@ -748,7 +748,8 @@ If
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 +\'a0(void)outputMS([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f2\fs18 \cf0 +\'a0(void)outputMS([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+, [logical$\'a0filterMonomorphic\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -780,7 +781,17 @@ If
 \f2\fs18 T
 \f3\fs20 .
 \f0   Positions in the output will span the interval [0,1].\
-See 
+\cf2 \expnd0\expndtw0\kerning0
+If 
+\f2\fs18 filterMonomorphic
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20  (the default), all mutations that are present in the sample will be included in the output.  This means that some mutations may be included that are actually monomorphic within the sample (i.e., that exist in 
+\i \cf2 every
+\i0 \cf2  sampled genome, and are thus apparently fixed).  These may be filtered out with 
+\f2\fs18 filterMonomorphic = T
+\f0\fs20  if desired; note that this option means that some mutations that do exist in the sampled genomes might not be included in the output, simply because they exist in every sampled genome.\
+\cf0 \kerning1\expnd0\expndtw0 See 
 \f2\fs18 output()
 \f0\fs20  and 
 \f2\fs18 outputVCF()
@@ -5016,7 +5027,8 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f3 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f2\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+, [logical$\'a0filterMonomorphic\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5052,8 +5064,20 @@ If the optional parameter
 \f0\fs20  is 
 \f2\fs18 T
 \f3\fs20 .\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0 See 
+\f0 \cf2 \expnd0\expndtw0\kerning0
+If 
+\f2\fs18 filterMonomorphic
+\f0\fs20  is 
+\f2\fs18 F
+\f0\fs20  (the default), all mutations that are present in the sample will be included in the output.  This means that some mutations may be included that are actually monomorphic within the sample (i.e., that exist in 
+\i every
+\i0  sampled genome, and are thus apparently fixed).  These may be filtered out with 
+\f2\fs18 filterMonomorphic = T
+\f0\fs20  if desired; note that this option means that some mutations that do exist in the sampled genomes might not be included in the output, simply because they exist in every sampled genome.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 See 
 \f2\fs18 outputSample()
 \f0\fs20  and 
 \f2\fs18 outputVCFSample()
