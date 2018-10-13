@@ -1984,14 +1984,10 @@
 			
 		case EidosTokenType::kTokenIdentifier:
 		case EidosTokenType::kTokenIf:
-		case EidosTokenType::kTokenElse:
-		case EidosTokenType::kTokenDo:
 		case EidosTokenType::kTokenWhile:
 		case EidosTokenType::kTokenFor:
-		case EidosTokenType::kTokenIn:
 		case EidosTokenType::kTokenNext:
 		case EidosTokenType::kTokenBreak:
-		case EidosTokenType::kTokenReturn:
 		case EidosTokenType::kTokenFunction:
 			if (canExtend)
 			{
@@ -2087,7 +2083,11 @@
 		case EidosTokenType::kTokenGtEq:
 		case EidosTokenType::kTokenNot:
 		case EidosTokenType::kTokenNotEq:
-			// We are following an operator, so globals are OK but new statements are not
+		case EidosTokenType::kTokenReturn:
+		case EidosTokenType::kTokenElse:
+		case EidosTokenType::kTokenDo:
+		case EidosTokenType::kTokenIn:
+			// We are following an operator or similar, so globals are OK but new statements are not
 			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil];
 	}
 	
@@ -2327,7 +2327,7 @@
 			{
 				// the last token cannot be extended, so if the last token is something an identifier can follow, like an
 				// operator, then we can offer completions at the insertion point based on that, otherwise punt.
-				if ((token_type == EidosTokenType::kTokenNumber) || (token_type == EidosTokenType::kTokenString) || (token_type == EidosTokenType::kTokenRParen) || (token_type == EidosTokenType::kTokenRBracket) || (token_type == EidosTokenType::kTokenIdentifier) || (token_type == EidosTokenType::kTokenIf) || (token_type == EidosTokenType::kTokenWhile) || (token_type == EidosTokenType::kTokenFor) || (token_type == EidosTokenType::kTokenNext) || (token_type == EidosTokenType::kTokenBreak) || (token_type == EidosTokenType::kTokenReturn) || (token_type == EidosTokenType::kTokenFunction))
+				if ((token_type == EidosTokenType::kTokenNumber) || (token_type == EidosTokenType::kTokenString) || (token_type == EidosTokenType::kTokenRParen) || (token_type == EidosTokenType::kTokenRBracket) || (token_type == EidosTokenType::kTokenIdentifier) || (token_type == EidosTokenType::kTokenIf) || (token_type == EidosTokenType::kTokenWhile) || (token_type == EidosTokenType::kTokenFor) || (token_type == EidosTokenType::kTokenNext) || (token_type == EidosTokenType::kTokenBreak) || (token_type == EidosTokenType::kTokenFunction))
 				{
 					if (baseRange) *baseRange = NSMakeRange(NSNotFound, 0);
 					if (completions) *completions = nil;
