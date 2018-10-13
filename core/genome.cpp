@@ -1456,7 +1456,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until the partway through the next generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until partway through the next generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -1676,7 +1676,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until the partway through the next generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2393,7 +2393,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until the partway through the next generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until partway through the next generation." << std::endl;
 				sim.warned_early_mutation_remove_ = true;
 			}
 		}
