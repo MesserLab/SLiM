@@ -4001,10 +4001,10 @@
 					// Now we know the type of the node, and the root node of its compound statement; extract what we want
 					if (block_statement_root)
 					{
-						// The symbol sim is defined in initialize() blocks and not in other blocks; we need to add and remove it
+						// The symbol sim is defined in all blocks except initialize() blocks; we need to add and remove it
 						// dynamically so that each block has it defined or not defined as necessary.  Since the completion block
 						// is last, the sim symbol will be correctly defined at the end of this process.
-						if ((block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback) || (block_type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
+						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
 							(*typeTable)->RemoveTypeForSymbol(gID_sim);
 						else
 							(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
