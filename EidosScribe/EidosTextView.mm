@@ -1694,7 +1694,7 @@
 	return baseRange;
 }
 
-- (NSMutableArray *)globalCompletionsWithTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap keywords:(NSArray *)keywords
+- (NSMutableArray *)globalCompletionsWithTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap keywords:(NSArray *)keywords argumentNames:(NSArray *)argumentNames
 {
 	NSMutableArray *globals = [NSMutableArray array];
 	
@@ -1709,6 +1709,15 @@
 	
 	// Sort the symbols, who knows what order they come from EidosTypeTable in...
 	[globals sortUsingSelector:@selector(compare:)];
+	
+	// Next, if we have argument names that are completion matches, we want them at the top
+	if (argumentNames && [argumentNames count])
+	{
+		NSArray *oldGlobals = globals;
+		
+		globals = [[argumentNames mutableCopy] autorelease];
+		[globals addObjectsFromArray:oldGlobals];
+	}
 	
 	// Next, a sorted list of functions, with () appended
 	if (functionMap)
@@ -1962,7 +1971,52 @@
 	return candidates;
 }
 
-- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap callTypes:(EidosCallTypeTable *)callTypeTable keywords:(NSArray *)keywords
+- (NSArray *)completionsFromArray:(NSArray *)candidates matchingBase:(NSString *)base
+{
+	NSMutableArray *completions = [NSMutableArray array];
+	NSInteger candidateCount = [candidates count];
+	
+#if 0
+	// This is simple prefix-based completion; if a candidates begins with base, then it is used
+	for (int candidateIndex = 0; candidateIndex < candidateCount; ++candidateIndex)
+	{
+		NSString *candidate = [candidates objectAtIndex:candidateIndex];
+		
+		if ([candidate hasPrefix:base])
+			[completions addObject:candidate];
+	}
+#else
+	// This is part-based completion, where iTr will complete to initializeTreeSequence() and iGTy
+	// will complete to initializeGenomicElementType().  To do this, we use a special comparator
+	// that returns a score for the quality of the match, and then we sort all matches by score.
+	std::vector<int64_t> scores;
+	NSMutableArray *unsortedCompletions = [NSMutableArray array];
+	
+	for (int candidateIndex = 0; candidateIndex < candidateCount; ++candidateIndex)
+	{
+		NSString *candidate = [candidates objectAtIndex:candidateIndex];
+		int64_t score = [candidate eidosScoreAsCompletionOfString:base];
+		
+		if (score != INT64_MIN)
+		{
+			[unsortedCompletions addObject:candidate];
+			scores.push_back(score);
+		}
+	}
+	
+	if (scores.size())
+	{
+		std::vector<int64_t> order = EidosSortIndexes(scores.data(), scores.size(), false);
+		
+		for (int64_t index : order)
+			[completions addObject:[unsortedCompletions objectAtIndex:index]];
+	}
+#endif
+	
+	return completions;
+}
+
+- (NSArray *)completionsForTokenStream:(const std::vector<EidosToken> &)tokens index:(int)lastTokenIndex canExtend:(BOOL)canExtend withTypes:(EidosTypeTable *)typeTable functions:(EidosFunctionMap *)functionMap callTypes:(EidosCallTypeTable *)callTypeTable keywords:(NSArray *)keywords argumentNames:(NSArray *)argumentNames
 {
 	// What completions we offer depends on the token stream
 	const EidosToken &token = tokens[lastTokenIndex];
@@ -2015,29 +2069,22 @@
 					// if we see a semicolon or brace, we are in a completely global context
 					if ((previous_token_type == EidosTokenType::kTokenSemicolon) || (previous_token_type == EidosTokenType::kTokenLBrace) || (previous_token_type == EidosTokenType::kTokenRBrace))
 					{
-						completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords];
+						completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords argumentNames:nil];
 						break;
 					}
 					
 					// if we see any other token, we are not in a key path; let's assume we're following an operator
-					completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil];
+					completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil argumentNames:argumentNames];
 					break;
 				}
 				
 				// If we ran out of tokens, we're at the beginning of the file and so in the global context
 				if (!completions)
-					completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords];
+					completions = [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords argumentNames:nil];
 				
-				// Now we have an array of possible completions; we just need to remove those that don't start with our existing prefix
-				NSString *baseString = [NSString stringWithUTF8String:token.token_string_.c_str()];
-				
-				for (int completionIndex = (int)[completions count] - 1; completionIndex >= 0; --completionIndex)
-				{
-					if (![[completions objectAtIndex:completionIndex] hasPrefix:baseString])
-						[completions removeObjectAtIndex:completionIndex];
-				}
-				
-				return completions;
+				// Now we have an array of possible completions; we just need to remove those that don't complete the base string,
+				// according to a heuristic algorithm, and sort those that do match by a score of their closeness of match.
+				return [self completionsFromArray:completions matchingBase:[NSString stringWithUTF8String:token.token_string_.c_str()]];
 			}
 			
 			// If the previous token was an identifier and we can't extend it, the next thing probably needs to be an operator or something
@@ -2060,7 +2107,7 @@
 		case EidosTokenType::kTokenLBrace:
 		case EidosTokenType::kTokenRBrace:
 			// We are in the global context and anything goes, including a new statement
-			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords];
+			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:keywords argumentNames:nil];
 			
 		case EidosTokenType::kTokenColon:
 		case EidosTokenType::kTokenComma:
@@ -2088,7 +2135,7 @@
 		case EidosTokenType::kTokenDo:
 		case EidosTokenType::kTokenIn:
 			// We are following an operator or similar, so globals are OK but new statements are not
-			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil];
+			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil argumentNames:argumentNames];
 	}
 	
 	return nil;
@@ -2100,7 +2147,7 @@
 	return 0;
 }
 
-- (NSArray *)insertArgumentNameCompletions:(std::vector<std::string> *)argumentCompletions before:(NSArray *)otherCompletions
+- (NSArray *)uniquedArgumentNameCompletions:(std::vector<std::string> *)argumentCompletions
 {
 	// put argument-name completions, if any, at the top of the list; we unique them (preserving order) and add "="
 	if (argumentCompletions && argumentCompletions->size())
@@ -2116,11 +2163,10 @@
 				[completionsWithArgs addObject:argNameWithEquals];
 		}
 		
-		[completionsWithArgs addObjectsFromArray:otherCompletions];
 		return completionsWithArgs;
 	}
 	
-	return otherCompletions;
+	return nil;
 }
 
 // one funnel for all completion work, since we use the same pattern to answer both questions...
@@ -2269,7 +2315,7 @@
 				// We're at the end of nothing but initial whitespace and comments; or if (!lastTokenInterrupted),
 				// we're at the very beginning of the file.  Either way, offer insertion-point completions.
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-				if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+				if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords argumentNames:nil];
 				return;
 			}
 			
@@ -2315,7 +2361,7 @@
 						{
 							// We are at the end of for(), if(), or while(), so we allow global completions as if we were after a semicolon
 							if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
-							if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords];
+							if (completions) *completions = [self globalCompletionsWithTypes:typeTablePtr functions:functionMapPtr keywords:keywords argumentNames:nil];
 							return;
 						}
 						break;	// we didn't hit one of the favored cases, so the code below will reject completion
@@ -2337,9 +2383,9 @@
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
 				if (completions)
 				{
-					NSArray *otherCompletions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+					NSArray *argumentCompletionsArray = [self uniquedArgumentNameCompletions:&argumentCompletions];
 					
-					*completions = [self insertArgumentNameCompletions:&argumentCompletions before:otherCompletions];
+					*completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords argumentNames:argumentCompletionsArray];
 				}
 				
 				return;
@@ -2354,9 +2400,9 @@
 					if (baseRange) *baseRange = NSMakeRange(tokenRange.location + rangeOffset, tokenRange.length);
 					if (completions)
 					{
-						NSArray *otherCompletions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+						NSArray *argumentCompletionsArray = [self uniquedArgumentNameCompletions:&argumentCompletions];
 						
-						*completions = [self insertArgumentNameCompletions:&argumentCompletions before:otherCompletions];
+						*completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:YES withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords argumentNames:argumentCompletionsArray];
 					}
 					return;
 				}
@@ -2371,9 +2417,9 @@
 				if (baseRange) *baseRange = NSMakeRange(selection.location + rangeOffset, 0);
 				if (completions)
 				{
-					NSArray *otherCompletions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords];
+					NSArray *argumentCompletionsArray = [self uniquedArgumentNameCompletions:&argumentCompletions];
 					
-					*completions = [self insertArgumentNameCompletions:&argumentCompletions before:otherCompletions];
+					*completions = [self completionsForTokenStream:tokens index:lastTokenIndex canExtend:NO withTypes:typeTablePtr functions:functionMapPtr callTypes:callTypeTablePtr keywords:keywords argumentNames:argumentCompletionsArray];
 				}
 				return;
 			}

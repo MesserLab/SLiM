@@ -23,6 +23,8 @@ development head:
 	modify asString(NULL) to return "NULL", and the string-concatenation operator + to use "NULL" when NULL is concatenated; cat() and catn() still produce no output for NULL
 	scheduling a callback/event into the past now results in an error
 	add a parameter to outputMS() and outputMSSample() to allow only sites that are polymorphic within the sample to be output: filterMonomorphic=T
+	fix code completion in SLiMgui after return, in, else, and do
+	make code completion much smarter; iTr now completes to initializeTreeSeq(), wf to writeFile(), etc.
 
 
 3.1 (build 1817; Eidos version 2.1):

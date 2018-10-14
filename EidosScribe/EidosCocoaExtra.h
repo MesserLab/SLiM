@@ -89,7 +89,11 @@ class EidosPropertySignature;
 
 @end
 
+@interface NSString (EidosAdditions)
 
+- (int64_t)eidosScoreAsCompletionOfString:(NSString *)completionBase;
+
+@end
 
 
 

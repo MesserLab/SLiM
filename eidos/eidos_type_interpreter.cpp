@@ -324,20 +324,16 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 					((child->token_->token_type_ == EidosTokenType::kTokenIdentifier) || (child->token_->token_type_ == EidosTokenType::kTokenBad)) &&
 					(script_length_ <= (size_t)child->token_->token_end_ + 1))
 				{
-					const std::string &arg_base = child->token_->token_string_;
-					size_t arg_base_length = arg_base.length();
-					
 					// Check each argument in the signature as a possibility for completion
 					for (int sig_arg_match_index = sig_arg_index; sig_arg_match_index < sig_arg_count; ++sig_arg_match_index)
 					{
 						EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_match_index];
 						const std::string &arg_name = Eidos_StringForGlobalStringID(arg_name_ID);
 						
-						// To be a completion match, the name must have the token string as a prefix, and not be private API ('_' prefix)
-						if (arg_name.length() > arg_base_length)
-							if (arg_name.substr(0, arg_base_length) == arg_base)
-								if (arg_name[0] != '_')
-									argument_completions_->push_back(arg_name);
+						// To be a completion match, the name must not be private API ('_' prefix)
+						// Whether it is an acceptable completion in other respects will be checked by the completion engine
+						if (arg_name[0] != '_')
+							argument_completions_->push_back(arg_name);
 						
 						// If the argument we just examined is non-optional, we don't want to offer any further suggestions
 						// since they would not be legal to supply in this position in the function/method call.

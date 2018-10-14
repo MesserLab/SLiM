@@ -559,6 +559,101 @@ std::string Eidos_Beep(std::string p_sound_name)
 }
 
 
+@implementation NSString (EidosAdditions)
+
+- (int64_t)eidosScoreAsCompletionOfString:(NSString *)base
+{
+	// Evaluate the quality of the target as a completion for completionBase and return a score.
+	// We look for each character of completionBase in self, in order, case-insensitive; all
+	// characters must be present in order for the target to be a completion at all.  Beyond that,
+	// a higher score is garnered if the matches in self are (1) either uppercase or the 0th character,
+	// and (2) if they are relatively near the beginning, and (3) if they occur contiguously.
+	int64_t score = 0;
+	NSUInteger selfLength = [self length], baseLength = [base length];
+	
+	// Do the comparison scan; find a match for each composed character sequence in base.  We work
+	// with composed character sequences and use rangeOfString: to do searches, to avoid issues with
+	// diacritical marks, alternative composition sequences, casing, etc.
+	NSUInteger firstUnusedIndex = 0, firstUnmatchedIndex = 0;
+	
+	do
+	{
+		NSRange baseRangeToMatch = [base rangeOfComposedCharacterSequenceAtIndex:firstUnmatchedIndex];
+		NSString *stringToMatch = [base substringWithRange:baseRangeToMatch];
+		NSString *uppercaseStringToMatch = [stringToMatch uppercaseString];
+		NSRange selfMatchRange;
+		
+		if ([stringToMatch isEqualToString:uppercaseStringToMatch] && (firstUnmatchedIndex != 0))
+		{
+			// If the character in base is uppercase, we only want to match an uppercase character in self.
+			// The exception is the first character of base; WTF should match writeTempFile() well.
+			selfMatchRange = [self rangeOfString:stringToMatch
+										 options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
+										   range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
+			score += 1000;	// uppercase match
+		}
+		else
+		{
+			// If the character in base is not uppercase, we will match any case in self, but we prefer a
+			// lowercase character if it matches the very next part of self, otherwise we prefer uppercase.
+			selfMatchRange = [self rangeOfString:stringToMatch
+										 options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
+										   range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
+			
+			if (selfMatchRange.location == firstUnusedIndex)
+			{
+				score += 2000;	// next-character match is even better than upper-case; continuity trumps camelcase
+			}
+			else
+			{
+				NSRange uppercaseMatchRange = [self rangeOfString:uppercaseStringToMatch
+														  options:(NSDiacriticInsensitiveSearch | NSWidthInsensitiveSearch)
+															range:NSMakeRange(firstUnusedIndex, selfLength - firstUnusedIndex)];
+				
+				if (uppercaseMatchRange.location != NSNotFound)
+				{
+					selfMatchRange = uppercaseMatchRange;
+					score += 1000;	// uppercase match
+				}
+				else if (firstUnusedIndex > 0)
+				{
+					// This match is crap; we're jumping forward to a lowercase letter, so it's unlikely to be what
+					// the user wants.  So we bail.  This can be commented out to return lower-quality matches.
+					return INT64_MIN;
+				}
+			}
+		}
+		
+		// no match in self for the composed character sequence in base; self is not a good completion of base
+		if (selfMatchRange.location == NSNotFound)
+			return INT64_MIN;
+		
+		// matching the very beginning of self is very good; we really want to match the start of a candidate
+		// otherwise, earlier matches are better; a match at position 0 gets the largest score increment
+		if (selfMatchRange.location == 0)
+			score += 100000;
+		else
+			score -= selfMatchRange.location;
+		
+		// move firstUnusedIndex to follow the matched range in self
+		firstUnusedIndex = selfMatchRange.location + selfMatchRange.length;
+		
+		// move to the next composed character sequence in base
+		firstUnmatchedIndex = baseRangeToMatch.location + baseRangeToMatch.length;
+		if (firstUnmatchedIndex >= baseLength)
+			break;
+	}
+	while (YES);
+	
+	// We want argument-name matches to be at the top, always, when they are available, so bump their score
+	if ([self hasSuffix:@"="])
+		score += 1000000;
+	
+	return score;
+}
+
+@end
+
 
 
 

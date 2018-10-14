@@ -7105,39 +7105,6 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const EidosValue_SP *const p_arguments
 	return result_SP;
 }
 
-// Get indexes that would result in sorted ordering of a vector.  This rather nice code is adapted from http://stackoverflow.com/a/12399290/2752221
-template <typename T>
-std::vector<int64_t> EidosSortIndexes(const std::vector<T> &p_v, bool p_ascending = true)
-{
-	// initialize original index locations
-	std::vector<int64_t> idx(p_v.size());
-	std::iota(idx.begin(), idx.end(), 0);
-	
-	// sort indexes based on comparing values in v
-	if (p_ascending)
-		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
-	else
-		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
-	
-	return idx;
-}
-
-template <typename T>
-std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascending = true)
-{
-	// initialize original index locations
-	std::vector<int64_t> idx(p_size);
-	std::iota(idx.begin(), idx.end(), 0);
-	
-	// sort indexes based on comparing values in v
-	if (p_ascending)
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
-	else
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
-	
-	return idx;
-}
-
 //	(integer)order(+ x, [logical$ ascending = T])
 EidosValue_SP Eidos_ExecuteFunction_order(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {

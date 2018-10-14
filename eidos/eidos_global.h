@@ -28,6 +28,7 @@
 #include <string>
 #include <float.h>
 #include <string.h>
+#include <numeric>
 
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 #include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui and the Eidos GUI (the latter for the timing test code)
@@ -327,6 +328,39 @@ std::vector<std::string> Eidos_string_split(const std::string &p_str, const std:
 // Run a Unix command
 // BCH 13 December 2017: no longer used, commenting this out
 //std::string Eidos_Exec(const char *p_cmd);
+
+// Get indexes that would result in sorted ordering of a vector.  This rather nice code is adapted from http://stackoverflow.com/a/12399290/2752221
+template <typename T>
+std::vector<int64_t> EidosSortIndexes(const std::vector<T> &p_v, bool p_ascending = true)
+{
+	// initialize original index locations
+	std::vector<int64_t> idx(p_v.size());
+	std::iota(idx.begin(), idx.end(), 0);
+	
+	// sort indexes based on comparing values in v
+	if (p_ascending)
+		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
+	else
+		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
+	
+	return idx;
+}
+
+template <typename T>
+std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascending = true)
+{
+	// initialize original index locations
+	std::vector<int64_t> idx(p_size);
+	std::iota(idx.begin(), idx.end(), 0);
+	
+	// sort indexes based on comparing values in v
+	if (p_ascending)
+		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
+	else
+		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
+	
+	return idx;
+}
 
 
 // *******************************************************************************************************************
