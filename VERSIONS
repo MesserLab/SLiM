@@ -25,6 +25,7 @@ development head:
 	add a parameter to outputMS() and outputMSSample() to allow only sites that are polymorphic within the sample to be output: filterMonomorphic=T
 	fix code completion in SLiMgui after return, in, else, and do
 	make code completion much smarter; iTr now completes to initializeTreeSeq(), wf to writeFile(), etc.
+	fix recipe 11.1 issue with calcFST() function returning NAN if any mutations are either (a) missing from both subpops, or (b) fixed in both subpops
 
 
 3.1 (build 1817; Eidos version 2.1):
