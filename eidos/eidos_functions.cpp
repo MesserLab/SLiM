@@ -9352,6 +9352,9 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_argumen
 	double s = hsv_value->FloatAtIndex(1, nullptr);
 	double v = hsv_value->FloatAtIndex(2, nullptr);
 	
+	if (std::isnan(h) || std::isnan(s) || std::isnan(v))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): color component with value NAN is not legal." << EidosTerminate();
+	
 	if (h < 0.0) h = 0.0;
 	if (h > 1.0) h = 1.0;
 	if (s < 0.0) s = 0.0;
@@ -9394,6 +9397,9 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 	double b = rgb_value->FloatAtIndex(2, nullptr);
 	char hex_chars[8];
 	
+	if (std::isnan(r) || std::isnan(g) || std::isnan(b))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): color component with value NAN is not legal." << EidosTerminate();
+	
 	Eidos_GetColorString(r, g, b, hex_chars);
 	
 	std::string hex_string(hex_chars);
@@ -9419,6 +9425,9 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 	double r = rgb_value->FloatAtIndex(0, nullptr);
 	double g = rgb_value->FloatAtIndex(1, nullptr);
 	double b = rgb_value->FloatAtIndex(2, nullptr);
+	
+	if (std::isnan(r) || std::isnan(g) || std::isnan(b))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): color component with value NAN is not legal." << EidosTerminate();
 	
 	if (r < 0.0) r = 0.0;
 	if (r > 1.0) r = 1.0;

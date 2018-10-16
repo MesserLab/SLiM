@@ -2702,6 +2702,9 @@ void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_co
 
 void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer)
 {
+	if (std::isnan(p_red) || std::isnan(p_green) || std::isnan(p_blue))
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorString): color component with value NAN is not legal." << EidosTerminate();
+	
 	if (p_red < 0.0) p_red = 0.0;
 	if (p_red > 1.0) p_red = 1.0;
 	if (p_green < 0.0) p_green = 0.0;

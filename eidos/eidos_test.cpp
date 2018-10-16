@@ -6762,6 +6762,9 @@ void _RunColorManipulationTests(void)
 	// hsv2rgb()
 	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0));", 0, "must contain exactly three");
 	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0, 0.0, 0.0));", 0, "must contain exactly three");
+	EidosAssertScriptRaise("hsv2rgb(c(NAN, 0.0, 0.0));", 0, "color component with value NAN");
+	EidosAssertScriptRaise("hsv2rgb(c(0.0, NAN, 0.0));", 0, "color component with value NAN");
+	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0, NAN));", 0, "color component with value NAN");
 	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, -0.5)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(hsv2rgb(c(0.0, 0.0, 0.5)), c(0.5, 0.5, 0.5));", gStaticEidosValue_LogicalT);
@@ -6785,6 +6788,9 @@ void _RunColorManipulationTests(void)
 	// rgb2hsv()
 	EidosAssertScriptRaise("rgb2hsv(c(0.0, 0.0));", 0, "must contain exactly three");
 	EidosAssertScriptRaise("rgb2hsv(c(0.0, 0.0, 0.0, 0.0));", 0, "must contain exactly three");
+	EidosAssertScriptRaise("rgb2hsv(c(NAN, 0.0, 0.0));", 0, "color component with value NAN");
+	EidosAssertScriptRaise("rgb2hsv(c(0.0, NAN, 0.0));", 0, "color component with value NAN");
+	EidosAssertScriptRaise("rgb2hsv(c(0.0, 0.0, NAN));", 0, "color component with value NAN");
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(-1.0, 0.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, -1.0, 0.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 0.0, -1.0)), c(0.0, 0.0, 0.0));", gStaticEidosValue_LogicalT);
@@ -6810,6 +6816,9 @@ void _RunColorManipulationTests(void)
 	// rgb2color()
 	EidosAssertScriptRaise("rgb2color(c(0.0, 0.0));", 0, "must contain exactly three");
 	EidosAssertScriptRaise("rgb2color(c(0.0, 0.0, 0.0, 0.0));", 0, "must contain exactly three");
+	EidosAssertScriptRaise("rgb2color(c(NAN, 0.0, 0.0));", 0, "color component with value NAN");
+	EidosAssertScriptRaise("rgb2color(c(0.0, NAN, 0.0));", 0, "color component with value NAN");
+	EidosAssertScriptRaise("rgb2color(c(0.0, 0.0, NAN));", 0, "color component with value NAN");
 	EidosAssertScriptSuccess("rgb2color(c(-0.5, -0.5, -0.5)) == '#000000';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 0.0)) == '#000000';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("rgb2color(c(1.0, 1.0, 1.0)) == '#FFFFFF';", gStaticEidosValue_LogicalT);
