@@ -3790,6 +3790,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 			gui_offspring_cloned_M_++;
 		if ((child_sex == IndividualSex::kHermaphrodite) || (child_sex == IndividualSex::kFemale))
 			gui_offspring_cloned_F_++;
+		
+		// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
+		// we tally things, SLiMgui display purposes, as if it were generated in parent_subpop and then moved
+		parent_subpop.gui_premigration_size_++;
+		if (&parent_subpop != this)
+			gui_migrants_[parent_subpop.subpopulation_id_]++;
 	}
 #endif
 	
@@ -3874,7 +3880,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1, parent1->genome1_, parent1->genome2_, parent2, parent2->genome1_, parent2->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
 		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
-		if (proposed_child_accepted) gui_offspring_crossed_++;
+		if (proposed_child_accepted)
+		{
+			gui_offspring_crossed_++;
+			
+			// this offspring came from parents in parent1_subpop and parent2_subpop but ended up here, so it is, in effect, a migrant;
+			// we tally things, SLiMgui display purposes, as if it were generated in those other subpops and then moved
+			parent1_subpop.gui_premigration_size_ += 0.5;
+			parent2_subpop.gui_premigration_size_ += 0.5;
+			if (&parent1_subpop != this)
+				gui_migrants_[parent1_subpop.subpopulation_id_] += 0.5;
+			if (&parent2_subpop != this)
+				gui_migrants_[parent2_subpop.subpopulation_id_] += 0.5;
+		}
 #endif
 		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
@@ -3883,6 +3901,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	{
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		gui_offspring_crossed_++;
+		
+		// this offspring came from parents in parent1_subpop and parent2_subpop but ended up here, so it is, in effect, a migrant;
+		// we tally things, SLiMgui display purposes, as if it were generated in those other subpops and then moved
+		parent1_subpop.gui_premigration_size_ += 0.5;
+		parent2_subpop.gui_premigration_size_ += 0.5;
+		if (&parent1_subpop != this)
+			gui_migrants_[parent1_subpop.subpopulation_id_] += 0.5;
+		if (&parent2_subpop != this)
+			gui_migrants_[parent2_subpop.subpopulation_id_] += 0.5;
 #endif
 		
 		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
@@ -3945,6 +3972,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	if (proposed_child_accepted) gui_offspring_empty_++;
+	
+	gui_premigration_size_++;
 #endif
 	
 	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
@@ -4221,7 +4250,65 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, /* p_parent1 */ nullptr, strand1, strand2, /* p_parent2 */ nullptr, strand3, strand4, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
-		if (proposed_child_accepted) gui_offspring_crossed_++;
+		if (proposed_child_accepted)
+		{
+			gui_offspring_crossed_++;
+			
+			// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
+			// we tally things, SLiMgui display purposes, as if it were generated in the parental subpops and then moved
+			// this is pretty gross, but runs only in SLiMgui, so whatever :->
+			Subpopulation *strand1_subpop = (strand1_parent ? &strand1_parent->subpopulation_ : nullptr);
+			Subpopulation *strand2_subpop = (strand2_parent ? &strand2_parent->subpopulation_ : nullptr);
+			Subpopulation *strand3_subpop = (strand3_parent ? &strand3_parent->subpopulation_ : nullptr);
+			Subpopulation *strand4_subpop = (strand4_parent ? &strand4_parent->subpopulation_ : nullptr);
+			bool both_offspring_strands_inherited = (strand1_subpop && strand3_subpop);
+			double strand1_weight = 0.0, strand2_weight = 0.0, strand3_weight = 0.0, strand4_weight = 0.0;
+			
+			if (strand1_subpop && strand2_subpop)
+			{
+				strand1_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+				strand2_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+			}
+			else if (strand1_subpop)
+			{
+				strand1_weight = (both_offspring_strands_inherited ? 0.5 : 1.0);
+			}
+			
+			if (strand3_subpop && strand4_subpop)
+			{
+				strand3_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+				strand4_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+			}
+			else if (strand3_subpop)
+			{
+				strand3_weight = (both_offspring_strands_inherited ? 0.5 : 1.0);
+			}
+			
+			if (strand1_weight > 0)
+			{
+				strand1_subpop->gui_premigration_size_ += strand1_weight;
+				if (strand1_subpop != this)
+					gui_migrants_[strand1_subpop->subpopulation_id_]++;
+			}
+			if (strand2_weight > 0)
+			{
+				strand2_subpop->gui_premigration_size_ += strand2_weight;
+				if (strand2_subpop != this)
+					gui_migrants_[strand2_subpop->subpopulation_id_]++;
+			}
+			if (strand3_weight > 0)
+			{
+				strand3_subpop->gui_premigration_size_ += strand3_weight;
+				if (strand3_subpop != this)
+					gui_migrants_[strand3_subpop->subpopulation_id_]++;
+			}
+			if (strand4_weight > 0)
+			{
+				strand4_subpop->gui_premigration_size_ += strand4_weight;
+				if (strand4_subpop != this)
+					gui_migrants_[strand4_subpop->subpopulation_id_]++;
+			}
+		}
 #endif
 		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
@@ -4230,6 +4317,61 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		gui_offspring_crossed_++;
+		
+		// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
+		// we tally things, SLiMgui display purposes, as if it were generated in the parental subpops and then moved
+		// this is pretty gross, but runs only in SLiMgui, so whatever :->
+		Subpopulation *strand1_subpop = (strand1_parent ? &strand1_parent->subpopulation_ : nullptr);
+		Subpopulation *strand2_subpop = (strand2_parent ? &strand2_parent->subpopulation_ : nullptr);
+		Subpopulation *strand3_subpop = (strand3_parent ? &strand3_parent->subpopulation_ : nullptr);
+		Subpopulation *strand4_subpop = (strand4_parent ? &strand4_parent->subpopulation_ : nullptr);
+		bool both_offspring_strands_inherited = (strand1_subpop && strand3_subpop);
+		double strand1_weight = 0.0, strand2_weight = 0.0, strand3_weight = 0.0, strand4_weight = 0.0;
+		
+		if (strand1_subpop && strand2_subpop)
+		{
+			strand1_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+			strand2_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+		}
+		else if (strand1_subpop)
+		{
+			strand1_weight = (both_offspring_strands_inherited ? 0.5 : 1.0);
+		}
+		
+		if (strand3_subpop && strand4_subpop)
+		{
+			strand3_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+			strand4_weight = (both_offspring_strands_inherited ? 0.25 : 0.5);
+		}
+		else if (strand3_subpop)
+		{
+			strand3_weight = (both_offspring_strands_inherited ? 0.5 : 1.0);
+		}
+		
+		if (strand1_weight > 0)
+		{
+			strand1_subpop->gui_premigration_size_ += strand1_weight;
+			if (strand1_subpop != this)
+				gui_migrants_[strand1_subpop->subpopulation_id_]++;
+		}
+		if (strand2_weight > 0)
+		{
+			strand2_subpop->gui_premigration_size_ += strand2_weight;
+			if (strand2_subpop != this)
+				gui_migrants_[strand2_subpop->subpopulation_id_]++;
+		}
+		if (strand3_weight > 0)
+		{
+			strand3_subpop->gui_premigration_size_ += strand3_weight;
+			if (strand3_subpop != this)
+				gui_migrants_[strand3_subpop->subpopulation_id_]++;
+		}
+		if (strand4_weight > 0)
+		{
+			strand4_subpop->gui_premigration_size_ += strand4_weight;
+			if (strand4_subpop != this)
+				gui_migrants_[strand4_subpop->subpopulation_id_]++;
+		}
 #endif
 		
 		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);
@@ -4298,7 +4440,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, parent->genome1_, parent->genome2_, parent, parent->genome1_, parent->genome2_, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
 		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
-		if (proposed_child_accepted) gui_offspring_selfed_++;
+		if (proposed_child_accepted)
+		{
+			gui_offspring_selfed_++;
+			
+			// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
+			// we tally things, SLiMgui display purposes, as if it were generated in parent_subpop and then moved
+			parent_subpop.gui_premigration_size_++;
+			if (&parent_subpop != this)
+				gui_migrants_[parent_subpop.subpopulation_id_]++;
+		}
 #endif
 		
 		return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
@@ -4307,6 +4458,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	{
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		gui_offspring_selfed_++;
+		
+		// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
+		// we tally things, SLiMgui display purposes, as if it were generated in parent_subpop and then moved
+		parent_subpop.gui_premigration_size_++;
+		if (&parent_subpop != this)
+			gui_migrants_[parent_subpop.subpopulation_id_]++;
 #endif
 		
 		return _ResultAfterModifyChildCallbacks(true, individual, genome1, genome2);

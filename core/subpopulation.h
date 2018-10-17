@@ -249,8 +249,8 @@ public:
 	int64_t gui_offspring_empty_ = 0;
 	
 	// these track migrants out to us from other subpopulations, in nonWF models
-	int64_t gui_premigration_size_ = 0;
-	std::map<slim_objectid_t,double> gui_migrants_;		// m[i]: fraction made up of migrants from subpopulation i per generation
+	double gui_premigration_size_ = 0;					// the size of this subpop without migration
+	std::map<slim_objectid_t,double> gui_migrants_;		// m[i]: count of migrants from subpopulation i in this generation
 #endif	// (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	
 	Subpopulation(const Subpopulation&) = delete;													// no copying

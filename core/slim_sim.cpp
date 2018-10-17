@@ -3226,6 +3226,15 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 			subpop->gui_offspring_crossed_ = 0;
 			subpop->gui_offspring_empty_ = 0;
 		}
+		
+		// zero out migration counts used for SLiMgui's display
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			subpop->gui_premigration_size_ = subpop->parent_subpop_size_;
+			subpop->gui_migrants_.clear();
+		}
 #endif
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -3327,17 +3336,6 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	// Stage 2: Execute early() script events for the current generation
 	//
 	{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
-		// zero out migration counts used for SLiMgui's display
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			subpop->gui_premigration_size_ = subpop->parent_subpop_size_;
-			subpop->gui_migrants_.clear();
-		}
-#endif
-		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
