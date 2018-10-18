@@ -29,6 +29,7 @@ development head:
 	fix issues with passing NAN as a color component to the Eidos color-translation functions
 	make SLiMgui's "graph population visualization" migration rates in nonWF models reflect juvenile migration due to a non-parental destination subpop for addX()
 	add a print=T flag to version() so scripts can switch on the Eidos or SLiM version number without generating unwanted output
+	vectorized the exists() function so a vector of symbol names can be check for existence
 
 
 3.1 (build 1817; Eidos version 2.1):

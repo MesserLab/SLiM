@@ -284,7 +284,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("functionName")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			Eidos_ExecuteFunction_exists,		kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("symbol"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			Eidos_ExecuteFunction_exists,		kEidosValueMaskLogical))->AddString("symbol"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSignature",	Eidos_ExecuteFunction_functionSignature,	kEidosValueMaskVOID))->AddString_OSN("functionName", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskVOID)));
@@ -7819,9 +7819,9 @@ EidosValue_SP Eidos_ExecuteFunction_asLogical(const EidosValue_SP *const p_argum
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			logical_result->set_logical_no_check(x_value->LogicalAtIndex(value_index, nullptr), value_index);
+		
+		result_SP->CopyDimensionsFromValue(x_value);
 	}
-	
-	result_SP->CopyDimensionsFromValue(x_value);
 	
 	return result_SP;
 }
@@ -9784,20 +9784,36 @@ EidosValue_SP Eidos_ExecuteFunction__executeLambda_OUTER(const EidosValue_SP *co
 	return Eidos_ExecuteLambdaInternal(p_arguments, p_interpreter, true);	// see Eidos_ExecuteLambdaInternal() for comments on the true flag
 }
 
-//	(logical$)exists(string$ symbol)
+//	(logical)exists(string symbol)
 EidosValue_SP Eidos_ExecuteFunction_exists(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
 	EidosValue_SP result_SP(nullptr);
 	
-	std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
-	EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
+	EidosValue *symbol_value = p_arguments[0].get();
+	int symbol_count = symbol_value->Count();
 	
-	bool exists = symbols.ContainsSymbol(symbol_id);
-	
-	result_SP = (exists ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	if ((symbol_count == 1) && (symbol_value->DimensionCount() == 1))
+	{
+		// Use the global constants, but only if we do not have to impose a dimensionality upon the value below
+		EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_value->StringAtIndex(0, nullptr));
+		
+		result_SP = (symbols.ContainsSymbol(symbol_id) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	}
+	else
+	{
+		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(symbol_count);
+		result_SP = EidosValue_SP(logical_result);
+		
+		for (int value_index = 0; value_index < symbol_count; ++value_index)
+		{
+			EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_value->StringAtIndex(value_index, nullptr));
+			
+			logical_result->set_logical_no_check(symbols.ContainsSymbol(symbol_id), value_index);
+		}
+		
+		result_SP->CopyDimensionsFromValue(symbol_value);
+	}
 	
 	return result_SP;
 }

@@ -7126,6 +7126,8 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptSuccess("foo = 5:10; exists('foo');", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("foo = 5:10; rm('foo'); exists('foo');", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("defineConstant('foo', 5:10); exists('foo');", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("a=5; c=7.0; g='foo'; exists(c('a', 'b', 'c', 'd', 'e', 'f', 'g'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false, false, false, true}));
+	EidosAssertScriptSuccess("exists(c('T', 'Q', 'F', 'PW', 'PI', 'D', 'E'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false, true, false, true}));
 	
 	// functionSignature()
 	EidosAssertScriptSuccess("functionSignature();", gStaticEidosValueVOID);
@@ -7231,13 +7233,13 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("time(_Test(7));", 0, "too many arguments supplied");
 	
 	// version()
-	EidosAssertScriptSuccess("type(version()) == 'float';", gStaticEidosValue_LogicalT);
-	EidosAssertScriptRaise("version(NULL);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("version(T);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("version(3);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("version(3.5);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("version('foo');", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("version(_Test(7));", 0, "too many arguments supplied");
+	EidosAssertScriptSuccess("type(version(T)) == 'float';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("type(version(F)) == 'float';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("version(NULL);", 0, "cannot be type NULL");
+	EidosAssertScriptRaise("version(3);", 0, "cannot be type integer");
+	EidosAssertScriptRaise("version(3.5);", 0, "cannot be type float");
+	EidosAssertScriptRaise("version('foo');", 0, "cannot be type string");
+	EidosAssertScriptRaise("version(_Test(7));", 0, "cannot be type object");
 }
 
 #pragma mark methods

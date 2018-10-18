@@ -4252,32 +4252,32 @@ The current implementation of
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (logical$)exists(string$\'a0symbol)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf0 (logical)exists(string\'a0symbol)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 Returns a 
-\f1\fs18 logical
-\f0\fs20  value indicating 
-\b whether a symbol exists
-\f2\b0 .
-\f0   If the symbol has been defined as an intrinsic Eidos constant like 
-\f1\fs18 T
-\f0\fs20 , 
-\f1\fs18 INF
-\f0\fs20 , and 
-\f1\fs18 PI
-\f0\fs20 , or as a Context-defined constant like 
-\f1\fs18 sim
-\f0\fs20  in SLiM, or as a user-defined constant using 
-\f1\fs18 defineConstant()
-\f0\fs20 , or as a variable by assignment, this function returns 
-\f1\fs18 T
-\f0\fs20 .  Otherwise, the symbol has not been defined, and 
-\f1\fs18 exists()
-\f0\fs20  returns 
-\f1\fs18 F
-\f0\fs20 .  This is commonly used to check whether a user-defined constant already exists, with the intention of defining the constant if it has not already been defined.
-\f2 \
+\f0\fs20 \cf2 \expnd0\expndtw0\kerning0
+Returns a 
+\f1\fs18 \cf2 logical
+\f0\fs20 \cf2  vector indicating 
+\b whether symbols exist
+\b0 .  If a symbol has been defined as an intrinsic Eidos constant like 
+\f1\fs18 \cf2 T
+\f0\fs20 \cf2 , 
+\f1\fs18 \cf2 INF
+\f0\fs20 \cf2 , and 
+\f1\fs18 \cf2 PI
+\f0\fs20 \cf2 , or as a Context-defined constant like 
+\f1\fs18 \cf2 sim
+\f0\fs20 \cf2  in SLiM, or as a user-defined constant using 
+\f1\fs18 \cf2 defineConstant()
+\f0\fs20 \cf2 , or as a variable by assignment, this function returns 
+\f1\fs18 \cf2 T
+\f0\fs20 \cf2 .  Otherwise, the symbol has not been defined, and 
+\f1\fs18 \cf2 exists()
+\f0\fs20 \cf2  returns 
+\f1\fs18 \cf2 F
+\f0\fs20 \cf2 .  This is commonly used to check whether a user-defined constant already exists, with the intention of defining the constant if it has not already been defined.  A vector of symbols may be passed, producing a vector of corresponding results.
+\f2 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)functionSignature([Ns$
