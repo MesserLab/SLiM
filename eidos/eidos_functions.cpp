@@ -295,7 +295,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("suppressWarnings",	Eidos_ExecuteFunction_suppressWarnings,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical_S("suppress"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat))->AddLogical_OS("print", gStaticEidosValue_LogicalT));
 		
 		
 		// ************************************************************************************
@@ -10308,19 +10308,24 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValu
 	return result_SP;
 }
 
-//	(void)version(void)
+//	(void)version([logical$ print = T])
 EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	bool print = p_arguments[0]->LogicalAtIndex(0, nullptr);
 	
-	output_stream << "Eidos version " << EIDOS_VERSION_STRING << std::endl;
-	
-	if (gEidosContextVersionString.length())
-		output_stream << gEidosContextVersionString << std::endl;
+	if (print)
+	{
+		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		output_stream << "Eidos version " << EIDOS_VERSION_STRING << std::endl;
+		
+		if (gEidosContextVersionString.length())
+			output_stream << gEidosContextVersionString << std::endl;
+	}
 	
 	// Return the versions as floats
 	EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(2);
@@ -10331,7 +10336,8 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 	if (gEidosContextVersion != 0.0)
 		result->push_float_no_check(gEidosContextVersion);
 	
-	result->SetInvisible(true);
+	if (print)
+		result->SetInvisible(true);
 	
 	return result_SP;
 }

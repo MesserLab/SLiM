@@ -4045,7 +4045,10 @@ When
 \f1\fs18 /Network/Library/Sounds
 \f0\fs20 , and finally 
 \f1\fs18 /System/Library/Sounds
-\f0\fs20 .  Standard OS X sounds located in /System/Library/Sounds include 
+\f0\fs20 .  Standard OS X sounds located in 
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+/System/Library/Sounds
+\f0\fs20 \cf0 \kerning1\expnd0\expndtw0  include 
 \f1\fs18 "Basso"
 \f2\fs20 ,
 \f0  
@@ -4617,7 +4620,7 @@ Prior to Eidos 1.6 (SLiM 2.6),
 \f1\fs18 stderr
 \f0\fs20  is 
 \f1\fs18 T
-\f0\fs20 , however, standard error will be redirected into standard out (using standard 
+\f0\fs20 , however, the standard error stream will be redirected into standard out (using standard 
 \f1\fs18 /bin/sh
 \f0\fs20  redirection with 
 \f1\fs18 2>&1
@@ -4669,15 +4672,31 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)version(void)\
+\f1\fs18 \cf0 (float)version(\cf2 \expnd0\expndtw0\kerning0
+[logical$\'a0print\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
-Prints Eidos\'92s version 
-\b0 to Eidos\'92s output stream.  If Eidos is attached to a Context that provides a version number, that is also printed.  The Eidos version number, and the Context version number if available, are returned as an invisible 
-\f1\fs18 float
-\f0\fs20  vector to make it possible for script to test the code version it is running against.  (In this 
-\f1\fs18 float
-\f0\fs20  return, a version like 2.4.2 would be returned as 
-\f1\fs18 2.42
-\f0\fs20 ; this would not scale well to subversions greater than nine, so that will be avoided in our versioning).}
+Get Eidos\'92s version.
+\b0   There are two ways to use this function.  If 
+\f1\fs18 \cf2 print
+\f0\fs20 \cf2  is 
+\f1\fs18 \cf2 T
+\f0\fs20 \cf2 , the default, then the version number is printed to the Eidos output stream in a formatted manner, like \'93
+\f1\fs18 \cf2 Eidos version 2.1
+\f0\fs20 \cf2 \'94.  If Eidos is attached to a Context that provides a version number, that is also printed, like \'93
+\f1\fs18 \cf2 SLiM version 3.1
+\f0\fs20 \cf2 \'94.  In this case, the Eidos version number, and the Context version number if available, are returned as an invisible 
+\f1\fs18 \cf2 float
+\f0\fs20 \cf2  vector.  This is most useful when using Eidos interactively.  If 
+\f1\fs18 \cf2 print
+\f0\fs20 \cf2  is 
+\f1\fs18 \cf2 F
+\f0\fs20 \cf2 , on the other hand, nothing is printed, but the returned 
+\f1\fs18 \cf2 float
+\f0\fs20 \cf2  vector of version numbers is not invisible.  This is useful for scripts that need to test the Eidos or Context version they are running against.\
+In both cases, in the 
+\f1\fs18 \cf2 float
+\f0\fs20 \cf2  version numbers returned, a version like 2.4.2 would be returned as 
+\f1\fs18 \cf2 2.42
+\f0\fs20 \cf2 ; this would not scale well to subversions greater than nine, so that will be avoided in our versioning.}

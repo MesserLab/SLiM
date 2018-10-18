@@ -28,6 +28,7 @@ development head:
 	fix recipe 11.1 issue with calcFST() function returning NAN if any mutations are either (a) missing from both subpops, or (b) fixed in both subpops
 	fix issues with passing NAN as a color component to the Eidos color-translation functions
 	make SLiMgui's "graph population visualization" migration rates in nonWF models reflect juvenile migration due to a non-parental destination subpop for addX()
+	add a print=T flag to version() so scripts can switch on the Eidos or SLiM version number without generating unwanted output
 
 
 3.1 (build 1817; Eidos version 2.1):
