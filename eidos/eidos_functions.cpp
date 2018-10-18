@@ -9356,43 +9356,53 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_argum
 //	(float)hsv2rgb(float hsv)
 EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *hsv_value = p_arguments[0].get();
 	int hsv_count = hsv_value->Count();
 	
-	if (hsv_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): in function hsv2rgb(), hsv must contain exactly three elements." << EidosTerminate(nullptr);
+	if (((hsv_value->DimensionCount() != 1) || (hsv_count != 3)) &&
+		((hsv_value->DimensionCount() != 2) || (hsv_value->Dimensions()[1] != 3)))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): in function hsv2rgb(), hsv must contain exactly three elements, or be a matrix with exactly three columns." << EidosTerminate(nullptr);
 	
-	double h = hsv_value->FloatAtIndex(0, nullptr);
-	double s = hsv_value->FloatAtIndex(1, nullptr);
-	double v = hsv_value->FloatAtIndex(2, nullptr);
+	int color_count = hsv_count / 3;
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(color_count * 3);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (std::isnan(h) || std::isnan(s) || std::isnan(v))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): color component with value NAN is not legal." << EidosTerminate();
+	for (int value_index = 0; value_index < color_count; ++value_index)
+	{
+		double h = hsv_value->FloatAtIndex(value_index, nullptr);
+		double s = hsv_value->FloatAtIndex(value_index + color_count, nullptr);
+		double v = hsv_value->FloatAtIndex(value_index + color_count + color_count, nullptr);
+		
+		if (std::isnan(h) || std::isnan(s) || std::isnan(v))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): color component with value NAN is not legal." << EidosTerminate();
+		
+		if (h < 0.0) h = 0.0;
+		if (h > 1.0) h = 1.0;
+		if (s < 0.0) s = 0.0;
+		if (s > 1.0) s = 1.0;
+		if (v < 0.0) v = 0.0;
+		if (v > 1.0) v = 1.0;
+		
+		double c = v * s;
+		double x = c * (1.0 - fabs(fmod(h * 6.0, 2.0) - 1.0));
+		double m = v - c;
+		double r, g, b;
+		
+		if (h < 1.0 / 6.0)			{	r = c;	g = x;	b = 0;	}
+		else if (h < 2.0 / 6.0)		{	r = x;	g = c;	b = 0;	}
+		else if (h < 3.0 / 6.0)		{	r = 0;	g = c;	b = x;	}
+		else if (h < 4.0 / 6.0)		{	r = 0;	g = x;	b = c;	}
+		else if (h < 5.0 / 6.0)		{	r = x;	g = 0;	b = c;	}
+		else						{	r = c;	g = 0;	b = x;	}
+		
+		float_result->set_float_no_check(r + m, value_index);
+		float_result->set_float_no_check(g + m, value_index + color_count);
+		float_result->set_float_no_check(b + m, value_index + color_count + color_count);
+	}
 	
-	if (h < 0.0) h = 0.0;
-	if (h > 1.0) h = 1.0;
-	if (s < 0.0) s = 0.0;
-	if (s > 1.0) s = 1.0;
-	if (v < 0.0) v = 0.0;
-	if (v > 1.0) v = 1.0;
-	
-	double c = v * s;
-	double x = c * (1.0 - fabs(fmod(h * 6.0, 2.0) - 1.0));
-	double m = v - c;
-	double r, g, b;
-	
-	if (h < 1.0 / 6.0)			{	r = c;	g = x;	b = 0;	}
-	else if (h < 2.0 / 6.0)		{	r = x;	g = c;	b = 0;	}
-	else if (h < 3.0 / 6.0)		{	r = 0;	g = c;	b = x;	}
-	else if (h < 4.0 / 6.0)		{	r = 0;	g = x;	b = c;	}
-	else if (h < 5.0 / 6.0)		{	r = x;	g = 0;	b = c;	}
-	else						{	r = c;	g = 0;	b = x;	}
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{r + m, g + m, b + m});
+	float_result->CopyDimensionsFromValue(hsv_value);
 	
 	return result_SP;
 }

@@ -3979,9 +3979,16 @@ This function can also be called with a non-singleton vector of color strings in
 \f1\fs18 float
 \f0\fs20  vector of length three (red, green, blue).  HSV values will be clamped to the interval [0, 1], and returned RGB values will also be in the interval [0, 1].
 \f2 \
+
+\f0 \cf2 \expnd0\expndtw0\kerning0
+This function can also be called with a matrix of HSV values, with three columns (hue, saturation, value).  In this case, the returned 
+\f1\fs18 \cf2 float
+\f0\fs20 \cf2  value will be a matrix of RGB values, with three columns (red, green, blue) and one row per row of 
+\f1\fs18 \cf2 hsv
+\f0\fs20 \cf2 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string$)rgb2color(float\'a0rgb)
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string$)rgb2color(float\'a0rgb)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
