@@ -6840,6 +6840,7 @@ void _RunColorManipulationTests(void)
 	EidosAssertScriptSuccess("rgb2color(c(1.0, 0.0, 0.0)) == '#FF0000';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("rgb2color(c(0.0, 1.0, 0.0)) == '#00FF00';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("rgb2color(c(0.0, 0.0, 1.0)) == '#0000FF';", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2color(matrix(c(0.25, 0.0, 0.0, 0.0, 0.75, 0.0, 0.0, 0.0, 1.0), ncol=3, byrow=T)), c('#400000', '#00BF00', '#0000FF'));", gStaticEidosValue_LogicalT);
 	
 	// color2rgb()
 	EidosAssertScriptRaise("identical(color2rgb('foo'), c(0.0, 0.0, 0.0));", 10, "could not be found");

@@ -3988,7 +3988,7 @@ This function can also be called with a matrix of HSV values, with three columns
 \f0\fs20 \cf2 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string$)rgb2color(float\'a0rgb)
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)rgb2color(float\'a0rgb)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4007,9 +4007,16 @@ This function can also be called with a matrix of HSV values, with three columns
 \f2\fs20 .
 \f0   RGB values will be clamped to the interval [0, 1].
 \f2 \
+
+\f0 \cf2 \expnd0\expndtw0\kerning0
+This function can also be called with a matrix of RGB values, with three columns (red, green, blue).  In this case, the returned 
+\f1\fs18 \cf2 string
+\f0\fs20 \cf2  value will be a vector of color strings, with one element per row of 
+\f1\fs18 \cf2 rgb
+\f0\fs20 \cf2 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)rgb2hsv(float\'a0rgb)
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rgb2hsv(float\'a0rgb)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

@@ -265,7 +265,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("hsv2rgb",			Eidos_ExecuteFunction_hsv2rgb,		kEidosValueMaskFloat))->AddFloat("hsv"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2hsv",			Eidos_ExecuteFunction_rgb2hsv,		kEidosValueMaskFloat))->AddFloat("rgb"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2color",			Eidos_ExecuteFunction_rgb2color,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddFloat("rgb"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2color",			Eidos_ExecuteFunction_rgb2color,	kEidosValueMaskString))->AddFloat("rgb"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("color2rgb",			Eidos_ExecuteFunction_color2rgb,	kEidosValueMaskFloat))->AddString(gEidosStr_color));
 		
 		
@@ -9407,32 +9407,56 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_argumen
 	return result_SP;
 }
 
-//	(string$)rgb2color(float rgb)
+//	(string)rgb2color(float rgb)
 EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *rgb_value = p_arguments[0].get();
 	int rgb_count = rgb_value->Count();
-	
-	if (rgb_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): in function rgb2color(), rgb must contain exactly three elements." << EidosTerminate(nullptr);
-	
-	double r = rgb_value->FloatAtIndex(0, nullptr);
-	double g = rgb_value->FloatAtIndex(1, nullptr);
-	double b = rgb_value->FloatAtIndex(2, nullptr);
 	char hex_chars[8];
 	
-	if (std::isnan(r) || std::isnan(g) || std::isnan(b))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): color component with value NAN is not legal." << EidosTerminate();
+	if (((rgb_value->DimensionCount() != 1) || (rgb_count != 3)) &&
+		((rgb_value->DimensionCount() != 2) || (rgb_value->Dimensions()[1] != 3)))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): in function rgb2color(), rgb must contain exactly three elements, or be a matrix with exactly three columns." << EidosTerminate(nullptr);
 	
-	Eidos_GetColorString(r, g, b, hex_chars);
-	
-	std::string hex_string(hex_chars);
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(hex_string));
+	if ((rgb_value->DimensionCount() == 1) && (rgb_count == 3))
+	{
+		double r = rgb_value->FloatAtIndex(0, nullptr);
+		double g = rgb_value->FloatAtIndex(1, nullptr);
+		double b = rgb_value->FloatAtIndex(2, nullptr);
+		
+		if (std::isnan(r) || std::isnan(g) || std::isnan(b))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): color component with value NAN is not legal." << EidosTerminate();
+		
+		Eidos_GetColorString(r, g, b, hex_chars);
+		
+		std::string hex_string(hex_chars);
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(hex_string));
+	}
+	else
+	{
+		int color_count = rgb_count / 3;
+		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+		result_SP = EidosValue_SP(string_result);
+		
+		for (int value_index = 0; value_index < color_count; ++value_index)
+		{
+			double r = rgb_value->FloatAtIndex(value_index, nullptr);
+			double g = rgb_value->FloatAtIndex(value_index + color_count, nullptr);
+			double b = rgb_value->FloatAtIndex(value_index + color_count + color_count, nullptr);
+			
+			if (std::isnan(r) || std::isnan(g) || std::isnan(b))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): color component with value NAN is not legal." << EidosTerminate();
+			
+			Eidos_GetColorString(r, g, b, hex_chars);
+			
+			std::string hex_string(hex_chars);
+			
+			string_result->PushString(hex_string);
+		}
+	}
 	
 	return result_SP;
 }
