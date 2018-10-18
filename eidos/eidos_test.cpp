@@ -6845,6 +6845,7 @@ void _RunColorManipulationTests(void)
 	EidosAssertScriptRaise("identical(color2rgb('#0000000'), c(0.0, 0.0, 0.0));", 10, "could not be found");
 	EidosAssertScriptRaise("identical(color2rgb('#0000g0'), c(0.0, 0.0, 0.0));", 10, "is malformed");
 	EidosAssertScriptSuccess("identical(color2rgb('white'), c(1.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(color2rgb(c('#000000', 'red', 'green', 'blue', '#FFFFFF')), matrix(c(0.0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1), ncol=3, byrow=T));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("sum(abs(color2rgb('chocolate1') - c(1.0, 127/255, 36/255))) < 1e-7;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("sum(abs(color2rgb('#000000') - c(0.0, 0.0, 0.0))) < 1e-7;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("sum(abs(color2rgb('#7F0000') - c(127/255, 0.0, 0.0))) < 1e-7;", gStaticEidosValue_LogicalT);

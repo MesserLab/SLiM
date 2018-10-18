@@ -266,7 +266,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("hsv2rgb",			Eidos_ExecuteFunction_hsv2rgb,		kEidosValueMaskFloat))->AddFloat("hsv"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2hsv",			Eidos_ExecuteFunction_rgb2hsv,		kEidosValueMaskFloat))->AddFloat("rgb"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2color",			Eidos_ExecuteFunction_rgb2color,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddFloat("rgb"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("color2rgb",			Eidos_ExecuteFunction_color2rgb,	kEidosValueMaskFloat))->AddString_S(gEidosStr_color));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("color2rgb",			Eidos_ExecuteFunction_color2rgb,	kEidosValueMaskFloat))->AddString(gEidosStr_color));
 		
 		
 		// ************************************************************************************
@@ -9317,20 +9317,38 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 #pragma mark -
 
 
-//	(float)color2rgb(string$ color)
+//	(float)color2rgb(string color)
 EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *color_value = p_arguments[0].get();
-	std::string color_string = color_value->StringAtIndex(0, nullptr);
+	int color_count = color_value->Count();
 	float r, g, b;
 	
-	Eidos_GetColorComponents(color_string, &r, &g, &b);
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{r, g, b});
+	if (color_count == 1)
+	{
+		Eidos_GetColorComponents(color_value->StringAtIndex(0, nullptr), &r, &g, &b);
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{r, g, b});
+	}
+	else
+	{
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(color_count * 3);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < color_count; ++value_index)
+		{
+			Eidos_GetColorComponents(color_value->StringAtIndex(value_index, nullptr), &r, &g, &b);
+			float_result->set_float_no_check(r, value_index);
+			float_result->set_float_no_check(g, value_index + color_count);
+			float_result->set_float_no_check(b, value_index + color_count + color_count);
+		}
+		
+		const int64_t dim_buf[2] = {color_count, 3};
+		
+		result_SP->SetDimensions(2, dim_buf);
+	}
 	
 	return result_SP;
 }

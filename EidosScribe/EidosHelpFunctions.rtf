@@ -3943,23 +3943,29 @@ Note that newline characters will be added at the ends of the lines in
 \f0\b\fs22 \cf0 3.9.  Color manipulation functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (float)color2rgb(string$\'a0color)
+\f1\b0\fs18 \cf0 (float)color2rgb(string\'a0color)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Converts a color string to RGB
-\f2\b0 .
-\f0   The color string specified in 
-\f1\fs18 color
-\f0\fs20  may be either a named color (see section X) or a color in hexadecimal format such as 
-\f1\fs18 "#007FC0"
-\f0\fs20 .  The equivalent RGB color is returned as a 
-\f1\fs18 float
-\f0\fs20  vector of length three (red, green, blue).  Returned RGB values will be in the interval [0, 1].
-\f2 \
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Converts a color string to RGB
+\b0 .  The color string specified in 
+\f1\fs18 \cf2 color
+\f0\fs20 \cf2  may be either a named color (see chapter 6) or a color in hexadecimal format such as 
+\f1\fs18 \cf2 "#007FC0"
+\f0\fs20 \cf2 .  The equivalent RGB color is returned as a 
+\f1\fs18 \cf2 float
+\f0\fs20 \cf2  vector of length three (red, green, blue).  Returned RGB values will be in the interval [0, 1].\
+This function can also be called with a non-singleton vector of color strings in 
+\f1\fs18 \cf2 color
+\f0\fs20 \cf2 .  In this case, the returned 
+\f1\fs18 \cf2 float
+\f0\fs20 \cf2  value will be a matrix of RGB values, with three columns (red, green, blue) and one row per element of 
+\f1\fs18 \cf2 color
+\f0\fs20 \cf2 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)hsv2rgb(float\'a0hsv)
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)hsv2rgb(float\'a0hsv)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
