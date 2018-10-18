@@ -9440,52 +9440,62 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 //	(float)rgb2hsv(float rgb)
 EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *rgb_value = p_arguments[0].get();
 	int rgb_count = rgb_value->Count();
 	
-	if (rgb_count != 3)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): in function rgb2hsv(), rgb must contain exactly three elements." << EidosTerminate(nullptr);
+	if (((rgb_value->DimensionCount() != 1) || (rgb_count != 3)) &&
+		((rgb_value->DimensionCount() != 2) || (rgb_value->Dimensions()[1] != 3)))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): in function rgb2hsv(), rgb must contain exactly three elements, or be a matrix with exactly three columns." << EidosTerminate(nullptr);
 	
-	double r = rgb_value->FloatAtIndex(0, nullptr);
-	double g = rgb_value->FloatAtIndex(1, nullptr);
-	double b = rgb_value->FloatAtIndex(2, nullptr);
+	int color_count = rgb_count / 3;
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(color_count * 3);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (std::isnan(r) || std::isnan(g) || std::isnan(b))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): color component with value NAN is not legal." << EidosTerminate();
+	for (int value_index = 0; value_index < color_count; ++value_index)
+	{
+		double r = rgb_value->FloatAtIndex(value_index, nullptr);
+		double g = rgb_value->FloatAtIndex(value_index + color_count, nullptr);
+		double b = rgb_value->FloatAtIndex(value_index + color_count + color_count, nullptr);
+		
+		if (std::isnan(r) || std::isnan(g) || std::isnan(b))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): color component with value NAN is not legal." << EidosTerminate();
+		
+		if (r < 0.0) r = 0.0;
+		if (r > 1.0) r = 1.0;
+		if (g < 0.0) g = 0.0;
+		if (g > 1.0) g = 1.0;
+		if (b < 0.0) b = 0.0;
+		if (b > 1.0) b = 1.0;
+		
+		double c_max = std::max(r, std::max(g, b));
+		double c_min = std::min(r, std::min(g, b));
+		double delta = c_max - c_min;
+		double h, s, v;
+		
+		if (delta == 0)
+			h = 0.0;
+		else if (c_max == r)
+			h = (1.0/6.0) * fmod(((g - b) / delta) + 6.0, 6.0);
+		else if (c_max == g)
+			h = (1.0/6.0) * (((b - r) / delta) + 2.0);
+		else // if (c_max == b)
+			h = (1.0/6.0) * (((r - g) / delta) + 4.0);
+		
+		if (c_max == 0.0)
+			s = 0.0;
+		else
+			s = delta / c_max;
+		
+		v = c_max;
+		
+		float_result->set_float_no_check(h, value_index);
+		float_result->set_float_no_check(s, value_index + color_count);
+		float_result->set_float_no_check(v, value_index + color_count + color_count);
+	}
 	
-	if (r < 0.0) r = 0.0;
-	if (r > 1.0) r = 1.0;
-	if (g < 0.0) g = 0.0;
-	if (g > 1.0) g = 1.0;
-	if (b < 0.0) b = 0.0;
-	if (b > 1.0) b = 1.0;
-	
-	double c_max = std::max(r, std::max(g, b));
-	double c_min = std::min(r, std::min(g, b));
-	double delta = c_max - c_min;
-	double h, s, v;
-	
-	if (delta == 0)
-		h = 0.0;
-	else if (c_max == r)
-		h = (1.0/6.0) * fmod(((g - b) / delta) + 6.0, 6.0);
-	else if (c_max == g)
-		h = (1.0/6.0) * (((b - r) / delta) + 2.0);
-	else // if (c_max == b)
-		h = (1.0/6.0) * (((r - g) / delta) + 4.0);
-	
-	if (c_max == 0.0)
-		s = 0.0;
-	else
-		s = delta / c_max;
-	
-	v = c_max;
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{h, s, v});
+	float_result->CopyDimensionsFromValue(rgb_value);
 	
 	return result_SP;
 }

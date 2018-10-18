@@ -4023,9 +4023,16 @@ This function can also be called with a matrix of HSV values, with three columns
 \f1\fs18 float
 \f0\fs20  vector of length three (hue, saturation, value).  RGB values will be clamped to the interval [0, 1], and returned HSV values will also be in the interval [0, 1].
 \f2 \
+
+\f0 \cf2 \expnd0\expndtw0\kerning0
+This function can also be called with a matrix of RGB values, with three columns (red, green, blue).  In this case, the returned 
+\f1\fs18 \cf2 float
+\f0\fs20 \cf2  value will be a matrix of HSV values, with three columns (hue, saturation, value) and one row per row of 
+\f1\fs18 \cf2 rgb
+\f0\fs20 \cf2 .\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.10.  Miscellaneous functions\
+\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.10.  Miscellaneous functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (void)beep([Ns$\'a0soundName\'a0=\'a0NULL])\

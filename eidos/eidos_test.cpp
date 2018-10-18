@@ -6813,6 +6813,7 @@ void _RunColorManipulationTests(void)
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(1.5, -0.5, 0.0)), c(0.0, 1.0, 1.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(0.0, 1.5, -0.5)), c(2/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(rgb2hsv(c(-0.5, 0.0, 1.5)), c(4/6, 1.0, 1.0));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("identical(rgb2hsv(matrix(c(1.0, 1.0, 0.0, 1.0, 0.75, 0.75), ncol=3, byrow=T)), matrix(c(1/6, 1.0, 1.0, 0.0, 0.25, 1.0), ncol=3, byrow=T));", gStaticEidosValue_LogicalT);
 	
 	// rgb2color()
 	EidosAssertScriptRaise("rgb2color(c(0.0, 0.0));", 0, "must contain exactly three");
