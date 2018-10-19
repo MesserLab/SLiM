@@ -582,9 +582,12 @@ extern const std::string gEidosStr__increment;
 extern const std::string gEidosStr__cubicYolk;
 extern const std::string gEidosStr__squareTest;
 
+extern const std::string gEidosStr_start;
+extern const std::string gEidosStr_end;
 extern const std::string gEidosStr_weights;
 extern const std::string gEidosStr_c;
 extern const std::string gEidosStr_n;
+extern const std::string gEidosStr_s;
 extern const std::string gEidosStr_x;
 extern const std::string gEidosStr_y;
 extern const std::string gEidosStr_z;
@@ -624,9 +627,12 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_source,
 	gEidosID_applyValue,
 	
+	gEidosID_start,
+	gEidosID_end,
 	gEidosID_weights,
 	gEidosID_c,
 	gEidosID_n,
+	gEidosID_s,
 	gEidosID_x,
 	gEidosID_y,
 	gEidosID_z,
@@ -662,6 +668,9 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component);
 
 void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer);	// p_string_buffer must have room for 8 chars, including the null
+
+void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, double *p_b);
+void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, double *p_v);
 
 
 #endif /* defined(__Eidos__eidos_global__) */

@@ -422,8 +422,8 @@ extern const std::string gStr_distributionParams;
 extern const std::string gStr_dominanceCoeff;
 extern const std::string gStr_mutationStackGroup;
 extern const std::string gStr_mutationStackPolicy;
-extern const std::string gStr_start;
-extern const std::string gStr_end;
+//extern const std::string gStr_start;		now gEidosStr_start
+//extern const std::string gStr_end;		now gEidosStr_end
 //extern const std::string gStr_type;		now gEidosStr_type
 //extern const std::string gStr_source;		now gEidosStr_source
 extern const std::string gStr_active;
@@ -614,7 +614,7 @@ extern const std::string gStr_e;
 //extern const std::string gStr_n;		now gEidosStr_n
 extern const std::string gStr_w;
 extern const std::string gStr_l;
-extern const std::string gStr_s;
+//extern const std::string gStr_s;		now gEidosStr_s
 extern const std::string gStr_early;
 extern const std::string gStr_late;
 extern const std::string gStr_initialize;
@@ -685,8 +685,8 @@ enum _SLiMGlobalStringID : int {
 	gID_dominanceCoeff,
 	gID_mutationStackGroup,
 	gID_mutationStackPolicy,
-	gID_start,
-	gID_end,
+	//gID_start,	now gEidosID_start
+	//gID_end,		now gEidosID_end
 	//gID_type,		now gEidosID_type
 	//gID_source,	now gEidosID_source
 	gID_active,
@@ -876,7 +876,7 @@ enum _SLiMGlobalStringID : int {
 	// gID_n,		now gEidosID_n
 	gID_w,
 	gID_l,
-	gID_s,
+	//gID_s,	now gEidosID_s
 	gID_early,
 	gID_late,
 	gID_initialize,

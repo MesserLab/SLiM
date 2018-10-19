@@ -31,6 +31,7 @@ development head:
 	add a print=T flag to version() so scripts can switch on the Eidos or SLiM version number without generating unwanted output
 	vectorized the exists() function so a vector of symbol names can be check for existence
 	vectorize the Eidos color-manipulation functions, using matrix arguments/returns: color2rgb(), hsv2rgb(), rgb2hsv(), rgb2color()
+	add new color palette functions: heatColors(), rainbow(), terrainColors(), and cmColors()
 
 
 3.1 (build 1817; Eidos version 2.1):

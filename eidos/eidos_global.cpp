@@ -1792,9 +1792,12 @@ const std::string gEidosStr__squareTest = "_squareTest";
 
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in Eidos_RegisterStringForGlobalID() below
+const std::string gEidosStr_start = "start";
+const std::string gEidosStr_end = "end";
 const std::string gEidosStr_weights = "weights";
 const std::string gEidosStr_c = "c";
 const std::string gEidosStr_n = "n";
+const std::string gEidosStr_s = "s";
 const std::string gEidosStr_x = "x";
 const std::string gEidosStr_y = "y";
 const std::string gEidosStr_z = "z";
@@ -1873,9 +1876,12 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr__cubicYolk, gEidosID__cubicYolk);
 		Eidos_RegisterStringForGlobalID(gEidosStr__squareTest, gEidosID__squareTest);
 		
+		Eidos_RegisterStringForGlobalID(gEidosStr_start, gEidosID_start);
+		Eidos_RegisterStringForGlobalID(gEidosStr_end, gEidosID_end);
 		Eidos_RegisterStringForGlobalID(gEidosStr_weights, gEidosID_weights);
 		Eidos_RegisterStringForGlobalID(gEidosStr_c, gEidosID_c);
 		Eidos_RegisterStringForGlobalID(gEidosStr_n, gEidosID_n);
+		Eidos_RegisterStringForGlobalID(gEidosStr_s, gEidosID_s);
 		Eidos_RegisterStringForGlobalID(gEidosStr_x, gEidosID_x);
 		Eidos_RegisterStringForGlobalID(gEidosStr_y, gEidosID_y);
 		Eidos_RegisterStringForGlobalID(gEidosStr_z, gEidosID_z);
@@ -2726,6 +2732,73 @@ void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_s
 	p_string_buffer[5] = hex[b_i / 16];
 	p_string_buffer[6] = hex[b_i % 16];
 	p_string_buffer[7] = 0;
+}
+
+void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, double *p_b)
+{
+	if (std::isnan(h) || std::isnan(s) || std::isnan(v))
+		EIDOS_TERMINATION << "ERROR (Eidos_HSV2RGB): color component with value NAN is not legal." << EidosTerminate();
+	
+	if (h < 0.0) h = 0.0;
+	if (h > 1.0) h = 1.0;
+	if (s < 0.0) s = 0.0;
+	if (s > 1.0) s = 1.0;
+	if (v < 0.0) v = 0.0;
+	if (v > 1.0) v = 1.0;
+	
+	double c = v * s;
+	double x = c * (1.0 - fabs(fmod(h * 6.0, 2.0) - 1.0));
+	double m = v - c;
+	double r, g, b;
+	
+	if (h < 1.0 / 6.0)			{	r = c;	g = x;	b = 0;	}
+	else if (h < 2.0 / 6.0)		{	r = x;	g = c;	b = 0;	}
+	else if (h < 3.0 / 6.0)		{	r = 0;	g = c;	b = x;	}
+	else if (h < 4.0 / 6.0)		{	r = 0;	g = x;	b = c;	}
+	else if (h < 5.0 / 6.0)		{	r = x;	g = 0;	b = c;	}
+	else						{	r = c;	g = 0;	b = x;	}
+	
+	*p_r = r + m;
+	*p_g = g + m;
+	*p_b = b + m;
+}
+
+void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, double *p_v)
+{
+	if (std::isnan(r) || std::isnan(g) || std::isnan(b))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): color component with value NAN is not legal." << EidosTerminate();
+	
+	if (r < 0.0) r = 0.0;
+	if (r > 1.0) r = 1.0;
+	if (g < 0.0) g = 0.0;
+	if (g > 1.0) g = 1.0;
+	if (b < 0.0) b = 0.0;
+	if (b > 1.0) b = 1.0;
+	
+	double c_max = std::max(r, std::max(g, b));
+	double c_min = std::min(r, std::min(g, b));
+	double delta = c_max - c_min;
+	double h, s, v;
+	
+	if (delta == 0)
+		h = 0.0;
+	else if (c_max == r)
+		h = (1.0/6.0) * fmod(((g - b) / delta) + 6.0, 6.0);
+	else if (c_max == g)
+		h = (1.0/6.0) * (((b - r) / delta) + 2.0);
+	else // if (c_max == b)
+		h = (1.0/6.0) * (((r - g) / delta) + 4.0);
+	
+	if (c_max == 0.0)
+		s = 0.0;
+	else
+		s = delta / c_max;
+	
+	v = c_max;
+	
+	*p_h = h;
+	*p_s = s;
+	*p_v = v;
 }
 
 

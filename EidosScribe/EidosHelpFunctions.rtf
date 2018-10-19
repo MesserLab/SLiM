@@ -3943,26 +3943,61 @@ Note that newline characters will be added at the ends of the lines in
 \f0\b\fs22 \cf0 3.9.  Color manipulation functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (float)color2rgb(string\'a0color)
+\f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
+(string)cmColors(integer$\'a0n)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Generate colors in a \'93cyan-magenta\'94 color palette
+\b0 .  The number of colors desired is passed in 
+\f1\fs18 n
+\f0\fs20 , and the returned vector will contain 
+\f1\fs18 n
+\f0\fs20  color strings.  The color sequence begins with cyan, passes through white, and then ramps to magenta.  See 
+\f1\fs18 rainbow()
+\f0\fs20 , 
+\f1\fs18 heatColors()
+\f0\fs20 , and 
+\f1\fs18 terrainColors()
+\f0\fs20  for other color palettes.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)color2rgb(string\'a0color)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Converts a color string to RGB
 \b0 .  The color string specified in 
-\f1\fs18 \cf2 color
-\f0\fs20 \cf2  may be either a named color (see chapter 6) or a color in hexadecimal format such as 
-\f1\fs18 \cf2 "#007FC0"
-\f0\fs20 \cf2 .  The equivalent RGB color is returned as a 
-\f1\fs18 \cf2 float
-\f0\fs20 \cf2  vector of length three (red, green, blue).  Returned RGB values will be in the interval [0, 1].\
+\f1\fs18 color
+\f0\fs20  may be either a named color (see chapter 6) or a color in hexadecimal format such as 
+\f1\fs18 "#007FC0"
+\f0\fs20 .  The equivalent RGB color is returned as a 
+\f1\fs18 float
+\f0\fs20  vector of length three (red, green, blue).  Returned RGB values will be in the interval [0, 1].\
 This function can also be called with a non-singleton vector of color strings in 
-\f1\fs18 \cf2 color
-\f0\fs20 \cf2 .  In this case, the returned 
-\f1\fs18 \cf2 float
-\f0\fs20 \cf2  value will be a matrix of RGB values, with three columns (red, green, blue) and one row per element of 
-\f1\fs18 \cf2 color
-\f0\fs20 \cf2 .\
+\f1\fs18 color
+\f0\fs20 .  In this case, the returned 
+\f1\fs18 float
+\f0\fs20  value will be a matrix of RGB values, with three columns (red, green, blue) and one row per element of 
+\f1\fs18 color
+\f0\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (string)heatColors(integer$\'a0n)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Generate colors in a \'93heat map\'94 color palette
+\b0 .  The number of colors desired is passed in 
+\f1\fs18 n
+\f0\fs20 , and the returned vector will contain 
+\f1\fs18 n
+\f0\fs20  color strings.  The color sequence begins with red, passes through orange to yellow, and then fades up to white.  See 
+\f1\fs18 rainbow()
+\f0\fs20 , 
+\f1\fs18 cmColors()
+\f0\fs20 , and 
+\f1\fs18 terrainColors()
+\f0\fs20  for other color palettes.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)hsv2rgb(float\'a0hsv)
@@ -3979,13 +4014,53 @@ This function can also be called with a non-singleton vector of color strings in
 \f1\fs18 float
 \f0\fs20  vector of length three (red, green, blue).  HSV values will be clamped to the interval [0, 1], and returned RGB values will also be in the interval [0, 1].
 \f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0 \cf2 \expnd0\expndtw0\kerning0
 This function can also be called with a matrix of HSV values, with three columns (hue, saturation, value).  In this case, the returned 
-\f1\fs18 \cf2 float
-\f0\fs20 \cf2  value will be a matrix of RGB values, with three columns (red, green, blue) and one row per row of 
-\f1\fs18 \cf2 hsv
-\f0\fs20 \cf2 .\
+\f1\fs18 float
+\f0\fs20  value will be a matrix of RGB values, with three columns (red, green, blue) and one row per row of 
+\f1\fs18 hsv
+\f0\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (string)rainbow(integer$\'a0n, [float$\'a0s\'a0=\'a01], [float$\'a0v\'a0=\'a01], [float$\'a0start\'a0=\'a00], [Nf$\'a0end\'a0=\'a0NULL], [logical$\'a0ccw\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Generate colors in a \'93rainbow\'94 color palette
+\b0 .  The number of colors desired is passed in 
+\f1\fs18 n
+\f0\fs20 , and the returned vector will contain 
+\f1\fs18 n
+\f0\fs20  color strings.  Parameters 
+\f1\fs18 s
+\f0\fs20  and 
+\f1\fs18 v
+\f0\fs20  control the saturation and value of the rainbow colors generated.  The color sequence begins with the hue 
+\f1\fs18 start
+\f0\fs20 , and ramps to the hue 
+\f1\fs18 end
+\f0\fs20 , in a counter-clockwise direction around the standard HSV color wheel if 
+\f1\fs18 ccw
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20  (the default, following R), otherwise in a clockwise direction.  If 
+\f1\fs18 end
+\f0\fs20  is 
+\f1\fs18 NULL
+\f0\fs20  (the default), a value of 
+\f1\fs18 (n-1)/n
+\f0\fs20  is used, producing a complete rainbow around the color wheel when 
+\f1\fs18 start
+\f0\fs20  is also the default value of 
+\f1\fs18 0
+\f0\fs20 .  See 
+\f1\fs18 cmColors()
+\f0\fs20 , 
+\f1\fs18 heatColors()
+\f0\fs20 , and 
+\f1\fs18 terrainColors()
+\f0\fs20  for other color palettes.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)rgb2color(float\'a0rgb)
@@ -4007,13 +4082,14 @@ This function can also be called with a matrix of HSV values, with three columns
 \f2\fs20 .
 \f0   RGB values will be clamped to the interval [0, 1].
 \f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0 \cf2 \expnd0\expndtw0\kerning0
 This function can also be called with a matrix of RGB values, with three columns (red, green, blue).  In this case, the returned 
-\f1\fs18 \cf2 string
-\f0\fs20 \cf2  value will be a vector of color strings, with one element per row of 
-\f1\fs18 \cf2 rgb
-\f0\fs20 \cf2 .\
+\f1\fs18 string
+\f0\fs20  value will be a vector of color strings, with one element per row of 
+\f1\fs18 rgb
+\f0\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rgb2hsv(float\'a0rgb)
@@ -4030,13 +4106,31 @@ This function can also be called with a matrix of RGB values, with three columns
 \f1\fs18 float
 \f0\fs20  vector of length three (hue, saturation, value).  RGB values will be clamped to the interval [0, 1], and returned HSV values will also be in the interval [0, 1].
 \f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0 \cf2 \expnd0\expndtw0\kerning0
 This function can also be called with a matrix of RGB values, with three columns (red, green, blue).  In this case, the returned 
-\f1\fs18 \cf2 float
-\f0\fs20 \cf2  value will be a matrix of HSV values, with three columns (hue, saturation, value) and one row per row of 
-\f1\fs18 \cf2 rgb
-\f0\fs20 \cf2 .\
+\f1\fs18 float
+\f0\fs20  value will be a matrix of HSV values, with three columns (hue, saturation, value) and one row per row of 
+\f1\fs18 rgb
+\f0\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (string)terrainColors(integer$\'a0n)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Generate colors in a \'93terrain\'94 color palette
+\b0 .  The number of colors desired is passed in 
+\f1\fs18 n
+\f0\fs20 , and the returned vector will contain 
+\f1\fs18 n
+\f0\fs20  color strings.  The color sequence begins with forest green, passes through dark orange, and then ramps to off-white.  See 
+\f1\fs18 rainbow()
+\f0\fs20 , 
+\f1\fs18 cmColors()
+\f0\fs20 , and 
+\f1\fs18 heatColors()
+\f0\fs20  for other color palettes.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.10.  Miscellaneous functions\
@@ -4284,26 +4378,26 @@ The current implementation of
 
 \f0\fs20 \cf2 \expnd0\expndtw0\kerning0
 Returns a 
-\f1\fs18 \cf2 logical
-\f0\fs20 \cf2  vector indicating 
+\f1\fs18 logical
+\f0\fs20  vector indicating 
 \b whether symbols exist
 \b0 .  If a symbol has been defined as an intrinsic Eidos constant like 
-\f1\fs18 \cf2 T
-\f0\fs20 \cf2 , 
-\f1\fs18 \cf2 INF
-\f0\fs20 \cf2 , and 
-\f1\fs18 \cf2 PI
-\f0\fs20 \cf2 , or as a Context-defined constant like 
-\f1\fs18 \cf2 sim
-\f0\fs20 \cf2  in SLiM, or as a user-defined constant using 
-\f1\fs18 \cf2 defineConstant()
-\f0\fs20 \cf2 , or as a variable by assignment, this function returns 
-\f1\fs18 \cf2 T
-\f0\fs20 \cf2 .  Otherwise, the symbol has not been defined, and 
-\f1\fs18 \cf2 exists()
-\f0\fs20 \cf2  returns 
-\f1\fs18 \cf2 F
-\f0\fs20 \cf2 .  This is commonly used to check whether a user-defined constant already exists, with the intention of defining the constant if it has not already been defined.  A vector of symbols may be passed, producing a vector of corresponding results.
+\f1\fs18 T
+\f0\fs20 , 
+\f1\fs18 INF
+\f0\fs20 , and 
+\f1\fs18 PI
+\f0\fs20 , or as a Context-defined constant like 
+\f1\fs18 sim
+\f0\fs20  in SLiM, or as a user-defined constant using 
+\f1\fs18 defineConstant()
+\f0\fs20 , or as a variable by assignment, this function returns 
+\f1\fs18 T
+\f0\fs20 .  Otherwise, the symbol has not been defined, and 
+\f1\fs18 exists()
+\f0\fs20  returns 
+\f1\fs18 F
+\f0\fs20 .  This is commonly used to check whether a user-defined constant already exists, with the intention of defining the constant if it has not already been defined.  A vector of symbols may be passed, producing a vector of corresponding results.
 \f2 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -4706,24 +4800,24 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 Get Eidos\'92s version.
 \b0   There are two ways to use this function.  If 
-\f1\fs18 \cf2 print
-\f0\fs20 \cf2  is 
-\f1\fs18 \cf2 T
-\f0\fs20 \cf2 , the default, then the version number is printed to the Eidos output stream in a formatted manner, like \'93
-\f1\fs18 \cf2 Eidos version 2.1
-\f0\fs20 \cf2 \'94.  If Eidos is attached to a Context that provides a version number, that is also printed, like \'93
-\f1\fs18 \cf2 SLiM version 3.1
-\f0\fs20 \cf2 \'94.  In this case, the Eidos version number, and the Context version number if available, are returned as an invisible 
-\f1\fs18 \cf2 float
-\f0\fs20 \cf2  vector.  This is most useful when using Eidos interactively.  If 
-\f1\fs18 \cf2 print
-\f0\fs20 \cf2  is 
-\f1\fs18 \cf2 F
-\f0\fs20 \cf2 , on the other hand, nothing is printed, but the returned 
-\f1\fs18 \cf2 float
-\f0\fs20 \cf2  vector of version numbers is not invisible.  This is useful for scripts that need to test the Eidos or Context version they are running against.\
+\f1\fs18 print
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20 , the default, then the version number is printed to the Eidos output stream in a formatted manner, like \'93
+\f1\fs18 Eidos version 2.1
+\f0\fs20 \'94.  If Eidos is attached to a Context that provides a version number, that is also printed, like \'93
+\f1\fs18 SLiM version 3.1
+\f0\fs20 \'94.  In this case, the Eidos version number, and the Context version number if available, are returned as an invisible 
+\f1\fs18 float
+\f0\fs20  vector.  This is most useful when using Eidos interactively.  If 
+\f1\fs18 print
+\f0\fs20  is 
+\f1\fs18 F
+\f0\fs20 , on the other hand, nothing is printed, but the returned 
+\f1\fs18 float
+\f0\fs20  vector of version numbers is not invisible.  This is useful for scripts that need to test the Eidos or Context version they are running against.\
 In both cases, in the 
-\f1\fs18 \cf2 float
-\f0\fs20 \cf2  version numbers returned, a version like 2.4.2 would be returned as 
-\f1\fs18 \cf2 2.42
-\f0\fs20 \cf2 ; this would not scale well to subversions greater than nine, so that will be avoided in our versioning.}
+\f1\fs18 float
+\f0\fs20  version numbers returned, a version like 2.4.2 would be returned as 
+\f1\fs18 2.42
+\f0\fs20 ; this would not scale well to subversions greater than nine, so that will be avoided in our versioning.}

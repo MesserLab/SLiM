@@ -6759,6 +6759,53 @@ void _RunFunctionFilesystemTests(void)
 #pragma mark color manipulation
 void _RunColorManipulationTests(void)
 {
+	// cmColors()
+	EidosAssertScriptRaise("cmColors(-1);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptRaise("cmColors(10000000);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptSuccess("cmColors(0);", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("cmColors(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF"}));
+	EidosAssertScriptSuccess("cmColors(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#FF80FF"}));
+	EidosAssertScriptSuccess("cmColors(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#FFFFFF", "#FF80FF"}));
+	EidosAssertScriptSuccess("cmColors(4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#D4FFFF", "#FFD5FF", "#FF80FF"}));
+	EidosAssertScriptSuccess("cmColors(7);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#AAFFFF", "#D4FFFF", "#FFFFFF", "#FFD5FF", "#FFAAFF", "#FF80FF"}));
+	
+	// heatColors()
+	EidosAssertScriptRaise("heatColors(-1);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptRaise("heatColors(10000000);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptSuccess("heatColors(0);", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("heatColors(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000"}));
+	EidosAssertScriptSuccess("heatColors(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FFFF00"}));
+	EidosAssertScriptSuccess("heatColors(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF8000", "#FFFF00"}));
+	EidosAssertScriptSuccess("heatColors(4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF8000", "#FFFF00", "#FFFF80"}));
+	EidosAssertScriptSuccess("heatColors(8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF3300", "#FF6600", "#FF9900", "#FFCC00", "#FFFF00", "#FFFF40", "#FFFFBF"}));
+	
+	// terrainColors()
+	EidosAssertScriptRaise("terrainColors(-1);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptRaise("terrainColors(10000000);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptSuccess("terrainColors(0);", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("terrainColors(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#F2F2F2"}));
+	EidosAssertScriptSuccess("terrainColors(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#F2F2F2"}));
+	EidosAssertScriptSuccess("terrainColors(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#ECB176", "#F2F2F2"}));
+	EidosAssertScriptSuccess("terrainColors(4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#E6E600", "#ECB176", "#F2F2F2"}));
+	EidosAssertScriptSuccess("terrainColors(8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#3EBB00", "#8BD000", "#E6E600", "#E9BD3A", "#ECB176", "#EFC2B3", "#F2F2F2"}));
+	
+	// rainbow()
+	EidosAssertScriptRaise("rainbow(-1);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptRaise("rainbow(10000000);", 0, "requires 0 <= n <= 100000");
+	EidosAssertScriptSuccess("rainbow(0);", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("rainbow(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000"}));
+	EidosAssertScriptSuccess("rainbow(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#00FFFF"}));
+	EidosAssertScriptSuccess("rainbow(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#00FF00", "#0000FF"}));
+	EidosAssertScriptSuccess("rainbow(4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#80FF00", "#00FFFF", "#8000FF"}));
+	EidosAssertScriptSuccess("rainbow(12);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF8000", "#FFFF00", "#80FF00", "#00FF00", "#00FF80", "#00FFFF", "#0080FF", "#0000FF", "#8000FF", "#FF00FF", "#FF0080"}));
+	EidosAssertScriptSuccess("rainbow(6, s=0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF8080", "#FFFF80", "#80FF80", "#80FFFF", "#8080FF", "#FF80FF"}));
+	EidosAssertScriptSuccess("rainbow(6, v=0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#800000", "#808000", "#008000", "#008080", "#000080", "#800080"}));
+	EidosAssertScriptSuccess("rainbow(6, s=0.5, v=0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#804040", "#808040", "#408040", "#408080", "#404080", "#804080"}));
+	EidosAssertScriptSuccess("rainbow(4, start=1.0/6, end=4.0/6, ccw=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FFFF00", "#00FF00", "#00FFFF", "#0000FF"}));
+	EidosAssertScriptSuccess("rainbow(4, start=1.0/6, end=4.0/6, ccw=F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FFFF00", "#FF0000", "#FF00FF", "#0000FF"}));
+	EidosAssertScriptSuccess("rainbow(4, start=4.0/6, end=1.0/6, ccw=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#0000FF", "#FF00FF", "#FF0000", "#FFFF00"}));
+	EidosAssertScriptSuccess("rainbow(4, start=4.0/6, end=1.0/6, ccw=F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#0000FF", "#00FFFF", "#00FF00", "#FFFF00"}));
+	
 	// hsv2rgb()
 	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0));", 0, "must contain exactly three");
 	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0, 0.0, 0.0));", 0, "must contain exactly three");

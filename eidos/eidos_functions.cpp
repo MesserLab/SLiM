@@ -263,6 +263,10 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//	color manipulation functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cmColors",			Eidos_ExecuteFunction_cmColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("heatColors",		Eidos_ExecuteFunction_heatColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rainbow",			Eidos_ExecuteFunction_rainbow,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->AddFloat_OS(gEidosStr_s, gStaticEidosValue_Float1)->AddFloat_OS("v", gStaticEidosValue_Float1)->AddFloat_OS(gEidosStr_start, gStaticEidosValue_Float0)->AddFloat_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddLogical_OS("ccw", gStaticEidosValue_LogicalT));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("terrainColors",		Eidos_ExecuteFunction_terrainColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("hsv2rgb",			Eidos_ExecuteFunction_hsv2rgb,		kEidosValueMaskFloat))->AddFloat("hsv"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2hsv",			Eidos_ExecuteFunction_rgb2hsv,		kEidosValueMaskFloat))->AddFloat("rgb"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2color",			Eidos_ExecuteFunction_rgb2color,	kEidosValueMaskString))->AddFloat("rgb"));
@@ -9317,6 +9321,36 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 #pragma mark -
 
 
+//	(string)cmColors(integer$ n)
+EidosValue_SP Eidos_ExecuteFunction_cmColors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t n = n_value->IntAtIndex(0, nullptr);
+	char hex_chars[8];
+	
+	if ((n < 0) || (n > 100000))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cmColors): cmColors() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
+	
+	// Generate the color ramp.  Note that for even n, this generates somewhat different values than R does,
+	// but I think that is a bug in their code; the space between the two central values is doubled.
+	int color_count = (int)n;
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	result_SP = EidosValue_SP(string_result);
+	
+	for (int value_index = 0; value_index < color_count; ++value_index)
+	{
+		double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
+		double red = (fraction >= 0.5) ? 1.0 : (fraction + 0.5);
+		double green = (fraction <= 0.5) ? 1.0 : (1.5 - fraction);
+		Eidos_GetColorString(red, green, 1.0, hex_chars);
+		string_result->PushString(std::string(hex_chars));
+	}
+	
+	return result_SP;
+}
+
 //	(float)color2rgb(string color)
 EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -9353,6 +9387,48 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_argum
 	return result_SP;
 }
 
+//	(string)heatColors(integer$ n)
+EidosValue_SP Eidos_ExecuteFunction_heatColors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t n = n_value->IntAtIndex(0, nullptr);
+	char hex_chars[8];
+	
+	if ((n < 0) || (n > 100000))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_heatColors): heatColors() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
+	
+	int color_count = (int)n;
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	result_SP = EidosValue_SP(string_result);
+	
+	int saturation_ramp_length = color_count / 4;
+	int color_ramp_length = color_count - saturation_ramp_length;
+	
+	for (int value_index = 0; value_index < color_ramp_length; ++value_index)
+	{
+		double g = (value_index ? value_index / (double)(color_ramp_length - 1) : 0.0);
+		Eidos_GetColorString(1.0, g, 0.0, hex_chars);
+		string_result->PushString(std::string(hex_chars));
+	}
+	
+	double end_saturation = 1.0 / (2.0 * saturation_ramp_length);
+	double start_saturation = 1.0 - end_saturation;
+	
+	for (int value_index = 0; value_index < saturation_ramp_length; ++value_index)
+	{
+		double weight_end = (value_index ? value_index / (double)(saturation_ramp_length - 1) : 0.0);
+		double weight_start = 1.0 - weight_end;
+		double s = start_saturation * weight_start + end_saturation * weight_end;
+		
+		Eidos_GetColorString(1.0, 1.0, 1.0 - s, hex_chars);
+		string_result->PushString(std::string(hex_chars));
+	}
+	
+	return result_SP;
+}
+
 //	(float)hsv2rgb(float hsv)
 EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -9374,35 +9450,85 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_argumen
 		double h = hsv_value->FloatAtIndex(value_index, nullptr);
 		double s = hsv_value->FloatAtIndex(value_index + color_count, nullptr);
 		double v = hsv_value->FloatAtIndex(value_index + color_count + color_count, nullptr);
-		
-		if (std::isnan(h) || std::isnan(s) || std::isnan(v))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): color component with value NAN is not legal." << EidosTerminate();
-		
-		if (h < 0.0) h = 0.0;
-		if (h > 1.0) h = 1.0;
-		if (s < 0.0) s = 0.0;
-		if (s > 1.0) s = 1.0;
-		if (v < 0.0) v = 0.0;
-		if (v > 1.0) v = 1.0;
-		
-		double c = v * s;
-		double x = c * (1.0 - fabs(fmod(h * 6.0, 2.0) - 1.0));
-		double m = v - c;
 		double r, g, b;
 		
-		if (h < 1.0 / 6.0)			{	r = c;	g = x;	b = 0;	}
-		else if (h < 2.0 / 6.0)		{	r = x;	g = c;	b = 0;	}
-		else if (h < 3.0 / 6.0)		{	r = 0;	g = c;	b = x;	}
-		else if (h < 4.0 / 6.0)		{	r = 0;	g = x;	b = c;	}
-		else if (h < 5.0 / 6.0)		{	r = x;	g = 0;	b = c;	}
-		else						{	r = c;	g = 0;	b = x;	}
+		Eidos_HSV2RGB(h, s, v, &r, &g, &b);
 		
-		float_result->set_float_no_check(r + m, value_index);
-		float_result->set_float_no_check(g + m, value_index + color_count);
-		float_result->set_float_no_check(b + m, value_index + color_count + color_count);
+		float_result->set_float_no_check(r, value_index);
+		float_result->set_float_no_check(g, value_index + color_count);
+		float_result->set_float_no_check(b, value_index + color_count + color_count);
 	}
 	
 	float_result->CopyDimensionsFromValue(hsv_value);
+	
+	return result_SP;
+}
+
+//	(string)rainbow(integer$ n, [float$ s = 1], [float$ v = 1], [float$ start = 0], [Nf$ end = NULL], [logical$ ccw = T])
+EidosValue_SP Eidos_ExecuteFunction_rainbow(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	EidosValue *s_value = p_arguments[1].get();
+	EidosValue *v_value = p_arguments[2].get();
+	EidosValue *start_value = p_arguments[3].get();
+	EidosValue *end_value = p_arguments[4].get();
+	EidosValue *ccw_value = p_arguments[5].get();
+	
+	int64_t n = n_value->IntAtIndex(0, nullptr);
+	
+	if ((n < 0) || (n > 100000))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rainbow): rainbow() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
+	
+	double s = s_value->FloatAtIndex(0, nullptr);
+	
+	if ((s < 0.0) || (s > 1.0))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rainbow): rainbow() requires HSV saturation s to be in the interval [0.0, 1.0]." << EidosTerminate(nullptr);
+	
+	double v = v_value->FloatAtIndex(0, nullptr);
+	
+	if ((v < 0.0) || (v > 1.0))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rainbow): rainbow() requires HSV value v to be in the interval [0.0, 1.0]." << EidosTerminate(nullptr);
+	
+	double start = start_value->FloatAtIndex(0, nullptr);
+	
+	if ((start < 0.0) || (start > 1.0))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rainbow): rainbow() requires HSV hue start to be in the interval [0.0, 1.0]." << EidosTerminate(nullptr);
+	
+	double end = (end_value->Type() == EidosValueType::kValueNULL) ? ((n-1) / (double)n) : end_value->FloatAtIndex(0, nullptr);
+	
+	if ((n > 0) && ((end < 0.0) || (end > 1.0)))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rainbow): rainbow() requires HSV hue end to be in the interval [0.0, 1.0], or NULL." << EidosTerminate(nullptr);
+	
+	if ((n > 1) && (start == end))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rainbow): rainbow() requires start != end." << EidosTerminate(nullptr);
+	
+	eidos_logical_t ccw = ccw_value->LogicalAtIndex(0, nullptr);
+	
+	if (ccw && (end < start))
+		end += 1.0;
+	else if (!ccw && (end > start))
+		start += 1.0;
+	
+	char hex_chars[8];
+	int color_count = (int)n;
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	result_SP = EidosValue_SP(string_result);
+	double r, g, b;
+	
+	for (int value_index = 0; value_index < color_count; ++value_index)
+	{
+		double w = (value_index ? value_index / (double)(color_count - 1) : 0.0);
+		double h = start + (end - start) * w;
+		
+		if (h >= 1.0)
+			h -= 1.0;
+		
+		Eidos_HSV2RGB(h, s, v, &r, &g, &b);
+		Eidos_GetColorString(r, g, b, hex_chars);
+		string_result->PushString(std::string(hex_chars));
+	}
 	
 	return result_SP;
 }
@@ -9431,9 +9557,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 		
 		Eidos_GetColorString(r, g, b, hex_chars);
 		
-		std::string hex_string(hex_chars);
-		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(hex_string));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(hex_chars)));
 	}
 	else
 	{
@@ -9452,9 +9576,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 			
 			Eidos_GetColorString(r, g, b, hex_chars);
 			
-			std::string hex_string(hex_chars);
-			
-			string_result->PushString(hex_string);
+			string_result->PushString(std::string(hex_chars));
 		}
 	}
 	
@@ -9482,37 +9604,9 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 		double r = rgb_value->FloatAtIndex(value_index, nullptr);
 		double g = rgb_value->FloatAtIndex(value_index + color_count, nullptr);
 		double b = rgb_value->FloatAtIndex(value_index + color_count + color_count, nullptr);
-		
-		if (std::isnan(r) || std::isnan(g) || std::isnan(b))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): color component with value NAN is not legal." << EidosTerminate();
-		
-		if (r < 0.0) r = 0.0;
-		if (r > 1.0) r = 1.0;
-		if (g < 0.0) g = 0.0;
-		if (g > 1.0) g = 1.0;
-		if (b < 0.0) b = 0.0;
-		if (b > 1.0) b = 1.0;
-		
-		double c_max = std::max(r, std::max(g, b));
-		double c_min = std::min(r, std::min(g, b));
-		double delta = c_max - c_min;
 		double h, s, v;
 		
-		if (delta == 0)
-			h = 0.0;
-		else if (c_max == r)
-			h = (1.0/6.0) * fmod(((g - b) / delta) + 6.0, 6.0);
-		else if (c_max == g)
-			h = (1.0/6.0) * (((b - r) / delta) + 2.0);
-		else // if (c_max == b)
-			h = (1.0/6.0) * (((r - g) / delta) + 4.0);
-		
-		if (c_max == 0.0)
-			s = 0.0;
-		else
-			s = delta / c_max;
-		
-		v = c_max;
+		Eidos_RGB2HSV(r, g, b, &h, &s, &v);
 		
 		float_result->set_float_no_check(h, value_index);
 		float_result->set_float_no_check(s, value_index + color_count);
@@ -9524,6 +9618,52 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 	return result_SP;
 }
 
+//	(string)terrainColors(integer$ n)
+EidosValue_SP Eidos_ExecuteFunction_terrainColors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t n = n_value->IntAtIndex(0, nullptr);
+	char hex_chars[8];
+	
+	if ((n < 0) || (n > 100000))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_terrainColors): terrainColors() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
+	
+	int color_count = (int)n;
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	result_SP = EidosValue_SP(string_result);
+	
+	int ramp1_length = color_count / 2;
+	int ramp2_length = (color_count - ramp1_length) + 1;	// first value is omitted
+	double r, g, b;
+	
+	for (int value_index = 0; value_index < ramp1_length; ++value_index)
+	{
+		double w = (value_index ? value_index / (double)(ramp1_length - 1) : 0.0);
+		double h = 4/12.0 + (2/12.0 - 4/12.0) * w;
+		double s = 1.0 + (1.0 - 1.0) * w;
+		double v = 0.65 + (0.9 - 0.65) * w;
+		
+		Eidos_HSV2RGB(h, s, v, &r, &g, &b);
+		Eidos_GetColorString(r, g, b, hex_chars);
+		string_result->PushString(std::string(hex_chars));
+	}
+	
+	for (int value_index = 1; value_index < ramp2_length; ++value_index)
+	{
+		double w = (value_index ? value_index / (double)(ramp2_length - 1) : 0.0);
+		double h = 2/12.0 + (0/12.0 - 2/12.0) * w;
+		double s = 1.0 + (0.0 - 1.0) * w;
+		double v = 0.9 + (0.95 - 0.9) * w;
+		
+		Eidos_HSV2RGB(h, s, v, &r, &g, &b);
+		Eidos_GetColorString(r, g, b, hex_chars);
+		string_result->PushString(std::string(hex_chars));
+	}
+	
+	return result_SP;
+}
 
 // ************************************************************************************
 //

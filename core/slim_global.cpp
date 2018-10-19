@@ -582,8 +582,8 @@ const std::string gStr_distributionParams = "distributionParams";
 const std::string gStr_dominanceCoeff = "dominanceCoeff";
 const std::string gStr_mutationStackGroup = "mutationStackGroup";
 const std::string gStr_mutationStackPolicy = "mutationStackPolicy";
-const std::string gStr_start = "start";
-const std::string gStr_end = "end";
+//const std::string gStr_start = "start";
+//const std::string gStr_end = "end";
 //const std::string gStr_type = "type";
 //const std::string gStr_source = "source";
 const std::string gStr_active = "active";
@@ -778,7 +778,7 @@ const std::string gStr_e = "e";
 //const std::string gStr_n = "n";		now gEidosStr_n
 const std::string gStr_w = "w";
 const std::string gStr_l = "l";
-const std::string gStr_s = "s";
+//const std::string gStr_s = "s";		now gEidosStr_s
 const std::string gStr_early = "early";
 const std::string gStr_late = "late";
 const std::string gStr_initialize = "initialize";
@@ -884,8 +884,8 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_dominanceCoeff, gID_dominanceCoeff);
 		Eidos_RegisterStringForGlobalID(gStr_mutationStackGroup, gID_mutationStackGroup);
 		Eidos_RegisterStringForGlobalID(gStr_mutationStackPolicy, gID_mutationStackPolicy);
-		Eidos_RegisterStringForGlobalID(gStr_start, gID_start);
-		Eidos_RegisterStringForGlobalID(gStr_end, gID_end);
+		//Eidos_RegisterStringForGlobalID(gStr_start, gID_start);
+		//Eidos_RegisterStringForGlobalID(gStr_end, gID_end);
 		//Eidos_RegisterStringForGlobalID(gStr_type, gID_type);
 		//Eidos_RegisterStringForGlobalID(gStr_source, gID_source);
 		Eidos_RegisterStringForGlobalID(gStr_active, gID_active);
@@ -1071,7 +1071,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_e, gID_e);
 		Eidos_RegisterStringForGlobalID(gStr_w, gID_w);
 		Eidos_RegisterStringForGlobalID(gStr_l, gID_l);
-		Eidos_RegisterStringForGlobalID(gStr_s, gID_s);
+		//Eidos_RegisterStringForGlobalID(gStr_s, gID_s);
 		Eidos_RegisterStringForGlobalID(gStr_early, gID_early);
 		Eidos_RegisterStringForGlobalID(gStr_late, gID_late);
 		Eidos_RegisterStringForGlobalID(gStr_initialize, gID_initialize);
