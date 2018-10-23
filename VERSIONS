@@ -33,6 +33,7 @@ development head:
 	vectorize the Eidos color-manipulation functions, using matrix arguments/returns: color2rgb(), hsv2rgb(), rgb2hsv(), rgb2color()
 	add new color palette functions: heatColors(), rainbow(), terrainColors(), and cmColors()
 	fix big performance issue for nonWF models as they build up genetic diversity, due to the wrong mutation frequency tallying code path being used
+	fix bug EidosSymbolTable buffer overrun in ContainsSymbol() and related methods; this will bite models that define a very large number of symbols (e.g., some nucleotide models)
 
 
 3.1 (build 1817; Eidos version 2.1):

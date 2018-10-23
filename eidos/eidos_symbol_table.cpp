@@ -232,8 +232,8 @@ bool EidosSymbolTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 	
 	do
 	{
-		// try current_table
-		if (current_table->slots_[p_symbol_name].symbol_value_SP_)
+		// try the current table, if the symbol is within its capacity
+		if ((p_symbol_name < current_table->capacity_) && (current_table->slots_[p_symbol_name].symbol_value_SP_))
 			return true;
 		
 		// We didn't get a hit, so try our chained table
@@ -251,8 +251,8 @@ bool EidosSymbolTable::ContainsSymbol_IsConstant(EidosGlobalStringID p_symbol_na
 	
 	do
 	{
-		// try current_table
-		if (current_table->slots_[p_symbol_name].symbol_value_SP_)
+		// try the current table, if the symbol is within its capacity
+		if ((p_symbol_name < current_table->capacity_) && (current_table->slots_[p_symbol_name].symbol_value_SP_))
 		{
 			*p_is_const = (current_table->table_type_ != EidosSymbolTableType::kVariablesTable);
 			return true;
@@ -274,8 +274,8 @@ bool EidosSymbolTable::SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) 
 	
 	do
 	{
-		// try current_table
-		if (current_table->slots_[p_symbol_name].symbol_value_SP_)
+		// try the current table, if the symbol is within its capacity
+		if ((p_symbol_name < current_table->capacity_) && (current_table->slots_[p_symbol_name].symbol_value_SP_))
 			return true;
 		
 		// We didn't get a hit, so try our parent table
@@ -300,7 +300,7 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 			EidosValue_SP slot_value(current_table->slots_[p_symbol_name].symbol_value_SP_);
 			
 			if (slot_value)
-			return slot_value;
+				return slot_value;
 		}
 		
 		// We didn't get a hit, so try our chained table

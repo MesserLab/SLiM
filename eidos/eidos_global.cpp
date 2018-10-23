@@ -1839,7 +1839,7 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << EidosTerminate(nullptr);
 	
 	if (p_string_id >= gEidosID_LastContextEntry)
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " it out of the legal range for preregistered strings." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " is out of the legal range for preregistered strings." << EidosTerminate(nullptr);
 	
 	gStringToID[p_string] = p_string_id;
 	gIDToString[p_string_id] = &p_string;
