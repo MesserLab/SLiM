@@ -4869,7 +4869,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		// To tally using MutationRun, we should be at the point in the generation cycle where the registry is
 		// maintained, so that other Genome objects have been cleared.  Otherwise, the tallies might not add up.
 #ifdef SLIM_WF_ONLY
-		if (!child_generation_valid_)
+		if ((sim_.ModelType() == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 			can_tally_runs = false;
 #endif	// SLIM_WF_ONLY
 		
