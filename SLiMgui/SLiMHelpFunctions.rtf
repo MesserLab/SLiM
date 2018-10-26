@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf400
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf600
 {\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\froman\fcharset0 TimesNewRomanPSMT;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
@@ -355,6 +355,7 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f0\fs18 Substitution
@@ -680,7 +681,7 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [float$\'a0simplificationRatio\'a0=\'a010]\cf2 \expnd0\expndtw0\kerning0
-, \cf2 [logical$\'a0checkCoalescence\'a0=\'a0F], \cf2 [logical$\'a0runCrosschecks\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f1 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -689,16 +690,20 @@ Configure options for tree sequence recording.  Calling this function turns on t
 The 
 \f0\fs18 recordMutations
 \f2\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned on by default since mutation recording is generally useful.\
-The 
+\cf2 The 
 \f0\fs18 simplificationRatio
-\f2\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio.  The default of 
+\f2\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  This is a speed\'96memory tradeoff: more frequent simplification (lower 
+\f0\fs18 simplificationRatio
+\f2\fs20 ) means the stored tree sequences will use less memory, but at a cost of somewhat longer run times.  Conversely, a larger 
+\f0\fs18 simplificationRatio
+\f2\fs20  means that SLiM will wait longer between simplifications.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
 \f0\fs18 10
-\f2\fs20  thus requests that SLiM try to find a generation interval such that automatic simplification reduces the memory usage by a factor of ten.  
+\f2\fs20  thus requests that SLiM try to find a generation interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
 \f0\fs18 INF
 \f2\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
 \f0\fs18 0
-\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\
-\cf2 The 
+\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\cf2 \
+The 
 \f0\fs18 checkCoalescence
 \f2\fs20  parameter controls whether a check for full coalescence is conducted after each simplification.  If a model will call 
 \f0\fs18 treeSeqCoalesced()
@@ -711,7 +716,7 @@ The
 \f2\fs20  is preferable otherwise.  See the documentation for 
 \f0\fs18 treeSeqCoalesced()
 \f2\fs20  for further discussion.\
-\cf2 The 
+The 
 \f0\fs18 runCrosschecks
 \f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
 }
