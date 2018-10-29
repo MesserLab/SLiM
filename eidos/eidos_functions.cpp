@@ -4664,7 +4664,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 	if (mu_singleton && sigma_singleton)
 	{
 		if (sigma0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << sigma0 << " supplied)." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_quantiles == 1)
 		{
@@ -4692,7 +4692,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
 			
 			if (sigma <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << sigma << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu, sigma), value_index);
 		}
@@ -4731,8 +4731,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 	{
 		if (size0 < 0)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0 (" << size0 << " supplied)." << EidosTerminate(nullptr);
-		if ((probability0 < 0.0) || (probability0 > 1.0))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability0 << " supplied)." << EidosTerminate(nullptr);
+		if ((probability0 < 0.0) || (probability0 > 1.0) || std::isnan(probability0))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << EidosStringForFloat(probability0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -4770,8 +4770,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 			
 			if (size < 0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0 (" << size << " supplied)." << EidosTerminate(nullptr);
-			if ((probability < 0.0) || (probability > 1.0))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << probability << " supplied)." << EidosTerminate(nullptr);
+			if ((probability < 0.0) || (probability > 1.0) || std::isnan(probability))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << EidosStringForFloat(probability) << " supplied)." << EidosTerminate(nullptr);
 			
 			int_result->set_int_no_check(gsl_ran_binomial(EIDOS_GSL_RNG, probability, size), draw_index);
 		}
@@ -4809,7 +4809,7 @@ EidosValue_SP Eidos_ExecuteFunction_rcauchy(const EidosValue_SP *const p_argumen
 	if (location_singleton && scale_singleton)
 	{
 		if (scale0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale > 0.0 (" << scale0 << " supplied)." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale > 0.0 (" << EidosStringForFloat(scale0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -4835,7 +4835,7 @@ EidosValue_SP Eidos_ExecuteFunction_rcauchy(const EidosValue_SP *const p_argumen
 			double scale = (scale_singleton ? scale0 : arg_scale->FloatAtIndex(draw_index, nullptr));
 			
 			if (scale <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale > 0.0 (" << scale << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale > 0.0 (" << EidosStringForFloat(scale) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_cauchy(EIDOS_GSL_RNG, scale) + location, draw_index);
 		}
@@ -5002,7 +5002,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 	if (mean_singleton && shape_singleton)
 	{
 		if (shape0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << shape0 << " supplied)." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << EidosStringForFloat(shape0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -5030,7 +5030,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(draw_index, nullptr));
 			
 			if (shape <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << shape << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << EidosStringForFloat(shape) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_gamma(EIDOS_GSL_RNG, shape, mean / shape), draw_index);
 		}
@@ -5066,8 +5066,8 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const EidosValue_SP *const p_arguments
 	{
 		double p0 = arg_p->FloatAtIndex(0, nullptr);
 		
-		if ((p0 <= 0.0) || (p0 > 1.0))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << p0 << " supplied)." << EidosTerminate(nullptr);
+		if ((p0 <= 0.0) || (p0 > 1.0) || std::isnan(p0))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << EidosStringForFloat(p0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -5098,7 +5098,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const EidosValue_SP *const p_arguments
 		{
 			double p = arg_p->FloatAtIndex(draw_index, nullptr);
 			
-			if ((p <= 0.0) || (p >= 1.0))
+			if ((p <= 0.0) || (p >= 1.0) || std::isnan(p))
 			{
 				if (p == 1.0)	// special-case p==1.0; inside here to avoid an extra comparison per loop in the standard case
 				{
@@ -5106,7 +5106,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const EidosValue_SP *const p_arguments
 					continue;
 				}
 				
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << p << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << EidosStringForFloat(p) << " supplied)." << EidosTerminate(nullptr);
 			}
 			
 			int_result->set_int_no_check(gsl_ran_geometric(EIDOS_GSL_RNG, p) - 1, draw_index);
@@ -5299,7 +5299,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments
 	if (mu_singleton && sigma_singleton)
 	{
 		if (sigma0 < 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << sigma0 << " supplied)." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << EidosStringForFloat(sigma0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -5325,7 +5325,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments
 			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(draw_index, nullptr));
 			
 			if (sigma < 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << sigma << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_gaussian(EIDOS_GSL_RNG, sigma) + mu, draw_index);
 		}
@@ -5360,8 +5360,8 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments
 	{
 		double lambda0 = arg_lambda->FloatAtIndex(0, nullptr);
 		
-		if (lambda0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << lambda0 << " supplied)." << EidosTerminate(nullptr);
+		if ((lambda0 <= 0.0) || std::isnan(lambda0))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << EidosStringForFloat(lambda0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -5385,8 +5385,8 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments
 		{
 			double lambda = arg_lambda->FloatAtIndex(draw_index, nullptr);
 			
-			if (lambda <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << lambda << " supplied)." << EidosTerminate(nullptr);
+			if ((lambda <= 0.0) || std::isnan(lambda))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << EidosStringForFloat(lambda) << " supplied)." << EidosTerminate(nullptr);
 			
 			int_result->set_int_no_check(gsl_ran_poisson(EIDOS_GSL_RNG, lambda), draw_index);
 		}
@@ -5510,9 +5510,9 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_argume
 	if (lambda_singleton && k_singleton)
 	{
 		if (lambda0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << lambda0 << " supplied)." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << EidosStringForFloat(lambda0) << " supplied)." << EidosTerminate(nullptr);
 		if (k0 <= 0.0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << k0 << " supplied)." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << EidosStringForFloat(k0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -5538,9 +5538,9 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_argume
 			double k = (k_singleton ? k0 : arg_k->FloatAtIndex(draw_index, nullptr));
 			
 			if (lambda <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << lambda << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << EidosStringForFloat(lambda) << " supplied)." << EidosTerminate(nullptr);
 			if (k <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << k << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k > 0.0 (" << EidosStringForFloat(k) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_weibull(EIDOS_GSL_RNG, lambda, k), draw_index);
 		}
@@ -5815,8 +5815,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 		{
 			double weight = weights_value->FloatAtIndex(value_index, nullptr);
 			
-			if (weight < 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << weight << " supplied)." << EidosTerminate(nullptr);
+			if ((weight < 0.0) || std::isnan(weight))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << EidosStringForFloat(weight) << " supplied)." << EidosTerminate(nullptr);
 			
 			weights_vector.emplace_back(weight);
 			weights_sum += weight;
@@ -6024,6 +6024,8 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 			
 			if (by == 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);
+			if (!std::isfinite(by))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'by' parameter." << EidosTerminate(nullptr);
 			if (((first_value < second_value) && (by < 0)) || ((first_value > second_value) && (by > 0)))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << EidosTerminate(nullptr);
 			
@@ -6047,6 +6049,8 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 			
 			if (by == 0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);
+			if (!std::isfinite(by))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'by' parameter." << EidosTerminate(nullptr);
 			if (((first_value < second_value) && (by < 0)) || ((first_value > second_value) && (by > 0)))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << EidosTerminate(nullptr);
 			

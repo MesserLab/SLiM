@@ -7625,8 +7625,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, *this, "initializeGenomicElementType()");
 		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
 		
-		if (proportion < 0)		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() proportions must be greater than or equal to zero (" << proportion << " supplied)." << EidosTerminate();
+		if ((proportion < 0) || !std::isfinite(proportion))		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() proportions must be greater than or equal to zero (" << EidosStringForFloat(proportion) << " supplied)." << EidosTerminate();
 		
 		if (std::find(mutation_types.begin(), mutation_types.end(), mutation_type_ptr) != mutation_types.end())
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() mutation type m" << mutation_type_ptr->mutation_type_id_ << " used more than once." << EidosTerminate();
@@ -7910,8 +7910,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 		double recombination_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
-		if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << recombination_rate << " supplied)." << EidosTerminate();
+		if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << EidosStringForFloat(recombination_rate) << " supplied)." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -7937,8 +7937,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 				if (recombination_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
-			if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << recombination_rate << " supplied)." << EidosTerminate();
+			if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << EidosStringForFloat(recombination_rate) << " supplied)." << EidosTerminate();
 		}
 		
 		// then adopt them
@@ -8006,10 +8006,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 	double gene_conversion_fraction = conversionFraction_value->FloatAtIndex(0, nullptr);
 	double gene_conversion_avg_length = meanLength_value->FloatAtIndex(0, nullptr);
 	
-	if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << gene_conversion_fraction << " supplied)." << EidosTerminate();
-	if (gene_conversion_avg_length <= 0.0)		// intentionally no upper bound
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() meanLength must be greater than 0.0 (" << gene_conversion_avg_length << " supplied)." << EidosTerminate();
+	if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0) || std::isnan(gene_conversion_fraction))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << EidosStringForFloat(gene_conversion_fraction) << " supplied)." << EidosTerminate();
+	if ((gene_conversion_avg_length <= 0.0) || std::isnan(gene_conversion_avg_length))		// intentionally no upper bound
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() meanLength must be greater than 0.0 (" << EidosStringForFloat(gene_conversion_avg_length) << " supplied)." << EidosTerminate();
 	
 	chromosome_.gene_conversion_fraction_ = gene_conversion_fraction;
 	chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
@@ -8073,8 +8073,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 		double mutation_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
-		if (mutation_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << EidosTerminate();
+		if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -8100,8 +8100,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
-			if (mutation_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << mutation_rate << " supplied)." << EidosTerminate();
+			if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
 		}
 		
 		// then adopt them

@@ -363,6 +363,8 @@ std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascend
 	return idx;
 }
 
+std::string EidosStringForFloat(double p_value);
+
 
 // *******************************************************************************************************************
 //

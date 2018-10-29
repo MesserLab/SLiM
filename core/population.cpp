@@ -339,8 +339,8 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 { 
 	if (count(p_source_subpop_id) == 0)
 		EIDOS_TERMINATION << "ERROR (Population::SetMigration): no subpopulation p" << p_source_subpop_id << "." << EidosTerminate();
-	if (p_migrant_fraction < 0.0 || p_migrant_fraction > 1.0)
-		EIDOS_TERMINATION << "ERROR (Population::SetMigration): migration fraction has to be within [0,1] (" << p_migrant_fraction << " supplied)." << EidosTerminate();
+	if ((p_migrant_fraction < 0.0) || (p_migrant_fraction > 1.0) || std::isnan(p_migrant_fraction))
+		EIDOS_TERMINATION << "ERROR (Population::SetMigration): migration fraction has to be within [0,1] (" << EidosStringForFloat(p_migrant_fraction) << " supplied)." << EidosTerminate();
 	
 	if (p_subpop.migrant_fractions_.count(p_source_subpop_id) != 0)
 		p_subpop.migrant_fractions_.erase(p_source_subpop_id);

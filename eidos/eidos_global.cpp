@@ -1398,7 +1398,7 @@ double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const doub
 	double nu = (var1 / p_count1 + var2 / p_count2) * (var1 / p_count1 + var2 / p_count2) / ((var1 * var1) / (p_count1 * p_count1 * (p_count1 - 1)) + (var2 * var2) / (p_count2 * p_count2 * (p_count2 - 1)));
 	
 	// return the P-value
-	return 2 * gsl_cdf_tdist_Q(t, nu);
+	return (std::isnan(t) ? t : 2 * gsl_cdf_tdist_Q(t, nu));
 }
 
 // This function returns a one-sample t-test, testing the null hypothesis that
@@ -1444,7 +1444,7 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 	double nu = p_count1 - 1;
 	
 	// return the P-value
-	return 2 * gsl_cdf_tdist_Q(t, nu);
+	return (std::isnan(t) ? t : 2 * gsl_cdf_tdist_Q(t, nu));
 }
 
 // This function uses an algorithm by Shewchuk (http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) to provide
@@ -1718,6 +1718,27 @@ std::vector<std::string> Eidos_string_split(const std::string &p_str, const std:
 	}
 	return result;
 }*/
+
+std::string EidosStringForFloat(double p_value)
+{
+	// Customize our output a bit to look like Eidos, not C++
+	if (std::isinf(p_value))
+	{
+		if (std::signbit(p_value))
+			return gEidosStr_MINUS_INF;
+		else
+			return gEidosStr_INF;
+	}
+	else if (std::isnan(p_value))
+		return gEidosStr_NAN;
+	else
+	{
+		// could probably use std::to_string() instead, but need to think about precision etc.
+		std::ostringstream ss;
+		ss << p_value;
+		return ss.str();
+	}
+}
 
 
 #pragma mark -

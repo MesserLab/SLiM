@@ -1683,20 +1683,7 @@ EidosValue_SP EidosValue_Float::NewMatchingType(void) const
 
 void EidosValue_Float::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
 {
-	double value = FloatAtIndex(p_idx, nullptr);
-	
-	// Customize our output a bit to look like Eidos, not C++
-	if (std::isinf(value))
-	{
-		if (std::signbit(value))
-			p_ostream << gEidosStr_MINUS_INF;
-		else
-			p_ostream << gEidosStr_INF;
-	}
-	else if (std::isnan(value))
-		p_ostream << gEidosStr_NAN;
-	else
-		p_ostream << value;
+	p_ostream << EidosStringForFloat(FloatAtIndex(p_idx, nullptr));
 }
 
 
@@ -1753,24 +1740,7 @@ std::string EidosValue_Float_vector::StringAtIndex(int p_idx, const EidosToken *
 	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
-	// with C++11, could use std::to_string(values_[p_idx])
-	std::ostringstream ss;
-	double value = values_[p_idx];
-	
-	// Customize our output a bit to look like Eidos, not C++
-	if (std::isinf(value))
-	{
-		if (std::signbit(value))
-			ss << gEidosStr_MINUS_INF;
-		else
-			ss << gEidosStr_INF;
-	}
-	else if (std::isnan(value))
-		ss << gEidosStr_NAN;
-	else
-		ss << value;
-	
-	return ss.str();
+	return EidosStringForFloat(values_[p_idx]);
 }
 
 int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -1910,23 +1880,7 @@ std::string EidosValue_Float_singleton::StringAtIndex(int p_idx, const EidosToke
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
-	// with C++11, could use std::to_string(value_)
-	std::ostringstream ss;
-	
-	// Customize our output a bit to look like Eidos, not C++
-	if (std::isinf(value_))
-	{
-		if (std::signbit(value_))
-			ss << gEidosStr_MINUS_INF;
-		else
-			ss << gEidosStr_INF;
-	}
-	else if (std::isnan(value_))
-		ss << gEidosStr_NAN;
-	else
-		ss << value_;
-	
-	return ss.str();
+	return EidosStringForFloat(value_);
 }
 
 int64_t EidosValue_Float_singleton::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const

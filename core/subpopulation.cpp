@@ -5408,10 +5408,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 		double female_cloning_fraction = rate_value->FloatAtIndex(0, nullptr);
 		double male_cloning_fraction = (value_count == 2) ? rate_value->FloatAtIndex(1, nullptr) : female_cloning_fraction;
 		
-		if (female_cloning_fraction < 0.0 || female_cloning_fraction > 1.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << female_cloning_fraction << " supplied)." << EidosTerminate();
-		if (male_cloning_fraction < 0.0 || male_cloning_fraction > 1.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << male_cloning_fraction << " supplied)." << EidosTerminate();
+		if ((female_cloning_fraction < 0.0) || (female_cloning_fraction > 1.0) || std::isnan(female_cloning_fraction))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << EidosStringForFloat(female_cloning_fraction) << " supplied)." << EidosTerminate();
+		if ((male_cloning_fraction < 0.0) || (male_cloning_fraction > 1.0) || std::isnan(male_cloning_fraction))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << EidosStringForFloat(male_cloning_fraction) << " supplied)." << EidosTerminate();
 		
 		female_clone_fraction_ = female_cloning_fraction;
 		male_clone_fraction_ = male_cloning_fraction;
@@ -5424,8 +5424,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 		
 		double cloning_fraction = rate_value->FloatAtIndex(0, nullptr);
 		
-		if (cloning_fraction < 0.0 || cloning_fraction > 1.0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << cloning_fraction << " supplied)." << EidosTerminate();
+		if ((cloning_fraction < 0.0) || (cloning_fraction > 1.0) || std::isnan(cloning_fraction))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << EidosStringForFloat(cloning_fraction) << " supplied)." << EidosTerminate();
 		
 		female_clone_fraction_ = cloning_fraction;
 		male_clone_fraction_ = cloning_fraction;
@@ -5451,8 +5451,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 	if ((selfing_fraction != 0.0) && sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << EidosTerminate();
 	
-	if (selfing_fraction < 0.0 || selfing_fraction > 1.0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() requires a selfing fraction within [0,1] (" << selfing_fraction << " supplied)." << EidosTerminate();
+	if ((selfing_fraction < 0.0) || (selfing_fraction > 1.0) || std::isnan(selfing_fraction))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() requires a selfing fraction within [0,1] (" << EidosStringForFloat(selfing_fraction) << " supplied)." << EidosTerminate();
 	
 	selfing_fraction_ = selfing_fraction;
 	
@@ -5482,8 +5482,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
 	
-	if (sex_ratio < 0.0 || sex_ratio > 1.0)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() requires a sex ratio within [0,1] (" << sex_ratio << " supplied)." << EidosTerminate();
+	if ((sex_ratio < 0.0) || (sex_ratio > 1.0) || std::isnan(sex_ratio))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() requires a sex ratio within [0,1] (" << EidosStringForFloat(sex_ratio) << " supplied)." << EidosTerminate();
 	
 	// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
 	child_sex_ratio_ = sex_ratio;
