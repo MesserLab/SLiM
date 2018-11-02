@@ -5424,9 +5424,9 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
                      == msp_individual)
                    && ((size_t) p_tables->nodes->individual[ind->genome2_->msp_node_id_]
                        == msp_individual));
-            memcpy(p_tables->individuals->location
-                    + p_tables->individuals->location_offset[msp_individual],
-                    &location, location.size());
+			memcpy(p_tables->individuals->location
+				   + p_tables->individuals->location_offset[msp_individual],
+				   location.data(), location.size() * sizeof(double));
             memcpy(p_tables->individuals->metadata
                     + p_tables->individuals->metadata_offset[msp_individual],
                     &metadata_rec, sizeof(IndividualMetadataRec));

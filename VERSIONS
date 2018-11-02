@@ -35,6 +35,7 @@ development head:
 	fix big performance issue for nonWF models as they build up genetic diversity, due to the wrong mutation frequency tallying code path being used
 	fix bug EidosSymbolTable buffer overrun in ContainsSymbol() and related methods; this will bite models that define a very large number of symbols (e.g., some nucleotide models)
 	make Eidos and SLiM more robust to NAN being passed in to various functions (rpois() hang, in particular)
+	fix corrupted spatial location data for some individuals (mostly, maybe only?, first-gen individuals) in .trees files
 
 
 3.1 (build 1817; Eidos version 2.1):
