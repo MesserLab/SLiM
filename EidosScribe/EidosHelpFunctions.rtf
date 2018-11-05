@@ -4793,7 +4793,42 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float)version(\cf2 \expnd0\expndtw0\kerning0
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float$)usage([logical$\'a0peak\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns the 
+\b current (or peak) memory usage
+\b0 .  This is the amount of memory used by the current process, in MB (megabytes); multiply by 
+\f1\fs18 1024*1024
+\f0\fs20  to get the usage in bytes.  If 
+\f1\fs18 peak
+\f0\fs20  is 
+\f1\fs18 F
+\f0\fs20  (the default), the current memory usage is returned; if 
+\f1\fs18 peak
+\f0\fs20  is 
+\f1\fs18 T
+\f0\fs20 , the maximum memory usage over the history of the process is returned.  Memory usage is a surprisingly complex topic; the particular metric reported by 
+\f1\fs18 usage()
+\f0\fs20  is the resident set size, or RSS, which includes memory usage from shared libraries, but does not include memory that is swapped out or has never been used.  For most purposes, RSS is a useful metric of memory usage from a practical perspective.  On some platforms (AIX, BSD, Solaris) the memory usage reported may be zero, but it should be correct on both Mac OS X and Linux platforms.\
+This function can be useful for documenting the memory usage of long runs as they are in progress; in SLiM, it could also be used to trigger tree-sequence simplification with a call to 
+\f1\fs18 treeSeqSimplify()
+\f0\fs20 , to reduce memory usage when it becomes too large, but keep in mind that the simplification process itself may cause a substantial spike in memory usage.\
+When running under SLiM, other tools for monitoring memory usage include the 
+\f1\fs18 slim
+\f0\fs20  command-line options 
+\f1\fs18 -m[em]
+\f0\fs20  and 
+\f1\fs18 -M[emhist]
+\f0\fs20 , and the 
+\f1\fs18 outputUsage()
+\f0\fs20  method of 
+\f1\fs18 SLiMSim
+\f0\fs20 ; see the SLiM manual for more information.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)version(\cf2 \expnd0\expndtw0\kerning0
 [logical$\'a0print\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

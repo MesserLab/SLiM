@@ -36,6 +36,7 @@ development head:
 	fix bug EidosSymbolTable buffer overrun in ContainsSymbol() and related methods; this will bite models that define a very large number of symbols (e.g., some nucleotide models)
 	make Eidos and SLiM more robust to NAN being passed in to various functions (rpois() hang, in particular)
 	fix corrupted spatial location data for some individuals (mostly, maybe only?, first-gen individuals) in .trees files
+	add a usage() function to get the current or peak memory usage of the process
 
 
 3.1 (build 1817; Eidos version 2.1):

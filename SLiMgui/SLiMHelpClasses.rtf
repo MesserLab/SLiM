@@ -3647,7 +3647,11 @@ If the optional parameter
 
 \f0\fs20 \cf2 Output the current memory usage of the simulation to Eidos\'92s output stream.  The specifics of what is printed, and in what format, should not be relied upon as they may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.  Note that it does not capture 
 \i all
-\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.\
+\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.\cf2   To get the 
+\i \cf2 total
+\i0 \cf2  memory usage of the running process (either current or peak), use the Eidos function 
+\f2\fs18 usage()
+\f0\fs20 .\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\

@@ -7345,6 +7345,11 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("time('foo');", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("time(_Test(7));", 0, "too many arguments supplied");
 	
+	// usage(); allow zero since this call returns zero on some less-supported platforms
+	EidosAssertScriptSuccess("usage() >= 0.0;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("usage(F) >= 0.0;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("usage(T) >= 0.0;", gStaticEidosValue_LogicalT);
+	
 	// version()
 	EidosAssertScriptSuccess("type(version(T)) == 'float';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("type(version(F)) == 'float';", gStaticEidosValue_LogicalT);

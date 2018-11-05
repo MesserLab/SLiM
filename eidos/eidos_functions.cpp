@@ -299,6 +299,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("suppressWarnings",	Eidos_ExecuteFunction_suppressWarnings,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical_S("suppress"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("usage",				Eidos_ExecuteFunction_usage,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddLogical_OS("peak", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat))->AddLogical_OS("print", gStaticEidosValue_LogicalT));
 		
 		
@@ -10526,6 +10527,23 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValu
 	strftime(buffer, 20, "%H:%M:%S", &timeinfo);
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
+	
+	return result_SP;
+}
+
+//	(float$)usage([logical$ peak = F])
+EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	bool peak = p_arguments[0]->LogicalAtIndex(0, nullptr);
+	
+	size_t usage = (peak ? Eidos_GetPeakRSS() : Eidos_GetCurrentRSS());
+	double usage_MB = usage / (1024.0 * 1024.0);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(usage_MB));
 	
 	return result_SP;
 }
