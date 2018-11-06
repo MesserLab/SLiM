@@ -3647,11 +3647,11 @@ If the optional parameter
 
 \f0\fs20 \cf2 Output the current memory usage of the simulation to Eidos\'92s output stream.  The specifics of what is printed, and in what format, should not be relied upon as they may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.  Note that it does not capture 
 \i all
-\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.\cf2   To get the 
-\i \cf2 total
-\i0 \cf2  memory usage of the running process (either current or peak), use the Eidos function 
+\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.  To get the 
+\i total
+\i0  memory usage of the running process (either current or peak), use the Eidos function 
 \f2\fs18 usage()
-\f0\fs20 .\cf2 \
+\f0\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\
@@ -4307,9 +4307,14 @@ This method may only be called if tree sequence recording has been turned on wit
 \f2\fs18 treeSeqRememberIndividuals()
 \f0\fs20  is for 
 \i permanently
-\i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain the initial individuals created in new subpopulations with 
+\i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
+Calling 
+\f2\fs18 treeSeqRememberIndividuals()
+\f0\fs20  on an individual that is already remembered will cause the archived information about the remembered individual to be updated to reflect the individual\'92s current state.  A case where this is particularly important is for the spatial location of individuals in continuous-space models.  SLiM automatically remembers the individuals that comprise the first generation of any new subpopulation created with 
 \f2\fs18 addSubpop()
-\f0\fs20 , if you wanted the tree sequences recorded to include the ultimate ancestors that root the whole simulated tree.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
+\f0\fs20 , for easy recapitation and other analysis.  However, since these first-generation individuals are remembered at the moment they are created, their spatial locations have not yet been set up, and will contain garbage \'96 and those garbage values will be archived in their remembered state.  If you need correct spatial locations of first-generation individuals for your post-simulation analysis, you should call 
+\f2\fs18 treeSeqRememberIndividuals()
+\f0\fs20  explicitly on the first generation, after setting spatial locations, to update the archived information with the correct spatial positions.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf2 \'96\'a0(void)treeSeqSimplify(void)\
