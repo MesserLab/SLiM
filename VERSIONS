@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+3.2 (build 1859; Eidos version 2.2):
 	fix a bug that could result in incorrect parent2, parent2Genome1, and parent2Genome2 values in modifyChild() callbacks in clonal models; should not impact correct model code
 	fix incorrect values for isCloning / isSelfing in modifyChild() callbacks in nonWF models using addCloned() / addSelfed()
 	fix incorrect modifyChild() callback source in nonWF models using addCloned(), addCrossed(), and addSelfed(); they were getting the list of callbacks from the target subpopulation
@@ -37,7 +40,6 @@ development head:
 	make Eidos and SLiM more robust to NAN being passed in to various functions (rpois() hang, in particular)
 	fix corrupted spatial location data for some individuals (mostly, maybe only?, first-gen individuals) in .trees files
 	add a usage() function to get the current or peak memory usage of the process
-
 
 3.1 (build 1817; Eidos version 2.1):
 	dmvnorm() function added to Eidos, parallel to dnorm() but for multivariate Gaussian distributions

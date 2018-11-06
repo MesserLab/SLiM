@@ -5817,7 +5817,7 @@ void SLiMSim::ReadProvenanceTable(table_collection_t *p_tables, slim_generation_
 		// We actually don't have any chance of being able to read SLiM 3.0 .trees files in, I guess;
 		// all the new individuals table stuff, the addition of the population table, etc., mean that
 		// it would just be a huge headache to try to do this.  So let's throw an error up front.
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): file_version is 0.1 in .trees file; this file cannot be read.  SLiM 3.1 cannot read saved .trees files from prior versions of SLiM; sorry." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadProvenanceTable): file_version is 0.1 in .trees file; this file cannot be read.  SLiM 3.1 and later cannot read saved .trees files from prior versions of SLiM; sorry." << EidosTerminate();
 		
 		/*
 		try {
