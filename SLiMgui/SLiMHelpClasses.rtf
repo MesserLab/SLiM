@@ -4308,7 +4308,7 @@ This method may only be called if tree sequence recording has been turned on wit
 \f0\fs20  is for 
 \i permanently
 \i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
-Calling 
+\cf2 The metadata (age, location, etc) that are stored in the resulting tree sequence are those values present at either (a) the final generation, if the individual is alive at the end of the simulation, or (b) the last time that the individual was remembered, if not.  \cf2 Calling 
 \f2\fs18 treeSeqRememberIndividuals()
 \f0\fs20  on an individual that is already remembered will cause the archived information about the remembered individual to be updated to reflect the individual\'92s current state.  A case where this is particularly important is for the spatial location of individuals in continuous-space models.  SLiM automatically remembers the individuals that comprise the first generation of any new subpopulation created with 
 \f2\fs18 addSubpop()
