@@ -25,8 +25,11 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
+#include <stdio.h>
+#include <unistd.h>
 
 #include "time.h"
 
@@ -81,7 +84,7 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	
 	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |" << std::endl;
 	SLIM_OUTSTREAM << "   [-l[ong]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
-	SLIM_OUTSTREAM << "   [-d[efine] <def>] <script file>" << std::endl;
+	SLIM_OUTSTREAM << "   [-d[efine] <def>] [<script file>]" << std::endl;
 	
 	if (p_print_full_usage)
 	{
@@ -98,6 +101,7 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -M[emhist]       : print a histogram of SLiM's memory usage" << std::endl;
 		SLIM_OUTSTREAM << "   -x               : disable SLiM's runtime safety/consistency checks" << std::endl;
 		SLIM_OUTSTREAM << "   -d[efine] <def>  : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
+		SLIM_OUTSTREAM << "   <script file>    : the input script file (stdin may be used instead)" << std::endl;
 	}
 	
 	if (p_print_header || p_print_full_usage)
@@ -128,7 +132,8 @@ int main(int argc, char *argv[])
 	// command-line SLiM generally terminates rather than throwing
 	gEidosTerminateThrows = false;
 	
-	if (argc == 1)
+	// "slim" with no arguments prints uage, *unless* stdin is not a tty, in which case we're running the stdin script
+	if ((argc == 1) && isatty(fileno(stdin)))
 		PrintUsageAndDie(true, true);
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
@@ -251,8 +256,8 @@ int main(int argc, char *argv[])
 		input_file = argv[arg_index];
 	}
 	
-	// check that we got what we need
-	if (!input_file)
+	// check that we got what we need; if no file was supplied, then stdin must not be a tty (i.e., must be a pipe, etc.)
+	if (!input_file && isatty(fileno(stdin)))
 		PrintUsageAndDie(false, true);
 	
 	// announce if we are running a debug build or are skipping runtime checks
@@ -299,7 +304,24 @@ int main(int argc, char *argv[])
 	SLiM_WarmUp();
 	Eidos_FinishWarmUp();
 	
-	SLiMSim *sim = new SLiMSim(input_file);
+	SLiMSim *sim = nullptr;
+	
+	if (!input_file)
+	{
+		// no input file supplied; either the user forgot (if stdin is a tty) or they're piping a script into stdin
+		// we checked for the tty case above, so here we assume stdin will supply the script
+		sim = new SLiMSim(std::cin);
+	}
+	else
+	{
+		// input file supplied; open it and use it
+		std::ifstream infile(input_file);
+		
+		if (!infile.is_open())
+			EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
+		
+		sim = new SLiMSim(infile);
+	}
 	
 	if (keep_mem_hist)
 		mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);

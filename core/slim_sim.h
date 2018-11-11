@@ -476,7 +476,6 @@ public:
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
 	explicit SLiMSim(std::istream &p_infile);										// construct a SLiMSim from an input stream
-	explicit SLiMSim(const char *p_input_file);										// construct a SLiMSim from an input file
 	~SLiMSim(void);																	// destructor
 	
 	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// should be called right after construction, generally

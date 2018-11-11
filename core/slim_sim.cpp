@@ -88,29 +88,6 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 	InitializeFromFile(p_infile);
 }
 
-SLiMSim::SLiMSim(const char *p_input_file) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
-{
-	// set up the symbol table we will use for all of our constants
-	// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
-	// that that is actually a bit slower.  I suspect it crosses over for models with more SLiM symbols; but EidosSymbolTable
-	// crosses over to the external table anyway when more symbols are used, so it shouldn't be a big deal.
-	simulation_constants_ = new EidosSymbolTable(EidosSymbolTableType::kContextConstantsTable, gEidosConstantsSymbolTable);
-	
-	// set up the function map with the base Eidos functions plus zero-gen functions, since we're in an initial state
-	simulation_functions_ = *EidosInterpreter::BuiltInFunctionMap();
-	AddZeroGenerationFunctionsToMap(simulation_functions_);
-	
-	// open our file stream
-	std::ifstream infile(p_input_file);
-	
-	if (!infile.is_open())
-		EIDOS_TERMINATION << std::endl << "ERROR (SLiMSim::SLiMSim): could not open input file: " << p_input_file << "." << EidosTerminate();
-	
-	// read all configuration information from the input file
-	infile.seekg(0, std::fstream::beg);
-	InitializeFromFile(infile);
-}
-
 SLiMSim::~SLiMSim(void)
 {
 	//EIDOS_ERRSTREAM << "SLiMSim::~SLiMSim" << std::endl;
