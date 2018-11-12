@@ -268,6 +268,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #define DEBUG_MUTATION_ZOMBIES		0		// avoid destroying Mutation objects; keep them as zombies
 #define SLIM_DEBUG_MUTATION_RUNS	0		// turn on to get logging about mutation run uniquing and usage
 #define DEBUG_INPUT					1		// additional output for debugging of input file parsing; 1 in standard SLiM builds
+#define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
 
 
 // In SLiMgui we want to emit only a reasonably limited number of lines of input debugging; for big models, this output

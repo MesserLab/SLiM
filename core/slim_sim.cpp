@@ -1431,6 +1431,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 
 void SLiMSim::ValidateScriptBlockCaches(void)
 {
+#if DEBUG_BLOCK_REG_DEREG
+	std::cout << "Generation " << generation_ << ": ValidateScriptBlockCaches() called..." << std::endl;
+#endif
+	
 	if (!script_block_types_cached_)
 	{
 		cached_early_events_.clear();
@@ -1447,6 +1451,16 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 		cached_userdef_functions_.clear();
 		
 		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+		
+#if DEBUG_BLOCK_REG_DEREG
+		std::cout << "   ValidateScriptBlockCaches() recaching, AllScriptBlocks() is:" << std::endl;
+		for (SLiMEidosBlock *script_block : script_blocks)
+		{
+			std::cout << "      ";
+			script_block->Print(std::cout);
+			std::cout << std::endl;
+		}
+#endif
 		
 		for (auto script_block : script_blocks)
 		{
@@ -1487,6 +1501,16 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 		}
 		
 		script_block_types_cached_ = true;
+		
+#if DEBUG_BLOCK_REG_DEREG
+		std::cout << "   ValidateScriptBlockCaches() recached, late() events cached are:" << std::endl;
+		for (SLiMEidosBlock *script_block : cached_late_events_)
+		{
+			std::cout << "      ";
+			script_block->Print(std::cout);
+			std::cout << std::endl;
+		}
+#endif
 	}
 }
 
@@ -1864,6 +1888,16 @@ void SLiMSim::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p
 	last_script_block_gen_cached_ = false;
 	script_block_types_cached_ = false;
 	scripts_changed_ = true;
+	
+#if DEBUG_BLOCK_REG_DEREG
+	std::cout << "Generation " << generation_ << ": AddScriptBlock() just added a block, script_blocks_ is:" << std::endl;
+	for (SLiMEidosBlock *script_block : script_blocks_)
+	{
+		std::cout << "      ";
+		script_block->Print(std::cout);
+		std::cout << std::endl;
+	}
+#endif
 }
 
 void SLiMSim::DeregisterScheduledScriptBlocks(void)
@@ -1873,12 +1907,32 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 	// cause a crash; it also guarantees that script blocks are applied consistently across each generation stage.  A single block
 	// might be scheduled for deregistration more than once, but should only occur in script_blocks_ once, so we have to be careful
 	// with our deallocations here; we deallocate a block only when we find it in script_blocks_.
+#if DEBUG_BLOCK_REG_DEREG
+	if (scheduled_deregistrations_.size())
+	{
+		std::cout << "Generation " << generation_ << ": DeregisterScheduledScriptBlocks() planning to remove:" << std::endl;
+		for (SLiMEidosBlock *script_block : scheduled_deregistrations_)
+		{
+			std::cout << "      ";
+			script_block->Print(std::cout);
+			std::cout << std::endl;
+		}
+	}
+#endif
+	
 	for (SLiMEidosBlock *block_to_dereg : scheduled_deregistrations_)
 	{
 		auto script_block_position = std::find(script_blocks_.begin(), script_blocks_.end(), block_to_dereg);
 		
 		if (script_block_position != script_blocks_.end())
 		{
+#if DEBUG_BLOCK_REG_DEREG
+			std::cout << "Generation " << generation_ << ": DeregisterScheduledScriptBlocks() removing block:" << std::endl;
+			std::cout << "   ";
+			block_to_dereg->Print(std::cout);
+			std::cout << std::endl;
+#endif
+			
 			// Remove the symbol for it first
 			if (block_to_dereg->block_id_ != -1)
 				simulation_constants_->RemoveConstantForSymbol(block_to_dereg->ScriptBlockSymbolTableEntry().first);
@@ -1890,18 +1944,57 @@ void SLiMSim::DeregisterScheduledScriptBlocks(void)
 			scripts_changed_ = true;
 			delete block_to_dereg;
 		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (SLiMSim::DeregisterScheduledScriptBlocks): (internal error) couldn't find block for deregistration." << EidosTerminate();
+		}
 	}
+	
+#if DEBUG_BLOCK_REG_DEREG
+	if (scheduled_deregistrations_.size())
+	{
+		std::cout << "Generation " << generation_ << ": DeregisterScheduledScriptBlocks() after removal:" << std::endl;
+		for (SLiMEidosBlock *script_block : script_blocks_)
+		{
+			std::cout << "      ";
+			script_block->Print(std::cout);
+			std::cout << std::endl;
+		}
+	}
+#endif
+	
+	scheduled_deregistrations_.clear();
 }
 
 void SLiMSim::DeregisterScheduledInteractionBlocks(void)
 {
 	// Identical to DeregisterScheduledScriptBlocks() above, but for the interaction() dereg list; see deregisterScriptBlock()
+#if DEBUG_BLOCK_REG_DEREG
+	if (scheduled_interaction_deregs_.size())
+	{
+		std::cout << "Generation " << generation_ << ": DeregisterScheduledInteractionBlocks() planning to remove:" << std::endl;
+		for (SLiMEidosBlock *script_block : scheduled_interaction_deregs_)
+		{
+			std::cout << "      ";
+			script_block->Print(std::cout);
+			std::cout << std::endl;
+		}
+	}
+#endif
+	
 	for (SLiMEidosBlock *block_to_dereg : scheduled_interaction_deregs_)
 	{
 		auto script_block_position = std::find(script_blocks_.begin(), script_blocks_.end(), block_to_dereg);
 		
 		if (script_block_position != script_blocks_.end())
 		{
+#if DEBUG_BLOCK_REG_DEREG
+			std::cout << "Generation " << generation_ << ": DeregisterScheduledInteractionBlocks() removing block:" << std::endl;
+			std::cout << "   ";
+			block_to_dereg->Print(std::cout);
+			std::cout << std::endl;
+#endif
+			
 			// Remove the symbol for it first
 			if (block_to_dereg->block_id_ != -1)
 				simulation_constants_->RemoveConstantForSymbol(block_to_dereg->ScriptBlockSymbolTableEntry().first);
@@ -1913,7 +2006,26 @@ void SLiMSim::DeregisterScheduledInteractionBlocks(void)
 			scripts_changed_ = true;
 			delete block_to_dereg;
 		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (SLiMSim::DeregisterScheduledInteractionBlocks): (internal error) couldn't find block for deregistration." << EidosTerminate();
+		}
 	}
+	
+#if DEBUG_BLOCK_REG_DEREG
+	if (scheduled_interaction_deregs_.size())
+	{
+		std::cout << "Generation " << generation_ << ": DeregisterScheduledInteractionBlocks() after removal:" << std::endl;
+		for (SLiMEidosBlock *script_block : script_blocks_)
+		{
+			std::cout << "      ";
+			script_block->Print(std::cout);
+			std::cout << std::endl;
+		}
+	}
+#endif
+	
+	scheduled_interaction_deregs_.clear();
 }
 
 void SLiMSim::ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block)
@@ -9106,6 +9218,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
 			scheduled_interaction_deregs_.emplace_back(block);
+			
+#if DEBUG_BLOCK_REG_DEREG
+			std::cout << "deregisterScriptBlock() called for block:" << std::endl;
+			std::cout << "   ";
+			block->Print(std::cout);
+			std::cout << std::endl;
+#endif
 		}
 		else
 		{
@@ -9114,6 +9233,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
 			scheduled_deregistrations_.emplace_back(block);
+			
+#if DEBUG_BLOCK_REG_DEREG
+			std::cout << "deregisterScriptBlock() called for block:" << std::endl;
+			std::cout << "   ";
+			block->Print(std::cout);
+			std::cout << std::endl;
+#endif
 		}
 	}
 	
