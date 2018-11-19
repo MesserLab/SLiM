@@ -97,3 +97,5 @@ add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
 target_link_libraries(${TARGET_NAME} PUBLIC tables)
+
+install(TARGETS slim eidos DESTINATION bin)
