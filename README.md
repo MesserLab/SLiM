@@ -30,20 +30,19 @@ https://gitlab.kitware.com/cmake/community/wikis/FAQ#out-of-source-build-trees
 
 CMake is available with `port install cmake` or `brew install cmake` (on OS X, with MacPorts or Homebrew respectively), or with `aptitude install cmake` (on debian).
 
-To compile and install the development version from this repository, do:
+To compile the development version from this repository, do:
 
 	git clone https://github.com/MesserLab/SLiM.git
 	mkdir SLiM_build
 	cd SLiM_build
 	cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
 	make
-    make install
 
-The `make install` step will install the `slim` and `eidos` binaries to appropriate system directories (hopefully).
-If you don't want this to happen, just skip this step; the binaries
-will be located within the `SLiM_build` directory.
+The resulting binaries (`slim` and `eidos`) will be located in the `SLiM_build` directory.
 You can name the build directory anything you wish; there is nothing magical about the name `SLiM_build`.
-To install the binaries to a different directory (like the `--user` flag), instead run
+To install these to the default system directories, you can just run `make install`;
+but this will probably fail because of permissions. Instead you should tell cmake where to install the binaries
+(analogous to the `--user` flag):
 
 	cmake -D CMAKE_BUILD_TYPE=Release -D -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install ../SLiM
 	make
