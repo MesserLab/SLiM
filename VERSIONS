@@ -11,6 +11,7 @@ development head:
 	add support for the slim command-line tool to read its script from stdin instead of from a supplied input script file
 	fix bug that would bite models calling deregisterScriptBlock() more than once, leading to an incorrect event list in some cases
 	add recipe 15.15 (15.15  Implementing a Wright–Fisher model with a nonWF model)
+	fix a bug resulting in incorrect values for the pedigreeGrandparentIDs property of Individual; they were correct internally, but returned incorrectly
 
 
 3.2 (build 1859; Eidos version 2.2):

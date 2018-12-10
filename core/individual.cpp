@@ -226,8 +226,8 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			vec->set_int_no_check(pedigree_g1_, 0);
 			vec->set_int_no_check(pedigree_g2_, 1);
-			vec->set_int_no_check(pedigree_g2_, 2);
-			vec->set_int_no_check(pedigree_g2_, 3);
+			vec->set_int_no_check(pedigree_g3_, 2);
+			vec->set_int_no_check(pedigree_g4_, 3);
 			
 			return EidosValue_SP(vec);
 		}
