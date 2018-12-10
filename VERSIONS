@@ -10,6 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 	add support for the slim command-line tool to read its script from stdin instead of from a supplied input script file
 	fix bug that would bite models calling deregisterScriptBlock() more than once, leading to an incorrect event list in some cases
+	add recipe 15.15 (15.15  Implementing a Wright–Fisher model with a nonWF model)
 
 
 3.2 (build 1859; Eidos version 2.2):
