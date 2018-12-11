@@ -14,6 +14,8 @@ development head:
 	fix a bug resulting in incorrect values for the pedigreeGrandparentIDs property of Individual; they were correct internally, but returned incorrectly
 	add a drawBreakpoints() method on Chromosome to allow models to draw breakpoints using SLiM's logic
 	add recipe 15.16 (Alternation of generations)
+	add support for "make install" with cmake (see the README.md / README.html for instructions), thanks to Peter Ralph
+	add support for link-time optimization (LTO) on platforms that support it, thanks to Kevin Thornton
 
 
 3.2 (build 1859; Eidos version 2.2):
