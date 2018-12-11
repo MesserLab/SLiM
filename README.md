@@ -38,7 +38,18 @@ To compile the development version from this repository, do:
 	cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
 	make
 
-The resulting binary will be called `slim`, within the `SLiM_build` directory.  You can name the build directory anything you wish; there is nothing magical about the name `SLiM_build`.
+The resulting binaries (`slim` and `eidos`) will be located in the `SLiM_build` directory.
+You can name the build directory anything you wish; there is nothing magical about the name `SLiM_build`.
+Running `make install` will then attempt to install these to the default system directories,
+but this will probably fail unless you run it with root permissions (e.g., by doing `sudo make install`). 
+To explicitly tell cmake where to install the binaries, run:
+
+	cmake -D CMAKE_BUILD_TYPE=Release -D -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install ../SLiM
+	make
+    make install
+
+where `/path/to/install` is the path where you want `slim` and `eidos` installed below 
+(they would be put in `/path/to/install/bin` in this example, analogous to the `--user` flag).
 
 To update the build, in the `SLiM_build` directory run:
 
