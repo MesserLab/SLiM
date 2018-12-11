@@ -3055,6 +3055,7 @@
 				GCC_WARN_UNUSED_LABEL = YES;
 				GCC_WARN_UNUSED_PARAMETER = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				OTHER_CFLAGS = "";
@@ -3155,6 +3156,7 @@
 				GCC_WARN_UNUSED_VALUE = NO;
 				INFOPLIST_FILE = EidosScribe/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LLVM_LTO = YES_THIN;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -3196,6 +3198,7 @@
 				GCC_WARN_UNUSED_VALUE = NO;
 				INFOPLIST_FILE = SLiMgui/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LLVM_LTO = YES_THIN;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
