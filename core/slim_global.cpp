@@ -634,6 +634,7 @@ const std::string gStr_maxDistance = "maxDistance";
 // mostly method names
 const std::string gStr_setMutationRate = "setMutationRate";
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
+const std::string gStr_drawBreakpoints = "drawBreakpoints";
 const std::string gStr_addMutations = "addMutations";
 const std::string gStr_addNewDrawnMutation = "addNewDrawnMutation";
 const std::string gStr_addNewMutation = "addNewMutation";
@@ -935,6 +936,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate, gID_setMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
+		Eidos_RegisterStringForGlobalID(gStr_drawBreakpoints, gID_drawBreakpoints);
 		Eidos_RegisterStringForGlobalID(gStr_addMutations, gID_addMutations);
 		Eidos_RegisterStringForGlobalID(gStr_addNewDrawnMutation, gID_addNewDrawnMutation);
 		Eidos_RegisterStringForGlobalID(gStr_addNewMutation, gID_addNewMutation);

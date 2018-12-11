@@ -259,7 +259,63 @@ The recombination rate for each of the recombination regions specified by
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\i0\fs18 \cf0 \'96\'a0(void)setMutationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
+\f2\i0\fs18 \cf0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
+(integer)drawBreakpoints(\cf2 [No<Individual>$\'a0parent\'a0=\'a0NULL], \cf2 [Ni$\'a0n\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Draw recombination breakpoints, using the chromosome\'92s recombination rate map, the current gene conversion parameters, and (in some cases \'96 see below) any active and applicable 
+\f2\fs18 recombination()
+\f0\fs20  callbacks.  The number of breakpoints to generate, 
+\f2\fs18 n
+\f0\fs20 , may be supplied; if it is 
+\f2\fs18 NULL
+\f0\fs20  (the default), the number of breakpoints will be drawn based upon the overall recombination rate and the chromosome length (following the standard procedure in SLiM).  Note that if gene conversion is enabled, the number of breakpoints generated may not be equal to the number requested, because any given breakpoint might become a gene conversion event, which entails an additional breakpoint (to terminate the gene conversion tract).\
+It is generally recommended that the parent individual be supplied to this method, but 
+\f2\fs18 parent
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  by default.  The individual supplied in 
+\f2\fs18 parent
+\f0\fs20  is used for two purposes.  First, in sexual models that define separate recombination rate maps for males versus females, the sex of 
+\f2\fs18 parent
+\f0\fs20  will be used to determine which map is used; in this case, a non-
+\f2\fs18 NULL
+\f0\fs20  value 
+\i must
+\i0  be supplied for 
+\f2\fs18 parent
+\f0\fs20 , since the choice of recombination rate map must be determined.  Second, in models that define 
+\f2\fs18 recombination()
+\f0\fs20  callbacks, 
+\f2\fs18 parent
+\f0\fs20  is used to determine the various pseudo-parameters that are passed to 
+\f2\fs18 recombination()
+\f0\fs20  callbacks (
+\f2\fs18 individual
+\f0\fs20 , 
+\f2\fs18 genome1
+\f0\fs20 , 
+\f2\fs18 genome2
+\f0\fs20 , 
+\f2\fs18 subpop
+\f0\fs20 ), and the subpopulation to which 
+\f2\fs18 parent
+\f0\fs20  belongs is used to select which 
+\f2\fs18 recombination()
+\f0\fs20  callbacks are applicable; given the necessity of this information, 
+\f2\fs18 recombination()
+\f0\fs20  callbacks will not be called as a side effect of this method if 
+\f2\fs18 parent
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20 .  Apart from these two uses, 
+\f2\fs18 parent
+\f0\fs20  is not used, and the caller does not guarantee that the generated breakpoints will actually be used to recombine the genomes of 
+\f2\fs18 parent
+\f0\fs20  in particular.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setMutationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
 \f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4308,7 +4364,7 @@ This method may only be called if tree sequence recording has been turned on wit
 \f0\fs20  is for 
 \i permanently
 \i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
-\cf2 The metadata (age, location, etc) that are stored in the resulting tree sequence are those values present at either (a) the final generation, if the individual is alive at the end of the simulation, or (b) the last time that the individual was remembered, if not.  \cf2 Calling 
+The metadata (age, location, etc) that are stored in the resulting tree sequence are those values present at either (a) the final generation, if the individual is alive at the end of the simulation, or (b) the last time that the individual was remembered, if not.  Calling 
 \f2\fs18 treeSeqRememberIndividuals()
 \f0\fs20  on an individual that is already remembered will cause the archived information about the remembered individual to be updated to reflect the individual\'92s current state.  A case where this is particularly important is for the spatial location of individuals in continuous-space models.  SLiM automatically remembers the individuals that comprise the first generation of any new subpopulation created with 
 \f2\fs18 addSubpop()

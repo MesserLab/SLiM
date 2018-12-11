@@ -474,6 +474,7 @@ extern const std::string gStr_maxDistance;
 
 extern const std::string gStr_setMutationRate;
 extern const std::string gStr_setRecombinationRate;
+extern const std::string gStr_drawBreakpoints;
 extern const std::string gStr_addMutations;
 extern const std::string gStr_addNewDrawnMutation;
 extern const std::string gStr_addNewMutation;
@@ -737,6 +738,7 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_setMutationRate,
 	gID_setRecombinationRate,
+	gID_drawBreakpoints,
 	gID_addMutations,
 	gID_addNewDrawnMutation,
 	gID_addNewMutation,

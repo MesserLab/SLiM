@@ -24,6 +24,8 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "slim_sim.h"					// for SLIM_MUTRUN_MAXIMUM_COUNT
+#include "individual.h"
+#include "subpopulation.h"
 
 #include <iostream>
 #include <algorithm>
@@ -1086,8 +1088,180 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	{
 		case gID_setMutationRate:		return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setRecombinationRate:	return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_drawBreakpoints:		return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+//	*********************	– (integer)drawBreakpoints([No<Individual>$ parent = NULL], [Ni$ n = NULL])
+//
+EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *parent_value = p_arguments[0].get();
+	EidosValue *n_value = p_arguments[1].get();
+	
+	// In a sexual model with sex-specific recombination maps, we need to know the parent we're
+	// generating breakpoints for; in other situations it is optional, but recombination()
+	// breakpoints will not be called if parent is NULL.
+	Individual *parent = nullptr;
+	
+	if (parent_value->Type() != EidosValueType::kValueNULL)
+		parent = (Individual *)parent_value->ObjectElementAtIndex(0, nullptr);
+	
+	if (!parent && !single_recombination_map_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires a non-NULL parent parameter in sexual models with sex-specific recombination maps." << EidosTerminate();
+	
+	SLiMSim *sim = nullptr;
+	IndividualSex parent_sex = IndividualSex::kUnspecified;
+	std::vector<SLiMEidosBlock*> recombination_callbacks;
+	Subpopulation *parent_subpop = nullptr;
+	
+	if (parent)
+	{
+		sim = (SLiMSim *)p_interpreter.Context();
+		parent_sex = parent->sex_;
+		parent_subpop = &parent->subpopulation_;
+		recombination_callbacks = sim->ScriptBlocksMatching(sim->Generation(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_);
+	}
+	
+	// Much of the breakpoint-drawing code here is taken from Population::DoCrossoverMutation().
+	// We don't want to split it out into a separate function because (a) we don't want that
+	// overhead for DoCrossoverMutation(), which is a hotspot, and (b) we do things slightly
+	// differently here (not generating a past-the-end breakpoint, for example).
+	int num_breakpoints;
+	
+	if (n_value->Type() == EidosValueType::kValueNULL)
+		num_breakpoints = DrawBreakpointCount(parent_sex);
+	else
+	{
+		int64_t n = n_value->IntAtIndex(0, nullptr);
+		
+		if ((n < 0) || (n > 1000000L))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires 0 <= n <= 1000000." << EidosTerminate();
+		
+		num_breakpoints = (int)n;
+	}
+	
+	std::vector<slim_position_t> all_breakpoints;
+	
+	// draw the breakpoints based on the recombination rate map, and sort and unique the result
+	if (num_breakpoints)
+	{
+		if (gene_conversion_fraction_ > 0.0)
+		{
+			// gene conversion, with or without recombination callbacks
+			if (!any_recombination_rates_05_)
+			{
+				// we have no recombination rates of 0.5, so we don't have to worry about them
+				std::vector<slim_position_t> gc_starts, gc_ends;
+				
+				DrawUniquedBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
+				
+				if (gene_conversion_fraction_ > 0.0)
+					DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
+				
+				if (recombination_callbacks.size())
+					sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+				
+				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+				
+				if (num_breakpoints)
+				{
+					all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+					all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+					
+					if (all_breakpoints.size() > 1)
+					{
+						std::sort(all_breakpoints.begin(), all_breakpoints.end());
+						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+					}
+				}
+			}
+			else
+			{
+				// we have recombination rates of 0.5, so we need to separate out those breakpoints, which are not GC-eligible
+				std::vector<slim_position_t> breakpoints_r05, gc_starts, gc_ends;
+				
+				DrawUniquedBreakpointsForGC_r05(parent_sex, num_breakpoints, all_breakpoints, breakpoints_r05);
+				DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
+				all_breakpoints.insert(all_breakpoints.end(), breakpoints_r05.begin(), breakpoints_r05.end());
+				
+				if (recombination_callbacks.size())
+					sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+				
+				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+				
+				if (num_breakpoints)
+				{
+					all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+					all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+					
+					if (all_breakpoints.size() > 1)
+					{
+						std::sort(all_breakpoints.begin(), all_breakpoints.end());
+						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+					}
+				}
+			}
+		}
+		else if (recombination_callbacks.size())
+		{
+			// recombination callbacks but no gene conversion
+			DrawUniquedBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
+			
+			std::vector<slim_position_t> gc_starts, gc_ends;
+			
+			sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+			num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+			
+			if (num_breakpoints)
+			{
+				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+				
+				if (all_breakpoints.size() > 1)
+				{
+					std::sort(all_breakpoints.begin(), all_breakpoints.end());
+					all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+				}
+			}
+		}
+		else
+		{
+			// neither gene conversion nor recombination callbacks
+			DrawUniquedBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
+		}
+	}
+	else if (recombination_callbacks.size())
+	{
+		// no breakpoints from the SLiM core, so no gene conversion can occur, but we still have recombination() callbacks
+		std::vector<slim_position_t> gc_starts, gc_ends;
+		
+		sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+		num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+		
+		if (num_breakpoints)
+		{
+			all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
+			all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+			
+			if (all_breakpoints.size() > 1)
+			{
+				std::sort(all_breakpoints.begin(), all_breakpoints.end());
+				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+			}
+		}
+	}
+	else
+	{
+		// no breakpoints, no gene conversion, no recombination() callbacks
+	}
+	
+	if (all_breakpoints.size() == 0)
+		return gStaticEidosValue_Integer_ZeroVec;
+	else
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(all_breakpoints));
 }
 
 //	*********************	– (void)setMutationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
@@ -1374,6 +1548,7 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		
