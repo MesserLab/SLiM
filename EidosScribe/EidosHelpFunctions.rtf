@@ -1251,7 +1251,63 @@ Cholesky decomposition of the variance-covariance matrix
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (integer)rbinom(integer$
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float)rbeta(integer$\'a0n, numeric\'a0alpha, numeric\'a0beta)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns a vector of 
+\f1\fs18 n
+\f0\fs20  
+\b random draws from a beta distribution
+\b0  with parameters 
+\f1\fs18 alpha
+\f0\fs20  and 
+\f1\fs18 beta
+\f0\fs20 .  The 
+\f1\fs18 alpha
+\f0\fs20  and 
+\f1\fs18 beta
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f1\fs18 n
+\f0\fs20 , specifying a value for each draw.  Draws are made from a beta distribution with probability density 
+\f2\i P
+\i0 (
+\i s
+\i0 \'a0|\'a0
+\i \uc0\u945 
+\i0 ,
+\i \uc0\u946 
+\i0 )\'a0= [\uc0\u915 (
+\i \uc0\u945 
+\i0 +
+\i \uc0\u946 
+\i0 )/\uc0\u915 (
+\i \uc0\u945 
+\i0 )\uc0\u915 (
+\i \uc0\u946 
+\i0 )]
+\i s
+\fs13\fsmilli6667 \super \uc0\u945 
+\i0 \uc0\u8722 1
+\fs20 \nosupersub (1\uc0\u8722 
+\i s
+\i0 )
+\i\fs13\fsmilli6667 \super \uc0\u946 
+\i0 \uc0\u8722 1
+\f0\fs20 \nosupersub , where 
+\f2\i \uc0\u945 
+\f0\i0  is 
+\f1\fs18 alpha
+\f0\fs20  and 
+\f2\i \uc0\u946 
+\f0\i0  is 
+\f1\fs18 beta
+\f0\fs20 .  Both parameters must be greater than 
+\f1\fs18 0
+\f0\fs20 .  The values drawn are in the interval [0, 1].\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer)rbinom(integer$
 \f2 \'a0
 \f1 n, integer\'a0size, float\'a0prob)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0

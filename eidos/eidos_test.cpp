@@ -5196,6 +5196,21 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("dnorm(1.0, 10.0, c(0.1, 10, 1));", 0, "requires sd to be");
 	EidosAssertScriptSuccess("dnorm(NAN);", gStaticEidosValue_FloatNAN);
 	
+	// rbeta()
+	EidosAssertScriptSuccess("rbeta(0, 1, 1000);", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("rbeta(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("setSeed(0); abs(rbeta(1, 1, 5) - c(0.115981)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(rbeta(3, 1, 5) - c(0.115981, 0.0763773, 0.05032)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptRaise("rbeta(-1, 1, 1000);", 0, "requires n to be");
+	EidosAssertScriptRaise("rbeta(2, 0, 1);", 0, "requires alpha > 0.0");
+	EidosAssertScriptRaise("rbeta(2, c(1,0), 1);", 0, "requires alpha > 0.0");
+	EidosAssertScriptRaise("rbeta(2, 1, 0);", 0, "requires beta > 0.0");
+	EidosAssertScriptRaise("rbeta(2, 1, c(1,0));", 0, "requires beta > 0.0");
+	EidosAssertScriptRaise("rbeta(2, c(0.1, 10, 1), 10.0);", 0, "requires alpha to be of length");
+	EidosAssertScriptRaise("rbeta(2, 10.0, c(0.1, 10, 1));", 0, "requires beta to be of length");
+	EidosAssertScriptSuccess("rbeta(1, NAN, 1);", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("rbeta(1, 1, NAN);", gStaticEidosValue_FloatNAN);
+	
 	// rbinom()
 	EidosAssertScriptSuccess("rbinom(0, 10, 0.5);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("rbinom(1, 10, 0.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0}));

@@ -16,6 +16,7 @@ development head:
 	add recipe 15.16 (Alternation of generations)
 	add support for "make install" with cmake (see the README.md / README.html for instructions), thanks to Peter Ralph
 	add support for link-time optimization (LTO) on platforms that support it, thanks to Kevin Thornton
+	add an rbeta() function to Eidos
 
 
 3.2 (build 1859; Eidos version 2.2):

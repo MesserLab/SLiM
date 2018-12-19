@@ -813,6 +813,10 @@ m = mean(rgamma(10000, 5, 0.3));	// expectation is 5
 if (abs(m - 5) > 0.4) stop('Mismatch in expectation vs. realization of rgamma() - could be random chance (but very unlikely), rerun test');
 
 setSeed(asInteger(clock() * 100000));
+m = mean(rbeta(10000, 2, 3));	// expectation is 0.4
+if (abs(m - 0.4) > 0.008) stop('Mismatch in expectation vs. realization of rbeta() - could be random chance (but very unlikely), rerun test');
+
+setSeed(asInteger(clock() * 100000));
 m = mean(rgeom(10000, 0.1));	// expectation is 9
 if (abs(m - 9) > 0.4) stop('Mismatch in expectation vs. realization of rgeom() - could be random chance (but very unlikely), rerun test');
 
