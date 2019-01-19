@@ -84,7 +84,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="740" y="50" width="1180" height="978"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
             <value key="minSize" type="size" width="650" height="100"/>
             <view key="contentView" id="esE-Q8-bJT">
                 <rect key="frame" x="0.0" y="0.0" width="1180" height="978"/>
@@ -518,7 +518,7 @@
                                                     <constraint firstAttribute="height" constant="62" id="Vv1-iX-VsS"/>
                                                     <constraint firstAttribute="width" constant="60" id="rdv-0R-Jfy"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="play_step" imagePosition="overlaps" alignment="center" alternateImage="play_step_H" state="on" imageScaling="proportionallyDown" inset="2" id="Cxo-uM-PHU">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="play_step" imagePosition="only" alignment="center" alternateImage="play_step_H" state="on" imageScaling="proportionallyDown" inset="2" id="Cxo-uM-PHU">
                                                     <behavior key="behavior" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -555,7 +555,7 @@
                                                     <constraint firstAttribute="height" constant="62" id="7Ja-OP-gnh"/>
                                                     <constraint firstAttribute="width" constant="60" id="cOX-g3-QpN"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="play" imagePosition="overlaps" alignment="center" alternateImage="play_H" imageScaling="proportionallyDown" inset="2" id="rYT-zi-9QC">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="play" imagePosition="only" alignment="center" alternateImage="play_H" imageScaling="proportionallyDown" inset="2" id="rYT-zi-9QC">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -592,7 +592,7 @@
                                                     <constraint firstAttribute="width" constant="30" id="1df-ha-jBo"/>
                                                     <constraint firstAttribute="height" constant="32" id="a7f-2b-5gS"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="profile" imagePosition="overlaps" alignment="center" alternateImage="profile_H" imageScaling="proportionallyDown" inset="2" id="40U-MC-Ckj">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="profile" imagePosition="only" alignment="center" alternateImage="profile_H" imageScaling="proportionallyDown" inset="2" id="40U-MC-Ckj">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -629,7 +629,7 @@
                                                     <constraint firstAttribute="width" constant="60" id="4tc-V6-kZY"/>
                                                     <constraint firstAttribute="height" constant="62" id="aPK-yN-EYQ"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="recycle" imagePosition="overlaps" alignment="center" alternateImage="recycle_H" state="on" imageScaling="proportionallyDown" inset="2" id="OHT-FK-3O8">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="recycle" imagePosition="only" alignment="center" alternateImage="recycle_H" state="on" imageScaling="proportionallyDown" inset="2" id="OHT-FK-3O8">
                                                     <behavior key="behavior" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -804,13 +804,13 @@
                                                     </binding>
                                                 </connections>
                                             </slider>
-                                            <button toolTip="open/close genetic element type drawer" translatesAutoresizingMaskIntoConstraints="NO" id="3fa-Za-QvL">
+                                            <button toolTip="open/close object tables drawer" translatesAutoresizingMaskIntoConstraints="NO" id="3fa-Za-QvL">
                                                 <rect key="frame" x="1135" y="89" width="30" height="32"/>
                                                 <constraints>
                                                     <constraint firstAttribute="height" constant="32" id="4gq-2g-xvB"/>
                                                     <constraint firstAttribute="width" constant="30" id="g48-FM-gxG"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="open_type_drawer" imagePosition="overlaps" alignment="center" alternateImage="open_type_drawer_H" imageScaling="proportionallyDown" inset="2" id="Dm4-xg-0ds">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="open_type_drawer" imagePosition="only" alignment="center" alternateImage="open_type_drawer_H" imageScaling="proportionallyDown" inset="2" id="Dm4-xg-0ds">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -824,7 +824,7 @@
                                                     <constraint firstAttribute="height" constant="32" id="4J9-f9-mpe"/>
                                                     <constraint firstAttribute="width" constant="30" id="FN0-OD-97g"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_recombination" imagePosition="overlaps" alignment="center" alternateImage="show_recombination_H" imageScaling="proportionallyDown" inset="2" id="NBm-PA-GYK">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_recombination" imagePosition="only" alignment="center" alternateImage="show_recombination_H" imageScaling="proportionallyDown" inset="2" id="NBm-PA-GYK">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -843,7 +843,7 @@
                                                     <constraint firstAttribute="width" constant="30" id="CcM-qY-jmu"/>
                                                     <constraint firstAttribute="height" constant="32" id="ba8-3w-fLF"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_genomicelements" imagePosition="overlaps" alignment="center" alternateImage="show_genomicelements_H" imageScaling="proportionallyDown" inset="2" id="Khh-xo-2e0">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_genomicelements" imagePosition="only" alignment="center" alternateImage="show_genomicelements_H" imageScaling="proportionallyDown" inset="2" id="Khh-xo-2e0">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -862,7 +862,7 @@
                                                     <constraint firstAttribute="width" constant="30" id="C1r-iq-hEs"/>
                                                     <constraint firstAttribute="height" constant="32" id="fR0-Jl-R4D"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_mutations" imagePosition="overlaps" alignment="center" alternateImage="show_mutations_H" imageScaling="proportionallyDown" inset="2" id="FIP-qN-mJZ">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_mutations" imagePosition="only" alignment="center" alternateImage="show_mutations_H" imageScaling="proportionallyDown" inset="2" id="FIP-qN-mJZ">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -881,7 +881,7 @@
                                                     <constraint firstAttribute="width" constant="30" id="mmQ-Qq-kYs"/>
                                                     <constraint firstAttribute="height" constant="32" id="oUP-Ah-wLY"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_fixed" imagePosition="overlaps" alignment="center" alternateImage="show_fixed_H" imageScaling="proportionallyDown" inset="2" id="NAi-Yf-wxz">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_fixed" imagePosition="only" alignment="center" alternateImage="show_fixed_H" imageScaling="proportionallyDown" inset="2" id="NAi-Yf-wxz">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -900,7 +900,7 @@
                                                     <constraint firstAttribute="height" constant="32" id="KwB-18-mEH"/>
                                                     <constraint firstAttribute="width" constant="30" id="vrE-BT-DSu"/>
                                                 </constraints>
-                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="edit_submenu" imagePosition="overlaps" alignment="center" alternateImage="edit_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="0Mh-Rj-pi6">
+                                                <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="edit_submenu" imagePosition="only" alignment="center" alternateImage="edit_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="0Mh-Rj-pi6">
                                                     <behavior key="behavior" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
@@ -1003,6 +1003,7 @@
                                             <constraint firstItem="SGz-ny-AvE" firstAttribute="top" secondItem="MEL-RZ-Op6" secondAttribute="bottom" constant="8" id="Yqh-lp-yi0"/>
                                             <constraint firstItem="eXF-cI-cZK" firstAttribute="leading" secondItem="epB-1i-iSd" secondAttribute="trailing" constant="8" id="Zhw-Fa-4p6"/>
                                             <constraint firstItem="KMS-2V-Mrb" firstAttribute="leading" secondItem="SJ3-be-U3c" secondAttribute="leading" constant="13" id="aJb-cQ-YWD"/>
+                                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="2Li-Tb-lf1" secondAttribute="trailing" constant="1" id="c9i-Wz-j89"/>
                                             <constraint firstItem="FRq-bX-zXr" firstAttribute="leading" secondItem="jVQ-dP-YfT" secondAttribute="trailing" constant="7" id="cL3-9P-D6x"/>
                                             <constraint firstItem="MEL-RZ-Op6" firstAttribute="top" secondItem="mYQ-CE-Kge" secondAttribute="top" id="cZe-mE-mlL"/>
                                             <constraint firstItem="Uzr-Ya-LL9" firstAttribute="leading" secondItem="KMS-2V-Mrb" secondAttribute="trailing" constant="9" id="ceb-rT-qtu"/>
@@ -1015,6 +1016,7 @@
                                             <constraint firstItem="kRU-NC-9qC" firstAttribute="top" secondItem="epB-1i-iSd" secondAttribute="bottom" constant="6" id="gab-YI-p0S"/>
                                             <constraint firstItem="eXF-cI-cZK" firstAttribute="top" secondItem="epB-1i-iSd" secondAttribute="top" id="ibK-E9-puS"/>
                                             <constraint firstItem="9ZN-zu-vjn" firstAttribute="top" secondItem="FRq-bX-zXr" secondAttribute="top" id="iyD-QG-Czn"/>
+                                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="MEL-RZ-Op6" secondAttribute="trailing" constant="1" id="jdu-ez-UUY"/>
                                             <constraint firstItem="34c-xZ-32c" firstAttribute="bottom" secondItem="4kM-3W-gya" secondAttribute="bottom" id="k5P-bf-HyL"/>
                                             <constraint firstItem="2Li-Tb-lf1" firstAttribute="top" secondItem="Bdq-3V-iQ8" secondAttribute="bottom" constant="17" id="l21-Um-lxt"/>
                                             <constraint firstItem="Bdq-3V-iQ8" firstAttribute="bottom" secondItem="VWw-o4-Pjo" secondAttribute="bottom" constant="-1" id="llL-Va-nnn"/>
@@ -1110,7 +1112,7 @@
                                                             <constraint firstAttribute="width" constant="20" id="RIq-r4-vDp"/>
                                                             <constraint firstAttribute="height" constant="22" id="jPz-bf-YxD"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="check" imagePosition="overlaps" alignment="center" alternateImage="check_H" state="on" imageScaling="proportionallyDown" inset="2" id="DXP-Jw-OQ3">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="check" imagePosition="only" alignment="center" alternateImage="check_H" state="on" imageScaling="proportionallyDown" inset="2" id="DXP-Jw-OQ3">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1146,7 +1148,7 @@
                                                             <constraint firstAttribute="height" constant="22" id="YC1-of-YFY"/>
                                                             <constraint firstAttribute="width" constant="20" id="dHN-qx-bVJ"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="syntax_help" imagePosition="overlaps" alignment="center" alternateImage="syntax_help_H" state="on" imageScaling="proportionallyDown" inset="2" id="uGp-51-Lem">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="syntax_help" imagePosition="only" alignment="center" alternateImage="syntax_help_H" state="on" imageScaling="proportionallyDown" inset="2" id="uGp-51-Lem">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1160,7 +1162,7 @@
                                                             <constraint firstAttribute="width" constant="20" id="Fln-18-1SY"/>
                                                             <constraint firstAttribute="height" constant="22" id="oJv-9T-R4T"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_console" imagePosition="overlaps" alignment="center" alternateImage="show_console_H" imageScaling="proportionallyDown" inset="2" id="efp-zE-fTb">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_console" imagePosition="only" alignment="center" alternateImage="show_console_H" imageScaling="proportionallyDown" inset="2" id="efp-zE-fTb">
                                                             <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1174,7 +1176,7 @@
                                                             <constraint firstAttribute="height" constant="22" id="9am-gN-1cK"/>
                                                             <constraint firstAttribute="width" constant="20" id="lng-51-msY"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_browser" imagePosition="overlaps" alignment="center" alternateImage="show_browser_H" imageScaling="proportionallyDown" inset="2" id="u9U-vi-gge">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_browser" imagePosition="only" alignment="center" alternateImage="show_browser_H" imageScaling="proportionallyDown" inset="2" id="u9U-vi-gge">
                                                             <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1188,7 +1190,7 @@
                                                             <constraint firstAttribute="width" constant="20" id="QUX-Ha-Gk7"/>
                                                             <constraint firstAttribute="height" constant="22" id="rxe-WV-cBh"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="prettyprint" imagePosition="overlaps" alignment="center" alternateImage="prettyprint_H" state="on" imageScaling="proportionallyDown" inset="2" id="ghZ-di-p9F">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="prettyprint" imagePosition="only" alignment="center" alternateImage="prettyprint_H" state="on" imageScaling="proportionallyDown" inset="2" id="ghZ-di-p9F">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1210,6 +1212,7 @@
                                                     <constraint firstItem="ge3-vP-zZp" firstAttribute="bottom" secondItem="lnH-Vh-Iwz" secondAttribute="bottom" id="fCi-nd-sRr"/>
                                                     <constraint firstItem="0fj-1F-Ipl" firstAttribute="bottom" secondItem="SAG-aF-oTT" secondAttribute="bottom" constant="-2" id="hCG-Sg-XIW"/>
                                                     <constraint firstItem="02L-Zx-QDl" firstAttribute="leading" secondItem="aPl-XV-6R5" secondAttribute="trailing" constant="3" id="jwA-5a-wkm"/>
+                                                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="0fj-1F-Ipl" secondAttribute="trailing" constant="1" id="nQF-EU-g9n"/>
                                                     <constraint firstItem="lnH-Vh-Iwz" firstAttribute="leading" secondItem="ge3-vP-zZp" secondAttribute="trailing" constant="3" id="qXu-vv-QUk"/>
                                                     <constraint firstItem="aPl-XV-6R5" firstAttribute="leading" secondItem="lnH-Vh-Iwz" secondAttribute="trailing" constant="3" id="r5l-Nb-fFj"/>
                                                     <constraint firstItem="aPl-XV-6R5" firstAttribute="bottom" secondItem="02L-Zx-QDl" secondAttribute="bottom" id="rBc-fK-WiC"/>
@@ -1256,7 +1259,7 @@
                                                             <constraint firstAttribute="height" constant="22" id="FKj-XX-l10"/>
                                                             <constraint firstAttribute="width" constant="20" id="son-ze-4qq"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="delete" imagePosition="overlaps" alignment="center" alternateImage="delete_H" state="on" imageScaling="proportionallyDown" inset="2" id="qBn-5M-A1i">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="delete" imagePosition="only" alignment="center" alternateImage="delete_H" state="on" imageScaling="proportionallyDown" inset="2" id="qBn-5M-A1i">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1286,7 +1289,7 @@
                                                             <constraint firstAttribute="width" constant="20" id="PPw-YS-gFo"/>
                                                             <constraint firstAttribute="height" constant="22" id="iUB-cU-r0N"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="dump_output" imagePosition="overlaps" alignment="center" alternateImage="dump_output_H" state="on" imageScaling="proportionallyDown" inset="2" id="3DM-1V-rPm">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="dump_output" imagePosition="only" alignment="center" alternateImage="dump_output_H" state="on" imageScaling="proportionallyDown" inset="2" id="3DM-1V-rPm">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1305,7 +1308,7 @@
                                                             <constraint firstAttribute="width" constant="20" id="Ius-KD-8G4"/>
                                                             <constraint firstAttribute="height" constant="22" id="OOT-QA-w69"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="edit_submenu" imagePosition="overlaps" alignment="center" alternateImage="edit_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="hVK-7G-s3q">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="edit_submenu" imagePosition="only" alignment="center" alternateImage="edit_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="hVK-7G-s3q">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1323,7 +1326,7 @@
                                                             <constraint firstAttribute="height" constant="22" id="KJG-l7-7ce"/>
                                                             <constraint firstAttribute="width" constant="20" id="yxs-Pk-tdg"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="graph_submenu" imagePosition="overlaps" alignment="center" alternateImage="graph_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="adY-8u-J23">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="graph_submenu" imagePosition="only" alignment="center" alternateImage="graph_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="adY-8u-J23">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1341,7 +1344,7 @@
                                                             <constraint firstAttribute="height" constant="22" id="LZE-xd-FP4"/>
                                                             <constraint firstAttribute="width" constant="20" id="m4D-2J-gZG"/>
                                                         </constraints>
-                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="change_folder" imagePosition="overlaps" alignment="center" alternateImage="change_folder_H" state="on" imageScaling="proportionallyDown" inset="2" id="GRU-4T-yEL">
+                                                        <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="change_folder" imagePosition="only" alignment="center" alternateImage="change_folder_H" state="on" imageScaling="proportionallyDown" inset="2" id="GRU-4T-yEL">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
@@ -1887,6 +1890,7 @@
                 <constraint firstItem="7GG-eb-uRQ" firstAttribute="leading" secondItem="epY-pE-S4h" secondAttribute="leading" constant="32" id="4ts-H1-0lY"/>
                 <constraint firstItem="7GG-eb-uRQ" firstAttribute="top" secondItem="DPt-AC-FkI" secondAttribute="bottom" constant="8" id="6ML-XP-36J"/>
                 <constraint firstItem="L7m-fP-gXR" firstAttribute="top" secondItem="D7Y-iI-hMH" secondAttribute="bottom" constant="19" id="7JQ-84-hVN"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="f5M-vb-jNw" secondAttribute="trailing" constant="10" id="8v9-O4-m6b"/>
                 <constraint firstItem="f5M-vb-jNw" firstAttribute="top" secondItem="sez-rK-O1h" secondAttribute="bottom" constant="19" id="A7M-g3-4PJ"/>
                 <constraint firstItem="DPt-AC-FkI" firstAttribute="top" secondItem="epY-pE-S4h" secondAttribute="top" constant="20" id="GIq-5a-8Us"/>
                 <constraint firstItem="sez-rK-O1h" firstAttribute="top" secondItem="4rT-qK-JNW" secondAttribute="bottom" constant="8" id="Jzb-yq-FRZ"/>
@@ -1900,9 +1904,12 @@
                 <constraint firstItem="D7Y-iI-hMH" firstAttribute="top" secondItem="f5M-vb-jNw" secondAttribute="bottom" constant="8" id="blV-fL-h6T"/>
                 <constraint firstItem="f5M-vb-jNw" firstAttribute="leading" secondItem="epY-pE-S4h" secondAttribute="leading" constant="20" id="cb0-hn-k63"/>
                 <constraint firstItem="D7Y-iI-hMH" firstAttribute="leading" secondItem="epY-pE-S4h" secondAttribute="leading" constant="32" id="f7s-dw-ytm"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="4rT-qK-JNW" secondAttribute="trailing" constant="10" id="fS3-1A-lQW"/>
                 <constraint firstAttribute="trailing" secondItem="D7Y-iI-hMH" secondAttribute="trailing" constant="20" id="g38-jF-drd"/>
                 <constraint firstItem="sez-rK-O1h" firstAttribute="height" secondItem="D7Y-iI-hMH" secondAttribute="height" id="gpS-8E-leh"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="L7m-fP-gXR" secondAttribute="trailing" constant="10" id="tez-TO-4NP"/>
                 <constraint firstItem="4rT-qK-JNW" firstAttribute="top" secondItem="7GG-eb-uRQ" secondAttribute="bottom" constant="19" id="uhx-Sh-xfH"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="DPt-AC-FkI" secondAttribute="trailing" constant="10" id="vrM-qy-Uw6"/>
                 <constraint firstItem="D7Y-iI-hMH" firstAttribute="height" secondItem="8qO-Fw-xcP" secondAttribute="height" id="xmG-Ni-v80"/>
                 <constraint firstAttribute="trailing" secondItem="8qO-Fw-xcP" secondAttribute="trailing" constant="20" id="yOB-cO-Vhi"/>
             </constraints>
