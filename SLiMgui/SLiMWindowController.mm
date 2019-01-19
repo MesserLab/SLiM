@@ -120,7 +120,7 @@
 		colorArray[4] = [[NSColor colorWithCalibratedHue:0.08 saturation:0.65 brightness:1.0 alpha:1.0] retain];
 		colorArray[5] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.65 brightness:1.0 alpha:1.0] retain];
 		colorArray[6] = [[NSColor colorWithCalibratedHue:0.80 saturation:0.65 brightness:1.0 alpha:1.0] retain];
-		colorArray[7] = [[NSColor colorWithCalibratedWhite:0.8 alpha:1.0] retain];
+		colorArray[7] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.0 brightness:0.8 alpha:1.0] retain];
 	}
 	
 	return ((index >= 0) && (index <= 6)) ? colorArray[index] : colorArray[7];
@@ -140,7 +140,7 @@
 		colorArray[3] = [[NSColor colorWithCalibratedHue:0.08 saturation:0.75 brightness:1.0 alpha:1.0] retain];
 		colorArray[4] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.85 brightness:1.0 alpha:1.0] retain];
 		colorArray[5] = [[NSColor colorWithCalibratedHue:0.80 saturation:0.85 brightness:1.0 alpha:1.0] retain];
-		colorArray[6] = [[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] retain];
+		colorArray[6] = [[NSColor colorWithCalibratedHue:0.00 saturation:0.0 brightness:0.5 alpha:1.0] retain];
 	}
 	
 	return ((index >= 0) && (index <= 5)) ? colorArray[index] : colorArray[6];
