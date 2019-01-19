@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
+        <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14109"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -50,7 +51,7 @@
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="C4q-EC-cXM">
-                        <rect key="frame" x="175" y="365" width="389" height="17"/>
+                        <rect key="frame" x="175" y="365" width="351" height="17"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Messer Lab, Cornell University, http://messerlab.org/slim/" id="jqg-yt-Wpi">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -68,7 +69,7 @@
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="WB2-cU-hkd">
                         <rect key="frame" x="409" y="422" width="204" height="17"/>
                         <constraints>
-                            <constraint firstAttribute="width" constant="200" id="SBS-mC-L6n"/>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="200" id="SBS-mC-L6n"/>
                             <constraint firstAttribute="height" constant="17" id="kLz-az-BTI"/>
                         </constraints>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="version" id="15F-WF-Zi9">
@@ -80,7 +81,7 @@
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="l8N-rU-b5f">
                         <rect key="frame" x="46" y="40" width="529" height="221"/>
                         <constraints>
-                            <constraint firstAttribute="width" constant="525" id="3Yu-Qt-RPr"/>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="525" id="3Yu-Qt-RPr"/>
                         </constraints>
                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" id="efh-34-WId">
                             <font key="font" metaFont="system"/>
@@ -98,14 +99,20 @@ Please see the Eidos manual for credits and license information for code that ha
                 </subviews>
                 <constraints>
                     <constraint firstAttribute="centerX" secondItem="l8N-rU-b5f" secondAttribute="centerX" id="1Cg-63-tUN"/>
+                    <constraint firstItem="WB2-cU-hkd" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="48" id="5Le-7s-1Mx"/>
                     <constraint firstAttribute="trailing" secondItem="WB2-cU-hkd" secondAttribute="trailing" constant="10" id="DNR-LT-Q4b"/>
+                    <constraint firstItem="l8N-rU-b5f" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="48" id="Ezq-W1-pcW"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="l8N-rU-b5f" secondAttribute="trailing" constant="48" id="FWS-3s-vOF"/>
                     <constraint firstItem="C4q-EC-cXM" firstAttribute="leading" secondItem="wDw-79-A4b" secondAttribute="leading" id="HW0-by-DLL"/>
                     <constraint firstItem="cD8-Mz-qIr" firstAttribute="leading" secondItem="C4q-EC-cXM" secondAttribute="leading" id="JdI-QS-ppx"/>
                     <constraint firstItem="WB2-cU-hkd" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="10" id="Jzj-ki-KJ3"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="cD8-Mz-qIr" secondAttribute="trailing" constant="48" id="OWe-in-0wJ"/>
                     <constraint firstItem="l8N-rU-b5f" firstAttribute="top" secondItem="CxN-ue-roS" secondAttribute="bottom" constant="40" id="RQp-J8-UKb"/>
-                    <constraint firstAttribute="trailing" secondItem="C4q-EC-cXM" secondAttribute="trailing" constant="59" id="S7y-0f-9dX"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="C4q-EC-cXM" secondAttribute="trailing" constant="48" id="S7y-0f-9dX"/>
                     <constraint firstItem="CxN-ue-roS" firstAttribute="top" secondItem="wDw-79-A4b" secondAttribute="bottom" constant="-39" id="SgS-FZ-ZOF"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="wDw-79-A4b" secondAttribute="trailing" constant="48" id="TdM-xv-1bc"/>
                     <constraint firstItem="cD8-Mz-qIr" firstAttribute="top" secondItem="C4q-EC-cXM" secondAttribute="bottom" constant="1" id="TsK-bf-Azp"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="9KH-lz-tf6" secondAttribute="trailing" constant="48" id="UpT-bU-Yhx"/>
                     <constraint firstItem="CxN-ue-roS" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="b1f-cV-8HA"/>
                     <constraint firstItem="cD8-Mz-qIr" firstAttribute="leading" secondItem="9KH-lz-tf6" secondAttribute="leading" id="chO-2v-wka"/>
                     <constraint firstItem="C4q-EC-cXM" firstAttribute="top" secondItem="wDw-79-A4b" secondAttribute="bottom" constant="8" id="iNQ-B5-u82"/>
