@@ -1249,10 +1249,30 @@ Cholesky decomposition of the variance-covariance matrix
 \f1\fs18 x
 \f0\fs20 , specifying a value for each density computation.
 \f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
-(float)rbeta(integer$\'a0n, numeric\'a0alpha, numeric\'a0beta)\
+(float)pnorm(float\'a0q, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Returns a vector of 
+\b cumulative distribution function values for a normal distribution
+\b0  at quantiles 
+\f1\fs18 q
+\f0\fs20  with mean 
+\f1\fs18 mean
+\f0\fs20  and standard deviation 
+\f1\fs18 sd
+\f0\fs20 .  The 
+\f1\fs18 mean
+\f0\fs20  and 
+\f1\fs18 sd
+\f0\fs20  parameters may either be singletons, specifying a single value to be used for all of the quantiles, or they may be vectors of the same length as 
+\f1\fs18 q
+\f0\fs20 , specifying a value for each quantile.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)rbeta(integer$\'a0n, numeric\'a0alpha, numeric\'a0beta)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Returns a vector of 

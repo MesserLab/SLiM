@@ -16,7 +16,8 @@ development head:
 	add recipe 15.16 (Alternation of generations)
 	add support for "make install" with cmake (see the README.md / README.html for instructions), thanks to Peter Ralph
 	add support for link-time optimization (LTO) on platforms that support it, thanks to Kevin Thornton
-	add an rbeta() function to Eidos
+	add an rbeta() function to Eidos for draws from the beta distribution
+	add a pnorm() function to Eidos for a cumulative distribution function for the normal distribution
 
 
 3.2 (build 1859; Eidos version 2.2):

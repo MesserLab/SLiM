@@ -101,6 +101,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const EidosValue_SP *const p_arguments, 
 //	distribution draw / density functions
 EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_pnorm(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_rbeta(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_rcauchy(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

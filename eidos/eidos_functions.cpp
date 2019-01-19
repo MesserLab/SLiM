@@ -45,6 +45,7 @@
 
 #include "gsl_linalg.h"
 #include "gsl_errno.h"
+#include "gsl_cdf.h"
 
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
@@ -157,6 +158,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dmvnorm",			Eidos_ExecuteFunction_dmvnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",				Eidos_ExecuteFunction_dnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pnorm",				Eidos_ExecuteFunction_pnorm,		kEidosValueMaskFloat))->AddFloat("q")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbeta",				Eidos_ExecuteFunction_rbeta,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("alpha")->AddNumeric("beta"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			Eidos_ExecuteFunction_rbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt("size")->AddFloat("prob"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",				Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
@@ -4697,6 +4699,70 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu, sigma), value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(float)pnorm(float q, [numeric mean = 0], [numeric sd = 1])
+EidosValue_SP Eidos_ExecuteFunction_pnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_quantile = p_arguments[0].get();
+	EidosValue *arg_mu = p_arguments[1].get();
+	EidosValue *arg_sigma = p_arguments[2].get();
+	int64_t num_quantiles = arg_quantile->Count();
+	int arg_mu_count = arg_mu->Count();
+	int arg_sigma_count = arg_sigma->Count();
+	bool mu_singleton = (arg_mu_count == 1);
+	bool sigma_singleton = (arg_sigma_count == 1);
+	
+	if (!mu_singleton && (arg_mu_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires mean to be of length 1 or equal in length to q." << EidosTerminate(nullptr);
+	if (!sigma_singleton && (arg_sigma_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires sd to be of length 1 or equal in length to q." << EidosTerminate(nullptr);
+	
+	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
+	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
+	
+	if (mu_singleton && sigma_singleton)
+	{
+		if (sigma0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_quantiles == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_cdf_gaussian_P(arg_quantile->FloatAtIndex(0, nullptr) - mu0, sigma0)));
+		}
+		else
+		{
+			const double *float_data = arg_quantile->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int64_t value_index = 0; value_index < num_quantiles; ++value_index)
+				float_result->set_float_no_check(gsl_cdf_gaussian_P(float_data[value_index] - mu0, sigma0), value_index);
+		}
+	}
+	else
+	{
+		const double *float_data = arg_quantile->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_quantiles);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
+			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
+			
+			if (sigma <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_cdf_gaussian_P(float_data[value_index] - mu, sigma), value_index);
 		}
 	}
 	
