@@ -7284,6 +7284,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	slim_generation_t provinence_gen;
 	SLiMModelType file_model_type;
 	
+	if (tables_.sequence_length != chromosome_.last_position_ + 1)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population does not match the configured chromosome length." << EidosTerminate();
+	
 	ReadProvenanceTable(&tables_, &provinence_gen, &file_model_type);
 	SetGeneration(provinence_gen);
 	
