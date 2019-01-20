@@ -48,8 +48,10 @@
 #import "EidosPrettyprinter.h"
 #import "EidosCocoaExtra.h"
 #import "eidos_call_signature.h"
+#import "eidos_property_signature.h"
 #import "eidos_type_interpreter.h"
 #import "slim_test.h"
+#import "slim_gui.h"
 
 #include <iostream>
 #include <sstream>
@@ -227,6 +229,11 @@
 		delete sim;
 		sim = nullptr;
 	}
+	if (slimgui)
+	{
+		delete slimgui;
+		slimgui = nullptr;
+	}
 	
 	Eidos_FreeRNG(sim_RNG);
 	
@@ -374,6 +381,7 @@
 		// Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
 		// of the old simulation object; who knows what state it is in, touching it might crash.
 		sim = nullptr;
+		slimgui = nullptr;
 		
 		Eidos_FreeRNG(sim_RNG);
 		
@@ -388,6 +396,11 @@
 	{
 		delete sim;
 		sim = nullptr;
+	}
+	if (slimgui)
+	{
+		delete slimgui;
+		slimgui = nullptr;
 	}
 	
 	// Free the old simulation RNG and let SLiM make one for us
@@ -426,6 +439,15 @@
 			sim->simulation_valid_ = false;
 		[self setReachedSimulationEnd:YES];
 		[self checkForSimulationTermination];
+	}
+	
+	if (sim)
+	{
+		// make a new SLiMgui instance to represent SLiMgui in Eidos
+		slimgui = new SLiMgui(*sim, self);
+		
+		// set up the "slimgui" symbol for it immediately
+		sim->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
 	}
 }
 
@@ -2327,7 +2349,7 @@
 		double intervalSinceStarting = -[continuousPlayStartDate timeIntervalSinceNow];
 		
 		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
-		double maxGenerationsPerSecond = INFINITY;
+		double maxGenerationsPerSecond = 1000000000.0;	// bounded, to allow -eidos_pause to interrupt us
 		
 		if (speedSliderValue < 0.99999)
 			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
@@ -3281,6 +3303,36 @@
 
 
 //
+//	Eidos SLiMgui method forwards
+//
+#pragma mark -
+#pragma mark Eidos SLiMgui method forwards
+
+- (void)finish_eidos_pause:(id)sender
+{
+	// this gets called by performSelectorOnMainThread: after _continuousPlay: has broken out of its loop
+	// if the simulation has already ended, or is invalid, or is not in continuous play, it does nothing
+	if (!invalidSimulation && !reachedSimulationEnd && continuousPlayOn && nonProfilePlayOn && !profilePlayOn && !generationPlayOn)
+	{
+		[self play:nil];	// this will simulate a press of the play button to stop continuous play
+		
+		// bounce our icon; if we are not the active app, to signal that the run is done
+		[NSApp requestUserAttention:NSInformationalRequest];
+	}
+}
+
+- (void)eidos_pause
+{
+	if (!invalidSimulation && !reachedSimulationEnd && continuousPlayOn && nonProfilePlayOn && !profilePlayOn && !generationPlayOn)
+	{
+		continuousPlayGenerationsCompleted = UINT64_MAX - 1;									// this will break us out of the loop in _continuousPlay: at the end of this generation
+		[self performSelectorOnMainThread:@selector(finish_eidos_pause:) withObject:nil waitUntilDone:NO];	// this will actually stop continuous play
+		//[self performSelector:@selector(play:) withObject:nil afterDelay:0.0];	// this will simulate a press of the play button to stop continuous play
+	}
+}
+
+
+//
 //	Haplotype Plot Options Sheet methods
 //
 #pragma mark -
@@ -3592,6 +3644,113 @@
 #pragma mark -
 #pragma mark EidosConsoleWindowControllerDelegate
 
+- (const std::vector<const EidosPropertySignature*> *)slimguiAllPropertySignatures
+{
+	// This adds the properties belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
+	static std::vector<const EidosPropertySignature*> *propertySignatures = nullptr;
+	
+	if (!propertySignatures)
+	{
+		auto slimProperties =					SLiMSim::AllPropertySignatures();
+		auto propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
+		
+		propertySignatures = new std::vector<const EidosPropertySignature*>(*slimProperties);
+		
+		propertySignatures->insert(propertySignatures->end(), propertiesSLiMgui->begin(), propertiesSLiMgui->end());
+		
+		// *** From here downward this is taken verbatim from SLiMSim::AllPropertySignatures()
+		// FIXME should be split into a separate method
+		
+		// sort by pointer; we want pointer-identical signatures to end up adjacent
+		std::sort(propertySignatures->begin(), propertySignatures->end());
+		
+		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
+		auto unique_end_iter = std::unique(propertySignatures->begin(), propertySignatures->end());
+		propertySignatures->resize(std::distance(propertySignatures->begin(), unique_end_iter));
+		
+		// print out any signatures that are identical by name
+		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
+		
+		const EidosPropertySignature *previous_sig = nullptr;
+		
+		for (const EidosPropertySignature *sig : *propertySignatures)
+		{
+			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
+			{
+				// We have a name collision.  That is OK as long as the property signatures are identical.
+				if ((sig->property_id_ != previous_sig->property_id_) ||
+					(sig->read_only_ != previous_sig->read_only_) ||
+					(sig->value_mask_ != previous_sig->value_mask_) ||
+					(sig->value_class_ != previous_sig->value_class_))
+				std::cout << "Duplicate property name with different signature: " << sig->property_name_ << std::endl;
+			}
+			
+			previous_sig = sig;
+		}
+	}
+	
+	return propertySignatures;
+}
+	
+- (const std::vector<const EidosMethodSignature*> *)slimguiAllMethodSignatures
+{
+	// This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
+	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
+	
+	if (!methodSignatures)
+	{
+		auto slimMethods =					SLiMSim::AllMethodSignatures();
+		auto methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
+		
+		methodSignatures = new std::vector<const EidosMethodSignature*>(*slimMethods);
+		
+		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
+		
+		// *** From here downward this is taken verbatim from SLiMSim::AllMethodSignatures()
+		// FIXME should be split into a separate method
+		
+		// sort by pointer; we want pointer-identical signatures to end up adjacent
+		std::sort(methodSignatures->begin(), methodSignatures->end());
+		
+		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
+		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
+		methodSignatures->resize(std::distance(methodSignatures->begin(), unique_end_iter));
+		
+		// print out any signatures that are identical by name
+		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
+		
+		const EidosMethodSignature *previous_sig = nullptr;
+		
+		for (const EidosMethodSignature *sig : *methodSignatures)
+		{
+			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
+			{
+				// We have a name collision.  That is OK as long as the method signatures are identical.
+				if ((typeid(*sig) != typeid(*previous_sig)) ||
+					(sig->is_class_method != previous_sig->is_class_method) ||
+					(sig->call_name_ != previous_sig->call_name_) ||
+					(sig->return_mask_ != previous_sig->return_mask_) ||
+					(sig->return_class_ != previous_sig->return_class_) ||
+					(sig->arg_masks_ != previous_sig->arg_masks_) ||
+					(sig->arg_names_ != previous_sig->arg_names_) ||
+					(sig->arg_classes_ != previous_sig->arg_classes_) ||
+					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
+					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
+				std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
+			}
+			
+			previous_sig = sig;
+		}
+		
+		// log a full list
+		//std::cout << "----------------" << std::endl;
+		//for (const EidosMethodSignature *sig : *methodSignatures)
+		//	std::cout << sig->call_name_ << " (" << sig << ")" << std::endl;
+	}
+	
+	return methodSignatures;
+}
+
 - (EidosContext *)eidosConsoleWindowControllerEidosContext:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return sim;
@@ -3624,23 +3783,14 @@
 	{
 		beenHere = YES;
 		
-		// We will be executing scripts, so bracket that with our delegate method call
-		[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
-		
-		// Add SLiM help items; we need a SLiMSim instance here to get function prototypes
-		std::istringstream infile([[SLiMDocument defaultWFScriptString] UTF8String]);
-		
-		SLiMSim signature_sim(infile);
-		// note no sim->InitializeRNGFromSeed() here; we don't need the RNG and don't want it to log or have side effects
-		
 		EidosHelpController *sharedHelp = [EidosHelpController sharedController];
 		
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:signature_sim.ZeroGenerationFunctionSignatures() methods:nullptr properties:nullptr];
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:signature_sim.AllMethodSignatures() properties:signature_sim.AllPropertySignatures()];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:SLiMSim::ZeroGenerationFunctionSignatures() methods:nullptr properties:nullptr];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:[self slimguiAllMethodSignatures] properties:[self slimguiAllPropertySignatures]];
 		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
 		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
-		[sharedHelp checkDocumentationOfFunctions:signature_sim.ZeroGenerationFunctionSignatures()];
+		[sharedHelp checkDocumentationOfFunctions:SLiMSim::ZeroGenerationFunctionSignatures()];
 		
 		[sharedHelp checkDocumentationOfClass:gSLiM_Chromosome_Class];
 		[sharedHelp checkDocumentationOfClass:gSLiM_Genome_Class];
@@ -3655,14 +3805,22 @@
 		[sharedHelp checkDocumentationOfClass:gSLiM_Subpopulation_Class];
 		[sharedHelp checkDocumentationOfClass:gSLiM_Substitution_Class];
 		
+		[sharedHelp checkDocumentationOfClass:gSLiM_SLiMgui_Class];
+		
 		[sharedHelp checkDocumentationForDuplicatePointers];
 		
 		// Run startup tests, iff the option key is down; NOTE THAT THIS CAUSES MASSIVE LEAKING DUE TO RAISES INSIDE EIDOS!
 		if ([NSEvent modifierFlags] & NSAlternateKeyMask)
+		{
+			// We will be executing scripts, so bracket that with our delegate method call
+			[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
+			
+			// Run the tests
 			RunSLiMTests();
-		
-		// Done executing scripts
-		[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
+			
+			// Done executing scripts
+			[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
+		}
 	}
 }
 
@@ -3687,12 +3845,14 @@
 
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
 {
-	return SLiMSim::AllMethodSignatures();
+	return [self slimguiAllMethodSignatures];
 }
 
 - (EidosSyntaxHighlightType)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
 	if (token_string.compare("sim") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
+	if (token_string.compare("slimgui") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
 	
 	// Request that SLiM's callback keywords be highlighted as "context keywords", which gives them a special color
@@ -3912,6 +4072,9 @@
 		
 		if (symbols)
 			symbols->AddSymbolsToTypeTable(*typeTable);
+		
+		// Ensure that the slimgui symbol is always available
+		(*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
 		
 		// Use the script text view's facility for using type-interpreting to get a "definitive" function map.  This way
 		// all functions that are defined, even if below the completion point, end up in the function map.

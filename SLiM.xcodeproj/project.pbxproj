@@ -560,6 +560,7 @@
 		98E9A6AE1A3CD5D3000AD4FC /* population.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AC1A3CD5D3000AD4FC /* population.cpp */; };
 		98E9A6B81A3CE35E000AD4FC /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
 		98EA965C1ECC2541006BA35B /* ProfileReport.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98EA965A1ECC2541006BA35B /* ProfileReport.xib */; };
+		98EBCD1421F3CFC600B385CF /* slim_gui.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98EBCD1221F3CFC600B385CF /* slim_gui.mm */; };
 		98EF4AB61ECDA5EA00CCDB09 /* profile_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98EF4AB41ECDA5EA00CCDB09 /* profile_H.pdf */; };
 		98EF4AB71ECDA5EA00CCDB09 /* profile.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98EF4AB51ECDA5EA00CCDB09 /* profile.pdf */; };
 		98EFE62F1ADB611100CBEC78 /* eidos_symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */; };
@@ -1046,6 +1047,8 @@
 		98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_rng.cpp; sourceTree = "<group>"; };
 		98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_rng.h; sourceTree = "<group>"; };
 		98EA965B1ECC2541006BA35B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/ProfileReport.xib; sourceTree = "<group>"; };
+		98EBCD1221F3CFC600B385CF /* slim_gui.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = slim_gui.mm; sourceTree = "<group>"; };
+		98EBCD1321F3CFC600B385CF /* slim_gui.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = slim_gui.h; sourceTree = "<group>"; };
 		98EF4AB41ECDA5EA00CCDB09 /* profile_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = profile_H.pdf; sourceTree = "<group>"; };
 		98EF4AB51ECDA5EA00CCDB09 /* profile.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = profile.pdf; sourceTree = "<group>"; };
 		98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_symbol_table.cpp; sourceTree = "<group>"; };
@@ -1730,6 +1733,8 @@
 		98D4C1B41A6F537B00FFB083 /* SLiMgui */ = {
 			isa = PBXGroup;
 			children = (
+				98EBCD1321F3CFC600B385CF /* slim_gui.h */,
+				98EBCD1221F3CFC600B385CF /* slim_gui.mm */,
 				986926D61AA13D340000E138 /* Graphing */,
 				980613AA1FAFD50400D379BA /* Haplotypes */,
 				988794681EA87FC300AE0C8D /* PDF */,
@@ -2601,6 +2606,7 @@
 				98DE4C301B713F68004FDF5F /* ScriptMod_AddGenomicElement.mm in Sources */,
 				98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */,
 				987AD8861B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
+				98EBCD1421F3CFC600B385CF /* slim_gui.mm in Sources */,
 				98D4C1D81A6F542600FFB083 /* mutation.cpp in Sources */,
 				98D4C1D31A6F541200FFB083 /* slim_global.cpp in Sources */,
 				98DE4C201B713F30004FDF5F /* ScriptMod_ChangeMigration.mm in Sources */,

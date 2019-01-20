@@ -593,6 +593,10 @@ extern const std::string gStr_gcEnds;
 extern const std::string gStr_receiver;
 extern const std::string gStr_exerter;
 
+extern const std::string gStr_slimgui;
+extern const std::string gStr_pid;
+extern const std::string gStr_pause;
+
 extern const std::string gStr_SLiMEidosDictionary;
 extern const std::string gStr_Chromosome;
 //extern const std::string gStr_Genome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -606,6 +610,7 @@ extern const std::string gStr_Subpopulation;
 //extern const std::string gStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string gStr_Substitution;
 extern const std::string gStr_InteractionType;
+extern const std::string gStr_SLiMgui;
 
 extern const std::string gStr_A;
 extern const std::string gStr_X;
@@ -857,6 +862,10 @@ enum _SLiMGlobalStringID : int {
 	gID_receiver,
 	gID_exerter,
 	
+	gID_slimgui,
+	gID_pid,
+	gID_pause,
+	
 	gID_Chromosome,
 	gID_Genome,
 	gID_GenomicElement,
@@ -869,6 +878,7 @@ enum _SLiMGlobalStringID : int {
 	gID_Individual,
 	gID_Substitution,
 	gID_InteractionType,
+	gID_SLiMgui,
 	
 	gID_A,
 	gID_X,

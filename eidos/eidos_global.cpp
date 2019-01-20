@@ -292,7 +292,7 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 	
 	// SLiM constants are reserved too; this code belongs in SLiM, but only
 	// SLiM uses this facility right now anyway, so I'm not going to sweat it...
-	if (p_symbol_name == "sim")
+	if ((p_symbol_name == "sim") || (p_symbol_name == "slimgui"))
 		good_symbol = false;
 	
 	int len = (int)p_symbol_name.length();

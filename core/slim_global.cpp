@@ -754,6 +754,11 @@ const std::string gStr_gcEnds = "gcEnds";
 const std::string gStr_receiver = "receiver";
 const std::string gStr_exerter = "exerter";
 
+// SLiMgui instance name and methods
+const std::string gStr_slimgui = "slimgui";
+const std::string gStr_pid = "pid";
+const std::string gStr_pause = "pause";
+
 // mostly SLiM element types
 const std::string gStr_SLiMEidosDictionary = "SLiMEidosDictionary";
 const std::string gStr_Chromosome = "Chromosome";
@@ -768,6 +773,7 @@ const std::string gStr_Subpopulation = "Subpopulation";
 //const std::string gStr_Individual = "Individual";		// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string gStr_Substitution = "Substitution";
 const std::string gStr_InteractionType = "InteractionType";
+const std::string gStr_SLiMgui = "SLiMgui";
 
 // mostly other fixed strings
 const std::string gStr_A = "A";
@@ -1052,6 +1058,10 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_receiver, gID_receiver);
 		Eidos_RegisterStringForGlobalID(gStr_exerter, gID_exerter);
 		
+		Eidos_RegisterStringForGlobalID(gStr_slimgui, gID_slimgui);
+		Eidos_RegisterStringForGlobalID(gStr_pid, gID_pid);
+		Eidos_RegisterStringForGlobalID(gStr_pause, gID_pause);
+		
 		Eidos_RegisterStringForGlobalID(gStr_Chromosome, gID_Chromosome);
 		//Eidos_RegisterStringForGlobalID(gStr_Genome, gID_Genome);					// in Eidos; see EidosValue_Object::EidosValue_Object()
 		Eidos_RegisterStringForGlobalID(gStr_GenomicElement, gID_GenomicElement);
@@ -1064,6 +1074,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		//Eidos_RegisterStringForGlobalID(gStr_Individual, gID_Individual);			// in Eidos; see EidosValue_Object::EidosValue_Object()
 		Eidos_RegisterStringForGlobalID(gStr_Substitution, gID_Substitution);
 		Eidos_RegisterStringForGlobalID(gStr_InteractionType, gID_InteractionType);
+		Eidos_RegisterStringForGlobalID(gStr_SLiMgui, gID_SLiMgui);
 		
 		Eidos_RegisterStringForGlobalID(gStr_A, gID_A);
 		Eidos_RegisterStringForGlobalID(gStr_X, gID_X);

@@ -13,7 +13,7 @@ initialize() {
 	
 	defineConstant("pdfPath", writeTempFile("plot_", ".pdf", ""));
 	
-	if (sim.inSLiMgui)
+	if (exists("slimgui"))
 	{
 		// If we're running in SLiMgui, open a plot window
 		appPath = system('ps -x | grep "SLiMgui" | grep -v grep | awk \'{ print $4 }\'');

@@ -8883,6 +8883,13 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_inSLiMgui:
 		{
+			// THIS PROPERTY WAS DEPRECATED IN SLIM 3.2.1; use exists("slimgui") instead
+			if (!warned_inSLiMgui_deprecated_)
+			{
+				if (!gEidosSuppressWarnings)
+					SLIM_OUTSTREAM << "#WARNING (SLiMSim::GetProperty): the inSLiMgui property has been deprecated; use exists(\"slimgui\") instead." << std::endl;
+				warned_inSLiMgui_deprecated_ = true;
+			}
 #ifdef SLIMGUI
 			return gStaticEidosValue_LogicalT;
 #else
@@ -10596,7 +10603,7 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));

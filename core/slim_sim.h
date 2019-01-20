@@ -457,6 +457,7 @@ public:
 	bool warned_early_output_ = false;
 	bool warned_early_read_ = false;
 	bool warned_no_max_distance_ = false;
+	bool warned_inSLiMgui_deprecated_ = false;
 	
 	// these ivars are set around callbacks so we know what type of callback we're in, to prevent illegal operations during callbacks
 	SLiMEidosBlockType executing_block_type_ = SLiMEidosBlockType::SLiMEidosNoBlockType;	// the innermost callback type we're executing now

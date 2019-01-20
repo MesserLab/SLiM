@@ -22,6 +22,7 @@
 
 #include "eidos_rng.h"
 #include "slim_sim.h"
+#include "slim_gui.h"
 #import "ChromosomeView.h"
 #import "PopulationView.h"
 #import "GraphView.h"
@@ -41,6 +42,7 @@
 @public
 	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
 	SLiMSim *sim;				// the simulation instance for this window
+	SLiMgui *slimgui;			// the SLiMgui Eidos class instance for this window
 	
 	// state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	Eidos_RNG_State sim_RNG;
@@ -295,6 +297,10 @@
 - (IBAction)exportScript:(id)sender;			// wired through firstResponder because these are menu items
 - (IBAction)exportOutput:(id)sender;			// wired through firstResponder because these are menu items
 - (IBAction)exportPopulation:(id)sender;		// wired through firstResponder because these are menu items
+
+
+//	Eidos SLiMgui method forwards
+- (void)eidos_pause;
 
 
 // Haplotype plot options sheet

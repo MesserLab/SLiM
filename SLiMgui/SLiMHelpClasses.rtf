@@ -260,7 +260,7 @@ The recombination rate for each of the recombination regions specified by
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i0\fs18 \cf0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
-(integer)drawBreakpoints(\cf2 [No<Individual>$\'a0parent\'a0=\'a0NULL], \cf2 [Ni$\'a0n\'a0=\'a0NULL])\
+(integer)drawBreakpoints([No<Individual>$\'a0parent\'a0=\'a0NULL], [Ni$\'a0n\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Draw recombination breakpoints, using the chromosome\'92s recombination rate map, the current gene conversion parameters, and (in some cases \'96 see below) any active and applicable 
@@ -3151,10 +3151,46 @@ The mutation stacking policy applies only within the given mutation type\'92s st
 \f3\i0 \cf0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b \cf0 5.11  Class SLiMSim\
+\f0\b \cf0 5.11  Class SLiMgui\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \i\b0 \cf0 5.11.1  
+\f1\fs18 SLiMgui
+\f0\fs22  properties\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
+pid => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 The Un*x process identifier (commonly called the \'93pid\'94) of the running SLiMgui application.  This can be useful for scripts that wish to use system calls to influence the SLiMgui application.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\i\fs22 \cf0 \kerning1\expnd0\expndtw0 5.11.2  
+\f1\fs18 SLiMgui
+\f0\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)pause(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Pauses a model that is playing in SLiMgui.  This is essentially equivalent to clicking the \'93Play\'94 button to stop the execution of the model.  Execution can be resumed by the user, by clicking the \'93Play\'94 button again; unlike calling 
+\f2\fs18 \cf2 stop()
+\f0\fs20 \cf2  or 
+\f2\fs18 \cf2 simulationFinished()
+\f0\fs20 \cf2 , the simulation is not terminated.  This method can be useful for debugging or exploratory purposes, to pause the model at a point of interest.  Execution is paused at the end of the currently executing generation, not mid-generation.\
+If the model is being profiled, or is executing forward to a generation number entered in the generation field, 
+\f2\fs18 \cf2 pause()
+\f0\fs20 \cf2  will do nothing; by design, 
+\f2\fs18 \cf2 pause()
+\f0\fs20 \cf2  only pauses execution when SLiMgui is doing a simple \'93Play\'94 of the model.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.12  Class SLiMSim\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\i\b0 \cf0 5.12.1  
 \f1\fs18 SLiMSim
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -3227,7 +3263,12 @@ The mutation stacking policy applies only within the given mutation type\'92s st
 \f2\fs18 \cf0 inSLiMgui => (logical$)\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\fs20 \cf0 If 
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+This property has been deprecated, and may be removed in a future release of SLiM.
+\b0   In SLiM 3.2.1 and later, use 
+\f2\fs18 exists("slimgui")
+\f0\fs20  instead.\
+\cf0 \kerning1\expnd0\expndtw0 If 
 \f2\fs18 T
 \f0\fs20 , the simulation is presently running inside SLiMgui; if 
 \f2\fs18 F
@@ -3343,7 +3384,7 @@ The spatial periodicity of the simulation, as specified in
 \f3 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i\fs22 \cf0 5.11.2  
+\f0\i\fs22 \cf0 5.12.2  
 \f1\fs18 SLiMSim
 \f0\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -4383,10 +4424,10 @@ The metadata (age, location, etc) that are stored in the resulting tree sequence
 \f0\fs20 ), but it can also take a significant amount of time.  Typically calling this method is not necessary; the automatic simplification performed occasionally by SLiM should be sufficient for most models.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.12  Class Subpopulation\
+\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.13  Class Subpopulation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.12.1  
+\i\b0 \cf0 5.13.1  
 \f1\fs18 Subpopulation
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -4557,7 +4598,7 @@ fitnessScaling <\'96> (float$)\
 \f0\fs20  methods, for another way of attaching state to subpopulations.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.12.2  
+\i\fs22 \cf0 5.13.2  
 \f1\fs18 Subpopulation
 \f0\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5748,10 +5789,10 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f3 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.13  Class Substitution\
+\f0\b\fs22 \cf0 5.14  Class Substitution\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\b0 \cf0 5.13.1  
+\i\b0 \cf0 5.14.1  
 \f1\fs18 Substitution
 \f0\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5833,7 +5874,7 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f0\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i\fs22 \cf0 5.13.2  
+\i\fs22 \cf0 5.14.2  
 \f1\fs18 Substitution
 \f0\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
