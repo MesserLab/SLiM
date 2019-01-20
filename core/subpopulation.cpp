@@ -6526,7 +6526,7 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));

@@ -280,7 +280,7 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));

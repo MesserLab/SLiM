@@ -3972,7 +3972,7 @@ const std::vector<const EidosPropertySignature *> *InteractionType_Class::Proper
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));

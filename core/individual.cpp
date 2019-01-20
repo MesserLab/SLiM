@@ -1334,7 +1334,7 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
@@ -1391,7 +1391,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 	switch (p_method_id)
 	{
 		case gID_setSpatialPosition:	return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
-		default:						return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		default:						return SLiMEidosDictionary_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
