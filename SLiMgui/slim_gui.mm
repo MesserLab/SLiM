@@ -89,18 +89,34 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 {
 	switch (p_method_id)
 	{
-		case gID_pause:						return ExecuteMethod_pause(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:							return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
-//	*********************	– (void)pause(void)
+//	*********************	– (void)openDocument(string$ path)
 //
-EidosValue_SP SLiMgui::ExecuteMethod_pause(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMgui::ExecuteMethod_openDocument(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	
-	[controller_ eidos_pause];
+	EidosValue *filePath_value = p_arguments[0].get();
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	NSString *filePath = [NSString stringWithUTF8String:file_path.c_str()];
+	
+	[controller_ eidos_openDocument:filePath];
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)pauseExecution(void)
+//
+EidosValue_SP SLiMgui::ExecuteMethod_pauseExecution(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	
+	[controller_ eidos_pauseExecution];
 	
 	return gStaticEidosValueVOID;
 }
@@ -158,7 +174,8 @@ const std::vector<const EidosMethodSignature *> *SLiMgui_Class::Methods(void) co
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pause, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

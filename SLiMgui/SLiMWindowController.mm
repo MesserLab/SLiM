@@ -2349,7 +2349,7 @@
 		double intervalSinceStarting = -[continuousPlayStartDate timeIntervalSinceNow];
 		
 		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
-		double maxGenerationsPerSecond = 1000000000.0;	// bounded, to allow -eidos_pause to interrupt us
+		double maxGenerationsPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
 		
 		if (speedSliderValue < 0.99999)
 			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
@@ -3308,7 +3308,7 @@
 #pragma mark -
 #pragma mark Eidos SLiMgui method forwards
 
-- (void)finish_eidos_pause:(id)sender
+- (void)finish_eidos_pauseExecution:(id)sender
 {
 	// this gets called by performSelectorOnMainThread: after _continuousPlay: has broken out of its loop
 	// if the simulation has already ended, or is invalid, or is not in continuous play, it does nothing
@@ -3321,13 +3321,19 @@
 	}
 }
 
-- (void)eidos_pause
+- (void)eidos_openDocument:(NSString *)path
+{
+	NSURL *pathURL = [NSURL fileURLWithPath:path];
+	
+	[[NSDocumentController sharedDocumentController] openDocumentWithContentsOfURL:pathURL display:YES completionHandler:(^ void (NSDocument *typelessDoc, BOOL already_open, NSError *error) { })];
+}
+
+- (void)eidos_pauseExecution
 {
 	if (!invalidSimulation && !reachedSimulationEnd && continuousPlayOn && nonProfilePlayOn && !profilePlayOn && !generationPlayOn)
 	{
-		continuousPlayGenerationsCompleted = UINT64_MAX - 1;									// this will break us out of the loop in _continuousPlay: at the end of this generation
-		[self performSelectorOnMainThread:@selector(finish_eidos_pause:) withObject:nil waitUntilDone:NO];	// this will actually stop continuous play
-		//[self performSelector:@selector(play:) withObject:nil afterDelay:0.0];	// this will simulate a press of the play button to stop continuous play
+		continuousPlayGenerationsCompleted = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this generation
+		[self performSelectorOnMainThread:@selector(finish_eidos_pauseExecution:) withObject:nil waitUntilDone:NO];	// this will actually stop continuous play
 	}
 }
 

@@ -42,10 +42,7 @@ initialize() {
 	
 	// If we're running in SLiMgui, open a plot window
 	if (exists("slimgui"))
-	{
-		appPath = system('ps -x | grep "SLiMgui" | grep -v grep | awk \'{ print $4 }\'');
-		system("open", args=c("-a", appPath, pdfPath));
-	}
+		slimgui.openDocument(pdfPath);
 }
 
 late() {

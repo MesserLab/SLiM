@@ -300,7 +300,8 @@
 
 
 //	Eidos SLiMgui method forwards
-- (void)eidos_pause;
+- (void)eidos_openDocument:(NSString *)path;
+- (void)eidos_pauseExecution;
 
 
 // Haplotype plot options sheet

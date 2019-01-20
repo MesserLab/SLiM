@@ -3172,7 +3172,21 @@ pid => (integer$)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(void)pause(void)\
+\'96\'a0(void)openDocument(string$\'a0filePath)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 Open the document at 
+\f2\fs18 \cf2 filePath
+\f0\fs20 \cf2  in SLiMgui, if possible.  Supported document types include SLiM model files (typically with a 
+\f2\fs18 \cf2 .slim
+\f0\fs20 \cf2  path extension), text files (typically with a 
+\f2\fs18 \cf2 .txt
+\f0\fs20 \cf2  path extension, and opened as untitled model files), and PDF files (typically with a 
+\f2\fs18 \cf2 .pdf
+\f0\fs20 \cf2  path extension).  This can be particularly useful for opening PDF documents created by the simulation itself, often by sublaunching a plotting process in R or another environment; see section 13.11 for an example.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \'96\'a0(void)pauseExecution(void)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Pauses a model that is playing in SLiMgui.  This is essentially equivalent to clicking the \'93Play\'94 button to stop the execution of the model.  Execution can be resumed by the user, by clicking the \'93Play\'94 button again; unlike calling 
@@ -3181,9 +3195,9 @@ pid => (integer$)\
 \f2\fs18 \cf2 simulationFinished()
 \f0\fs20 \cf2 , the simulation is not terminated.  This method can be useful for debugging or exploratory purposes, to pause the model at a point of interest.  Execution is paused at the end of the currently executing generation, not mid-generation.\
 If the model is being profiled, or is executing forward to a generation number entered in the generation field, 
-\f2\fs18 \cf2 pause()
+\f2\fs18 \cf2 pauseExecution()
 \f0\fs20 \cf2  will do nothing; by design, 
-\f2\fs18 \cf2 pause()
+\f2\fs18 \cf2 pauseExecution()
 \f0\fs20 \cf2  only pauses execution when SLiMgui is doing a simple \'93Play\'94 of the model.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 

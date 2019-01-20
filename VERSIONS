@@ -22,6 +22,7 @@ development head:
 	fix a SLiMgui crash when displaying a large number of genomic element types
 	add a SLiMGUI class and SLiMgui global instance, available only when running under SLiMgui, that provides some useful control options
 	deprecate the inSLiMgui property of SLiMSim; use 'if (exists("slimgui")) ...' instead; revised recipes 13.11 and 13.17 for this change
+	add openDocument() and pauseExecution() methods, and pid property, to SLiMgui class; revised recipes 13.11 and 13.17 to use openDocument()
 
 
 3.2 (build 1859; Eidos version 2.2):

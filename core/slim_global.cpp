@@ -757,7 +757,8 @@ const std::string gStr_exerter = "exerter";
 // SLiMgui instance name and methods
 const std::string gStr_slimgui = "slimgui";
 const std::string gStr_pid = "pid";
-const std::string gStr_pause = "pause";
+const std::string gStr_openDocument = "openDocument";
+const std::string gStr_pauseExecution = "pauseExecution";
 
 // mostly SLiM element types
 const std::string gStr_SLiMEidosDictionary = "SLiMEidosDictionary";
@@ -1060,7 +1061,8 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gStr_slimgui, gID_slimgui);
 		Eidos_RegisterStringForGlobalID(gStr_pid, gID_pid);
-		Eidos_RegisterStringForGlobalID(gStr_pause, gID_pause);
+		Eidos_RegisterStringForGlobalID(gStr_openDocument, gID_openDocument);
+		Eidos_RegisterStringForGlobalID(gStr_pauseExecution, gID_pauseExecution);
 		
 		Eidos_RegisterStringForGlobalID(gStr_Chromosome, gID_Chromosome);
 		//Eidos_RegisterStringForGlobalID(gStr_Genome, gID_Genome);					// in Eidos; see EidosValue_Object::EidosValue_Object()

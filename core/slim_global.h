@@ -595,7 +595,8 @@ extern const std::string gStr_exerter;
 
 extern const std::string gStr_slimgui;
 extern const std::string gStr_pid;
-extern const std::string gStr_pause;
+extern const std::string gStr_openDocument;
+extern const std::string gStr_pauseExecution;
 
 extern const std::string gStr_SLiMEidosDictionary;
 extern const std::string gStr_Chromosome;
@@ -864,7 +865,8 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_slimgui,
 	gID_pid,
-	gID_pause,
+	gID_openDocument,
+	gID_pauseExecution,
 	
 	gID_Chromosome,
 	gID_Genome,
