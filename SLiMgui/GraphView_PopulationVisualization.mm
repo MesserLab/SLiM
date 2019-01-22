@@ -53,6 +53,9 @@
 	
 	double subpopRadius = sqrt(clampedSubpopSize) / 500;	// size 10,000 has radius 0.2
 	
+	if (subpop->gui_radius_scaling_from_user_)
+		subpopRadius *= subpop->gui_radius_scaling_;
+	
 	// draw the circle
 	NSRect subpopRect = NSMakeRect(center.x - subpopRadius, center.y - subpopRadius, 2.0 * subpopRadius, 2.0 * subpopRadius);
 	
@@ -78,27 +81,43 @@
 		clampedSubpopSize = 10000;
 	
 	double subpopRadius = sqrt(clampedSubpopSize) / 500;	// size 10,000 has radius 0.2
+	
+	if (subpop->gui_radius_scaling_from_user_)
+		subpopRadius *= subpop->gui_radius_scaling_;
+	
 	subpop->gui_radius_ = subpopRadius;
 	
-	// calculate the color from the mean fitness of the population
-	double scalingFactor = controller->fitnessColorScale;
-	double totalFitness = subpop->parental_total_fitness_;
-	double subpopFitnessScaling = subpop->last_fitness_scaling_;
-	
-	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-		subpopFitnessScaling = 1.0;
-	
-	// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-	double fitness = (totalFitness / subpopFitnessScaling) / subpopSize;
+	// determine the color
 	float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
-	RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-	NSColor *fitnessColor = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match OpenGL
+	
+	if (subpop->gui_color_from_user_)
+	{
+		colorRed = subpop->gui_color_red_;
+		colorGreen = subpop->gui_color_green_;
+		colorBlue = subpop->gui_color_blue_;
+	}
+	else
+	{
+		// calculate the color from the mean fitness of the population
+		double scalingFactor = controller->fitnessColorScale;
+		double totalFitness = subpop->parental_total_fitness_;
+		double subpopFitnessScaling = subpop->last_fitness_scaling_;
+		
+		if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
+			subpopFitnessScaling = 1.0;
+		
+		// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
+		double fitness = (totalFitness / subpopFitnessScaling) / subpopSize;
+		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+	}
+	
+	NSColor *color = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match OpenGL
 	
 	// draw the circle
 	NSRect subpopRect = NSMakeRect(center.x - subpopRadius, center.y - subpopRadius, 2.0 * subpopRadius, 2.0 * subpopRadius);
 	NSBezierPath *subpopCircle = [NSBezierPath bezierPathWithOvalInRect:subpopRect];
 	
-	[fitnessColor set];
+	[color set];
 	[subpopCircle fill];
 	
 	[[NSColor blackColor] set];
@@ -108,11 +127,30 @@
 	// label it with the subpopulation ID
 	NSString *popString = [NSString stringWithFormat:@"p%lld", (int64_t)subpopID];
 	double brightness = 0.299 * colorRed + 0.587 * colorGreen + 0.114 * colorBlue;
-	NSDictionary *labelAttrs = ((brightness > 0.5) ? blackLabelAttrs : whiteLabelAttrs);
+	NSDictionary *labelAttrs;
+	double scaling = 1.0;
+	
+	if (subpop->gui_radius_scaling_from_user_ && (subpop->gui_radius_scaling_ != 1.0))
+	{
+		scaling = subpop->gui_radius_scaling_;
+		labelAttrs = @{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:(0.04 * scaling)], NSForegroundColorAttributeName : ((brightness > 0.5) ? [NSColor blackColor] : [NSColor whiteColor])};
+	}
+	else
+	{
+		labelAttrs = ((brightness > 0.5) ? blackLabelAttrs : whiteLabelAttrs);
+	}
+	
 	NSAttributedString *popLabel = [[NSAttributedString alloc] initWithString:popString attributes:labelAttrs];
 	NSSize labelSize = [popLabel size];
 	
-	[popLabel drawAtPoint:NSMakePoint(center.x - labelSize.width / 2, center.y - labelSize.height - 0.008)];
+	// Note that labelSize.height seems to be clamped to a minimum of 1.0, although labelSize.width is not, which is odd; the math here seems to work...
+	NSPoint drawPoint = NSMakePoint(center.x - labelSize.width / 2, center.y - labelSize.height - 0.008 * scaling);
+	
+	//NSLog(@"center = %@", NSStringFromPoint(center));
+	//NSLog(@"labelSize = %@", NSStringFromSize(labelSize));
+	//NSLog(@"drawPoint = %@", NSStringFromPoint(drawPoint));
+	
+	[popLabel drawAtPoint:drawPoint];
 	[popLabel release];
 }
 
@@ -527,6 +565,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		
 		subpop->gui_center_x_ = best_x[subpopIndex] + 0.5;
 		subpop->gui_center_y_ = best_y[subpopIndex] + 0.5;
+		subpop->gui_center_from_user_ = false;		// optimization overrides previously set display settings
 		++subpopIter;
 	}
 	
@@ -584,6 +623,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	else if (subpopCount > 1)
 	{
 		// first we distribute our subpops in a ring
+		BOOL allUserConfigured = true;
+		
 		{
 			auto subpopIter = pop.begin();
 			
@@ -592,8 +633,12 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 				Subpopulation *subpop = (*subpopIter).second;
 				double theta = (M_PI * 2.0 / subpopCount) * subpopIndex + M_PI_2;
 				
-				subpop->gui_center_x_ = 0.5 - cos(theta) * 0.29;
-				subpop->gui_center_y_ = 0.5 + sin(theta) * 0.29;
+				if (!subpop->gui_center_from_user_)
+				{
+					subpop->gui_center_x_ = 0.5 - cos(theta) * 0.29;
+					subpop->gui_center_y_ = 0.5 + sin(theta) * 0.29;
+					allUserConfigured = false;
+				}
 				++subpopIter;
 			}
 		}
@@ -604,32 +649,35 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 			[self optimizeSubpopPositionsWithController:controller];
 #endif	// SLIM_WF_ONLY
 		
-		// then do some sizing, to figure out the maximum extent of our subpops
-		NSRect boundingBox = NSZeroRect;
-		
+		if (!allUserConfigured)
 		{
-			auto subpopIter = pop.begin();
+			// then do some sizing, to figure out the maximum extent of our subpops
+			NSRect boundingBox = NSZeroRect;
 			
-			for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 			{
-				Subpopulation *subpop = (*subpopIter).second;
+				auto subpopIter = pop.begin();
 				
-				NSPoint center = NSMakePoint(subpop->gui_center_x_, subpop->gui_center_y_);
-				NSRect subpopRect = [self rectForSubpop:subpop centeredAt:center];
-				
-				boundingBox = ((subpopIndex == 0) ? subpopRect : NSUnionRect(boundingBox, subpopRect));
-				
-				++subpopIter;
+				for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
+				{
+					Subpopulation *subpop = (*subpopIter).second;
+					
+					NSPoint center = NSMakePoint(subpop->gui_center_x_, subpop->gui_center_y_);
+					NSRect subpopRect = [self rectForSubpop:subpop centeredAt:center];
+					
+					boundingBox = ((subpopIndex == 0) ? subpopRect : NSUnionRect(boundingBox, subpopRect));
+					
+					++subpopIter;
+				}
 			}
+			
+			// then we translate our coordinate system so that the subpops are centered within our (0, 0, 1, 1) box
+			double offsetX = ((1.0 - boundingBox.size.width) / 2.0) - boundingBox.origin.x;
+			double offsetY = ((1.0 - boundingBox.size.height) / 2.0) - boundingBox.origin.y;
+			
+			NSAffineTransform *offsetTransform = [NSAffineTransform transform];
+			[offsetTransform translateXBy:offsetX yBy:offsetY];
+			[offsetTransform concat];
 		}
-		
-		// then we translate our coordinate system so that the subpops are centered within our (0, 0, 1, 1) box
-		double offsetX = ((1.0 - boundingBox.size.width) / 2.0) - boundingBox.origin.x;
-		double offsetY = ((1.0 - boundingBox.size.height) / 2.0) - boundingBox.origin.y;
-		
-		NSAffineTransform *offsetTransform = [NSAffineTransform transform];
-		[offsetTransform translateXBy:offsetX yBy:offsetY];
-		[offsetTransform concat];
 		
 		// then we draw the subpops
 		{

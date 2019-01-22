@@ -3644,6 +3644,8 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_outputMSSample:
 		case gID_outputVCFSample:
 		case gID_outputSample:			return ExecuteMethod_outputXSample(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_configureDisplay:		return ExecuteMethod_configureDisplay(p_method_id, p_arguments, p_argument_count, p_interpreter);
+			
 		default:						return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
@@ -6491,6 +6493,97 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	– (void)configureDisplay([Nf center = NULL], [Nf$ scale = NULL], [Ns$ color = NULL])
+//
+EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	
+	EidosValue *center_value = p_arguments[0].get();
+	EidosValue *scale_value = p_arguments[1].get();
+	EidosValue *color_value = p_arguments[2].get();
+	
+	// This method doesn't actually do anything unless we're running under SLiMgui
+	
+	if (center_value->Type() == EidosValueType::kValueNULL)
+	{
+#ifdef SLIMGUI
+		gui_center_from_user_ = false;
+#endif
+	}
+	else
+	{
+		int center_count = center_value->Count();
+		
+		if (center_count != 2)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_configureDisplay): configureDisplay() requires that center be of exactly size 2 (x and y)." << EidosTerminate();
+		
+		double x = center_value->FloatAtIndex(0, nullptr);
+		double y = center_value->FloatAtIndex(1, nullptr);
+		
+		if ((x < 0.0) || (x > 1.0) || (y < 0.0) || (y > 1.0))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_configureDisplay): configureDisplay() requires that the specified center be within [0,1] for both x and y." << EidosTerminate();
+		
+#ifdef SLIMGUI
+		gui_center_x_ = x;
+		gui_center_y_ = y;
+		gui_center_from_user_ = true;
+#endif
+	}
+	
+	if (scale_value->Type() == EidosValueType::kValueNULL)
+	{
+#ifdef SLIMGUI
+		gui_radius_scaling_from_user_ = false;
+#endif
+	}
+	else
+	{
+		double scale = scale_value->FloatAtIndex(0, nullptr);
+		
+		if ((scale <= 0.0) || (scale > 5.0))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_configureDisplay): configureDisplay() requires that the specified scale be within (0,5]." << EidosTerminate();
+		
+#ifdef SLIMGUI
+		gui_radius_scaling_ = scale;
+		gui_radius_scaling_from_user_ = true;
+#endif
+	}
+	
+	if (color_value->Type() == EidosValueType::kValueNULL)
+	{
+#ifdef SLIMGUI
+		gui_color_from_user_ = false;
+#endif
+	}
+	else
+	{
+		std::string &&color = color_value->StringAtIndex(0, nullptr);
+		
+		if (color.empty())
+		{
+#ifdef SLIMGUI
+			gui_color_from_user_ = false;
+#endif
+		}
+		else
+		{
+			float color_red, color_green, color_blue;
+			
+			Eidos_GetColorComponents(color, &color_red, &color_green, &color_blue);
+			
+#ifdef SLIMGUI
+			gui_color_red_ = color_red;
+			gui_color_green_ = color_green;
+			gui_color_blue_ = color_blue;
+			gui_color_from_user_ = true;
+#endif
+		}
+	}
+	
+	return gStaticEidosValueVOID;
+}
+
 
 //
 //	Subpopulation_Class
@@ -6583,6 +6676,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_configureDisplay, kEidosValueMaskVOID))->AddFloat_ON("center", gStaticEidosValueNULL)->AddFloat_OSN("scale", gStaticEidosValueNULL)->AddString_OSN("color", gStaticEidosValueNULL));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

@@ -237,7 +237,16 @@ public:
 #ifdef SLIMGUI
 	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations; note Population::gui_all_selected_ must be kept in synch!
 	double parental_total_fitness_ = 0.0;				// updated in SurveyPopulation() when running under SLiMgui
-	double gui_center_x_, gui_center_y_, gui_radius_;	// used as scratch space by GraphView_PopulationVisualization
+	
+	bool gui_center_from_user_ = false;					// if this flag is true, the center below comes from the user and should not be modified
+	double gui_center_x_, gui_center_y_;				// the center used by GraphView_PopulationVisualization
+	
+	bool gui_radius_scaling_from_user_ = false;			// if this flag is true, the radius scaling below comes from the user and should not be modified
+	double gui_radius_scaling_;							// set/used only when gui_display_from_user_ is true; a scaling factor for the circle size
+	double gui_radius_;									// the radius, post-scaling, used by GraphView_PopulationVisualization
+	
+	bool gui_color_from_user_ = false;					// if this flag is true, the color below comes from the user and should not be modified
+	float gui_color_red_, gui_color_green_, gui_color_blue_;	// the color components, used by GraphView_PopulationVisualization
 #endif
 	
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
@@ -494,6 +503,7 @@ public:
 	EidosValue_SP ExecuteMethod_outputXSample(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_sampleIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_subsetIndividuals(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_configureDisplay(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);

@@ -3176,29 +3176,29 @@ pid => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Open the document at 
-\f2\fs18 \cf2 filePath
-\f0\fs20 \cf2  in SLiMgui, if possible.  Supported document types include SLiM model files (typically with a 
-\f2\fs18 \cf2 .slim
-\f0\fs20 \cf2  path extension), text files (typically with a 
-\f2\fs18 \cf2 .txt
-\f0\fs20 \cf2  path extension, and opened as untitled model files), and PDF files (typically with a 
-\f2\fs18 \cf2 .pdf
-\f0\fs20 \cf2  path extension).  This can be particularly useful for opening PDF documents created by the simulation itself, often by sublaunching a plotting process in R or another environment; see section 13.11 for an example.\
+\f2\fs18 filePath
+\f0\fs20  in SLiMgui, if possible.  Supported document types include SLiM model files (typically with a 
+\f2\fs18 .slim
+\f0\fs20  path extension), text files (typically with a 
+\f2\fs18 .txt
+\f0\fs20  path extension, and opened as untitled model files), and PDF files (typically with a 
+\f2\fs18 .pdf
+\f0\fs20  path extension).  This can be particularly useful for opening PDF documents created by the simulation itself, often by sublaunching a plotting process in R or another environment; see section 13.11 for an example.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f2\fs18 \cf2 \'96\'a0(void)pauseExecution(void)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\fs20 \cf2 Pauses a model that is playing in SLiMgui.  This is essentially equivalent to clicking the \'93Play\'94 button to stop the execution of the model.  Execution can be resumed by the user, by clicking the \'93Play\'94 button again; unlike calling 
-\f2\fs18 \cf2 stop()
-\f0\fs20 \cf2  or 
-\f2\fs18 \cf2 simulationFinished()
-\f0\fs20 \cf2 , the simulation is not terminated.  This method can be useful for debugging or exploratory purposes, to pause the model at a point of interest.  Execution is paused at the end of the currently executing generation, not mid-generation.\
+\f2\fs18 stop()
+\f0\fs20  or 
+\f2\fs18 simulationFinished()
+\f0\fs20 , the simulation is not terminated.  This method can be useful for debugging or exploratory purposes, to pause the model at a point of interest.  Execution is paused at the end of the currently executing generation, not mid-generation.\
 If the model is being profiled, or is executing forward to a generation number entered in the generation field, 
-\f2\fs18 \cf2 pauseExecution()
-\f0\fs20 \cf2  will do nothing; by design, 
-\f2\fs18 \cf2 pauseExecution()
-\f0\fs20 \cf2  only pauses execution when SLiMgui is doing a simple \'93Play\'94 of the model.\
+\f2\fs18 pauseExecution()
+\f0\fs20  will do nothing; by design, 
+\f2\fs18 pauseExecution()
+\f0\fs20  only pauses execution when SLiMgui is doing a simple \'93Play\'94 of the model.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.12  Class SLiMSim\
@@ -3282,6 +3282,7 @@ This property has been deprecated, and may be removed in a future release of SLi
 \b0   In SLiM 3.2.1 and later, use 
 \f2\fs18 exists("slimgui")
 \f0\fs20  instead.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f2\fs18 T
 \f0\fs20 , the simulation is presently running inside SLiMgui; if 
@@ -4955,9 +4956,61 @@ Note that this method is only for use in nonWF models.  See
 \f2\fs18 1.0
 \f0\fs20  until fitness values are recalculated.
 \f3 \cf0 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f2\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)configureDisplay([Nf\'a0center\'a0=\'a0NULL], [Nf$\'a0scale\'a0=\'a0NULL], [Ns$\'a0color\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\fs20 \cf2 This method customizes the display of the subpopulation in SLiMgui\'92s Population Visualization graph.  When this method is called by a model running outside SLiMgui, it will do nothing except type-checking and bounds-checking its arguments.  When called by a model running in SLiMgui, the position, size, and color of the subpopulation\'92s displayed circle can be controlled as specified below.\
+The 
+\f2\fs18 center
+\f0\fs20  parameter sets the coordinates of the center of the subpopulation\'92s displayed circle; it must be a 
+\f2\fs18 float
+\f0\fs20  vector of length two, such that 
+\f2\fs18 center[0]
+\f0\fs20  provides the 
+\i x
+\i0 -coordinate and 
+\f2\fs18 center[1]
+\f0\fs20  provides the 
+\i y
+\i0 -coordinate.  The square central area of the Population Visualization occupies scaled coordinates in [0,1] for both 
+\i x
+\i0  and 
+\i y
+\i0 , so the values in 
+\f2\fs18 center
+\f0\fs20  must be within those bounds.  If a value of 
+\f2\fs18 NULL
+\f0\fs20  is provided, SLiMgui\'92s default center will be used (which currently arranges subpopulations in a circle).\
+The 
+\f2\fs18 scale
+\f0\fs20  parameter sets a scaling factor to be applied to the radius of the subpopulation\'92s displayed circle.  The default radius used by SLiMgui is a function of the subpopulation\'92s number of individuals; this default radius is then multiplied by 
+\f2\fs18 scale
+\f0\fs20 .  If a value of 
+\f2\fs18 NULL
+\f0\fs20  is provided, the default radius will be used; this is equivalent to supplying a 
+\f2\fs18 scale
+\f0\fs20  of 
+\f2\fs18 1.0
+\f0\fs20 .  Typically the same 
+\f2\fs18 scale
+\f0\fs20  value should be used by all subpopulations, to scale all of their circles up or down uniformly, but that is not required.\
+The 
+\f2\fs18 color
+\f0\fs20  parameter sets the color to be used for the displayed subpopulation\'92s circle.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f2\fs18 "#RRGGBB"
+\f0\fs20  (see the Eidos manual).  If 
+\f2\fs18 color
+\f0\fs20  is 
+\f2\fs18 NULL
+\f0\fs20  or the empty string, 
+\f2\fs18 ""
+\f0\fs20 , SLiMgui\'92s default (fitness-based) color will be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f2\fs18 \cf0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, Ni
+\f2\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, Ni
 \f3 \'a0
 \f2 gridSize, float\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nf\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
