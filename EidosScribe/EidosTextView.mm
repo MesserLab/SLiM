@@ -2043,6 +2043,10 @@
 		case EidosTokenType::kTokenNext:
 		case EidosTokenType::kTokenBreak:
 		case EidosTokenType::kTokenFunction:
+		case EidosTokenType::kTokenReturn:
+		case EidosTokenType::kTokenElse:
+		case EidosTokenType::kTokenDo:
+		case EidosTokenType::kTokenIn:
 			if (canExtend)
 			{
 				NSMutableArray *completions = nil;
@@ -2085,6 +2089,18 @@
 				// Now we have an array of possible completions; we just need to remove those that don't complete the base string,
 				// according to a heuristic algorithm, and sort those that do match by a score of their closeness of match.
 				return [self completionsFromArray:completions matchingBase:[NSString stringWithUTF8String:token.token_string_.c_str()]];
+			}
+			else if ((token_type == EidosTokenType::kTokenReturn) || (token_type == EidosTokenType::kTokenElse) || (token_type == EidosTokenType::kTokenDo) || (token_type == EidosTokenType::kTokenIn))
+			{
+				// If you can't extend and you're following an identifier, you presumably need an operator or a keyword or something;
+				// you can't have two identifiers in a row.  The same is true of keywords that do not take an expression after them.
+				// But return, else, do, and in can be followed immediately by an expression, so here we handle that case.  Identifiers
+				// and other keywords will drop through to return nil below, expressing that we cannot complete in that case.
+				// We used to put return, else, do, and in down the the operators at the bottom, but when canExtend is YES that
+				// prevents them from completing to other things ("in" to "inSLiMgui", for example); moving them up to this case
+				// allows that completion to work, but necessitates the addition of this block to get the correct functionality when
+				// canExtend is NO.  BCH 1/22/2019
+				return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil argumentNames:argumentNames];
 			}
 			
 			// If the previous token was an identifier and we can't extend it, the next thing probably needs to be an operator or something
@@ -2130,10 +2146,6 @@
 		case EidosTokenType::kTokenGtEq:
 		case EidosTokenType::kTokenNot:
 		case EidosTokenType::kTokenNotEq:
-		case EidosTokenType::kTokenReturn:
-		case EidosTokenType::kTokenElse:
-		case EidosTokenType::kTokenDo:
-		case EidosTokenType::kTokenIn:
 			// We are following an operator or similar, so globals are OK but new statements are not
 			return [self globalCompletionsWithTypes:typeTable functions:functionMap keywords:nil argumentNames:argumentNames];
 	}
