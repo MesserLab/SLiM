@@ -326,23 +326,16 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	EidosValue_SP value;
 	EidosScript script(p_value_expression);
 	
-	try
-	{
-		script.SetFinalSemicolonOptional(true);
-		script.Tokenize();
-		script.ParseInterpreterBlockToAST(false);
-		
-		EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
-		EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
-		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
-		
-		value = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
-	}
-	catch (...)
-	{
-		// This should not be hit, since we checked the arguments already, but best to be safe...
-		EIDOS_TERMINATION << "ERROR (Eidos_ValueForCommandLineExpression): command-line expression '" << p_value_expression << "' could not be evaluated." << EidosTerminate(nullptr);
-	}
+	// Note this can raise; the caller should be prepared for that
+	script.SetFinalSemicolonOptional(true);
+	script.Tokenize();
+	script.ParseInterpreterBlockToAST(false);
+	
+	EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
+	EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
+	
+	value = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
 	
 	return value;
 }
@@ -404,7 +397,20 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 								// syntax allowed; the value cannot be a compound statement, for example.
 								int32_t assign_end = top_node->token_->token_end_;
 								std::string value_expression = constant.substr(assign_end + 1);
-								EidosValue_SP x_value_sp = Eidos_ValueForCommandLineExpression(value_expression);
+								EidosValue_SP x_value_sp;
+								
+								try {
+									x_value_sp = Eidos_ValueForCommandLineExpression(value_expression);
+								} catch (...) {
+									// Syntactic errors should have already been caught, but semantic errors can raise here, and we re-raise
+									// with a generic "could not be evaluated" message to lead the user toward the commend-line def as the problem
+									gEidosTerminateThrows = save_throws;
+									std::string terminationMessage = gEidosTermination.str();
+
+									EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): command-line expression could not be evaluated: " << constant << std::endl;
+									EIDOS_TERMINATION << "original error: " << terminationMessage;
+									EIDOS_TERMINATION << EidosTerminate(nullptr);
+								}
 								
 								if (x_value_sp)
 								{
