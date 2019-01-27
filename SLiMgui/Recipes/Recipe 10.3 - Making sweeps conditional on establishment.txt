@@ -40,8 +40,8 @@ initialize() {
 		// go back to generation 1000
 		sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
 		
-		// start a newly seeded run by incrementing the previous seed
-		setSeed(getSeed() + 1);
+		// start a newly seeded run
+		setSeed(rdunif(1, 0, asInteger(2^32) - 1));
 		
 		// re-introduce the sweep mutation
 		target = sample(p1.genomes, 1);

@@ -24,6 +24,11 @@ development head:
 	deprecate the inSLiMgui property of SLiMSim; use 'if (exists("slimgui")) ...' instead; revised recipes 13.11 and 13.17 for this change
 	add openDocument() and pauseExecution() methods, and pid property, to SLiMgui class; revised recipes 13.11 and 13.17 to use openDocument()
 	add Subpopulation.configureDisplay() method, inserted a new recipe 5.3.4 to provide an example of using it
+	fix a code completion hiccup with return/else/do/in
+	improve error-reporting for command-line defines
+	fix an uncaught raise optimizing illegal numeric constants
+	update citations listed by citation()
+	improve recipes (10.2, 10.3, 10.6.2, 16.3) that call setSeed(getSeed() + 1) to do setSeed(rdunif(1, 0, asInteger(2^32) - 1)); Matthew Hartfield pointed out the potential replicate correlation issue
 
 
 3.2 (build 1859; Eidos version 2.2):
