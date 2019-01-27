@@ -243,6 +243,174 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
 		}
 		
+		// Draw a gear
+		// This is an experiment with drawing an "action" button on top of the view contents using OpenGL.
+		// The results are decent on a Retina display, but not great on a regular display.  In any case
+		// I think having the action button drawn on top of view contents ends up looking strange.
+		// Unfortunately there doesn't seem to be anywhere good to put such buttons; so we'll stick with
+		// context menus for now.  BCH 1/27/2019
+#if 0
+		{
+			double cx = bounds.size.width - 13.0, cy = 13.0;
+			double radius = 8.0;
+			float button_color = 1.0f;
+			float outline_color = 0.60f;
+			
+			// ***** draw the off-white button disc as a triangle fan
+			vertices = glArrayVertices;
+			colors = glArrayColors;
+			displayListIndex = 0;
+			
+			// center point
+			*(vertices++) = (float)cx;
+			*(vertices++) = (float)cy;
+			displayListIndex++;
+			
+			// fan points
+			for (int j = 0; j <= 32; ++j)
+			{
+				double angle = (j / (32.0)) * (2.0 * M_PI);
+				double r = radius * 1.30;
+				
+				*(vertices++) = (float)(cx + cos(angle) * r);
+				*(vertices++) = (float)(cy + sin(angle) * r);
+				displayListIndex++;
+			}
+			
+			// colors
+			for (int j = 0; j < displayListIndex; ++j)
+			{
+				*(colors++) = button_color;
+				*(colors++) = button_color;
+				*(colors++) = button_color;
+				*(colors++) = 1.0f;
+			}
+			
+			glDrawArrays(GL_TRIANGLE_FAN, 0, displayListIndex);
+			
+			// ***** outline the button with gray
+			colors = glArrayColors;
+			
+			for (int j = 0; j < displayListIndex; ++j)
+			{
+				*(colors++) = outline_color;
+				*(colors++) = outline_color;
+				*(colors++) = outline_color;
+				*(colors++) = 1.0f;
+			}
+			
+			glLineWidth(2.0);
+			glEnable(GL_LINE_SMOOTH);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			
+			glDrawArrays(GL_LINE_LOOP, 1, displayListIndex - 2);
+			
+			glLineWidth(1.0);
+			glDisable(GL_LINE_SMOOTH);
+			glDisable(GL_BLEND);
+			
+			// ***** draw the gear polygon as a triangle fan
+			vertices = glArrayVertices;
+			colors = glArrayColors;
+			displayListIndex = 0;
+			
+			// center point
+			*(vertices++) = (float)cx;
+			*(vertices++) = (float)cy;
+			displayListIndex++;
+			
+			// fan points
+			for (int j = 0; j <= 8 * 6; ++j)
+			{
+				double angle = (j / (8.0 * 6.0)) * (2.0 * M_PI);
+				int tooth_step = (j + 1) % 6;	// 6 steps per tooth
+				double r = (tooth_step < 3) ? radius : radius * 0.7;
+				
+				*(vertices++) = (float)(cx + cos(angle) * r);
+				*(vertices++) = (float)(cy + sin(angle) * r);
+				displayListIndex++;
+			}
+			
+			// colors
+			for (int j = 0; j < displayListIndex; ++j)
+			{
+				*(colors++) = 0.3f;
+				*(colors++) = 0.3f;
+				*(colors++) = 0.3f;
+				*(colors++) = 1.0f;
+			}
+			
+			glDrawArrays(GL_TRIANGLE_FAN, 0, displayListIndex);
+			
+			// ***** draw the gear outline, to antialias it
+			colors = glArrayColors;
+			
+			for (int j = 0; j < displayListIndex; ++j)
+			{
+				*(colors++) = button_color;
+				*(colors++) = button_color;
+				*(colors++) = button_color;
+				*(colors++) = 1.0f;
+			}
+			
+			glLineWidth(1.0);
+			glEnable(GL_LINE_SMOOTH);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			
+			glDrawArrays(GL_LINE_LOOP, 1, displayListIndex - 2);
+			
+			glLineWidth(1.0);
+			glDisable(GL_LINE_SMOOTH);
+			glDisable(GL_BLEND);
+			
+			// ***** draw the interior circle
+			vertices = glArrayVertices;
+			colors = glArrayColors;
+			displayListIndex = 0;
+			
+			// center point
+			*(vertices++) = (float)cx;
+			*(vertices++) = (float)cy;
+			displayListIndex++;
+			
+			// fan points
+			for (int j = 0; j <= 16; ++j)
+			{
+				double angle = (j / 16.0) * (2.0 * M_PI);
+				double r = radius * 0.25;
+				
+				*(vertices++) = (float)(cx + cos(angle) * r);
+				*(vertices++) = (float)(cy + sin(angle) * r);
+				displayListIndex++;
+			}
+			
+			// colors
+			for (int j = 0; j < displayListIndex; ++j)
+			{
+				*(colors++) = button_color;
+				*(colors++) = button_color;
+				*(colors++) = button_color;
+				*(colors++) = 1.0f;
+			}
+			
+			glDrawArrays(GL_TRIANGLE_FAN, 0, displayListIndex);
+			
+			// ***** draw the inner circle outline, to antialias it
+			glLineWidth(1.0);
+			glEnable(GL_LINE_SMOOTH);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			
+			glDrawArrays(GL_LINE_LOOP, 1, displayListIndex - 2);
+			
+			glLineWidth(1.0);
+			glDisable(GL_LINE_SMOOTH);
+			glDisable(GL_BLEND);
+		}
+#endif
+		
 		glDisableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_COLOR_ARRAY);
 	}
@@ -1280,8 +1448,12 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			displayMode = 0;
 	}
 	
-	// Update the viewport
-	glViewport(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+	// Update the viewport; using backingBounds here instead of bounds makes the view hi-res-aware,
+	// while still remaining point-based since the ortho projection we use below uses bounds.  But
+	// anyway I'm not going to switch the view to be hi-res-aware for now.  BCH 1/27/2019
+	NSRect backingBounds = [self convertRectToBacking:[self bounds]];
+	
+	glViewport(0, 0, (int)backingBounds.size.width, (int)backingBounds.size.height);
 	
 	// Update the projection
 	glMatrixMode(GL_PROJECTION);
