@@ -86,7 +86,12 @@ void EidosASTNode::_OptimizeConstants(void) const
 	
 	if (token_type == EidosTokenType::kTokenNumber)
 	{
-		cached_literal_value_ = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
+		try {
+			cached_literal_value_ = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
+		}
+		catch (...) {
+			// if EidosInterpreter::NumericValueForString() raises, we just don't cache the value
+		}
 	}
 	else if (token_type == EidosTokenType::kTokenString)
 	{
