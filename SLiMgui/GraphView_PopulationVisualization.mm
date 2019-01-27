@@ -754,6 +754,29 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	}
 }
 
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem
+{
+	SEL sel = [menuItem action];
+	SLiMWindowController *controller = [self slimWindowController];
+	
+	if (!controller)
+		return NO;
+	
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	
+	if (sel == @selector(toggleOptimizedPositions:))
+	{
+		// If any subpop has a user-defined center, disable position optimization; it doesn't know how to
+		// handle those, and there's no way to revert back after it messes things up, and so forth
+		for (auto subpopIter = pop.begin(); subpopIter != pop.end(); ++subpopIter)
+			if (((*subpopIter).second)->gui_center_from_user_)
+				return NO;
+	}
+	
+	return YES;
+}
+
 @end
 
 
