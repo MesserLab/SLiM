@@ -3382,7 +3382,8 @@
 
 - (IBAction)changedHaplotypeSample:(id)sender
 {
-	int tag = (int)[sender tag];
+	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
+	int tag = (int)[senderMenuItem tag];
 	
 	if (tag != _haplotypeSample)
 	{
@@ -3393,7 +3394,8 @@
 
 - (IBAction)changedHaplotypeClustering:(id)sender
 {
-	int tag = (int)[sender tag];
+	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
+	int tag = (int)[senderMenuItem tag];
 	
 	if (tag != _haplotypeClustering)
 	{
@@ -5188,7 +5190,14 @@
 {
 	if (splitView == overallSplitView)
 	{
-		NSArray *subviews = [splitView arrangedSubviews];
+		NSArray *subviews;
+		
+#pragma deploymate push "ignored-api-availability"	// arrangedSubviews: is available on 10.11 and later
+		if ([splitView respondsToSelector:@selector(arrangedSubviews)])
+			subviews = [splitView arrangedSubviews];
+		else
+			subviews = [splitView subviews];		// on 10.10 and before, all subviews are arranged
+#pragma deploymate pop
 		
 		if ([subviews count] == 2)
 		{

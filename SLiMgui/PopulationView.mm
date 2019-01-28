@@ -1771,7 +1771,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 
 - (IBAction)setDisplayStyle:(id)sender
 {
-	int newDisplayMode = (int)[sender tag];
+	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
+	int newDisplayMode = (int)[senderMenuItem tag];
 	
 	if ((newDisplayMode == 2) || (newDisplayMode == 3))
 	{
@@ -1789,7 +1790,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 
 - (IBAction)setDisplayBackground:(id)sender
 {
-	int newDisplayBackground = (int)([sender tag] - 10);
+	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
+	int newDisplayBackground = (int)([senderMenuItem tag] - 10);
 	auto backgroundIter = backgroundSettings.find(lastContextMenuSubpopID);
 	PopulationViewBackgroundSettings *background = ((backgroundIter == backgroundSettings.end()) ? nil : &backgroundIter->second);
 	std::string mapName;
@@ -1797,7 +1799,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	// If the user has selected a spatial map, extract its name
 	if (newDisplayBackground == 3)
 	{
-		NSString *menuItemTitle = [sender title];
+		NSString *menuItemTitle = [senderMenuItem title];
 		NSArray<NSString *> *parts = [menuItemTitle componentsSeparatedByString:@"\""];
 		
 		if ([parts count] == 5)

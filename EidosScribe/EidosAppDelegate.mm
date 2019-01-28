@@ -177,7 +177,9 @@
 {
 	// EidosScribe quits when its console window is closed, but that
 	// behavior is not in any way required or expected.
-	[[NSApplication sharedApplication] terminate:nil];
+	NSApplication *app = [NSApplication sharedApplication];
+	
+	[app terminate:nil];
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController

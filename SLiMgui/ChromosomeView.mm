@@ -2055,7 +2055,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (IBAction)filterMutations:(id)sender
 {
-	slim_objectid_t muttype_id = (int)[sender tag];
+	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
+	slim_objectid_t muttype_id = (int)[senderMenuItem tag];
 	
 	if (muttype_id == -1)
 	{

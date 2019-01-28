@@ -195,7 +195,8 @@
 
 - (IBAction)openRecipe:(id)sender
 {
-	NSString *recipeName = [sender title];
+	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
+	NSString *recipeName = [senderMenuItem title];
 	
 	if ([recipeName hasSuffix:@".py 🐍"])
 	{

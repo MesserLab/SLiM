@@ -745,9 +745,11 @@
 
 - (void)outlineViewClicked:(id)sender
 {
-	if (sender == _topicOutlineView)
+	NSOutlineView *senderOutlineView = (NSOutlineView *)sender;
+	
+	if (senderOutlineView == _topicOutlineView)
 	{
-		id clickItem = [sender itemAtRow:[_topicOutlineView clickedRow]];
+		id clickItem = [_topicOutlineView itemAtRow:[_topicOutlineView clickedRow]];
 		
 		if (clickItem)
 		{
