@@ -113,6 +113,15 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue(EidosObjec
 	}
 	else
 	{
+		// BCH: Copy values just as EidosSymbolTable does, to prevent them from being modified underneath us etc.
+		// Note that when setting a value across multiple object targets, however, they all receive the same copy.
+		// That should be safe; there should be no way for that value to get modified after we have copid it.  1/28/2019
+		// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
+		// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
+		// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
+		if ((value->UseCount() != 1) || value->Invisible())
+			value = value->CopyValues();
+		
 		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 		{
 			SLiMEidosDictionary *element = (SLiMEidosDictionary *)(p_elements[element_index]);
