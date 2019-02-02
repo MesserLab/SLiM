@@ -68,6 +68,7 @@ public:
 	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_generation_t origin_generation_;			// generation in which mutation arose
+	// NOTE THERE ARE 4 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
 	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	
