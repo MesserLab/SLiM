@@ -1449,9 +1449,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 	
 	// Update the viewport; using backingBounds here instead of bounds makes the view hi-res-aware,
-	// while still remaining point-based since the ortho projection we use below uses bounds.  But
-	// anyway I'm not going to switch the view to be hi-res-aware for now.  BCH 1/27/2019
-	NSRect backingBounds = [self convertRectToBacking:[self bounds]];
+	// while still remaining point-based since the ortho projection we use below uses bounds.
+	NSRect backingBounds = [self convertRectToBacking:bounds];
 	
 	glViewport(0, 0, (int)backingBounds.size.width, (int)backingBounds.size.height);
 	

@@ -50,9 +50,12 @@
 {
 	NSRect bounds = [self bounds];
 	
-	// Update the viewport
-	glViewport(0, 0, (int)bounds.size.width, (int)bounds.size.height);
-	
+    // Update the viewport; using backingBounds here instead of bounds makes the view hi-res-aware,
+    // while still remaining point-based since the ortho projection we use below uses bounds.
+    NSRect backingBounds = [self convertRectToBacking:bounds];
+    
+    glViewport(0, 0, (int)backingBounds.size.width, (int)backingBounds.size.height);
+    
 	// Update the projection
 	glMatrixMode(GL_PROJECTION);
 	GLKMatrix4 orthoMat = GLKMatrix4MakeOrtho(0.0, (int)bounds.size.width, 0.0, (int)bounds.size.height, -1.0f, 1.0f);

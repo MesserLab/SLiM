@@ -336,6 +336,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)setNeedsDisplayInInterior
 {
 	[self setNeedsDisplayInRect:[self interiorRect]];
+    if (_proxyGLView)
+        [_proxyGLView setNeedsDisplay:YES];
 }
 
 // This is a fast macro for when all we need is the offset of a base from the left edge of interiorRect; interiorRect.origin.x is not added here!
