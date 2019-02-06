@@ -58,6 +58,10 @@
 
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
 {
+    // Require light appearance, at least for now; supporting dark mode would require custom art etc.
+    if ([NSApp respondsToSelector:@selector(setAppearance:)])
+        [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
+    
 	// Warm up our back end before anything else happens
 	Eidos_WarmUp();
 	Eidos_FinishWarmUp();

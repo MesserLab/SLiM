@@ -200,6 +200,10 @@ typedef enum SLiMLaunchAction
 
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
 {
+    // Require light appearance, at least for now; supporting dark mode would require custom art etc.
+    if ([NSApp respondsToSelector:@selector(setAppearance:)])
+        [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
+    
 	// Warm up our back ends before anything else happens
 	Eidos_WarmUp();
 	SLiM_WarmUp();
