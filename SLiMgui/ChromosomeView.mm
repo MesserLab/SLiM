@@ -126,7 +126,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	{
 		_enabled = enabled;
 		
-		[self setNeedsDisplay:YES];
+		[self setNeedsDisplayAll];
 	}
 }
 
@@ -201,7 +201,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)referenceChromosomeViewSelectionChanged:(NSNotification *)note
 {
-	[self setNeedsDisplay:YES];
+	[self setNeedsDisplayAll];
 }
 
 - (NSRange)selectedRange
@@ -249,7 +249,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 	
 	// Our selection changed, so update and post a change notification
-	[self setNeedsDisplay:YES];
+	[self setNeedsDisplayAll];
 	
 	[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
 }
@@ -274,7 +274,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 	
 	// Our selection changed, so update and post a change notification
-	[self setNeedsDisplay:YES];
+	[self setNeedsDisplayAll];
 	
 	[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
 }
@@ -331,6 +331,13 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (NSRect)interiorRect
 {
 	return NSInsetRect([self contentRect], 1, 1);
+}
+
+- (void)setNeedsDisplayAll
+{
+	[self setNeedsDisplay:YES];
+	if (_proxyGLView)
+		[_proxyGLView setNeedsDisplay:YES];
 }
 
 - (void)setNeedsDisplayInInterior
@@ -1910,7 +1917,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				// Save the selection for restoring across recycles, etc.
 				savedHasSelection = hasSelection;
 				
-				[self setNeedsDisplay:YES];
+				[self setNeedsDisplayAll];
 				[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
 			}
 		}
@@ -2012,7 +2019,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		if (selectionChanged)
 		{
-			[self setNeedsDisplay:YES];
+			[self setNeedsDisplayAll];
 			[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
 		}
 	}
@@ -2041,7 +2048,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	{
 		display_haplotypes_ = NO;
 		
-		[self setNeedsDisplay:YES];
+		[self setNeedsDisplayAll];
 	}
 }
 
@@ -2051,7 +2058,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	{
 		display_haplotypes_ = YES;
 		
-		[self setNeedsDisplay:YES];
+		[self setNeedsDisplayAll];
 	}
 }
 
@@ -2080,7 +2087,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		}
 	}
 	
-	[self setNeedsDisplay:YES];
+	[self setNeedsDisplayAll];
 }
 	
 - (IBAction)filterNonNeutral:(id)sender
@@ -2103,7 +2110,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				display_muttypes_.push_back(muttype_id);
 		}
 		
-		[self setNeedsDisplay:YES];
+		[self setNeedsDisplayAll];
 	}
 }
 
