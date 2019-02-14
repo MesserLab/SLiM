@@ -8293,7 +8293,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -8303,6 +8303,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
 	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
+	EidosValue *arg_nucleotideBased_value = p_arguments[5].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_options_declarations_ > 0)
@@ -8405,6 +8406,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		prevent_incidental_selfing_ = prevent_selfing;
 	}
 	
+	{
+		// [logical$ nucleotideBased = F]
+		bool nucleotide_based = arg_nucleotideBased_value->LogicalAtIndex(0, nullptr);
+		
+		nucleotide_based_ = nucleotide_based;
+	}
+	
 	if (DEBUG_INPUT)
 	{
 		output_stream << "initializeSLiMOptions(";
@@ -8454,6 +8462,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "preventIncidentalSelfing = " << (prevent_incidental_selfing_ ? "T" : "F");
+			previous_params = true;
+		}
+		
+		if (nucleotide_based_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "nucleotideBased = " << (nucleotide_based_ ? "T" : "F");
 			previous_params = true;
 			(void)previous_params;	// dead store above is deliberate
 		}
@@ -8614,7 +8629,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float10)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))

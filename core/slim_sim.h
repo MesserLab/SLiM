@@ -373,6 +373,9 @@ private:
 	// preventing incidental selfing in hermaphroditic models
 	bool prevent_incidental_selfing_ = false;
 	
+	// nucleotide-based models
+	bool nucleotide_based_ = false;
+	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
 	slim_usertag_t tag_value_;														// a user-defined tag value
