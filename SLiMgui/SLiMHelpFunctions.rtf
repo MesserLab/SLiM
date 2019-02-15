@@ -1,6 +1,6 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf200
-{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\froman\fcharset0 TimesNewRomanPSMT;\f2\fswiss\fcharset0 Optima-Regular;
-\f3\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f4\fswiss\fcharset0 Optima-Italic;\f5\fswiss\fcharset0 Helvetica;
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\fswiss\fcharset0 Optima-Regular;\f2\fswiss\fcharset0 Optima-Italic;
+\f3\froman\fcharset0 TimesNewRomanPSMT;\f4\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f5\fswiss\fcharset0 Helvetica;
 }
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
@@ -8,728 +8,765 @@
 \deftab720
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f0\fs18 \cf0 (void)initializeGeneConversion(numeric$\'a0conversionFraction, numeric$\'a0meanLength)
-\f1 \
+\f0\fs18 \cf0 (void)initializeAncestralSequence(is\'a0sequence)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
+This function, which may be called only in nucleotide-based models (see section 1.8), supplies an ancestral nucleotide sequence for the model.  The 
+\f0\fs18 sequence
+\f1\fs20  parameter may be an 
+\f0\fs18 integer
+\f1\fs20  vector providing nucleotide values (A=0, C=1, G=2, T=3), or a 
+\f0\fs18 string
+\f1\fs20  vector providing single-character nucleotides (
+\f0\fs18 "A"
+\f1\fs20 , 
+\f0\fs18 "C"
+\f1\fs20 , 
+\f0\fs18 "G"
+\f1\fs20 , 
+\f0\fs18 "T"
+\f1\fs20 ), or a singleton 
+\f0\fs18 string
+\f1\fs20  providing the sequence as one string (
+\f0\fs18 "ACGT..."
+\f1\fs20 ), or a singleton 
+\f0\fs18 string
+\f1\fs20  providing the filesystem path of a FASTA file which will be read in to provide the sequence (if the file contains than one sequence, the first sequence will be used).  Only A/C/G/T nucleotide values may be provided; other symbols, such as those for amino acids, gaps, or nucleotides of uncertain identity, are not allowed.  The two semantic meanings of 
+\f0\fs18 sequence
+\f1\fs20  that involve a singleton 
+\f0\fs18 string
+\f1\fs20  value are distinguished heuristically; a singleton 
+\f0\fs18 string
+\f1\fs20  that contains only the letters ACGT will be assumed to be a nucleotide sequence rather than a filename.\
+A utility function, 
+\f0\fs18 randomNucleotideSequence()
+\f1\fs20 , is provided by SLiM to assist in generating simple random nucleotide sequences; see section 21.15.1.
+\f2\i \cf2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f0\i0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeGeneConversion(numeric$\'a0conversionFraction, numeric$\'a0meanLength)
+\f3 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 Configure the likelihood and behavior of gene conversion events.  The probability of gene conversion occurring for any one recombination event is given by 
 \f0\fs18 conversionFraction
-\f2\fs20 , and the mean of the geometric distribution from which the length of the gene conversion stretch will be drawn is specified by 
+\f1\fs20 , and the mean of the geometric distribution from which the length of the gene conversion stretch will be drawn is specified by 
 \f0\fs18 meanLength
-\f2\fs20  (specified in base positions).  Note that chromosome positions with a recombination rate of exactly 
+\f1\fs20  (specified in base positions).  Note that chromosome positions with a recombination rate of exactly 
 \f0\fs18 0.5
-\f2\fs20  will not be candidates for gene conversion, as it is assumed that they represent junction points between discrete chromosomes.
-\f3\i \cf0 \kerning1\expnd0\expndtw0 \
+\f1\fs20  will not be candidates for gene conversion, as it is assumed that they represent junction points between discrete chromosomes.
+\f4\i \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\i0\fs18 \cf0 (void)initializeGenomicElement(io<GenomicElementType>$\'a0genomicElementType, integer$\'a0start, integer$\'a0end)
-\f1 \
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add a genomic element to the chromosome at initialization time.  The 
+\f1\fs20 \cf0 Add a genomic element to the chromosome at initialization time.  The 
 \f0\fs18 start
-\f2\fs20  and 
+\f1\fs20  and 
 \f0\fs18 end
-\f2\fs20  parameters give the first and last base positions to be spanned by the new genomic element.  The new element based upon the genomic element type identified by 
+\f1\fs20  parameters give the first and last base positions to be spanned by the new genomic element.  The new element based upon the genomic element type identified by 
 \f0\fs18 genomicElementType
-\f2\fs20 , which can be either an 
+\f1\fs20 , which can be either an 
 \f0\fs18 integer
-\f2\fs20 , representing the ID of the desired element type, or an 
+\f1\fs20 , representing the ID of the desired element type, or an 
 \f0\fs18 object
-\f2\fs20  of type 
+\f1\fs20  of type 
 \f0\fs18 GenomicElementType
-\f2\fs20 , specified directly.
-\f1 \
+\f1\fs20 , specified directly.
+\f3 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 (object<GenomicElementType>$)initializeGenomicElementType(is$\'a0id, io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
-\f1 \
+\f3 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add a genomic element type at initialization time.  The 
+\f1\fs20 \cf0 Add a genomic element type at initialization time.  The 
 \f0\fs18 id
-\f2\fs20  must not already be used for any genomic element type in the simulation.  The 
+\f1\fs20  must not already be used for any genomic element type in the simulation.  The 
 \f0\fs18 mutationTypes
-\f2\fs20  vector identifies the mutation types used by the genomic element, and the 
+\f1\fs20  vector identifies the mutation types used by the genomic element, and the 
 \f0\fs18 proportions
-\f2\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from the corresponding mutation type (proportions do not need to add up to one; they are interpreted relatively).  The 
+\f1\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from the corresponding mutation type (proportions do not need to add up to one; they are interpreted relatively).  The 
 \f0\fs18 id
-\f2\fs20  parameter may be either an 
+\f1\fs20  parameter may be either an 
 \f0\fs18 integer
-\f2\fs20  giving the ID of the new genomic element type, or a 
+\f1\fs20  giving the ID of the new genomic element type, or a 
 \f0\fs18 string
-\f2\fs20  giving the name of the new genomic element type (such as 
+\f1\fs20  giving the name of the new genomic element type (such as 
 \f0\fs18 "g5"
-\f2\fs20  to specify an ID of 5).  The 
+\f1\fs20  to specify an ID of 5).  The 
 \f0\fs18 mutationTypes
-\f2\fs20  parameter may be either an 
+\f1\fs20  parameter may be either an 
 \f0\fs18 integer
-\f2\fs20  vector representing the IDs of the desired mutation types, or an 
+\f1\fs20  vector representing the IDs of the desired mutation types, or an 
 \f0\fs18 object
-\f2\fs20  vector of 
+\f1\fs20  vector of 
 \f0\fs18 MutationType
-\f2\fs20  elements specified directly.  The global symbol for the new genomic element type is immediately available; the return value also provides the new object.
-\f1 \
+\f1\fs20  elements specified directly.  The global symbol for the new genomic element type is immediately available; the return value also provides the new object.
+\f3 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 (object<InteractionType>$)initializeInteractionType(is$\'a0id, string$\'a0spatiality, [logical$\'a0reciprocal\'a0=\'a0F], [numeric$\'a0maxDistance\'a0=\'a0INF], [string$\'a0sexSegregation\'a0=\'a0"**"])
-\f1 \
+\f3 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add an interaction type at initialization time.  The 
+\f1\fs20 \cf0 Add an interaction type at initialization time.  The 
 \f0\fs18 id
-\f2\fs20  must not already be used for any interaction type in the simulation.  The 
+\f1\fs20  must not already be used for any interaction type in the simulation.  The 
 \f0\fs18 id
-\f2\fs20  parameter may be either an 
+\f1\fs20  parameter may be either an 
 \f0\fs18 integer
-\f2\fs20  giving the ID of the new interaction type, or a 
+\f1\fs20  giving the ID of the new interaction type, or a 
 \f0\fs18 string
-\f2\fs20  giving the name of the new interaction type (such as 
+\f1\fs20  giving the name of the new interaction type (such as 
 \f0\fs18 "i5"
-\f2\fs20  to specify an ID of 5).\
+\f1\fs20  to specify an ID of 5).\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 The 
 \f0\fs18 spatiality
-\f2\fs20  may be 
+\f1\fs20  may be 
 \f0\fs18 ""
-\f2\fs20 , for non-spatial interactions (i.e., interactions that do not depend upon the distance between individuals); 
+\f1\fs20 , for non-spatial interactions (i.e., interactions that do not depend upon the distance between individuals); 
 \f0\fs18 "x"
-\f1\fs20 ,
-\f2  
+\f3\fs20 ,
+\f1  
 \f0\fs18 "y"
-\f2\fs20 , or 
+\f1\fs20 , or 
 \f0\fs18 "z"
-\f2\fs20  for one-dimensional interactions; 
+\f1\fs20  for one-dimensional interactions; 
 \f0\fs18 "xy"
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 "xz"
-\f2\fs20 , or 
+\f1\fs20 , or 
 \f0\fs18 "yz"
-\f2\fs20  for two-dimensional interactions; or 
+\f1\fs20  for two-dimensional interactions; or 
 \f0\fs18 "xyz"
-\f2\fs20  for three-dimensional interactions.  The dimensions referenced by spatiality must have been previously defined as spatial dimensions with 
+\f1\fs20  for three-dimensional interactions.  The dimensions referenced by spatiality must have been previously defined as spatial dimensions with 
 \f0\fs18 initializeSLiMOptions()
-\f2\fs20 ; if the simulation has dimensionality 
+\f1\fs20 ; if the simulation has dimensionality 
 \f0\fs18 "xy"
-\f2\fs20 , for example, then interactions in the simulation may have spatiality 
+\f1\fs20 , for example, then interactions in the simulation may have spatiality 
 \f0\fs18 ""
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 "x"
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 "y"
-\f2\fs20 , or 
+\f1\fs20 , or 
 \f0\fs18 "xy"
-\f2\fs20 , but may not reference spatial dimension 
-\f4\i z
-\f2\i0  and thus may not have spatiality 
+\f1\fs20 , but may not reference spatial dimension 
+\f2\i z
+\f1\i0  and thus may not have spatiality 
 \f0\fs18 "xz"
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 "yz"
-\f2\fs20 , or 
+\f1\fs20 , or 
 \f0\fs18 "xyz"
-\f1\fs20 .
-\f2   If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
+\f3\fs20 .
+\f1   If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 The 
 \f0\fs18 reciprocal
-\f2\fs20  flag may be 
+\f1\fs20  flag may be 
 \f0\fs18 T
-\f2\fs20 , in which case the interaction is guaranteed by the user to be 
-\f4\i reciprocal
-\f2\i0 : whatever the interaction strength is for individual B upon individual A, it will be equal (in magnitude and sign) for A upon B.  This allows the 
+\f1\fs20 , in which case the interaction is guaranteed by the user to be 
+\f2\i reciprocal
+\f1\i0 : whatever the interaction strength is for individual B upon individual A, it will be equal (in magnitude and sign) for A upon B.  This allows the 
 \f0\fs18 InteractionType
-\f2\fs20  to reduce the amount of computation necessary by up to a factor of two.  If 
+\f1\fs20  to reduce the amount of computation necessary by up to a factor of two.  If 
 \f0\fs18 reciprocal
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 F
-\f2\fs20 , the interaction is not guaranteed to be reciprocal and each interaction will be computed independently.  The built-in interaction formulas are all reciprocal, but if you implement an 
+\f1\fs20 , the interaction is not guaranteed to be reciprocal and each interaction will be computed independently.  The built-in interaction formulas are all reciprocal, but if you implement an 
 \f0\fs18 interaction()
-\f2\fs20  callback (see section 19.6), you must consider whether the callback you have implemented preserves reciprocality or not.  For this reason, the default is 
+\f1\fs20  callback (see section 19.6), you must consider whether the callback you have implemented preserves reciprocality or not.  For this reason, the default is 
 \f0\fs18 reciprocal=F
-\f2\fs20 , so that bugs are not inadvertently introduced by an invalid assumption of reciprocality.  See below for a note regarding reciprocality in sexual simulations when using the 
+\f1\fs20 , so that bugs are not inadvertently introduced by an invalid assumption of reciprocality.  See below for a note regarding reciprocality in sexual simulations when using the 
 \f0\fs18 sexSegregation
-\f2\fs20  flag.\
+\f1\fs20  flag.\
 Note that even if an interaction is reciprocal, it may occasionally be slightly faster for 
 \f0\fs18 reciprocal
-\f2\fs20  to be set to 
+\f1\fs20  to be set to 
 \f0\fs18 F
-\f2\fs20 .  This is most likely when the amount of computation per interaction is very small (particularly if no 
+\f1\fs20 .  This is most likely when the amount of computation per interaction is very small (particularly if no 
 \f0\fs18 interaction()
-\f2\fs20  callbacks are involved), and when it is unlikely that the reciprocal of a queried interaction will also be queried.  Even in such cases, however, the slowdown for 
+\f1\fs20  callbacks are involved), and when it is unlikely that the reciprocal of a queried interaction will also be queried.  Even in such cases, however, the slowdown for 
 \f0\fs18 reciprocal=T
-\f2\fs20  should be fairly small.  In most usage cases, setting 
+\f1\fs20  should be fairly small.  In most usage cases, setting 
 \f0\fs18 reciprocal
-\f2\fs20  to 
+\f1\fs20  to 
 \f0\fs18 T
-\f2\fs20  (when the interaction is in fact reciprocal) will result in at least equal performance, if not better; with a very slow 
+\f1\fs20  (when the interaction is in fact reciprocal) will result in at least equal performance, if not better; with a very slow 
 \f0\fs18 interaction()
-\f2\fs20  callback, the performance can be as much as double, making it generally worthwhile to use 
+\f1\fs20  callback, the performance can be as much as double, making it generally worthwhile to use 
 \f0\fs18 reciprocal=T
-\f2\fs20  when possible.  However, for maximal performance one might wish to time and compare runs with reciprocality enabled and disabled (using the same random number seed).\
+\f1\fs20  when possible.  However, for maximal performance one might wish to time and compare runs with reciprocality enabled and disabled (using the same random number seed).\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 The 
 \f0\fs18 maxDistance
-\f2\fs20  parameter supplies the maximum distance over which interactions of this type will be evaluated; at greater distances, the interaction strength is considered to be zero (for efficiency).  The default value of 
+\f1\fs20  parameter supplies the maximum distance over which interactions of this type will be evaluated; at greater distances, the interaction strength is considered to be zero (for efficiency).  The default value of 
 \f0\fs18 maxDistance
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 INF
-\f2\fs20  (positive infinity), indicates that there is no maximum interaction distance; note that this can make some interaction queries much less efficient, and is therefore not recommended.\
+\f1\fs20  (positive infinity), indicates that there is no maximum interaction distance; note that this can make some interaction queries much less efficient, and is therefore not recommended.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 The 
 \f0\fs18 sexSegregation
-\f2\fs20  parameter governs the applicability of the interaction to each sex, in sexual simulations.  It does not affect distance calculations in any way; it only modifies the way in which interaction strengths are calculated.  The default, 
+\f1\fs20  parameter governs the applicability of the interaction to each sex, in sexual simulations.  It does not affect distance calculations in any way; it only modifies the way in which interaction strengths are calculated.  The default, 
 \f0\fs18 "**"
-\f2\fs20 , implies that the interaction is felt by both sexes (the first character of the 
+\f1\fs20 , implies that the interaction is felt by both sexes (the first character of the 
 \f0\fs18 string
-\f2\fs20  value) and is exerted by both sexes (the second character of the 
+\f1\fs20  value) and is exerted by both sexes (the second character of the 
 \f0\fs18 string
-\f2\fs20  value).  Either or both characters may be 
+\f1\fs20  value).  Either or both characters may be 
 \f0\fs18 M
-\f2\fs20  or 
+\f1\fs20  or 
 \f0\fs18 F
-\f2\fs20  instead; for example, 
+\f1\fs20  instead; for example, 
 \f0\fs18 "MM"
-\f2\fs20  would indicate a male-male interaction, such as male-male competition, whereas 
+\f1\fs20  would indicate a male-male interaction, such as male-male competition, whereas 
 \f0\fs18 "FM"
-\f2\fs20  would indicate an interaction influencing only females that is influenced only by males, such as male mating displays that influence female attraction.  This parameter may be set only to 
+\f1\fs20  would indicate an interaction influencing only females that is influenced only by males, such as male mating displays that influence female attraction.  This parameter may be set only to 
 \f0\fs18 "**"
-\f2\fs20  unless sex has been enabled with 
+\f1\fs20  unless sex has been enabled with 
 \f0\fs18 initializeSex()
-\f1\fs20 .
-\f2   Note that a value of 
+\f3\fs20 .
+\f1   Note that a value of 
 \f0\fs18 sexSegregation
-\f2\fs20  other than 
+\f1\fs20  other than 
 \f0\fs18 "**"
-\f2\fs20  may imply some degree of non-reciprocality, but it is not necessary to specify 
+\f1\fs20  may imply some degree of non-reciprocality, but it is not necessary to specify 
 \f0\fs18 reciprocal
-\f2\fs20  to be 
+\f1\fs20  to be 
 \f0\fs18 F
-\f2\fs20  for this reason; SLiM will take the sex-segregation of the interaction into account for you.  The value of 
+\f1\fs20  for this reason; SLiM will take the sex-segregation of the interaction into account for you.  The value of 
 \f0\fs18 reciprocal
-\f2\fs20  may therefore be interpreted as meaning: in those cases, if any, in which A interacts with B and B interacts with A, is the interaction strength guaranteed to be the same in both directions?\
+\f1\fs20  may therefore be interpreted as meaning: in those cases, if any, in which A interacts with B and B interacts with A, is the interaction strength guaranteed to be the same in both directions?\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 By default, the interaction strength is 
 \f0\fs18 1.0
-\f2\fs20  for all interactions within 
+\f1\fs20  for all interactions within 
 \f0\fs18 maxDistance
-\f2\fs20 .  Often it is desirable to change the interaction function using 
+\f1\fs20 .  Often it is desirable to change the interaction function using 
 \f0\fs18 setInteractionFunction()
-\f2\fs20 ; modifying interaction strengths can also be achieved with 
+\f1\fs20 ; modifying interaction strengths can also be achieved with 
 \f0\fs18 interaction()
-\f2\fs20  callbacks if necessary.  In any case, interactions beyond 
+\f1\fs20  callbacks if necessary.  In any case, interactions beyond 
 \f0\fs18 maxDistance
-\f2\fs20  always have a strength of 
+\f1\fs20  always have a strength of 
 \f0\fs18 0.0
-\f2\fs20 , and the interaction strength of an individual with itself is always 
+\f1\fs20 , and the interaction strength of an individual with itself is always 
 \f0\fs18 0.0
-\f2\fs20 , regardless of the interaction function or callbacks.\
+\f1\fs20 , regardless of the interaction function or callbacks.\
 The global symbol for the new interaction type is immediately available; the return value also provides the new object.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 (void)initializeMutationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
-\f1 \
+\f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 Set the mutation rate per base position per generation along the chromosome.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per generation (per new offspring genome being generated); note that this is different from how the recombination rate is defined (see 
 \f0\fs18 initializeRecombinationRate()
-\f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring genome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy (see section 1.5.3) will be followed.\
+\f1\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring genome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy (see section 1.5.3) will be followed.\
 There are two ways to call this function.  If the optional 
 \f0\fs18 ends
-\f2\fs20  parameter is 
+\f1\fs20  parameter is 
 \f0\fs18 NULL
-\f2\fs20  (the default), then 
+\f1\fs20  (the default), then 
 \f0\fs18 rates
-\f2\fs20  must be a singleton value that specifies a single mutation rate to be used along the entire chromosome.  If, on the other hand, 
+\f1\fs20  must be a singleton value that specifies a single mutation rate to be used along the entire chromosome.  If, on the other hand, 
 \f0\fs18 ends
-\f2\fs20  is supplied, then 
+\f1\fs20  is supplied, then 
 \f0\fs18 rates
-\f2\fs20  and 
+\f1\fs20  and 
 \f0\fs18 ends
-\f2\fs20  must be the same length, and the values in 
+\f1\fs20  must be the same length, and the values in 
 \f0\fs18 ends
-\f2\fs20  must be specified in ascending order.  In that case, 
+\f1\fs20  must be specified in ascending order.  In that case, 
 \f0\fs18 rates
-\f2\fs20  and 
+\f1\fs20  and 
 \f0\fs18 ends
-\f2\fs20  taken together specify the mutation rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
+\f1\fs20  taken together specify the mutation rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
 \f0\fs18 ends
-\f2\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).\
+\f1\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).\
 For example, if the following call is made:\
 \pard\pardeftab720\ri720\partightenfactor0
 
-\f1 \cf0 \kerning1\expnd0\expndtw0 	
+\f3 \cf0 \kerning1\expnd0\expndtw0 	
 \f0\fs18 initializeMutationRate(c(1e-7, 2.5e-8), c(5000, 9999));\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 then the result is that the mutation rate for bases 
 \f0\fs18 0
-\f2\fs20 ...
+\f1\fs20 ...
 \f0\fs18 5000
-\f2\fs20  (inclusive) will be 
+\f1\fs20  (inclusive) will be 
 \f0\fs18 1e-7
-\f2\fs20 , and the rate for bases 
+\f1\fs20 , and the rate for bases 
 \f0\fs18 5001
-\f2\fs20 ...
+\f1\fs20 ...
 \f0\fs18 9999
-\f2\fs20  (inclusive) will be 
+\f1\fs20  (inclusive) will be 
 \f0\fs18 2.5e-8
-\f2\fs20 .\
+\f1\fs20 .\
 Note that mutations are generated by SLiM only within genomic elements, regardless of the mutation rate map.  In effect, the mutation rate map given is intersected with the coverage area of the genomic elements defined; areas outside of any genomic element are given a mutation rate of zero.  There is no harm in supplying a mutation rate map that specifies rates for areas outside of the genomic elements defined; that rate information is simply not used.  The 
 \f0\fs18 overallMutationRate
-\f2\fs20  family of properties on 
+\f1\fs20  family of properties on 
 \f0\fs18 Chromosome
-\f2\fs20  provide the overall mutation rate after genomic element coverage has been taken into account, so it will reflect the rate at which new mutations will actually be generated in the simulation as configured.\
+\f1\fs20  provide the overall mutation rate after genomic element coverage has been taken into account, so it will reflect the rate at which new mutations will actually be generated in the simulation as configured.\
 If the optional 
 \f0\fs18 sex
-\f2\fs20  parameter is 
+\f1\fs20  parameter is 
 \f0\fs18 "*"
-\f2\fs20  (the default), then the supplied mutation rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
+\f1\fs20  (the default), then the supplied mutation rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
 \f0\fs18 sex
-\f2\fs20  may be 
+\f1\fs20  may be 
 \f0\fs18 "M"
-\f2\fs20  or 
+\f1\fs20  or 
 \f0\fs18 "F"
-\f2\fs20  instead, in which case the supplied mutation rate map is used only for that sex (i.e., when generating a gamete from a parent of that sex).  In this case, two calls must be made to 
+\f1\fs20  instead, in which case the supplied mutation rate map is used only for that sex (i.e., when generating a gamete from a parent of that sex).  In this case, two calls must be made to 
 \f0\fs18 initializeMutationRate()
-\f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default mutation rate map is supplied.
-\f4\i \
+\f1\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default mutation rate map is supplied.
+\f2\i \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\i0\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
-\f1 \
+\f3 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add a mutation type at initialization time.  The 
+\f1\fs20 \cf0 Add a mutation type at initialization time.  The 
 \f0\fs18 id
-\f2\fs20  must not already be used for any mutation type in the simulation.  The 
+\f1\fs20  must not already be used for any mutation type in the simulation.  The 
 \f0\fs18 id
-\f2\fs20  parameter may be either an 
+\f1\fs20  parameter may be either an 
 \f0\fs18 integer
-\f2\fs20  giving the ID of the new mutation type, or a 
+\f1\fs20  giving the ID of the new mutation type, or a 
 \f0\fs18 string
-\f2\fs20  giving the name of the new mutation type (such as 
+\f1\fs20  giving the name of the new mutation type (such as 
 \f0\fs18 "m5"
-\f2\fs20  to specify an ID of 5).\cf2 \expnd0\expndtw0\kerning0
+\f1\fs20  to specify an ID of 5).\cf2 \expnd0\expndtw0\kerning0
   The dominanceCoeff parameter supplies the dominance coefficient for the mutation type; 
 \f0\fs18 0.0
-\f2\fs20  produces no dominance, 
+\f1\fs20  produces no dominance, 
 \f0\fs18 1.0
-\f2\fs20  complete dominance, and values greater than 
+\f1\fs20  complete dominance, and values greater than 
 \f0\fs18 1.0
-\f2\fs20 , overdominance.\cf0 \kerning1\expnd0\expndtw0   The 
+\f1\fs20 , overdominance.\cf0 \kerning1\expnd0\expndtw0   The 
 \f0\fs18 distributionType
-\f2\fs20  may be 
+\f1\fs20  may be 
 \f0\fs18 "f"
-\f2\fs20 , in which case the ellipsis 
+\f1\fs20 , in which case the ellipsis 
 \f0\fs18 ...
-\f2\fs20  should supply a 
+\f1\fs20  should supply a 
 \f0\fs18 numeric$
-\f2\fs20  fixed selection coefficient; 
+\f1\fs20  fixed selection coefficient; 
 \f0\fs18 "e"
-\f2\fs20 , in which case the ellipsis should supply a 
+\f1\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 numeric$
-\f2\fs20  mean selection coefficient for an exponential distribution; 
+\f1\fs20  mean selection coefficient for an exponential distribution; 
 \f0\fs18 "g"
-\f2\fs20 , in which case the ellipsis should supply a 
+\f1\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f1\fs20  mean selection coefficient and a 
 \f0\fs18 numeric$
-\f2\fs20  alpha shape parameter for a gamma distribution; 
+\f1\fs20  alpha shape parameter for a gamma distribution; 
 \f0\fs18 "n"
-\f2\fs20 , in which case the ellipsis should supply a 
+\f1\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 numeric$
-\f2\fs20  mean selection coefficient and a 
+\f1\fs20  mean selection coefficient and a 
 \f0\fs18 numeric$
-\f2\fs20  sigma (standard deviation) parameter for a normal distribution; 
+\f1\fs20  sigma (standard deviation) parameter for a normal distribution; 
 \f0\fs18 "w"
-\f2\fs20 , in which case the ellipsis should supply a 
+\f1\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 numeric$
-\f2\fs20  
+\f1\fs20  
 \f5 \uc0\u955 
-\f2  scale parameter and a 
+\f1  scale parameter and a 
 \f0\fs18 numeric$
-\f2\fs20  k shape parameter for a Weibull distribution; or 
+\f1\fs20  k shape parameter for a Weibull distribution; or 
 \f0\fs18 "s"
-\f2\fs20 , in which case the ellipsis should supply a 
+\f1\fs20 , in which case the ellipsis should supply a 
 \f0\fs18 string$
-\f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
+\f1\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f0\fs18 Substitution
-\f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
+\f1\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
 \f0\fs18 convertToSubstitution
-\f2\fs20  property of 
+\f1\fs20  property of 
 \f0\fs18 MutationType
-\f2\fs20  to 
+\f1\fs20  to 
 \f0\fs18 T
-\f2\fs20 .  In contrast, by default in nonWF models mutations will not be converted into 
+\f1\fs20 .  In contrast, by default in nonWF models mutations will not be converted into 
 \f0\fs18 Substitution
-\f2\fs20  objects when they reach fixation; 
+\f1\fs20  objects when they reach fixation; 
 \f0\fs18 convertToSubstitution
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 F
-\f2\fs20  by default in nonWF models.  To enable conversion in nonWF models for neutral mutation types with no indirect fitness effects, you should therefore set 
+\f1\fs20  by default in nonWF models.  To enable conversion in nonWF models for neutral mutation types with no indirect fitness effects, you should therefore set 
 \f0\fs18 convertToSubstitution
-\f2\fs20  to 
+\f1\fs20  to 
 \f0\fs18 T
-\f2\fs20 .\
+\f1\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
-\f1 \
+\f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 Set the recombination rate per base position per generation along the chromosome.  To be precise, this recombination rate is the probability that a breakpoint will occur between one base and the next base; note that this is different from how the mutation rate is defined (see 
 \f0\fs18 initializeMutationRate()
-\f2\fs20 ).  All rates must be in the interval [
+\f1\fs20 ).  All rates must be in the interval [
 \f0\fs18 0.0
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 0.5
-\f2\fs20 ].  A rate of 
+\f1\fs20 ].  A rate of 
 \f0\fs18 0.5
-\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  Unlike the mutational process in SLiM, then, which can generate more than one mutation at a given site (in one generation/genome), the recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/genome), and a supplied rate of 
+\f1\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  Unlike the mutational process in SLiM, then, which can generate more than one mutation at a given site (in one generation/genome), the recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/genome), and a supplied rate of 
 \f0\fs18 0.5
-\f2\fs20  will therefore result in an actual probability of 
+\f1\fs20  will therefore result in an actual probability of 
 \f0\fs18 0.5
-\f2\fs20  for a crossover at the relevant position.  (Note that this was not true in SLiM 2.x and earlier, however; their implementation of recombination resulted in a crossover probability of about 39.3% for a rate of 
+\f1\fs20  for a crossover at the relevant position.  (Note that this was not true in SLiM 2.x and earlier, however; their implementation of recombination resulted in a crossover probability of about 39.3% for a rate of 
 \f0\fs18 0.5
-\f2\fs20 , due to the use of an inaccurate approximation method.  Recombination rates lower than about 
+\f1\fs20 , due to the use of an inaccurate approximation method.  Recombination rates lower than about 
 \f0\fs18 0.01
-\f2\fs20  would have been essentially exact, since the approximation error became large only as the rate approached 
+\f1\fs20  would have been essentially exact, since the approximation error became large only as the rate approached 
 \f0\fs18 0.5
-\f2\fs20 .)\
+\f1\fs20 .)\
 There are two ways to call this function.  If the optional 
 \f0\fs18 ends
-\f2\fs20  parameter is 
+\f1\fs20  parameter is 
 \f0\fs18 NULL
-\f2\fs20  (the default), then 
+\f1\fs20  (the default), then 
 \f0\fs18 rates
-\f2\fs20  must be a singleton value that specifies a single recombination rate to be used along the entire chromosome.  If, on the other hand, 
+\f1\fs20  must be a singleton value that specifies a single recombination rate to be used along the entire chromosome.  If, on the other hand, 
 \f0\fs18 ends
-\f2\fs20  is supplied, then 
+\f1\fs20  is supplied, then 
 \f0\fs18 rates
-\f2\fs20  and 
+\f1\fs20  and 
 \f0\fs18 ends
-\f2\fs20  must be the same length, and the values in 
+\f1\fs20  must be the same length, and the values in 
 \f0\fs18 ends
-\f2\fs20  must be specified in ascending order.  In that case, 
+\f1\fs20  must be specified in ascending order.  In that case, 
 \f0\fs18 rates
-\f2\fs20  and 
+\f1\fs20  and 
 \f0\fs18 ends
-\f2\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
+\f1\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
 \f0\fs18 ends
-\f2\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).  Note that a recombination rate of 1 centimorgan/Mbp corresponds to a recombination rate of 
+\f1\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).  Note that a recombination rate of 1 centimorgan/Mbp corresponds to a recombination rate of 
 \f0\fs18 1e-8
-\f2\fs20  in the units used by SLiM.\
+\f1\fs20  in the units used by SLiM.\
 For example, if the following call is made:\
 \pard\pardeftab720\ri720\partightenfactor0
 
-\f1 \cf0 \kerning1\expnd0\expndtw0 	
+\f3 \cf0 \kerning1\expnd0\expndtw0 	
 \f0\fs18 initializeRecombinationRate(c(0, 0.5, 0), c(5000, 5001, 9999));\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 then the result is that the recombination rates between bases 
 \f0\fs18 0
-\f2\fs20 \'a0/\'a0
+\f1\fs20 \'a0/\'a0
 \f0\fs18 1
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 1
-\f2\fs20 \'a0/\'a0
+\f1\fs20 \'a0/\'a0
 \f0\fs18 2
-\f2\fs20 , ..., 
+\f1\fs20 , ..., 
 \f0\fs18 4999
-\f2\fs20 \'a0/\'a0
+\f1\fs20 \'a0/\'a0
 \f0\fs18 5000
-\f2\fs20  will be 
+\f1\fs20  will be 
 \f0\fs18 0
-\f2\fs20 , the rate between bases 
+\f1\fs20 , the rate between bases 
 \f0\fs18 5000
-\f2\fs20 \'a0/\'a0
+\f1\fs20 \'a0/\'a0
 \f0\fs18 5001
-\f2\fs20  will be 
+\f1\fs20  will be 
 \f0\fs18 0.5
-\f2\fs20 , and the rate between bases 
+\f1\fs20 , and the rate between bases 
 \f0\fs18 5001
-\f2\fs20 \'a0/\'a0
+\f1\fs20 \'a0/\'a0
 \f0\fs18 5002
-\f2\fs20  onward (up to 
+\f1\fs20  onward (up to 
 \f0\fs18 9998
-\f2\fs20 \'a0/\'a0
+\f1\fs20 \'a0/\'a0
 \f0\fs18 9999
-\f2\fs20 ) will again be 
+\f1\fs20 ) will again be 
 \f0\fs18 0
-\f2\fs20 .  Setting the recombination rate between one specific pair of bases to 
+\f1\fs20 .  Setting the recombination rate between one specific pair of bases to 
 \f0\fs18 0.5
-\f2\fs20  forces recombination to occur with a probability of 
+\f1\fs20  forces recombination to occur with a probability of 
 \f0\fs18 0.5
-\f2\fs20  between those bases, which effectively breaks the simulated locus into separate chromosomes at that point; this example effectively has one simulated chromosome from base position 
+\f1\fs20  between those bases, which effectively breaks the simulated locus into separate chromosomes at that point; this example effectively has one simulated chromosome from base position 
 \f0\fs18 0
-\f2\fs20  to 
+\f1\fs20  to 
 \f0\fs18 5000
-\f2\fs20 , and another from 
+\f1\fs20 , and another from 
 \f0\fs18 5001
-\f2\fs20  to 
+\f1\fs20  to 
 \f0\fs18 9999
-\f2\fs20 .\
+\f1\fs20 .\
 If the optional 
 \f0\fs18 sex
-\f2\fs20  parameter is 
+\f1\fs20  parameter is 
 \f0\fs18 "*"
-\f2\fs20  (the default), then the supplied recombination rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
+\f1\fs20  (the default), then the supplied recombination rate map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
 \f0\fs18 sex
-\f2\fs20  may be 
+\f1\fs20  may be 
 \f0\fs18 "M"
-\f2\fs20  or 
+\f1\fs20  or 
 \f0\fs18 "F"
-\f2\fs20  instead, in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
+\f1\fs20  instead, in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
 \f0\fs18 initializeRecombinationRate()
-\f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
+\f1\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSex(string$\'a0chromosomeType, [numeric$\'a0xDominanceCoeff\'a0=\'a01])
-\f1 \
+\f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Enable and configure sex in the simulation.  The argument 
+\f1\fs20 \cf0 Enable and configure sex in the simulation.  The argument 
 \f0\fs18 chromosomeType
-\f2\fs20  gives the type of chromosome to be simulated; this should be 
+\f1\fs20  gives the type of chromosome to be simulated; this should be 
 \f0\fs18 "A"
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 "X"
-\f2\fs20 , or 
+\f1\fs20 , or 
 \f0\fs18 "Y"
-\f2\fs20 .  If the 
+\f1\fs20 .  If the 
 \f0\fs18 chromosomeType
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 "X"
-\f1\fs20 ,
-\f2  the optional 
+\f3\fs20 ,
+\f1  the optional 
 \f0\fs18 xDominanceCoeff
-\f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
+\f1\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
 \f0\fs18 chromosomeType
-\f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
+\f1\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 (void)initializeSLiMModelType(string$\'a0modelType)
-\f1 \
+\f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 Configure the type of SLiM model used for the simulation.  At present, one of two model types may be selected.  If 
 \f0\fs18 modelType
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 "WF"
-\f2\fs20 , SLiM will use a Wright-Fisher (WF) model; this is the model type that has always been supported by SLiM, and is the model type used if 
+\f1\fs20 , SLiM will use a Wright-Fisher (WF) model; this is the model type that has always been supported by SLiM, and is the model type used if 
 \f0\fs18 initializeSLiMModelType()
-\f2\fs20  is not called.  If 
+\f1\fs20  is not called.  If 
 \f0\fs18 modelType
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 "nonWF"
-\f2\fs20 , SLiM will use a non-Wright-Fisher (nonWF) model instead; this is a new model type supported by SLiM 3.0 and above.\
+\f1\fs20 , SLiM will use a non-Wright-Fisher (nonWF) model instead; this is a new model type supported by SLiM 3.0 and above.\
 If 
 \f0\fs18 initializeSLiMModelType()
-\f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which features are enabled and which are not.\
+\f1\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which features are enabled and which are not.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0nucleotideBased\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
-\f1 \
+\f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 Configure options for the simulation.  If 
 \f0\fs18 initializeSLiMOptions()
-\f2\fs20  is called at all then it must be called before any other initialization function (except 
+\f1\fs20  is called at all then it must be called before any other initialization function (except 
 \f0\fs18 initializeSLiMModelType()
-\f2\fs20 ), so that SLiM knows from the outset which optional features are enabled and which are not.\
+\f1\fs20 ), so that SLiM knows from the outset which optional features are enabled and which are not.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f0\fs18 keepPedigrees
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 T
-\f2\fs20 , SLiM will keep pedigree information for every individual in the simulation, tracking the identity of its parents and grandparents.  This allows individuals to assess their degree of pedigree-based relatedness to other individuals (see 
+\f1\fs20 , SLiM will keep pedigree information for every individual in the simulation, tracking the identity of its parents and grandparents.  This allows individuals to assess their degree of pedigree-based relatedness to other individuals (see 
 \f0\fs18 Individual
-\f2\fs20 \'92s 
+\f1\fs20 \'92s 
 \f0\fs18 relatedness()
-\f2\fs20  method, section 18.6.2), as well as allowing a model to find \'93trios\'94 (two parents and an offspring they generated) using the pedigree properties of 
+\f1\fs20  method, section 18.6.2), as well as allowing a model to find \'93trios\'94 (two parents and an offspring they generated) using the pedigree properties of 
 \f0\fs18 Individual
-\f2\fs20  (section 18.6.1).  \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20  (section 18.6.1).  \cf2 \expnd0\expndtw0\kerning0
 As a side effect of 
 \f0\fs18 keepPedigrees
-\f2\fs20  being 
+\f1\fs20  being 
 \f0\fs18 T
-\f2\fs20 , the 
+\f1\fs20 , the 
 \f0\fs18 pedigreeID
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 pedigreeParentIDs
-\f2\fs20 , and 
+\f1\fs20 , and 
 \f0\fs18 pedigreeGrandparentIDs
-\f2\fs20  properties of 
+\f1\fs20  properties of 
 \f0\fs18 Individual
-\f2\fs20  will have defined values (see section 20.6.1), as will the 
+\f1\fs20  will have defined values (see section 20.6.1), as will the 
 \f0\fs18 genomePedigreeID
-\f2\fs20  property of 
+\f1\fs20  property of 
 \f0\fs18 Genome
-\f2\fs20  (see section 20.3.1).  \cf0 \kerning1\expnd0\expndtw0 Note that pedigree-based relatedness doesn\'92t necessarily correspond to genetic relatedness, due to effects such as assortment and recombination.\
+\f1\fs20  (see section 20.3.1).  \cf0 \kerning1\expnd0\expndtw0 Note that pedigree-based relatedness doesn\'92t necessarily correspond to genetic relatedness, due to effects such as assortment and recombination.\
 If 
 \f0\fs18 dimensionality
-\f2\fs20  is not 
+\f1\fs20  is not 
 \f0\fs18 ""
-\f2\fs20 , SLiM will enable its optional \'93continuous space\'94 facility.  Three values for 
+\f1\fs20 , SLiM will enable its optional \'93continuous space\'94 facility.  Three values for 
 \f0\fs18 dimensionality
-\f2\fs20  are presently supported: 
+\f1\fs20  are presently supported: 
 \f0\fs18 "x"
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 "xy"
-\f2\fs20 , and 
+\f1\fs20 , and 
 \f0\fs18 "xyz"
-\f2\fs20 , specifying that continuous space should be enabled for one, two, or three dimensions, respectively, using (
-\f4\i x
-\f2\i0 ), (
-\f4\i x
-\f2\i0 , 
-\f4\i y
-\f2\i0 ), and (
-\f4\i x
-\f2\i0 , 
-\f4\i y
-\f2\i0 , 
-\f4\i z
-\f2\i0 ) coordinates respectively.  This has a number of side effects.  First of all, it means that the specified properties of 
+\f1\fs20 , specifying that continuous space should be enabled for one, two, or three dimensions, respectively, using (
+\f2\i x
+\f1\i0 ), (
+\f2\i x
+\f1\i0 , 
+\f2\i y
+\f1\i0 ), and (
+\f2\i x
+\f1\i0 , 
+\f2\i y
+\f1\i0 , 
+\f2\i z
+\f1\i0 ) coordinates respectively.  This has a number of side effects.  First of all, it means that the specified properties of 
 \f0\fs18 Individual
-\f2\fs20  (
+\f1\fs20  (
 \f0\fs18 x
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 y
-\f2\fs20 , and/or 
+\f1\fs20 , and/or 
 \f0\fs18 z
-\f2\fs20 ) will be interpreted by SLiM as spatial positions; in particular, SLiMgui will use those properties to display subpopulations spatially.  Second, it allows spatial interactions to be defined, evaluated, and queried using 
+\f1\fs20 ) will be interpreted by SLiM as spatial positions; in particular, SLiMgui will use those properties to display subpopulations spatially.  Second, it allows spatial interactions to be defined, evaluated, and queried using 
 \f0\fs18 initializeInteractionType()
-\f2\fs20  and 
+\f1\fs20  and 
 \f0\fs18 interaction()
-\f2\fs20  callbacks.  And third, it enables the use of any other properties and methods related to continuous space, such as setting the spatial boundaries of subpopulations, which would otherwise raise an error.\
+\f1\fs20  callbacks.  And third, it enables the use of any other properties and methods related to continuous space, such as setting the spatial boundaries of subpopulations, which would otherwise raise an error.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 If 
 \f0\fs18 periodicity
-\f2\fs20  is not 
+\f1\fs20  is not 
 \f0\fs18 ""
-\f2\fs20 , SLiM will designate the specified spatial dimensions as being periodic \'96 wrapping around at the edges of the spatial boundaries of that dimension.  This option may only be used if the 
+\f1\fs20 , SLiM will designate the specified spatial dimensions as being periodic \'96 wrapping around at the edges of the spatial boundaries of that dimension.  This option may only be used if the 
 \f0\fs18 dimensionality
-\f2\fs20  parameter to 
+\f1\fs20  parameter to 
 \f0\fs18 initializeSLiMOptions()
-\f2\fs20  has been used to enable spatiality in the model, and only spatial dimensions that were specified in the dimensionality of the model may be declared to be periodic (but if desired, it is permissible to make just a subset of those dimensions periodic; it is not an all-or-none proposition).  For example, if the specified dimensionality is 
+\f1\fs20  has been used to enable spatiality in the model, and only spatial dimensions that were specified in the dimensionality of the model may be declared to be periodic (but if desired, it is permissible to make just a subset of those dimensions periodic; it is not an all-or-none proposition).  For example, if the specified dimensionality is 
 \f0\fs18 "xy"
-\f2\fs20 , the model\'92s periodicity may be 
+\f1\fs20 , the model\'92s periodicity may be 
 \f0\fs18 "x"
-\f2\fs20 , 
+\f1\fs20 , 
 \f0\fs18 "y"
-\f2\fs20 , or 
+\f1\fs20 , or 
 \f0\fs18 "xy"
-\f2\fs20  (or 
+\f1\fs20  (or 
 \f0\fs18 ""
-\f2\fs20 , the default, to specify that there are no periodic dimensions).  A one-dimensional periodic model would model a space like the perimeter of a circle.  A two-dimensional model periodic in one of those dimensions would model a space like a cylinder without its end caps; if periodic in both dimensions, the modeled space is a torus.  The shapes of three-dimensional periodic models are harder to visualize, but are essentially higher-dimensional analogues of these concepts.  Periodic boundary conditions are commonly used to model spatial scenarios without \'93edge effects\'94, since there are no edges in the periodic spatial dimensions.  The 
+\f1\fs20 , the default, to specify that there are no periodic dimensions).  A one-dimensional periodic model would model a space like the perimeter of a circle.  A two-dimensional model periodic in one of those dimensions would model a space like a cylinder without its end caps; if periodic in both dimensions, the modeled space is a torus.  The shapes of three-dimensional periodic models are harder to visualize, but are essentially higher-dimensional analogues of these concepts.  Periodic boundary conditions are commonly used to model spatial scenarios without \'93edge effects\'94, since there are no edges in the periodic spatial dimensions.  The 
 \f0\fs18 pointPeriodic()
-\f2\fs20  method of 
+\f1\fs20  method of 
 \f0\fs18 Subpopulation
-\f2\fs20  is typically used in conjunction with this option, to actually implement the periodic boundary condition for the specified dimensions.\
+\f1\fs20  is typically used in conjunction with this option, to actually implement the periodic boundary condition for the specified dimensions.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f0\fs18 mutationRuns
-\f2\fs20  is not 
+\f1\fs20  is not 
 \f0\fs18 0
-\f2\fs20 , SLiM will use the value given as the number of mutation runs inside 
+\f1\fs20 , SLiM will use the value given as the number of mutation runs inside 
 \f0\fs18 Genome
-\f2\fs20  objects; if it is 
+\f1\fs20  objects; if it is 
 \f0\fs18 0
-\f2\fs20  (the default), SLiM will calculate a number of mutation runs that it estimates will work well.  Internally, SLiM divides genomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable.  The optimal number of mutation runs will depend upon the machine and even the compiler used to build SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation.  Specifying the number of mutation runs is an advanced technique, but in certain cases it can improve performance significantly; in particular, if a simulation involves a very long chromosome but only a small portion of that chromosome is actually used by the simulation, it may be beneficial to specify that a single mutation run be used with 
+\f1\fs20  (the default), SLiM will calculate a number of mutation runs that it estimates will work well.  Internally, SLiM divides genomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable.  The optimal number of mutation runs will depend upon the machine and even the compiler used to build SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation.  Specifying the number of mutation runs is an advanced technique, but in certain cases it can improve performance significantly; in particular, if a simulation involves a very long chromosome but only a small portion of that chromosome is actually used by the simulation, it may be beneficial to specify that a single mutation run be used with 
 \f0\fs18 mutationRuns=1
-\f1\fs20 .\
+\f3\fs20 .\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2 \cf0 If 
+\f1 \cf0 If 
 \f0\fs18 preventIncidentalSelfing
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 T
-\f2\fs20 , incidental selfing in hermaphroditic models will be prevented by SLiM.  By default (i.e., if 
+\f1\fs20 , incidental selfing in hermaphroditic models will be prevented by SLiM.  By default (i.e., if 
 \f0\fs18 preventIncidentalSelfing
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 F
-\f2\fs20 ), SLiM chooses the first and second parents in a biparental mating event independently.  It is therefore possible for the same individual to be chosen as both the first and second parent, resulting in selfing events even when the selfing rate is zero.  In many models this is unimportant, since it happens fairly infrequently and does not have large consequences.  This behavior is SLiM\'92s default because it is the simplest option, and produces results that most closely align with simple analytical population genetics models.  However, in some models this selfing can be undesirable and problematic.  In particular, models that involve very high variance in fitness or very small effective population sizes may see elevated rates of selfing that substantially influence model results.  If 
+\f1\fs20 ), SLiM chooses the first and second parents in a biparental mating event independently.  It is therefore possible for the same individual to be chosen as both the first and second parent, resulting in selfing events even when the selfing rate is zero.  In many models this is unimportant, since it happens fairly infrequently and does not have large consequences.  This behavior is SLiM\'92s default because it is the simplest option, and produces results that most closely align with simple analytical population genetics models.  However, in some models this selfing can be undesirable and problematic.  In particular, models that involve very high variance in fitness or very small effective population sizes may see elevated rates of selfing that substantially influence model results.  If 
 \f0\fs18 preventIncidentalSelfing
-\f2\fs20  is set to 
+\f1\fs20  is set to 
 \f0\fs18 T
-\f2\fs20 , all such incidental selfing will be prevented (by choosing a new second parent if the first parent was chosen again).  Non-incidental selfing, as requested by the selfing rate, will still be permitted.  Note that if incidental selfing is prevented, SLiM will hang if it is unable to find a different second parent; there must always be at least two individuals in the population with non-zero fitness, and 
+\f1\fs20 , all such incidental selfing will be prevented (by choosing a new second parent if the first parent was chosen again).  Non-incidental selfing, as requested by the selfing rate, will still be permitted.  Note that if incidental selfing is prevented, SLiM will hang if it is unable to find a different second parent; there must always be at least two individuals in the population with non-zero fitness, and 
 \f0\fs18 mateChoice()
-\f2\fs20  and 
+\f1\fs20  and 
 \f0\fs18 modifyChild()
-\f2\fs20  callbacks must not absolutely prevent those two individuals from producing viable offspring.  Enforcement of the prohibition on incidental selfing will occur after 
+\f1\fs20  callbacks must not absolutely prevent those two individuals from producing viable offspring.  Enforcement of the prohibition on incidental selfing will occur after 
 \f0\fs18 mateChoice()
-\f2\fs20  callbacks have been called (and thus the default mating weights provided to 
+\f1\fs20  callbacks have been called (and thus the default mating weights provided to 
 \f0\fs18 mateChoice()
-\f2\fs20  callbacks will 
-\f4\i not
-\f2\i0  exclude the first parent!), but will occur before 
+\f1\fs20  callbacks will 
+\f2\i not
+\f1\i0  exclude the first parent!), but will occur before 
 \f0\fs18 modifyChild()
-\f2\fs20  callbacks are called (so those callbacks may assume that the first and second parents are distinct).\
+\f1\fs20  callbacks are called (so those callbacks may assume that the first and second parents are distinct).\
 \cf2 \expnd0\expndtw0\kerning0
 If 
 \f0\fs18 nucleotideBased
-\f2\fs20  is 
+\f1\fs20  is 
 \f0\fs18 T
-\f2\fs20 , the model will be nucleotide-based.  In this case, auto-generated mutations (i.e., mutation types used by genomic element types) must be nucleotide-based, and an ancestral nucleotide sequence must be supplied with 
+\f1\fs20 , the model will be nucleotide-based.  In this case, auto-generated mutations (i.e., mutation types used by genomic element types) must be nucleotide-based, and an ancestral nucleotide sequence must be supplied with 
 \f0\fs18 initializeAncestralSequence()
-\f2\fs20 .  Non-nucleotide-based mutations may still be used, but may not be referenced by genomic element types.  A mutation rate (or rate map) may not be supplied with 
+\f1\fs20 .  Non-nucleotide-based mutations may still be used, but may not be referenced by genomic element types.  A mutation rate (or rate map) may not be supplied with 
 \f0\fs18 initializeMutationRate()
-\f2\fs20 ; instead, a hotspot map may (optionally) be supplied with 
+\f1\fs20 ; instead, a hotspot map may (optionally) be supplied with 
 \f0\fs18 initializeHotspotMap()
-\f2\fs20 .  This choice has many consequences across SLiM. \
+\f1\fs20 .  This choice has many consequences across SLiM. \
 \cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f0\fs18 \cf0 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [float$\'a0simplificationRatio\'a0=\'a010]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
-\f1 \
+\f3 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+\f1\fs20 \cf2 \expnd0\expndtw0\kerning0
 Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function.\
 The 
 \f0\fs18 recordMutations
-\f2\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned on by default since mutation recording is generally useful.\
+\f1\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned on by default since mutation recording is generally useful.\
 The 
 \f0\fs18 simplificationRatio
-\f2\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  This is a speed\'96memory tradeoff: more frequent simplification (lower 
+\f1\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  This is a speed\'96memory tradeoff: more frequent simplification (lower 
 \f0\fs18 simplificationRatio
-\f2\fs20 ) means the stored tree sequences will use less memory, but at a cost of somewhat longer run times.  Conversely, a larger 
+\f1\fs20 ) means the stored tree sequences will use less memory, but at a cost of somewhat longer run times.  Conversely, a larger 
 \f0\fs18 simplificationRatio
-\f2\fs20  means that SLiM will wait longer between simplifications.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
+\f1\fs20  means that SLiM will wait longer between simplifications.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
 \f0\fs18 10
-\f2\fs20  thus requests that SLiM try to find a generation interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
+\f1\fs20  thus requests that SLiM try to find a generation interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
 \f0\fs18 INF
-\f2\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
+\f1\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
 \f0\fs18 0
-\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\
+\f1\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\
 The 
 \f0\fs18 checkCoalescence
-\f2\fs20  parameter controls whether a check for full coalescence is conducted after each simplification.  If a model will call 
+\f1\fs20  parameter controls whether a check for full coalescence is conducted after each simplification.  If a model will call 
 \f0\fs18 treeSeqCoalesced()
-\f2\fs20  to check for coalescence during its execution, 
+\f1\fs20  to check for coalescence during its execution, 
 \f0\fs18 checkCoalescence
-\f2\fs20  should be set to 
+\f1\fs20  should be set to 
 \f0\fs18 T
-\f2\fs20 .  Since the coalescence checks entail a performance penalty, the default of 
+\f1\fs20 .  Since the coalescence checks entail a performance penalty, the default of 
 \f0\fs18 F
-\f2\fs20  is preferable otherwise.  See the documentation for 
+\f1\fs20  is preferable otherwise.  See the documentation for 
 \f0\fs18 treeSeqCoalesced()
-\f2\fs20  for further discussion.\
+\f1\fs20  for further discussion.\
 The 
 \f0\fs18 runCrosschecks
-\f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
+\f1\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
 }

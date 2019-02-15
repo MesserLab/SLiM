@@ -351,6 +351,63 @@ enum class MutationStackPolicy : char {
 
 // *******************************************************************************************************************
 //
+//	NucleotideArray
+//
+#pragma mark -
+#pragma mark NucleotideArray
+#pragma mark -
+	
+class NucleotideArray
+{
+	// This is a very quick-and-dirty class for storing a nucleotide sequence compactly.  It does not
+	// do any bounds-checking or validation; that is the client's responsibility.  BCH 14 Feb. 2019
+	
+private:
+	// The length of the array, in nucleotides
+	std::size_t length_;
+	
+	// Nucleotides are stored as 2-bit unsigned quantities in uint64_t, where A=0, C=1, G=2, T=3.
+	// The least-significant bits of each uint64_t are filled first.  Each uint64_t holds 32 nucleotides.
+	uint64_t *buffer_;
+	
+public:
+	NucleotideArray(const NucleotideArray&) = delete;				// no copying
+	NucleotideArray& operator=(const NucleotideArray&) = delete;	// no copying
+	NucleotideArray(void) = delete;									// no null construction
+	NucleotideArray(std::size_t p_length) : length_(p_length) {
+		buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+	}
+	NucleotideArray(std::size_t p_length, const int64_t *p_int_buffer);
+	NucleotideArray(std::size_t p_length, const char *p_char_buffer);
+	NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector);
+	~NucleotideArray(void) {
+		if (buffer_) free(buffer_);
+	}
+	
+	std::size_t size() const { return length_; }
+	void Print(std::ostream &p_stream) const;
+	
+	inline int NucleotideAtIndex(std::size_t p_index) const {
+		uint64_t chunk = buffer_[p_index / 32];
+		return (int)((chunk >> ((p_index % 32) * 2)) & 0x03);
+	}
+	inline void SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc) {
+		uint64_t &chunk = buffer_[p_index / 32];
+		int shift = ((p_index % 32) * 2);
+		uint64_t mask = ((uint64_t)0x03) << shift;
+		uint64_t nucbits = (uint64_t)p_nuc << shift;
+		
+		chunk = (chunk & ~mask) | nucbits;
+	}
+	
+	friend std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array);
+};
+
+std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array);
+
+
+// *******************************************************************************************************************
+//
 //	Global strings and IDs
 //
 #pragma mark -
@@ -365,6 +422,7 @@ void SLiM_ConfigureContext(void);
 void SLiM_RegisterGlobalStringsAndIDs(void);
 
 
+extern const std::string gStr_initializeAncestralSequence;
 extern const std::string gStr_initializeGenomicElement;
 extern const std::string gStr_initializeGenomicElementType;
 extern const std::string gStr_initializeMutationType;
@@ -636,7 +694,8 @@ extern const std::string gStr_reproduction;
 
 
 enum _SLiMGlobalStringID : int {
-	gID_initializeGenomicElement = gEidosID_LastEntry + 1,
+	gID_initializeAncestralSequence = gEidosID_LastEntry + 1,
+	gID_initializeGenomicElement,
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,
 	gID_initializeGeneConversion,

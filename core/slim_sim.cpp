@@ -119,6 +119,10 @@ SLiMSim::~SLiMSim(void)
 	delete script_;
 	script_ = nullptr;
 	
+	// Dispose of any nucleotide sequence
+	delete ancestral_seq_buffer_;
+	ancestral_seq_buffer_ = nullptr;
+	
 	// Dispose of mutation run experiment data
 	if (x_experiments_enabled_)
 	{
@@ -2066,6 +2070,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_options_declarations_ = 0;
 	num_treeseq_declarations_ = 0;
 	num_modeltype_declarations_ = 0;
+	num_ancseq_declarations_ = 0;
 	
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
@@ -2154,6 +2159,9 @@ void SLiMSim::RunInitializeCallbacks(void)
 			if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback) && (script_block->sex_specificity_ != IndividualSex::kUnspecified))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): reproduction() callbacks may not be limited by sex in non-sexual models." << EidosTerminate(script_block->identifier_token_);
 	}
+	
+	if (nucleotide_based_ && (num_ancseq_declarations_ == 0))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralSequence()." << EidosTerminate();
 	
 	CheckMutationStackPolicy();
 	
@@ -7614,7 +7622,8 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	if (generation_ != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() may only be called in an initialize() callback." << EidosTerminate();
 	
-	if (p_function_name.compare(gStr_initializeGenomicElement) == 0)			return ExecuteContextFunction_initializeGenomicElement(p_function_name, p_arguments, p_argument_count, p_interpreter);
+	if (p_function_name.compare(gStr_initializeAncestralSequence) == 0)			return ExecuteContextFunction_initializeAncestralSequence(p_function_name, p_arguments, p_argument_count, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeGenomicElement) == 0)		return ExecuteContextFunction_initializeGenomicElement(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElementType) == 0)	return ExecuteContextFunction_initializeGenomicElementType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeInteractionType) == 0)		return ExecuteContextFunction_initializeInteractionType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeMutationType) == 0)			return ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_argument_count, p_interpreter);
@@ -7627,6 +7636,164 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)		return ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	
 	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
+}
+
+//	*********************	(void)initializeAncestralSequence(is sequence)
+//
+EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *sequence_value = p_arguments[0].get();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	if (num_ancseq_declarations_ > 0)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() may be called only once." << EidosTerminate();
+	if (!nucleotide_based_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() may be only be called in a nucleotide-based model." << EidosTerminate();
+	
+	EidosValueType sequence_value_type = sequence_value->Type();
+	int sequence_value_count = sequence_value->Count();
+	
+	if (sequence_value_type == EidosValueType::kValueInt)
+	{
+		// A vector of integers has been provided, where ACGT == 0123
+		if (sequence_value_count == 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires a sequence of length >= 1." << EidosTerminate();
+		
+		if (sequence_value_count == 1)
+		{
+			// singleton case
+			int64_t int_value = sequence_value->IntAtIndex(0, nullptr);
+			
+			// validate
+			if ((int_value < 0) || (int_value > 3))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires integer nucleotide values to be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+			
+			ancestral_seq_buffer_ = new NucleotideArray(1);
+			ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
+		}
+		else
+		{
+			// non-singleton, direct access
+			const EidosValue_Int_vector *int_vec = sequence_value->IntVector();
+			const int64_t *int_data = int_vec->data();
+			
+			// validate
+			for (int i = 0; i < sequence_value_count; ++i)
+			{
+				int64_t int_value = int_data[i];
+				
+				if ((int_value < 0) || (int_value > 3))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires integer nucleotide values to be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+			}
+			
+			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
+		}
+	}
+	else if (sequence_value_type == EidosValueType::kValueString)
+	{
+		if (sequence_value_count != 1)
+		{
+			// A vector of characters has been provided, which must all be "A" / "C" / "G" / "T"
+			if (sequence_value_count == 0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires a sequence of length >= 1." << EidosTerminate();
+			
+			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			
+			// validate
+			for (int i = 0; i < sequence_value_count; ++i)
+			{
+				const std::string &nuc_string = (*string_vec)[i];
+				
+				if (nuc_string.length() != 1)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires nucleotide strings to be of length 1." << EidosTerminate();
+				
+				char nuc_char = nuc_string[0];
+				
+				if ((nuc_char != 'A') && (nuc_char != 'C') && (nuc_char != 'G') && (nuc_char != 'T'))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires nucleotide strings to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			}
+			
+			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
+		}
+		else	// sequence_value_count == 1
+		{
+			std::string sequence_string = sequence_value->StringAtIndex(0, nullptr);
+			bool contains_only_nuc = (sequence_string.find_first_not_of("ACGT") == std::string::npos);
+			
+			if (contains_only_nuc)
+			{
+				// A singleton string has been provided that contains only ACGT; we will interpret it as a nucleotide string
+				// validated by find_first_not_of() above
+				ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
+			}
+			else
+			{
+				// A singleton string has been provided that contains characters other than ACGT; we will interpret it as a filesystem path for a FASTA file
+				std::string file_path = Eidos_ResolvedPath(sequence_string);
+				std::ifstream file_stream(file_path.c_str());
+				
+				if (!file_stream.is_open())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): the file at path " << sequence_string << " could not be opened or does not exist." << EidosTerminate();
+				
+				bool started_sequence = false;
+				std::string line, fasta_sequence;
+				
+				while (getline(file_stream, line))
+				{
+					// skippable lines are blank or start with a '>' or ';'
+					// we skip over them if they're at the start of the file; once we start a sequence, they terminate the sequence
+					bool skippable = ((line.length() == 0) || (line[0] == '>') || (line[0] == ';'));
+					
+					if (!started_sequence && skippable)
+						continue;
+					if (skippable)
+						break;
+					
+					// otherwise, append the nucleotides from this line, removing a \r if one is present at the end of the line
+					if (line.back() == '\r')
+						line.pop_back();
+					
+					fasta_sequence.append(line);
+					started_sequence = true;
+				}
+				
+				if (file_stream.bad())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): a filesystem error occurred while reading the file at path " << sequence_string << "." << EidosTerminate();
+				
+				// validate
+				contains_only_nuc = (fasta_sequence.find_first_not_of("ACGT") == std::string::npos);
+				
+				if (!contains_only_nuc)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
+				if (fasta_sequence.length() == 0)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
+				
+				ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
+			}
+		}
+	}
+	
+	// debugging
+	std::cout << "ancestral sequence set: " << *ancestral_seq_buffer_ << std::endl;
+	
+	if (DEBUG_INPUT)
+	{
+		output_stream << "initializeAncestralSequence(\"";
+		
+		// output up to 20 nucleotides, followed by an ellipsis if necessary
+		for (std::size_t i = 0; (i < 20) && (i < ancestral_seq_buffer_->size()); ++i)
+			output_stream << "ACGT"[ancestral_seq_buffer_->NucleotideAtIndex(i)];
+		
+		if (ancestral_seq_buffer_->size() > 20)
+			output_stream << "...";
+		
+		output_stream << "\");" << std::endl;
+	}
+	
+	num_ancseq_declarations_++;
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	(void)initializeGenomicElement(io<GenomicElementType>$ genomicElementType, integer$ start, integer$ end)
@@ -8309,7 +8476,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	if (num_options_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() may be called only once." << EidosTerminate();
 	
-	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_treeseq_declarations_ > 0))
+	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions except initializeSLiMModelType()." << EidosTerminate();
 	
 	{
@@ -8572,7 +8739,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMModelType(const std:
 	if (num_modeltype_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() may be called only once." << EidosTerminate();
 	
-	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0))
+	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() must be called before all other initialization functions." << EidosTerminate();
 	
 	{
@@ -8612,6 +8779,8 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 	
 	if (!sim_0_signatures_.size())
 	{
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralSequence, nullptr, kEidosValueMaskVOID, "SLiM"))
+									   ->AddIntString("sequence"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, "SLiM"))

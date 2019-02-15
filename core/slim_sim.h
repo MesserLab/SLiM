@@ -353,6 +353,7 @@ private:
 	int num_options_declarations_;
 	int num_treeseq_declarations_;
 	int num_modeltype_declarations_;
+	int num_ancseq_declarations_;
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
@@ -375,6 +376,7 @@ private:
 	
 	// nucleotide-based models
 	bool nucleotide_based_ = false;
+	NucleotideArray *ancestral_seq_buffer_ = nullptr;
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
@@ -624,6 +626,7 @@ public:
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
 	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeAncestralSequence(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

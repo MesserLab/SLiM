@@ -8,7 +8,10 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
-	add new nucleotide-based model type
+	add new nucleotide-based model type:
+		add nucleotideBased flag to initializeSLiMOptions()
+		add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
+		add initializeAncestralSequence() function
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

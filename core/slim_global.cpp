@@ -518,10 +518,122 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 
 
 #pragma mark -
+#pragma mark NucleotideArray
+#pragma mark -
+
+NucleotideArray::NucleotideArray(std::size_t p_length, const int64_t *p_int_buffer) : length_(p_length)
+{
+	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+	
+	// Eat 32 nucleotides at a time if we can
+	std::size_t index = 0, buf_index = 0;
+	
+	for ( ; index < length_; index += 32)
+	{
+		uint64_t accumulator = 0;
+		
+		for (std::size_t i = 0; i < 32; )
+		{
+			uint64_t nuc = (uint64_t)p_int_buffer[index + i];
+			
+			accumulator |= (nuc << (i * 2));
+			
+			if (index + ++i == length_)
+				break;
+		}
+		
+		buffer_[buf_index++] = accumulator;
+	}
+}
+
+NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer) : length_(p_length)
+{
+	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+	
+	// Eat 32 nucleotides at a time if we can
+	std::size_t index = 0, buf_index = 0;
+	
+	for ( ; index < length_; index += 32)
+	{
+		uint64_t accumulator = 0;
+		
+		for (std::size_t i = 0; i < 32; )
+		{
+			char nuc_char = p_char_buffer[index + i];
+			uint64_t nuc;
+			
+			if (nuc_char == 'A') nuc = 0;
+			else if (nuc_char == 'C') nuc = 1;
+			else if (nuc_char == 'G') nuc = 2;
+			else if (nuc_char == 'T') nuc = 3;
+			else nuc = 0;	// should never happen if the client behaves; we don't bounds-check, though
+			
+			accumulator |= (nuc << (i * 2));
+			
+			if (index + ++i == length_)
+				break;
+		}
+		
+		buffer_[buf_index++] = accumulator;
+	}
+}
+
+NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector) : length_(p_length)
+{
+	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+	
+	// Eat 32 nucleotides at a time if we can
+	std::size_t index = 0, buf_index = 0;
+	
+	for ( ; index < length_; index += 32)
+	{
+		uint64_t accumulator = 0;
+		
+		for (std::size_t i = 0; i < 32; )
+		{
+			const std::string &nuc_string = p_string_vector[index + i];
+			uint64_t nuc;
+			
+			if (nuc_string == "A") nuc = 0;
+			else if (nuc_string == "C") nuc = 1;
+			else if (nuc_string == "G") nuc = 2;
+			else if (nuc_string == "T") nuc = 3;
+			else nuc = 0;	// should never happen if the client behaves; we don't bounds-check, though
+			
+			accumulator |= (nuc << (i * 2));
+			
+			if (index + ++i == length_)
+				break;
+		}
+		
+		buffer_[buf_index++] = accumulator;
+	}
+}
+
+std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array)
+{
+	// inefficient, just for debugging...
+	for (std::size_t index = 0; index < p_nuc_array.length_; ++index)
+	{
+		int nuc = p_nuc_array.NucleotideAtIndex(index);
+		
+		if (nuc == 0)		p_out << 'A';
+		else if (nuc == 1)	p_out << 'C';
+		else if (nuc == 2)	p_out << 'G';
+		else if (nuc == 3)	p_out << 'T';
+		else				p_out << '?';	// should never happen
+	}
+	
+	return p_out;
+}
+
+
+#pragma mark -
 #pragma mark Global strings and IDs
 #pragma mark -
 
 // initialize...() functions defined by SLiMSim
+const std::string gStr_initializeAncestralSequence = "initializeAncestralSequence";
 const std::string gStr_initializeGenomicElement = "initializeGenomicElement";
 const std::string gStr_initializeGenomicElementType = "initializeGenomicElementType";
 const std::string gStr_initializeMutationType = "initializeMutationType";
@@ -835,6 +947,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 	{
 		been_here = true;
 		
+		Eidos_RegisterStringForGlobalID(gStr_initializeAncestralSequence, gID_initializeAncestralSequence);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElement, gID_initializeGenomicElement);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElementType, gID_initializeGenomicElementType);
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationType, gID_initializeMutationType);
