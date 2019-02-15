@@ -560,6 +560,10 @@ public:
 		if (p_z) *p_z = periodic_z_;
 	}
 	
+	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
+	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)											{ return ancestral_seq_buffer_; }
+
+	
 	// TREE SEQUENCE RECORDING
 #pragma mark -
 #pragma mark treeseq recording methods

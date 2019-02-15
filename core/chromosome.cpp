@@ -1086,11 +1086,125 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 {
 	switch (p_method_id)
 	{
+		case gID_ancestralNucleotides:	return ExecuteMethod_ancestralNucleotides(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setMutationRate:		return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setRecombinationRate:	return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_drawBreakpoints:		return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+//	*********************	– (is)ancestralNucleotides([Ni$ start = NULL], [Ni$ end = NULL], [s$ format = "string"])
+//
+EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	// The ancestral sequence is actually kept by SLiMSim, so go get it
+	SLiMSim *sim = (SLiMSim *)p_interpreter.Context();
+	
+	if (!sim->IsNucleotideBased())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): ancestralNucleotides() may only be called in nucleotide-based models." << EidosTerminate();
+	
+	NucleotideArray *sequence = sim->AncestralSequence();
+	EidosValue *start_value = p_arguments[0].get();
+	EidosValue *end_value = p_arguments[1].get();
+	
+	int64_t start = (start_value->Type() == EidosValueType::kValueNULL) ? 0 : start_value->IntAtIndex(0, nullptr);
+	int64_t end = (end_value->Type() == EidosValueType::kValueNULL) ? last_position_ : end_value->IntAtIndex(0, nullptr);
+	
+	if ((start < 0) || (end < 0) || (start > last_position_) || (end > last_position_) || (start > end))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): start and end must be within the chromosome's extent, and start must be <= end." << EidosTerminate();
+	if (((std::size_t)start >= sequence->size()) || ((std::size_t)end >= sequence->size()))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): (internal error) start and end must be within the ancestral sequence's length." << EidosTerminate();
+	
+	int64_t length = end - start + 1;
+	EidosValue *format_value = p_arguments[2].get();
+	std::string format = format_value->StringAtIndex(0, nullptr);
+	
+	// Handle requests of length 1 by returning premade singleton EidosValues
+	if (length == 1)
+	{
+		if (format == "integer")
+		{
+			switch (sequence->NucleotideAtIndex(start))
+			{
+				case 0:		return gStaticEidosValue_Integer0;
+				case 1:		return gStaticEidosValue_Integer1;
+				case 2:		return gStaticEidosValue_Integer2;
+				case 3:		return gStaticEidosValue_Integer3;
+			}
+			
+			return gStaticEidosValueNULL;
+		}
+		else	// "string", "char"
+		{
+			switch (sequence->NucleotideAtIndex(start))
+			{
+				case 0:		return gStaticEidosValue_StringA;
+				case 1:		return gStaticEidosValue_StringC;
+				case 2:		return gStaticEidosValue_StringG;
+				case 3:		return gStaticEidosValue_StringT;
+			}
+			
+			return gStaticEidosValueNULL;
+		}
+	}
+	
+	// Handle requests of length > 1 by constructing the result
+	if (length > INT_MAX)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
+	
+	if (format == "char")
+	{
+		// return a vector of one-character strings, "T" "A" "T" "A"
+		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)length);
+		
+		for (int value_index = 0; value_index < length; ++value_index)
+		{
+			switch (sequence->NucleotideAtIndex(value_index))
+			{
+				case 0:		string_result->PushString(gStr_A); break;
+				case 1:		string_result->PushString(gStr_C); break;
+				case 2:		string_result->PushString(gStr_G); break;
+				case 3:		string_result->PushString(gStr_T); break;
+				default:	string_result->PushString("*"); break;		// should never happen
+			}
+		}
+		
+		return EidosValue_SP(string_result);
+	}
+	else if (format == "integer")
+	{
+		// return a vector of integers, 3 0 3 0
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+		
+		for (int value_index = 0; value_index < length; ++value_index)
+			int_result->set_int_no_check(sequence->NucleotideAtIndex(value_index), value_index);
+		
+		return EidosValue_SP(int_result);
+	}
+	else if (format == "string")
+	{
+		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
+		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
+		std::string &nuc_string = string_result->StringValue_Mutable();
+		
+		for (int value_index = 0; value_index < length; ++value_index)
+		{
+			switch (sequence->NucleotideAtIndex(value_index))
+			{
+				case 0:		nuc_string.append(1, 'A'); break;
+				case 1:		nuc_string.append(1, 'C'); break;
+				case 2:		nuc_string.append(1, 'G'); break;
+				case 3:		nuc_string.append(1, 'T'); break;
+				default:	nuc_string.append(1, '*'); break;		// should never happen
+			}
+		}
+		
+		return EidosValue_SP(string_result);
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): parameter format must be either 'string', 'char', or 'integer'." << EidosTerminate();
 }
 
 //	*********************	– (integer)drawBreakpoints([No<Individual>$ parent = NULL], [Ni$ n = NULL])
@@ -1548,6 +1662,7 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));

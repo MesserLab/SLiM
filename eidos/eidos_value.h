@@ -124,6 +124,8 @@ extern EidosValue_Logical_SP gStaticEidosValue_LogicalF;
 
 extern EidosValue_Int_SP gStaticEidosValue_Integer0;
 extern EidosValue_Int_SP gStaticEidosValue_Integer1;
+extern EidosValue_Int_SP gStaticEidosValue_Integer2;
+extern EidosValue_Int_SP gStaticEidosValue_Integer3;
 
 extern EidosValue_Float_SP gStaticEidosValue_Float0;
 extern EidosValue_Float_SP gStaticEidosValue_Float0Point5;
@@ -692,7 +694,7 @@ public:
 	virtual int Count_Virtual(void) const;
 	
 	inline __attribute__((always_inline)) const std::string &StringValue(void) const { return value_; }
-	//inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { delete cached_script_; cached_script_ = nullptr; return value_; }			// very dangerous; do not use
+	inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { delete cached_script_; cached_script_ = nullptr; return value_; }			// very dangerous; do not use
 	inline __attribute__((always_inline)) void SetValue(const std::string &p_string) { delete cached_script_; cached_script_ = nullptr; value_ = p_string; }	// very dangerous; used only in Evaluate_For()
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const;

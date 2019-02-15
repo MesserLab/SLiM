@@ -29,8 +29,8 @@
 #include <stdio.h>
 
 #include "eidos_global.h"
+#include "eidos_value.h"
 
-class EidosValue;
 class MutationType;
 class SLiMSim;
 class EidosInterpreter;
@@ -335,6 +335,11 @@ enum class MutationStackPolicy : char {
 	kKeepLast,
 };
 
+extern EidosValue_String_SP gStaticEidosValue_StringA;
+extern EidosValue_String_SP gStaticEidosValue_StringC;
+extern EidosValue_String_SP gStaticEidosValue_StringG;
+extern EidosValue_String_SP gStaticEidosValue_StringT;
+
 
 // *******************************************************************************************************************
 //
@@ -530,6 +535,7 @@ extern const std::string gStr_spatiality;
 extern const std::string gStr_spatialPosition;
 extern const std::string gStr_maxDistance;
 
+extern const std::string gStr_ancestralNucleotides;
 extern const std::string gStr_setMutationRate;
 extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_drawBreakpoints;
@@ -673,6 +679,9 @@ extern const std::string gStr_InteractionType;
 extern const std::string gStr_SLiMgui;
 
 extern const std::string gStr_A;
+extern const std::string gStr_C;
+extern const std::string gStr_G;
+extern const std::string gStr_T;
 extern const std::string gStr_X;
 extern const std::string gStr_Y;
 extern const std::string gStr_f;
@@ -802,6 +811,7 @@ enum _SLiMGlobalStringID : int {
 	gID_spatialPosition,
 	gID_maxDistance,
 	
+	gID_ancestralNucleotides,
 	gID_setMutationRate,
 	gID_setRecombinationRate,
 	gID_drawBreakpoints,

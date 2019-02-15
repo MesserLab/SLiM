@@ -29,6 +29,12 @@
 #include <vector>
 
 
+EidosValue_String_SP gStaticEidosValue_StringA;
+EidosValue_String_SP gStaticEidosValue_StringC;
+EidosValue_String_SP gStaticEidosValue_StringG;
+EidosValue_String_SP gStaticEidosValue_StringT;
+
+
 void TestSparseArray(void);
 void TestSparseArray(void)
 {
@@ -296,6 +302,12 @@ void SLiM_WarmUp(void)
 		
 		// Register global strings and IDs for SLiM; this is in addition to the globals set up by Eidos
 		SLiM_RegisterGlobalStringsAndIDs();
+		
+		// Allocate global permanents
+		gStaticEidosValue_StringA = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_A));
+		gStaticEidosValue_StringC = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_C));
+		gStaticEidosValue_StringG = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_G));
+		gStaticEidosValue_StringT = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_T));
 		
 #if DO_MEMORY_CHECKS
 		// Check for a memory limit and prepare for memory-limit testing
@@ -594,10 +606,10 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::st
 			const std::string &nuc_string = p_string_vector[index + i];
 			uint64_t nuc;
 			
-			if (nuc_string == "A") nuc = 0;
-			else if (nuc_string == "C") nuc = 1;
-			else if (nuc_string == "G") nuc = 2;
-			else if (nuc_string == "T") nuc = 3;
+			if (nuc_string == gStr_A) nuc = 0;
+			else if (nuc_string == gStr_C) nuc = 1;
+			else if (nuc_string == gStr_G) nuc = 2;
+			else if (nuc_string == gStr_T) nuc = 3;
 			else nuc = 0;	// should never happen if the client behaves; we don't bounds-check, though
 			
 			accumulator |= (nuc << (i * 2));
@@ -744,6 +756,7 @@ const std::string gStr_spatialPosition = "spatialPosition";
 const std::string gStr_maxDistance = "maxDistance";
 
 // mostly method names
+const std::string gStr_ancestralNucleotides = "ancestralNucleotides";
 const std::string gStr_setMutationRate = "setMutationRate";
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
 const std::string gStr_drawBreakpoints = "drawBreakpoints";
@@ -891,6 +904,9 @@ const std::string gStr_SLiMgui = "SLiMgui";
 
 // mostly other fixed strings
 const std::string gStr_A = "A";
+const std::string gStr_C = "C";
+const std::string gStr_G = "G";
+const std::string gStr_T = "T";
 const std::string gStr_X = "X";
 const std::string gStr_Y = "Y";
 const std::string gStr_f = "f";
@@ -1055,6 +1071,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_spatialPosition, gID_spatialPosition);
 		Eidos_RegisterStringForGlobalID(gStr_maxDistance, gID_maxDistance);
 		
+		Eidos_RegisterStringForGlobalID(gStr_ancestralNucleotides, gID_ancestralNucleotides);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate, gID_setMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_drawBreakpoints, gID_drawBreakpoints);

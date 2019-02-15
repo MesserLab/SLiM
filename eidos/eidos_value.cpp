@@ -55,6 +55,8 @@ EidosValue_Logical_SP gStaticEidosValue_LogicalF;
 
 EidosValue_Int_SP gStaticEidosValue_Integer0;
 EidosValue_Int_SP gStaticEidosValue_Integer1;
+EidosValue_Int_SP gStaticEidosValue_Integer2;
+EidosValue_Int_SP gStaticEidosValue_Integer3;
 
 EidosValue_Float_SP gStaticEidosValue_Float0;
 EidosValue_Float_SP gStaticEidosValue_Float0Point5;

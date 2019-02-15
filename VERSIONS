@@ -12,6 +12,7 @@ development head:
 		add nucleotideBased flag to initializeSLiMOptions()
 		add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
 		add initializeAncestralSequence() function
+		add Chromosome.ancestralNucleotides() method
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

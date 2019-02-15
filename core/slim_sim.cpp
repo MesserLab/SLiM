@@ -2160,8 +2160,13 @@ void SLiMSim::RunInitializeCallbacks(void)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): reproduction() callbacks may not be limited by sex in non-sexual models." << EidosTerminate(script_block->identifier_token_);
 	}
 	
-	if (nucleotide_based_ && (num_ancseq_declarations_ == 0))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralSequence()." << EidosTerminate();
+	if (nucleotide_based_)
+	{
+		if (num_ancseq_declarations_ == 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralSequence()." << EidosTerminate();
+		if (!ancestral_seq_buffer_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
+	}
 	
 	CheckMutationStackPolicy();
 	
@@ -2207,6 +2212,13 @@ void SLiMSim::RunInitializeCallbacks(void)
 	// initialize chromosome
 	chromosome_.InitializeDraws();
 	chromosome_.ChooseMutationRunLayout(preferred_mutrun_count_);
+	
+	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
+	if (nucleotide_based_)
+	{
+		if (ancestral_seq_buffer_->size() != (std::size_t)(chromosome_.last_position_ + 1))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): The chromosome length (" << chromosome_.last_position_ + 1 << " base" << (chromosome_.last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << ancestral_seq_buffer_->size() << " base" << (ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
+	}
 	
 	// kick off mutation run experiments, if needed
 	InitiateMutationRunExperiments();
@@ -7638,7 +7650,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
 }
 
-//	*********************	(void)initializeAncestralSequence(is sequence)
+//	*********************	(integer$)initializeAncestralSequence(is sequence)
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -7793,7 +7805,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 	
 	num_ancseq_declarations_++;
 	
-	return gStaticEidosValueVOID;
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(ancestral_seq_buffer_->size()));
 }
 
 //	*********************	(void)initializeGenomicElement(io<GenomicElementType>$ genomicElementType, integer$ start, integer$ end)
@@ -8779,7 +8791,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 	
 	if (!sim_0_signatures_.size())
 	{
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralSequence, nullptr, kEidosValueMaskVOID, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralSequence, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
 									   ->AddIntString("sequence"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
