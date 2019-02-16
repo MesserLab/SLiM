@@ -22,6 +22,8 @@
 #include "slim_global.h"
 #include "eidos_rng.h"
 
+#include <string>
+
 
 //	(is)randomSequence(i$ length, [Nf basis = NULL], [s$ format = "string"])
 EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
@@ -51,7 +53,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_a
 		pG = basis_value->FloatAtIndex(2, nullptr);
 		pT = basis_value->FloatAtIndex(3, nullptr);
 		
-		if (!isfinite(pA) || !isfinite(pC) || !isfinite(pG) || !isfinite(pT) || (pA < 0.0) || (pC < 0.0) || (pG < 0.0) || (pT < 0.0))
+		if (!std::isfinite(pA) || !std::isfinite(pC) || !std::isfinite(pG) || !std::isfinite(pT) || (pA < 0.0) || (pC < 0.0) || (pG < 0.0) || (pT < 0.0))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomSequence): function randomSequence() requires basis values to be finite and >= 0.0." << EidosTerminate(nullptr);
 		
 		double sum = pA + pC + pG + pT;
