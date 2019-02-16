@@ -349,8 +349,8 @@ It is generally recommended that the parent individual be supplied to this metho
 \f4\fs20  will be used to determine which map is used; in this case, a non-
 \f3\fs18 NULL
 \f4\fs20  value 
-\f1\i \cf2 must
-\f4\i0 \cf2  be supplied for 
+\f1\i must
+\f4\i0  be supplied for 
 \f3\fs18 parent
 \f4\fs20 , since the choice of recombination rate map must be determined.  Second, in models that define 
 \f3\fs18 recombination()
@@ -2058,12 +2058,12 @@ Returns a vector containing distances between individuals in
 \f4\fs20 , for example, then 
 \f3\fs18 point[0]
 \f4\fs20  is assumed to be an 
-\f1\i \cf2 x
-\f4\i0 \cf2  value, and 
+\f1\i x
+\f4\i0  value, and 
 \f3\fs18 point[1]
 \f4\fs20  is assumed to be a 
-\f1\i \cf2 z
-\f4\i0 \cf2  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\f1\i z
+\f4\i0  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
 \f3\fs18 spatialPosition
 \f4\fs20  property for 
 \f3\fs18 point
@@ -2135,7 +2135,7 @@ You must explicitly call
 \f3\fs18 evaluate()
 \f4\fs20  at an appropriate time in the life cycle before the interaction is used, but after any relevant changes have been made to the population.  SLiM will invalidate any existing interactions after any portion of the generation cycle in which new individuals have been born or existing individuals have died.  In a WF model, these events occur just before 
 \f3\fs18 late()
-\f4\fs20  events execute (see the WF generation cycle diagram in chapter 18), so 
+\f4\fs20  events execute (see the WF generation cycle diagram), so 
 \f3\fs18 late()
 \f4\fs20  events are often the appropriate place to put 
 \f3\fs18 evaluate()
@@ -2145,7 +2145,7 @@ You must explicitly call
 \f3\fs18 early()
 \f4\fs20  events and then individuals die just before 
 \f3\fs18 late()
-\f4\fs20  events (see the nonWF generation cycle diagram in chapter 19), so interactions will be invalidated twice during each generation cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
+\f4\fs20  events (see the nonWF generation cycle diagram), so interactions will be invalidated twice during each generation cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
 \f3\fs18 late()
 \f4\fs20  event, while an interaction that influences fitness or mortality should usually be evaluated in an 
 \f3\fs18 early()
@@ -2184,14 +2184,14 @@ You must explicitly call
 \f4\fs20 , within the maximum interaction distance according to the distance metric of the 
 \f3\fs18 InteractionType
 \f4\fs20 .  More specifically, this method counts the number of individuals which can 
-\f1\i \cf2 exert
-\f4\i0 \cf2  an interaction 
-\f1\i \cf2 upon
-\f4\i0 \cf2  each focal individual; it does not count individuals which only 
-\f1\i \cf2 feel
-\f4\i0 \cf2  an interaction 
-\f1\i \cf2 from
-\f4\i0 \cf2  a focal individual.  This method is similar to 
+\f1\i exert
+\f4\i0  an interaction 
+\f1\i upon
+\f4\i0  each focal individual; it does not count individuals which only 
+\f1\i feel
+\f4\i0  an interaction 
+\f1\i from
+\f4\i0  a focal individual.  This method is similar to 
 \f3\fs18 nearestInteractingNeighbors()
 \f4\fs20  (when passed a large count so as to guarantee that all interacting individuals are returned), but this method returns only a count of the interacting individuals, not a vector containing the individuals.  This method may also be called in a vectorized fashion, with a non-singleton vector of individuals, unlike 
 \f3\fs18 nearestInteractingNeighbors()
@@ -2252,14 +2252,14 @@ Importantly, distances are calculated according to the spatiality of the
 \f4\fs20 , according to the distance metric of the 
 \f3\fs18 InteractionType
 \f4\fs20 .  More specifically, this method returns only individuals which can 
-\f1\i \cf2 exert
-\f4\i0 \cf2  an interaction 
-\f1\i \cf2 upon
-\f4\i0 \cf2  the focal individual; it does not include individuals that only 
-\f1\i \cf2 feel
-\f4\i0 \cf2  an interaction 
-\f1\i \cf2 from
-\f4\i0 \cf2  the focal individual.  To obtain all of the interacting individuals within the maximum interaction distance of 
+\f1\i exert
+\f4\i0  an interaction 
+\f1\i upon
+\f4\i0  the focal individual; it does not include individuals that only 
+\f1\i feel
+\f4\i0  an interaction 
+\f1\i from
+\f4\i0  the focal individual.  To obtain all of the interacting individuals within the maximum interaction distance of 
 \f3\fs18 individual
 \f4\fs20 , simply pass a value for 
 \f3\fs18 count
@@ -2511,14 +2511,14 @@ Note that all interactions are automatically reset to an unevaluated state at th
   If a mutation has a 
 \f3\fs18 selectionCoeff
 \f4\fs20  of 
-\f1\i \cf2 s
-\f4\i0 \cf2 , the multiplicative fitness effect of the mutation in a homozygote is 1+
-\f1\i \cf2 s
-\f4\i0 \cf2 ; in a heterozygote it is 1+
-\f1\i \cf2 hs
-\f4\i0 \cf2 , where 
-\f1\i \cf2 h
-\f4\i0 \cf2  is the dominance coefficient kept by the mutation type.
+\f1\i s
+\f4\i0 , the multiplicative fitness effect of the mutation in a homozygote is 1+
+\f1\i s
+\f4\i0 ; in a heterozygote it is 1+
+\f1\i hs
+\f4\i0 , where 
+\f1\i h
+\f4\i0  is the dominance coefficient kept by the mutation type.
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 
 \f4 Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation 
@@ -3251,7 +3251,7 @@ pid => (integer$)\
 \f3\fs18 .txt
 \f4\fs20  path extension, and opened as untitled model files), and PDF files (typically with a 
 \f3\fs18 .pdf
-\f4\fs20  path extension).  This can be particularly useful for opening PDF documents created by the simulation itself, often by sublaunching a plotting process in R or another environment; see section 13.11 for an example.\
+\f4\fs20  path extension).  This can be particularly useful for opening PDF documents created by the simulation itself, often by sublaunching a plotting process in R or another environment.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)pauseExecution(void)\
@@ -3347,7 +3347,7 @@ If the model is being profiled, or is executing forward to a generation number e
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 This property has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0 \cf2   In SLiM 3.2.1 and later, use 
+\f4\b0   In SLiM 3.2.1 and later, use 
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -3802,7 +3802,7 @@ If the optional parameter
 \f3\fs18 filePath
 \f4\fs20  is 
 \f3\fs18 NULL
-\f4\fs20  (the default), output will be sent to Eidos\'92s output stream (see section 4.2.1).  Otherwise, output will be sent to the filesystem path specified by 
+\f4\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
 \f3\fs18 filePath
 \f4\fs20 , overwriting that file if 
 \f3\fs18 append
@@ -3909,7 +3909,7 @@ In SLiM 2.3 and later when using the WF model, calling
 \f3\fs18 late()
 \f4\fs20  event causes a warning; calling from a 
 \f3\fs18 late()
-\f4\fs20  event is almost always correct in WF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation cycle without the need to force their recalculation (see chapter 18, and comments on 
+\f4\fs20  event is almost always correct in WF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation cycle without the need to force their recalculation (see comments on 
 \f3\fs18 recalculateFitness()
 \f4\fs20 ).\
 In SLiM 3.0 when using the nonWF model, calling 
@@ -3918,7 +3918,7 @@ In SLiM 3.0 when using the nonWF model, calling
 \f3\fs18 early()
 \f4\fs20  event causes a warning; calling from an 
 \f3\fs18 early()
-\f4\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation cycle without the need to force their recalculation (see chapter 19, and comments on 
+\f4\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation cycle without the need to force their recalculation (see comments on 
 \f3\fs18 recalculateFitness()
 \f4\fs20 ).\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -4105,9 +4105,7 @@ The optional parameter
 \f3\fs18 InteractionType
 \f4\fs20  is evaluated.  The new 
 \f3\fs18 SLiMEidosBlock
-\f4\fs20  will be defined as a global variable immediately by this method (see section 18
-\f5 .
-\f4 10), and will also be returned by this method.
+\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -4308,10 +4306,10 @@ Register a block of Eidos source code, represented as the
 \f4\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
 \f3\fs18 SLiMEidosBlock
 \f4\fs20  objects, and is active immediately; it 
-\f1\i \cf2 may
-\f4\i0 \cf2  be eligible to execute in the current generation (see section 21.8 for details).  The new 
+\f1\i may
+\f4\i0  be eligible to execute in the current generation.  The new 
 \f3\fs18 SLiMEidosBlock
-\f4\fs20  will be defined as a global variable immediately by this method (see section 20.10), and will also be returned by this method.\
+\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(object<SLiMEidosBlock>$
@@ -4383,7 +4381,7 @@ Because this method can create a large number of duplicate script blocks, it can
 \f4\fs20  at the beginning of the event.  It is legal to reschedule a script block while the block is executing; a call like 
 \f3\fs18 sim.rescheduleScriptBlock(self, sim.generation + 10, sim.generation + 10);
 \f4\fs20  made inside a given block would therefore also cause the block to execute every tenth generation, although this sort of self-rescheduling code is probably harder to read, maintain, and debug.\
-Whichever way of specifying the generation set is used, the discussion in section 19.7 applies: 
+Whichever way of specifying the generation set is used, 
 \f3\fs18 block
 \f4\fs20  may continue to be executed during the current life cycle stage even after it has been rescheduled, unless it is made inactive using its 
 \f3\fs18 active
@@ -4783,7 +4781,7 @@ Note that any defined, active, and applicable
 \f4\fs20  are used (since that is the maternal parent).\
 If the 
 \f3\fs18 modifyChild()
-\f4\fs20  callback process results in rejection of the proposed child (see section 19.4), a new offspring individual will not be generated, and this method will return 
+\f4\fs20  callback process results in rejection of the proposed child, a new offspring individual will not be generated, and this method will return 
 \f3\fs18 NULL
 \f4\fs20 .  To force the generation of an offspring individual from a given pair of parents, you could loop until 
 \f3\fs18 addCrossed()
@@ -4907,8 +4905,8 @@ This method supports several possible configurations for
 \f4\fs20 , and 
 \f3\fs18 breaks2
 \f4\fs20 , 
-\f1\i \cf2 mutatis mutandis
-\f4\i0 \cf2 .  Note that when new mutations are generated by 
+\f1\i mutatis mutandis
+\f4\i0 .  Note that when new mutations are generated by 
 \f3\fs18 addRecombinant()
 \f4\fs20 , their 
 \f3\fs18 subpopID
@@ -4930,8 +4928,8 @@ The
 \f4\fs20  is 
 \f3\fs18 NULL
 \f4\fs20 ), the sex will be inferred from the strands provided where possible (when modeling an X or Y chromosome), or will be chosen randomly otherwise (when modeling autosomes); it will 
-\f1\i \cf2 not
-\f4\i0 \cf2  be inferred from the sex of the individuals possessing the parental strands, even when the reproductive mode is essentially clonal from a single parent, since such inference would be ambiguous in the general case.  Similarly, the offspring is considered to have no parents for the purposes of pedigree tracking, since there may be more than two \'93parents\'94 in the general case.  When modeling the X or Y, 
+\f1\i not
+\f4\i0  be inferred from the sex of the individuals possessing the parental strands, even when the reproductive mode is essentially clonal from a single parent, since such inference would be ambiguous in the general case.  Similarly, the offspring is considered to have no parents for the purposes of pedigree tracking, since there may be more than two \'93parents\'94 in the general case.  When modeling the X or Y, 
 \f3\fs18 strand1
 \f4\fs20  and 
 \f3\fs18 strand2
@@ -5038,16 +5036,16 @@ The
 \f4\fs20  vector of length two, such that 
 \f3\fs18 center[0]
 \f4\fs20  provides the 
-\f1\i \cf2 x
-\f4\i0 \cf2 -coordinate and 
+\f1\i x
+\f4\i0 -coordinate and 
 \f3\fs18 center[1]
 \f4\fs20  provides the 
-\f1\i \cf2 y
-\f4\i0 \cf2 -coordinate.  The square central area of the Population Visualization occupies scaled coordinates in [0,1] for both 
-\f1\i \cf2 x
-\f4\i0 \cf2  and 
-\f1\i \cf2 y
-\f4\i0 \cf2 , so the values in 
+\f1\i y
+\f4\i0 -coordinate.  The square central area of the Population Visualization occupies scaled coordinates in [0,1] for both 
+\f1\i x
+\f4\i0  and 
+\f1\i y
+\f4\i0 , so the values in 
 \f3\fs18 center
 \f4\fs20  must be within those bounds.  If a value of 
 \f3\fs18 NULL
@@ -5129,20 +5127,20 @@ Defines a spatial map for the subpopulation.  The map will henceforth be identif
 \f4\fs20  must be of length 
 \f3\fs18 2
 \f4\fs20 , specifying the size of the values grid in the 
-\f1\i \cf2 x
-\f4\i0 \cf2  and 
-\f1\i \cf2 z
-\f4\i0 \cf2  dimensions.  The parameter 
+\f1\i x
+\f4\i0  and 
+\f1\i z
+\f4\i0  dimensions.  The parameter 
 \f3\fs18 values
 \f4\fs20  then gives the values of the grid; it must be of length equal to the product of the 
 \f3\fs18 gridSize
 \f4\fs20  elements, and specifies values varying first (i.e., fastest) in the 
-\f1\i \cf2 x
-\f4\i0 \cf2  dimension, then in 
-\f1\i \cf2 y
-\f4\i0 \cf2 , then in 
-\f1\i \cf2 z
-\f4\i0 \cf2 .\
+\f1\i x
+\f4\i0  dimension, then in 
+\f1\i y
+\f4\i0 , then in 
+\f1\i z
+\f4\i0 .\
 Beginning in SLiM 2.6, the 
 \f3\fs18 values
 \f4\fs20  parameter may be a matrix/array with the number of dimensions appropriate for the declared spatiality of the map; for example, a map with spatiality 
@@ -5162,24 +5160,24 @@ Beginning in SLiM 2.6, the
 \f4\fs20 .  The data in 
 \f3\fs18 values
 \f4\fs20  is interpreted just as is described above for the vector case: varying first in 
-\f1\i \cf2 x
-\f4\i0 \cf2 , then in 
-\f1\i \cf2 y
-\f4\i0 \cf2 , then in 
-\f1\i \cf2 z
-\f4\i0 \cf2 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
+\f1\i x
+\f4\i0 , then in 
+\f1\i y
+\f4\i0 , then in 
+\f1\i z
+\f4\i0 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
 \f3\fs18 "xy"
 \f4\fs20  each column of the 
 \f3\fs18 values
 \f4\fs20  matrix will provide map data as 
-\f1\i \cf2 x
-\f4\i0 \cf2  varies and 
-\f1\i \cf2 y
-\f4\i0 \cf2  remains constant.  This will be confusing if you think of matrix columns as being \'93
-\f1\i \cf2 x
-\f4\i0 \cf2 \'94 and matrix rows as being \'93
-\f1\i \cf2 y
-\f4\i0 \cf2 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
+\f1\i x
+\f4\i0  varies and 
+\f1\i y
+\f4\i0  remains constant.  This will be confusing if you think of matrix columns as being \'93
+\f1\i x
+\f4\i0 \'94 and matrix rows as being \'93
+\f1\i y
+\f4\i0 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
 \f3\fs18 values
 \f4\fs20  before and a 
 \f3\fs18 gridSize
@@ -5198,16 +5196,16 @@ Beginning in SLiM 2.6, the
 \f4\fs20 ).  If, however, you are looking at a matrix as printed in the Eidos console, and want that matrix to be used as a spatial map in SLiM in the same orientation, you should use the transpose of the matrix, as supplied by the 
 \f3\fs18 t()
 \f4\fs20  function.  Actually, since matrices are printed in the console with each successive row having a 
-\f1\i \cf2 larger
-\f4\i0 \cf2  index, whereas in Cartesian (
-\f1\i \cf2 x
-\f4\i0 \cf2 , 
-\f1\i \cf2 y
-\f4\i0 \cf2 ) coordinates 
-\f1\i \cf2 y
-\f4\i0 \cf2 -values increase as you go 
-\f1\i \cf2 upward
-\f4\i0 \cf2 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
+\f1\i larger
+\f4\i0  index, whereas in Cartesian (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) coordinates 
+\f1\i y
+\f4\i0 -values increase as you go 
+\f1\i upward
+\f4\i0 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
 \f3\fs18 t(map[(nrow(map)-1):0,])
 \f4\fs20 , in order to make the spatial map display in SLiMgui as you expect (since SLiMgui displays everything in Cartesian coordinates).  Apologies if this is confusing; it would be nice if matrix notation, programming languages, and Descartes all agreed on such things, but they do not, so be very careful that your spatial maps are oriented as you wish them to be!\
 Moving on to the other parameters of 
@@ -5245,7 +5243,7 @@ The
 \f3\fs18 valueRange[1]
 \f4\fs20  will map to the last 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 14 for an illustration of its use.\
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see example recipes for an illustration of its use.\
 Note that at present, SLiMgui will only display spatial maps of spatiality 
 \f3\fs18 "x"
 \f4\fs20 , 
@@ -5255,8 +5253,8 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f4\fs20 ; the color-mapping parameters will simply be ignored by SLiMgui for other spatiality values (even if the spatiality is a superset of these values; SLiMgui will not attempt to display an 
 \f3\fs18 "xyz"
 \f4\fs20  spatial map, for example, since it has no way to choose which 2D slice through the 
-\f1\i \cf2 xyz
-\f4\i0 \cf2  space it ought to display).  The 
+\f1\i xyz
+\f4\i0  space it ought to display).  The 
 \f3\fs18 spatialMapColor()
 \f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps with color-mapping parameters defined, SLiMgui will choose just one for display; it will prefer an 
 \f3\fs18 "xy"

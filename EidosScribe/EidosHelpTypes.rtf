@@ -1,7 +1,9 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf460
-{\fonttbl\f0\fswiss\fcharset0 Optima-Regular;\f1\fnil\fcharset0 Menlo-Italic;\f2\fnil\fcharset0 Menlo-Regular;
-\f3\froman\fcharset0 TimesNewRomanPSMT;}
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf200
+{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
+\f3\fnil\fcharset0 Menlo-Regular;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 LucidaGrande;
+\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fswiss\fcharset0 Optima-Bold;}
 {\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
@@ -11,29 +13,29 @@
 \f0\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\i0 \cf0 The 
-\f2\fs18 integer
-\f0\fs22  type is used in Eidos to represent integers \'96 whole numbers, with no fractional component.  Unlike in many languages, exponential notation may be used to specify 
-\f2\fs18 integer
-\f0\fs22  literals (\'93literals\'94 means values stated literally in the script, rather than derived through calculations).\
+\f2\i0 \cf0 The 
+\f3\fs18 integer
+\f2\fs22  type is used in Eidos to represent integers \'96 whole numbers, with no fractional component.  Unlike in many languages, exponential notation may be used to specify 
+\f3\fs18 integer
+\f2\fs22  literals (\'93literals\'94 means values stated literally in the script, rather than derived through calculations).\
 The 
-\f2\fs18 integer
-\f0\fs22  type is advantageous primarily because it is exact; it does not suffer from any sort of roundoff error. Exact comparison with integer constants is therefore safe; roundoff error will not lead to problems caused by 
-\f2\fs18 0.999999999
-\f0\fs22  being deemed to be unequal to 
-\f2\fs18 1
-\f3\fs22 .
-\f0   However, 
-\f2\fs18 integer
-\f0\fs22  is disadvantageous because it can only represent a limited range of values, and beyond that range, results will be unpredictable.  Eidos uses 64 bits to store 
-\f2\fs18 integer
-\f0\fs22  values, so that range is quite wide; to 
-\f2\fs18 \uc0\u8722 9223372036854775806
-\f0\fs22  to 
-\f2\fs18 9223372036854775807
-\f0\fs22 , to be exact.  That is broad, but it is still enormously narrower than the range of numbers representable with 
-\f2\fs18 float
-\f3\fs22 .\
+\f3\fs18 integer
+\f2\fs22  type is advantageous primarily because it is exact; it does not suffer from any sort of roundoff error. Exact comparison with integer constants is therefore safe; roundoff error will not lead to problems caused by 
+\f3\fs18 0.999999999
+\f2\fs22  being deemed to be unequal to 
+\f3\fs18 1
+\f4\fs22 .
+\f2   However, 
+\f3\fs18 integer
+\f2\fs22  is disadvantageous because it can only represent a limited range of values, and beyond that range, results will be unpredictable.  Eidos uses 64 bits to store 
+\f3\fs18 integer
+\f2\fs22  values, so that range is quite wide; to 
+\f3\fs18 \uc0\u8722 9223372036854775806
+\f2\fs22  to 
+\f3\fs18 9223372036854775807
+\f2\fs22 , to be exact.  That is broad, but it is still enormously narrower than the range of numbers representable with 
+\f3\fs18 float
+\f4\fs22 .\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i \cf0 2.1.2  ITEM: 2. type 
@@ -41,261 +43,263 @@ The
 \f0\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\i0 \cf0 The 
-\f2\fs18 float
-\f0\fs22  type is used in Eidos to represent all non-
-\f2\fs18 integer
-\f0\fs22  numbers \'96 fractions and real numbers.  Exponential notation may be used to specify 
-\f2\fs18 float
-\f0\fs22  literals; in particular; literals with a decimal point or a negative exponent are taken to be of type 
-\f2\fs18 float
-\f0\fs22 .\
+\f2\i0 \cf0 The 
+\f3\fs18 float
+\f2\fs22  type is used in Eidos to represent all non-
+\f3\fs18 integer
+\f2\fs22  numbers \'96 fractions and real numbers.  Exponential notation may be used to specify 
+\f3\fs18 float
+\f2\fs22  literals; in particular; literals with a decimal point or a negative exponent are taken to be of type 
+\f3\fs18 float
+\f2\fs22 .\
 Note that this rule means that some literals are represented using 
-\f2\fs18 float
-\f0\fs22  even though they could also be represented using 
-\f2\fs18 integer
-\f3\fs22 .\
+\f3\fs18 float
+\f2\fs22  even though they could also be represented using 
+\f3\fs18 integer
+\f4\fs22 .\
 
-\f0 The 
-\f2\fs18 float
-\f0\fs22  type is advantageous primarily because it can represent an enormously wide range of values.  Eidos uses C++\'92s 
-\f2\fs18 double
-\f0\fs22  type to represent its 
-\f2\fs18 float
-\f0\fs22  values; the range of values allowed will depend upon your computer\'92s settings, but it will be vast.  If that range is exceeded, or if numerical problems occur, type 
-\f2\fs18 float
-\f0\fs22  can also represent values as infinity or as \'93Not A Number\'94 (
-\f2\fs18 INF
-\f0\fs22  and 
-\f2\fs18 NAN
-\f0\fs22 , respectively, in Eidos).  The 
-\f2\fs18 float
-\f0\fs22  type is thus more robust for operations that might produce such values.  The disadvantage of 
-\f2\fs18 float
-\f0\fs22  is that it is inexact; some values cannot be represented exactly (just as 1/3 in base 10 cannot be represented exactly, and must be written as 0.3333333...).  Roundoff can thus cause comparison errors, overflow and underflow errors, and the accumulation of numerical error.\
+\f2 The 
+\f3\fs18 float
+\f2\fs22  type is advantageous primarily because it can represent an enormously wide range of values.  Eidos uses C++\'92s 
+\f3\fs18 double
+\f2\fs22  type to represent its 
+\f3\fs18 float
+\f2\fs22  values; the range of values allowed will depend upon your computer\'92s settings, but it will be vast.  If that range is exceeded, or if numerical problems occur, type 
+\f3\fs18 float
+\f2\fs22  can also represent values as infinity or as \'93Not A Number\'94 (
+\f3\fs18 INF
+\f2\fs22  and 
+\f3\fs18 NAN
+\f2\fs22 , respectively, in Eidos).  The 
+\f3\fs18 float
+\f2\fs22  type is thus more robust for operations that might produce such values.  The disadvantage of 
+\f3\fs18 float
+\f2\fs22  is that it is inexact; some values cannot be represented exactly (just as 1/3 in base 10 cannot be represented exactly, and must be written as 0.3333333...).  Roundoff can thus cause comparison errors, overflow and underflow errors, and the accumulation of numerical error.\
 Several 
-\f2\fs18 float
-\f0\fs22  constants are defined in Eidos; besides 
-\f2\fs18 INF
-\f0\fs22  and 
-\f2\fs18 NAN
-\f0\fs22 , 
-\f2\fs18 PI
-\f0\fs22  is defined as \uc0\u960  (3.14159...), and 
-\f2\fs18 E
-\f0\fs22  is defined as 
-\f3\i e
-\f0\i0  (2.71828...).\
+\f3\fs18 float
+\f2\fs22  constants are defined in Eidos; besides 
+\f3\fs18 INF
+\f2\fs22  and 
+\f3\fs18 NAN
+\f2\fs22 , 
+\f3\fs18 PI
+\f2\fs22  is defined as 
+\f5 \uc0\u960 
+\f2  (3.14159...), and 
+\f3\fs18 E
+\f2\fs22  is defined as 
+\f6\i e
+\f2\i0  (2.71828...).\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.1.3  ITEM: 3. type 
+\f0\i \cf0 2.1.3  ITEM: 3. type 
 \f1\fs18 logical
 \f0\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\i0 \cf0 The 
-\f2\fs18 logical
-\f0\fs22  type represents true and false values, such as those from comparisons (see section 2.3.3).  In many languages this type is called something like 
-\f2\fs18 boolean
-\f0\fs22  or 
-\f2\fs18 BOOL
-\f0\fs22 ; Eidos follows R in using the name 
-\f2\fs18 logical
-\f0\fs22  instead.\
+\f2\i0 \cf0 The 
+\f3\fs18 logical
+\f2\fs22  type represents true and false values, such as those from comparisons.  In many languages this type is called something like 
+\f3\fs18 boolean
+\f2\fs22  or 
+\f3\fs18 BOOL
+\f2\fs22 ; Eidos follows R in using the name 
+\f3\fs18 logical
+\f2\fs22  instead.\
 There are no 
-\f2\fs18 logical
-\f0\fs22  literals in Eidos.  However, there are defined constants that behave in essentially the same way as literals.  In particular, 
-\f2\fs18 T
-\f0\fs22  is defined as true, and 
-\f2\fs18 F
-\f0\fs22  is defined as false.  These are the only two values that the 
-\f2\fs18 logical
-\f0\fs22  type can take.  As in a great many other languages, these 
-\f2\fs18 logical
-\f0\fs22  values have equivalent numerical values; 
-\f2\fs18 F
-\f0\fs22  is 
-\f2\fs18 0
-\f0\fs22 , and 
-\f2\fs18 T
-\f0\fs22  is 
-\f2\fs18 1
-\f0\fs22  (and in fact any non-zero value is considered to be true if converted to 
-\f2\fs18 logical
-\f0\fs22  type).  Values of type 
-\f2\fs18 integer
-\f0\fs22  or 
-\f2\fs18 float
-\f0\fs22  may therefore be converted to 
-\f2\fs18 logical
-\f0\fs22 , and vice-versa.\
+\f3\fs18 logical
+\f2\fs22  literals in Eidos.  However, there are defined constants that behave in essentially the same way as literals.  In particular, 
+\f3\fs18 T
+\f2\fs22  is defined as true, and 
+\f3\fs18 F
+\f2\fs22  is defined as false.  These are the only two values that the 
+\f3\fs18 logical
+\f2\fs22  type can take.  As in a great many other languages, these 
+\f3\fs18 logical
+\f2\fs22  values have equivalent numerical values; 
+\f3\fs18 F
+\f2\fs22  is 
+\f3\fs18 0
+\f2\fs22 , and 
+\f3\fs18 T
+\f2\fs22  is 
+\f3\fs18 1
+\f2\fs22  (and in fact any non-zero value is considered to be true if converted to 
+\f3\fs18 logical
+\f2\fs22  type).  Values of type 
+\f3\fs18 integer
+\f2\fs22  or 
+\f3\fs18 float
+\f2\fs22  may therefore be converted to 
+\f3\fs18 logical
+\f2\fs22 , and vice-versa.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.1.4  ITEM: 4. type 
+\f0\i \cf0 2.1.4  ITEM: 4. type 
 \f1\fs18 string
 \f0\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\i0 \cf0 The 
-\f2\fs18 string
-\f0\fs22  type represents a string of characters \'96 a word, a sentence, a paragraph, the complete works of Shakespeare.  There is no formatting on a 
-\f2\fs18 string
-\f0\fs22  \'96 no 
-\f3 font
-\f0 , no 
+\f2\i0 \cf0 The 
+\f3\fs18 string
+\f2\fs22  type represents a string of characters \'96 a word, a sentence, a paragraph, the complete works of Shakespeare.  There is no formatting on a 
+\f3\fs18 string
+\f2\fs22  \'96 no 
+\f4 font
+\f2 , no 
 \fs16 point size
 \fs22 , no 
-\b bold
-\b0  or 
-\i italic
-\i0 .  Instead, it is just a character stream.  A 
-\f2\fs18 string
-\f0\fs22  literal must be enclosed by either single or double quotation marks, 
-\f2\fs18 '
-\f0\fs22  or 
-\f2\fs18 "
-\f0\fs22 .  This choice simplifies writing Eidos strings that themselves contain quote characters, because you can delimit the string with the opposite kind of quote.  For example, 
-\f2\fs18 'You say, "Ere thrice the sun done salutation to the dawn"'
-\f0\fs22  is a string that contains double quotes, whereas 
-\f2\fs18 "Quoth the Raven, 'nevermore'.\'94
-\f0\fs22  is a string that contains single quotes.  Apart from this consideration, it does not matter whether you use single or double quotes; the internal representation is the same.  The suggested convention is to prefer double quotes, all else being equal, since they are more universally used in other programming languages.\
+\f7\b bold
+\f2\b0  or 
+\f0\i italic
+\f2\i0 .  Instead, it is just a character stream.  A 
+\f3\fs18 string
+\f2\fs22  literal must be enclosed by either single or double quotation marks, 
+\f3\fs18 '
+\f2\fs22  or 
+\f3\fs18 "
+\f2\fs22 .  This choice simplifies writing Eidos strings that themselves contain quote characters, because you can delimit the string with the opposite kind of quote.  For example, 
+\f3\fs18 'You say, "Ere thrice the sun done salutation to the dawn"'
+\f2\fs22  is a string that contains double quotes, whereas 
+\f3\fs18 "Quoth the Raven, 'nevermore'.\'94
+\f2\fs22  is a string that contains single quotes.  Apart from this consideration, it does not matter whether you use single or double quotes; the internal representation is the same.  The suggested convention is to prefer double quotes, all else being equal, since they are more universally used in other programming languages.\
 A complication arises if one wishes to include both single and double quotation marks within a 
-\f2\fs18 string
-\f0\fs22 ; whichever delimiter you choose, one or the other quote character will terminate the 
-\f2\fs18 string
-\f0\fs22  literal.  In this case, the quotation mark must be \'93escaped\'94 by preceding it with a backslash, 
-\f2\fs18 \\
-\f0\fs22 .  The backslash can be used to \'93escape\'94 various other characters; to include a newline in a string, for example, use 
-\f2\fs18 \\n
-\f0\fs22 , and to include a tab, use 
-\f2\fs18 \\t
-\f0\fs22 .  Since the backslash has this special meaning, backslashes themselves must be escaped as 
-\f2\fs18 \\\\
-\f0\fs22 .  An alternative to dealing with escape sequences is to use the \'93here document\'94 style of string literal; see the Eidos manual for details on this.\
+\f3\fs18 string
+\f2\fs22 ; whichever delimiter you choose, one or the other quote character will terminate the 
+\f3\fs18 string
+\f2\fs22  literal.  In this case, the quotation mark must be \'93escaped\'94 by preceding it with a backslash, 
+\f3\fs18 \\
+\f2\fs22 .  The backslash can be used to \'93escape\'94 various other characters; to include a newline in a string, for example, use 
+\f3\fs18 \\n
+\f2\fs22 , and to include a tab, use 
+\f3\fs18 \\t
+\f2\fs22 .  Since the backslash has this special meaning, backslashes themselves must be escaped as 
+\f3\fs18 \\\\
+\f2\fs22 .  An alternative to dealing with escape sequences is to use the \'93here document\'94 style of string literal; see the Eidos manual for details on this.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.7.2  ITEM: 5. type 
+\f0\i \cf0 2.7.2  ITEM: 5. type 
 \f1\fs18 NULL
 \f0\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\i0 \cf0 The 
-\f2\fs18 NULL
-\f0\fs22  type two primary uses: as a return value, and as a parameter.\
+\f2\i0 \cf0 The 
+\f3\fs18 NULL
+\f2\fs22  type two primary uses: as a return value, and as a parameter.\
 As a return value, 
-\f2\fs18 NULL
-\f0\fs22  is used to indicate that a function had nothing useful to return.  Some functions always return 
-\f2\fs18 NULL
-\f0\fs22 , such as 
-\f2\fs18 print()
-\f0\fs22 ; 
-\f2\fs18 print()
-\f0\fs22  sends its output directly to the Eidos console.  It has nothing useful to return, so it returns 
-\f2\fs18 NULL
-\f0\fs22 .  (That 
-\f2\fs18 NULL
-\f0\fs22  value does not normally get printed out by Eidos because it is marked as an \'93invisible\'94 return, a side topic not really worth getting into here; invisible returns work much as they do in R).\
+\f3\fs18 NULL
+\f2\fs22  is used to indicate that a function had nothing useful to return.  Some functions always return 
+\f3\fs18 NULL
+\f2\fs22 , such as 
+\f3\fs18 print()
+\f2\fs22 ; 
+\f3\fs18 print()
+\f2\fs22  sends its output directly to the Eidos console.  It has nothing useful to return, so it returns 
+\f3\fs18 NULL
+\f2\fs22 .  (That 
+\f3\fs18 NULL
+\f2\fs22  value does not normally get printed out by Eidos because it is marked as an \'93invisible\'94 return, a side topic not really worth getting into here; invisible returns work much as they do in R).\
 Some functions will return a useful value if they can, but will return 
-\f2\fs18 NULL
-\f0\fs22  if they can\'92t. Often a 
-\f2\fs18 NULL
-\f0\fs22  return is a result of passing 
-\f2\fs18 NULL
-\f0\fs22  in as an argument; garbage in, garbage out, as they say.  For example, the 
-\f2\fs18 readFile()
-\f0\fs22  function will return 
-\f2\fs18 NULL
-\f0\fs22  if an error occurs that prevents the file read operation from completing.  The calling code could then detect that 
-\f2\fs18 NULL
-\f0\fs22  return and act accordingly \'96 it might try to read from a different path, print an error, or terminate execution with 
-\f2\fs18 stop()
-\f0\fs22 , or it might just ignore the problem, if reading the file was optional anyway (such as an optional configuration file to modify the default behavior of a script).\
+\f3\fs18 NULL
+\f2\fs22  if they can\'92t. Often a 
+\f3\fs18 NULL
+\f2\fs22  return is a result of passing 
+\f3\fs18 NULL
+\f2\fs22  in as an argument; garbage in, garbage out, as they say.  For example, the 
+\f3\fs18 readFile()
+\f2\fs22  function will return 
+\f3\fs18 NULL
+\f2\fs22  if an error occurs that prevents the file read operation from completing.  The calling code could then detect that 
+\f3\fs18 NULL
+\f2\fs22  return and act accordingly \'96 it might try to read from a different path, print an error, or terminate execution with 
+\f3\fs18 stop()
+\f2\fs22 , or it might just ignore the problem, if reading the file was optional anyway (such as an optional configuration file to modify the default behavior of a script).\
 The other use of 
-\f2\fs18 NULL
-\f0\fs22 , as mentioned above, is as an argument to a function. Passing 
-\f2\fs18 NULL
-\f0\fs22  is occasionally a way of signaling that you don\'92t want to supply a value for an argument, or that you want a default behavior from the function rather than telling it more specifically what to do.\
+\f3\fs18 NULL
+\f2\fs22 , as mentioned above, is as an argument to a function. Passing 
+\f3\fs18 NULL
+\f2\fs22  is occasionally a way of signaling that you don\'92t want to supply a value for an argument, or that you want a default behavior from the function rather than telling it more specifically what to do.\
 
-\f2\fs18 NULL
-\f0\fs22  cannot be an element of a vector of some other type; it cannot be used to mark missing or unknown values, for example.  Instead, 
-\f2\fs18 NULL
-\f0\fs22  is its own type of vector in Eidos, always of zero length.  (There is also no 
-\f2\fs18 NA
-\f0\fs22  value in Eidos like the one in R, while we\'92re on the topic of marking missing values.  Not having to worry about missing values makes Eidos substantially simpler and faster, and Eidos \'96 unlike R \'96 is not designed to be used for doing statistical analysis, so marking missing values is not expected to be important.  Eidos does support 
-\f2\fs18 NAN
-\f0\fs22  \'96 Not A Number \'96 values in 
-\f2\fs18 float
-\f0\fs22  vectors, however, which could conceivably be used to mark missing values if necessary.)\
+\f3\fs18 NULL
+\f2\fs22  cannot be an element of a vector of some other type; it cannot be used to mark missing or unknown values, for example.  Instead, 
+\f3\fs18 NULL
+\f2\fs22  is its own type of vector in Eidos, always of zero length.  (There is also no 
+\f3\fs18 NA
+\f2\fs22  value in Eidos like the one in R, while we\'92re on the topic of marking missing values.  Not having to worry about missing values makes Eidos substantially simpler and faster, and Eidos \'96 unlike R \'96 is not designed to be used for doing statistical analysis, so marking missing values is not expected to be important.  Eidos does support 
+\f3\fs18 NAN
+\f2\fs22  \'96 Not A Number \'96 values in 
+\f3\fs18 float
+\f2\fs22  vectors, however, which could conceivably be used to mark missing values if necessary.)\
 The basic philosophy of how Eidos handles 
-\f2\fs18 NULL
-\f0\fs22  values in expressions and computations is that 
-\f2\fs18 NULL
-\f0\fs22  in such situations represents a non-fatal error or an unknown value.  If using the 
-\f2\fs18 NULL
-\f0\fs22  value in some meaningful way could lead to potentially misleading or incorrect results, Eidos will generate a fatal error.  The idea is to give Eidos code an opportunity to detect a 
-\f2\fs18 NULL
-\f0\fs22 , and thus to catch and handle the non-fatal error; but if the code does not handle the 
-\f2\fs18 NULL
-\f0\fs22 , using the 
-\f2\fs18 NULL
-\f0\fs22  in further operations will result in a fatal error before the functioning of the code is seriously compromised.  
-\f2\fs18 NULL
-\f0\fs22  values are thus a sort of third rail; there\'92s a good reason they exist, but you have to be very careful around them.  They are a bit like zero-valued pointers in C (
-\f2\fs18 NULL
-\f0\fs22 ), C++ (
-\f2\fs18 nullptr
-\f0\fs22 ), Objective-C (
-\f2\fs18 nil
-\f0\fs22 ), and similar languages; they are widely used, but if you ever use one the wrong way it is an immediate and fatal error.  For further details, please consult the Eidos manual.\
+\f3\fs18 NULL
+\f2\fs22  values in expressions and computations is that 
+\f3\fs18 NULL
+\f2\fs22  in such situations represents a non-fatal error or an unknown value.  If using the 
+\f3\fs18 NULL
+\f2\fs22  value in some meaningful way could lead to potentially misleading or incorrect results, Eidos will generate a fatal error.  The idea is to give Eidos code an opportunity to detect a 
+\f3\fs18 NULL
+\f2\fs22 , and thus to catch and handle the non-fatal error; but if the code does not handle the 
+\f3\fs18 NULL
+\f2\fs22 , using the 
+\f3\fs18 NULL
+\f2\fs22  in further operations will result in a fatal error before the functioning of the code is seriously compromised.  
+\f3\fs18 NULL
+\f2\fs22  values are thus a sort of third rail; there\'92s a good reason they exist, but you have to be very careful around them.  They are a bit like zero-valued pointers in C (
+\f3\fs18 NULL
+\f2\fs22 ), C++ (
+\f3\fs18 nullptr
+\f2\fs22 ), Objective-C (
+\f3\fs18 nil
+\f2\fs22 ), and similar languages; they are widely used, but if you ever use one the wrong way it is an immediate and fatal error.  For further details, please consult the Eidos manual.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\i \cf0 2.8.1  ITEM: 6. type 
+\f0\i \cf0 2.8.1  ITEM: 6. type 
 \f1\fs18 object
 \f0\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\i0 \cf0 An 
-\f2\fs18 object
-\f0\fs22  is a vector that contains elements; it is a container, a bag of stuff.  In this way, it is similar to Eidos\'92s other types; a 
-\f2\fs18 float
-\f0\fs22  in Eidos is a vector containing floating-point elements, whereas an 
-\f2\fs18 object
-\f0\fs22  is a vector containing 
-\f2\fs18 object
-\f0\fs22 -elements (often just called \'93elements\'94 in general).  An 
-\f2\fs18 object
-\f0\fs22  can also embody 
-\i behavior
-\i0 : it has operations that it can perform using the elements it contains.  The 
-\f2\fs18 object
-\f0\fs22  type in Eidos is thus similar to objects in other languages such as Java, C++, or R \'96 except much more limited.  In Eidos you cannot define your own classes of 
-\f2\fs18 object
-\f0\fs22  type; you work only with the predefined 
-\f2\fs18 object
-\f0\fs22  types supplied by SLiM or whatever other Context you might be using Eidos within.  These predefined 
-\f2\fs18 object
-\f0\fs22  types generally contain Context-dependent elements related to the task performed by the Context; in SLiM, the elements are things such as mutations, genomic elements, and mutation types (described in SLiM\'92s documentation).\
+\f2\i0 \cf0 An 
+\f3\fs18 object
+\f2\fs22  is a vector that contains elements; it is a container, a bag of stuff.  In this way, it is similar to Eidos\'92s other types; a 
+\f3\fs18 float
+\f2\fs22  in Eidos is a vector containing floating-point elements, whereas an 
+\f3\fs18 object
+\f2\fs22  is a vector containing 
+\f3\fs18 object
+\f2\fs22 -elements (often just called \'93elements\'94 in general).  An 
+\f3\fs18 object
+\f2\fs22  can also embody 
+\f0\i behavior
+\f2\i0 : it has operations that it can perform using the elements it contains.  The 
+\f3\fs18 object
+\f2\fs22  type in Eidos is thus similar to objects in other languages such as Java, C++, or R \'96 except much more limited.  In Eidos you cannot define your own classes of 
+\f3\fs18 object
+\f2\fs22  type; you work only with the predefined 
+\f3\fs18 object
+\f2\fs22  types supplied by SLiM or whatever other Context you might be using Eidos within.  These predefined 
+\f3\fs18 object
+\f2\fs22  types generally contain Context-dependent elements related to the task performed by the Context; in SLiM, the elements are things such as mutations, genomic elements, and mutation types (described in SLiM\'92s documentation).\
 The behaviors of objects in Eidos manifest in two ways: objects can have 
-\i properties
-\i0  (also called instance variables or member variables in some languages) that can be read from and written to, and they can have 
-\i methods
-\i0  (also sometimes called member functions).  The properties of an 
-\f2\fs18 object
-\f0\fs22  in Eidos are determined by the type of element the 
-\f2\fs18 object
-\f0\fs22  contains; an Eidos 
-\f2\fs18 object
-\f0\fs22  will always contain only one type of element (just as a 
-\f2\fs18 float
-\f0\fs22  cannot contain 
-\f2\fs18 string
-\f3\fs22 -
-\f0 elements, for example).\
+\f0\i properties
+\f2\i0  (also called instance variables or member variables in some languages) that can be read from and written to, and they can have 
+\f0\i methods
+\f2\i0  (also sometimes called member functions).  The properties of an 
+\f3\fs18 object
+\f2\fs22  in Eidos are determined by the type of element the 
+\f3\fs18 object
+\f2\fs22  contains; an Eidos 
+\f3\fs18 object
+\f2\fs22  will always contain only one type of element (just as a 
+\f3\fs18 float
+\f2\fs22  cannot contain 
+\f3\fs18 string
+\f4\fs22 -
+\f2 elements, for example).\
 Instances of particular 
-\f2\fs18 object
-\f0\fs22  classes \'96 particular kinds of objects \'96 are obtained via built-in functions and/or global constants and variables.  For example, in SLiM there is a global constant called 
-\f2\fs18 sim
-\f0\fs22  that represents the current simulation as an instance of the 
-\f2\fs18 SLiMSim
-\f0\fs22  class.\
+\f3\fs18 object
+\f2\fs22  classes \'96 particular kinds of objects \'96 are obtained via built-in functions and/or global constants and variables.  For example, in SLiM there is a global constant called 
+\f3\fs18 sim
+\f2\fs22  that represents the current simulation as an instance of the 
+\f3\fs18 SLiMSim
+\f2\fs22  class.\
 }
