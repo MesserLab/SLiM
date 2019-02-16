@@ -49,6 +49,7 @@ os:
 branches:
   only:
     - master
+    - nucmut
 
 # notify me by email after all builds
 notifications:
