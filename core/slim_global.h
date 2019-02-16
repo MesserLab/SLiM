@@ -401,6 +401,11 @@ public:
 	}
 	void SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc);
 	
+	EidosValue_SP NucleotidesAsIntegerVector(int64_t start, int64_t end);
+	EidosValue_SP NucleotidesAsCodonVector(int64_t start, int64_t end);
+	EidosValue_SP NucleotidesAsStringVector(int64_t start, int64_t end);
+	EidosValue_SP NucleotidesAsStringSingleton(int64_t start, int64_t end);
+	
 	friend std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array);
 };
 

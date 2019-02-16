@@ -651,6 +651,131 @@ void NucleotideArray::SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc)
 	chunk = (chunk & ~mask) | nucbits;
 }
 
+EidosValue_SP NucleotideArray::NucleotidesAsIntegerVector(int64_t start, int64_t end)
+{
+	int64_t length = end - start + 1;
+	
+	if (length == 1)
+	{
+		switch (NucleotideAtIndex(start))
+		{
+			case 0:		return gStaticEidosValue_Integer0;
+			case 1:		return gStaticEidosValue_Integer1;
+			case 2:		return gStaticEidosValue_Integer2;
+			case 3:		return gStaticEidosValue_Integer3;
+		}
+	}
+	else
+	{
+		// return a vector of integers, 3 0 3 0
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+		
+		for (int value_index = 0; value_index < length; ++value_index)
+			int_result->set_int_no_check(NucleotideAtIndex(start + value_index), value_index);
+		
+		return EidosValue_SP(int_result);
+	}
+	
+	return gStaticEidosValueNULL;
+}
+
+EidosValue_SP NucleotideArray::NucleotidesAsCodonVector(int64_t start, int64_t end)
+{
+	int64_t length = end - start + 1;
+	int64_t length_3 = length / 3;
+	
+	if (length % 3 != 0)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsCodonVector): to obtain codons, the requested sequence length must be a multiple of 3." << EidosTerminate();
+	
+	// return a vector of codons: nucleotide triplets compacted into a single integer value
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+	
+	for (int64_t value_index = 0; value_index < length_3; ++value_index)
+	{
+		int64_t codon_base = start + value_index * 3;
+		
+		int nuc1 = NucleotideAtIndex(codon_base);
+		int nuc2 = NucleotideAtIndex(codon_base + 1);
+		int nuc3 = NucleotideAtIndex(codon_base + 2);
+		int codon = nuc1 * 16 + nuc2 * 4 + nuc3;	// 0..63
+		
+		int_result->set_int_no_check(codon, value_index);
+	}
+	
+	return EidosValue_SP(int_result);
+}
+
+EidosValue_SP NucleotideArray::NucleotidesAsStringVector(int64_t start, int64_t end)
+{
+	int64_t length = end - start + 1;
+	
+	if (length == 1)
+	{
+		switch (NucleotideAtIndex(start))
+		{
+			case 0:		return gStaticEidosValue_StringA;
+			case 1:		return gStaticEidosValue_StringC;
+			case 2:		return gStaticEidosValue_StringG;
+			case 3:		return gStaticEidosValue_StringT;
+		}
+	}
+	else
+	{
+		// return a vector of one-character strings, "T" "A" "T" "A"
+		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)length);
+		
+		for (int value_index = 0; value_index < length; ++value_index)
+		{
+			switch (NucleotideAtIndex(start + value_index))
+			{
+				case 0:		string_result->PushString(gStr_A); break;
+				case 1:		string_result->PushString(gStr_C); break;
+				case 2:		string_result->PushString(gStr_G); break;
+				case 3:		string_result->PushString(gStr_T); break;
+				default:	string_result->PushString("*"); break;		// should never happen
+			}
+		}
+		
+		return EidosValue_SP(string_result);
+	}
+	
+	return gStaticEidosValueNULL;
+}
+
+EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64_t end)
+{
+	int64_t length = end - start + 1;
+	
+	if (length == 1)
+	{
+		switch (NucleotideAtIndex(start))
+		{
+			case 0:		return gStaticEidosValue_StringA;
+			case 1:		return gStaticEidosValue_StringC;
+			case 2:		return gStaticEidosValue_StringG;
+			case 3:		return gStaticEidosValue_StringT;
+		}
+	}
+	else
+	{
+		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
+		static char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
+		std::string &nuc_string = string_result->StringValue_Mutable();
+		
+		nuc_string.resize(length);	// create space for all the nucleotides we will generate
+		
+		char *nuc_string_ptr = &nuc_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
+		
+		for (int value_index = 0; value_index < length; ++value_index)
+			nuc_string_ptr[value_index] = nuc_chars[NucleotideAtIndex(start + value_index)];
+		
+		return EidosValue_SP(string_result);
+	}
+	
+	return gStaticEidosValueNULL;
+}
+
 std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array)
 {
 	// inefficient, just for debugging...

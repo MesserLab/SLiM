@@ -302,7 +302,7 @@ The format of the returned sequence is controlled by the
 \f3\fs18 "T"
 \f4\fs20 , 
 \f3\fs18 "A"
-\f4\fs20 ).  Finally, a format of 
+\f4\fs20 ).  A format of 
 \f3\fs18 "integer"
 \f4\fs20  will return an 
 \f3\fs18 integer
@@ -325,6 +325,39 @@ The format of the returned sequence is controlled by the
 \f4\fs20 ).  If the sequence returned is likely to be long, the 
 \f3\fs18 "string"
 \f4\fs20  format will be the most memory-efficient, and may also be the fastest (but may be harder to work with).\
+For purposes related to interpreting the nucleotide sequence as a coding sequence, a format of 
+\f3\fs18 "codon"
+\f4\fs20  is also supported.  This format will return an 
+\f3\fs18 integer
+\f4\fs20  vector with values from 
+\f3\fs18 0
+\f4\fs20  to 
+\f3\fs18 63
+\f4\fs20 , based upon successive nucleotide triplets in the sequence (which, for this format, must have a length that is a multiple of three).  The codon value for a given nucleotide triplet XYZ is 16X\'a0+\'a04Y\'a0+\'a0Z, where X, Y, and Z have the usual values A=
+\f3\fs18 0
+\f4\fs20 , C=
+\f3\fs18 1
+\f4\fs20 , G=
+\f3\fs18 2
+\f4\fs20 , T=
+\f3\fs18 3
+\f4\fs20 .  For example, the triplet AAA has a codon value of 
+\f3\fs18 0
+\f4\fs20 , AAC is 
+\f3\fs18 1
+\f4\fs20 , AAG is 
+\f3\fs18 2
+\f4\fs20 , AAT is 
+\f3\fs18 3
+\f4\fs20 , ACA is 
+\f3\fs18 4
+\f4\fs20 , and on upward to TTT which is 
+\f3\fs18 63
+\f4\fs20 .  If the nucleotide sequence AACACATTT is requested in codon format, the codon vector 
+\f3\fs18 1 4 63
+\f4\fs20  will therefore be returned  These codon values can be useful in themselves; they can also be passed to 
+\f3\fs18 codonToAminoAcid()
+\f4\fs20  to translate them into the corresponding amino acid sequence if desired.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0

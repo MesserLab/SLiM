@@ -1118,93 +1118,23 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): (internal error) start and end must be within the ancestral sequence's length." << EidosTerminate();
 	
 	int64_t length = end - start + 1;
-	EidosValue *format_value = p_arguments[2].get();
-	std::string format = format_value->StringAtIndex(0, nullptr);
 	
-	// Handle requests of length 1 by returning premade singleton EidosValues
-	if (length == 1)
-	{
-		if (format == "integer")
-		{
-			switch (sequence->NucleotideAtIndex(start))
-			{
-				case 0:		return gStaticEidosValue_Integer0;
-				case 1:		return gStaticEidosValue_Integer1;
-				case 2:		return gStaticEidosValue_Integer2;
-				case 3:		return gStaticEidosValue_Integer3;
-			}
-			
-			return gStaticEidosValueNULL;
-		}
-		else	// "string", "char"
-		{
-			switch (sequence->NucleotideAtIndex(start))
-			{
-				case 0:		return gStaticEidosValue_StringA;
-				case 1:		return gStaticEidosValue_StringC;
-				case 2:		return gStaticEidosValue_StringG;
-				case 3:		return gStaticEidosValue_StringT;
-			}
-			
-			return gStaticEidosValueNULL;
-		}
-	}
-	
-	// Handle requests of length > 1 by constructing the result
 	if (length > INT_MAX)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
 	
+	EidosValue *format_value = p_arguments[2].get();
+	std::string format = format_value->StringAtIndex(0, nullptr);
+	
+	if (format == "codon")
+		return sequence->NucleotidesAsCodonVector(start, end);
+	if (format == "string")
+		return sequence->NucleotidesAsStringSingleton(start, end);
+	if (format == "integer")
+		return sequence->NucleotidesAsIntegerVector(start, end);
 	if (format == "char")
-	{
-		// return a vector of one-character strings, "T" "A" "T" "A"
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)length);
-		
-		for (int value_index = 0; value_index < length; ++value_index)
-		{
-			switch (sequence->NucleotideAtIndex(value_index))
-			{
-				case 0:		string_result->PushString(gStr_A); break;
-				case 1:		string_result->PushString(gStr_C); break;
-				case 2:		string_result->PushString(gStr_G); break;
-				case 3:		string_result->PushString(gStr_T); break;
-				default:	string_result->PushString("*"); break;		// should never happen
-			}
-		}
-		
-		return EidosValue_SP(string_result);
-	}
-	else if (format == "integer")
-	{
-		// return a vector of integers, 3 0 3 0
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
-		
-		for (int value_index = 0; value_index < length; ++value_index)
-			int_result->set_int_no_check(sequence->NucleotideAtIndex(value_index), value_index);
-		
-		return EidosValue_SP(int_result);
-	}
-	else if (format == "string")
-	{
-		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
-		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-		std::string &nuc_string = string_result->StringValue_Mutable();
-		
-		for (int value_index = 0; value_index < length; ++value_index)
-		{
-			switch (sequence->NucleotideAtIndex(value_index))
-			{
-				case 0:		nuc_string.append(1, 'A'); break;
-				case 1:		nuc_string.append(1, 'C'); break;
-				case 2:		nuc_string.append(1, 'G'); break;
-				case 3:		nuc_string.append(1, 'T'); break;
-				default:	nuc_string.append(1, '*'); break;		// should never happen
-			}
-		}
-		
-		return EidosValue_SP(string_result);
-	}
-	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): parameter format must be either 'string', 'char', or 'integer'." << EidosTerminate();
+		return sequence->NucleotidesAsStringVector(start, end);
+	
+	EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): parameter format must be either 'string', 'char', 'integer', or 'codon'." << EidosTerminate();
 }
 
 //	*********************	– (integer)drawBreakpoints([No<Individual>$ parent = NULL], [Ni$ n = NULL])
