@@ -364,8 +364,7 @@ extern EidosValue_String_SP gStaticEidosValue_StringT;
 	
 class NucleotideArray
 {
-	// This is a very quick-and-dirty class for storing a nucleotide sequence compactly.  It does not
-	// do any bounds-checking or validation; that is the client's responsibility.  BCH 14 Feb. 2019
+	// This is a very quick-and-dirty class for storing a nucleotide sequence compactly.  BCH 14 Feb. 2019
 	
 private:
 	// The length of the array, in nucleotides
@@ -382,12 +381,16 @@ public:
 	NucleotideArray(std::size_t p_length) : length_(p_length) {
 		buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
 	}
-	NucleotideArray(std::size_t p_length, const int64_t *p_int_buffer);
-	NucleotideArray(std::size_t p_length, const char *p_char_buffer);
-	NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector);
 	~NucleotideArray(void) {
 		if (buffer_) free(buffer_);
 	}
+	
+	// Constructors that take sequences.  These raise a C++ exception if the sequence data is invalid,
+	// so that it can be caught and handled without involving the Eidos exception machinery.  These
+	// should therefore generally be called from a try/catch block.
+	NucleotideArray(std::size_t p_length, const int64_t *p_int_buffer);
+	NucleotideArray(std::size_t p_length, const char *p_char_buffer);
+	NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector);
 	
 	std::size_t size() const { return length_; }
 	void Print(std::ostream &p_stream) const;
@@ -396,14 +399,7 @@ public:
 		uint64_t chunk = buffer_[p_index / 32];
 		return (int)((chunk >> ((p_index % 32) * 2)) & 0x03);
 	}
-	inline void SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc) {
-		uint64_t &chunk = buffer_[p_index / 32];
-		int shift = ((p_index % 32) * 2);
-		uint64_t mask = ((uint64_t)0x03) << shift;
-		uint64_t nucbits = (uint64_t)p_nuc << shift;
-		
-		chunk = (chunk & ~mask) | nucbits;
-	}
+	void SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc);
 	
 	friend std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array);
 };
@@ -497,6 +493,7 @@ extern const std::string gStr_genomicElementTypes;
 extern const std::string gStr_inSLiMgui;
 extern const std::string gStr_interactionTypes;
 extern const std::string gStr_modelType;
+extern const std::string gStr_nucleotideBased;
 extern const std::string gStr_scriptBlocks;
 extern const std::string gStr_sexEnabled;
 extern const std::string gStr_subpopulations;
@@ -773,6 +770,7 @@ enum _SLiMGlobalStringID : int {
 	gID_inSLiMgui,
 	gID_interactionTypes,
 	gID_modelType,
+	gID_nucleotideBased,
 	gID_scriptBlocks,
 	gID_sexEnabled,
 	gID_subpopulations,

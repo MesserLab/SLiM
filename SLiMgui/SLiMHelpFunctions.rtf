@@ -779,7 +779,88 @@ The
 \f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.2.  Nucleotide utilities\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (is)randomSequence(integer$\'a0length, [Nf\'a0basis\'a0=\'a0NULL], [string$\'a0format\'a0=\'a0"string"])\
+\f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
+(integer)nucleotideCounts(is\'a0sequence)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 A convenience function that returns an 
+\f1\fs18 integer
+\f2\fs20  vector of length four, providing the number of occurrences of A / C / G / T nucleotides, respectively, in the supplied nucleotide sequence.  The parameter sequence may be a singleton 
+\f1\fs18 string
+\f2\fs20  (e.g., 
+\f1\fs18 "TATA"
+\f2\fs20 ), a 
+\f1\fs18 string
+\f2\fs20  vector of single characters (e.g., 
+\f1\fs18 "T"
+\f2\fs20 , 
+\f1\fs18 "A"
+\f2\fs20 , 
+\f1\fs18 "T"
+\f2\fs20 , 
+\f1\fs18 "A"
+\f2\fs20 ), or an 
+\f1\fs18 integer
+\f2\fs20  vector (e.g., 
+\f1\fs18 0
+\f2\fs20 , 
+\f1\fs18 3
+\f2\fs20 , 
+\f1\fs18 0
+\f2\fs20 , 
+\f1\fs18 3
+\f2\fs20 ), using SLiM\'92s standard code of A=
+\f1\fs18 0
+\f2\fs20 , C=
+\f1\fs18 1
+\f2\fs20 , G=
+\f1\fs18 2
+\f2\fs20 , T=
+\f1\fs18 3
+\f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)nucleotideFrequencies(is\'a0sequence)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 A convenience function that returns a 
+\f1\fs18 float
+\f2\fs20  vector of length four, providing the frequencies of occurrences of A / C / G / T nucleotides, respectively, in the supplied nucleotide sequence.  The parameter sequence may be a singleton 
+\f1\fs18 string
+\f2\fs20  (e.g., 
+\f1\fs18 "TATA"
+\f2\fs20 ), a 
+\f1\fs18 string
+\f2\fs20  vector of single characters (e.g., 
+\f1\fs18 "T"
+\f2\fs20 , 
+\f1\fs18 "A"
+\f2\fs20 , 
+\f1\fs18 "T"
+\f2\fs20 , 
+\f1\fs18 "A"
+\f2\fs20 ), or an 
+\f1\fs18 integer
+\f2\fs20  vector (e.g., 
+\f1\fs18 0
+\f2\fs20 , 
+\f1\fs18 3
+\f2\fs20 , 
+\f1\fs18 0
+\f2\fs20 , 
+\f1\fs18 3
+\f2\fs20 ), using SLiM\'92s standard code of A=
+\f1\fs18 0
+\f2\fs20 , C=
+\f1\fs18 1
+\f2\fs20 , G=
+\f1\fs18 2
+\f2\fs20 , T=
+\f1\fs18 3
+\f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (is)randomSequence(integer$\'a0length, [Nf\'a0basis\'a0=\'a0NULL], [string$\'a0format\'a0=\'a0"string"])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
@@ -836,7 +917,9 @@ The
 \f1\fs18 2
 \f2\fs20 , T=
 \f1\fs18 3
-\f2\fs20 .  For passing directly to initializeAncestralSequence(), format 
+\f2\fs20 .  For passing directly to 
+\f1\fs18 \cf2 initializeAncestralSequence()
+\f2\fs20 \cf2 , format 
 \f1\fs18 "string"
 \f2\fs20  (a singleton string) will certainly be the most memory-efficient, and probably also the fastest.  Memory efficiency can be a significant consideration; the nucleotide sequence for a chromosome of length 10
 \fs13\fsmilli6667 \cf2 \super 9

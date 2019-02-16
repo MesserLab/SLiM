@@ -20,10 +20,132 @@
 
 #include "slim_functions.h"
 #include "slim_global.h"
+#include "slim_sim.h"
 #include "eidos_rng.h"
 
 #include <string>
 
+
+const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(void)
+{
+	// Allocate our own EidosFunctionSignature objects
+	static std::vector<EidosFunctionSignature_SP> sim_func_signatures_;
+	
+	if (!sim_func_signatures_.size())
+	{
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideFrequencies", SLiM_ExecuteFunction_nucleotideFrequencies, kEidosValueMaskFloat, "SLiM"))->AddIntString("sequence"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomSequence", SLiM_ExecuteFunction_randomSequence, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddFloat_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+	}
+	
+	return &sim_func_signatures_;
+}
+
+static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, const char *function_name)
+{
+	EidosValueType sequence_type = sequence_value->Type();
+	int sequence_count = sequence_value->Count();
+	
+	if (sequence_count == 1)
+	{
+		// Singleton case
+		if (sequence_type == EidosValueType::kValueInt)
+		{
+			int64_t nuc = sequence_value->IntAtIndex(0, nullptr);
+			
+			if ((nuc < 0) || (nuc > 3))
+				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires integer sequence values to be in [0,3]." << EidosTerminate(nullptr);
+			
+			total_ACGT[nuc]++;
+		}
+		else // sequence_type == EidosValueType::kValueString
+		{
+			const std::string &string_ref = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			std::size_t length = string_ref.length();
+			
+			for (std::size_t i = 0; i < length; ++i)
+			{
+				char nuc = string_ref[i];
+				
+				if (nuc == 'A')			total_ACGT[0]++;
+				else if (nuc == 'C')	total_ACGT[1]++;
+				else if (nuc == 'G')	total_ACGT[2]++;
+				else if (nuc == 'T')	total_ACGT[3]++;
+				else EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+			}
+		}
+	}
+	else
+	{
+		// Vector case, optimized for speed
+		if (sequence_type == EidosValueType::kValueInt)
+		{
+			const int64_t *int_data = sequence_value->IntVector()->data();
+			
+			for (int value_index = 0; value_index < sequence_count; ++value_index)
+			{
+				int64_t nuc = int_data[value_index];
+				
+				if ((nuc < 0) || (nuc > 3))
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires integer sequence values to be in [0,3]." << EidosTerminate(nullptr);
+				
+				total_ACGT[nuc]++;
+			}
+		}
+		else // sequence_type == EidosValueType::kValueString
+		{
+			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			
+			for (int value_index = 0; value_index < sequence_count; ++value_index)
+			{
+				const std::string &nuc = (*string_vec)[value_index];
+				
+				if (nuc == "A")			total_ACGT[0]++;
+				else if (nuc == "C")	total_ACGT[1]++;
+				else if (nuc == "G")	total_ACGT[2]++;
+				else if (nuc == "T")	total_ACGT[3]++;
+				else EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+			}
+		}
+	}
+}
+
+//	(integer)nucleotideCounts(is sequence)
+EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *sequence_value = p_arguments[0].get();
+	int64_t total_ACGT[4] = {0, 0, 0, 0};
+	
+	CountNucleotides(sequence_value, total_ACGT, "nucleotideCounts");
+	
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
+	
+	int_result->set_int_no_check(total_ACGT[0], 0);
+	int_result->set_int_no_check(total_ACGT[1], 1);
+	int_result->set_int_no_check(total_ACGT[2], 2);
+	int_result->set_int_no_check(total_ACGT[3], 3);
+	
+	return EidosValue_SP(int_result);
+}
+
+//	(float)nucleotideFrequencies(is sequence)
+EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *sequence_value = p_arguments[0].get();
+	int64_t total_ACGT[4] = {0, 0, 0, 0};
+	
+	CountNucleotides(sequence_value, total_ACGT, "nucleotideCounts");
+	
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(4);
+	double total = total_ACGT[0] + total_ACGT[1] + total_ACGT[2] + total_ACGT[3];
+	
+	float_result->set_float_no_check(total_ACGT[0] / total, 0);
+	float_result->set_float_no_check(total_ACGT[1] / total, 1);
+	float_result->set_float_no_check(total_ACGT[2] / total, 2);
+	float_result->set_float_no_check(total_ACGT[3] / total, 3);
+	
+	return EidosValue_SP(float_result);
+}
 
 //	(is)randomSequence(i$ length, [Nf basis = NULL], [s$ format = "string"])
 EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
@@ -137,14 +259,18 @@ EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_a
 		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
 		std::string &nuc_string = string_result->StringValue_Mutable();
 		
+		nuc_string.resize(length);	// create space for all the nucleotides we will generate
+		
+		char *nuc_string_ptr = &nuc_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
+		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
 			double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
 			
-			if (runif < pA)			nuc_string.append(1, 'A');
-			else if (runif < pC)	nuc_string.append(1, 'C');
-			else if (runif < pG)	nuc_string.append(1, 'G');
-			else /* (runif < pT) */	nuc_string.append(1, 'T');
+			if (runif < pA)			nuc_string_ptr[value_index] = 'A';
+			else if (runif < pC)	nuc_string_ptr[value_index] = 'C';
+			else if (runif < pG)	nuc_string_ptr[value_index] = 'G';
+			else /* (runif < pT) */	nuc_string_ptr[value_index] = 'T';
 		}
 		
 		return EidosValue_SP(string_result);

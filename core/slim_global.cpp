@@ -548,6 +548,9 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const int64_t *p_int_buff
 		{
 			uint64_t nuc = (uint64_t)p_int_buffer[index + i];
 			
+			if (nuc > 3)	// values < 0 will becomes > 3 after casting above
+				throw std::out_of_range("integer nucleotide value out of range");
+			
 			accumulator |= (nuc << (i * 2));
 			
 			if (index + ++i == length_)
@@ -562,6 +565,22 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 {
 	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
 	
+	// set up a lookup table for speed
+	static uint8_t *nuc_lookup = nullptr;
+	
+	if (!nuc_lookup)
+	{
+		nuc_lookup = (uint8_t *)malloc(256 * sizeof(uint8_t));
+		
+		for (int i = 0; i < 256; ++i)
+			nuc_lookup[i] = 4;	// placeholder illegal value
+		
+		nuc_lookup['A'] = 0;
+		nuc_lookup['C'] = 1;
+		nuc_lookup['G'] = 2;
+		nuc_lookup['T'] = 3;
+	}
+	
 	// Eat 32 nucleotides at a time if we can
 	std::size_t index = 0, buf_index = 0;
 	
@@ -572,13 +591,10 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 		for (std::size_t i = 0; i < 32; )
 		{
 			char nuc_char = p_char_buffer[index + i];
-			uint64_t nuc;
+			uint64_t nuc = nuc_lookup[nuc_char];
 			
-			if (nuc_char == 'A') nuc = 0;
-			else if (nuc_char == 'C') nuc = 1;
-			else if (nuc_char == 'G') nuc = 2;
-			else if (nuc_char == 'T') nuc = 3;
-			else nuc = 0;	// should never happen if the client behaves; we don't bounds-check, though
+			if (nuc > 3)
+				throw std::out_of_range("char nucleotide value out of range");
 			
 			accumulator |= (nuc << (i * 2));
 			
@@ -610,7 +626,7 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::st
 			else if (nuc_string == gStr_C) nuc = 1;
 			else if (nuc_string == gStr_G) nuc = 2;
 			else if (nuc_string == gStr_T) nuc = 3;
-			else nuc = 0;	// should never happen if the client behaves; we don't bounds-check, though
+			else throw std::out_of_range("string nucleotide value out of range");
 			
 			accumulator |= (nuc << (i * 2));
 			
@@ -620,6 +636,19 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::st
 		
 		buffer_[buf_index++] = accumulator;
 	}
+}
+
+void NucleotideArray::SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc)
+{
+	if (p_nuc > 3)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::SetNucleotideAtIndex): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+	
+	uint64_t &chunk = buffer_[p_index / 32];
+	int shift = ((p_index % 32) * 2);
+	uint64_t mask = ((uint64_t)0x03) << shift;
+	uint64_t nucbits = (uint64_t)p_nuc << shift;
+	
+	chunk = (chunk & ~mask) | nucbits;
 }
 
 std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array)
@@ -717,6 +746,7 @@ const std::string gStr_genomicElementTypes = "genomicElementTypes";
 const std::string gStr_inSLiMgui = "inSLiMgui";
 const std::string gStr_interactionTypes = "interactionTypes";
 const std::string gStr_modelType = "modelType";
+const std::string gStr_nucleotideBased = "nucleotideBased";
 const std::string gStr_scriptBlocks = "scriptBlocks";
 const std::string gStr_sexEnabled = "sexEnabled";
 const std::string gStr_subpopulations = "subpopulations";
@@ -1033,6 +1063,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_inSLiMgui, gID_inSLiMgui);
 		Eidos_RegisterStringForGlobalID(gStr_interactionTypes, gID_interactionTypes);
 		Eidos_RegisterStringForGlobalID(gStr_modelType, gID_modelType);
+		Eidos_RegisterStringForGlobalID(gStr_nucleotideBased, gID_nucleotideBased);
 		Eidos_RegisterStringForGlobalID(gStr_scriptBlocks, gID_scriptBlocks);
 		Eidos_RegisterStringForGlobalID(gStr_sexEnabled, gID_sexEnabled);
 		Eidos_RegisterStringForGlobalID(gStr_subpopulations, gID_subpopulations);

@@ -7668,20 +7668,16 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 	EidosValueType sequence_value_type = sequence_value->Type();
 	int sequence_value_count = sequence_value->Count();
 	
+	if (sequence_value_count == 0)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires a sequence of length >= 1." << EidosTerminate();
+	
 	if (sequence_value_type == EidosValueType::kValueInt)
 	{
 		// A vector of integers has been provided, where ACGT == 0123
-		if (sequence_value_count == 0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires a sequence of length >= 1." << EidosTerminate();
-		
 		if (sequence_value_count == 1)
 		{
 			// singleton case
 			int64_t int_value = sequence_value->IntAtIndex(0, nullptr);
-			
-			// validate
-			if ((int_value < 0) || (int_value > 3))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires integer nucleotide values to be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
 			
 			ancestral_seq_buffer_ = new NucleotideArray(1);
 			ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
@@ -7692,16 +7688,11 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 			const EidosValue_Int_vector *int_vec = sequence_value->IntVector();
 			const int64_t *int_data = int_vec->data();
 			
-			// validate
-			for (int i = 0; i < sequence_value_count; ++i)
-			{
-				int64_t int_value = int_data[i];
-				
-				if ((int_value < 0) || (int_value > 3))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires integer nucleotide values to be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+			try {
+				ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
+			} catch (...) {
+				EIDOS_TERMINATION << "ERROR (ExecuteContextFunction_initializeAncestralSequence): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
 			}
-			
-			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 		}
 	}
 	else if (sequence_value_type == EidosValueType::kValueString)
@@ -7709,39 +7700,26 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 		if (sequence_value_count != 1)
 		{
 			// A vector of characters has been provided, which must all be "A" / "C" / "G" / "T"
-			if (sequence_value_count == 0)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires a sequence of length >= 1." << EidosTerminate();
-			
 			const std::vector<std::string> *string_vec = sequence_value->StringVector();
 			
-			// validate
-			for (int i = 0; i < sequence_value_count; ++i)
-			{
-				const std::string &nuc_string = (*string_vec)[i];
-				
-				if (nuc_string.length() != 1)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires nucleotide strings to be of length 1." << EidosTerminate();
-				
-				char nuc_char = nuc_string[0];
-				
-				if ((nuc_char != 'A') && (nuc_char != 'C') && (nuc_char != 'G') && (nuc_char != 'T'))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires nucleotide strings to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			try {
+				ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
+			} catch (...) {
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): string nucleotide values must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
-			
-			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
 		}
 		else	// sequence_value_count == 1
 		{
-			std::string sequence_string = sequence_value->StringAtIndex(0, nullptr);
-			bool contains_only_nuc = (sequence_string.find_first_not_of("ACGT") == std::string::npos);
+			const std::string &sequence_string = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			bool contains_only_nuc = true;
 			
-			if (contains_only_nuc)
-			{
-				// A singleton string has been provided that contains only ACGT; we will interpret it as a nucleotide string
-				// validated by find_first_not_of() above
+			try {
 				ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
+			} catch (...) {
+				contains_only_nuc = false;
 			}
-			else
+			
+			if (!contains_only_nuc)
 			{
 				// A singleton string has been provided that contains characters other than ACGT; we will interpret it as a filesystem path for a FASTA file
 				std::string file_path = Eidos_ResolvedPath(sequence_string);
@@ -7775,15 +7753,14 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 				if (file_stream.bad())
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): a filesystem error occurred while reading the file at path " << sequence_string << "." << EidosTerminate();
 				
-				// validate
-				contains_only_nuc = (fasta_sequence.find_first_not_of("ACGT") == std::string::npos);
-				
-				if (!contains_only_nuc)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
 				if (fasta_sequence.length() == 0)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
 				
-				ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
+				try {
+					ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
+				} catch (...) {
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
+				}
 			}
 		}
 	}
@@ -8844,19 +8821,6 @@ void SLiMSim::RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map)
 	}
 }
 
-const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(void)
-{
-	// Allocate our own EidosFunctionSignature objects
-	static std::vector<EidosFunctionSignature_SP> sim_func_signatures_;
-	
-	if (!sim_func_signatures_.size())
-	{
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomSequence", SLiM_ExecuteFunction_randomSequence, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddFloat_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
-	}
-	
-	return &sim_func_signatures_;
-}
-
 void SLiMSim::AddSLiMFunctionsToMap(EidosFunctionMap &p_map)
 {
 	const std::vector<EidosFunctionSignature_SP> *signatures = SLiMFunctionSignatures();
@@ -9167,6 +9131,10 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 				vec->push_object_element(mutation_type->second);
 			
 			return result_SP;
+		}
+		case gID_nucleotideBased:
+		{
+			return (nucleotide_based_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		}
 		case gID_scriptBlocks:
 		{
@@ -10837,6 +10805,7 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,				true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,			true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideBased,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_scriptBlocks,			true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexEnabled,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulations,			true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
