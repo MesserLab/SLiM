@@ -24,7 +24,7 @@
 
 
 //	(is)randomSequence(i$ length, [Nf basis = NULL], [s$ format = "string"])
-EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
