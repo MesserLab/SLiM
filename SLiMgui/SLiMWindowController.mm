@@ -3793,12 +3793,19 @@
 		
 		EidosHelpController *sharedHelp = [EidosHelpController sharedController];
 		
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:SLiMSim::ZeroGenerationFunctionSignatures() methods:nullptr properties:nullptr];
+		const std::vector<EidosFunctionSignature_SP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
+		const std::vector<EidosFunctionSignature_SP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
+		std::vector<EidosFunctionSignature_SP> all_slim_functions;
+		
+		all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());
+		all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
+		
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:&all_slim_functions methods:nullptr properties:nullptr];
 		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:[self slimguiAllMethodSignatures] properties:[self slimguiAllPropertySignatures]];
 		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
 		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
-		[sharedHelp checkDocumentationOfFunctions:SLiMSim::ZeroGenerationFunctionSignatures()];
+		[sharedHelp checkDocumentationOfFunctions:&all_slim_functions];
 		
 		[sharedHelp checkDocumentationOfClass:gSLiM_Chromosome_Class];
 		[sharedHelp checkDocumentationOfClass:gSLiM_Genome_Class];
@@ -3849,6 +3856,7 @@
 - (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap
 {
 	SLiMSim::AddZeroGenerationFunctionsToMap(*functionMap);
+	SLiMSim::AddSLiMFunctionsToMap(*functionMap);
 }
 
 - (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
@@ -4087,6 +4095,8 @@
 		// Use the script text view's facility for using type-interpreting to get a "definitive" function map.  This way
 		// all functions that are defined, even if below the completion point, end up in the function map.
 		*functionMap = [scriptTextView functionMapForScriptString:[scriptTextView string] includingOptionalFunctions:NO];
+		
+		SLiMSim::AddSLiMFunctionsToMap(**functionMap);
 		
 		// Now we scan through the children of the root node, each of which is the root of a SLiM script block.  The last
 		// script block is the one we are actually completing inside, but we also want to do a quick scan of any other

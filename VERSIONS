@@ -13,6 +13,7 @@ development head:
 		add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
 		add initializeAncestralSequence() function
 		add Chromosome.ancestralNucleotides() method
+		add randomSequence() function
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

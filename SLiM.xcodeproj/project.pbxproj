@@ -515,6 +515,8 @@
 		98DC7BBB1DF13CD60037A1DD /* TipsWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98DC7BB91DF13CD50037A1DD /* TipsWindow.xib */; };
 		98DD5F022155B857009062EE /* change_folder.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F002155B857009062EE /* change_folder.pdf */; };
 		98DD5F032155B857009062EE /* change_folder_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F012155B857009062EE /* change_folder_H.pdf */; };
+		98DDAED6221765480038C133 /* slim_functions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DDAED4221765480038C133 /* slim_functions.cpp */; };
+		98DDAED7221765480038C133 /* slim_functions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DDAED4221765480038C133 /* slim_functions.cpp */; };
 		98DE4C131B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C141B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
 		98DE4C151B6F9657004FDF5F /* eidos_property_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */; };
@@ -1021,6 +1023,8 @@
 		98DC7BBA1DF13CD50037A1DD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/TipsWindow.xib; sourceTree = "<group>"; };
 		98DD5F002155B857009062EE /* change_folder.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder.pdf; sourceTree = "<group>"; };
 		98DD5F012155B857009062EE /* change_folder_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder_H.pdf; sourceTree = "<group>"; };
+		98DDAED4221765480038C133 /* slim_functions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = slim_functions.cpp; sourceTree = "<group>"; };
+		98DDAED5221765480038C133 /* slim_functions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = slim_functions.h; sourceTree = "<group>"; };
 		98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_property_signature.cpp; sourceTree = "<group>"; };
 		98DE4C121B6F9657004FDF5F /* eidos_property_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_property_signature.h; sourceTree = "<group>"; };
 		98E9A6881A3CCFD0000AD4FC /* mutation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation.cpp; sourceTree = "<group>"; };
@@ -1230,6 +1234,8 @@
 				9898172D1A59750300F7417C /* slim_global.cpp */,
 				9878A93E1A4E57E70007B9D6 /* slim_sim.h */,
 				9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */,
+				98DDAED5221765480038C133 /* slim_functions.h */,
+				98DDAED4221765480038C133 /* slim_functions.cpp */,
 				98E9A6AD1A3CD5D3000AD4FC /* population.h */,
 				98E9A6AC1A3CD5D3000AD4FC /* population.cpp */,
 				98E9A6AA1A3CD5BB000AD4FC /* subpopulation.h */,
@@ -2329,6 +2335,7 @@
 				98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */,
 				989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				982663541A3BABD300A0CBBF /* main.cpp in Sources */,
+				98DDAED6221765480038C133 /* slim_functions.cpp in Sources */,
 				9876E5FC1ED5599F00FF9762 /* gauss.c in Sources */,
 				988880EC20744EE900E10172 /* cauchy.c in Sources */,
 				986764B12089066B00E81B2E /* vargen.c in Sources */,
@@ -2498,6 +2505,7 @@
 				98332ADD1FDBC0D700274FF0 /* dgemv.c in Sources */,
 				98C821491C7A983700548839 /* binomial_tpe.c in Sources */,
 				9850D8E9206309A0006BFD2E /* tables.c in Sources */,
+				98DDAED7221765480038C133 /* slim_functions.cpp in Sources */,
 				984252C3216FA9930019696A /* FindRecipeController.mm in Sources */,
 				98606AEF1DED0DCD00821CFF /* mutation_run.cpp in Sources */,
 				98332B191FDBD16500274FF0 /* copy.c in Sources */,

@@ -19,6 +19,7 @@
 
 
 #include "slim_sim.h"
+#include "slim_functions.h"
 #include "eidos_test.h"
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
@@ -81,6 +82,7 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 	// set up the function map with the base Eidos functions plus zero-gen functions, since we're in an initial state
 	simulation_functions_ = *EidosInterpreter::BuiltInFunctionMap();
 	AddZeroGenerationFunctionsToMap(simulation_functions_);
+	AddSLiMFunctionsToMap(simulation_functions_);
 	
 	// read all configuration information from the input file
 	p_infile.clear();
@@ -7787,7 +7789,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 	}
 	
 	// debugging
-	std::cout << "ancestral sequence set: " << *ancestral_seq_buffer_ << std::endl;
+	//std::cout << "ancestral sequence set: " << *ancestral_seq_buffer_ << std::endl;
 	
 	if (DEBUG_INPUT)
 	{
@@ -8839,6 +8841,30 @@ void SLiMSim::RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map)
 	{
 		for (EidosFunctionSignature_SP signature : *signatures)
 			p_map.erase(signature->call_name_);
+	}
+}
+
+const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(void)
+{
+	// Allocate our own EidosFunctionSignature objects
+	static std::vector<EidosFunctionSignature_SP> sim_func_signatures_;
+	
+	if (!sim_func_signatures_.size())
+	{
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomSequence", SLiM_ExecuteFunction_randomSequence, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddFloat_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+	}
+	
+	return &sim_func_signatures_;
+}
+
+void SLiMSim::AddSLiMFunctionsToMap(EidosFunctionMap &p_map)
+{
+	const std::vector<EidosFunctionSignature_SP> *signatures = SLiMFunctionSignatures();
+	
+	if (signatures)
+	{
+		for (EidosFunctionSignature_SP signature : *signatures)
+			p_map.insert(EidosFunctionMapPair(signature->call_name_, signature));
 	}
 }
 
