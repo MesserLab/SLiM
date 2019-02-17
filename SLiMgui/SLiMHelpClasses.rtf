@@ -3032,9 +3032,24 @@ The mutation stacking policy applies only within the given mutation type\'92s st
 \f3\fs18 readFromPopulationFile()
 \f4\fs20 ; such mutations were governed by whatever stacking policy was in effect when the population file was generated.
 \f5 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+nucleotideBased => (logical$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 If the mutation type was created with 
+\f3\fs18 initializeMutationType()
+\f4\fs20 , it is not nucleotide-based, and this property is 
+\f3\fs18 F
+\f4\fs20 .  If it was created with 
+\f3\fs18 initializeMutationTypeNuc()
+\f4\fs20 , it is nucleotide-based, and this property is 
+\f3\fs18 T
+\f4\fs20 .  See those methods for further discussion.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 tag <\'96> (integer$)\
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 A user-defined 

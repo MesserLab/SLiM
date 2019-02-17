@@ -88,6 +88,8 @@ public:
 	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)
 	std::vector<std::string> dfe_strings_;		// DFE parameters, of type std::string (originally string type)
 	
+	bool nucleotide_based_;						// if true, the mutation type is nucleotide-based (i.e. mutations keep associated nucleotides)
+	
 	bool convert_to_substitution_;				// if true (the default in WF models), mutations of this type are converted to substitutions
 	MutationStackPolicy stack_policy_;			// the mutation stacking policy; see above (kStack is the default)
 	int64_t stack_group_;						// the mutation stacking group this mutation type is in (== mutation_type_id_ is default)
@@ -157,9 +159,9 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
+	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
 #else
-	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
+	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
 #endif
 	~MutationType(void);
 	

@@ -1269,7 +1269,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'g', gSLiM_GenomicElementType_Class);
 	}
-	else if ((p_function_name == "initializeMutationType") && (argument_count >= 1))
+	else if (((p_function_name == "initializeMutationType") || (p_function_name == "initializeMutationTypeNuc")) && (argument_count >= 1))
 	{
 		_SetTypeForISArgumentOfClass(p_arguments[0], 'm', gSLiM_MutationType_Class);
 	}

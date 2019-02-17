@@ -435,6 +435,7 @@ extern const std::string gStr_initializeAncestralSequence;
 extern const std::string gStr_initializeGenomicElement;
 extern const std::string gStr_initializeGenomicElementType;
 extern const std::string gStr_initializeMutationType;
+extern const std::string gStr_initializeMutationTypeNuc;
 extern const std::string gStr_initializeGeneConversion;
 extern const std::string gStr_initializeMutationRate;
 extern const std::string gStr_initializeRecombinationRate;
@@ -712,6 +713,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeGenomicElement,
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,
+	gID_initializeMutationTypeNuc,
 	gID_initializeGeneConversion,
 	gID_initializeMutationRate,
 	gID_initializeRecombinationRate,

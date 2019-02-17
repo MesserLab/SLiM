@@ -823,6 +823,7 @@ const std::string gStr_initializeAncestralSequence = "initializeAncestralSequenc
 const std::string gStr_initializeGenomicElement = "initializeGenomicElement";
 const std::string gStr_initializeGenomicElementType = "initializeGenomicElementType";
 const std::string gStr_initializeMutationType = "initializeMutationType";
+const std::string gStr_initializeMutationTypeNuc = "initializeMutationTypeNuc";
 const std::string gStr_initializeGeneConversion = "initializeGeneConversion";
 const std::string gStr_initializeMutationRate = "initializeMutationRate";
 const std::string gStr_initializeRecombinationRate = "initializeRecombinationRate";
@@ -1142,6 +1143,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElement, gID_initializeGenomicElement);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElementType, gID_initializeGenomicElementType);
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationType, gID_initializeMutationType);
+		Eidos_RegisterStringForGlobalID(gStr_initializeMutationTypeNuc, gID_initializeMutationTypeNuc);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGeneConversion, gID_initializeGeneConversion);
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationRate, gID_initializeMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);

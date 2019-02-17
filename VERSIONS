@@ -17,6 +17,7 @@ development head:
 		add nucleotideBased property
 		add nucleotideCount(), nucleotideFrequency() functions
 		add codonsToAminoAcids(), nucleotidesToCodons()
+		add initializeMutationTypeNuc() and nucleotideBased property on MutationType
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

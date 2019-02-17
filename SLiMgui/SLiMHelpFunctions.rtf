@@ -417,6 +417,20 @@ Note that by default in WF models, all mutations of a given mutation type will b
 \f2\fs20  to 
 \f1\fs18 T
 \f2\fs20 .\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (object<MutationType>$)initializeMutationTypeNuc(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Add a nucleotide-based mutation type at initialization time.  This function is identical to 
+\f1\fs18 initializeMutationType()
+\f2\fs20  except that the new mutation type will be nucleotide-based \'96 in other words, mutations belonging to the new mutation type will have an associated nucleotide.  This function may be called only in nucleotide-based models (as enabled by the 
+\f1\fs18 nucleotideBased
+\f2\fs20  parameter to 
+\f1\fs18 initializeSLiMOptions()
+\f2\fs20 ).  See the documentation for 
+\f1\fs18 initializeMutationType()
+\f2\fs20  for all other discussion.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
