@@ -682,27 +682,40 @@ EidosValue_SP NucleotideArray::NucleotidesAsIntegerVector(int64_t start, int64_t
 EidosValue_SP NucleotideArray::NucleotidesAsCodonVector(int64_t start, int64_t end)
 {
 	int64_t length = end - start + 1;
-	int64_t length_3 = length / 3;
 	
-	if (length % 3 != 0)
-		EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsCodonVector): to obtain codons, the requested sequence length must be a multiple of 3." << EidosTerminate();
-	
-	// return a vector of codons: nucleotide triplets compacted into a single integer value
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
-	
-	for (int64_t value_index = 0; value_index < length_3; ++value_index)
+	if (length == 3)
 	{
-		int64_t codon_base = start + value_index * 3;
-		
-		int nuc1 = NucleotideAtIndex(codon_base);
-		int nuc2 = NucleotideAtIndex(codon_base + 1);
-		int nuc3 = NucleotideAtIndex(codon_base + 2);
+		int nuc1 = NucleotideAtIndex(start);
+		int nuc2 = NucleotideAtIndex(start + 1);
+		int nuc3 = NucleotideAtIndex(start + 2);
 		int codon = nuc1 * 16 + nuc2 * 4 + nuc3;	// 0..63
 		
-		int_result->set_int_no_check(codon, value_index);
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(codon));
 	}
-	
-	return EidosValue_SP(int_result);
+	else
+	{
+		// return a vector of codons: nucleotide triplets compacted into a single integer value
+		int64_t length_3 = length / 3;
+		
+		if (length % 3 != 0)
+			EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsCodonVector): to obtain codons, the requested sequence length must be a multiple of 3." << EidosTerminate();
+		
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+		
+		for (int64_t value_index = 0; value_index < length_3; ++value_index)
+		{
+			int64_t codon_base = start + value_index * 3;
+			
+			int nuc1 = NucleotideAtIndex(codon_base);
+			int nuc2 = NucleotideAtIndex(codon_base + 1);
+			int nuc3 = NucleotideAtIndex(codon_base + 2);
+			int codon = nuc1 * 16 + nuc2 * 4 + nuc3;	// 0..63
+			
+			int_result->set_int_no_check(codon, value_index);
+		}
+		
+		return EidosValue_SP(int_result);
+	}
 }
 
 EidosValue_SP NucleotideArray::NucleotidesAsStringVector(int64_t start, int64_t end)
