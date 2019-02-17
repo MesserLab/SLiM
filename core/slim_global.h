@@ -480,6 +480,7 @@ extern const std::string gStr_endPosition;
 extern const std::string gStr_id;
 extern const std::string gStr_mutationTypes;
 extern const std::string gStr_mutationFractions;
+extern const std::string gStr_mutationMatrix;
 extern const std::string gStr_mutationType;
 extern const std::string gStr_originGeneration;
 extern const std::string gStr_position;
@@ -560,6 +561,7 @@ extern const std::string gStr_uniqueMutationsOfType;
 extern const std::string gStr_removeMutations;
 extern const std::string gStr_setGenomicElementType;
 extern const std::string gStr_setMutationFractions;
+extern const std::string gStr_setMutationMatrix;
 extern const std::string gStr_setSelectionCoeff;
 extern const std::string gStr_setMutationType;
 extern const std::string gStr_setDistribution;
@@ -758,6 +760,7 @@ enum _SLiMGlobalStringID : int {
 	gID_id,
 	gID_mutationTypes,
 	gID_mutationFractions,
+	gID_mutationMatrix,
 	gID_mutationType,
 	gID_originGeneration,
 	gID_position,
@@ -838,6 +841,7 @@ enum _SLiMGlobalStringID : int {
 	gID_removeMutations,
 	gID_setGenomicElementType,
 	gID_setMutationFractions,
+	gID_setMutationMatrix,
 	gID_setSelectionCoeff,
 	gID_setMutationType,
 	gID_setDistribution,

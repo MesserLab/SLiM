@@ -69,6 +69,8 @@ public:
 	
 	slim_usertag_t tag_value_;											// a user-defined tag value
 	
+	EidosValue_Float_vector_SP mutation_matrix_;						// in nucleotide-based models only, the 4x4 or 64x4 float mutation matrix
+	
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying
 	GenomicElementType& operator=(const GenomicElementType&) = delete;	// no copying
 	GenomicElementType(void) = delete;									// no null construction
@@ -77,6 +79,9 @@ public:
 	
 	void InitializeDraws(void);									// reinitialize our mutation-type lookup after changing our mutation type or proportions
 	MutationType *DrawMutationType(void) const;					// draw a mutation type from the distribution for this genomic element type
+	
+	void SetNucleotideMutationMatrix(EidosValue_Float_vector_SP p_mutation_matrix);
+	
 	
 	//
 	// Eidos support
@@ -91,6 +96,7 @@ public:
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setMutationMatrix(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);

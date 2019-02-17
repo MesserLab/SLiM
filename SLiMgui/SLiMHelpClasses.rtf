@@ -1215,7 +1215,18 @@ The optional parameter
 \f5\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 mutationTypes => (object<MutationType>)\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+mutationMatrix => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The nucleotide mutation matrix used for this genomic element type, set up by 
+\f3\fs18 initializeGenomicElementType()
+\f4\fs20  and 
+\f3\fs18 setMutationMatrix()
+\f4\fs20 .  This property is only defined in nucleotide-based models; it is unavailable otherwise.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationTypes => (object<MutationType>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The 
@@ -1281,7 +1292,16 @@ The optional parameter
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)setMutationMatrix(float\'a0mutationMatrix)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets a new nucleotide mutation matrix for the genomic element type.  This replaces the mutation matrix originally set by 
+\f3\fs18 initializeGenomicElementType()
+\f4\fs20 .  This method may only be called in nucleotide-based models.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
 \f5 \'a0
 \f3 (void)setValue(string$\'a0key, +\'a0value)
 \f5 \

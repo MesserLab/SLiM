@@ -16,8 +16,10 @@ development head:
 		add randomSequence() function
 		add nucleotideBased property
 		add nucleotideCount(), nucleotideFrequency() functions
-		add codonsToAminoAcids(), nucleotidesToCodons()
+		add codonsToAminoAcids(), nucleotidesToCodons() functions
 		add initializeMutationTypeNuc() and nucleotideBased property on MutationType
+		add mutationMatrix to initializeGenomicElementType()
+		add mutationMatrix property and setMutationMatrix() method to GenomicElementType
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

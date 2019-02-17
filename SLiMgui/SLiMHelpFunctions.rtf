@@ -83,7 +83,8 @@ Configure the likelihood and behavior of gene conversion events.  The probabilit
 \f4 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<GenomicElementType>$)initializeGenomicElementType(is$\'a0id, io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
+\f1\fs18 \cf0 (object<GenomicElementType>$)initializeGenomicElementType(is$\'a0id, io<MutationType>\'a0mutationTypes, numeric\'a0proportions\cf2 \expnd0\expndtw0\kerning0
+, [Nf\'a0mutationMatrix\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f4 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -111,9 +112,26 @@ Configure the likelihood and behavior of gene conversion events.  The probabilit
 \f1\fs18 MutationType
 \f2\fs20  elements specified directly.  The global symbol for the new genomic element type is immediately available; the return value also provides the new object.
 \f4 \
+
+\f2 \cf2 \expnd0\expndtw0\kerning0
+The 
+\f1\fs18 mutationMatrix
+\f2\fs20  parameter is 
+\f1\fs18 NULL
+\f2\fs20  by default, and in non-nucleotide-based models it must be 
+\f1\fs18 NULL
+\f2\fs20 .  In nucleotide-based models, on the other hand, it must be non-
+\f1\fs18 NULL
+\f2\fs20 , and therefore must be supplied.  In that case, it should be a 4\'d74 
+\f1\fs18 float
+\f2\fs20  matrix, specifying mutation rates for an existing nucleotide state (rows) to each of the four possible derived nucleotide states (columns), or a 64\'d74 
+\f1\fs18 float
+\f2\fs20  matrix, specifying mutation rates for the central nucleotide of an existing trinucleotide sequence (rows) to each of the four possible derived nucleotide states (columns).  The mutation rates in this matrix are absolute rates, per nucleotide per generation; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (which is disabled by default; see 
+\f1\fs18 initializeHotspotMap()
+\f2\fs20 ).  Rates that involve the mutation of a nucleotide to itself (A to A, C to C, etc.) are not used by SLiM and must be zero.  See INSERT SECTION HERE! for discussion of the mutational paradigm in nucleotide-based models.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<InteractionType>$)initializeInteractionType(is$\'a0id, string$\'a0spatiality, [logical$\'a0reciprocal\'a0=\'a0F], [numeric$\'a0maxDistance\'a0=\'a0INF], [string$\'a0sexSegregation\'a0=\'a0"**"])
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<InteractionType>$)initializeInteractionType(is$\'a0id, string$\'a0spatiality, [logical$\'a0reciprocal\'a0=\'a0F], [numeric$\'a0maxDistance\'a0=\'a0INF], [string$\'a0sexSegregation\'a0=\'a0"**"])
 \f4 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 

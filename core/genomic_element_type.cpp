@@ -34,7 +34,7 @@
 #pragma mark -
 
 GenomicElementType::GenomicElementType(SLiMSim &p_sim, slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
-	sim_(p_sim), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions),
+	sim_(p_sim), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions), mutation_matrix_(nullptr),
 	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class)))
 {
 	InitializeDraws();
@@ -95,6 +95,48 @@ MutationType *GenomicElementType::DrawMutationType(void) const
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << EidosTerminate();
 	
 	return mutation_type_ptrs_[gsl_ran_discrete(EIDOS_GSL_RNG, lookup_mutation_type_)];
+}
+
+void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP p_mutation_matrix)
+{
+	mutation_matrix_ = p_mutation_matrix;
+	
+	// integrity checks
+	if (mutation_matrix_->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires mutationMatrix to be a 4x4 or 64x4 matrix." << EidosTerminate();
+	
+	const int64_t *dims = mutation_matrix_->Dimensions();
+	
+	if ((dims[0] == 4) && (dims[1] == 4))
+	{
+		// This is the 4x4 matrix case, providing rates for each original nucleotide (rows) to each derived nucleotide (cols)
+		
+		// check for zeros in the necessary positions
+		static int required_zeros_4x4[4] = {0, 5, 10, 15};
+		
+		for (int index = 0; index < 4; ++index)
+			if (mutation_matrix_->FloatAtIndex(required_zeros_4x4[index], nullptr) != 0.0)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
+		
+		// transpose the matrix for internal use, and check that each column in the result sums to <= 1.0
+		
+	}
+	else if ((dims[0] == 64) && (dims[1] == 4))
+	{
+		// This is the 4x4 matrix case, providing rates for each original trinucleotide (rows) to each derived nucleotide (cols)
+		
+		// check for zeros in the necessary positions
+		static int required_zeros_64x4[64] = {0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35, 48, 49, 50, 51, 68, 69, 70, 71, 84, 85, 86, 87, 100, 101, 102, 103, 116, 117, 118, 119, 136, 137, 138, 139, 152, 153, 154, 155, 168, 169, 170, 171, 184, 185, 186, 187, 204, 205, 206, 207, 220, 221, 222, 223, 236, 237, 238, 239, 252, 253, 254, 255};
+		
+		for (int index = 0; index < 64; ++index)
+			if (mutation_matrix_->FloatAtIndex(required_zeros_64x4[index], nullptr) != 0.0)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
+		
+		// transpose the matrix for internal use, and check that each column in the result sums to <= 1.0
+		
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must be a 4x4 or 64x4 matrix." << EidosTerminate();
 }
 
 // This is unused except by debugging code and in the debugger itself
@@ -188,8 +230,16 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			return result_SP;
 		}
 		case gID_mutationFractions:
+		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_fractions_));
-			
+		}
+		case gID_mutationMatrix:
+		{
+			if (!mutation_matrix_)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::GetProperty): property mutationMatrix is not defined since this model is not nucleotide-based." << EidosTerminate();
+			return mutation_matrix_;
+		}
+		
 			// variables
 		case gEidosID_color:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
@@ -265,6 +315,7 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	switch (p_method_id)
 	{
 		case gID_setMutationFractions:	return ExecuteMethod_setMutationFractions(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setMutationMatrix:		return ExecuteMethod_setMutationMatrix(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:						return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
@@ -319,6 +370,25 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (void)setMutationMatrix(float mutationMatrix)
+//
+EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMSim *sim = (SLiMSim *)p_interpreter.Context();
+	
+	if (!sim->IsNucleotideBased())
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationMatrix): setMutationMatrix() may only be called in nucleotide-based models." << EidosTerminate();
+	
+	EidosValue *mutationMatrix_value = p_arguments[0].get();
+	
+	SetNucleotideMutationMatrix(EidosValue_Float_vector_SP((EidosValue_Float_vector *)(mutationMatrix_value)));
+	
+	// FIXME probably need to do some sort of recaching of mutation rate maps here...
+	
+	return gStaticEidosValueVOID;
+}
+
 
 //
 //	GenomicElementType_Class
@@ -359,6 +429,7 @@ const std::vector<const EidosPropertySignature *> *GenomicElementType_Class::Pro
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationFractions,	true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationMatrix,		true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_tag));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		
@@ -377,6 +448,7 @@ const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Metho
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskVOID))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationMatrix, kEidosValueMaskVOID))->AddFloat("mutationMatrix"));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
