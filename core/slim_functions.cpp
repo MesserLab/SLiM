@@ -33,12 +33,362 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(vo
 	
 	if (!sim_func_signatures_.size())
 	{
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddLogical_OS("long", gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideFrequencies", SLiM_ExecuteFunction_nucleotideFrequencies, kEidosValueMaskFloat, "SLiM"))->AddIntString("sequence"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotidesToCodons", SLiM_ExecuteFunction_nucleotidesToCodons, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomSequence", SLiM_ExecuteFunction_randomSequence, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddFloat_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 	}
 	
 	return &sim_func_signatures_;
+}
+
+static std::string codon2aa_short[64] = {
+	/* AAA */	"K",
+	/* AAC */	"N",
+	/* AAG */	"K",
+	/* AAT */	"N",
+	/* ACA */	"T",
+	/* ACC */	"T",
+	/* ACG */	"T",
+	/* ACT */	"T",
+	/* AGA */	"R",
+	/* AGC */	"S",
+	/* AGG */	"R",
+	/* AGT */	"S",
+	/* ATA */	"I",
+	/* ATC */	"I",
+	/* ATG */	"M",
+	/* ATT */	"I",
+	/* CAA */	"Q",
+	/* CAC */	"H",
+	/* CAG */	"Q",
+	/* CAT */	"H",
+	/* CCA */	"P",
+	/* CCC */	"P",
+	/* CCG */	"P",
+	/* CCT */	"P",
+	/* CGA */	"R",
+	/* CGC */	"R",
+	/* CGG */	"R",
+	/* CGT */	"R",
+	/* CTA */	"L",
+	/* CTC */	"L",
+	/* CTG */	"L",
+	/* CTT */	"L",
+	/* GAA */	"E",
+	/* GAC */	"D",
+	/* GAG */	"E",
+	/* GAT */	"D",
+	/* GCA */	"A",
+	/* GCC */	"A",
+	/* GCG */	"A",
+	/* GCT */	"A",
+	/* GGA */	"G",
+	/* GGC */	"G",
+	/* GGG */	"G",
+	/* GGT */	"G",
+	/* GTA */	"V",
+	/* GTC */	"V",
+	/* GTG */	"V",
+	/* GTT */	"V",
+	/* TAA */	"X",
+	/* TAC */	"Y",
+	/* TAG */	"X",
+	/* TAT */	"Y",
+	/* TCA */	"S",
+	/* TCC */	"S",
+	/* TCG */	"S",
+	/* TCT */	"S",
+	/* TGA */	"X",
+	/* TGC */	"C",
+	/* TGG */	"W",
+	/* TGT */	"C",
+	/* TTA */	"L",
+	/* TTC */	"F",
+	/* TTG */	"L",
+	/* TTT */	"F"
+};
+
+static std::string codon2aa_long[64] = {
+	/* AAA */	"Lys",
+	/* AAC */	"Asn",
+	/* AAG */	"Lys",
+	/* AAT */	"Asn",
+	/* ACA */	"Thr",
+	/* ACC */	"Thr",
+	/* ACG */	"Thr",
+	/* ACT */	"Thr",
+	/* AGA */	"Arg",
+	/* AGC */	"Ser",
+	/* AGG */	"Arg",
+	/* AGT */	"Ser",
+	/* ATA */	"Ile",
+	/* ATC */	"Ile",
+	/* ATG */	"Met",
+	/* ATT */	"Ile",
+	/* CAA */	"Gln",
+	/* CAC */	"His",
+	/* CAG */	"Gln",
+	/* CAT */	"His",
+	/* CCA */	"Pro",
+	/* CCC */	"Pro",
+	/* CCG */	"Pro",
+	/* CCT */	"Pro",
+	/* CGA */	"Arg",
+	/* CGC */	"Arg",
+	/* CGG */	"Arg",
+	/* CGT */	"Arg",
+	/* CTA */	"Leu",
+	/* CTC */	"Leu",
+	/* CTG */	"Leu",
+	/* CTT */	"Leu",
+	/* GAA */	"Glu",
+	/* GAC */	"Asp",
+	/* GAG */	"Glu",
+	/* GAT */	"Asp",
+	/* GCA */	"Ala",
+	/* GCC */	"Ala",
+	/* GCG */	"Ala",
+	/* GCT */	"Ala",
+	/* GGA */	"Gly",
+	/* GGC */	"Gly",
+	/* GGG */	"Gly",
+	/* GGT */	"Gly",
+	/* GTA */	"Val",
+	/* GTC */	"Val",
+	/* GTG */	"Val",
+	/* GTT */	"Val",
+	/* TAA */	"Ter",
+	/* TAC */	"Tyr",
+	/* TAG */	"Ter",
+	/* TAT */	"Tyr",
+	/* TCA */	"Ser",
+	/* TCC */	"Ser",
+	/* TCG */	"Ser",
+	/* TCT */	"Ser",
+	/* TGA */	"Ter",
+	/* TGC */	"Cys",
+	/* TGG */	"Trp",
+	/* TGT */	"Cys",
+	/* TTA */	"Leu",
+	/* TTC */	"Phe",
+	/* TTG */	"Leu",
+	/* TTT */	"Phe"
+};
+
+//	(string)codonsToAminoAcids(integer codons, [logical$ long = F])
+EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *codons_value = p_arguments[0].get();
+	EidosValue *long_value = p_arguments[1].get();
+	
+	int codons_length = codons_value->Count();
+	
+	eidos_logical_t long_strings = long_value->LogicalAtIndex(0, nullptr);
+	
+	if (codons_length == 1)
+	{
+		int64_t codon = codons_value->IntAtIndex(0, nullptr);
+		
+		if ((codon < 0) || (codon > 63))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
+		
+		std::string &aa = (long_strings ? codon2aa_long[codon] : codon2aa_short[codon]);
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(aa));
+	}
+	else
+	{
+		EidosValue *paste_value = p_arguments[2].get();
+		eidos_logical_t paste = paste_value->LogicalAtIndex(0, nullptr);
+		const int64_t *int_data = codons_value->IntVector()->data();
+		
+		if (paste)
+		{
+			if (long_strings)
+			{
+				// pasting: "Aaa-Bbb-Ccc"
+				EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
+				std::string &aa_string = string_result->StringValue_Mutable();
+				
+				aa_string.resize(codons_length * 4 - 1);	// create space for all the amino acids we will generate, including hyphens
+				
+				char *aa_string_ptr = &aa_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
+				
+				for (int value_index = 0; value_index < codons_length; ++value_index)
+				{
+					int64_t codon = int_data[value_index];
+					
+					if ((codon < 0) || (codon > 63))
+						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
+					
+					std::string &aa = codon2aa_long[codon];
+					char *codon_aa_ptr = &aa[0];	// data() returns a const pointer, but this is safe in C++11 and later
+					
+					if (value_index > 0)
+						*(aa_string_ptr++) = '-';
+					
+					*(aa_string_ptr++) = codon_aa_ptr[0];
+					*(aa_string_ptr++) = codon_aa_ptr[1];
+					*(aa_string_ptr++) = codon_aa_ptr[2];
+				}
+				
+				return EidosValue_SP(string_result);
+			}
+			else
+			{
+				// pasting: "ABC"
+				EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
+				std::string &aa_string = string_result->StringValue_Mutable();
+				
+				aa_string.resize(codons_length);	// create space for all the amino acids we will generate
+				
+				char *aa_string_ptr = &aa_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
+				
+				for (int value_index = 0; value_index < codons_length; ++value_index)
+				{
+					int64_t codon = int_data[value_index];
+					
+					if ((codon < 0) || (codon > 63))
+						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
+					
+					std::string &aa = codon2aa_short[codon];
+					
+					aa_string_ptr[value_index] = aa[0];
+				}
+				
+				return EidosValue_SP(string_result);
+			}
+		}
+		else
+		{
+			// no pasting: "A" "C" "C" or "Aaa" "Bbb" "Ccc"
+			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(codons_length);
+			
+			for (int value_index = 0; value_index < codons_length; ++value_index)
+			{
+				int64_t codon = int_data[value_index];
+				
+				if ((codon < 0) || (codon > 63))
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
+				
+				std::string &aa = (long_strings ? codon2aa_long[codon] : codon2aa_short[codon]);
+				
+				string_result->PushString(aa);
+			}
+			
+			return EidosValue_SP(string_result);
+		}
+	}
+}
+
+//	(integer)nucleotidesToCodons(is sequence)
+EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *sequence_value = p_arguments[0].get();
+	EidosValueType sequence_type = sequence_value->Type();
+	int64_t sequence_count = sequence_value->Count();
+	
+	if (sequence_count == 1)
+	{
+		if (sequence_type == EidosValueType::kValueString)
+		{
+			// singleton string case
+			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
+			const std::string &string_ref = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			int64_t length = (int64_t)string_ref.length();
+			
+			if (length % 3 != 0)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires the nucleotide sequence to be a multiple of three in length." << EidosTerminate(nullptr);
+			
+			int64_t length_3 = length / 3;
+			
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+			
+			for (int64_t value_index = 0; value_index < length_3; ++value_index)
+			{
+				int64_t codon_base = value_index * 3;
+				
+				int nuc1 = nuc_lookup[string_ref[codon_base]];
+				int nuc2 = nuc_lookup[string_ref[codon_base + 1]];
+				int nuc3 = nuc_lookup[string_ref[codon_base + 2]];
+				
+				if ((nuc1 > 3) || (nuc2 > 3) || (nuc3 > 3))
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				
+				int codon = nuc1 * 16 + nuc2 * 4 + nuc3;	// 0..63
+				
+				int_result->set_int_no_check(codon, value_index);
+			}
+			
+			return EidosValue_SP(int_result);
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires the nucleotide sequence to be a multiple of three in length." << EidosTerminate(nullptr);
+	}
+	else
+	{
+		if (sequence_count % 3 != 0)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires the nucleotide sequence to be a multiple of three in length." << EidosTerminate(nullptr);
+		
+		int64_t length_3 = sequence_count / 3;
+		
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+		
+		if (sequence_type == EidosValueType::kValueString)
+		{
+			// string vector case
+			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
+			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			
+			for (int value_index = 0; value_index < length_3; ++value_index)
+			{
+				int64_t codon_base = value_index * 3;
+				
+				const std::string &nucstring1 = (*string_vec)[codon_base];
+				const std::string &nucstring2 = (*string_vec)[codon_base + 1];
+				const std::string &nucstring3 = (*string_vec)[codon_base + 2];
+				
+				if ((nucstring1.length() != 1) || (nucstring2.length() != 1) || (nucstring3.length() != 1))
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				
+				int nuc1 = nuc_lookup[nucstring1[0]];
+				int nuc2 = nuc_lookup[nucstring2[0]];
+				int nuc3 = nuc_lookup[nucstring3[0]];
+				
+				if ((nuc1 > 3) || (nuc2 > 3) || (nuc3 > 3))
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				
+				int codon = nuc1 * 16 + nuc2 * 4 + nuc3;	// 0..63
+				
+				int_result->set_int_no_check(codon, value_index);
+			}
+		}
+		else // sequence_type == EidosValueType::kValueInt
+		{
+			// int vector case
+			const int64_t *int_data = sequence_value->IntVector()->data();
+			
+			for (int value_index = 0; value_index < length_3; ++value_index)
+			{
+				int64_t codon_base = value_index * 3;
+				
+				int64_t nuc1 = int_data[codon_base];
+				int64_t nuc2 = int_data[codon_base + 1];
+				int64_t nuc3 = int_data[codon_base + 2];
+				
+				if ((nuc1 < 0) || (nuc1 > 3) || (nuc2 < 0) || (nuc2 > 3) || (nuc3 < 0) || (nuc3 > 3))
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires integer sequence values to be in [0,3]." << EidosTerminate(nullptr);
+				
+				int64_t codon = nuc1 * 16 + nuc2 * 4 + nuc3;	// 0..63
+				
+				int_result->set_int_no_check(codon, value_index);
+			}
+		}
+		
+		return EidosValue_SP(int_result);
+	}
 }
 
 static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, const char *function_name)
@@ -51,27 +401,28 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		// Singleton case
 		if (sequence_type == EidosValueType::kValueInt)
 		{
-			int64_t nuc = sequence_value->IntAtIndex(0, nullptr);
+			uint64_t nuc = sequence_value->IntAtIndex(0, nullptr);
 			
-			if ((nuc < 0) || (nuc > 3))
+			if (nuc > 3)
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires integer sequence values to be in [0,3]." << EidosTerminate(nullptr);
 			
 			total_ACGT[nuc]++;
 		}
 		else // sequence_type == EidosValueType::kValueString
 		{
+			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
 			const std::string &string_ref = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
 			std::size_t length = string_ref.length();
 			
 			for (std::size_t i = 0; i < length; ++i)
 			{
-				char nuc = string_ref[i];
+				char nuc_char = string_ref[i];
+				uint8_t nuc_index = nuc_lookup[nuc_char];
 				
-				if (nuc == 'A')			total_ACGT[0]++;
-				else if (nuc == 'C')	total_ACGT[1]++;
-				else if (nuc == 'G')	total_ACGT[2]++;
-				else if (nuc == 'T')	total_ACGT[3]++;
-				else EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				if (nuc_index > 3)
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				
+				total_ACGT[nuc_index]++;
 			}
 		}
 	}
@@ -84,9 +435,9 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 			
 			for (int value_index = 0; value_index < sequence_count; ++value_index)
 			{
-				int64_t nuc = int_data[value_index];
+				uint64_t nuc = int_data[value_index];
 				
-				if ((nuc < 0) || (nuc > 3))
+				if (nuc > 3)
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires integer sequence values to be in [0,3]." << EidosTerminate(nullptr);
 				
 				total_ACGT[nuc]++;
@@ -94,17 +445,23 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		}
 		else // sequence_type == EidosValueType::kValueString
 		{
+			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
 			const std::vector<std::string> *string_vec = sequence_value->StringVector();
 			
 			for (int value_index = 0; value_index < sequence_count; ++value_index)
 			{
-				const std::string &nuc = (*string_vec)[value_index];
+				const std::string &nuc_string = (*string_vec)[value_index];
 				
-				if (nuc == "A")			total_ACGT[0]++;
-				else if (nuc == "C")	total_ACGT[1]++;
-				else if (nuc == "G")	total_ACGT[2]++;
-				else if (nuc == "T")	total_ACGT[3]++;
-				else EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				if (nuc_string.length() != 1)
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				
+				char nuc_char = nuc_string[0];
+				uint8_t nuc_index = nuc_lookup[nuc_char];
+				
+				if (nuc_index > 3)
+					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
+				
+				total_ACGT[nuc_index]++;
 			}
 		}
 	}
@@ -134,7 +491,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const EidosValue_SP *co
 	EidosValue *sequence_value = p_arguments[0].get();
 	int64_t total_ACGT[4] = {0, 0, 0, 0};
 	
-	CountNucleotides(sequence_value, total_ACGT, "nucleotideCounts");
+	CountNucleotides(sequence_value, total_ACGT, "nucleotideFrequencies");
 	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(4);
 	double total = total_ACGT[0] + total_ACGT[1] + total_ACGT[2] + total_ACGT[3];

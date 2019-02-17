@@ -407,6 +407,9 @@ public:
 	EidosValue_SP NucleotidesAsStringSingleton(int64_t start, int64_t end);
 	
 	friend std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array);
+	
+	// Provides a static lookup table for going from char ('A'/'C'/'G'/'T') to int (0/1/2/3; 4 for errors)
+	static uint8_t *NucleotideCharToIntLookup(void);
 };
 
 std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array);

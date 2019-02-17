@@ -16,6 +16,7 @@ development head:
 		add randomSequence() function
 		add nucleotideBased property
 		add nucleotideCount(), nucleotideFrequency() functions
+		add codonsToAminoAcids(), nucleotidesToCodons()
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

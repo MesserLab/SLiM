@@ -561,10 +561,8 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const int64_t *p_int_buff
 	}
 }
 
-NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer) : length_(p_length)
+uint8_t *NucleotideArray::NucleotideCharToIntLookup(void)
 {
-	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
-	
 	// set up a lookup table for speed
 	static uint8_t *nuc_lookup = nullptr;
 	
@@ -580,6 +578,15 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 		nuc_lookup['G'] = 2;
 		nuc_lookup['T'] = 3;
 	}
+	
+	return nuc_lookup;
+}
+
+NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer) : length_(p_length)
+{
+	uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
+	
+	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
 	
 	// Eat 32 nucleotides at a time if we can
 	std::size_t index = 0, buf_index = 0;

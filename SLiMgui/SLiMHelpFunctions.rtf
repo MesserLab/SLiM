@@ -780,7 +780,91 @@ The
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
-(integer)nucleotideCounts(is\'a0sequence)\
+(string)codonsToAminoAcids(integer\'a0codons, [logical$\'a0long\'a0=\'a0F], [logical$\'a0paste\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Returns the amino acid sequence corresponding to the codon sequence in 
+\f1\fs18 codons
+\f2\fs20 .  Codons should be represented with values in [
+\f1\fs18 0
+\f2\fs20 , 
+\f1\fs18 63
+\f2\fs20 ] where AAA is 
+\f1\fs18 0
+\f2\fs20 , AAC is 
+\f1\fs18 1
+\f2\fs20 , AAG is 
+\f1\fs18 2
+\f2\fs20 , and TTT is 
+\f1\fs18 63
+\f2\fs20 ; see 
+\f1\fs18 ancestralNucleotides()
+\f2\fs20  for discussion of this encoding.  If 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20  (the default), the standard single-letter codes for amino acids will be used (where Serine is 
+\f1\fs18 "S"
+\f2\fs20 , etc.); if 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 , the standard three-letter codes will be used instead (where Serine is 
+\f1\fs18 "Ser"
+\f2\fs20 , etc.).\
+\cf2 When 
+\f1\fs18 paste
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), the amino acid sequence returned will be a singleton 
+\f1\fs18 string
+\f2\fs20 , such as 
+\f1\fs18 "LYATI"
+\f2\fs20  (when 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 ) or 
+\f1\fs18 "Leu-Tyr-Ala-Thr-Ile"
+\f2\fs20  (when 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 ).  When 
+\f1\fs18 paste
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 , the amino acid sequence will instead be returned as a 
+\f1\fs18 string
+\f2\fs20  vector, with one element per amino acid, such as 
+\f1\fs18 "L" "Y" "A" "T" "I"
+\f2\fs20  (when 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 ) or 
+\f1\fs18 "Leu" "Tyr" "Ala" "Thr" "Ile"
+\f2\fs20  (when 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 ).  Using the 
+\f1\fs18 paste=T
+\f2\fs20  option is considerably faster than using 
+\f1\fs18 paste()
+\f2\fs20  in script.\
+\cf2 This function interprets the supplied codon sequence as the 
+\f3\i sense
+\f2\i0  strand (i.e., the strand that is 
+\f3\i not
+\f2\i0  transcribed, and which mirrors the mRNA\'92s sequence).  This uses the standard DNA codon table directly.  For example, if the nucleotide sequence is CAA TTC, that will correspond to a codon vector of 
+\f1\fs18 16 61
+\f2\fs20 , and will result in the amino acid sequence Gln-Phe (
+\f1\fs18 "QF"
+\f2\fs20 ).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (integer)nucleotideCounts(is\'a0sequence)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 A convenience function that returns an 
@@ -801,14 +885,12 @@ The
 \f1\fs18 "A"
 \f2\fs20 ), or an 
 \f1\fs18 integer
-\f2\fs20  vector (e.g., 
+\f2\fs20  vector (e.g., 3, 
 \f1\fs18 0
 \f2\fs20 , 
 \f1\fs18 3
 \f2\fs20 , 
 \f1\fs18 0
-\f2\fs20 , 
-\f1\fs18 3
 \f2\fs20 ), using SLiM\'92s standard code of A=
 \f1\fs18 0
 \f2\fs20 , C=
@@ -841,14 +923,12 @@ The
 \f1\fs18 "A"
 \f2\fs20 ), or an 
 \f1\fs18 integer
-\f2\fs20  vector (e.g., 
+\f2\fs20  vector (e.g., 3, 
 \f1\fs18 0
 \f2\fs20 , 
 \f1\fs18 3
 \f2\fs20 , 
 \f1\fs18 0
-\f2\fs20 , 
-\f1\fs18 3
 \f2\fs20 ), using SLiM\'92s standard code of A=
 \f1\fs18 0
 \f2\fs20 , C=
@@ -858,6 +938,81 @@ The
 \f2\fs20 , T=
 \f1\fs18 3
 \f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (integer)nucleotidesToCodons(is\'a0sequence)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Returns the codon sequence corresponding to the nucleotide sequence in 
+\f1\fs18 sequence
+\f2\fs20 .  The codon sequence is an 
+\f1\fs18 integer
+\f2\fs20  vector with values from 
+\f1\fs18 0
+\f2\fs20  to 
+\f1\fs18 63
+\f2\fs20 , based upon successive nucleotide triplets in the nucleotide sequence.  The codon value for a given nucleotide triplet XYZ is 16X\'a0+\'a04Y\'a0+\'a0Z, where X, Y, and Z have the usual values A=
+\f1\fs18 0
+\f2\fs20 , C=
+\f1\fs18 1
+\f2\fs20 , G=
+\f1\fs18 2
+\f2\fs20 , T=
+\f1\fs18 3
+\f2\fs20 .  For example, the triplet AAA has a codon value of 
+\f1\fs18 0
+\f2\fs20 , AAC is 
+\f1\fs18 1
+\f2\fs20 , AAG is 
+\f1\fs18 2
+\f2\fs20 , AAT is 
+\f1\fs18 3
+\f2\fs20 , ACA is 
+\f1\fs18 4
+\f2\fs20 , and on upward to TTT which is 
+\f1\fs18 63
+\f2\fs20 .  If the nucleotide sequence AACACATTT is passed in, the codon vector 
+\f1\fs18 1 4 63
+\f2\fs20  will therefore be returned.  These codon values can be useful in themselves; they can also be passed to 
+\f1\fs18 codonsToAminoAcids()
+\f2\fs20  to translate them into the corresponding amino acid sequence if desired.\
+The nucleotide sequence in 
+\f1\fs18 sequence
+\f2\fs20  may be supplied in any of three formats: a 
+\f1\fs18 string
+\f2\fs20  vector with single-letter nucleotides (e.g., 
+\f1\fs18 "T"
+\f2\fs20 , 
+\f1\fs18 "A"
+\f2\fs20 , 
+\f1\fs18 "T"
+\f2\fs20 , 
+\f1\fs18 "A"
+\f2\fs20 ), a singleton 
+\f1\fs18 string
+\f2\fs20  of nucleotide letters (e.g., 
+\f1\fs18 "TATA"
+\f2\fs20 ), or an 
+\f1\fs18 integer
+\f2\fs20  vector of nucleotide values (e.g., 
+\f1\fs18 3
+\f2\fs20 , 
+\f1\fs18 0
+\f2\fs20 , 
+\f1\fs18 3
+\f2\fs20 , 
+\f1\fs18 0
+\f2\fs20 ) using SLiM\'92s standard code of A=
+\f1\fs18 0
+\f2\fs20 , C=
+\f1\fs18 1
+\f2\fs20 , G=
+\f1\fs18 2
+\f2\fs20 , T=
+\f1\fs18 3
+\f2\fs20 .  If the choice of format is not driven by other considerations, such as ease of manipulation, then the singleton 
+\f1\fs18 string
+\f2\fs20  format will certainly be the most memory-efficient for long sequences, and will probably also be the fastest.  The nucleotide sequence provided must be a multiple of three in length, so that it translates to an integral number of codons.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (is)randomSequence(integer$\'a0length, [Nf\'a0basis\'a0=\'a0NULL], [string$\'a0format\'a0=\'a0"string"])\
@@ -902,13 +1057,11 @@ The
 \f2\fs20  to obtain it as an 
 \f1\fs18 integer
 \f2\fs20  vector (e.g., 
-\f1\fs18 0
-\f2\fs20 , 
 \f1\fs18 3
 \f2\fs20 , 
 \f1\fs18 0
 \f2\fs20 , 
-\f1\fs18 3
+\f1\fs18 3, 0
 \f2\fs20 ), using SLiM\'92s standard code of A=
 \f1\fs18 0
 \f2\fs20 , C=
@@ -918,8 +1071,8 @@ The
 \f2\fs20 , T=
 \f1\fs18 3
 \f2\fs20 .  For passing directly to 
-\f1\fs18 \cf2 initializeAncestralSequence()
-\f2\fs20 \cf2 , format 
+\f1\fs18 initializeAncestralSequence()
+\f2\fs20 , format 
 \f1\fs18 "string"
 \f2\fs20  (a singleton string) will certainly be the most memory-efficient, and probably also the fastest.  Memory efficiency can be a significant consideration; the nucleotide sequence for a chromosome of length 10
 \fs13\fsmilli6667 \cf2 \super 9
