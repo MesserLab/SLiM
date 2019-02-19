@@ -112,6 +112,7 @@ Configure the likelihood and behavior of gene conversion events.  The probabilit
 \f1\fs18 MutationType
 \f2\fs20  elements specified directly.  The global symbol for the new genomic element type is immediately available; the return value also provides the new object.
 \f4 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2 \cf2 \expnd0\expndtw0\kerning0
 The 
@@ -446,7 +447,19 @@ Note that by default in WF models, all mutations of a given mutation type will b
 \f1\fs18 nucleotideBased
 \f2\fs20  parameter to 
 \f1\fs18 initializeSLiMOptions()
-\f2\fs20 ).  See the documentation for 
+\f2\fs20 ).\
+Nucleotide-based mutations always use a 
+\f1\fs18 mutationStackGroup
+\f2\fs20  of 
+\f1\fs18 -1
+\f2\fs20  and a 
+\f1\fs18 mutationStackPolicy
+\f2\fs20  of 
+\f1\fs18 "l"
+\f2\fs20 .  This ensures that a new nucleotide mutation always replaces any previously existing nucleotide mutation at a given position, regardless of the mutation types of the nucleotide mutations.  These values are set automatically by 
+\f1\fs18 initializeMutationTypeNuc()
+\f2\fs20 , and may not be changed.\
+See the documentation for 
 \f1\fs18 initializeMutationType()
 \f2\fs20  for all other discussion.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -844,7 +857,7 @@ The
 \f2\fs20 , the standard three-letter codes will be used instead (where Serine is 
 \f1\fs18 "Ser"
 \f2\fs20 , etc.).\
-\cf2 When 
+When 
 \f1\fs18 paste
 \f2\fs20  is 
 \f1\fs18 T
@@ -885,7 +898,7 @@ The
 \f2\fs20  option is considerably faster than using 
 \f1\fs18 paste()
 \f2\fs20  in script.\
-\cf2 This function interprets the supplied codon sequence as the 
+This function interprets the supplied codon sequence as the 
 \f3\i sense
 \f2\i0  strand (i.e., the strand that is 
 \f3\i not

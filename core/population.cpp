@@ -2624,6 +2624,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		{
 			MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation());
 			
+#warning need to handle the nucleotide field
+			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
 			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
@@ -3260,6 +3262,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		{
 			MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());
 			
+#warning need to handle the nucleotide field
+			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			
 			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
@@ -3684,6 +3688,8 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		for (int k = 0; k < num_mutations; k++)
 		{
 			MutationIndex new_mutation = chromosome.DrawNewMutation(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
+			
+#warning need to handle the nucleotide field
 			
 			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
 			

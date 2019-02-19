@@ -626,7 +626,8 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewDrawnMutation(io<MutationType>\'a0mutationType, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL])
+\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewDrawnMutation(io<MutationType>\'a0mutationType, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
+, [Nis nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -659,7 +660,37 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficients of the mutations are drawn from their mutation types; 
 \f3\fs18 addNewMutation()
 \f4\fs20  may be used instead if you wish to specify selection coefficients.\
-Beginning in SLiM 2.5 this method is vectorized, so all of these parameters may be singletons (in which case that single value is used for all mutations created by the call) or non-singleton vectors (in which case one element is used for each corresponding mutation created).  Non-singleton parameters must match in length, since their elements need to be matched up one-to-one.\
+\cf2 \expnd0\expndtw0\kerning0
+In non-nucleotide-based models, 
+\f3\fs18 nucleotide
+\f4\fs20  must be 
+\f3\fs18 NULL
+\f4\fs20  (the default).  In nucleotide-based models, a non-
+\f3\fs18 NULL
+\f4\fs20  value must be supplied for 
+\f3\fs18 nucleotide
+\f4\fs20 , specifying the nucleotide(s) to be associated with the new mutation(s).  Nucleotides may be specified with 
+\f3\fs18 string
+\f4\fs20  values (
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "C"
+\f4\fs20 , 
+\f3\fs18 "G"
+\f4\fs20 , or 
+\f3\fs18 "T"
+\f4\fs20 ), or with 
+\f3\fs18 integer
+\f4\fs20  values (A=
+\f3\fs18 0
+\f4\fs20 , C=
+\f3\fs18 1
+\f4\fs20 , G=
+\f3\fs18 2
+\f4\fs20 , T=
+\f3\fs18 3
+\f4\fs20 ).  If a nucleotide mutation already exists at the position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\cf0 \kerning1\expnd0\expndtw0 Beginning in SLiM 2.5 this method is vectorized, so all of these parameters may be singletons (in which case that single value is used for all mutations created by the call) or non-singleton vectors (in which case one element is used for each corresponding mutation created).  Non-singleton parameters must match in length, since their elements need to be matched up one-to-one.\
 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  property of 
@@ -684,7 +715,8 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0selectionCoeff, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL])
+\f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0selectionCoeff, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
+, [Nis nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -719,7 +751,37 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The 
 \f3\fs18 addNewDrawnMutation()
 \f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.\
-The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
+\cf2 \expnd0\expndtw0\kerning0
+In non-nucleotide-based models, 
+\f3\fs18 nucleotide
+\f4\fs20  must be 
+\f3\fs18 NULL
+\f4\fs20  (the default).  In nucleotide-based models, a non-
+\f3\fs18 NULL
+\f4\fs20  value must be supplied for 
+\f3\fs18 nucleotide
+\f4\fs20 , specifying the nucleotide(s) to be associated with the new mutation(s).  Nucleotides may be specified with 
+\f3\fs18 string
+\f4\fs20  values (
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "C"
+\f4\fs20 , 
+\f3\fs18 "G"
+\f4\fs20 , or 
+\f3\fs18 "T"
+\f4\fs20 ), or with 
+\f3\fs18 integer
+\f4\fs20  values (A=
+\f3\fs18 0
+\f4\fs20 , C=
+\f3\fs18 1
+\f4\fs20 , G=
+\f3\fs18 2
+\f4\fs20 , T=
+\f3\fs18 3
+\f4\fs20 ).  If a nucleotide mutation already exists at the position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\cf0 \kerning1\expnd0\expndtw0 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  property of 
 \f3\fs18 MutationType
@@ -2540,7 +2602,40 @@ Note that all interactions are automatically reset to an unevaluated state at th
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 originGeneration => (integer$)\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+nucleotide => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A 
+\f3\fs18 string
+\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "C"
+\f4\fs20 , 
+\f3\fs18 "G"
+\f4\fs20 , or 
+\f3\fs18 "T"
+\f4\fs20 .  If the mutation is not nucleotide-based, this property is unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 nucleotideValue => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 An 
+\f3\fs18 integer
+\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f3\fs18 0
+\f4\fs20  (A), 
+\f3\fs18 1
+\f4\fs20  (C), 
+\f3\fs18 2
+\f4\fs20  (G), or 
+\f3\fs18 3
+\f4\fs20  (T).  If the mutation is not nucleotide-based, this property is unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 originGeneration => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The generation in which this mutation arose.
@@ -2662,9 +2757,12 @@ The mutation type of a mutation is normally a constant in simulations, so be sur
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+In nucleotide-based models, a restriction applies: nucleotide-based mutations may not be changed to a non-nucleotide-based mutation type, and non-nucleotide-based mutations may not be changed to a nucleotide-based mutation type.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setSelectionCoeff(float$\'a0selectionCoeff)
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3009,9 +3107,16 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f4\fs20  by default.  See 
 \f3\fs18 mutationStackPolicy
 \f4\fs20 , below, for discussion.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+In nucleotide-based models, the stacking group for nucleotide-based mutation types is always 
+\f3\fs18 -1
+\f4\fs20 , and cannot be changed.  Non-nucleotide-based mutation types may also be set to share the 
+\f3\fs18 -1
+\f4\fs20  stacking group, if they should participate in the same stacking policy as nucleotide-based mutations, but that would be quite unusual.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 mutationStackPolicy <\'96> (string$)\
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationStackPolicy <\'96> (string$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 This property and the 
@@ -3052,10 +3157,15 @@ The mutation stacking policy applies only within the given mutation type\'92s st
 \f3\fs18 readFromPopulationFile()
 \f4\fs20 ; such mutations were governed by whatever stacking policy was in effect when the population file was generated.
 \f5 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4 \cf2 \expnd0\expndtw0\kerning0
+In nucleotide-based models, the stacking policy for nucleotide-based mutation types is always 
+\f3\fs18 "l"
+\f4\fs20 , and cannot be changed.  This ensures that new nucleotide mutations always replace the previous nucleotide at a site, and that more than one nucleotide mutation is never present at the same position in a single genome.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-nucleotideBased => (logical$)\
+\f3\fs18 \cf2 nucleotideBased => (logical$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 If the mutation type was created with 
@@ -3415,7 +3525,7 @@ If the model is being profiled, or is executing forward to a generation number e
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 This property has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0   In SLiM 3.2.1 and later, use 
+\f4\b0 \cf2   In SLiM 3.2.1 and later, use 
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -6038,7 +6148,40 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 originGeneration => (integer$)\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+nucleotide => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A 
+\f3\fs18 string
+\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "C"
+\f4\fs20 , 
+\f3\fs18 "G"
+\f4\fs20 , or 
+\f3\fs18 "T"
+\f4\fs20 .  If the mutation is not nucleotide-based, this property is unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 nucleotideValue => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 An 
+\f3\fs18 integer
+\f4\fs20  representing the nucleotide associated with this mutation; this will be 
+\f3\fs18 0
+\f4\fs20  (A), 
+\f3\fs18 1
+\f4\fs20  (C), 
+\f3\fs18 2
+\f4\fs20  (G), or 
+\f3\fs18 3
+\f4\fs20  (T).  If the mutation is not nucleotide-based, this property is unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 originGeneration => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The generation in which this mutation arose.

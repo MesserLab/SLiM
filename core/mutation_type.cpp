@@ -77,6 +77,13 @@ sim_(p_sim), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast
 	// note also that we do not set SLiMSim.pure_neutral_ here; we wait until this muttype is used
 	all_pure_neutral_DFE_ = ((dfe_type_ == DFEType::kFixed) && (dfe_parameters_[0] == 0.0));
 	
+	// Nucleotide-based mutations use a special stacking group, -1, and always use stacking policy "l"
+	if (p_nuc_based)
+	{
+		stack_policy_ = MutationStackPolicy::kKeepLast;
+		stack_group_ = -1;
+	}
+	
 	// The fact that we have been created means that stacking policy has changed and needs to be checked
 	sim_.MutationStackPolicyChanged();
 }
@@ -550,7 +557,12 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_mutationStackGroup:
 		{
-			stack_group_ = p_value.IntAtIndex(0, nullptr);
+			int64_t new_group = p_value.IntAtIndex(0, nullptr);
+			
+			if (nucleotide_based_ && (new_group != -1))
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << Eidos_StringForGlobalStringID(p_property_id) << " must be -1 for nucleotide-based mutation types." << EidosTerminate();
+			
+			stack_group_ = new_group;
 			
 			sim_.MutationStackPolicyChanged();
 			return;
@@ -559,6 +571,9 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		case gID_mutationStackPolicy:
 		{
 			std::string value = p_value.StringAtIndex(0, nullptr);
+			
+			if (nucleotide_based_ && (value != gStr_l))
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << Eidos_StringForGlobalStringID(p_property_id) << " must be \"l\" for nucleotide-based mutation types." << EidosTerminate();
 			
 			if (value.compare(gEidosStr_s) == 0)
 				stack_policy_ = MutationStackPolicy::kStack;

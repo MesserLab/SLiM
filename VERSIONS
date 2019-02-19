@@ -20,6 +20,8 @@ development head:
 		add initializeMutationTypeNuc() and nucleotideBased property on MutationType
 		add mutationMatrix to initializeGenomicElementType()
 		add mutationMatrix property and setMutationMatrix() method to GenomicElementType
+		add Mutation support for nucleotides: nucleotide, nucleotideValue, ditto for Substitution
+		add nucleotide argument to addNewMutation() and addNewDrawnMutation()
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

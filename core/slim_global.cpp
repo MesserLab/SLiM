@@ -872,6 +872,8 @@ const std::string gStr_mutationTypes = "mutationTypes";
 const std::string gStr_mutationFractions = "mutationFractions";
 const std::string gStr_mutationMatrix = "mutationMatrix";
 const std::string gStr_mutationType = "mutationType";
+const std::string gStr_nucleotide = "nucleotide";
+const std::string gStr_nucleotideValue = "nucleotideValue";
 const std::string gStr_originGeneration = "originGeneration";
 const std::string gStr_position = "position";
 const std::string gStr_selectionCoeff = "selectionCoeff";
@@ -1192,6 +1194,8 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_mutationFractions, gID_mutationFractions);
 		Eidos_RegisterStringForGlobalID(gStr_mutationMatrix, gID_mutationMatrix);
 		Eidos_RegisterStringForGlobalID(gStr_mutationType, gID_mutationType);
+		Eidos_RegisterStringForGlobalID(gStr_nucleotide, gID_nucleotide);
+		Eidos_RegisterStringForGlobalID(gStr_nucleotideValue, gID_nucleotideValue);
 		Eidos_RegisterStringForGlobalID(gStr_originGeneration, gID_originGeneration);
 		Eidos_RegisterStringForGlobalID(gStr_position, gID_position);
 		Eidos_RegisterStringForGlobalID(gStr_selectionCoeff, gID_selectionCoeff);

@@ -572,7 +572,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+#warning Need to handle the nucleotide field
+		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, -1);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 		mutations.insert(std::pair<slim_polymorphismid_t,MutationIndex>(polymorphism_id, new_mut_index));
@@ -1157,7 +1158,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation);
+#warning Need to handle the nucleotide field
+		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, -1);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 		mutations[polymorphism_id] = new_mut_index;
@@ -7158,7 +7160,8 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_, generation_);
+#warning need to handle the nucleotide field
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_, generation_, -1);
 			
 			population_.treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(position, sub));
 			population_.substitutions_.emplace_back(sub);
@@ -7171,7 +7174,8 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_);
+#warning Need to handle the nucleotide field
+			new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_, -1);
 			
 			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;

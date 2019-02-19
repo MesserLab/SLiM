@@ -178,8 +178,8 @@ size_t SLiM_MemoryUsageForMutationRefcounts(void)
 // A global counter used to assign all Mutation objects a unique ID
 slim_mutationid_t gSLiM_next_mutation_id = 0;
 
-Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), mutation_id_(gSLiM_next_mutation_id++)
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
@@ -204,6 +204,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 		char *ptr_selection_coeff_ = (char *)&(this->selection_coeff_);
 		char *ptr_subpop_index_ = (char *)&(this->subpop_index_);
 		char *ptr_origin_generation_ = (char *)&(this->origin_generation_);
+		// need to add nucleotide_based_ and nucleotide_
 		char *ptr_mutation_id_ = (char *)&(this->mutation_id_);
 		char *ptr_tag_value_ = (char *)&(this->tag_value_);
 		char *ptr_cached_one_plus_sel_ = (char *)&(this->cached_one_plus_sel_);
@@ -226,8 +227,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 }
 
-Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), mutation_id_(p_mutation_id)
+Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
@@ -281,6 +282,32 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_id_));
 		case gID_mutationType:		// ACCELERATED
 			return mutation_type_ptr_->SymbolTableEntry().second;
+		case gID_nucleotide:		// ACCELERATED
+		{
+			if (nucleotide_ == -1)
+				EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): property nucleotide is only accessible for nucleotide-based mutations." << EidosTerminate();
+			
+			switch (nucleotide_)
+			{
+				case 0:	return gStaticEidosValue_StringA;
+				case 1:	return gStaticEidosValue_StringC;
+				case 2:	return gStaticEidosValue_StringG;
+				case 3:	return gStaticEidosValue_StringT;
+			}
+		}
+		case gID_nucleotideValue:	// ACCELERATED
+		{
+			if (nucleotide_ == -1)
+				EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): property nucleotideValue is only accessible for nucleotide-based mutations." << EidosTerminate();
+			
+			switch (nucleotide_)
+			{
+				case 0:	return gStaticEidosValue_Integer0;
+				case 1:	return gStaticEidosValue_Integer1;
+				case 2:	return gStaticEidosValue_Integer2;
+				case 3:	return gStaticEidosValue_Integer3;
+			}
+		}
 		case gID_originGeneration:	// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_generation_));
 		case gID_position:			// ACCELERATED
@@ -309,6 +336,49 @@ EidosValue *Mutation::GetProperty_Accelerated_id(EidosObjectElement **p_values, 
 		Mutation *value = (Mutation *)(p_values[value_index]);
 		
 		int_result->set_int_no_check(value->mutation_id_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Mutation *value = (Mutation *)(p_values[value_index]);
+		int8_t nucleotide = value->nucleotide_;
+		
+		if (nucleotide == -1)
+			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty_Accelerated_nucleotideValue): property nucleotide is only accessible for nucleotide-based mutations." << EidosTerminate();
+		
+		if (nucleotide == 0)
+			string_result->PushString(gStr_A);
+		else if (nucleotide == 1)
+			string_result->PushString(gStr_C);
+		else if (nucleotide == 2)
+			string_result->PushString(gStr_G);
+		else if (nucleotide == 3)
+			string_result->PushString(gStr_T);
+	}
+	
+	return string_result;
+}
+
+EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Mutation *value = (Mutation *)(p_values[value_index]);
+		int8_t nucleotide = value->nucleotide_;
+		
+		if (nucleotide == -1)
+			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty_Accelerated_nucleotideValue): property nucleotideValue is only accessible for nucleotide-based mutations." << EidosTerminate();
+		
+		int_result->set_int_no_check(nucleotide, value_index);
 	}
 	
 	return int_result;
@@ -525,6 +595,9 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "setMutationType()");
 	
+	if (mutation_type_ptr->nucleotide_based_ != mutation_type_ptr_->nucleotide_based_)
+		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): setMutationType() does not allow a mutation to be changed from nucleotide-based to non-nucleotide-based or vice versa." << EidosTerminate();
+	
 	// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
 	mutation_type_ptr_ = mutation_type_ptr;
 	
@@ -578,6 +651,8 @@ const std::vector<const EidosPropertySignature *> *Mutation_Class::Properties(vo
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_mutationType));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,				true,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotide));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotideValue));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_originGeneration));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_selectionCoeff));

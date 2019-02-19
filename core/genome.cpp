@@ -1385,8 +1385,8 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("selectionCoeff")->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("selectionCoeff")->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton | kEidosValueMaskNULL | kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position")->AddLogical_OS("returnMutation", gStaticEidosValue_LogicalF));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMutations));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
@@ -1631,15 +1631,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL])
-//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL])
+//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
+//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
 	
 #ifdef __clang_analyzer__
-	assert(((p_method_id == gID_addNewDrawnMutation) && (p_argument_count == 4)) || ((p_method_id == gID_addNewMutation) && (p_argument_count == 5)));
+	assert(((p_method_id == gID_addNewDrawnMutation) && (p_argument_count == 5)) || ((p_method_id == gID_addNewMutation) && (p_argument_count == 6)));
 #endif
 	
 	EidosValue *arg_muttype = p_arguments[0].get();
@@ -1647,6 +1647,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	EidosValue *arg_position = (p_method_id == gID_addNewDrawnMutation ? p_arguments[1].get() : p_arguments[2].get());
 	EidosValue *arg_origin_gen = (p_method_id == gID_addNewDrawnMutation ? p_arguments[2].get() : p_arguments[3].get());
 	EidosValue *arg_origin_subpop = (p_method_id == gID_addNewDrawnMutation ? p_arguments[3].get() : p_arguments[4].get());
+	EidosValue *arg_nucleotide = (p_method_id == gID_addNewDrawnMutation ? p_arguments[4].get() : p_arguments[5].get());
 	
 	int target_size = p_target->Count();
 	
@@ -1659,6 +1660,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
 	Population &pop = sim.ThePopulation();
+	bool nucleotide_based = sim.nucleotide_based_;
+	
+	if (nucleotide_based && (arg_nucleotide->Type() == EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be non-NULL in nucleotide-based models." << EidosTerminate();
+	if (!nucleotide_based && (arg_nucleotide->Type() != EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be NULL in non-nucleotide-based models." << EidosTerminate();
 	
 	sim.CheckMutationStackPolicy();
 	
@@ -1712,20 +1719,24 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	int position_count = arg_position->Count();
 	int origin_gen_count = arg_origin_gen->Count();
 	int origin_subpop_count = arg_origin_subpop->Count();
+	int nucleotide_count = arg_nucleotide->Count();
 	
 	if (arg_origin_gen->Type() == EidosValueType::kValueNULL)
 		origin_gen_count = 1;
 	if (arg_origin_subpop->Type() == EidosValueType::kValueNULL)
 		origin_subpop_count = 1;
+	if (arg_nucleotide->Type() == EidosValueType::kValueNULL)
+		nucleotide_count = 1;
 	
-	int count_to_add = std::max({muttype_count, selcoeff_count, position_count, origin_gen_count, origin_subpop_count});
+	int count_to_add = std::max({muttype_count, selcoeff_count, position_count, origin_gen_count, origin_subpop_count, nucleotide_count});
 	
 	if (((muttype_count != 1) && (muttype_count != count_to_add)) ||
 		(arg_selcoeff && (selcoeff_count != 1) && (selcoeff_count != count_to_add)) ||
 		((position_count != 1) && (position_count != count_to_add)) ||
 		((origin_gen_count != 1) && (origin_gen_count != count_to_add)) ||
-		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, and originSubpop be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) for originGeneration or originSubpop, NULL." << EidosTerminate();
+		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)) ||
+		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originGeneration, originSubpop, and nucleotide." << EidosTerminate();
 	
 	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
 	
@@ -1742,6 +1753,30 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		
 		if (position > last_position)
 			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " position " << position << " is past the end of the chromosome." << EidosTerminate();
+	}
+	
+	// similarly, check nucleotide values for validity
+	uint8_t *nucleotide_lookup = NucleotideArray::NucleotideCharToIntLookup();
+	
+	if (arg_nucleotide->Type() == EidosValueType::kValueInt)
+	{
+		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		{
+			int64_t nuc_int = arg_nucleotide->IntAtIndex(nucleotide_index, nullptr);
+			
+			if ((nuc_int < 0) || (nuc_int > 3))
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+		}
+	}
+	else if (arg_nucleotide->Type() == EidosValueType::kValueString)
+	{
+		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		{
+			uint8_t nuc = nucleotide_lookup[arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0]];
+			
+			if (nuc > 3)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+		}
 	}
 	
 	// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
@@ -1802,6 +1837,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		singleton_origin_subpop_id = ((Subpopulation *)(arg_origin_subpop->ObjectElementAtIndex(0, nullptr)))->subpopulation_id_;
 #endif
 	
+	int64_t singleton_nucleotide;
+	
+	if (arg_nucleotide->Type() == EidosValueType::kValueNULL)
+		singleton_nucleotide = -1;
+	else if (arg_nucleotide->Type() == EidosValueType::kValueInt)
+		singleton_nucleotide = arg_nucleotide->IntAtIndex(0, nullptr);
+	else
+		singleton_nucleotide = nucleotide_lookup[arg_nucleotide->StringAtIndex(0, nullptr)[0]];
+	
 	// ok, now loop to add the mutations in a single bulk operation per mutation run
 	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
 	
@@ -1818,6 +1862,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		slim_position_t position = singleton_position;
 		slim_generation_t origin_generation = singleton_origin_generation;
 		slim_objectid_t origin_subpop_id = singleton_origin_subpop_id;
+		int64_t nucleotide = singleton_nucleotide;
 		
 		for (int mut_parameter_index = 0; mut_parameter_index < count_to_add; ++mut_parameter_index)
 		{
@@ -1855,9 +1900,18 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 #endif
 				}
 				
+				if (nucleotide_count != 1)
+				{
+					// Already checked for validity above
+					if (arg_nucleotide->Type() == EidosValueType::kValueInt)
+						nucleotide = arg_nucleotide->IntAtIndex(mut_parameter_index, nullptr);
+					else
+						nucleotide = nucleotide_lookup[arg_nucleotide->StringAtIndex(mut_parameter_index, nullptr)[0]];
+				}
+				
 				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 				
-				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation);
+				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation, (int8_t)nucleotide);
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 				if (selection_coeff != 0.0)

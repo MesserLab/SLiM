@@ -34,13 +34,13 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_),
+mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_),
 	SLiMEidosDictionary(p_mutation)
 {
 }
 
-Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_generation_t p_fixation_generation) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), fixation_generation_(p_fixation_generation), mutation_id_(p_mutation_id), tag_value_(-1)
+Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_generation_t p_fixation_generation, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), fixation_generation_(p_fixation_generation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(-1)
 {
 }
 
@@ -83,6 +83,32 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selection_coeff_));
 		case gID_subpopID:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
+		case gID_nucleotide:		// ACCELERATED
+		{
+			if (nucleotide_ == -1)
+				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotide is only accessible for nucleotide-based mutations." << EidosTerminate();
+			
+			switch (nucleotide_)
+			{
+				case 0:	return gStaticEidosValue_StringA;
+				case 1:	return gStaticEidosValue_StringC;
+				case 2:	return gStaticEidosValue_StringG;
+				case 3:	return gStaticEidosValue_StringT;
+			}
+		}
+		case gID_nucleotideValue:	// ACCELERATED
+		{
+			if (nucleotide_ == -1)
+				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotideValue is only accessible for nucleotide-based mutations." << EidosTerminate();
+			
+			switch (nucleotide_)
+			{
+				case 0:	return gStaticEidosValue_Integer0;
+				case 1:	return gStaticEidosValue_Integer1;
+				case 2:	return gStaticEidosValue_Integer2;
+				case 3:	return gStaticEidosValue_Integer3;
+			}
+		}
 		case gID_originGeneration:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_generation_));
 		case gID_fixationGeneration:	// ACCELERATED
@@ -107,6 +133,49 @@ EidosValue *Substitution::GetProperty_Accelerated_id(EidosObjectElement **p_valu
 		Substitution *value = (Substitution *)(p_values[value_index]);
 		
 		int_result->set_int_no_check(value->mutation_id_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		int8_t nucleotide = value->nucleotide_;
+		
+		if (nucleotide == -1)
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotideValue): property nucleotide is only accessible for nucleotide-based mutations." << EidosTerminate();
+		
+		if (nucleotide == 0)
+			string_result->PushString(gStr_A);
+		else if (nucleotide == 1)
+			string_result->PushString(gStr_C);
+		else if (nucleotide == 2)
+			string_result->PushString(gStr_G);
+		else if (nucleotide == 3)
+			string_result->PushString(gStr_T);
+	}
+	
+	return string_result;
+}
+
+EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		int8_t nucleotide = value->nucleotide_;
+		
+		if (nucleotide == -1)
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotideValue): property nucleotideValue is only accessible for nucleotide-based mutations." << EidosTerminate();
+		
+		int_result->set_int_no_check(nucleotide, value_index);
 	}
 	
 	return int_result;
@@ -287,6 +356,8 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_selectionCoeff));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			true,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originGeneration));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationGeneration));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag));
