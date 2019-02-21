@@ -23,6 +23,7 @@ development head:
 		add Mutation support for nucleotides: nucleotide, nucleotideValue, ditto for Substitution
 		add nucleotide argument to addNewMutation() and addNewDrawnMutation()
 		add nucleotides() method to Genome
+		add mmJukesCantor() and mmKimura() mutational models
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
