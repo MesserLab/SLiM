@@ -431,7 +431,7 @@ void SLiM_ConfigureContext(void);
 void SLiM_RegisterGlobalStringsAndIDs(void);
 
 
-extern const std::string gStr_initializeAncestralSequence;
+extern const std::string gStr_initializeAncestralNucleotides;
 extern const std::string gStr_initializeGenomicElement;
 extern const std::string gStr_initializeGenomicElementType;
 extern const std::string gStr_initializeMutationType;
@@ -714,7 +714,7 @@ extern const std::string gStr_reproduction;
 
 
 enum _SLiMGlobalStringID : int {
-	gID_initializeAncestralSequence = gEidosID_LastEntry + 1,
+	gID_initializeAncestralNucleotides = gEidosID_LastEntry + 1,
 	gID_initializeGenomicElement,
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,

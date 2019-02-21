@@ -2167,7 +2167,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	if (nucleotide_based_)
 	{
 		if (num_ancseq_declarations_ == 0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralSequence()." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralNucleotides()." << EidosTerminate();
 		if (!ancestral_seq_buffer_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
 	}
@@ -7640,7 +7640,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	if (generation_ != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() may only be called in an initialize() callback." << EidosTerminate();
 	
-	if (p_function_name.compare(gStr_initializeAncestralSequence) == 0)			return ExecuteContextFunction_initializeAncestralSequence(p_function_name, p_arguments, p_argument_count, p_interpreter);
+	if (p_function_name.compare(gStr_initializeAncestralNucleotides) == 0)		return ExecuteContextFunction_initializeAncestralNucleotides(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElement) == 0)		return ExecuteContextFunction_initializeGenomicElement(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElementType) == 0)	return ExecuteContextFunction_initializeGenomicElementType(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeInteractionType) == 0)		return ExecuteContextFunction_initializeInteractionType(p_function_name, p_arguments, p_argument_count, p_interpreter);
@@ -7657,24 +7657,24 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	EIDOS_TERMINATION << "ERROR (SLiMSim::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by SLiMSim." << EidosTerminate();
 }
 
-//	*********************	(integer$)initializeAncestralSequence(is sequence)
+//	*********************	(integer$)initializeAncestralNucleotides(is sequence)
 //
-EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
 	EidosValue *sequence_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_ancseq_declarations_ > 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() may be called only once." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): initializeAncestralNucleotides() may be called only once." << EidosTerminate();
 	if (!nucleotide_based_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() may be only be called in a nucleotide-based model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): initializeAncestralNucleotides() may be only be called in a nucleotide-based model." << EidosTerminate();
 	
 	EidosValueType sequence_value_type = sequence_value->Type();
 	int sequence_value_count = sequence_value->Count();
 	
 	if (sequence_value_count == 0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): initializeAncestralSequence() requires a sequence of length >= 1." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): initializeAncestralNucleotides() requires a sequence of length >= 1." << EidosTerminate();
 	
 	if (sequence_value_type == EidosValueType::kValueInt)
 	{
@@ -7696,7 +7696,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 			try {
 				ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (ExecuteContextFunction_initializeAncestralSequence): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (ExecuteContextFunction_initializeAncestralNucleotides): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
 			}
 		}
 	}
@@ -7731,7 +7731,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 				std::ifstream file_stream(file_path.c_str());
 				
 				if (!file_stream.is_open())
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): the file at path " << sequence_string << " could not be opened or does not exist." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): the file at path " << sequence_string << " could not be opened or does not exist." << EidosTerminate();
 				
 				bool started_sequence = false;
 				std::string line, fasta_sequence;
@@ -7756,15 +7756,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 				}
 				
 				if (file_stream.bad())
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): a filesystem error occurred while reading the file at path " << sequence_string << "." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): a filesystem error occurred while reading the file at path " << sequence_string << "." << EidosTerminate();
 				
 				if (fasta_sequence.length() == 0)
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
 				
 				try {
 					ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
 				} catch (...) {
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralSequence): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
 				}
 			}
 		}
@@ -7775,7 +7775,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralSequence(const 
 	
 	if (DEBUG_INPUT)
 	{
-		output_stream << "initializeAncestralSequence(\"";
+		output_stream << "initializeAncestralNucleotides(\"";
 		
 		// output up to 20 nucleotides, followed by an ellipsis if necessary
 		for (std::size_t i = 0; (i < 20) && (i < ancestral_seq_buffer_->size()); ++i)
@@ -8796,7 +8796,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 	
 	if (!sim_0_signatures_.size())
 	{
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralSequence, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralNucleotides, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
 									   ->AddIntString("sequence"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));

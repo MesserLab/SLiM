@@ -630,7 +630,7 @@ public:
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
 	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteContextFunction_initializeAncestralSequence(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeAncestralNucleotides(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

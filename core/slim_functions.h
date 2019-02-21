@@ -34,7 +34,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const
 EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 
 
 #endif /* slim_functions_h */

@@ -37,7 +37,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(vo
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideFrequencies", SLiM_ExecuteFunction_nucleotideFrequencies, kEidosValueMaskFloat, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotidesToCodons", SLiM_ExecuteFunction_nucleotidesToCodons, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomSequence", SLiM_ExecuteFunction_randomSequence, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddFloat_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddFloat_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 	}
 	
 	return &sim_func_signatures_;
@@ -504,8 +504,8 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const EidosValue_SP *co
 	return EidosValue_SP(float_result);
 }
 
-//	(is)randomSequence(i$ length, [Nf basis = NULL], [s$ format = "string"])
-EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+//	(is)randomNucleotides(i$ length, [Nf basis = NULL], [s$ format = "string"])
+EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -517,7 +517,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_a
 	int64_t length = length_value->IntAtIndex(0, nullptr);
 	
 	if ((length <= 0) || (length > 2000000000L))
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomSequence): function randomSequence() requires length to be in [1, 2e9]." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires length to be in [1, 2e9]." << EidosTerminate(nullptr);
 	
 	// Figure out the probability threshold for each base
 	double pA = 0.25, pC = 0.25, pG = 0.25, pT = 0.25;
@@ -525,7 +525,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_a
 	if (basis_value->Type() != EidosValueType::kValueNULL)
 	{
 		if (basis_value->Count() != 4)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomSequence): function randomSequence() requires basis to be either NULL, or a float vector of length 4 (with probabilities for A/C/G/T)." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires basis to be either NULL, or a float vector of length 4 (with probabilities for A/C/G/T)." << EidosTerminate(nullptr);
 		
 		pA = basis_value->FloatAtIndex(0, nullptr);
 		pC = basis_value->FloatAtIndex(1, nullptr);
@@ -533,12 +533,12 @@ EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_a
 		pT = basis_value->FloatAtIndex(3, nullptr);
 		
 		if (!std::isfinite(pA) || !std::isfinite(pC) || !std::isfinite(pG) || !std::isfinite(pT) || (pA < 0.0) || (pC < 0.0) || (pG < 0.0) || (pT < 0.0))
-			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomSequence): function randomSequence() requires basis values to be finite and >= 0.0." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires basis values to be finite and >= 0.0." << EidosTerminate(nullptr);
 		
 		double sum = pA + pC + pG + pT;
 		
 		if (sum <= 0.0)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomSequence): function randomSequence() requires at least one basis value to be > 0.0." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires at least one basis value to be > 0.0." << EidosTerminate(nullptr);
 		
 		// Normalize to probabilities
 		pA = pA / sum;
@@ -633,7 +633,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomSequence(const EidosValue_SP *const p_a
 		return EidosValue_SP(string_result);
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomSequence): function randomSequence() requires a format of 'string', 'char', or 'integer'." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires a format of 'string', 'char', or 'integer'." << EidosTerminate();
 	
 	return result_SP;
 }

@@ -819,7 +819,7 @@ std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array
 #pragma mark -
 
 // initialize...() functions defined by SLiMSim
-const std::string gStr_initializeAncestralSequence = "initializeAncestralSequence";
+const std::string gStr_initializeAncestralNucleotides = "initializeAncestralNucleotides";
 const std::string gStr_initializeGenomicElement = "initializeGenomicElement";
 const std::string gStr_initializeGenomicElementType = "initializeGenomicElementType";
 const std::string gStr_initializeMutationType = "initializeMutationType";
@@ -1144,7 +1144,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 	{
 		been_here = true;
 		
-		Eidos_RegisterStringForGlobalID(gStr_initializeAncestralSequence, gID_initializeAncestralSequence);
+		Eidos_RegisterStringForGlobalID(gStr_initializeAncestralNucleotides, gID_initializeAncestralNucleotides);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElement, gID_initializeGenomicElement);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGenomicElementType, gID_initializeGenomicElementType);
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationType, gID_initializeMutationType);
