@@ -686,11 +686,11 @@ EidosValue_SP NucleotideArray::NucleotidesAsIntegerVector(int64_t start, int64_t
 	return gStaticEidosValueNULL;
 }
 
-EidosValue_SP NucleotideArray::NucleotidesAsCodonVector(int64_t start, int64_t end)
+EidosValue_SP NucleotideArray::NucleotidesAsCodonVector(int64_t start, int64_t end, bool p_force_vector)
 {
 	int64_t length = end - start + 1;
 	
-	if (length == 3)
+	if ((length == 3) && !p_force_vector)
 	{
 		int nuc1 = NucleotideAtIndex(start);
 		int nuc2 = NucleotideAtIndex(start + 1);
@@ -936,6 +936,7 @@ const std::string gStr_maxDistance = "maxDistance";
 
 // mostly method names
 const std::string gStr_ancestralNucleotides = "ancestralNucleotides";
+const std::string gStr_nucleotides = "nucleotides";
 const std::string gStr_setMutationRate = "setMutationRate";
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
 const std::string gStr_drawBreakpoints = "drawBreakpoints";
@@ -1257,6 +1258,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_maxDistance, gID_maxDistance);
 		
 		Eidos_RegisterStringForGlobalID(gStr_ancestralNucleotides, gID_ancestralNucleotides);
+		Eidos_RegisterStringForGlobalID(gStr_nucleotides, gID_nucleotides);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate, gID_setMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_drawBreakpoints, gID_drawBreakpoints);

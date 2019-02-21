@@ -402,7 +402,7 @@ public:
 	void SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc);
 	
 	EidosValue_SP NucleotidesAsIntegerVector(int64_t start, int64_t end);
-	EidosValue_SP NucleotidesAsCodonVector(int64_t start, int64_t end);
+	EidosValue_SP NucleotidesAsCodonVector(int64_t start, int64_t end, bool p_force_vector);
 	EidosValue_SP NucleotidesAsStringVector(int64_t start, int64_t end);
 	EidosValue_SP NucleotidesAsStringSingleton(int64_t start, int64_t end);
 	
@@ -545,6 +545,7 @@ extern const std::string gStr_spatialPosition;
 extern const std::string gStr_maxDistance;
 
 extern const std::string gStr_ancestralNucleotides;
+extern const std::string gStr_nucleotides;
 extern const std::string gStr_setMutationRate;
 extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_drawBreakpoints;
@@ -827,6 +828,7 @@ enum _SLiMGlobalStringID : int {
 	gID_maxDistance,
 	
 	gID_ancestralNucleotides,
+	gID_nucleotides,
 	gID_setMutationRate,
 	gID_setRecombinationRate,
 	gID_drawBreakpoints,

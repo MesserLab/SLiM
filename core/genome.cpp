@@ -680,6 +680,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 		//case gID_containsMutations:			return ExecuteMethod_Accelerated_containsMutations(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_countOfMutationsOfType:		return ExecuteMethod_countOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_mutationsOfType:				return ExecuteMethod_mutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_nucleotides:					return ExecuteMethod_nucleotides(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_positionsOfMutationsOfType:	return ExecuteMethod_positionsOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_sumOfMutationsOfType:			return ExecuteMethod_sumOfMutationsOfType(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		default:								return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -901,6 +902,285 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 		return result_SP;
 		
 	}
+}
+
+//	*********************	– (is)nucleotides([Ni$ start = NULL], [Ni$ end = NULL], [s$ format = "string"])
+//
+EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	SLiMSim *sim = (SLiMSim *)p_interpreter.Context();
+	Chromosome &chromosome = sim->TheChromosome();
+	slim_position_t last_position = chromosome.last_position_;
+	
+	if (!sim->IsNucleotideBased())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): nucleotides() may only be called in nucleotide-based models." << EidosTerminate();
+	
+	NucleotideArray *sequence = sim->AncestralSequence();
+	EidosValue *start_value = p_arguments[0].get();
+	EidosValue *end_value = p_arguments[1].get();
+	
+	int64_t start = (start_value->Type() == EidosValueType::kValueNULL) ? 0 : start_value->IntAtIndex(0, nullptr);
+	int64_t end = (end_value->Type() == EidosValueType::kValueNULL) ? last_position : end_value->IntAtIndex(0, nullptr);
+	
+	if ((start < 0) || (end < 0) || (start > last_position) || (end > last_position) || (start > end))
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): start and end must be within the chromosome's extent, and start must be <= end." << EidosTerminate();
+	if (((std::size_t)start >= sequence->size()) || ((std::size_t)end >= sequence->size()))
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): (internal error) start and end must be within the ancestral sequence's length." << EidosTerminate();
+	
+	int64_t length = end - start + 1;
+	
+	if (length > INT_MAX)
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
+	
+	static char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+	EidosValue *format_value = p_arguments[2].get();
+	std::string format = format_value->StringAtIndex(0, nullptr);
+	
+	if (format == "codon")
+	{
+		EidosValue_SP codon_value = sequence->NucleotidesAsCodonVector(start, end, /* p_force_vector */ true);
+		
+		// patch the sequence with nucleotide mutations
+		// no singleton case; we force a vector return from NucleotidesAsCodonVector() for simplicity
+		int64_t *int_vec = ((EidosValue_Int_vector *)(codon_value.get()))->data();
+		GenomeWalker walker(this);
+		
+		while (!walker.Finished())
+		{
+			Mutation *mut = walker.CurrentMutation();
+			slim_position_t pos = mut->position_;
+			
+			if (pos >= start)
+			{
+				if (pos > end)
+					break;
+				
+				int8_t nuc = mut->nucleotide_;
+				
+				if (nuc != -1)
+				{
+					// We have a nucleotide-based mutation within the sequence range.  We need to get the current codon value,
+					// deconstruct it into nucleotides, replace the overlaid nucleotide, reconstruct the codon value, and put
+					// it back into the codon vector.
+					int64_t codon_index = (pos - start) / 3;
+					int codon_offset = (pos - start) % 3;
+					int codon = (int)int_vec[codon_index];
+					
+					if (codon_offset == 0)
+					{
+						codon = codon & 0x0F;
+						codon |= (nuc * 16);
+					}
+					else if (codon_offset == 1)
+					{
+						codon = codon & 0x33;
+						codon |= (nuc * 4);
+					}
+					else
+					{
+						codon = codon & 0x3C;
+						codon |= nuc;
+					}
+					
+					int_vec[codon_index] = codon;
+				}
+			}
+			
+			walker.NextMutation();
+		}
+		
+		return codon_value;
+	}
+	else if (format == "string")
+	{
+		EidosValue_SP string_value = sequence->NucleotidesAsStringSingleton(start, end);
+		
+		// patch the sequence with nucleotide mutations
+		if (start == end)
+		{
+			// singleton case: replace string_value entirely
+			GenomeWalker walker(this);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos >= start)
+				{
+					if (pos > end)
+						break;
+					
+					int8_t nuc = mut->nucleotide_;
+					
+					if (nuc != -1)
+					{
+						if (nuc == 0)			string_value = gStaticEidosValue_StringA;
+						else if (nuc == 1)		string_value = gStaticEidosValue_StringC;
+						else if (nuc == 2)		string_value = gStaticEidosValue_StringG;
+						else /* (nuc == 3) */	string_value = gStaticEidosValue_StringT;
+					}
+				}
+				
+				walker.NextMutation();
+			}
+		}
+		else
+		{
+			// vector case: replace the appropriate character in string_value
+			std::string &string_string = ((EidosValue_String_singleton *)(string_value.get()))->StringValue_Mutable();
+			char *string_ptr = &string_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
+			GenomeWalker walker(this);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos >= start)
+				{
+					if (pos > end)
+						break;
+					
+					int8_t nuc = mut->nucleotide_;
+					
+					if (nuc != -1)
+						string_ptr[pos - start] = nuc_chars[nuc];
+				}
+				
+				walker.NextMutation();
+			}
+		}
+		
+		return string_value;
+	}
+	else if (format == "integer")
+	{
+		EidosValue_SP integer_value = sequence->NucleotidesAsIntegerVector(start, end);
+		
+		// patch the sequence with nucleotide mutations
+		if (start == end)
+		{
+			// singleton case: replace integer_value entirely
+			GenomeWalker walker(this);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos >= start)
+				{
+					if (pos > end)
+						break;
+					
+					int8_t nuc = mut->nucleotide_;
+					
+					if (nuc != -1)
+					{
+						if (nuc == 0)			integer_value = gStaticEidosValue_Integer0;
+						else if (nuc == 1)		integer_value = gStaticEidosValue_Integer1;
+						else if (nuc == 2)		integer_value = gStaticEidosValue_Integer2;
+						else /* (nuc == 3) */	integer_value = gStaticEidosValue_Integer3;
+					}
+				}
+				
+				walker.NextMutation();
+			}
+		}
+		else
+		{
+			// vector case: replace the appropriate element in integer_value
+			int64_t *int_vec = ((EidosValue_Int_vector *)(integer_value.get()))->data();
+			GenomeWalker walker(this);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos >= start)
+				{
+					if (pos > end)
+						break;
+					
+					int8_t nuc = mut->nucleotide_;
+					
+					if (nuc != -1)
+						int_vec[pos-start] = nuc;
+				}
+				
+				walker.NextMutation();
+			}
+		}
+		
+		return integer_value;
+	}
+	else if (format == "char")
+	{
+		EidosValue_SP char_value = sequence->NucleotidesAsStringVector(start, end);
+		
+		// patch the sequence with nucleotide mutations
+		if (start == end)
+		{
+			// singleton case: replace char_value entirely
+			GenomeWalker walker(this);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos >= start)
+				{
+					if (pos > end)
+						break;
+					
+					int8_t nuc = mut->nucleotide_;
+					
+					if (nuc != -1)
+					{
+						if (nuc == 0)			char_value = gStaticEidosValue_StringA;
+						else if (nuc == 1)		char_value = gStaticEidosValue_StringC;
+						else if (nuc == 2)		char_value = gStaticEidosValue_StringG;
+						else /* (nuc == 3) */	char_value = gStaticEidosValue_StringT;
+					}
+				}
+				
+				walker.NextMutation();
+			}
+		}
+		else
+		{
+			// vector case: replace the appropriate element in char_value
+			std::vector<std::string> *char_vec = ((EidosValue_String_vector *)(char_value.get()))->StringVector_Mutable();
+			GenomeWalker walker(this);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos >= start)
+				{
+					if (pos > end)
+						break;
+					
+					int8_t nuc = mut->nucleotide_;
+					
+					if (nuc != -1)
+						(*char_vec)[pos - start] = nuc_chars[nuc];
+				}
+				
+				walker.NextMutation();
+			}
+		}
+		
+		return char_value;
+	}
+	
+	EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): parameter format must be either 'string', 'char', 'integer', or 'codon'." << EidosTerminate();
 }
 
 //	*********************	- (integer)positionsOfMutationsOfType(io<MutationType>$ mutType)
@@ -1392,6 +1672,7 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF));

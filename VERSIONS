@@ -22,6 +22,7 @@ development head:
 		add mutationMatrix property and setMutationMatrix() method to GenomicElementType
 		add Mutation support for nucleotides: nucleotide, nucleotideValue, ditto for Substitution
 		add nucleotide argument to addNewMutation() and addNewDrawnMutation()
+		add nucleotides() method to Genome
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

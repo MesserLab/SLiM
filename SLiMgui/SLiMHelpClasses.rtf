@@ -627,7 +627,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 +\'a0(object<Mutation>)addNewDrawnMutation(io<MutationType>\'a0mutationType, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
-, [Nis nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
+, [Nis\'a0nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -660,6 +660,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficients of the mutations are drawn from their mutation types; 
 \f3\fs18 addNewMutation()
 \f4\fs20  may be used instead if you wish to specify selection coefficients.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In non-nucleotide-based models, 
 \f3\fs18 nucleotide
@@ -690,6 +691,7 @@ In non-nucleotide-based models,
 \f4\fs20 , T=
 \f3\fs18 3
 \f4\fs20 ).  If a nucleotide mutation already exists at the position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Beginning in SLiM 2.5 this method is vectorized, so all of these parameters may be singletons (in which case that single value is used for all mutations created by the call) or non-singleton vectors (in which case one element is used for each corresponding mutation created).  Non-singleton parameters must match in length, since their elements need to be matched up one-to-one.\
 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
@@ -716,7 +718,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0selectionCoeff, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
-, [Nis nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
+, [Nis\'a0nucleotide\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -751,6 +753,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The 
 \f3\fs18 addNewDrawnMutation()
 \f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In non-nucleotide-based models, 
 \f3\fs18 nucleotide
@@ -781,6 +784,7 @@ In non-nucleotide-based models,
 \f4\fs20 , T=
 \f3\fs18 3
 \f4\fs20 ).  If a nucleotide mutation already exists at the position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  property of 
@@ -923,9 +927,87 @@ If
 \f5\fs20 .
 \f4   This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f5 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(is)nucleotides([Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [string$\'a0format\'a0=\'a0"string"])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the nucleotide sequence for the genome.  This is the current ancestral sequence, as would be returned by the 
+\f3\fs18 Chromosome
+\f4\fs20  method 
+\f3\fs18 ancestralNucleotides()
+\f4\fs20 , with the nucleotides for any nucleotide-based mutations in the genome overlaid.  The range of the returned sequence may be constrained by a start position given in 
+\f3\fs18 start
+\f4\fs20  and/or an end position given in 
+\f3\fs18 end
+\f4\fs20 ; nucleotides will be returned from 
+\f3\fs18 start
+\f4\fs20  to 
+\f3\fs18 end
+\f4\fs20 , inclusive.  The default value of 
+\f3\fs18 NULL
+\f4\fs20  for 
+\f3\fs18 start
+\f4\fs20  and 
+\f3\fs18 end
+\f4\fs20  represent the first and last base positions of the chromosome, respectively.\
+The format of the returned sequence is controlled by the 
+\f3\fs18 format
+\f4\fs20  parameter.  A format of 
+\f3\fs18 "string"
+\f4\fs20  will return the sequence as a singleton 
+\f3\fs18 string
+\f4\fs20  (e.g., 
+\f3\fs18 "TATA"
+\f4\fs20 ).  A format of 
+\f3\fs18 "char"
+\f4\fs20  will return a 
+\f3\fs18 string
+\f4\fs20  vector with one element per nucleotide (e.g., 
+\f3\fs18 "T"
+\f4\fs20 , 
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "T"
+\f4\fs20 , 
+\f3\fs18 "A"
+\f4\fs20 ).  A format of 
+\f3\fs18 "integer"
+\f4\fs20  will return an 
+\f3\fs18 integer
+\f4\fs20  vector with values A=
+\f3\fs18 0
+\f4\fs20 , C=
+\f3\fs18 1
+\f4\fs20 , G=
+\f3\fs18 2
+\f4\fs20 , T=
+\f3\fs18 3
+\f4\fs20  (e.g., 
+\f3\fs18 3
+\f4\fs20 , 
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 3
+\f4\fs20 , 
+\f3\fs18 0
+\f4\fs20 ).  A format of 
+\f3\fs18 "codon"
+\f4\fs20  will return an 
+\f3\fs18 integer
+\f4\fs20  vector with values from 
+\f3\fs18 0
+\f4\fs20  to 
+\f3\fs18 63
+\f4\fs20 , based upon successive nucleotide triplets in the sequence (which, for this format, must have a length that is a multiple of three); see the 
+\f3\fs18 ancestralNucleotides()
+\f4\fs20  documentation for details.  If the sequence returned is likely to be long, the 
+\f3\fs18 "string"
+\f4\fs20  format will be the most memory-efficient, and may also be the fastest (but may be harder to work with).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(void)output([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 +\'a0(void)output([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

@@ -1127,7 +1127,7 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 	std::string format = format_value->StringAtIndex(0, nullptr);
 	
 	if (format == "codon")
-		return sequence->NucleotidesAsCodonVector(start, end);
+		return sequence->NucleotidesAsCodonVector(start, end, /* p_force_vector */ false);
 	if (format == "string")
 		return sequence->NucleotidesAsStringSingleton(start, end);
 	if (format == "integer")
