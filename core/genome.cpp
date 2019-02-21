@@ -1941,7 +1941,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
 	Population &pop = sim.ThePopulation();
-	bool nucleotide_based = sim.nucleotide_based_;
+	bool nucleotide_based = sim.IsNucleotideBased();
 	
 	if (nucleotide_based && (arg_nucleotide->Type() == EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be non-NULL in nucleotide-based models." << EidosTerminate();
