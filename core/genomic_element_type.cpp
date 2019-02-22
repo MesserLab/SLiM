@@ -49,6 +49,12 @@ GenomicElementType::~GenomicElementType(void)
 		gsl_ran_discrete_free(lookup_mutation_type_);
 		lookup_mutation_type_ = nullptr;
 	}
+	
+	if (mm_thresholds)
+	{
+		free(mm_thresholds);
+		mm_thresholds = nullptr;
+	}
 }
 
 void GenomicElementType::InitializeDraws(void)

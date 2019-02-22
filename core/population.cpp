@@ -2620,17 +2620,35 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		for (int k = 0; k < num_mutations; k++)
+		if (sim_.nucleotide_based_)
 		{
-			MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation());
-			
-#warning need to handle the nucleotide field
-			
-			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
-			
-			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
+			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+			// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
+			// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
+			for (int k = 0; k < num_mutations; k++)
+			{
+				MutationIndex new_mutation = chromosome.DrawNewMutationNuc(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation(), parent_genome_1, parent_genome_2, &all_breakpoints);
+				
+				if (new_mutation != -1)
+					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+				
+				// see further comments below, in the non-nucleotide case; they apply here as well
+			}
+		}
+		else
+		{
+			// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+			for (int k = 0; k < num_mutations; k++)
+			{
+				MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation());
+				
+				mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+				
+				// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+				// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+				// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+			}
 		}
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -3258,17 +3276,35 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		for (int k = 0; k < num_mutations; k++)
+		if (sim_.nucleotide_based_)
 		{
-			MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());
-			
-#warning need to handle the nucleotide field
-			
-			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
-			
-			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
+			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+			// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
+			// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
+			for (int k = 0; k < num_mutations; k++)
+			{
+				MutationIndex new_mutation = chromosome.DrawNewMutationNuc(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints);
+				
+				if (new_mutation != -1)
+					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+				
+				// see further comments below, in the non-nucleotide case; they apply here as well
+			}
+		}
+		else
+		{
+			// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+			for (int k = 0; k < num_mutations; k++)
+			{
+				MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());
+				
+				mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+				
+				// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+				// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+				// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+			}
 		}
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -3685,17 +3721,35 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		for (int k = 0; k < num_mutations; k++)
+		if (sim_.nucleotide_based_)
 		{
-			MutationIndex new_mutation = chromosome.DrawNewMutation(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
-			
-#warning need to handle the nucleotide field
-			
-			mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
-			
-			// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-			// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-			// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
+			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+			// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
+			// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
+			for (int k = 0; k < num_mutations; k++)
+			{
+				MutationIndex new_mutation = chromosome.DrawNewMutationNuc(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), &p_parent_genome, nullptr, nullptr);
+				
+				if (new_mutation != -1)
+					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+				
+				// see further comments below, in the non-nucleotide case; they apply here as well
+			}
+		}
+		else
+		{
+			// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+			for (int k = 0; k < num_mutations; k++)
+			{
+				MutationIndex new_mutation = chromosome.DrawNewMutation(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
+				
+				mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+				
+				// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+				// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+				// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+			}
 		}
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent

@@ -40,6 +40,7 @@
 #include "eidos_value.h"
 
 struct GESubrange;
+class Genome;
 
 
 extern EidosObjectClass *gSLiM_Chromosome_Class;
@@ -155,12 +156,17 @@ public:
 	std::string color_sub_;										// color to use for substitutions by default (in SLiMgui)
 	float color_sub_red_, color_sub_green_, color_sub_blue_;	// cached color components from color_sub_; should always be in sync
 	
+	// nucleotide-based models
+	NucleotideArray *ancestral_seq_buffer_ = nullptr;
+	
 	slim_usertag_t tag_value_;								// a user-defined tag value
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void);														// supplied null constructor
 	~Chromosome(void);														// destructor
+	
+	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)											{ return ancestral_seq_buffer_; }
 	
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void InitializeDraws(void);
@@ -177,6 +183,9 @@ public:
 	
 	// draw a new mutation, based on the genomic element types present and their mutational proclivities
 	MutationIndex DrawNewMutation(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;
+	
+	// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models
+	MutationIndex DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints) const;
 	
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;

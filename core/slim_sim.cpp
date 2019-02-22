@@ -121,10 +121,6 @@ SLiMSim::~SLiMSim(void)
 	delete script_;
 	script_ = nullptr;
 	
-	// Dispose of any nucleotide sequence
-	delete ancestral_seq_buffer_;
-	ancestral_seq_buffer_ = nullptr;
-	
 	// Dispose of mutation run experiment data
 	if (x_experiments_enabled_)
 	{
@@ -2168,11 +2164,14 @@ void SLiMSim::RunInitializeCallbacks(void)
 	{
 		if (num_ancseq_declarations_ == 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralNucleotides()." << EidosTerminate();
-		if (!ancestral_seq_buffer_)
+		if (!chromosome_.ancestral_seq_buffer_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
 	}
 	
 	CheckMutationStackPolicy();
+	
+	if (nucleotide_based_)
+		CacheNucleotideMatrices();
 	
 	// Defining a neutral mutation type when tree-recording is on (with mutation recording) and the mutation rate is non-zero is legal, but causes a warning
 	// I'm not sure this is a good idea, but maybe it will help people avoid doing dumb things; added at the suggestion of Peter Ralph...
@@ -2220,8 +2219,8 @@ void SLiMSim::RunInitializeCallbacks(void)
 	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
 	if (nucleotide_based_)
 	{
-		if (ancestral_seq_buffer_->size() != (std::size_t)(chromosome_.last_position_ + 1))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): The chromosome length (" << chromosome_.last_position_ + 1 << " base" << (chromosome_.last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << ancestral_seq_buffer_->size() << " base" << (ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
+		if (chromosome_.ancestral_seq_buffer_->size() != (std::size_t)(chromosome_.last_position_ + 1))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): The chromosome length (" << chromosome_.last_position_ + 1 << " base" << (chromosome_.last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome_.ancestral_seq_buffer_->size() << " base" << (chromosome_.ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
 	
 	// kick off mutation run experiments, if needed
@@ -3882,6 +3881,114 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 	
 	// we're good until the next change
 	mutation_stack_policy_changed_ = false;
+}
+
+void SLiMSim::CacheNucleotideMatrices(void)
+{
+	// Go through all genomic element types in a nucleotide-based model, analyze their mutation matrices,
+	// and find the maximum mutation rate expressed by any genomic element type for any genomic background.
+	max_nucleotide_mut_rate_ = 0.0;
+	
+	for (auto type_entry : genomic_element_types_)
+	{
+		GenomicElementType *ge_type = type_entry.second;
+		
+		if (ge_type->mm_thresholds)
+			free(ge_type->mm_thresholds);
+		
+		if (ge_type->mutation_matrix_)
+		{
+			EidosValue_Float_vector *mm = ge_type->mutation_matrix_.get();
+			double *mm_data = mm->data();
+			
+			if (mm->Count() == 16)
+			{
+				for (int nuc = 0; nuc < 4; ++nuc)
+				{
+					double rateA = mm_data[nuc];
+					double rateC = mm_data[nuc + 4];
+					double rateG = mm_data[nuc + 8];
+					double rateT = mm_data[nuc + 12];
+					double total_rate = rateA + rateC + rateG + rateT;
+					
+					if (total_rate > max_nucleotide_mut_rate_)
+						max_nucleotide_mut_rate_ = total_rate;
+				}
+			}
+			else if (mm->Count() == 256)
+			{
+				for (int trinuc = 0; trinuc < 64; ++trinuc)
+				{
+					double rateA = mm_data[trinuc];
+					double rateC = mm_data[trinuc + 64];
+					double rateG = mm_data[trinuc + 128];
+					double rateT = mm_data[trinuc + 192];
+					double total_rate = rateA + rateC + rateG + rateT;
+					
+					if (total_rate > max_nucleotide_mut_rate_)
+						max_nucleotide_mut_rate_ = total_rate;
+				}
+			}
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CacheNucleotideMatrices): (internal error) unsupported mutation matrix size." << EidosTerminate();
+		}
+	}
+	
+	// Now go through the genomic element types again, and calculate normalized mutation rate
+	// threshold values that will allow fast decisions on which derived nucleotide to create
+	for (auto type_entry : genomic_element_types_)
+	{
+		GenomicElementType *ge_type = type_entry.second;
+		
+		if (ge_type->mutation_matrix_)
+		{
+			EidosValue_Float_vector *mm = ge_type->mutation_matrix_.get();
+			double *mm_data = mm->data();
+			
+			if (mm->Count() == 16)
+			{
+				ge_type->mm_thresholds = (double *)malloc(16 * sizeof(double));
+				
+				for (int nuc = 0; nuc < 4; ++nuc)
+				{
+					double rateA = mm_data[nuc];
+					double rateC = mm_data[nuc + 4];
+					double rateG = mm_data[nuc + 8];
+					double rateT = mm_data[nuc + 12];
+					double total_rate = rateA + rateC + rateG + rateT;
+					double fraction_of_max_rate = total_rate / max_nucleotide_mut_rate_;
+					double *nuc_thresholds = ge_type->mm_thresholds + nuc * 4;
+					
+					nuc_thresholds[0] = (rateA / total_rate) * fraction_of_max_rate;
+					nuc_thresholds[1] = ((rateA + rateC) / total_rate) * fraction_of_max_rate;
+					nuc_thresholds[2] = ((rateA + rateC + rateG) / total_rate) * fraction_of_max_rate;
+					nuc_thresholds[3] = fraction_of_max_rate;
+				}
+			}
+			else if (mm->Count() == 256)
+			{
+				ge_type->mm_thresholds = (double *)malloc(256 * sizeof(double));
+				
+				for (int trinuc = 0; trinuc < 64; ++trinuc)
+				{
+					double rateA = mm_data[trinuc];
+					double rateC = mm_data[trinuc + 64];
+					double rateG = mm_data[trinuc + 128];
+					double rateT = mm_data[trinuc + 192];
+					double total_rate = rateA + rateC + rateG + rateT;
+					double fraction_of_max_rate = total_rate / max_nucleotide_mut_rate_;
+					double *nuc_thresholds = ge_type->mm_thresholds + trinuc * 4;
+					
+					nuc_thresholds[0] = (rateA / total_rate) * fraction_of_max_rate;
+					nuc_thresholds[1] = ((rateA + rateC) / total_rate) * fraction_of_max_rate;
+					nuc_thresholds[2] = ((rateA + rateC + rateG) / total_rate) * fraction_of_max_rate;
+					nuc_thresholds[3] = fraction_of_max_rate;
+				}
+			}
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CacheNucleotideMatrices): (internal error) unsupported mutation matrix size." << EidosTerminate();
+		}
+	}
 }
 
 static void PrintBytes(std::ostream &p_out, size_t p_bytes)
@@ -7684,8 +7791,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			// singleton case
 			int64_t int_value = sequence_value->IntAtIndex(0, nullptr);
 			
-			ancestral_seq_buffer_ = new NucleotideArray(1);
-			ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
+			chromosome_.ancestral_seq_buffer_ = new NucleotideArray(1);
+			chromosome_.ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
 		}
 		else
 		{
@@ -7694,7 +7801,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			const int64_t *int_data = int_vec->data();
 			
 			try {
-				ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
+				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 			} catch (...) {
 				EIDOS_TERMINATION << "ERROR (ExecuteContextFunction_initializeAncestralNucleotides): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
 			}
@@ -7708,7 +7815,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			const std::vector<std::string> *string_vec = sequence_value->StringVector();
 			
 			try {
-				ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
+				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
 			} catch (...) {
 				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): string nucleotide values must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
@@ -7719,7 +7826,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			bool contains_only_nuc = true;
 			
 			try {
-				ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
+				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
 			} catch (...) {
 				contains_only_nuc = false;
 			}
@@ -7762,7 +7869,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
 				
 				try {
-					ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
+					chromosome_.ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
 				} catch (...) {
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
 				}
@@ -7771,17 +7878,17 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 	}
 	
 	// debugging
-	//std::cout << "ancestral sequence set: " << *ancestral_seq_buffer_ << std::endl;
+	//std::cout << "ancestral sequence set: " << *chromosome_.ancestral_seq_buffer_ << std::endl;
 	
 	if (DEBUG_INPUT)
 	{
 		output_stream << "initializeAncestralNucleotides(\"";
 		
 		// output up to 20 nucleotides, followed by an ellipsis if necessary
-		for (std::size_t i = 0; (i < 20) && (i < ancestral_seq_buffer_->size()); ++i)
-			output_stream << "ACGT"[ancestral_seq_buffer_->NucleotideAtIndex(i)];
+		for (std::size_t i = 0; (i < 20) && (i < chromosome_.ancestral_seq_buffer_->size()); ++i)
+			output_stream << "ACGT"[chromosome_.ancestral_seq_buffer_->NucleotideAtIndex(i)];
 		
-		if (ancestral_seq_buffer_->size() > 20)
+		if (chromosome_.ancestral_seq_buffer_->size() > 20)
 			output_stream << "...";
 		
 		output_stream << "\");" << std::endl;
@@ -7789,7 +7896,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 	
 	num_ancseq_declarations_++;
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(ancestral_seq_buffer_->size()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(chromosome_.ancestral_seq_buffer_->size()));
 }
 
 //	*********************	(void)initializeGenomicElement(io<GenomicElementType>$ genomicElementType, integer$ start, integer$ end)

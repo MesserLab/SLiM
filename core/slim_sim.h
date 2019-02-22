@@ -376,7 +376,7 @@ private:
 	
 	// nucleotide-based models
 	bool nucleotide_based_ = false;
-	NucleotideArray *ancestral_seq_buffer_ = nullptr;
+	double max_nucleotide_mut_rate_;				// the highest rate for any genetic background in any genomic element type
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
@@ -533,6 +533,9 @@ public:
 	inline __attribute__((always_inline)) void CheckMutationStackPolicy(void)												{ if (mutation_stack_policy_changed_) _CheckMutationStackPolicy(); }
 	void _CheckMutationStackPolicy(void);
 	
+	// Nucleotide-based models
+	void CacheNucleotideMatrices(void);
+	
 	// accessors
 	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) const											{ return *simulation_constants_; }
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void)												{ return simulation_functions_; }
@@ -561,7 +564,6 @@ public:
 	}
 	
 	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
-	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)											{ return ancestral_seq_buffer_; }
 
 	
 	// TREE SEQUENCE RECORDING

@@ -916,7 +916,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 	if (!sim->IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): nucleotides() may only be called in nucleotide-based models." << EidosTerminate();
 	
-	NucleotideArray *sequence = sim->AncestralSequence();
+	NucleotideArray *sequence = sim->TheChromosome().AncestralSequence();
 	EidosValue *start_value = p_arguments[0].get();
 	EidosValue *end_value = p_arguments[1].get();
 	

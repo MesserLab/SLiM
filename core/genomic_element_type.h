@@ -70,6 +70,7 @@ public:
 	slim_usertag_t tag_value_;											// a user-defined tag value
 	
 	EidosValue_Float_vector_SP mutation_matrix_;						// in nucleotide-based models only, the 4x4 or 64x4 float mutation matrix
+	double *mm_thresholds = nullptr;									// mutation matrix threshold values for determining derived nucleotides; cached in CacheNucleotideMatrices()
 	
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying
 	GenomicElementType& operator=(const GenomicElementType&) = delete;	// no copying

@@ -24,6 +24,7 @@ development head:
 		add nucleotide argument to addNewMutation() and addNewDrawnMutation()
 		add nucleotides() method to Genome
 		add mmJukesCantor() and mmKimura() mutational models
+		implement sequence-based mutation
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

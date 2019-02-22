@@ -104,6 +104,11 @@ Chromosome::~Chromosome(void)
 	
 	if (lookup_recombination_F_)
 		gsl_ran_discrete_free(lookup_recombination_F_);
+	
+	// Dispose of any nucleotide sequence
+	delete ancestral_seq_buffer_;
+	ancestral_seq_buffer_ = nullptr;
+	
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
@@ -589,6 +594,208 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 	
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
 	new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, -1);
+	
+	return new_mut_index;
+}
+
+// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models
+MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints) const
+{
+	gsl_ran_discrete_t *lookup;
+	const vector<GESubrange> *subranges;
+	
+	if (single_mutation_map_)
+	{
+		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
+		lookup = lookup_mutation_H_;
+		subranges = &mutation_subranges_H_;
+	}
+	else
+	{
+		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
+		if (p_sex == IndividualSex::kMale)
+		{
+			lookup = lookup_mutation_M_;
+			subranges = &mutation_subranges_M_;
+		}
+		else if (p_sex == IndividualSex::kFemale)
+		{
+			lookup = lookup_mutation_F_;
+			subranges = &mutation_subranges_F_;
+		}
+		else
+		{
+			MutationMapConfigError();
+		}
+	}
+	
+	int mut_subrange_index = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
+	const GESubrange &subrange = (*subranges)[mut_subrange_index];
+	const GenomicElement &source_element = *(subrange.genomic_element_ptr_);
+	
+	// Draw the position along the chromosome for the mutation, within the genomic element
+	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(subrange.end_position_ - subrange.start_position_ + 1));
+	// old 32-bit position not MT64 code:
+	//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
+	
+	// Determine which parental genome the mutation will be atop (so we can get the genetic context for it)
+	bool on_first_genome = true;
+	
+	for (slim_position_t breakpoint : *all_breakpoints)
+	{
+		if (breakpoint > position)
+			break;
+		
+		on_first_genome = !on_first_genome;
+	}
+	
+	Genome *background_genome = (on_first_genome ? parent_genome_1 : parent_genome_1);
+	
+	// Determine whether the mutation will be created at all, and if it is, what nucleotide to use
+	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
+	int8_t nucleotide = -1;
+	
+	if (genomic_element_type.mutation_matrix_)
+	{
+		EidosValue_Float_vector *mm = genomic_element_type.mutation_matrix_.get();
+		int mm_count = mm->Count();
+		
+		if (mm_count == 16)
+		{
+			// The mutation matrix only cares about the single-nucleotide context; figure it out
+			int8_t background_nuc = -1;
+			GenomeWalker walker(background_genome);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos < position)
+				{
+					walker.NextMutation();
+				}
+				else if (pos == position)
+				{
+					int8_t mut_nuc = mut->nucleotide_;
+					
+					if (mut_nuc != -1)
+						background_nuc = mut_nuc;
+					
+					walker.NextMutation();
+				}
+				else
+				{
+					break;
+				}
+			}
+			
+			// No mutation is present at the position, so the background comes from the ancestral sequence
+			if (background_nuc == -1)
+				background_nuc = (int8_t)ancestral_seq_buffer_->NucleotideAtIndex(position);
+			
+			// OK, now we know the background nucleotide; determine the mutation rates to derived nucleotides
+			double *nuc_thresholds = genomic_element_type.mm_thresholds + background_nuc * 4;
+			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			
+			if (draw < nuc_thresholds[0])		nucleotide = 0;
+			else if (draw < nuc_thresholds[1])	nucleotide = 1;
+			else if (draw < nuc_thresholds[2])	nucleotide = 2;
+			else if (draw < nuc_thresholds[3])	nucleotide = 3;
+			else {
+				// The mutation is an excess mutation, the result of an overall mutation rate on this genetic background
+				// that is less than the maximum overall mutation rate for any genetic background; it should be discarded,
+				// as if this mutation event never occurred at all.  We signal this by returning -1.
+				return -1;
+			}
+		}
+		else if (mm_count == 256)
+		{
+			// The mutation matrix cares about the trinucleotide context; figure it out
+			int8_t background_nuc1 = -1, background_nuc2 = -1, background_nuc3 = -1;
+			GenomeWalker walker(background_genome);
+			
+			while (!walker.Finished())
+			{
+				Mutation *mut = walker.CurrentMutation();
+				slim_position_t pos = mut->position_;
+				
+				if (pos < position - 1)
+				{
+					walker.NextMutation();
+				}
+				else if (pos == position - 1)
+				{
+					int8_t mut_nuc = mut->nucleotide_;
+					
+					if (mut_nuc != -1)
+						background_nuc1 = mut_nuc;
+					
+					walker.NextMutation();
+				}
+				else if (pos == position)
+				{
+					int8_t mut_nuc = mut->nucleotide_;
+					
+					if (mut_nuc != -1)
+						background_nuc2 = mut_nuc;
+					
+					walker.NextMutation();
+				}
+				else if (pos == position + 1)
+				{
+					int8_t mut_nuc = mut->nucleotide_;
+					
+					if (mut_nuc != -1)
+						background_nuc3 = mut_nuc;
+					
+					walker.NextMutation();
+				}
+				else
+				{
+					break;
+				}
+			}
+			
+			// No mutation is present at the position, so the background comes from the ancestral sequence
+			// If a base in the trinucleotide is off the end of the chromosome, we assume it is an A; that is arbitrary,
+			// but should avoid skewed rates associated with the dynamics of C/G in certain sequences (like CpG)
+			if (background_nuc1 == -1)
+				background_nuc1 = ((position == 0) ? 0 : (int8_t)ancestral_seq_buffer_->NucleotideAtIndex(position - 1));
+			if (background_nuc2 == -1)
+				background_nuc2 = (int8_t)ancestral_seq_buffer_->NucleotideAtIndex(position);
+			if (background_nuc3 == -1)
+				background_nuc3 = ((position == last_position_) ? 0 : (int8_t)ancestral_seq_buffer_->NucleotideAtIndex(position + 1));
+			
+			// OK, now we know the background nucleotide; determine the mutation rates to derived nucleotides
+			int trinuc = ((int)background_nuc1) * 16 + ((int)background_nuc2) * 4 + (int)background_nuc3;
+			double *nuc_thresholds = genomic_element_type.mm_thresholds + trinuc * 4;
+			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			
+			if (draw < nuc_thresholds[0])		nucleotide = 0;
+			else if (draw < nuc_thresholds[1])	nucleotide = 1;
+			else if (draw < nuc_thresholds[2])	nucleotide = 2;
+			else if (draw < nuc_thresholds[3])	nucleotide = 3;
+			else {
+				// The mutation is an excess mutation, the result of an overall mutation rate on this genetic background
+				// that is less than the maximum overall mutation rate for any genetic background; it should be discarded,
+				// as if this mutation event never occurred at all.  We signal this by returning -1.
+				return -1;
+			}
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawNewMutationNuc): (internal error) unexpected mutation matrix size." << EidosTerminate();
+	}
+	
+	// Draw mutation type and selection coefficient, and create the new mutation
+	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
+	
+	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+	
+	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
+	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+	
+	new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, nucleotide);
 	
 	return new_mut_index;
 }
@@ -1106,7 +1313,7 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 	if (!sim->IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): ancestralNucleotides() may only be called in nucleotide-based models." << EidosTerminate();
 	
-	NucleotideArray *sequence = sim->AncestralSequence();
+	NucleotideArray *sequence = sim->TheChromosome().AncestralSequence();
 	EidosValue *start_value = p_arguments[0].get();
 	EidosValue *end_value = p_arguments[1].get();
 	
