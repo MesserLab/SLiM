@@ -5441,6 +5441,19 @@ void Population::RemoveAllFixedMutations(void)
 			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 				substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation));
 		}
+		
+		// Nucleotide-based models also need to modify the ancestral sequence when a mutation fixes
+		if (sim_.nucleotide_based_)
+		{
+			NucleotideArray *ancestral_seq = sim_.chromosome_.ancestral_seq_buffer_;
+			
+			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
+			{
+				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
+				
+				ancestral_seq->SetNucleotideAtIndex(mut_to_remove->position_, mut_to_remove->nucleotide_);
+			}
+		}
 	}
 	
 	// now we can delete (or zombify) removed mutation objects
