@@ -909,6 +909,16 @@ This function interprets the supplied codon sequence as the
 \f2\fs20 ).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (float)mm16To256(float\'a0mutationMatrix16)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Returns a 64\'d74 mutation matrix that is functionally identical to the supplied 4\'d74 mutation matrix in 
+\f1\fs18 mutationMatrix16
+\f2\fs20 .  The mutation rate for each of the 64 trinucleotides will depend only upon the central nucleotide of the trinucleotide, and will be taken from the corresponding entry for the same nucleotide in 
+\f1\fs18 mutationMatrix16
+\f2\fs20 .  This function can be used to easily construct a simple trinucleotide-based mutation matrix which can then be modified so that specific trinucleotides sustain a mutation rate that does not depend only upon their central nucleotide.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (float)mmJukesCantor(float$\'a0mu)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

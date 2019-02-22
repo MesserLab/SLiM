@@ -34,6 +34,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(vo
 	if (!sim_func_signatures_.size())
 	{
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddLogical_OS("long", gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mm16To256", SLiM_ExecuteFunction_mm16To256, kEidosValueMaskFloat, "SLiM"))->AddFloat("mutationMatrix16"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmJukesCantor", SLiM_ExecuteFunction_mmJukesCantor, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("mu"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmKimura", SLiM_ExecuteFunction_mmKimura, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha")->AddFloat_S("beta"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
@@ -467,6 +468,31 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 			}
 		}
 	}
+}
+
+//	(float)mm16To256(float mutationMatrix16)
+EidosValue_SP SLiM_ExecuteFunction_mm16To256(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *mutationMatrix16_value = p_arguments[0].get();
+	
+	if (mutationMatrix16_value->Count() != 16)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mm16To256): function mm16To256() requires mutationMatrix16 to be of length 16." << EidosTerminate(nullptr);
+	
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(256);
+	
+	for (int i = 0; i < 256; ++i)
+	{
+		int ancestral_nucleotide = ((i / 4) % 4);
+		int derived_nucleotide = (i / 64);
+		double value = mutationMatrix16_value->FloatAtIndex(ancestral_nucleotide + derived_nucleotide * 4, nullptr);
+		
+		float_result->set_float_no_check(value, i);
+	}
+	
+	const int64_t dims[2] = {64, 4};
+	float_result->SetDimensions(2, dims);
+	
+	return EidosValue_SP(float_result);
 }
 
 //	(float)mmJukesCantor(float$ mu)

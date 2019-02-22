@@ -8015,7 +8015,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 	if (!nucleotide_based_ && (mm_type != EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() requires mutationMatrix to be NULL in non-nucleotide-based models." << EidosTerminate();
 	if (nucleotide_based_ && (mm_type == EidosValueType::kValueNULL))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() requires mutationMatrix to be non-NULL in nucleotide-based models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() requires mutationMatrix to be non-NULL in nucleotide-based models." << EidosTerminate();
 	
 	GenomicElementType *new_genomic_element_type = new GenomicElementType(*this, map_identifier, mutation_types, mutation_fractions);
 	if (nucleotide_based_)
