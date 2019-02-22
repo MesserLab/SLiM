@@ -28,6 +28,7 @@ development head:
 		add mm16To256() function to expand a single-nucleotide mutation matrix into a trinucleotide mutation matrix
 		disable initializeMutationRate() and related API in nucleotide-based models
 		update the ancestral nucleotide sequence upon fixation
+		add hotspot map support: initializeHotspotMap(), setHotspotMap(), and associated properties
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

@@ -438,6 +438,7 @@ extern const std::string gStr_initializeMutationType;
 extern const std::string gStr_initializeMutationTypeNuc;
 extern const std::string gStr_initializeGeneConversion;
 extern const std::string gStr_initializeMutationRate;
+extern const std::string gStr_initializeHotspotMap;
 extern const std::string gStr_initializeRecombinationRate;
 extern const std::string gStr_initializeSex;
 extern const std::string gStr_initializeSLiMOptions;
@@ -450,6 +451,12 @@ extern const std::string gStr_setValue;
 
 extern const std::string gStr_genomicElements;
 extern const std::string gStr_lastPosition;
+extern const std::string gStr_hotspotEndPositions;
+extern const std::string gStr_hotspotEndPositionsM;
+extern const std::string gStr_hotspotEndPositionsF;
+extern const std::string gStr_hotspotMultipliers;
+extern const std::string gStr_hotspotMultipliersM;
+extern const std::string gStr_hotspotMultipliersF;
 extern const std::string gStr_mutationEndPositions;
 extern const std::string gStr_mutationEndPositionsM;
 extern const std::string gStr_mutationEndPositionsF;
@@ -546,6 +553,7 @@ extern const std::string gStr_maxDistance;
 
 extern const std::string gStr_ancestralNucleotides;
 extern const std::string gStr_nucleotides;
+extern const std::string gStr_setHotspotMap;
 extern const std::string gStr_setMutationRate;
 extern const std::string gStr_setRecombinationRate;
 extern const std::string gStr_drawBreakpoints;
@@ -721,6 +729,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeMutationTypeNuc,
 	gID_initializeGeneConversion,
 	gID_initializeMutationRate,
+	gID_initializeHotspotMap,
 	gID_initializeRecombinationRate,
 	gID_initializeSex,
 	gID_initializeSLiMOptions,
@@ -733,6 +742,12 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_genomicElements,
 	gID_lastPosition,
+	gID_hotspotEndPositions,
+	gID_hotspotEndPositionsM,
+	gID_hotspotEndPositionsF,
+	gID_hotspotMultipliers,
+	gID_hotspotMultipliersM,
+	gID_hotspotMultipliersF,
 	gID_mutationEndPositions,
 	gID_mutationEndPositionsM,
 	gID_mutationEndPositionsF,
@@ -829,6 +844,7 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_ancestralNucleotides,
 	gID_nucleotides,
+	gID_setHotspotMap,
 	gID_setMutationRate,
 	gID_setRecombinationRate,
 	gID_drawBreakpoints,

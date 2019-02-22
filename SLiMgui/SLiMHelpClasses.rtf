@@ -58,7 +58,62 @@
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 lastPosition => (integer$)\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+hotspotEndPositions => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The end positions for hotspot map regions along the chromosome.  Each hotspot map region is assumed to start at the position following the end of the previous hotspot map region; in other words, the regions are assumed to be contiguous.  When using sex-specific hotspot maps, this property will unavailable; see 
+\f3\fs18 hotspotEndPositionsF
+\f4\fs20  and 
+\f3\fs18 hotspotEndPositionsM
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 hotspotEndPositionsF => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The end positions for hotspot map regions for females, when using sex-specific hotspot maps; unavailable otherwise.  See 
+\f3\fs18 hotspotEndPositions
+\f4\fs20  for further explanation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 hotspotEndPositionsM => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The end positions for hotspot map regions for males, when using sex-specific hotspot maps; unavailable otherwise.  See 
+\f3\fs18 hotspotEndPositions
+\f4\fs20  for further explanation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 hotspotMultipliers => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The hotspot multiplier for each of the hotspot map regions specified by 
+\f3\fs18 hotspotEndPositions
+\f4\fs20 .  When using sex-specific hotspot maps, this property will be unavailable; see 
+\f3\fs18 hotspotMultipliersF
+\f4\fs20  and 
+\f3\fs18 hotspotMultipliersM
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 hotspotMultipliersF => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The hotspot multiplier for each of the hotspot map regions specified by 
+\f3\fs18 hotspotEndPositionsF
+\f4\fs20 , when using sex-specific hotspot maps; unavailable otherwise.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 hotspotMultipliersM => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The hotspot multiplier for each of the hotspot map regions specified by 
+\f3\fs18 hotspotEndPositionsM
+\f4\fs20 , when using sex-specific hotspot maps; unavailable otherwise.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 lastPosition => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The last valid position in the chromosome; its length, essentially.
@@ -74,7 +129,7 @@ The end positions for mutation rate regions along the chromosome.  Each mutation
 \f4\fs20  and 
 \f3\fs18 mutationEndPositionsM
 \f4\fs20 .\
-\cf2 This property is unavailable in nucleotide-based models.\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationEndPositionsF => (integer)\
@@ -423,6 +478,56 @@ It is generally recommended that the parent individual be supplied to this metho
 \f4\fs20  is not used, and the caller does not guarantee that the generated breakpoints will actually be used to recombine the genomes of 
 \f3\fs18 parent
 \f4\fs20  in particular.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setHotspotMap(numeric\'a0multipliers, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 In nucleotide-based models, set the mutation rate 
+\f1\i \cf2 multiplier
+\f4\i0 \cf2  along the chromosome.  There are two ways to call this method.  If the optional 
+\f3\fs18 ends
+\f4\fs20  parameter is 
+\f3\fs18 NULL
+\f4\fs20  (the default), then 
+\f3\fs18 multipliers
+\f4\fs20  must be a singleton value that specifies a single multiplier to be used along the entire chromosome.  If, on the other hand, 
+\f3\fs18 ends
+\f4\fs20  is supplied, then 
+\f3\fs18 multipliers
+\f4\fs20  and 
+\f3\fs18 ends
+\f4\fs20  must be the same length, and the values in 
+\f3\fs18 ends
+\f4\fs20  must be specified in ascending order.  In that case, 
+\f3\fs18 multipliers
+\f4\fs20  and 
+\f3\fs18 ends
+\f4\fs20  taken together specify the multipliers to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
+\f3\fs18 ends
+\f4\fs20  should extend to the end of the chromosome (as previously determined, during simulation initialization).  See the 
+\f3\fs18 initializeHotspotMap()
+\f4\fs20  function for further discussion of precisely how these multipliers and positions are interpreted.\
+If the optional 
+\f3\fs18 sex
+\f4\fs20  parameter is 
+\f3\fs18 "*"
+\f4\fs20  (the default), then the supplied hotspot map will be used for both sexes (which is the only option for hermaphroditic simulations).  In sexual simulations 
+\f3\fs18 sex
+\f4\fs20  may be 
+\f3\fs18 "M"
+\f4\fs20  or 
+\f3\fs18 "F"
+\f4\fs20  instead, in which case the supplied hotspot map is used only for that sex.  Note that whether sex-specific hotspot maps will be used is set by the way that the simulation is initially configured with 
+\f3\fs18 initializeHotspot()
+\f4\fs20 , and cannot be changed with this method; so if the simulation was set up to use sex-specific hotspot maps then sex must be 
+\f3\fs18 "M"
+\f4\fs20  or 
+\f3\fs18 "F"
+\f4\fs20  here, whereas if it was set up not to, then sex must be 
+\f3\fs18 "*"
+\f4\fs20  or unsupplied here.  If a simulation needs sex-specific hotspot maps only some of the time, the male and female maps can simply be set to be identical the rest of the time.\
+The hotspot map is normally constant in simulations, so be sure you know what you are doing.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setMutationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])

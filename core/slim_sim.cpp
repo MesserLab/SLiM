@@ -2071,6 +2071,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_treeseq_declarations_ = 0;
 	num_modeltype_declarations_ = 0;
 	num_ancseq_declarations_ = 0;
+	num_hotspot_maps_ = 0;
 	
 	if (DEBUG_INPUT)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
@@ -2130,12 +2131,30 @@ void SLiMSim::RunInitializeCallbacks(void)
 	if (num_recombination_rates_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << EidosTerminate();
 	
+	
 	if ((chromosome_.recombination_rates_H_.size() != 0) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
 	
 	if (((chromosome_.recombination_rates_M_.size() == 0) && (chromosome_.recombination_rates_F_.size() != 0)) ||
 		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
+	
+	
+	if ((chromosome_.mutation_rates_H_.size() != 0) && ((chromosome_.mutation_rates_M_.size() != 0) || (chromosome_.mutation_rates_F_.size() != 0)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific mutation rates." << EidosTerminate();
+	
+	if (((chromosome_.mutation_rates_M_.size() == 0) && (chromosome_.mutation_rates_F_.size() != 0)) ||
+		((chromosome_.mutation_rates_M_.size() != 0) && (chromosome_.mutation_rates_F_.size() == 0)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific mutation rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
+	
+	
+	if ((chromosome_.hotspot_multipliers_H_.size() != 0) && ((chromosome_.hotspot_multipliers_M_.size() != 0) || (chromosome_.hotspot_multipliers_F_.size() != 0)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific hotspot maps." << EidosTerminate();
+	
+	if (((chromosome_.hotspot_multipliers_M_.size() == 0) && (chromosome_.hotspot_multipliers_F_.size() != 0)) ||
+		((chromosome_.hotspot_multipliers_M_.size() != 0) && (chromosome_.hotspot_multipliers_F_.size() == 0)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << EidosTerminate();
+	
 	
 	if (ModelType() == SLiMModelType::kModelTypeNonWF)
 	{
@@ -2172,6 +2191,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	CheckMutationStackPolicy();
 	
+	// In nucleotide-based models, process the mutationMatrix parameters for genomic element types, and construct a mutation rate map
 	if (nucleotide_based_)
 	{
 		CacheNucleotideMatrices();
@@ -4014,14 +4034,70 @@ void SLiMSim::CreateNucleotideMutationRateMap(void)
 	// though.  So this method is, in a sense, an internal call to initializeMutationRate() that sets up the right
 	// rate map to achieve what the user has requested through other APIs.
 	
-	//std::vector<slim_position_t> &positions = chromosome_.mutation_end_positions_H_;
-	std::vector<double> &rates = chromosome_.mutation_rates_H_;
+	std::vector<slim_position_t> &hotspot_end_positions_H = chromosome_.hotspot_end_positions_H_;
+	std::vector<slim_position_t> &hotspot_end_positions_M = chromosome_.hotspot_end_positions_M_;
+	std::vector<slim_position_t> &hotspot_end_positions_F = chromosome_.hotspot_end_positions_F_;
+	std::vector<double> &hotspot_multipliers_H = chromosome_.hotspot_multipliers_H_;
+	std::vector<double> &hotspot_multipliers_M = chromosome_.hotspot_multipliers_M_;
+	std::vector<double> &hotspot_multipliers_F = chromosome_.hotspot_multipliers_F_;
 	
-	if (max_nucleotide_mut_rate_ > 1.0)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+	std::vector<slim_position_t> &mut_positions_H = chromosome_.mutation_end_positions_H_;
+	std::vector<slim_position_t> &mut_positions_M = chromosome_.mutation_end_positions_M_;
+	std::vector<slim_position_t> &mut_positions_F = chromosome_.mutation_end_positions_F_;
+	std::vector<double> &mut_rates_H = chromosome_.mutation_rates_H_;
+	std::vector<double> &mut_rates_M = chromosome_.mutation_rates_M_;
+	std::vector<double> &mut_rates_F = chromosome_.mutation_rates_F_;
 	
-	rates.emplace_back(max_nucleotide_mut_rate_);
-	//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	if ((hotspot_multipliers_M.size() > 0) && (hotspot_multipliers_F.size() > 0))
+	{
+		// two sex-specific hotspot maps
+		for (size_t index = 0; index < hotspot_multipliers_M.size(); ++index)
+		{
+			double rate = max_nucleotide_mut_rate_ * hotspot_multipliers_M[index];
+			
+			if (rate > 1.0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+			
+			mut_rates_M.emplace_back(rate);
+		}
+		for (size_t index = 0; index < hotspot_multipliers_F.size(); ++index)
+		{
+			double rate = max_nucleotide_mut_rate_ * hotspot_multipliers_F[index];
+			
+			if (rate > 1.0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+			
+			mut_rates_F.emplace_back(rate);
+		}
+		
+		mut_positions_M = hotspot_end_positions_M;
+		mut_positions_F = hotspot_end_positions_F;
+	}
+	else if (hotspot_multipliers_H.size() > 0)
+	{
+		// one hotspot map
+		for (size_t index = 0; index < hotspot_multipliers_H.size(); ++index)
+		{
+			double rate = max_nucleotide_mut_rate_ * hotspot_multipliers_H[index];
+			
+			if (rate > 1.0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+			
+			mut_rates_H.emplace_back(rate);
+		}
+		
+		mut_positions_H = hotspot_end_positions_H;
+	}
+	else
+	{
+		// No hotspot map specified at all; use a rate of 1.0 across the chromosome with an inferred length
+		if (max_nucleotide_mut_rate_ > 1.0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+		
+		mut_rates_H.emplace_back(max_nucleotide_mut_rate_);
+		//mut_positions_H.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	}
+	
 	chromosome_changed_ = true;
 }
 
@@ -7790,6 +7866,7 @@ EidosValue_SP SLiMSim::ContextDefinedFunctionDispatch(const std::string &p_funct
 	else if (p_function_name.compare(gStr_initializeRecombinationRate) == 0)	return ExecuteContextFunction_initializeRecombinationRate(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)		return ExecuteContextFunction_initializeGeneConversion(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)			return ExecuteContextFunction_initializeMutationRate(p_function_name, p_arguments, p_argument_count, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeHotspotMap) == 0)			return ExecuteContextFunction_initializeHotspotMap(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSex) == 0)					return ExecuteContextFunction_initializeSex(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)			return ExecuteContextFunction_initializeSLiMOptions(p_function_name, p_arguments, p_argument_count, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeTreeSeq) == 0)				return ExecuteContextFunction_initializeTreeSeq(p_function_name, p_arguments, p_argument_count, p_interpreter);
@@ -8439,6 +8516,140 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	(void)initializeHotspotMap(numeric multipliers, [Ni ends = NULL], [string$ sex = "*"])
+//
+EidosValue_SP SLiMSim::ExecuteContextFunction_initializeHotspotMap(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
+	if (!nucleotide_based_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() may only be called in nucleotide-based models (use initializeMutationRate() to vary the mutation rate along the chromosome)." << EidosTerminate();
+	
+	EidosValue *multipliers_value = p_arguments[0].get();
+	EidosValue *ends_value = p_arguments[1].get();
+	EidosValue *sex_value = p_arguments[2].get();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	int multipliers_count = multipliers_value->Count();
+	
+	// Figure out what sex we are being given a map for
+	IndividualSex requested_sex;
+	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	
+	if (sex_string.compare("M") == 0)
+		requested_sex = IndividualSex::kMale;
+	else if (sex_string.compare("F") == 0)
+		requested_sex = IndividualSex::kFemale;
+	else if (sex_string.compare("*") == 0)
+		requested_sex = IndividualSex::kUnspecified;
+	else
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+	
+	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() sex-specific hotspot map supplied in non-sexual simulation." << EidosTerminate();
+	
+	// Make sure specifying a map for that sex is legal, given our current state
+	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.hotspot_multipliers_M_.size() != 0) || (chromosome_.hotspot_multipliers_F_.size() != 0))) ||
+		((requested_sex != IndividualSex::kUnspecified) && (chromosome_.hotspot_multipliers_H_.size() != 0)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
+	
+	if (((requested_sex == IndividualSex::kUnspecified) && (num_hotspot_maps_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_hotspot_maps_ > 1)))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() may be called only once (or once per sex, with sex-specific hotspot maps).  The multiple hotspot regions of a hotspot map must be set up in a single call to initializeHotspotMap()." << EidosTerminate();
+	
+	// Set up to replace the requested map
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.hotspot_end_positions_H_ : 
+											   ((requested_sex == IndividualSex::kMale) ? chromosome_.hotspot_end_positions_M_ : chromosome_.hotspot_end_positions_F_));
+	std::vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.hotspot_multipliers_H_ : 
+								  ((requested_sex == IndividualSex::kMale) ? chromosome_.hotspot_multipliers_M_ : chromosome_.hotspot_multipliers_F_));
+	
+	if (ends_value->Type() == EidosValueType::kValueNULL)
+	{
+		if (multipliers_count != 1)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires multipliers to be a singleton if ends is not supplied." << EidosTerminate();
+		
+		double multiplier = multipliers_value->FloatAtIndex(0, nullptr);
+		
+		// check values
+		if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires multipliers to be >= 0 (" << EidosStringForFloat(multiplier) << " supplied)." << EidosTerminate();
+		
+		// then adopt them
+		multipliers.clear();
+		positions.clear();
+		
+		multipliers.emplace_back(multiplier);
+		//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	}
+	else
+	{
+		int end_count = ends_value->Count();
+		
+		if ((end_count != multipliers_count) || (end_count == 0))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires ends and multipliers to be of equal and nonzero size." << EidosTerminate();
+		
+		// check values
+		for (int value_index = 0; value_index < end_count; ++value_index)
+		{
+			double multiplier = multipliers_value->FloatAtIndex(value_index, nullptr);
+			slim_position_t multiplier_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			
+			if (value_index > 0)
+				if (multiplier_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires ends to be in strictly ascending order." << EidosTerminate();
+			
+			if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires multipliers to be >= 0 (" << EidosStringForFloat(multiplier) << " supplied)." << EidosTerminate();
+		}
+		
+		// then adopt them
+		multipliers.clear();
+		positions.clear();
+		
+		for (int interval_index = 0; interval_index < end_count; ++interval_index)
+		{
+			double multiplier = multipliers_value->FloatAtIndex(interval_index, nullptr);
+			slim_position_t multiplier_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			
+			multipliers.emplace_back(multiplier);
+			positions.emplace_back(multiplier_end_position);
+		}
+	}
+	
+	chromosome_changed_ = true;
+	
+	if (DEBUG_INPUT)
+	{
+		int multipliersSize = (int)multipliers.size();
+		int endsSize = (int)positions.size();
+		
+		output_stream << "initializeHotspotMap(";
+		
+		if (multipliersSize > 1)
+			output_stream << "c(";
+		for (int interval_index = 0; interval_index < multipliersSize; ++interval_index)
+			output_stream << (interval_index == 0 ? "" : ", ") << multipliers[interval_index];
+		if (multipliersSize > 1)
+			output_stream << ")";
+		
+		if (endsSize > 0)
+		{
+			output_stream << ", ";
+			
+			if (endsSize > 1)
+				output_stream << "c(";
+			for (int interval_index = 0; interval_index < endsSize; ++interval_index)
+				output_stream << (interval_index == 0 ? "" : ", ") << positions[interval_index];
+			if (endsSize > 1)
+				output_stream << ")";
+		}
+		
+		output_stream << ");" << std::endl;
+	}
+	
+	num_hotspot_maps_++;
+	
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	(void)initializeMutationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -8637,7 +8848,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	if (num_options_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() may be called only once." << EidosTerminate();
 	
-	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0))
+	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions except initializeSLiMModelType()." << EidosTerminate();
 	
 	{
@@ -8900,7 +9111,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMModelType(const std:
 	if (num_modeltype_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() may be called only once." << EidosTerminate();
 	
-	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0))
+	if ((num_interaction_types_ > 0) || (num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() must be called before all other initialization functions." << EidosTerminate();
 	
 	{
@@ -8958,6 +9169,8 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 										->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeHotspotMap, nullptr, kEidosValueMaskVOID, "SLiM"))
+									   ->AddNumeric("multipliers")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))

@@ -116,21 +116,21 @@ public:
 	using std::vector<GenomicElement>::begin;
 	using std::vector<GenomicElement>::end;
 	
-	vector<slim_position_t> mutation_end_positions_H_;		// end positions of each defined mutation region (BEFORE intersection with GEs)
-	vector<slim_position_t> mutation_end_positions_M_;
-	vector<slim_position_t> mutation_end_positions_F_;
+	std::vector<slim_position_t> mutation_end_positions_H_;		// end positions of each defined mutation region (BEFORE intersection with GEs)
+	std::vector<slim_position_t> mutation_end_positions_M_;
+	std::vector<slim_position_t> mutation_end_positions_F_;
 	
-	vector<double> mutation_rates_H_;						// mutation rates, in events per base pair (BEFORE intersection with GEs)
-	vector<double> mutation_rates_M_;
-	vector<double> mutation_rates_F_;
+	std::vector<double> mutation_rates_H_;						// mutation rates, in events per base pair (BEFORE intersection with GEs)
+	std::vector<double> mutation_rates_M_;
+	std::vector<double> mutation_rates_F_;
 	
-	vector<slim_position_t> recombination_end_positions_H_;	// end positions of each defined recombination region
-	vector<slim_position_t> recombination_end_positions_M_;
-	vector<slim_position_t> recombination_end_positions_F_;
+	std::vector<slim_position_t> recombination_end_positions_H_;	// end positions of each defined recombination region
+	std::vector<slim_position_t> recombination_end_positions_M_;
+	std::vector<slim_position_t> recombination_end_positions_F_;
 	
-	vector<double> recombination_rates_H_;					// recombination rates, in probability of crossover per base pair (user-specified)
-	vector<double> recombination_rates_M_;
-	vector<double> recombination_rates_F_;
+	std::vector<double> recombination_rates_H_;					// recombination rates, in probability of crossover per base pair (user-specified)
+	std::vector<double> recombination_rates_M_;
+	std::vector<double> recombination_rates_F_;
 	
 	bool any_recombination_rates_05_ = false;				// set to T if any recombination rate is 0.5; those are excluded from gene conversion
 	
@@ -161,6 +161,12 @@ public:
 	
 	// nucleotide-based models
 	NucleotideArray *ancestral_seq_buffer_ = nullptr;
+	std::vector<slim_position_t> hotspot_end_positions_H_;		// end positions of each defined hotspot region (BEFORE intersection with GEs)
+	std::vector<slim_position_t> hotspot_end_positions_M_;
+	std::vector<slim_position_t> hotspot_end_positions_F_;
+	std::vector<double> hotspot_multipliers_H_;					// hotspot multipliers (BEFORE intersection with GEs)
+	std::vector<double> hotspot_multipliers_M_;
+	std::vector<double> hotspot_multipliers_F_;
 	
 	slim_usertag_t tag_value_;								// a user-defined tag value
 	
@@ -228,6 +234,7 @@ public:
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_ancestralNucleotides(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setHotspotMap(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setRecombinationRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

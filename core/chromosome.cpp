@@ -181,6 +181,16 @@ void Chromosome::InitializeDraws(void)
 			last_position_ = std::max(last_position_, *(std::max_element(recombination_end_positions_F_.begin(), recombination_end_positions_F_.end())));
 	}
 	
+	// Patch the hotspot end vector if it is empty; see setHotspotMap() and initializeHotspotMap().
+	// Basically, the length of the chromosome might not have been known yet when the user set the map.
+	// This is done for the mutation rate maps in _InitializeOneMutationMap(); we do it here for the hotspot map.
+	if ((hotspot_end_positions_H_.size() == 0) && (hotspot_multipliers_H_.size() == 1))
+		hotspot_end_positions_H_.emplace_back(last_position_);
+	if ((hotspot_end_positions_M_.size() == 0) && (hotspot_multipliers_M_.size() == 1))
+		hotspot_end_positions_M_.emplace_back(last_position_);
+	if ((hotspot_end_positions_F_.size() == 0) && (hotspot_multipliers_F_.size() == 1))
+		hotspot_end_positions_F_.emplace_back(last_position_);
+	
 	// Now remake our mutation map info, which we delegate to _InitializeOneMutationMap()
 	if (single_mutation_map_)
 	{
@@ -1047,6 +1057,8 @@ size_t Chromosome::MemoryUsageForMutationMaps(void)
 	usage = (mutation_rates_H_.size() + mutation_rates_M_.size() + mutation_rates_F_.size()) * sizeof(double);
 	usage += (mutation_end_positions_H_.size() + mutation_end_positions_M_.size() + mutation_end_positions_F_.size()) * sizeof(slim_position_t);
 	usage += (mutation_subranges_H_.size() + mutation_subranges_M_.size() + mutation_subranges_F_.size()) * sizeof(GESubrange);
+	usage += (hotspot_multipliers_H_.size() + hotspot_multipliers_M_.size() + hotspot_multipliers_F_.size()) * sizeof(double);
+	usage += (hotspot_end_positions_H_.size() + hotspot_end_positions_M_.size() + hotspot_end_positions_F_.size()) * sizeof(slim_position_t);
 	
 	if (lookup_mutation_H_)
 		usage += lookup_mutation_H_->K * (sizeof(size_t) + sizeof(double));
@@ -1113,6 +1125,56 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			if (!cached_value_lastpos_)
 				cached_value_lastpos_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(last_position_));
 			return cached_value_lastpos_;
+		}
+			
+		case gID_hotspotEndPositions:
+		{
+			if (!sim_->IsNucleotideBased())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositions is only defined in nucleotide-based models." << EidosTerminate();
+			if (!single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositions is not defined since sex-specific hotspot maps have been defined." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(hotspot_end_positions_H_));
+		}
+		case gID_hotspotEndPositionsM:
+		{
+			if (!sim_->IsNucleotideBased())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsM is only defined in nucleotide-based models." << EidosTerminate();
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsM is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(hotspot_end_positions_M_));
+		}
+		case gID_hotspotEndPositionsF:
+		{
+			if (!sim_->IsNucleotideBased())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsF is only defined in nucleotide-based models." << EidosTerminate();
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsF is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(hotspot_end_positions_F_));
+		}
+			
+		case gID_hotspotMultipliers:
+		{
+			if (!sim_->IsNucleotideBased())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliers is only defined in nucleotide-based models." << EidosTerminate();
+			if (!single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliers is not defined since sex-specific hotspot maps have been defined." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(hotspot_multipliers_H_));
+		}
+		case gID_hotspotMultipliersM:
+		{
+			if (!sim_->IsNucleotideBased())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersM is only defined in nucleotide-based models." << EidosTerminate();
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersM is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(hotspot_multipliers_M_));
+		}
+		case gID_hotspotMultipliersF:
+		{
+			if (!sim_->IsNucleotideBased())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersF is only defined in nucleotide-based models." << EidosTerminate();
+			if (single_mutation_map_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersF is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(hotspot_multipliers_F_));
 		}
 			
 		case gID_mutationEndPositions:
@@ -1314,6 +1376,7 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	switch (p_method_id)
 	{
 		case gID_ancestralNucleotides:	return ExecuteMethod_ancestralNucleotides(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setHotspotMap:			return ExecuteMethod_setHotspotMap(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setMutationRate:		return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_setRecombinationRate:	return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_drawBreakpoints:		return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -1531,6 +1594,113 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(all_breakpoints));
 }
 
+//	*********************	– (void)setHotspotMap(numeric multipliers, [Ni ends = NULL], [string$ sex = "*"])
+//
+EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (!sim_->IsNucleotideBased())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() may only be called in nucleotide-based models (use setMutationRate() to vary the mutation rate along the chromosome)." << EidosTerminate();
+	
+	EidosValue *multipliers_value = p_arguments[0].get();
+	EidosValue *ends_value = p_arguments[1].get();
+	EidosValue *sex_value = p_arguments[2].get();
+	
+	int multipliers_count = multipliers_value->Count();
+	
+	// Figure out what sex we are being given a map for
+	IndividualSex requested_sex = IndividualSex::kUnspecified;
+	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	
+	if (sex_string.compare("M") == 0)
+		requested_sex = IndividualSex::kMale;
+	else if (sex_string.compare("F") == 0)
+		requested_sex = IndividualSex::kFemale;
+	else if (sex_string.compare("*") == 0)
+		requested_sex = IndividualSex::kUnspecified;
+	else
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+	
+	// Make sure specifying a map for that sex is legal, given our current state
+	if (((requested_sex == IndividualSex::kUnspecified) && !single_mutation_map_) ||
+		((requested_sex != IndividualSex::kUnspecified) && single_mutation_map_))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
+	
+	// Set up to replace the requested map
+	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? hotspot_end_positions_H_ : 
+										  ((requested_sex == IndividualSex::kMale) ? hotspot_end_positions_M_ : hotspot_end_positions_F_));
+	vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? hotspot_multipliers_H_ : 
+							 ((requested_sex == IndividualSex::kMale) ? hotspot_multipliers_M_ : hotspot_multipliers_F_));
+	
+	if (ends_value->Type() == EidosValueType::kValueNULL)
+	{
+		// ends is missing/NULL
+		if (multipliers_count != 1)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requires multipliers to be a singleton if ends is not supplied." << EidosTerminate();
+		
+		double multiplier = multipliers_value->FloatAtIndex(0, nullptr);
+		
+		// check values
+		if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() multiplier " << EidosStringForFloat(multiplier) << " out of range; multipliers must be >= 0." << EidosTerminate();
+		
+		// then adopt them
+		multipliers.clear();
+		positions.clear();
+		
+		multipliers.emplace_back(multiplier);
+		//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	}
+	else
+	{
+		// ends is supplied
+		int end_count = ends_value->Count();
+		
+		if ((end_count != multipliers_count) || (end_count == 0))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requires ends and multipliers to be of equal and nonzero size." << EidosTerminate();
+		
+		// check values
+		for (int value_index = 0; value_index < end_count; ++value_index)
+		{
+			double multiplier = multipliers_value->FloatAtIndex(value_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			
+			if (value_index > 0)
+				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requires ends to be in strictly ascending order." << EidosTerminate();
+			
+			if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() multiplier " << multiplier << " out of range; multipliers must be >= 0." << EidosTerminate();
+		}
+		
+		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
+		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
+		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
+		int64_t new_last_position = ends_value->IntAtIndex(end_count - 1, nullptr);
+		
+		if (new_last_position != last_position_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() end " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
+		
+		// then adopt them
+		multipliers.clear();
+		positions.clear();
+		
+		for (int interval_index = 0; interval_index < end_count; ++interval_index)
+		{
+			double multiplier = multipliers_value->FloatAtIndex(interval_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			
+			multipliers.emplace_back(multiplier);
+			positions.emplace_back(mutation_end_position);
+		}
+	}
+	
+	sim_->CreateNucleotideMutationRateMap();
+	InitializeDraws();
+	
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	– (void)setMutationRate(numeric rates, [Ni ends = NULL], [string$ sex = "*"])
 //
 EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -1579,8 +1749,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		double mutation_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
-		if (mutation_rate < 0.0)		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << EidosTerminate();
+		if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << EidosStringForFloat(mutation_rate) << " out of range; rates must be >= 0." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -1607,8 +1777,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
-			if (mutation_rate < 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << mutation_rate << " out of range; rates must be >= 0." << EidosTerminate();
+			if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << EidosStringForFloat(mutation_rate) << " out of range; rates must be >= 0." << EidosTerminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
@@ -1617,7 +1787,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		int64_t new_last_position = ends_value->IntAtIndex(end_count - 1, nullptr);
 		
 		if (new_last_position != last_position_)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() end " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -1781,6 +1951,12 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,			true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositions,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsM,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsF,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliers,			true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliersM,		true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliersF,		true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositions,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsM,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsF,		true,	kEidosValueMaskInt)));
@@ -1820,6 +1996,7 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setHotspotMap, kEidosValueMaskVOID))->AddNumeric("multipliers")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setRecombinationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		

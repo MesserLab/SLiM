@@ -408,7 +408,10 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 	
 	SetNucleotideMutationMatrix(EidosValue_Float_vector_SP((EidosValue_Float_vector *)(mutationMatrix_value)));
 	
-	// FIXME probably need to do some sort of recaching of mutation rate maps here...
+	// the change to the mutation matrix means everything downstream has to be recached
+	sim_.CacheNucleotideMatrices();
+	sim_.CreateNucleotideMutationRateMap();
+	sim_.TheChromosome().InitializeDraws();
 	
 	return gStaticEidosValueVOID;
 }

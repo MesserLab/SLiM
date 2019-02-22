@@ -826,6 +826,7 @@ const std::string gStr_initializeMutationType = "initializeMutationType";
 const std::string gStr_initializeMutationTypeNuc = "initializeMutationTypeNuc";
 const std::string gStr_initializeGeneConversion = "initializeGeneConversion";
 const std::string gStr_initializeMutationRate = "initializeMutationRate";
+const std::string gStr_initializeHotspotMap = "initializeHotspotMap";
 const std::string gStr_initializeRecombinationRate = "initializeRecombinationRate";
 const std::string gStr_initializeSex = "initializeSex";
 const std::string gStr_initializeSLiMOptions = "initializeSLiMOptions";
@@ -840,6 +841,12 @@ const std::string gStr_setValue = "setValue";
 // mostly property names
 const std::string gStr_genomicElements = "genomicElements";
 const std::string gStr_lastPosition = "lastPosition";
+const std::string gStr_hotspotEndPositions = "hotspotEndPositions";
+const std::string gStr_hotspotEndPositionsM = "hotspotEndPositionsM";
+const std::string gStr_hotspotEndPositionsF = "hotspotEndPositionsF";
+const std::string gStr_hotspotMultipliers = "hotspotMultipliers";
+const std::string gStr_hotspotMultipliersM = "hotspotMultipliersM";
+const std::string gStr_hotspotMultipliersF = "hotspotMultipliersF";
 const std::string gStr_mutationEndPositions = "mutationEndPositions";
 const std::string gStr_mutationEndPositionsM = "mutationEndPositionsM";
 const std::string gStr_mutationEndPositionsF = "mutationEndPositionsF";
@@ -937,6 +944,7 @@ const std::string gStr_maxDistance = "maxDistance";
 // mostly method names
 const std::string gStr_ancestralNucleotides = "ancestralNucleotides";
 const std::string gStr_nucleotides = "nucleotides";
+const std::string gStr_setHotspotMap = "setHotspotMap";
 const std::string gStr_setMutationRate = "setMutationRate";
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
 const std::string gStr_drawBreakpoints = "drawBreakpoints";
@@ -1151,6 +1159,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationTypeNuc, gID_initializeMutationTypeNuc);
 		Eidos_RegisterStringForGlobalID(gStr_initializeGeneConversion, gID_initializeGeneConversion);
 		Eidos_RegisterStringForGlobalID(gStr_initializeMutationRate, gID_initializeMutationRate);
+		Eidos_RegisterStringForGlobalID(gStr_initializeHotspotMap, gID_initializeHotspotMap);
 		Eidos_RegisterStringForGlobalID(gStr_initializeRecombinationRate, gID_initializeRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSex, gID_initializeSex);
 		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMOptions, gID_initializeSLiMOptions);
@@ -1163,6 +1172,12 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);
+		Eidos_RegisterStringForGlobalID(gStr_hotspotEndPositions, gID_hotspotEndPositions);
+		Eidos_RegisterStringForGlobalID(gStr_hotspotEndPositionsM, gID_hotspotEndPositionsM);
+		Eidos_RegisterStringForGlobalID(gStr_hotspotEndPositionsF, gID_hotspotEndPositionsF);
+		Eidos_RegisterStringForGlobalID(gStr_hotspotMultipliers, gID_hotspotMultipliers);
+		Eidos_RegisterStringForGlobalID(gStr_hotspotMultipliersM, gID_hotspotMultipliersM);
+		Eidos_RegisterStringForGlobalID(gStr_hotspotMultipliersF, gID_hotspotMultipliersF);
 		Eidos_RegisterStringForGlobalID(gStr_mutationEndPositions, gID_mutationEndPositions);
 		Eidos_RegisterStringForGlobalID(gStr_mutationEndPositionsM, gID_mutationEndPositionsM);
 		Eidos_RegisterStringForGlobalID(gStr_mutationEndPositionsF, gID_mutationEndPositionsF);
@@ -1259,6 +1274,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gStr_ancestralNucleotides, gID_ancestralNucleotides);
 		Eidos_RegisterStringForGlobalID(gStr_nucleotides, gID_nucleotides);
+		Eidos_RegisterStringForGlobalID(gStr_setHotspotMap, gID_setHotspotMap);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate, gID_setMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);
 		Eidos_RegisterStringForGlobalID(gStr_drawBreakpoints, gID_drawBreakpoints);
