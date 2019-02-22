@@ -650,7 +650,7 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 		on_first_genome = !on_first_genome;
 	}
 	
-	Genome *background_genome = (on_first_genome ? parent_genome_1 : parent_genome_1);
+	Genome *background_genome = (on_first_genome ? parent_genome_1 : parent_genome_2);
 	
 	// Determine whether the mutation will be created at all, and if it is, what nucleotide to use
 	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
@@ -1117,7 +1117,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_mutationEndPositions:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
@@ -1125,7 +1125,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationEndPositionsM:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
@@ -1133,7 +1133,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationEndPositionsF:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
@@ -1142,7 +1142,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_mutationRates:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
@@ -1150,7 +1150,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationRatesM:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
@@ -1158,7 +1158,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationRatesF:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
@@ -1167,7 +1167,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_overallMutationRate:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
@@ -1175,7 +1175,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_overallMutationRateM:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
@@ -1183,7 +1183,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_overallMutationRateF:
 		{
-			if (sim_->nucleotide_based_)
+			if (sim_->IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
@@ -1536,7 +1536,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
-	if (sim_->nucleotide_based_)
+	if (sim_->IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() may not be called in nucleotide-based models (use setHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
 	
 	EidosValue *rates_value = p_arguments[0].get();

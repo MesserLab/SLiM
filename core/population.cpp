@@ -2620,7 +2620,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		if (sim_.nucleotide_based_)
+		if (sim_.IsNucleotideBased())
 		{
 			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
 			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -3276,7 +3276,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		if (sim_.nucleotide_based_)
+		if (sim_.IsNucleotideBased())
 		{
 			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
 			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -3721,7 +3721,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		// create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		if (sim_.nucleotide_based_)
+		if (sim_.IsNucleotideBased())
 		{
 			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
 			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -5443,9 +5443,9 @@ void Population::RemoveAllFixedMutations(void)
 		}
 		
 		// Nucleotide-based models also need to modify the ancestral sequence when a mutation fixes
-		if (sim_.nucleotide_based_)
+		if (sim_.IsNucleotideBased())
 		{
-			NucleotideArray *ancestral_seq = sim_.chromosome_.ancestral_seq_buffer_;
+			NucleotideArray *ancestral_seq = sim_.TheChromosome().ancestral_seq_buffer_;
 			
 			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			{
