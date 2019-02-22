@@ -355,6 +355,17 @@ If the optional
 \f1\fs18 initializeMutationRate()
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default mutation rate map is supplied.
 \f3\i \
+
+\f2\i0 \cf2 In nucleotide-based models, 
+\f1\fs18 initializeMutationRate()
+\f2\fs20  may not be called.  Instead, the desired sequence-based mutation rate(s) should be expressed in the 
+\f1\fs18 mutationMatrix
+\f2\fs20  parameter to 
+\f1\fs18 initializeGenomicElementType()
+\f2\fs20 .  If variation in the mutation rate along the chromosome is desired, 
+\f1\fs18 initializeHotspotMap()
+\f2\fs20  should be used.
+\f3\i \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\i0\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)

@@ -41,6 +41,7 @@
 
 struct GESubrange;
 class Genome;
+class SLiMSim;
 
 
 extern EidosObjectClass *gSLiM_Chromosome_Class;
@@ -55,6 +56,8 @@ public:
 #else
 private:
 #endif
+	
+	SLiMSim *sim_;
 	
 	// We now allow different recombination maps for males and females, optionally.  Unfortunately, this means we have a bit of an
 	// explosion of state involved with recombination.  We now have _H, _M, and _F versions of many ivars.  The _M and _F versions
@@ -163,7 +166,8 @@ public:
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
-	Chromosome(void);														// supplied null constructor
+	Chromosome(void) = delete;												// no null constructor
+	explicit Chromosome(SLiMSim *p_sim);									// construct with a simulation object
 	~Chromosome(void);														// destructor
 	
 	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)											{ return ancestral_seq_buffer_; }

@@ -74,6 +74,7 @@ The end positions for mutation rate regions along the chromosome.  Each mutation
 \f4\fs20  and 
 \f3\fs18 mutationEndPositionsM
 \f4\fs20 .\
+\cf2 This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationEndPositionsF => (integer)\
@@ -83,6 +84,7 @@ The end positions for mutation rate regions along the chromosome.  Each mutation
 The end positions for mutation rate regions for females, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f3\fs18 mutationEndPositions
 \f4\fs20  for further explanation.\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationEndPositionsM => (integer)\
@@ -92,6 +94,7 @@ The end positions for mutation rate regions for females, when using sex-specific
 The end positions for mutation rate regions for males, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f3\fs18 mutationEndPositions
 \f4\fs20  for further explanation.\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationRates => (float)\
@@ -105,6 +108,7 @@ The mutation rate for each of the mutation rate regions specified by
 \f4\fs20  and 
 \f3\fs18 mutationRatesM
 \f4\fs20 .\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationRatesF => (float)\
@@ -114,6 +118,7 @@ The mutation rate for each of the mutation rate regions specified by
 The mutation rate for each of the mutation rate regions specified by 
 \f3\fs18 mutationEndPositionsF
 \f4\fs20 , when using sex-specific mutation rate maps; unavailable otherwise.\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 mutationRatesM => (float)\
@@ -123,6 +128,7 @@ The mutation rate for each of the mutation rate regions specified by
 The mutation rate for each of the mutation rate regions specified by 
 \f3\fs18 mutationEndPositionsM
 \f4\fs20 , when using sex-specific mutation rate maps; unavailable otherwise.\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 overallMutationRate => (float$)\
@@ -134,6 +140,7 @@ The overall mutation rate across the whole chromosome determining the overall nu
 \f4\fs20  and 
 \f3\fs18 overallMutationRateM
 \f4\fs20 .\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 overallMutationRateF => (float$)\
@@ -143,6 +150,7 @@ The overall mutation rate across the whole chromosome determining the overall nu
 The overall mutation rate for females, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f3\fs18 overallMutationRate
 \f4\fs20  for further explanation.\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 overallMutationRateM => (float$)\
@@ -152,6 +160,7 @@ The overall mutation rate for females, when using sex-specific mutation rate map
 The overall mutation rate for males, when using sex-specific mutation rate maps; unavailable otherwise.  See 
 \f3\fs18 overallMutationRate
 \f4\fs20  for further explanation.\
+This property is unavailable in nucleotide-based models.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 overallRecombinationRate => (float$)\
@@ -463,9 +472,16 @@ If the optional
 \f3\fs18 "*"
 \f4\fs20  or unsupplied here.  If a simulation needs sex-specific mutation rate maps only some of the time, the male and female maps can simply be set to be identical the rest of the time.\
 The mutation rate intervals are normally a constant in simulations, so be sure you know what you are doing.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+In nucleotide-based models, 
+\f3\fs18 setMutationRate()
+\f4\fs20  may not be called.  If variation in the mutation rate along the chromosome is desired, 
+\f3\fs18 setHotspotMap()
+\f4\fs20  should be used.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)setRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setRecombinationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

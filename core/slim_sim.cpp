@@ -71,7 +71,7 @@ extern "C" {
 #pragma mark SLiMSim
 #pragma mark -
 
-SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
+SLiMSim::SLiMSim(std::istream &p_infile) : chromosome_(this), population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
 {
 	// set up the symbol table we will use for all of our constants; we use the external hash table design
 	// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
@@ -2113,8 +2113,10 @@ void SLiMSim::RunInitializeCallbacks(void)
 	RemoveZeroGenerationFunctionsFromMap(simulation_functions_);
 	
 	// check for complete initialization
-	if (num_mutation_rates_ == 0)
+	if (!nucleotide_based_ && (num_mutation_rates_ == 0))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << EidosTerminate();
+	if (nucleotide_based_ && (num_mutation_rates_ > 0))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): initializeMutationRate() may not be called in nucleotide-based models (use initializeHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
 	
 	if (num_mutation_types_ == 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType() (or initializeMutationTypeNuc(), in nucleotide-based models)." << EidosTerminate();
@@ -2171,7 +2173,10 @@ void SLiMSim::RunInitializeCallbacks(void)
 	CheckMutationStackPolicy();
 	
 	if (nucleotide_based_)
+	{
 		CacheNucleotideMatrices();
+		CreateNucleotideMutationRateMap();
+	}
 	
 	// Defining a neutral mutation type when tree-recording is on (with mutation recording) and the mutation rate is non-zero is legal, but causes a warning
 	// I'm not sure this is a good idea, but maybe it will help people avoid doing dumb things; added at the suggestion of Peter Ralph...
@@ -3989,6 +3994,35 @@ void SLiMSim::CacheNucleotideMatrices(void)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::CacheNucleotideMatrices): (internal error) unsupported mutation matrix size." << EidosTerminate();
 		}
 	}
+}
+
+void SLiMSim::CreateNucleotideMutationRateMap(void)
+{
+	// In SLiMSim::CacheNucleotideMatrices() we find the maximum sequence-based mutation rate requested.  Absent a
+	// hotspot map, this is the overall rate at which we need to generate mutations everywhere along the chromosome,
+	// because any particular spot could have the nucleotide sequence that leads to that maximum rate; we don't want
+	// to have to calculate the mutation rate map every time the sequence changes, so instead we use rejection
+	// sampling.  With a hotspot map, the mutation rate map is the product of the hotspot map and the maximum
+	// sequence-based rate.  Note that we could get more tricky here – even without a hotspot map we could vary
+	// the mutation rate map based upon the genomic elements in the chromosome, since different genomic elements
+	// may have different maximum sequence-based mutation rates.  We do not do that right now, to keep the model
+	// simple.
+	
+	// Note that in nucleotide-based models we completely hide the existence of the mutation rate map from the user;
+	// all the user sees are the mutationMatrix parameters to initializeGenomicElementType() and the hotspot map
+	// defined by initializeHotspotMap().  We still use the standard mutation rate map machinery under the hood,
+	// though.  So this method is, in a sense, an internal call to initializeMutationRate() that sets up the right
+	// rate map to achieve what the user has requested through other APIs.
+	
+	//std::vector<slim_position_t> &positions = chromosome_.mutation_end_positions_H_;
+	std::vector<double> &rates = chromosome_.mutation_rates_H_;
+	
+	if (max_nucleotide_mut_rate_ > 1.0)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+	
+	rates.emplace_back(max_nucleotide_mut_rate_);
+	//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	chromosome_changed_ = true;
 }
 
 static void PrintBytes(std::ostream &p_out, size_t p_bytes)
@@ -8410,6 +8444,9 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
+	if (nucleotide_based_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() may not be called in nucleotide-based models (use initializeHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
+	
 	EidosValue *rates_value = p_arguments[0].get();
 	EidosValue *ends_value = p_arguments[1].get();
 	EidosValue *sex_value = p_arguments[2].get();

@@ -124,12 +124,21 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 			if (mutation_matrix_->FloatAtIndex(required_zeros_4x4[index], nullptr) != 0.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
-		// transpose the matrix for internal use, and check that each column in the result sums to <= 1.0
-		
+		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check
+		for (int row = 0; row < 4; ++row)
+		{
+			double row_1 = mutation_matrix_->FloatAtIndex(row, nullptr);
+			double row_2 = mutation_matrix_->FloatAtIndex(row + 4, nullptr);
+			double row_3 = mutation_matrix_->FloatAtIndex(row + 8, nullptr);
+			double row_4 = mutation_matrix_->FloatAtIndex(row + 12, nullptr);
+			
+			if (row_1 + row_2 + row_3 + row_4 > 1.0)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires the sum of each mutation matrix row (the total probability of mutating for the given nucleotide or trinucleotide) to be <= 1.0." << EidosTerminate();
+		}
 	}
 	else if ((dims[0] == 64) && (dims[1] == 4))
 	{
-		// This is the 4x4 matrix case, providing rates for each original trinucleotide (rows) to each derived nucleotide (cols)
+		// This is the 64x4 matrix case, providing rates for each original trinucleotide (rows) to each derived nucleotide (cols)
 		
 		// check for zeros in the necessary positions
 		static int required_zeros_64x4[64] = {0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35, 48, 49, 50, 51, 68, 69, 70, 71, 84, 85, 86, 87, 100, 101, 102, 103, 116, 117, 118, 119, 136, 137, 138, 139, 152, 153, 154, 155, 168, 169, 170, 171, 184, 185, 186, 187, 204, 205, 206, 207, 220, 221, 222, 223, 236, 237, 238, 239, 252, 253, 254, 255};
@@ -138,11 +147,20 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 			if (mutation_matrix_->FloatAtIndex(required_zeros_64x4[index], nullptr) != 0.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
-		// transpose the matrix for internal use, and check that each column in the result sums to <= 1.0
-		
+		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check
+		for (int row = 0; row < 64; ++row)
+		{
+			double row_1 = mutation_matrix_->FloatAtIndex(row, nullptr);
+			double row_2 = mutation_matrix_->FloatAtIndex(row + 64, nullptr);
+			double row_3 = mutation_matrix_->FloatAtIndex(row + 128, nullptr);
+			double row_4 = mutation_matrix_->FloatAtIndex(row + 192, nullptr);
+			
+			if (row_1 + row_2 + row_3 + row_4 > 1.0)
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires the sum of each mutation matrix row (the total probability of mutating for the given nucleotide or trinucleotide) to be <= 1.0." << EidosTerminate();
+		}
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must be a 4x4 or 64x4 matrix." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires mutationMatrix to be a 4x4 or 64x4 matrix." << EidosTerminate();
 }
 
 // This is unused except by debugging code and in the debugger itself

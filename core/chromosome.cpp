@@ -56,8 +56,9 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 #pragma mark Chromosome
 #pragma mark -
 
-Chromosome::Chromosome(void) :
+Chromosome::Chromosome(SLiMSim *p_sim) :
 
+	sim_(p_sim),
 	single_mutation_map_(true),
 	lookup_mutation_H_(nullptr), lookup_mutation_M_(nullptr), lookup_mutation_F_(nullptr), 
 	overall_mutation_rate_H_(0.0), overall_mutation_rate_M_(0.0), overall_mutation_rate_F_(0.0),
@@ -1116,18 +1117,24 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_mutationEndPositions:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_H_));
 		}
 		case gID_mutationEndPositionsM:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_M_));
 		}
 		case gID_mutationEndPositionsF:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_F_));
@@ -1135,18 +1142,24 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_mutationRates:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_H_));
 		}
 		case gID_mutationRatesM:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_M_));
 		}
 		case gID_mutationRatesF:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_F_));
@@ -1154,18 +1167,24 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_overallMutationRate:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_H_));
 		}
 		case gID_overallMutationRateM:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_M_));
 		}
 		case gID_overallMutationRateF:
 		{
+			if (sim_->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_F_));
@@ -1308,12 +1327,10 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
 	// The ancestral sequence is actually kept by SLiMSim, so go get it
-	SLiMSim *sim = (SLiMSim *)p_interpreter.Context();
-	
-	if (!sim->IsNucleotideBased())
+	if (!sim_->IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): ancestralNucleotides() may only be called in nucleotide-based models." << EidosTerminate();
 	
-	NucleotideArray *sequence = sim->TheChromosome().AncestralSequence();
+	NucleotideArray *sequence = sim_->TheChromosome().AncestralSequence();
 	EidosValue *start_value = p_arguments[0].get();
 	EidosValue *end_value = p_arguments[1].get();
 	
@@ -1364,17 +1381,15 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	if (!parent && !single_recombination_map_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires a non-NULL parent parameter in sexual models with sex-specific recombination maps." << EidosTerminate();
 	
-	SLiMSim *sim = nullptr;
 	IndividualSex parent_sex = IndividualSex::kUnspecified;
 	std::vector<SLiMEidosBlock*> recombination_callbacks;
 	Subpopulation *parent_subpop = nullptr;
 	
 	if (parent)
 	{
-		sim = (SLiMSim *)p_interpreter.Context();
 		parent_sex = parent->sex_;
 		parent_subpop = &parent->subpopulation_;
-		recombination_callbacks = sim->ScriptBlocksMatching(sim->Generation(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_);
+		recombination_callbacks = sim_->ScriptBlocksMatching(sim_->Generation(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_);
 	}
 	
 	// Much of the breakpoint-drawing code here is taken from Population::DoCrossoverMutation().
@@ -1414,7 +1429,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 					DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
 				
 				if (recombination_callbacks.size())
-					sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+					sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
 				
 				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
 				
@@ -1440,7 +1455,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 				all_breakpoints.insert(all_breakpoints.end(), breakpoints_r05.begin(), breakpoints_r05.end());
 				
 				if (recombination_callbacks.size())
-					sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+					sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
 				
 				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
 				
@@ -1464,7 +1479,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 			
 			std::vector<slim_position_t> gc_starts, gc_ends;
 			
-			sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+			sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
 			num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
 			
 			if (num_breakpoints)
@@ -1490,7 +1505,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		// no breakpoints from the SLiM core, so no gene conversion can occur, but we still have recombination() callbacks
 		std::vector<slim_position_t> gc_starts, gc_ends;
 		
-		sim->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
+		sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
 		num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
 		
 		if (num_breakpoints)
@@ -1521,6 +1536,9 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	if (sim_->nucleotide_based_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() may not be called in nucleotide-based models (use setHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
+	
 	EidosValue *rates_value = p_arguments[0].get();
 	EidosValue *ends_value = p_arguments[1].get();
 	EidosValue *sex_value = p_arguments[2].get();

@@ -535,6 +535,7 @@ public:
 	
 	// Nucleotide-based models
 	void CacheNucleotideMatrices(void);
+	void CreateNucleotideMutationRateMap(void);
 	
 	// accessors
 	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) const											{ return *simulation_constants_; }
