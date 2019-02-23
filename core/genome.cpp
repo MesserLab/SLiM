@@ -1943,8 +1943,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	Population &pop = sim.ThePopulation();
 	bool nucleotide_based = sim.IsNucleotideBased();
 	
-	if (nucleotide_based && (arg_nucleotide->Type() == EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be non-NULL in nucleotide-based models." << EidosTerminate();
 	if (!nucleotide_based && (arg_nucleotide->Type() != EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be NULL in non-nucleotide-based models." << EidosTerminate();
 	
@@ -2039,24 +2037,48 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	// similarly, check nucleotide values for validity
 	uint8_t *nucleotide_lookup = NucleotideArray::NucleotideCharToIntLookup();
 	
-	if (arg_nucleotide->Type() == EidosValueType::kValueInt)
+	if (arg_nucleotide->Type() == EidosValueType::kValueNULL)
 	{
-		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		// If nucleotide is NULL, all mutation types supplied must be non-nucleotide-based
+		for (int muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
 		{
-			int64_t nuc_int = arg_nucleotide->IntAtIndex(nucleotide_index, nullptr);
+			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
 			
-			if ((nuc_int < 0) || (nuc_int > 3))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+			if (mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be non-NULL when nucleotide-based mutation types are used." << EidosTerminate();
 		}
 	}
-	else if (arg_nucleotide->Type() == EidosValueType::kValueString)
+	else
 	{
-		for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+		// If nucleotide is non-NULL, all mutation types supplied must be nucleotide-based
+		for (int muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
 		{
-			uint8_t nuc = nucleotide_lookup[arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0]];
+			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
 			
-			if (nuc > 3)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			if (!mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be NULL when non-nucleotide-based mutation types are used." << EidosTerminate();
+		}
+		
+		// And then nucleotide values must also be within bounds
+		if (arg_nucleotide->Type() == EidosValueType::kValueInt)
+		{
+			for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+			{
+				int64_t nuc_int = arg_nucleotide->IntAtIndex(nucleotide_index, nullptr);
+				
+				if ((nuc_int < 0) || (nuc_int > 3))
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+			}
+		}
+		else if (arg_nucleotide->Type() == EidosValueType::kValueString)
+		{
+			for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
+			{
+				uint8_t nuc = nucleotide_lookup[arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0]];
+				
+				if (nuc > 3)
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			}
 		}
 	}
 	

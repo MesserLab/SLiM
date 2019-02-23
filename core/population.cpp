@@ -5451,7 +5451,8 @@ void Population::RemoveAllFixedMutations(void)
 			{
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
 				
-				ancestral_seq->SetNucleotideAtIndex(mut_to_remove->position_, mut_to_remove->nucleotide_);
+				if (mut_to_remove->mutation_type_ptr_->nucleotide_based_)
+					ancestral_seq->SetNucleotideAtIndex(mut_to_remove->position_, mut_to_remove->nucleotide_);
 			}
 		}
 	}
