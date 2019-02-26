@@ -1196,9 +1196,10 @@
 	
 	// Add little colored boxes to the WF-only and nonWF-only API; this is pretty inefficient, but we
 	// don't have very many strings to check so it should be fine, and is simpler than the alternatives...
-	BOOL draw_WF_box = NO, draw_nonWF_box = NO;
+	BOOL draw_WF_box = NO, draw_nonWF_box = NO, draw_nucmut_box = NO;
 	static NSArray *stringsWF = nullptr;
 	static NSArray *stringsNonWF = nullptr;
+	static NSArray *stringsNucmut = nullptr;
 	
 	if (!stringsWF)
 		stringsWF = [@[@"– addSubpopSplit()",
@@ -1231,19 +1232,51 @@
 						  @"8. reproduction() callbacks"
 						  ] retain];
 	
+	if (!stringsNucmut)
+		stringsNucmut = [@[@"initializeAncestralNucleotides()",
+						   @"initializeMutationTypeNuc()",
+						   @"initializeHotspotMap()",
+						   @"codonsToAminoAcids()",
+						   @"randomNucleotides()",
+						   @"mm16To256()",
+						   @"mmJukesCantor()",
+						   @"mmKimura()",
+						   @"nucleotideCounts()",
+						   @"nucleotideFrequencies()",
+						   @"nucleotidesToCodons()",
+						   @"nucleotideBased =>",
+						   @"nucleotide =>",
+						   @"nucleotideValue =>",
+						   @"mutationMatrix =>",
+						   @"– setMutationMatrix()",
+						   @"– ancestralNucleotides()",
+						   @"– nucleotides()",
+						   @"hotspotEndPositions =>",
+						   @"hotspotEndPositionsF =>",
+						   @"hotspotEndPositionsM =>",
+						   @"hotspotMultipliers =>",
+						   @"hotspotMultipliersF =>",
+						   @"hotspotMultipliersM =>",
+						   @"– setHotspotMap()"
+						   ] retain];
+	
 	if ([stringsWF containsObject:item])
 		draw_WF_box = YES;
 	if ([stringsNonWF containsObject:item])
 		draw_nonWF_box = YES;
+	if ([stringsNucmut containsObject:item])
+		draw_nucmut_box = YES;
 	
-	if (draw_WF_box || draw_nonWF_box)
+	if (draw_WF_box || draw_nonWF_box || draw_nucmut_box)
 	{
 		NSRect boxRect = NSMakeRect(NSMaxX(rowRect) - 13, rowRect.origin.y + 6, 8, 8);
 		
 		if (draw_WF_box)
 			[[NSColor colorWithCalibratedRed:66/255.0 green:255/255.0 blue:53/255.0 alpha:1.0] set];	// WF-only color (green)
-		else // draw_nonWF_box
+		else if (draw_nonWF_box)
 			[[NSColor colorWithCalibratedRed:88/255.0 green:148/255.0 blue:255/255.0 alpha:1.0] set];	// nonWF-only color (blue)
+		else //if (draw_nucmut_box)
+			[[NSColor colorWithCalibratedRed:228/255.0 green:118/255.0 blue:255/255.0 alpha:1.0] set];	// nucmut color (purple)
 		
 		NSRectFill(boxRect);
 		[[NSColor blackColor] set];
