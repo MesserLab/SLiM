@@ -8,6 +8,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
