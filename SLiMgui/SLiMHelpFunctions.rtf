@@ -112,7 +112,6 @@ Configure the likelihood and behavior of gene conversion events.  The probabilit
 \f1\fs18 MutationType
 \f2\fs20  elements specified directly.  The global symbol for the new genomic element type is immediately available; the return value also provides the new object.
 \f4 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2 \cf2 \expnd0\expndtw0\kerning0
 The 
@@ -123,21 +122,49 @@ The
 \f1\fs18 NULL
 \f2\fs20 .  In nucleotide-based models, on the other hand, it must be non-
 \f1\fs18 NULL
-\f2\fs20 , and therefore must be supplied.  In that case, it should be a 4\'d74 
+\f2\fs20 , and therefore must be supplied.  In that case, 
+\f1\fs18 mutationMatrix
+\f2\fs20  should take one of two standard forms.  For sequence-based mutation rates that depend upon only the single nucleotide at a mutation site, 
+\f1\fs18 mutationMatrix
+\f2\fs20  should be a 4\'d74 
 \f1\fs18 float
-\f2\fs20  matrix, specifying mutation rates for an existing nucleotide state (rows) to each of the four possible derived nucleotide states (columns), or a 64\'d74 
+\f2\fs20  matrix, specifying mutation rates for an existing nucleotide state (rows from 
+\f1\fs18 0
+\f2\fs20 \'96
+\f1\fs18 3
+\f2\fs20  representing A/C/G/T) to each of the four possible derived nucleotide states (columns, with the same meaning).  For sequence-based mutation rates that depend upon the trinucleotide sequence centered upon a mutation site (the adjacent bases to the left and right, in other words, as well as the mutating nucleotide itself), 
+\f1\fs18 mutationMatrix
+\f2\fs20  should be a 64\'d74 
 \f1\fs18 float
-\f2\fs20  matrix, specifying mutation rates for the central nucleotide of an existing trinucleotide sequence (rows) to each of the four possible derived nucleotide states (columns).  The mutation rates in this matrix are absolute rates, per nucleotide per generation; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (which is disabled by default; see 
+\f2\fs20  matrix, specifying mutation rates for the central nucleotide of an existing trinucleotide sequence (rows from 
+\f1\fs18 0
+\f2\fs20 \'96
+\f1\fs18 63
+\f2\fs20 , representing codons as described in the documentation for the 
+\f1\fs18 ancestralNucleotides()
+\f2\fs20  method of 
+\f1\fs18 Chromosome
+\f2\fs20 ) to each of the four possible derived nucleotide states (columns from 
+\f1\fs18 0
+\f2\fs20 \'96
+\f1\fs18 3
+\f2\fs20  as before).  The mutation rates in this matrix are absolute rates, per nucleotide per generation; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (see 
 \f1\fs18 initializeHotspotMap()
-\f2\fs20 ).  Rates that involve the mutation of a nucleotide to itself (A to A, C to C, etc.) are not used by SLiM and must be zero.\
+\f2\fs20 ).  Rates in 
+\f1\fs18 mutationMatrix
+\f2\fs20  that involve the mutation of a nucleotide to itself (A to A, C to C, etc.) are not used by SLiM and must be 
+\f1\fs18 0.0
+\f2\fs20  by convention.  Several helper functions are defined to construct common types of mutation matrices, such as 
+\f1\fs18 mmJukesCantor()
+\f2\fs20  to create a mutation matrix for a Jukes\'96Cantor model.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)initializeHotspotMap(numeric\'a0multipliers, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 In nucleotide-based models, set the mutation rate 
-\f3\i \cf2 multiplier
-\f2\i0 \cf2  along the chromosome.  Nucleotide-based models define sequence-based mutation rates that are set up with the 
+\f3\i multiplier
+\f2\i0  along the chromosome.  Nucleotide-based models define sequence-based mutation rates that are set up with the 
 \f1\fs18 mutationMatrix
 \f2\fs20  parameter to 
 \f1\fs18 initializeGenomicElementType()
@@ -176,7 +203,7 @@ There are two ways to call this function.  If the optional
 For example, if the following call is made:\
 \pard\pardeftab720\ri720\partightenfactor0
 \cf2 	
-\f1\fs18 \cf2 initializeHotspotMap(c(1.0, 1.2), c(5000, 9999));\
+\f1\fs18 initializeHotspotMap(c(1.0, 1.2), c(5000, 9999));\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 then the result is that the mutation rate multiplier for bases 
@@ -434,7 +461,7 @@ If the optional
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default mutation rate map is supplied.
 \f3\i \
 
-\f2\i0 \cf2 In nucleotide-based models, 
+\f2\i0 In nucleotide-based models, 
 \f1\fs18 initializeMutationRate()
 \f2\fs20  may not be called.  Instead, the desired sequence-based mutation rate(s) should be expressed in the 
 \f1\fs18 mutationMatrix

@@ -1134,6 +1134,14 @@ The format of the returned sequence is controlled by the
 \f4\fs20  documentation for details.  If the sequence returned is likely to be long, the 
 \f3\fs18 "string"
 \f4\fs20  format will be the most memory-efficient, and may also be the fastest (but may be harder to work with).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Several helper functions are provided for working with sequences, such as 
+\f3\fs18 nucleotideCounts()
+\f4\fs20  to get the counts of A/C/G/T nucleotides in a sequence, 
+\f3\fs18 nucleotideFrequencies()
+\f4\fs20  to get the same information as frequencies, and 
+\f3\fs18 codonsToAminoAcids()
+\f4\fs20  to convert a codon sequence (such as provided by the codon format described above) to an amino acid sequence.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 +\'a0(void)output([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
@@ -3337,26 +3345,19 @@ In nucleotide-based models, the stacking group for nucleotide-based mutation typ
 \f4\fs20  is called a \'93stacking group\'94, and all mutation types in a given stacking group must have the same 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  value, which defines the stacking behavior of all mutations of the mutation types in the stacking group.  In other words, one stacking group might allow its mutations to stack, while another stacking group might not, but the policy within each stacking group must be unambiguous.\
+\cf2 \expnd0\expndtw0\kerning0
 This property is 
 \f3\fs18 "s"
 \f4\fs20  by default, indicating that mutations in this stacking group should be allowed to stack without restriction.  If the policy is set to 
 \f3\fs18 "f"
 \f4\fs20 , the 
-\f1\i first
-\f4\i0  mutation of stacking group at a given site is retained; further mutations of this stacking group at the same site are discarded with no effect.  This can be useful for modeling one-way changes to single nucleotides, for example; once a 
-\f3\fs18 T
-\f4\fs20  changes to an 
-\f3\fs18 A
-\f4\fs20 , further changes of the 
-\f3\fs18 A
-\f4\fs20  to an 
-\f3\fs18 A
-\f4\fs20  are not changes at all.  If the policy is set to 
+\f1\i \cf2 first
+\f4\i0 \cf2  mutation of stacking group at a given site is retained; further mutations of this stacking group at the same site are discarded with no effect.  This can be useful for modeling one-way changes; once a gene is disabled by a premature stop codon, for example, you might wish to assume, for simplicity, that further mutations cannot alter that fact.  If the policy is set to 
 \f3\fs18 "l"
 \f4\fs20 , the 
-\f1\i last
-\f4\i0  mutation of this stacking group at a given site is retained; earlier mutation of this stacking group at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
-The mutation stacking policy applies only within the given mutation type\'92s stacking group; mutations of different stacking groups are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
+\f1\i \cf2 last
+\f4\i0 \cf2  mutation of this stacking group at a given site is retained; earlier mutation of this stacking group at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
+\cf0 \kerning1\expnd0\expndtw0 The mutation stacking policy applies only within the given mutation type\'92s stacking group; mutations of different stacking groups are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
 \f3\fs18 addMutation()
 \f4\fs20 , 
 \f3\fs18 addNewMutation()
