@@ -5493,7 +5493,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			if (subpop->parent_subpop_size_ == 0)
 				subpop_sex_ratio = 0.0;
 			else
-				subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / subpop->parent_subpop_size_);
+				subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_);
 		}
 		
 		p_out << "p" << subpop_pair.first << " " << subpop_size;
@@ -5774,7 +5774,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (subpop->parent_subpop_size_ == 0)
 				subpop_sex_ratio = 0.0;
 			else
-				subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / subpop->parent_subpop_size_);
+				subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_);
 		}
 		
 		// Write a tag indicating we are starting a new subpopulation
