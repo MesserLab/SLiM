@@ -2819,6 +2819,7 @@ slim_generation_t SLiMSim::EstimatedLastGeneration(void)
 void SLiMSim::SetGeneration(slim_generation_t p_new_generation)
 {
 	generation_ = p_new_generation;
+	cached_value_generation_.reset();
 	
 	// The tree sequence generation increments when offspring generation occurs, not at the ends of generations as delineated by SLiM.
 	// This prevents the tree sequence code from seeing two "generations" with the same value for the generation counter.
@@ -9586,7 +9587,6 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			slim_generation_t new_generation = SLiMCastToGenerationTypeOrRaise(value);
 			
 			SetGeneration(new_generation);
-			cached_value_generation_.reset();
 			
 			// Setting the generation into the future is generally harmless; the simulation logic is designed to handle that anyway, since
 			// that happens every generation.  Setting the generation into the past is a bit tricker, since some things that have already

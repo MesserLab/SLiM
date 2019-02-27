@@ -30,6 +30,9 @@ development head:
 		update the ancestral nucleotide sequence upon fixation
 		add hotspot map support: initializeHotspotMap(), setHotspotMap(), and associated properties
 
+from master branch:
+	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
+
 
 3.2.1 (build 1897; Eidos version 2.2.1):
 	add support for the slim command-line tool to read its script from stdin instead of from a supplied input script file
