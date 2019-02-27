@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1010"
+   LastUpgradeVersion = "0930"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -14,9 +14,23 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9826634F1A3BABD300A0CBBF"
-               BuildableName = "slim"
-               BlueprintName = "SLiM"
+               BlueprintIdentifier = "985724AE1AD478630047C223"
+               BuildableName = "EidosScribe.app"
+               BlueprintName = "EidosScribe"
+               ReferencedContainer = "container:SLiM.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "985724C01AD478640047C223"
+               BuildableName = "SLiMscribeTests.xctest"
+               BlueprintName = "SLiMscribeTests"
                ReferencedContainer = "container:SLiM.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -28,13 +42,23 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "985724C01AD478640047C223"
+               BuildableName = "SLiMscribeTests.xctest"
+               BlueprintName = "SLiMscribeTests"
+               ReferencedContainer = "container:SLiM.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9826634F1A3BABD300A0CBBF"
-            BuildableName = "slim"
-            BlueprintName = "SLiM"
+            BlueprintIdentifier = "985724AE1AD478630047C223"
+            BuildableName = "EidosScribe.app"
+            BlueprintName = "EidosScribe"
             ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -42,7 +66,7 @@
       </AdditionalOptions>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -55,9 +79,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9826634F1A3BABD300A0CBBF"
-            BuildableName = "slim"
-            BlueprintName = "SLiM"
+            BlueprintIdentifier = "985724AE1AD478630047C223"
+            BuildableName = "EidosScribe.app"
+            BlueprintName = "EidosScribe"
             ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -74,9 +98,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9826634F1A3BABD300A0CBBF"
-            BuildableName = "slim"
-            BlueprintName = "SLiM"
+            BlueprintIdentifier = "985724AE1AD478630047C223"
+            BuildableName = "EidosScribe.app"
+            BlueprintName = "EidosScribe"
             ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
