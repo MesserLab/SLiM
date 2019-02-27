@@ -270,6 +270,7 @@ static void _RunSLiMEidosBlockTests(void);
 static void _RunContinuousSpaceTests(void);
 static void _RunNonWFTests(void);
 static void _RunTreeSeqTests(void);
+static void _RunNucleotideAPITests(void);
 static void _RunSLiMTimingTests(void);
 
 
@@ -319,6 +320,7 @@ int RunSLiMTests(void)
 	_RunContinuousSpaceTests();
 	_RunNonWFTests();
 	_RunTreeSeqTests();
+    _RunNucleotideAPITests();
 	_RunSLiMTimingTests();
 	
 	_RunInteractionTypeTests();		// many tests, time-consuming, so do this last
@@ -3624,6 +3626,26 @@ void _RunTreeSeqTests(void)
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_2.trees', simplify=T, _binary=F); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_3.trees', simplify=F, _binary=T); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('/tmp/SLiM_treeSeq_4.trees', simplify=T, _binary=T); stop(); }", __LINE__);
+}
+
+#pragma mark SLiM timing tests
+void _RunNucleotideAPITests(void)
+{
+    // Test that various nucleotide-based APIs raise as they ought to when used in a non-nucleotide model
+    SLiMAssertScriptRaise("initialize() { initializeAncestralNucleotides('ACGT'); } ", 1, 15, "only be called in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise("initialize() { initializeHotspotMap(1.0); } ", 1, 15, "only be called in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise("initialize() { initializeMutationTypeNuc(1, 0.5, 'f', 0.0); } ", 1, 15, "only be called in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.hotspotEndPositions; }", 1, 262, "only defined in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.hotspotEndPositionsM; }", 1, 262, "only defined in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.hotspotEndPositionsF; }", 1, 262, "only defined in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.hotspotMultipliers; }", 1, 262, "only defined in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.hotspotMultipliersM; }", 1, 262, "only defined in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.hotspotMultipliersF; }", 1, 262, "only defined in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.ancestralNucleotides(); }", 1, 262, "only be called in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.chromosome.setHotspotMap(1.0); }", 1, 262, "only be called in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes[0].nucleotides(); }", 1, 261, "only be called in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { g1.mutationMatrix; }", 1, 250, "only defined in nucleotide-based models", __LINE__);
+    SLiMAssertScriptRaise(gen1_setup_p1 + "1 { g1.setMutationMatrix(mmJukesCantor(1e-7)); }", 1, 250, "only be called in nucleotide-based models", __LINE__);
 }
 
 #pragma mark SLiM timing tests

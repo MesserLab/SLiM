@@ -260,7 +260,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutationMatrix:
 		{
 			if (!mutation_matrix_)
-				EIDOS_TERMINATION << "ERROR (GenomicElementType::GetProperty): property mutationMatrix is not defined since this model is not nucleotide-based." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::GetProperty): property mutationMatrix is only defined in nucleotide-based models." << EidosTerminate();
 			return mutation_matrix_;
 		}
 		
