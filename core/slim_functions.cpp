@@ -209,7 +209,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const
 		
 		if (paste)
 		{
-			if (long_strings)
+			if (long_strings && (codons_length > 0))
 			{
 				// pasting: "Aaa-Bbb-Ccc"
 				EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
@@ -477,6 +477,8 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const EidosValue_SP *const p_argume
 	
 	if (mutationMatrix16_value->Count() != 16)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mm16To256): function mm16To256() requires mutationMatrix16 to be of length 16." << EidosTerminate(nullptr);
+	if ((mutationMatrix16_value->DimensionCount() != 2) || (mutationMatrix16_value->Dimensions()[0] != 4) || (mutationMatrix16_value->Dimensions()[1] != 4))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mm16To256): function mm16To256() requires mutationMatrix16 to be a 4x4 matrix." << EidosTerminate(nullptr);
 	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(256);
 	
@@ -626,8 +628,8 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const 
 	// Get the sequence length to generate
 	int64_t length = length_value->IntAtIndex(0, nullptr);
 	
-	if ((length <= 0) || (length > 2000000000L))
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires length to be in [1, 2e9]." << EidosTerminate(nullptr);
+	if ((length < 0) || (length > 2000000000L))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires length to be in [0, 2e9]." << EidosTerminate(nullptr);
 	
 	// Figure out the probability threshold for each base
 	double pA = 0.25, pC = 0.25, pG = 0.25, pT = 0.25;
@@ -664,6 +666,15 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const 
 	
 	// Generate a result in the requested format
 	std::string &&format = format_value->StringAtIndex(0, nullptr);
+	
+	if ((format != "string") && (format != "char") && (format != "integer"))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires a format of 'string', 'char', or 'integer'." << EidosTerminate();
+	
+	if (length == 0)
+	{
+		if (format == "integer")	return gStaticEidosValue_Integer_ZeroVec;
+		else						return gStaticEidosValue_String_ZeroVec;
+	}
 	
 	if (length == 1)
 	{
@@ -742,8 +753,6 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const 
 		
 		return EidosValue_SP(string_result);
 	}
-	else
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires a format of 'string', 'char', or 'integer'." << EidosTerminate();
 	
 	return result_SP;
 }

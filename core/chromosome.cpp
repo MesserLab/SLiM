@@ -184,6 +184,9 @@ void Chromosome::InitializeDraws(void)
 	// Patch the hotspot end vector if it is empty; see setHotspotMap() and initializeHotspotMap().
 	// Basically, the length of the chromosome might not have been known yet when the user set the map.
 	// This is done for the mutation rate maps in _InitializeOneMutationMap(); we do it here for the hotspot map.
+	// Here we also fill in a rate of 1.0 if no rate was supplied
+	if ((hotspot_multipliers_H_.size() == 0) && (hotspot_multipliers_M_.size() == 0) && (hotspot_multipliers_F_.size() == 0))
+		hotspot_multipliers_H_.emplace_back(1.0);
 	if ((hotspot_end_positions_H_.size() == 0) && (hotspot_multipliers_H_.size() == 1))
 		hotspot_end_positions_H_.emplace_back(last_position_);
 	if ((hotspot_end_positions_M_.size() == 0) && (hotspot_multipliers_M_.size() == 1))
@@ -480,7 +483,7 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector
 	}
 	
 	if (p_end_positions[p_rates.size() - 1] < last_position_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): recombination endpoints do not cover the full chromosome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): mutation rate endpoints do not cover the full chromosome." << EidosTerminate();
 	
 	// Calculate the overall mutation rate and the lookup table for mutation events.  This is more complicated than
 	// for recombination maps, because the mutation rate map needs to be intersected with the genomic element map
@@ -1649,7 +1652,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 		positions.clear();
 		
 		multipliers.emplace_back(multiplier);
-		//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+		positions.emplace_back(last_position_);
 	}
 	else
 	{

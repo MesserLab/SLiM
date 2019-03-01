@@ -4049,6 +4049,14 @@ void SLiMSim::CreateNucleotideMutationRateMap(void)
 	std::vector<double> &mut_rates_M = chromosome_.mutation_rates_M_;
 	std::vector<double> &mut_rates_F = chromosome_.mutation_rates_F_;
 	
+	// clear the mutation map; there may be old cruft in there, if we're called by setHotspotMap() for example
+	mut_positions_H.clear();
+	mut_positions_M.clear();
+	mut_positions_F.clear();
+	mut_rates_H.clear();
+	mut_rates_M.clear();
+	mut_rates_F.clear();
+	
 	if ((hotspot_multipliers_M.size() > 0) && (hotspot_multipliers_F.size() > 0))
 	{
 		// two sex-specific hotspot maps

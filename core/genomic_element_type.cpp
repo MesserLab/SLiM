@@ -125,6 +125,7 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
 		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check
+		// check also for no negative values, and for all values being finite
 		for (int row = 0; row < 4; ++row)
 		{
 			double row_1 = mutation_matrix_->FloatAtIndex(row, nullptr);
@@ -132,6 +133,9 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 			double row_3 = mutation_matrix_->FloatAtIndex(row + 8, nullptr);
 			double row_4 = mutation_matrix_->FloatAtIndex(row + 12, nullptr);
 			
+			if ((row_1 < 0.0) || (row_2 < 0.0) || (row_3 < 0.0) || (row_4 < 0.0) ||
+				!std::isfinite(row_1) || !std::isfinite(row_2) || !std::isfinite(row_3) || !std::isfinite(row_4))
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires all mutation matrix values to be finite and >= 0.0." << EidosTerminate();
 			if (row_1 + row_2 + row_3 + row_4 > 1.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires the sum of each mutation matrix row (the total probability of mutating for the given nucleotide or trinucleotide) to be <= 1.0." << EidosTerminate();
 		}
@@ -148,6 +152,7 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
 		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check
+		// check also for no negative values
 		for (int row = 0; row < 64; ++row)
 		{
 			double row_1 = mutation_matrix_->FloatAtIndex(row, nullptr);
@@ -155,6 +160,9 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 			double row_3 = mutation_matrix_->FloatAtIndex(row + 128, nullptr);
 			double row_4 = mutation_matrix_->FloatAtIndex(row + 192, nullptr);
 			
+			if ((row_1 < 0.0) || (row_2 < 0.0) || (row_3 < 0.0) || (row_4 < 0.0) ||
+				!std::isfinite(row_1) || !std::isfinite(row_2) || !std::isfinite(row_3) || !std::isfinite(row_4))
+				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires all mutation matrix values to be finite and >= 0.0." << EidosTerminate();
 			if (row_1 + row_2 + row_3 + row_4 > 1.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): initializeGenomicElementType() requires the sum of each mutation matrix row (the total probability of mutating for the given nucleotide or trinucleotide) to be <= 1.0." << EidosTerminate();
 		}

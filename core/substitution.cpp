@@ -86,7 +86,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_nucleotide:		// ACCELERATED
 		{
 			if (nucleotide_ == -1)
-				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotide is only accessible for nucleotide-based mutations." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
 			
 			switch (nucleotide_)
 			{
@@ -99,7 +99,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_nucleotideValue:	// ACCELERATED
 		{
 			if (nucleotide_ == -1)
-				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotideValue is only accessible for nucleotide-based mutations." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotideValue is only defined for nucleotide-based mutations." << EidosTerminate();
 			
 			switch (nucleotide_)
 			{
@@ -148,7 +148,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObjectElement 
 		int8_t nucleotide = value->nucleotide_;
 		
 		if (nucleotide == -1)
-			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotideValue): property nucleotide is only accessible for nucleotide-based mutations." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotideValue): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
 		
 		if (nucleotide == 0)
 			string_result->PushString(gStr_A);
@@ -173,7 +173,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObjectEle
 		int8_t nucleotide = value->nucleotide_;
 		
 		if (nucleotide == -1)
-			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotideValue): property nucleotideValue is only accessible for nucleotide-based mutations." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotideValue): property nucleotideValue is only defined for nucleotide-based mutations." << EidosTerminate();
 		
 		int_result->set_int_no_check(nucleotide, value_index);
 	}
