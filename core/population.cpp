@@ -5519,7 +5519,7 @@ void Population::CheckMutationRegistry(void)
 }
 
 // print all mutations and all genomes to a stream
-void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages) const
+void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs) const
 {
 	// This method is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
@@ -5632,7 +5632,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
 	{
-		polymorphism_pair.second.Print(p_out);							// NOTE this added mutation_id_, BCH 11 June 2016
+		// NOTE this added mutation_id_, BCH 11 June 2016
+		// NOTE the output format changed due to the addition of the nucleotide, BCH 2 March 2019
+		polymorphism_pair.second.Print_ID(p_out);
 		
 #if DO_MEMORY_CHECKS
 		if (eidos_do_memory_checks)
@@ -5758,11 +5760,19 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 #endif
 		}
 	}
+	
+	// print ancestral sequence
+	if (sim_.IsNucleotideBased() && p_output_ancestral_nucs)
+	{
+		p_out << "Ancestral sequence:" << std::endl;
+		p_out << *(sim_.TheChromosome().AncestralSequence());
+	}
 }
 
 // print all mutations and all genomes to a stream in binary, for maximum reading speed
-void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages) const
+void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs) const
 {
+#warning Need to handle p_output_ancestral_nucs and the nucleotide field
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
 	
@@ -6168,7 +6178,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 }
 
 // print sample of p_sample_size *individuals* (NOT genomes) from subpopulation p_subpop_id
-void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics) const
+void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	
@@ -6219,7 +6229,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 	}
 	
 	// print the sample using Genome's static member function
-	Genome::PrintGenomes_VCF(p_out, sample, p_output_multiallelics);
+	Genome::PrintGenomes_VCF(p_out, sample, p_output_multiallelics, p_simplify_nucs, p_output_nonnucs, sim_.IsNucleotideBased(), sim_.TheChromosome().AncestralSequence());
 }
 
 

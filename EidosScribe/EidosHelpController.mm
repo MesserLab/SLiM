@@ -1244,6 +1244,7 @@
 						   @"nucleotideCounts()",
 						   @"nucleotideFrequencies()",
 						   @"nucleotidesToCodons()",
+						   @"codonsToNucleotides()",
 						   @"nucleotideBased =>",
 						   @"nucleotide =>",
 						   @"nucleotideValue =>",

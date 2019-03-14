@@ -359,7 +359,7 @@ public:
 	static void PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
 	
 	// print the sample represented by genomes, using "vcf" format
-	static void PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics);
+	static void PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq);
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForMutrunBuffers(void);

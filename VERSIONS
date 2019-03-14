@@ -29,6 +29,8 @@ development head:
 		disable initializeMutationRate() and related API in nucleotide-based models
 		update the ancestral nucleotide sequence upon fixation
 		add hotspot map support: initializeHotspotMap(), setHotspotMap(), and associated properties
+		add output of nucleotides to outputMutations(), outputFixedMutations(), and other output methods
+		add nucleotidesToCodons() function
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)

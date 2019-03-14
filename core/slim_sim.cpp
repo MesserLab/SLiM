@@ -10204,7 +10204,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	return gStaticEidosValueVOID;
 }
 			
-//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T], [logical$ ages = T])
+//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = T])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -10214,6 +10214,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	EidosValue *append_value = p_arguments[2].get();
 	EidosValue *spatialPositions_value = p_arguments[3].get();
 	EidosValue *ages_value = p_arguments[4].get();
+	EidosValue *ancestralNucleotides_value = p_arguments[5].get();
 	
 	if (!warned_early_output_)
 	{
@@ -10230,6 +10231,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	bool use_binary = binary_value->LogicalAtIndex(0, nullptr);
 	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex(0, nullptr);
 	bool output_ages = ages_value->LogicalAtIndex(0, nullptr);
+	bool output_ancestral_nucs = ancestralNucleotides_value->LogicalAtIndex(0, nullptr);
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -10239,7 +10241,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		output_stream << "#OUT: " << generation_ << " A" << std::endl;
-		population_.PrintAll(output_stream, output_spatial_positions, output_ages);
+		population_.PrintAll(output_stream, output_spatial_positions, output_ages, output_ancestral_nucs);
 	}
 	else
 	{
@@ -10259,7 +10261,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		{
 			if (use_binary)
 			{
-				population_.PrintAllBinary(outfile, output_spatial_positions, output_ages);
+				population_.PrintAllBinary(outfile, output_spatial_positions, output_ages, output_ancestral_nucs);
 			}
 			else
 			{
@@ -10270,7 +10272,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 				//					outfile << input_parameters[i] << endl;
 				
 				outfile << "#OUT: " << generation_ << " A " << outfile_path << std::endl;
-				population_.PrintAll(outfile, output_spatial_positions, output_ages);
+				population_.PrintAll(outfile, output_spatial_positions, output_ages, output_ancestral_nucs);
 			}
 			
 			outfile.close(); 
@@ -11229,7 +11231,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputUsage, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S("filePath"));

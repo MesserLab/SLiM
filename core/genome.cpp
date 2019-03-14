@@ -933,7 +933,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 	if (length > INT_MAX)
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
 	
-	static char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
 	EidosValue *format_value = p_arguments[2].get();
 	std::string format = format_value->StringAtIndex(0, nullptr);
 	
@@ -1282,10 +1282,11 @@ void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_gen
 	}
 	
 	// print the sample's polymorphisms; NOTE the output format changed due to the addition of mutation_id_, BCH 11 June 2016
+	// NOTE the output format changed due to the addition of the nucleotide, BCH 2 March 2019
 	p_out << "Mutations:"  << std::endl;
 	
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
-		polymorphism_pair.second.Print(p_out);
+		polymorphism_pair.second.Print_ID(p_out);
 	
 	// print the sample's genomes
 	p_out << "Genomes:" << std::endl;
@@ -1434,13 +1435,13 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 }
 
 // print the sample represented by genomes, using "vcf" format
-void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics)
+void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
 	
 	if (sample_size % 2 == 1)
-		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_VCF): Genome vector must be an even, since genomes are paired into individuals." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_VCF): Genome vector must be an even length, since genomes are paired into individuals." << EidosTerminate();
 	
 	sample_size /= 2;
 	
@@ -1494,17 +1495,24 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 		p_out << "##fileDate=" << std::string(buffer) << std::endl;
 	}
 	
+	// BCH 6 March 2019: Note that all of the INFO fields that provide per-mutation information have been
+	// changed from a Number of 1 to a Number of ., since in nucleotide-based models we can call more than
+	// one allele in a single call line (unlike in non-nucleotide-based models).
 	p_out << "##source=SLiM" << std::endl;
-	p_out << "##INFO=<ID=MID,Number=1,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
-	p_out << "##INFO=<ID=S,Number=1,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
-	p_out << "##INFO=<ID=DOM,Number=1,Type=Float,Description=\"Dominance\">" << std::endl;
-	p_out << "##INFO=<ID=PO,Number=1,Type=Integer,Description=\"Population of Origin\">" << std::endl;
-	p_out << "##INFO=<ID=GO,Number=1,Type=Integer,Description=\"Generation of Origin\">" << std::endl;
-	p_out << "##INFO=<ID=MT,Number=1,Type=Integer,Description=\"Mutation Type\">" << std::endl;
-	p_out << "##INFO=<ID=AC,Number=1,Type=Integer,Description=\"Allele Count\">" << std::endl;
+	p_out << "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
+	p_out << "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
+	p_out << "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">" << std::endl;
+	p_out << "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">" << std::endl;
+	p_out << "##INFO=<ID=GO,Number=.,Type=Integer,Description=\"Generation of Origin\">" << std::endl;
+	p_out << "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">" << std::endl;
+	p_out << "##INFO=<ID=AC,Number=.,Type=Integer,Description=\"Allele Count\">" << std::endl;
 	p_out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">" << std::endl;
-	if (p_output_multiallelics)
+	if (p_output_multiallelics && !p_nucleotide_based)
 		p_out << "##INFO=<ID=MULTIALLELIC,Number=0,Type=Flag,Description=\"Multiallelic\">" << std::endl;
+	if (p_nucleotide_based)
+		p_out << "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">" << std::endl;
+	if (p_output_nonnucs && p_nucleotide_based)
+		p_out << "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">" << std::endl;
 	p_out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
 	p_out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	
@@ -1512,84 +1520,408 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 		p_out << "\ti" << s;
 	p_out << std::endl;
 	
+	// We want to output polymorphisms sorted by position (starting in SLiM 3.3), to facilitate
+	// calling all of the nucleotide mutations at a given position with a single call line.
+	std::vector<Polymorphism> sorted_polymorphisms;
+	
+	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
+		sorted_polymorphisms.push_back(polymorphism_pair.second);
+	
+	std::sort(sorted_polymorphisms.begin(), sorted_polymorphisms.end());
+	
 	// Print a line for each mutation.  Note that we do NOT treat multiple mutations at the same position at being different alleles,
 	// output on the same line.  This is because a single individual can carry more than one mutation at the same position, so it is
 	// not really a question of different alleles; if there are N mutations at a given position, there are 2^N possible "alleles",
 	// which is just silly to try to wedge into VCF format.  So instead, we output each mutation as a separate line, and we tag lines
 	// for positions that carry more than one mutation with the MULTIALLELIC flag so they can be filtered out if they bother the user.
-	for (auto polymorphism_pair : polymorphisms)
+	// BCH 6 March 2019: The above comment remains true in non-nucleotide-based models.  In nucleotide-based models, the nucleotide-
+	// based mutations at a given position are all output as a single call line, and then any non-nucleotide-based mutations are
+	// emitted as separated call lines after that that are marked NONNUC (unless p_output_nonnucs is false, in which case they are
+	// simply suppressed).
+	for (auto polyiter = sorted_polymorphisms.begin(); polyiter != sorted_polymorphisms.end(); )
 	{
-		Polymorphism &polymorphism = polymorphism_pair.second;
-		const Mutation *mutation = polymorphism.mutation_ptr_;
-		slim_position_t mut_position = mutation->position_;
+		// Assemble vectors of all the nuc-based and non-nuc-based mutations at this position; we will emit them all at once
+		std::vector<Polymorphism *> nuc_based, nonnuc_based;
+		slim_position_t mut_position = polyiter->mutation_ptr_->position_;
 		
-		// Count the mutations at the given position to determine if we are multiallelic
-		int allele_count = 0;
-		
-		for (const PolymorphismPair &allele_count_pair : polymorphisms) 
-			if (allele_count_pair.second.mutation_ptr_->position_ == mut_position)
-				allele_count++;
-		
-		if (p_output_multiallelics || (allele_count == 1))
+		while (true)
 		{
-			// emit CHROM ("1"), POS, ID ("."), REF ("A"), and ALT ("T")
-			p_out << "1\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
+			// Eat polymorphism entries in sorted_polymorphisms as long as they're at the same position, until the end
+			Polymorphism &polymorphism = *polyiter;
+			const Mutation *mutation = polyiter->mutation_ptr_;
 			
-			// emit QUAL (1000), FILTER (PASS)
-			p_out << "\t1000\tPASS\t";
-			
-			// emit the INFO fields and the Genotype marker
-			p_out << "MID=" << mutation->mutation_id_ << ";";
-			p_out << "S=" << mutation->selection_coeff_ << ";";
-			p_out << "DOM=" << mutation->mutation_type_ptr_->dominance_coeff_ << ";";
-			p_out << "PO=" << mutation->subpop_index_ << ";";
-			p_out << "GO=" << mutation->origin_generation_ << ";";
-			p_out << "MT=" << mutation->mutation_type_ptr_->mutation_type_id_ << ";";
-			p_out << "AC=" << polymorphism.prevalence_ << ";";
-			p_out << "DP=1000";
-			
-			if (allele_count > 1)
-				p_out << ";MULTIALLELIC";
-			
-			p_out << "\tGT";
-			
-			// emit the individual calls
-			for (slim_popsize_t s = 0; s < sample_size; s++)
+			if (mutation->position_ == mut_position)
 			{
-				Genome &g1 = *p_genomes[s * 2];
-				Genome &g2 = *p_genomes[s * 2 + 1];
-				bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
-				
-				if (g1_null && g2_null)
-				{
-					// Both genomes are null; we should have eliminated the possibility of this with the check above
-					EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
-				}
-				else if (g1_null)
-				{
-					// An unpaired X or Y; we emit this as haploid, I think that is the right call...
-					p_out << (g2.contains_mutation(mutation->BlockIndex()) ? "\t1" : "\t0");
-				}
-				else if (g2_null)
-				{
-					// An unpaired X or Y; we emit this as haploid, I think that is the right call...
-					p_out << (g1.contains_mutation(mutation->BlockIndex()) ? "\t1" : "\t0");
-				}
+				if (mutation->mutation_type_ptr_->nucleotide_based_)
+					nuc_based.push_back(&polymorphism);
 				else
+					nonnuc_based.push_back(&polymorphism);
+			}
+			else
+			{
+				break;
+			}
+			
+			// Next polymorphism
+			polyiter++;
+			if (polyiter == sorted_polymorphisms.end())
+				break;
+		}
+		
+		// Emit the nucleotide-based mutations at this position as a single call line
+		if (p_nucleotide_based && (nuc_based.size() > 0))
+		{
+			// Get the ancestral nucleotide at this position; this will be index 0
+			// Indices 1..n will be used for the corresponding mutations in nonnuc_based
+			// Note that this means it is 
+			static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+			int ancestral_nuc_index = p_ancestral_seq->NucleotideAtIndex(mut_position);		// 0..3 for ACGT
+			
+			// Emit a single call line for all of the nucleotide-based mutations
+			
+			if (p_simplify_nucs)
+			{
+				// We are requested to simplify the nucleotide state; any mutations with the ancestral nucleotide will be considered part of the
+				// ancestral state, and any mutations with matching nucleotide will be lumped together; SLiM state will not be emitted
+				// We tally up the total prevalence of each nucleotide, ignoring the ancestral nucleotide.
+				slim_refcount_t total_prevalence[4] = {0, 0, 0, 0};
+				int allele_index_for_nuc[4] = {-1, -1 -1, -1};
+				
+				for (Polymorphism *polymorphism : nuc_based)
 				{
-					// Both genomes are non-null; emit an x|y pair that indicates the data is phased
-					bool g1_has_mut = g1.contains_mutation(mutation->BlockIndex());
-					bool g2_has_mut = g2.contains_mutation(mutation->BlockIndex());
+					int derived_nuc_index = polymorphism->mutation_ptr_->nucleotide_;
 					
-					if (g1_has_mut && g2_has_mut)	p_out << "\t1|1";
-					else if (g1_has_mut)			p_out << "\t1|0";
-					else if (g2_has_mut)			p_out << "\t0|1";
-					else							p_out << "\t0|0";
+					if (derived_nuc_index != ancestral_nuc_index)
+						total_prevalence[derived_nuc_index] += polymorphism->prevalence_;
+				}
+				
+				// Assign genotype call indexes for the four nucleotides, based upon which ones have prevalence > 0
+				allele_index_for_nuc[ancestral_nuc_index] = 0;	// emit 0 for any mutations with a back-mutation
+				
+				int next_allele_index = 1;	// 0 is ancestral
+				for (int nuc_index = 0; nuc_index < 4; ++nuc_index)
+				{
+					if (total_prevalence[nuc_index] > 0)
+						allele_index_for_nuc[nuc_index] = next_allele_index++;
+				}
+				
+				// If the only segregating alleles are back-mutations, we don't need to emit this call line at all
+				if (total_prevalence[0] + total_prevalence[1] + total_prevalence[2] + total_prevalence[3] != 0)
+				{
+					// emit CHROM ("1"), POS, ID (".")
+					p_out << "1\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
+					
+					// emit REF ("A" etc.)
+					p_out << nuc_chars[ancestral_nuc_index];
+					p_out << "\t";
+					
+					// emit ALT ("T" etc.)
+					bool firstEmitted = true;
+					for (int nuc_index=0; nuc_index < 4; ++nuc_index)
+					{
+						if (total_prevalence[nuc_index] > 0)
+						{
+							if (!firstEmitted)
+								p_out << ',';
+							firstEmitted = false;
+							
+							p_out << nuc_chars[nuc_index];
+						}
+					}
+					
+					// emit QUAL (1000), FILTER (PASS)
+					p_out << "\t1000\tPASS\t";
+					
+					// emit the INFO fields and the Genotype marker; note mutation-specific fields are omitted since we are aggregating
+					p_out << "AC=";
+					firstEmitted = true;
+					for (int nuc_index=0; nuc_index < 4; ++nuc_index)
+					{
+						if (total_prevalence[nuc_index] > 0)
+						{
+							if (!firstEmitted)
+								p_out << ',';
+							firstEmitted = false;
+							
+							p_out << total_prevalence[nuc_index];
+						}
+					}
+					p_out << ";DP=1000;";
+					p_out << "AA=" << nuc_chars[ancestral_nuc_index];
+					
+					p_out << "\tGT";
+					
+					// emit the individual calls
+					for (slim_popsize_t s = 0; s < sample_size; s++)
+					{
+						Genome &g1 = *p_genomes[s * 2];
+						Genome &g2 = *p_genomes[s * 2 + 1];
+						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
+						
+						if (g1_null && g2_null)
+						{
+							// Both genomes are null; we should have eliminated the possibility of this with the check above
+							EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
+						}
+						
+						p_out << '\t';
+						
+						for (int genome_index = 0; genome_index <= 1; ++genome_index)
+						{
+							Genome &genome = (genome_index == 0) ? g1 : g2;
+							
+							if (!genome.IsNull())
+							{
+								// Find and emit the nuc-based mut contained by this genome, if any.  If more than one nuc-based mut is contained, it is an error.
+								int contained_mut_index = -1;
+								
+								for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
+								{
+									const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
+									
+									if (genome.contains_mutation(mutation->BlockIndex()))
+									{
+										if (contained_mut_index == -1)
+											contained_mut_index = muts_index;
+										else
+											EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position in the same genome; the nucleotide cannot be called." << EidosTerminate();
+									}
+								}
+								
+								if (contained_mut_index == -1)
+									p_out << '0';
+								else
+									p_out << allele_index_for_nuc[nuc_based[contained_mut_index]->mutation_ptr_->nucleotide_];
+							}
+							
+							// If both genomes are non-null, emit a separator
+							if ((genome_index == 0) && !g1_null && !g2_null)
+								p_out << '|';
+						}
+					}
+				}
+			}
+			else
+			{
+				// emit CHROM ("1"), POS, ID (".")
+				p_out << "1\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
+				
+				// emit REF ("A" etc.)
+				p_out << nuc_chars[ancestral_nuc_index];
+				p_out << "\t";
+				
+				// emit ALT ("T" etc.)
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << nuc_chars[polymorphism->mutation_ptr_->nucleotide_];
+				}
+				
+				// emit QUAL (1000), FILTER (PASS)
+				p_out << "\t1000\tPASS\t";
+				
+				// emit the INFO fields and the Genotype marker
+				p_out << "MID=";
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << polymorphism->mutation_ptr_->mutation_id_;
+				}
+				p_out << ";";
+				
+				p_out << "S=";
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << polymorphism->mutation_ptr_->selection_coeff_;
+				}
+				p_out << ";";
+				
+				p_out << "DOM=";
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << polymorphism->mutation_ptr_->mutation_type_ptr_->dominance_coeff_;
+				}
+				p_out << ";";
+				
+				p_out << "PO=";
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << polymorphism->mutation_ptr_->subpop_index_;
+				}
+				p_out << ";";
+				
+				p_out << "GO=";
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << polymorphism->mutation_ptr_->origin_generation_;
+				}
+				p_out << ";";
+				
+				p_out << "MT=";
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << polymorphism->mutation_ptr_->mutation_type_ptr_->mutation_type_id_;
+				}
+				p_out << ";";
+				
+				p_out << "AC=";
+				for (Polymorphism *polymorphism : nuc_based)
+				{
+					if (polymorphism != nuc_based.front())
+						p_out << ',';
+					p_out << polymorphism->prevalence_;
+				}
+				p_out << ";";
+				
+				p_out << "DP=1000;";
+				
+				p_out << "AA=" << nuc_chars[ancestral_nuc_index];
+				
+				p_out << "\tGT";
+				
+				// emit the individual calls
+				for (slim_popsize_t s = 0; s < sample_size; s++)
+				{
+					Genome &g1 = *p_genomes[s * 2];
+					Genome &g2 = *p_genomes[s * 2 + 1];
+					bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
+					
+					if (g1_null && g2_null)
+					{
+						// Both genomes are null; we should have eliminated the possibility of this with the check above
+						EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
+					}
+					
+					p_out << '\t';
+					
+					for (int genome_index = 0; genome_index <= 1; ++genome_index)
+					{
+						Genome &genome = (genome_index == 0) ? g1 : g2;
+						
+						if (!genome.IsNull())
+						{
+							// Find and emit the nuc-based mut contained by this genome, if any.  If more than one nuc-based mut is contained, it is an error.
+							int contained_mut_index = -1;
+							
+							for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
+							{
+								const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
+								
+								if (genome.contains_mutation(mutation->BlockIndex()))
+								{
+									if (contained_mut_index == -1)
+										contained_mut_index = muts_index;
+									else
+										EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position in the same genome; the nucleotide cannot be called." << EidosTerminate();
+								}
+							}
+							
+							if (contained_mut_index == -1)
+								p_out << '0';
+							else
+								p_out << (contained_mut_index + 1);
+						}
+						
+						// If both genomes are non-null, emit a separator
+						if ((genome_index == 0) && !g1_null && !g2_null)
+							p_out << '|';
+					}
 				}
 			}
 			
 			p_out << std::endl;
 		}
+		
+		// Emit the non-nucleotide-based mutations at this position as individual call lines, each as an A->T mutation
+		// We do this if outputNonnucleotides==T, or if we are non-nucleotide-based (in which case outputNonnucleotides is ignored)
+		if (p_output_nonnucs || !p_nucleotide_based)
+		{
+			for (Polymorphism *polymorphism : nonnuc_based)
+			{
+				const Mutation *mutation = polymorphism->mutation_ptr_;
+				
+				// Count the mutations at the given position to determine if we are multiallelic
+				int allele_count = (int)nonnuc_based.size();
+				
+				// Output this mutation if (1) we are outputting multiallelics in a non-nuc-based model, or (2) we are a nuc-based model (regardless of allele count), or (3) it is not multiallelic
+				if (p_output_multiallelics || p_nucleotide_based || (allele_count == 1))
+				{
+					// emit CHROM ("1"), POS, ID ("."), REF ("A"), and ALT ("T")
+					p_out << "1\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
+					
+					// emit QUAL (1000), FILTER (PASS)
+					p_out << "\t1000\tPASS\t";
+					
+					// emit the INFO fields and the Genotype marker
+					p_out << "MID=" << mutation->mutation_id_ << ";";
+					p_out << "S=" << mutation->selection_coeff_ << ";";
+					p_out << "DOM=" << mutation->mutation_type_ptr_->dominance_coeff_ << ";";
+					p_out << "PO=" << mutation->subpop_index_ << ";";
+					p_out << "GO=" << mutation->origin_generation_ << ";";
+					p_out << "MT=" << mutation->mutation_type_ptr_->mutation_type_id_ << ";";
+					p_out << "AC=" << polymorphism->prevalence_ << ";";
+					p_out << "DP=1000";
+					
+					if (!p_nucleotide_based && (allele_count > 1))	// output MULTIALLELIC flags only in non-nuc-based models
+						p_out << ";MULTIALLELIC";
+					if (p_nucleotide_based && p_output_nonnucs)
+						p_out << ";NONNUC";
+					
+					p_out << "\tGT";
+					
+					// emit the individual calls
+					for (slim_popsize_t s = 0; s < sample_size; s++)
+					{
+						Genome &g1 = *p_genomes[s * 2];
+						Genome &g2 = *p_genomes[s * 2 + 1];
+						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
+						
+						if (g1_null && g2_null)
+						{
+							// Both genomes are null; we should have eliminated the possibility of this with the check above
+							EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
+						}
+						else if (g1_null)
+						{
+							// An unpaired X or Y; we emit this as haploid, I think that is the right call...
+							p_out << (g2.contains_mutation(mutation->BlockIndex()) ? "\t1" : "\t0");
+						}
+						else if (g2_null)
+						{
+							// An unpaired X or Y; we emit this as haploid, I think that is the right call...
+							p_out << (g1.contains_mutation(mutation->BlockIndex()) ? "\t1" : "\t0");
+						}
+						else
+						{
+							// Both genomes are non-null; emit an x|y pair that indicates the data is phased
+							bool g1_has_mut = g1.contains_mutation(mutation->BlockIndex());
+							bool g2_has_mut = g2.contains_mutation(mutation->BlockIndex());
+							
+							if (g1_has_mut && g2_has_mut)	p_out << "\t1|1";
+							else if (g1_has_mut)			p_out << "\t1|0";
+							else if (g2_has_mut)			p_out << "\t0|1";
+							else							p_out << "\t0|0";
+						}
+					}
+					
+					p_out << std::endl;
+				}
+			}
+		}
+		
+		// polyiter already points to the mutation at the next position, or to end(), so we don't advance it here
 	}
 }
 
@@ -1675,7 +2007,7 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
@@ -2294,7 +2626,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 
 //	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
 //	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
-//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F])
+//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
 {
@@ -2303,6 +2635,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	EidosValue *outputMultiallelics_value = ((p_method_id == gID_outputVCF) ? p_arguments[1].get() : nullptr);
 	EidosValue *append_value = ((p_method_id == gID_outputVCF) ? p_arguments[2].get() : p_arguments[1].get());
 	EidosValue *filterMonomorphic_value = ((p_method_id == gID_outputMS) ? p_arguments[2].get() : nullptr);
+	EidosValue *simplifyNucleotides_value = ((p_method_id == gID_outputVCF) ? p_arguments[3].get() : nullptr);
+	EidosValue *outputNonnucleotides_value = ((p_method_id == gID_outputVCF) ? p_arguments[4].get() : nullptr);
 	
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	Chromosome &chromosome = sim.TheChromosome();
@@ -2312,6 +2646,16 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	
 	if (p_method_id == gID_outputVCF)
 		output_multiallelics = outputMultiallelics_value->LogicalAtIndex(0, nullptr);
+	
+	bool simplify_nucs = false;
+	
+	if (p_method_id == gID_outputVCF)
+		simplify_nucs = simplifyNucleotides_value->LogicalAtIndex(0, nullptr);
+	
+	bool output_nonnucs = true;
+	
+	if (p_method_id == gID_outputVCF)
+		output_nonnucs = outputNonnucleotides_value->LogicalAtIndex(0, nullptr);
 	
 	// figure out if we're filtering out mutations that are monomorphic within the sample (MS output only)
 	bool filter_monomorphic = false;
@@ -2350,7 +2694,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		else if (p_method_id == gID_outputMS)
 			Genome::PrintGenomes_MS(output_stream, genomes, chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
-			Genome::PrintGenomes_VCF(output_stream, genomes, output_multiallelics);
+			Genome::PrintGenomes_VCF(output_stream, genomes, output_multiallelics, simplify_nucs, output_nonnucs, sim.IsNucleotideBased(), sim.TheChromosome().AncestralSequence());
 	}
 	else
 	{
@@ -2374,7 +2718,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 					Genome::PrintGenomes_MS(outfile, genomes, chromosome, filter_monomorphic);
 					break;
 				case gID_outputVCF:
-					Genome::PrintGenomes_VCF(outfile, genomes, output_multiallelics);
+					Genome::PrintGenomes_VCF(outfile, genomes, output_multiallelics, simplify_nucs, output_nonnucs, sim.IsNucleotideBased(), sim.TheChromosome().AncestralSequence());
 					break;
 			}
 			

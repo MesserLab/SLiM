@@ -46,7 +46,15 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 
 void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 { 
-	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_generation_ << " "<< fixation_generation_ << std::endl;
+	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_generation_ << " "<< fixation_generation_;
+	
+	// output a nucleotide if available
+	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+	
+	if (mutation_type_ptr_->nucleotide_based_)
+		p_out << " " << nuc_chars[nucleotide_];
+	
+	p_out << std::endl;
 }
 
 

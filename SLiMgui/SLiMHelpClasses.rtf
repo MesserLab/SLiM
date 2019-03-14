@@ -781,6 +781,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficients of the mutations are drawn from their mutation types; 
 \f3\fs18 addNewMutation()
 \f4\fs20  may be used instead if you wish to specify selection coefficients.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In non-nucleotide-based models, 
 \f3\fs18 mutationType
@@ -817,6 +818,7 @@ In non-nucleotide-based models,
 \f4\fs20 , T=
 \f3\fs18 3
 \f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Beginning in SLiM 2.5 this method is vectorized, so all of these parameters may be singletons (in which case that single value is used for all mutations created by the call) or non-singleton vectors (in which case one element is used for each corresponding mutation created).  Non-singleton parameters must match in length, since their elements need to be matched up one-to-one.\
 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
@@ -878,6 +880,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20  to \'93tag\'94 the mutations that you create.  The 
 \f3\fs18 addNewDrawnMutation()
 \f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In non-nucleotide-based models, 
 \f3\fs18 mutationType
@@ -914,6 +917,7 @@ In non-nucleotide-based models,
 \f4\fs20 , T=
 \f3\fs18 3
 \f4\fs20 ).  If a nucleotide mutation already exists at the mutating position, it is replaced automatically in accordance with the stacking policy for nucleotide-based mutation types.  No check is performed that a new mutation\'92s nucleotide differs from the ancestral sequence, or that its selection coefficient is consistent with other mutations that may already exist at the given position with the same nucleotide; model consistency is the responsibility of the model.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 The new mutations created by this method are returned, even if their actual addition is prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  property of 
@@ -1134,8 +1138,7 @@ The format of the returned sequence is controlled by the
 \f4\fs20  documentation for details.  If the sequence returned is likely to be long, the 
 \f3\fs18 "string"
 \f4\fs20  format will be the most memory-efficient, and may also be the fastest (but may be harder to work with).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Several helper functions are provided for working with sequences, such as 
+Several helper functions are provided for working with sequences, such as 
 \f3\fs18 nucleotideCounts()
 \f4\fs20  to get the counts of A/C/G/T nucleotides in a sequence, 
 \f3\fs18 nucleotideFrequencies()
@@ -1240,7 +1243,8 @@ If
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(void)outputVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0append\'a0=\'a0F])
+\f3\fs18 \cf0 +\'a0(void)outputVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+, [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1271,33 +1275,18 @@ If
 \f4\fs20  is 
 \f3\fs18 T
 \f5\fs20 .\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4 In SLiM, it is often possible for a single individual to have multiple mutations at a given base position.  Because the VCF format is an explicit-nucleotide format, this property of SLiM does not fit well into VCF.  Since there are only four possible nucleotides at a given base position in VCF, at most one \'93reference\'94 state and three \'93alternate\'94 states could be represented at that base position.  SLiM, on the other hand, can represent any number of alternative possibilities at a given base; in general, if 
-\f1\i N
-\f4\i0  different mutations are segregating at a given position, there are 2
-\f1\i \super N
-\f4\i0 \nosupersub  different allelic states at that position in SLiM.  For this reason, SLiM does not attempt to represent multiple mutations at a single site as being alternative alleles in a single output line, as is typical in VCF format.  Instead, SLiM produces a separate line of VCF output for each segregating mutation at a given position.  SLiM always declares base positions as having a \'93reference base\'94 of 
-\f3\fs18 A
-\f4\fs20  (representing the state in individuals that do not carry a given mutation) and an \'93alternate base\'94 of 
-\f3\fs18 T
-\f4\fs20  (representing the state in individuals that do carry the given mutation).  Multiallelic positions will thus produce VCF output showing multiple 
-\f3\fs18 A
-\f4\fs20 -to-
-\f3\fs18 T
-\f4\fs20  changes at the same position, possessed by different but possibly overlapping sets of individuals.  Many programs that process VCF output may not behave correctly with this style of output.  SLiM therefore provides a choice, using the 
+\f4 \cf2 \expnd0\expndtw0\kerning0
+The parameters 
 \f3\fs18 outputMultiallelics
-\f4\fs20  flag; if that flag is 
-\f3\fs18 T
-\f4\fs20  (the default), SLiM will produce multiple lines of output for multiallelic base positions, but will mark those lines with a 
-\f3\fs18 MULTIALLELIC
-\f4\fs20  flag in the 
-\f3\fs18 INFO
-\f4\fs20  field of the VCF output so that those lines can be filtered or processed in a special manner.  If 
-\f3\fs18 outputMultiallelics
-\f4\fs20  is 
-\f3\fs18 F
-\f4\fs20 , on the other hand, SLiM will completely suppress output of all mutations at multiallelic sites \'96 often the simplest option, if doing so does not lead to bias in the subsequent analysis.  This flag has no effect upon the output of sites with only a single mutation present.  Assessment of whether a site is multiallelic is done only within the sample; segregating mutations that are not part of the sample are ignored.\
-See 
+\f4\fs20 , 
+\f3\fs18 simplifyNucleotides
+\f4\fs20 , and 
+\f3\fs18 outputNonnucleotides
+\f4\fs20  affect the format of the output produced; see the reference documentation for further discussion.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 See 
 \f3\fs18 outputMS()
 \f4\fs20  and 
 \f3\fs18 output()
@@ -3345,18 +3334,20 @@ In nucleotide-based models, the stacking group for nucleotide-based mutation typ
 \f4\fs20  is called a \'93stacking group\'94, and all mutation types in a given stacking group must have the same 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  value, which defines the stacking behavior of all mutations of the mutation types in the stacking group.  In other words, one stacking group might allow its mutations to stack, while another stacking group might not, but the policy within each stacking group must be unambiguous.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 This property is 
 \f3\fs18 "s"
 \f4\fs20  by default, indicating that mutations in this stacking group should be allowed to stack without restriction.  If the policy is set to 
 \f3\fs18 "f"
 \f4\fs20 , the 
-\f1\i \cf2 first
-\f4\i0 \cf2  mutation of stacking group at a given site is retained; further mutations of this stacking group at the same site are discarded with no effect.  This can be useful for modeling one-way changes; once a gene is disabled by a premature stop codon, for example, you might wish to assume, for simplicity, that further mutations cannot alter that fact.  If the policy is set to 
+\f1\i first
+\f4\i0  mutation of stacking group at a given site is retained; further mutations of this stacking group at the same site are discarded with no effect.  This can be useful for modeling one-way changes; once a gene is disabled by a premature stop codon, for example, you might wish to assume, for simplicity, that further mutations cannot alter that fact.  If the policy is set to 
 \f3\fs18 "l"
 \f4\fs20 , the 
-\f1\i \cf2 last
-\f4\i0 \cf2  mutation of this stacking group at a given site is retained; earlier mutation of this stacking group at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
+\f1\i last
+\f4\i0  mutation of this stacking group at a given site is retained; earlier mutation of this stacking group at the same site are discarded.  This can be useful for modeling an \'93infinite-alleles\'94 scenario in which every new mutation at a site generates a completely new allele, rather than retaining the previous mutations at the site.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 The mutation stacking policy applies only within the given mutation type\'92s stacking group; mutations of different stacking groups are always allowed to stack in SLiM.  The policy applies to all mutations added to the model after the policy is set, whether those mutations are introduced by calls such as 
 \f3\fs18 addMutation()
 \f4\fs20 , 
@@ -4119,14 +4110,18 @@ See the
 \f4\fs20  has been set to 
 \f3\fs18 F
 \f4\fs20  for their mutation type \'96 are not output; they are still considered to be segregating mutations by SLiM.\
-Output is generally done in a 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+In SLiM 3.3 and later, the output format includes the nucleotides associated with any nucleotide-based mutations.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F], [logical$\'a0append\'a0=\'a0F], [logical$\'a0spatialPositions\'a0=\'a0T]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0ages\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0ages\'a0=\'a0T]\cf2 , [logical$\'a0ancestralNucleotides\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4190,7 +4185,30 @@ Beginning with SLiM 3.0, the
 \f3\fs18 ages
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20 , ages will be output for nonWF models.  In WF simulations, the ages parameter will be ignored.\
+\f4\fs20 , ages will be output for nonWF models.  In WF simulations, the 
+\f3\fs18 ages
+\f4\fs20  parameter will be ignored.\
+\cf2 Beginning with SLiM 3.3, the 
+\f3\fs18 ancestralNucleotides
+\f4\fs20  parameter may be used to control the output of the ancestral nucleotide sequence in nucleotide-based models.  If 
+\f3\fs18 ancestralNucleotides
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , the output will not contain ancestral nucleotide information, and so the ancestral sequence will not be restored correctly if the saved file is loaded with 
+\f3\fs18 readPopulationFile()
+\f4\fs20 .  This option is provided because the ancestral sequence may be quite large, for models with a long chromosome (e.g., 1 GB if the chromosome is 10
+\fs13\fsmilli6667 \super 9
+\fs20 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
+\f3\fs18 nucleotideBased
+\f4\fs20  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f4\fs20 ), the 
+\f3\fs18 ancestralNucleotides
+\f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will 
+\f1\i \cf2 always
+\f4\i0 \cf2  include the nucleotides associated with any nucleotide-based mutations; the 
+\f3\fs18 \cf2 ancestralNucleotides
+\f4\fs20 \cf2  flag governs only the ancestral sequence.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
 \f3\fs18 late()
@@ -4219,8 +4237,12 @@ If the optional parameter
 \f3\fs18 T
 \f4\fs20 .
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4 Output is generally done in a 
+\f4 \cf2 \expnd0\expndtw0\kerning0
+In SLiM 3.3 and later, the output format includes the nucleotides associated with any nucleotide-based mutations.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
 \f5 \
@@ -5792,7 +5814,8 @@ If the optional parameter
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)outputVCFSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [logical$\'a0outputMultiallelics\'a0=\'a0T], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f3\fs18 \cf0 \'96\'a0(void)outputVCFSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [logical$\'a0outputMultiallelics\'a0=\'a0T], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+, [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5817,31 +5840,6 @@ If the optional parameter
 \f4\fs20  method of 
 \f3\fs18 Genome
 \f4\fs20  for a more flexible low-level option.\
-In SLiM, it is often possible for a single individual to have multiple mutations at a given base position.  Because the VCF format is an explicit-nucleotide format, this property of SLiM does not fit well into VCF.  Since there are only four possible nucleotides at a given base position in VCF, at most one \'93reference\'94 state and three \'93alternate\'94 states could be represented at that base position.  SLiM, on the other hand, can represent any number of alternative possibilities at a given base; in general, if 
-\f1\i N
-\f4\i0  different mutations are segregating at a given position, there are 2
-\f1\i \super N
-\f4\i0 \nosupersub  different allelic states at that position in SLiM.  For this reason, SLiM does not attempt to represent multiple mutations at a single site as being alternative alleles in a single output line, as is typical in VCF format.  Instead, SLiM produces a separate line of VCF output for each segregating mutation at a given position.  SLiM always declares base positions as having a \'93reference base\'94 of 
-\f3\fs18 A
-\f4\fs20  (representing the state in individuals that do not carry a given mutation) and an \'93alternate base\'94 of 
-\f3\fs18 T
-\f4\fs20  (representing the state in individuals that do carry the given mutation).  Multiallelic positions will thus produce VCF output showing multiple 
-\f3\fs18 A
-\f4\fs20 -to-
-\f3\fs18 T
-\f4\fs20  changes at the same position, possessed by different but possibly overlapping sets of individuals.  Many programs that process VCF output may not behave correctly with this style of output.  SLiM therefore provides a choice, using the 
-\f3\fs18 outputMultiallelics
-\f4\fs20  flag; if that flag is 
-\f3\fs18 T
-\f4\fs20  (the default), SLiM will produce multiple lines of output for multiallelic base positions, but will mark those lines with a 
-\f3\fs18 MULTIALLELIC
-\f4\fs20  flag in the 
-\f3\fs18 INFO
-\f4\fs20  field of the VCF output so that those lines can be filtered or processed in a special manner.  If 
-\f3\fs18 outputMultiallelics
-\f4\fs20  is 
-\f3\fs18 F
-\f4\fs20 , on the other hand, SLiM will completely suppress output of all mutations at multiallelic sites \'96 often the simplest option, if doing so does not lead to bias in the subsequent analysis.  This flag has no effect upon the output of sites with only a single mutation present.  Assessment of whether a site is multiallelic is done only within the sample; segregating mutations that are not part of the sample are ignored.\
 If the optional parameter 
 \f3\fs18 filePath
 \f4\fs20  is 
@@ -5857,8 +5855,18 @@ If the optional parameter
 \f4\fs20  is 
 \f3\fs18 T
 \f5\fs20 .\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4 See 
+\f4 \cf2 \expnd0\expndtw0\kerning0
+The parameters 
+\f3\fs18 outputMultiallelics
+\f4\fs20 , 
+\f3\fs18 simplifyNucleotides
+\f4\fs20 , and 
+\f3\fs18 outputNonnucleotides
+\f4\fs20  affect the format of the output produced; see the reference documentation for further discussion.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 See 
 \f3\fs18 outputMSSample()
 \f4\fs20  and 
 \f3\fs18 outputSample()

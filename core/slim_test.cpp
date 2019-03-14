@@ -3820,6 +3820,54 @@ void _RunNucleotideFunctionTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { randomNucleotides(0, basis=c(0.0,0.0,0.2,INF)); }", 1, 247, "requires basis values to be finite and >= 0.0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { randomNucleotides(0, basis=c(0.0,0.0,0.2,NAN)); }", 1, 247, "requires basis values to be finite and >= 0.0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { randomNucleotides(0, basis=c(0.0,0.0,0.2,0.0), format='foo'); }", 1, 247, "requires a format of", __LINE__);
+	
+	// codonsToNucleotides()
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(integer(0), format='string'), '')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(integer(0), format='char'), string(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(integer(0), format='integer'), integer(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(0, format='string'), 'AAA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(1, format='string'), 'AAC')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(2, format='string'), 'AAG')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(3, format='string'), 'AAT')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(4, format='string'), 'ACA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(8, format='string'), 'AGA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(12, format='string'), 'ATA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(16, format='string'), 'CAA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(32, format='string'), 'GAA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(48, format='string'), 'TAA')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(63, format='string'), 'TTT')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(0, format='char'), c('A','A','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(1, format='char'), c('A','A','C'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(2, format='char'), c('A','A','G'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(3, format='char'), c('A','A','T'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(4, format='char'), c('A','C','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(8, format='char'), c('A','G','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(12, format='char'), c('A','T','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(16, format='char'), c('C','A','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(32, format='char'), c('G','A','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(48, format='char'), c('T','A','A'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(63, format='char'), c('T','T','T'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(0, format='integer'), c(0,0,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(1, format='integer'), c(0,0,1))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(2, format='integer'), c(0,0,2))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(3, format='integer'), c(0,0,3))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(4, format='integer'), c(0,1,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(8, format='integer'), c(0,2,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(12, format='integer'), c(0,3,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(16, format='integer'), c(1,0,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(32, format='integer'), c(2,0,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(48, format='integer'), c(3,0,0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(63, format='integer'), c(3,3,3))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(0:5, format='string'), 'AAAAACAAGAATACAACC')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(0:5, format='char'), c('A','A','A','A','A','C','A','A','G','A','A','T','A','C','A','A','C','C'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToNucleotides(0:5, format='integer'), c(0,0,0,0,0,1,0,0,2,0,0,3,0,1,0,0,1,1))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToNucleotides(-1, format='string'); }", 1, 247, "requires codon values to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToNucleotides(-1, format='char'); }", 1, 247, "requires codon values to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToNucleotides(-1, format='integer'); }", 1, 247, "requires codon values to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToNucleotides(64, format='string'); }", 1, 247, "requires codon values to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToNucleotides(64, format='char'); }", 1, 247, "requires codon values to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToNucleotides(64, format='integer'); }", 1, 247, "requires codon values to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToNucleotides(0, format='foo'); }", 1, 247, "requires a format of", __LINE__);
 }
 
 void _RunNucleotideMethodTests(void)

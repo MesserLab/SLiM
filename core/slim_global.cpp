@@ -779,7 +779,7 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 	else
 	{
 		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
-		static char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+		static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
 		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
 		std::string &nuc_string = string_result->StringValue_Mutable();
 		
@@ -798,16 +798,37 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 
 std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array)
 {
-	// inefficient, just for debugging...
-	for (std::size_t index = 0; index < p_nuc_array.length_; ++index)
+	// Emit FASTA format with 70 bases per line
+	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+	std::size_t index = 0;
+	std::string nuc_string;
+	
+	// Emit lines of length 70 first; presumably buffering in a string is faster than emitting one character at a time to the stream...
+	nuc_string.resize(70);
+	
+	while (index + 70 <= p_nuc_array.length_)
 	{
-		int nuc = p_nuc_array.NucleotideAtIndex(index);
+		for (int line_index = 0; line_index < 70; ++line_index)
+			nuc_string[line_index] = nuc_chars[p_nuc_array.NucleotideAtIndex(index + line_index)];
 		
-		if (nuc == 0)		p_out << 'A';
-		else if (nuc == 1)	p_out << 'C';
-		else if (nuc == 2)	p_out << 'G';
-		else if (nuc == 3)	p_out << 'T';
-		else				p_out << '?';	// should never happen
+		p_out << nuc_string << std::endl;
+		index += 70;
+	}
+	
+	// Then emit a final line with any remaining nucleotides
+	if (index < p_nuc_array.length_)
+	{
+		for ( ; index < p_nuc_array.length_; ++index)
+		{
+			int nuc = p_nuc_array.NucleotideAtIndex(index);
+			
+			if (nuc == 0)			p_out << 'A';
+			else if (nuc == 1)		p_out << 'C';
+			else if (nuc == 2)		p_out << 'G';
+			else /*if (nuc == 3)*/	p_out << 'T';
+		}
+		
+		p_out << std::endl;
 	}
 	
 	return p_out;

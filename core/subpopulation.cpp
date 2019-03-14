@@ -6379,7 +6379,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 
 //	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
 //	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
-//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -6391,6 +6391,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	EidosValue *filePath_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[4].get() : p_arguments[3].get());
 	EidosValue *append_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[5].get() : p_arguments[4].get());
 	EidosValue *filterMonomorphic_arg = ((p_method_id == gID_outputMSSample) ? p_arguments[5].get() : nullptr);
+	EidosValue *simplifyNucleotides_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[6].get() : nullptr);
+	EidosValue *outputNonnucleotides_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[7].get() : nullptr);
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	SLiMSim &sim = population_.sim_;
@@ -6431,6 +6433,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if (p_method_id == gID_outputVCFSample)
 		output_multiallelics = outputMultiallelics_arg->LogicalAtIndex(0, nullptr);
+	
+	bool simplify_nucs = false;
+	
+	if (p_method_id == gID_outputVCFSample)
+		simplify_nucs = simplifyNucleotides_arg->LogicalAtIndex(0, nullptr);
+	
+	bool output_nonnucs = true;
+	
+	if (p_method_id == gID_outputVCFSample)
+		output_nonnucs = outputNonnucleotides_arg->LogicalAtIndex(0, nullptr);
 	
 	bool filter_monomorphic = false;
 	
@@ -6485,7 +6497,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	else if (p_method_id == gID_outputMSSample)
 		population_.PrintSample_MS(out, *this, sample_size, replace, requested_sex, sim.TheChromosome(), filter_monomorphic);
 	else if (p_method_id == gID_outputVCFSample)
-		population_.PrintSample_VCF(out, *this, sample_size, replace, requested_sex, output_multiallelics);
+		population_.PrintSample_VCF(out, *this, sample_size, replace, requested_sex, output_multiallelics, simplify_nucs, output_nonnucs);
 	
 	if (has_file)
 		outfile.close(); 
@@ -6674,7 +6686,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddFloat("value"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_configureDisplay, kEidosValueMaskVOID))->AddFloat_ON("center", gStaticEidosValueNULL)->AddFloat_OSN("scale", gStaticEidosValueNULL)->AddString_OSN("color", gStaticEidosValueNULL));
 		

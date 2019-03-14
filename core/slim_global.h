@@ -393,7 +393,6 @@ public:
 	NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector);
 	
 	std::size_t size() const { return length_; }
-	void Print(std::ostream &p_stream) const;
 	
 	inline int NucleotideAtIndex(std::size_t p_index) const {
 		uint64_t chunk = buffer_[p_index / 32];
