@@ -410,7 +410,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000, 0.0); stop(); }", __LINE__);										// legal; no max for meanLength
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(-0.001, 10000000000000, 0.0); stop(); }", 1, 15, "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(1.001, 10000000000000, 0.0); stop(); }", 1, 15, "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 0.0, 0.0); stop(); }", 1, 15, "meanLength must be greater than 0.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, -0.01, 0.0); stop(); }", 1, 15, "meanLength must be >= 0.0", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, -0.001); stop(); }", 1, 15, "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 1.001); stop(); }", 1, 15, "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, -1.001); stop(); }", 1, 15, "bias must be between -1.0 and 1.0", __LINE__);

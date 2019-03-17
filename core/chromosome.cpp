@@ -969,14 +969,28 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 	static std::vector<std::tuple<slim_position_t, slim_position_t, bool, bool>> dsb_infos;	// using a static prevents reallocation
 	dsb_infos.clear();
 	
-	for (int i = 0; i < p_num_breakpoints; i++)
+	if (gene_conversion_avg_length_ < 2.0)
 	{
-		slim_position_t extent1 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 0
-		slim_position_t extent2 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 1
-		bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
-		bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
-		
-		dsb_infos.emplace_back(std::tuple<slim_position_t, slim_position_t, bool, bool>(extent1, extent2, noncrossover, simple));
+		for (int i = 0; i < p_num_breakpoints; i++)
+		{
+			// If the gene conversion tract mean length is < 2.0, gsl_ran_geometric() will blow up, and we should treat the tract length as zero
+			bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
+			bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
+			
+			dsb_infos.emplace_back(std::tuple<slim_position_t, slim_position_t, bool, bool>(0, 0, noncrossover, simple));
+		}
+	}
+	else
+	{
+		for (int i = 0; i < p_num_breakpoints; i++)
+		{
+			slim_position_t extent1 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 0
+			slim_position_t extent2 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 1
+			bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
+			bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
+			
+			dsb_infos.emplace_back(std::tuple<slim_position_t, slim_position_t, bool, bool>(extent1, extent2, noncrossover, simple));
+		}
 	}
 	
 	int try_count = 0;
