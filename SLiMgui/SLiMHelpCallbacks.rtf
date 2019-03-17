@@ -310,15 +310,17 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f4\fs4 \cf0 \
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
-\f3\fs18 fitness(m1) \{\
+\f3\fs18 \cf0 fitness(m1) \{\
    if (homozygous)\
       return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\
    else\
       return 1.0 + mut.selectionCoeff;\
 \}\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
-\f4\fs4 \
+\f4\fs4 \cf0 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf0 As mentioned above, a relative fitness of 
@@ -335,15 +337,17 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f4\fs4 \cf0 \
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
-\f3\fs18 fitness(m1) \{\
+\f3\fs18 \cf0 fitness(m1) \{\
    if (<conditions>)\
       <custom fitness calculations...>;\
    else\
       return relFitness;\
 \}\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
-\f4\fs4 \
+\f4\fs4 \cf0 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf0 This would return a modified fitness value in certain conditions, but would return the standard fitness value otherwise.\
@@ -557,12 +561,14 @@ For example, a simple
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
 \f4\fs4 \cf0 \
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
-\f3\fs18 1000:2000 mateChoice(p2) \{\
+\f3\fs18 \cf0 1000:2000 mateChoice(p2) \{\
    return weights ^ 2;\
 \}\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\pardeftab720\li547\ri1440\sb40\sa40\partightenfactor0
 
-\f4\fs4 \
+\f4\fs4 \cf0 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf0 This defines a 
@@ -814,7 +820,7 @@ When a
 \f3\fs18 recombination()
 \f2\fs22  callback is called, a parent has already been chosen to generate a gamete, and candidate recombination breakpoints for use in recombining the parental genomes have been drawn.  The genomes of the focal parent are provided to the callback, as is the focal parent itself (as an 
 \f3\fs18 Individual
-\f2\fs22  object) and the subpopulation in which it resides.  Furthermore, the proposed breakpoints are provided to the callback, divided into three categories: ordinary recombination breakpoints, and start/end positions for gene conversion events (if gene conversion is enabled).  The callback may modify these variables in order to change the breakpoints used, in which case it must return 
+\f2\fs22  object) and the subpopulation in which it resides.  Furthermore, the proposed breakpoints are provided to the callback.  The callback may modify these breakpoints in order to change the breakpoints used, in which case it must return 
 \f3\fs18 T
 \f2\fs22  to indicate that changes were made, or it may leave the proposed breakpoints unmodified, in which case it must return 
 \f3\fs18 F
@@ -847,90 +853,45 @@ breakpoints
 \f4\fs22 	
 \f2 An 
 \f3\fs18 integer
-\f2\fs22  vector of ordinary recombination breakpoints
+\f2\fs22  vector of crossover breakpoints
 \f3\fs18 \
-gcStarts
-\f4\fs22 	
-\f2 An 
-\f3\fs18 integer
-\f2\fs22  vector of the start positions of gene conversion spans
-\f4 \
-
-\f3\fs18 gcEnds
-\f4\fs22 	
-\f2 An 
-\f3\fs18 integer
-\f2\fs22  vector of the end positions of gene conversion spans
-\f4 \
 \pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2 \cf0 These globals may be used in the 
+\f2\fs22 \cf0 These globals may be used in the 
 \f3\fs18 recombination()
-\f2\fs22  callback to determine the final recombination breakpoints used by SLiM.  The positions in 
-\f3\fs18 gcStarts
-\f2\fs22  and 
-\f3\fs18 gcEnds
-\f2\fs22  constitute matched pairs (a corresponding end for each start), so the lengths of those two vectors are guaranteed to be equal.  If values are set into 
+\f2\fs22  callback to determine the final recombination breakpoints used by SLiM.  If values are set into 
 \f3\fs18 breakpoints
-\f2\fs22 , 
-\f3\fs18 gcStarts
-\f2\fs22 , and/or 
-\f3\fs18 gcEnds
 \f2\fs22 , the new values must be of type 
 \f3\fs18 integer
-\f2\fs22 , and 
-\f3\fs18 gcStarts
-\f2\fs22  and 
-\f3\fs18 gcEnds
-\f2\fs22  must be set to vectors of the same length (again, constituting matched pairs).  If any of 
+\f2\fs22 .  If 
 \f3\fs18 breakpoints
-\f2\fs22 , 
-\f3\fs18 gcStarts
-\f2\fs22 , or 
-\f3\fs18 gcEnds
-\f2\fs22  are modified by the callback, 
+\f2\fs22  is modified by the callback, 
 \f3\fs18 T
 \f2\fs22  should be returned, otherwise 
 \f3\fs18 F
 \f2\fs22  should be returned (this is a speed optimization, so that SLiM does not have to spend time checking for changes when no changes have been made).\
 The positions specified in 
 \f3\fs18 breakpoints
-\f2\fs22 , 
-\f3\fs18 gcStarts
-\f2\fs22 , and 
-\f3\fs18 gcEnds
 \f2\fs22  mean that a crossover will occur immediately 
 \f0\i before
 \f2\i0  the specified base position (between the preceding base and the specified base, in other words).  The genome specified by 
 \f3\fs18 genome1
 \f2\fs22  will be used as the initial copy strand when SLiM executes the recombination; this cannot presently be changed by the callback.\
-In this design, the recombination callback does not specify a custom recombination map (although that is a possible extension to this design that could be implemented if it would be useful).  Instead, the callback can add or remove breakpoints at specific locations.  To implement a chromosomal inversion, for example, if the parent is heterozygous for the inversion mutation then crossovers within the inversion region are removed by the callback.  As another example, to implement a model of the evolution of the overall recombination rate, a model could (1) set the global recombination rate to the highest rate attainable in the simulation, (2) for each individual, within the 
+In this design, the recombination callback does not specify a custom recombination map.  Instead, the callback can add or remove breakpoints at specific locations.  To implement a chromosomal inversion, for example, if the parent is heterozygous for the inversion mutation then crossovers within the inversion region are removed by the callback.  As another example, to implement a model of the evolution of the overall recombination rate, a model could (1) set the global recombination rate to the highest rate attainable in the simulation, (2) for each individual, within the 
 \f3\fs18 recombination()
-\f2\fs22  callback, calculate the fraction of that maximum rate that the focal individual would experience based upon its genetics, and (3) probabilistically remove proposed crossover points based upon random uniform draws compared to that threshold fraction, thus achieving the individual effective recombination rate desired.  Other similar treatments could actually vary the effective recombination map, not just the overall rate, by removing proposed crossovers with probabilities that depend upon their position, allowing for the evolution of localized recombination hot-spots and cold-spots.  Crossovers and gene conversion events may also be added, not just removed, by 
+\f2\fs22  callback, calculate the fraction of that maximum rate that the focal individual would experience based upon its genetics, and (3) probabilistically remove proposed crossover points based upon random uniform draws compared to that threshold fraction, thus achieving the individual effective recombination rate desired.  Other similar treatments could actually vary the effective recombination map, not just the overall rate, by removing proposed crossovers with probabilities that depend upon their position, allowing for the evolution of localized recombination hot-spots and cold-spots.  Crossovers events may also be added, not just removed, by 
 \f3\fs18 recombination()
 \f2\fs22  callbacks.\
 \pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 \cf5 \expnd0\expndtw0\kerning0
 Note that the positions in 
 \f3\fs18 breakpoints
-\f2\fs22 , 
-\f3\fs18 gcStarts
-\f2\fs22 , and 
-\f3\fs18 gcEnds
 \f2\fs22  are not, in the general case, guaranteed to be sorted or uniqued; in other words, positions may appear out of order, and the same position may appear more than once.  After all 
 \f3\fs18 recombination()
 \f2\fs22  callbacks have completed, the positions from 
 \f3\fs18 breakpoints
-\f2\fs22 , 
-\f3\fs18 gcStarts
-\f2\fs22 , and 
-\f3\fs18 gcEnds
-\f2\fs22  will be merged together into a single vector, sorted, uniqued, and used as the crossover points in generating the prospective gamete genome.  The essential point here is that if the same position occurs more than once, across 
+\f2\fs22  will be sorted, uniqued, and used as the crossover points in generating the prospective gamete genome.  The essential point here is that if the same position occurs more than once, across 
 \f3\fs18 breakpoints
-\f2\fs22 , 
-\f3\fs18 gcStarts
-\f2\fs22 , and 
-\f3\fs18 gcEnds
 \f2\fs22 , the multiple occurrences of the position do not cancel; SLiM does not cross over and then \'93cross back over\'94 given a pair of identical positions.  Instead, the multiple occurrences of the position will simply be uniqued down to a single occurrence.\
 \pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 As with the other callback types, multiple 

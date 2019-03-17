@@ -1929,7 +1929,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 #endif	// SLIM_WF_ONLY
 
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
-bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_gc_starts, std::vector<slim_position_t> &p_gc_ends, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
+bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -1940,8 +1940,8 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
 	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
 	
-	bool crossovers_changed = false, gcstarts_changed = false, gcends_changed = false;
-	EidosValue_SP local_crossovers_ptr, local_gcstarts_ptr, local_gcends_ptr;
+	bool crossovers_changed = false;
+	EidosValue_SP local_crossovers_ptr;
 	
 	for (SLiMEidosBlock *recombination_callback : p_recombination_callbacks)
 	{
@@ -1979,18 +1979,6 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 					local_crossovers_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_crossovers));
 				client_symbols.SetValueForSymbolNoCopy(gID_breakpoints, local_crossovers_ptr);
 			}
-			if (recombination_callback->contains_gcStarts_)
-			{
-				if (!local_gcstarts_ptr)
-					local_gcstarts_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_gc_starts));
-				client_symbols.SetValueForSymbolNoCopy(gID_gcStarts, local_gcstarts_ptr);
-			}
-			if (recombination_callback->contains_gcEnds_)
-			{
-				if (!local_gcends_ptr)
-					local_gcends_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_gc_ends));
-				client_symbols.SetValueForSymbolNoCopy(gID_gcEnds, local_gcends_ptr);
-			}
 			
 			try
 			{
@@ -2017,32 +2005,6 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 							
 							new_crossovers.swap(local_crossovers_ptr);
 							crossovers_changed = true;
-						}
-					}
-					if (recombination_callback->contains_gcStarts_)
-					{
-						EidosValue_SP new_gcstarts = client_symbols.GetValueOrRaiseForSymbol(gID_gcStarts);
-						
-						if (new_gcstarts != local_gcstarts_ptr)
-						{
-							if (new_gcstarts->Type() != EidosValueType::kValueInt)
-								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcStarts) of type integer." << EidosTerminate(recombination_callback->identifier_token_);
-							
-							new_gcstarts.swap(local_gcstarts_ptr);
-							gcstarts_changed = true;
-						}
-					}
-					if (recombination_callback->contains_gcEnds_)
-					{
-						EidosValue_SP new_gcends = client_symbols.GetValueOrRaiseForSymbol(gID_gcEnds);
-						
-						if (new_gcends != local_gcends_ptr)
-						{
-							if (new_gcends->Type() != EidosValueType::kValueInt)
-								EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide output values (gcEnds) of type integer." << EidosTerminate(recombination_callback->identifier_token_);
-							
-							new_gcends.swap(local_gcends_ptr);
-							gcends_changed = true;
 						}
 					}
 				}
@@ -2079,48 +2041,6 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 			
 			for (int value_index = 0; value_index < count; ++value_index)
 				p_crossovers_data[value_index] = (slim_position_t)new_crossover_data[value_index];
-		}
-		
-		breakpoints_changed = true;
-	}
-	
-	if (gcstarts_changed)
-	{
-		int count = local_gcstarts_ptr->Count();
-		
-		p_gc_starts.resize(count);		// zero-fills only new entries at the margin, so is minimally wasteful
-		
-		if (count == 1)
-			p_gc_starts[0] = (slim_position_t)local_gcstarts_ptr->IntAtIndex(0, nullptr);
-		else
-		{
-			const EidosValue_Int_vector *new_gcstarts_vector = local_gcstarts_ptr->IntVector();
-			const int64_t *new_gcstarts_data = new_gcstarts_vector->data();
-			slim_position_t *p_gc_starts_data = p_gc_starts.data();
-			
-			for (int value_index = 0; value_index < count; ++value_index)
-				p_gc_starts_data[value_index] = (slim_position_t)new_gcstarts_data[value_index];
-		}
-		
-		breakpoints_changed = true;
-	}
-	
-	if (gcends_changed)
-	{
-		int count = local_gcends_ptr->Count();
-		
-		p_gc_ends.resize(count);		// zero-fills only new entries at the margin, so is minimally wasteful
-		
-		if (count == 1)
-			p_gc_ends[0] = (slim_position_t)local_gcends_ptr->IntAtIndex(0, nullptr);
-		else
-		{
-			const EidosValue_Int_vector *new_gcends_vector = local_gcends_ptr->IntVector();
-			const int64_t *new_gcends_data = new_gcends_vector->data();
-			slim_position_t *p_gc_ends_data = p_gc_ends.data();
-			
-			for (int value_index = 0; value_index < count; ++value_index)
-				p_gc_ends_data[value_index] = (slim_position_t)new_gcends_data[value_index];
 		}
 		
 		breakpoints_changed = true;
@@ -2298,6 +2218,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	Chromosome &chromosome = sim_.TheChromosome();
 	int num_mutations, num_breakpoints;
 	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
+	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
 	
 	all_breakpoints.clear();
 	
@@ -2328,94 +2249,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		// draw the breakpoints based on the recombination rate map, and sort and unique the result
 		if (num_breakpoints)
 		{
-			if (chromosome.gene_conversion_fraction_ > 0.0)
+			if (chromosome.using_DSB_model_)
+				chromosome.DrawDSBBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints, heteroduplex);
+			else
+				chromosome.DrawCrossoverBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
+			
+			if (p_recombination_callbacks)
 			{
-				// gene conversion, with or without recombination callbacks
-				if (!chromosome.any_recombination_rates_05_)
-				{
-					// we have no recombination rates of 0.5, so we don't have to worry about them
-					std::vector<slim_position_t> gc_starts, gc_ends;
-					
-					chromosome.DrawUniquedBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
-					
-					if (chromosome.gene_conversion_fraction_ > 0.0)
-						chromosome.DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
-					
-					if (p_recombination_callbacks)
-						ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
-					
-					num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
-					
-					if (num_breakpoints)
-					{
-						all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-						all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-						
-						if (all_breakpoints.size() > 1)
-						{
-							std::sort(all_breakpoints.begin(), all_breakpoints.end());
-							all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-						}
-						
-						// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
-						all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
-					}
-					else
-					{
-						// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
-						// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
-					}
-				}
-				else
-				{
-					// we have recombination rates of 0.5, so we need to separate out those breakpoints, which are not GC-eligible
-					std::vector<slim_position_t> breakpoints_r05, gc_starts, gc_ends;
-					
-					chromosome.DrawUniquedBreakpointsForGC_r05(p_parent_sex, num_breakpoints, all_breakpoints, breakpoints_r05);
-					chromosome.DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
-					all_breakpoints.insert(all_breakpoints.end(), breakpoints_r05.begin(), breakpoints_r05.end());
-					
-					if (p_recombination_callbacks)
-						ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
-					
-					num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
-					
-					if (num_breakpoints)
-					{
-						all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-						all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-						
-						if (all_breakpoints.size() > 1)
-						{
-							std::sort(all_breakpoints.begin(), all_breakpoints.end());
-							all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-						}
-						
-						// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
-						all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
-					}
-					else
-					{
-						// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
-						// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
-					}
-				}
-			}
-			else if (p_recombination_callbacks)
-			{
-				// recombination callbacks but no gene conversion
-				chromosome.DrawUniquedBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
+				// a non-zero number of breakpoints, with recombination callbacks
+				if (chromosome.using_DSB_model_ && (chromosome.simple_conversion_fraction_ != 1.0))
+					EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 				
-				std::vector<slim_position_t> gc_starts, gc_ends;
-				
-				ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
-				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+				ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, *p_recombination_callbacks);
+				num_breakpoints = (int)all_breakpoints.size();
 				
 				if (num_breakpoints)
 				{
-					all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-					all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-					
 					if (all_breakpoints.size() > 1)
 					{
 						std::sort(all_breakpoints.begin(), all_breakpoints.end());
@@ -2427,32 +2276,28 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				}
 				else
 				{
-					// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
+					// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
 					// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 				}
 			}
 			else
 			{
-				// neither gene conversion nor recombination
-				chromosome.DrawUniquedBreakpoints(p_parent_sex, num_breakpoints, all_breakpoints);
-				
+				// a non-zero number of breakpoints, without recombination callbacks
 				// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
 				all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
 			}
 		}
 		else if (p_recombination_callbacks)
 		{
-			// no breakpoints from the SLiM core, so no gene conversion can occur, but we still have recombination() callbacks
-			std::vector<slim_position_t> gc_starts, gc_ends;
+			// zero breakpoints from the SLiM core, but we have recombination() callbacks
+			if (chromosome.using_DSB_model_ && (chromosome.simple_conversion_fraction_ != 1.0))
+				EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 			
-			ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, gc_starts, gc_ends, *p_recombination_callbacks);
-			num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
+			ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, *p_recombination_callbacks);
+			num_breakpoints = (int)all_breakpoints.size();
 			
 			if (num_breakpoints)
 			{
-				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-				
 				if (all_breakpoints.size() > 1)
 				{
 					std::sort(all_breakpoints.begin(), all_breakpoints.end());
@@ -2464,15 +2309,15 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			}
 			else
 			{
-				// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
+				// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
 				// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 			}
 		}
 		else
 		{
-			// no breakpoints, no gene conversion, no recombination() callbacks
+			// no breakpoints or DSBs, no recombination() callbacks
 			
-			// Note that we do not add the (p_chromosome.last_position_mutrun_ + 1) breakpoint here, for speed in the
+			// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
 			// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 		}
 	}

@@ -407,11 +407,15 @@ void _RunInitTests(void)
 	//
 	
 	// Test (void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
-	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000); stop(); }", __LINE__);										// legal; no max for meanLength
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(-0.001, 10000000000000); stop(); }", 1, 15, "must be between 0.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(1.001, 10000000000000); stop(); }", 1, 15, "must be between 0.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 0.0); stop(); }", 1, 15, "must be greater than 0.0", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5); stop(); }", 1, 15, "missing required argument", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeGeneConversion(0.5, 10000000000000, 0.0); stop(); }", __LINE__);										// legal; no max for meanLength
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(-0.001, 10000000000000, 0.0); stop(); }", 1, 15, "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(1.001, 10000000000000, 0.0); stop(); }", 1, 15, "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 0.0, 0.0); stop(); }", 1, 15, "meanLength must be greater than 0.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, -0.001); stop(); }", 1, 15, "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 1.001); stop(); }", 1, 15, "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, -1.001); stop(); }", 1, 15, "bias must be between -1.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, 1.001); stop(); }", 1, 15, "bias must be between -1.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeGeneConversion(0.5, 1000, 0.0, 0.1); stop(); }", 1, 15, "must be 0.0 in non-nucleotide-based models", __LINE__);
 	
 	// Test (object<MutationType>$)initializeMutationType(is$ id, numeric$ dominanceCoeff, string$ distributionType, ...)
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }", __LINE__);
@@ -1152,8 +1156,11 @@ void _RunChromosomeTests(void)
 	
 	// Test Chromosome properties
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.colorSubstitution == '#3333FF') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionEnabled == F) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionGCBias == 0.0) stop(); }", 1, 244, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionNonCrossoverFraction == 0.0) stop(); }", 1, 244, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", 1, 244, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; if (ch.geneConversionSimpleConversionFraction == 0.0) stop(); }", 1, 244, "not defined since the DSB", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.lastPosition == 99999) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; if (ch.overallRecombinationRate == 1e-8 * 99999) stop(); }", __LINE__);
@@ -1178,12 +1185,6 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 263, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionFraction = 1.001; stop(); }", 1, 263, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.2; if (ch.geneConversionMeanLength == 0.2) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.0; stop(); }", 1, 265, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 1e10; stop(); }", __LINE__);												// legal; no upper bound
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 256, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 253, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.overallRecombinationRate = 1e-2; stop(); }", 1, 265, "read-only property", __LINE__);
@@ -1206,8 +1207,11 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.mutationRatesF = 1e-8; stop(); }", 1, 255, "read-only property", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.colorSubstitution == '#3333FF') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionEnabled == F) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionGCBias == 0.0) stop(); }", 1, 264, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionNonCrossoverFraction == 0.0) stop(); }", 1, 264, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", 1, 264, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.geneConversionSimpleConversionFraction == 0.0) stop(); }", 1, 264, "not defined since the DSB", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.lastPosition == 99999) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; if (ch.overallRecombinationRate == 1e-8 * 99999) stop(); }", __LINE__);
@@ -1232,12 +1236,6 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 283, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionFraction = 1.001; stop(); }", 1, 283, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.2; if (ch.geneConversionMeanLength == 0.2) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.0; stop(); }", 1, 285, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 1e10; stop(); }", __LINE__);												// legal; no upper bound
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 276, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 273, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.overallRecombinationRate = 1e-2; stop(); }", 1, 285, "read-only property", __LINE__);
@@ -1262,8 +1260,11 @@ void _RunChromosomeTests(void)
 	std::string gen1_setup_sex_2rates("initialize() { initializeSex('X'); initializeMutationRate(1e-7, sex='M'); initializeMutationRate(1e-8, sex='F'); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8, 99999, 'M'); initializeRecombinationRate(1e-7, 99999, 'F'); } ");
 	
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.colorSubstitution == '#3333FF') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionFraction == 0.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionEnabled == F) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionGCBias == 0.0) stop(); }", 1, 371, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionNonCrossoverFraction == 0.0) stop(); }", 1, 371, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionMeanLength == 0.0) stop(); }", 1, 371, "not defined since the DSB", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.geneConversionSimpleConversionFraction == 0.0) stop(); }", 1, 371, "not defined since the DSB", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.genomicElements[0].genomicElementType == g1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (ch.lastPosition == 99999) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; if (isNULL(ch.overallRecombinationRate)) stop(); }", 1, 378, "sex-specific recombination rate maps", __LINE__);
@@ -1288,12 +1289,6 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionFraction = 0.1; if (ch.geneConversionFraction == 0.1) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionFraction = -0.001; stop(); }", 1, 390, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionFraction = 1.001; stop(); }", 1, 390, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.2; if (ch.geneConversionMeanLength == 0.2) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 0.0; stop(); }", 1, 392, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.geneConversionMeanLength = 1e10; stop(); }", __LINE__);												// legal; no upper bound
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 383, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 380, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.overallRecombinationRate = 1e-2; stop(); }", 1, 392, "read-only property", __LINE__);

@@ -8494,31 +8494,45 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeGeneConversion(numeric$ conversionFraction, numeric$ meanLength)
+//	*********************	(void)initializeGeneConversion(numeric$ nonCrossoverFraction, numeric$ meanLength, numeric$ simpleConversionFraction, [numeric$ bias = 0])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_argument_count, p_interpreter)
-	EidosValue *conversionFraction_value = p_arguments[0].get();
+	EidosValue *nonCrossoverFraction_value = p_arguments[0].get();
 	EidosValue *meanLength_value = p_arguments[1].get();
+	EidosValue *simpleConversionFraction_value = p_arguments[2].get();
+	EidosValue *bias_value = p_arguments[3].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_gene_conversions_ > 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() may be called only once." << EidosTerminate();
 	
-	double gene_conversion_fraction = conversionFraction_value->FloatAtIndex(0, nullptr);
+	double non_crossover_fraction = nonCrossoverFraction_value->FloatAtIndex(0, nullptr);
 	double gene_conversion_avg_length = meanLength_value->FloatAtIndex(0, nullptr);
+	double simple_conversion_fraction = simpleConversionFraction_value->FloatAtIndex(0, nullptr);
+	double bias = bias_value->FloatAtIndex(0, nullptr);
 	
-	if ((gene_conversion_fraction < 0.0) || (gene_conversion_fraction > 1.0) || std::isnan(gene_conversion_fraction))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() conversionFraction must be between 0.0 and 1.0 inclusive (" << EidosStringForFloat(gene_conversion_fraction) << " supplied)." << EidosTerminate();
+	if ((non_crossover_fraction < 0.0) || (non_crossover_fraction > 1.0) || std::isnan(non_crossover_fraction))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() nonCrossoverFraction must be between 0.0 and 1.0 inclusive (" << EidosStringForFloat(non_crossover_fraction) << " supplied)." << EidosTerminate();
 	if ((gene_conversion_avg_length <= 0.0) || std::isnan(gene_conversion_avg_length))		// intentionally no upper bound
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() meanLength must be greater than 0.0 (" << EidosStringForFloat(gene_conversion_avg_length) << " supplied)." << EidosTerminate();
+	if ((simple_conversion_fraction < 0.0) || (simple_conversion_fraction > 1.0) || std::isnan(simple_conversion_fraction))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() simpleConversionFraction must be between 0.0 and 1.0 inclusive (" << EidosStringForFloat(simple_conversion_fraction) << " supplied)." << EidosTerminate();
+	if ((bias < -1.0) || (bias > 1.0) || std::isnan(bias))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() bias must be between -1.0 and 1.0 inclusive (" << EidosStringForFloat(bias) << " supplied)." << EidosTerminate();
+	if ((bias != 0.0) && !nucleotide_based_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() bias must be 0.0 in non-nucleotide-based models." << EidosTerminate();
 	
-	chromosome_.gene_conversion_fraction_ = gene_conversion_fraction;
+	chromosome_.using_DSB_model_ = true;
+	chromosome_.non_crossover_fraction_ = non_crossover_fraction;
 	chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
+	chromosome_.gene_conversion_inv_half_length_ = 1.0 / (gene_conversion_avg_length / 2.0);
+	chromosome_.simple_conversion_fraction_ = simple_conversion_fraction;
+	chromosome_.mismatch_repair_bias_ = bias;
 	
 	if (DEBUG_INPUT)
-		output_stream << "initializeGeneConversion(" << gene_conversion_fraction << ", " << gene_conversion_avg_length << ");" << std::endl;
+		output_stream << "initializeGeneConversion(" << non_crossover_fraction << ", " << gene_conversion_avg_length << ", " << simple_conversion_fraction << ", " << bias << ");" << std::endl;
 	
 	num_gene_conversions_++;
 	
@@ -9175,7 +9189,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskVOID, "SLiM"))
-										->AddNumeric_S("conversionFraction")->AddNumeric_S("meanLength"));
+										->AddNumeric_S("nonCrossoverFraction")->AddNumeric_S("meanLength")->AddNumeric_S("simpleConversionFraction")->AddNumeric_OS("bias", gStaticEidosValue_Integer0));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeHotspotMap, nullptr, kEidosValueMaskVOID, "SLiM"))

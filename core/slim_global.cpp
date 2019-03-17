@@ -886,8 +886,11 @@ const std::string gStr_recombinationEndPositionsF = "recombinationEndPositionsF"
 const std::string gStr_recombinationRates = "recombinationRates";
 const std::string gStr_recombinationRatesM = "recombinationRatesM";
 const std::string gStr_recombinationRatesF = "recombinationRatesF";
-const std::string gStr_geneConversionFraction = "geneConversionFraction";
+const std::string gStr_geneConversionEnabled = "geneConversionEnabled";
+const std::string gStr_geneConversionGCBias = "geneConversionGCBias";
+const std::string gStr_geneConversionNonCrossoverFraction = "geneConversionNonCrossoverFraction";
 const std::string gStr_geneConversionMeanLength = "geneConversionMeanLength";
+const std::string gStr_geneConversionSimpleConversionFraction = "geneConversionSimpleConversionFraction";
 const std::string gStr_genomeType = "genomeType";
 const std::string gStr_isNullGenome = "isNullGenome";
 const std::string gStr_mutations = "mutations";
@@ -1084,8 +1087,6 @@ const std::string gStr_mut = "mut";
 const std::string gStr_relFitness = "relFitness";
 const std::string gStr_homozygous = "homozygous";
 const std::string gStr_breakpoints = "breakpoints";
-const std::string gStr_gcStarts = "gcStarts";
-const std::string gStr_gcEnds = "gcEnds";
 const std::string gStr_receiver = "receiver";
 const std::string gStr_exerter = "exerter";
 
@@ -1217,8 +1218,11 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_recombinationRates, gID_recombinationRates);
 		Eidos_RegisterStringForGlobalID(gStr_recombinationRatesM, gID_recombinationRatesM);
 		Eidos_RegisterStringForGlobalID(gStr_recombinationRatesF, gID_recombinationRatesF);
-		Eidos_RegisterStringForGlobalID(gStr_geneConversionFraction, gID_geneConversionFraction);
+		Eidos_RegisterStringForGlobalID(gStr_geneConversionEnabled, gID_geneConversionEnabled);
+		Eidos_RegisterStringForGlobalID(gStr_geneConversionGCBias, gID_geneConversionGCBias);
+		Eidos_RegisterStringForGlobalID(gStr_geneConversionNonCrossoverFraction, gID_geneConversionNonCrossoverFraction);
 		Eidos_RegisterStringForGlobalID(gStr_geneConversionMeanLength, gID_geneConversionMeanLength);
+		Eidos_RegisterStringForGlobalID(gStr_geneConversionSimpleConversionFraction, gID_geneConversionSimpleConversionFraction);
 		Eidos_RegisterStringForGlobalID(gStr_genomeType, gID_genomeType);
 		Eidos_RegisterStringForGlobalID(gStr_isNullGenome, gID_isNullGenome);
 		Eidos_RegisterStringForGlobalID(gStr_mutations, gID_mutations);
@@ -1410,8 +1414,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_relFitness, gID_relFitness);
 		Eidos_RegisterStringForGlobalID(gStr_homozygous, gID_homozygous);
 		Eidos_RegisterStringForGlobalID(gStr_breakpoints, gID_breakpoints);
-		Eidos_RegisterStringForGlobalID(gStr_gcStarts, gID_gcStarts);
-		Eidos_RegisterStringForGlobalID(gStr_gcEnds, gID_gcEnds);
 		Eidos_RegisterStringForGlobalID(gStr_receiver, gID_receiver);
 		Eidos_RegisterStringForGlobalID(gStr_exerter, gID_exerter);
 		

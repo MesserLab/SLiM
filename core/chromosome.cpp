@@ -32,6 +32,7 @@
 #include <string>
 #include <cmath>
 #include <utility>
+#include <tuple>
 
 
 // This struct is used to represent a constant-mutation-rate subrange of a genomic element; it is used internally by Chromosome.
@@ -76,7 +77,8 @@ Chromosome::Chromosome(SLiMSim *p_sim) :
 	probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), 
 #endif
 
-	last_position_(0), gene_conversion_fraction_(0.0), gene_conversion_avg_length_(0.0), last_position_mutrun_(0)
+	last_position_(0), last_position_mutrun_(0),
+	using_DSB_model_(false), non_crossover_fraction_(0.0), gene_conversion_avg_length_(0.0), gene_conversion_inv_half_length_(0.0), simple_conversion_fraction_(0.0), mismatch_repair_bias_(0.0)
 {
 	// Set up the default color for fixed mutations in SLiMgui
 	color_sub_ = "#3333FF";
@@ -814,14 +816,13 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 	return new_mut_index;
 }
 
-// choose a set of recombination breakpoints, based on recombination intervals and overall recombination rate
-// note that this does not handle gene conversion or recombination breakpoints; those are done after this step
-void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
+// draw a set of uniqued breakpoints according to the "crossover breakpoint" model and run them through recombination() callbacks, returning the final usable set
+void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
 {
-	// BEWARE!  Chromosome::DrawUniquedBreakpointsForGC_r05() below must be altered in parallel with this method!
+	// BEWARE! Chromosome::DrawDSBBreakpoints() below must be altered in parallel with this method!
 #if DEBUG
-	if (any_recombination_rates_05_ && (gene_conversion_fraction_ > 0.0))
-		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpoints): (internal error) this method should not be called when rate==0.5 segments exist unless gene conversion is disabled." << EidosTerminate();
+	if (using_DSB_model_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawCrossoverBreakpoints): (internal error) this method should not be called when the DSB recombination model is being used." << EidosTerminate();
 #endif
 	
 	gsl_ran_discrete_t *lookup;
@@ -836,12 +837,12 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 	else
 	{
 		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
-		if (p_sex == IndividualSex::kMale)
+		if (p_parent_sex == IndividualSex::kMale)
 		{
 			lookup = lookup_recombination_M_;
 			end_positions = &recombination_end_positions_M_;
 		}
-		else if (p_sex == IndividualSex::kFemale)
+		else if (p_parent_sex == IndividualSex::kFemale)
 		{
 			lookup = lookup_recombination_F_;
 			end_positions = &recombination_end_positions_F_;
@@ -890,17 +891,9 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 		// since we guarantee that recombination end positions are in strictly ascending order.  So we should never crash.  :->
 		
 		if (recombination_interval == 0)
-		{
 			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval]) + 1);
-			// old 32-bit position not MT64 code:
-			//breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval])) + 1);
-		}
 		else
-		{
 			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
-			// old 32-bit position not MT64 code:
-			//breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1])));
-		}
 		
 		p_crossovers.emplace_back(breakpoint);
 	}
@@ -909,7 +902,7 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 	if (p_num_breakpoints > 2)
 	{
 		std::sort(p_crossovers.begin(), p_crossovers.end());
-		p_crossovers.erase(unique(p_crossovers.begin(), p_crossovers.end()), p_crossovers.end());
+		p_crossovers.erase(std::unique(p_crossovers.begin(), p_crossovers.end()), p_crossovers.end());
 	}
 	else if (p_num_breakpoints == 2)
 	{
@@ -927,15 +920,14 @@ void Chromosome::DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_bre
 	}
 }
 
-// This is identical to Chromosome::DrawUniquedBreakpoints() except that it segregates crossovers from
-// rate r=0.5 regions in a separate vector; see Chromosome::DrawUniquedBreakpoints() for comments.
-// This should be called only in the case where at least one rate=0.5 region exists, for efficiency.
-void Chromosome::DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_crossovers_from_r05) const
+// draw a set of uniqued breakpoints according to the "double-stranded break" model and run them through recombination() callbacks, returning the final usable set
+// the information returned here also includes a list of heteroduplex regions where mismatches between the two parental strands will need to be resolved
+void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const
 {
-	// BEWARE!  Chromosome::DrawUniquedBreakpoints() above must be altered in parallel with this method!
+	// BEWARE! Chromosome::DrawCrossoverBreakpoints() above must be altered in parallel with this method!
 #if DEBUG
-	if ((!any_recombination_rates_05_) || (gene_conversion_fraction_ == 0.0))
-		EIDOS_TERMINATION << "ERROR (Chromosome::DrawUniquedBreakpointsForGC_r05): (internal error) this method should only be called when rate==0.5 segments exist and gene conversion is enabled." << EidosTerminate();
+	if (!using_DSB_model_)
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): (internal error) this method should not be called when the crossover breakpoints recombination model is being used." << EidosTerminate();
 #endif
 	
 	gsl_ran_discrete_t *lookup;
@@ -944,19 +936,21 @@ void Chromosome::DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int 
 	
 	if (single_recombination_map_)
 	{
+		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
 		lookup = lookup_recombination_H_;
 		end_positions = &recombination_end_positions_H_;
 		rates = &recombination_rates_H_;
 	}
 	else
 	{
-		if (p_sex == IndividualSex::kMale)
+		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
+		if (p_parent_sex == IndividualSex::kMale)
 		{
 			lookup = lookup_recombination_M_;
 			end_positions = &recombination_end_positions_M_;
 			rates = &recombination_rates_M_;
 		}
-		else if (p_sex == IndividualSex::kFemale)
+		else if (p_parent_sex == IndividualSex::kFemale)
 		{
 			lookup = lookup_recombination_F_;
 			end_positions = &recombination_end_positions_F_;
@@ -968,88 +962,116 @@ void Chromosome::DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int 
 		}
 	}
 	
+	// Draw extents and crossover/noncrossover and simple/complex decisions for p_num_breakpoints DSBs; we may not end up using all
+	// of them, if the uniquing step reduces the set of DSBs, but we don't want to redraw these things if we have to loop back due
+	// to a collision, because such redrawing would be liable to produce bias towards shorter extents.  (Redrawing the crossover/
+	// noncrossover and simple/complex decisions would probably be harmless, but it is simpler to just make all decisions up front.)
+	static std::vector<std::tuple<slim_position_t, slim_position_t, bool, bool>> dsb_infos;	// using a static prevents reallocation
+	dsb_infos.clear();
+	
+	for (int i = 0; i < p_num_breakpoints; i++)
+	{
+		slim_position_t extent1 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 0
+		slim_position_t extent2 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 1
+		bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
+		bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
+		
+		dsb_infos.emplace_back(std::tuple<slim_position_t, slim_position_t, bool, bool>(extent1, extent2, noncrossover, simple));
+	}
+	
+	int try_count = 0;
+	
+generateDSBs:
+	
+	if (++try_count > 100)
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): non-overlapping recombination regions could not be achieved in 100 tries; terminating.  The recombination rate and/or mean gene conversion tract length may be too high." << EidosTerminate();
+	
+	// First draw DSB points; dsb_points contains positions and a flag for whether the breakpoint is at a rate=0.5 position
+	static std::vector<std::pair<slim_position_t, bool>> dsb_points;	// using a static prevents reallocation
+	dsb_points.clear();
+	
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
 		int recombination_interval = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
 		
 		if (recombination_interval == 0)
-		{
 			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval]) + 1);
-			// old 32-bit position not MT64 code:
-			//breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval])) + 1);
-		}
 		else
-		{
 			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
-			// old 32-bit position not MT64 code:
-			//breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1])));
-		}
 		
 		if ((*rates)[recombination_interval] == 0.5)
-			p_crossovers_from_r05.emplace_back(breakpoint);
+			dsb_points.emplace_back(std::pair<slim_position_t, bool>(breakpoint, true));
 		else
-			p_crossovers.emplace_back(breakpoint);
+			dsb_points.emplace_back(std::pair<slim_position_t, bool>(breakpoint, false));
 	}
 	
-	// sort and unique
-	if (p_crossovers.size() > 2)
+	// Sort and unique the resulting DSB vector
+	if (p_num_breakpoints > 1)
 	{
-		std::sort(p_crossovers.begin(), p_crossovers.end());
-		p_crossovers.erase(unique(p_crossovers.begin(), p_crossovers.end()), p_crossovers.end());
+		std::sort(dsb_points.begin(), dsb_points.end());		// sorts by the first element of the pair
+		dsb_points.erase(std::unique(dsb_points.begin(), dsb_points.end()), dsb_points.end());
 	}
-	else if (p_crossovers.size() == 2)
+	
+	// Assemble lists of crossover breakpoints and heteroduplex regions, starting from a clean slate
+	int final_num_breakpoints = (int)dsb_points.size();
+	slim_position_t last_position_used = -1;
+	
+	p_crossovers.clear();
+	p_heteroduplex.clear();
+	
+	for (int i = 0; i < final_num_breakpoints; i++)
 	{
-		// do our own dumb inline sort/unique if we have just two elements, to avoid the calls above
-		// I didn't actually test this to confirm that it's faster, but models that generate many
-		// breakpoints will generally hit the case above anyway, and models that generate few will
-		// suffer only the additional (num_breakpoints == 2) test before falling through...
-		slim_position_t bp1 = p_crossovers[0];
-		slim_position_t bp2 = p_crossovers[1];
+		std::pair<slim_position_t, bool> &dsb_pair = dsb_points[i];
+		std::tuple<slim_position_t, slim_position_t, bool, bool> &dsb_info = dsb_infos[i];
+		slim_position_t dsb_point = dsb_pair.first;
 		
-		if (bp1 > bp2)
-			std::swap(p_crossovers[0], p_crossovers[1]);
-		else if (bp1 == bp2)
-			p_crossovers.resize(1);
-	}
-	
-	// note that we do not sort/unique p_crossovers_from_r05; we do not guarantee to the caller that we will do that.
-	// p_crossovers needs to be sorted/uniqued so gene conversion can use it, but the r05 breakpoints will be uniqued later.
-}
-
-void Chromosome::DoGeneConversion(std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_gc_starts, std::vector<slim_position_t> &p_gc_ends) const
-{
-	// Run through p_crossovers and randomly convert breakpoints into gene conversion stretches
-	// Note that if there are any rate==0.5 positions, breakpoints associated with them should not be in p_crossovers
-	
-	if (gene_conversion_fraction_ > 0.0)
-	{
-		int breakpoint_count = (int)p_crossovers.size();
-		
-		for (int breakpoint_index = 0; breakpoint_index < breakpoint_count; ++breakpoint_index)
+		if (dsb_pair.second)
 		{
-			if (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gene_conversion_fraction_)
+			// This DSB is at a rate=0.5 point, so we do not generate a gene conversion tract; it just translates directly to a crossover breakpoint
+			// Note that we do NOT check non_crossover_fraction_ here; it does not apply to rate=0.5 positions, since they cannot undergo gene conversion
+			if (dsb_point <= last_position_used)
+				goto generateDSBs;
+			
+			p_crossovers.push_back(dsb_point);
+			last_position_used = dsb_point;
+		}
+		else
+		{
+			// This DSB is not at a rate=0.5 point, so we generate a gene conversion tract around it
+			slim_position_t tract_start = dsb_point - std::get<0>(dsb_info);
+			slim_position_t tract_end = SLiMClampToPositionType(dsb_point + std::get<1>(dsb_info));
+			
+			if (tract_start < 0) tract_start = 0;
+			if (tract_end > last_position_) tract_end = last_position_;
+			
+			if (tract_start <= last_position_used)
+				goto generateDSBs;
+			
+			if (tract_start == tract_end)
 			{
-				// we would like to do gene conversion; draw the end of the gene conversion stretch and see if it's off the end
-				// we used to always add the second breakpoint; added this test 17 August 2015 BCH, but it shouldn't really matter
-				slim_position_t breakpoint = p_crossovers[breakpoint_index];
-				slim_position_t breakpoint2 = SLiMClampToPositionType(breakpoint + gsl_ran_geometric(EIDOS_GSL_RNG, 1.0 / gene_conversion_avg_length_));
+				// gene conversion tract of zero length, so no tract after all, but we do use non_crossover here
+				if (!std::get<2>(dsb_info))
+					p_crossovers.push_back(tract_start);
+				last_position_used = tract_start;
+			}
+			else
+			{
+				// gene conversion tract of non-zero length, so generate the tract
+				p_crossovers.push_back(tract_start);
+				if (std::get<2>(dsb_info))
+					p_crossovers.push_back(tract_end);
+				last_position_used = tract_end;
 				
-				if (breakpoint2 <= last_position_)	
+				// decide if it is a simple or a complex tract
+				if (!std::get<3>(dsb_info))
 				{
-					// ok, we have a valid GC stretch, so convert p_crossovers[breakpoint_index] to a gc site
-					p_gc_starts.push_back(breakpoint);
-					p_gc_ends.push_back(breakpoint2);
-					
-					// backfill the crossovers vector to remove the converted breakpoint
-					p_crossovers[breakpoint_index] = p_crossovers[breakpoint_count - 1];
-					breakpoint_count--;
+					// complex gene conversion tract; we need to save it in the list of heteroduplex regions
+					p_heteroduplex.push_back(tract_start);
+					p_heteroduplex.push_back(tract_end);
 				}
 			}
 		}
-		
-		// resize to fit the items left behind after gene conversion
-		p_crossovers.resize(breakpoint_count);
 	}
 }
 
@@ -1315,10 +1337,32 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			// variables
 		case gID_colorSubstitution:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_sub_));
-		case gID_geneConversionFraction:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_fraction_));
+		case gID_geneConversionEnabled:
+			return using_DSB_model_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+		case gID_geneConversionGCBias:
+		{
+			if (!using_DSB_model_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionGCBias is not defined since the DSB recombination model is not being used." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(mismatch_repair_bias_));
+		}
+		case gID_geneConversionNonCrossoverFraction:
+		{
+			if (!using_DSB_model_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionNonCrossoverFraction is not defined since the DSB recombination model is not being used." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(non_crossover_fraction_));
+		}
 		case gID_geneConversionMeanLength:
+		{
+			if (!using_DSB_model_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionMeanLength is not defined since the DSB recombination model is not being used." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_avg_length_));
+		}
+		case gID_geneConversionSimpleConversionFraction:
+		{
+			if (!using_DSB_model_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionSimpleConversionFraction is not defined since the DSB recombination model is not being used." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(simple_conversion_fraction_));
+		}
 		case gID_tag:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
 			
@@ -1338,26 +1382,6 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			color_sub_ = p_value.StringAtIndex(0, nullptr);
 			if (!color_sub_.empty())
 				Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
-			return;
-		}
-		case gID_geneConversionFraction:
-		{
-			double value = p_value.FloatAtIndex(0, nullptr);
-			
-			if ((value < 0.0) || (value > 1.0))
-				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << Eidos_StringForGlobalStringID(p_property_id) << " is out of range." << EidosTerminate();
-			
-			gene_conversion_fraction_ = value;
-			return;
-		}
-		case gID_geneConversionMeanLength:
-		{
-			double value = p_value.FloatAtIndex(0, nullptr);
-			
-			if (value <= 0.0)		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (Chromosome::SetProperty): new value " << value << " for property " << Eidos_StringForGlobalStringID(p_property_id) << " is out of range." << EidosTerminate();
-			
-			gene_conversion_avg_length_ = value;
 			return;
 		}
 		case gID_tag:
@@ -1436,6 +1460,9 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	EidosValue *parent_value = p_arguments[0].get();
 	EidosValue *n_value = p_arguments[1].get();
 	
+	if (using_DSB_model_ && (simple_conversion_fraction_ != 1.0))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() does not allow complex gene conversion tracts to be in use, since there is no provision for handling heteroduplex regions." << EidosTerminate();
+	
 	// In a sexual model with sex-specific recombination maps, we need to know the parent we're
 	// generating breakpoints for; in other situations it is optional, but recombination()
 	// breakpoints will not be called if parent is NULL.
@@ -1477,113 +1504,37 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	}
 	
 	std::vector<slim_position_t> all_breakpoints;
+	std::vector<slim_position_t> heteroduplex;				// never actually used since simple_conversion_fraction_ must be 1.0
 	
 	// draw the breakpoints based on the recombination rate map, and sort and unique the result
 	if (num_breakpoints)
 	{
-		if (gene_conversion_fraction_ > 0.0)
-		{
-			// gene conversion, with or without recombination callbacks
-			if (!any_recombination_rates_05_)
-			{
-				// we have no recombination rates of 0.5, so we don't have to worry about them
-				std::vector<slim_position_t> gc_starts, gc_ends;
-				
-				DrawUniquedBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
-				
-				if (gene_conversion_fraction_ > 0.0)
-					DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
-				
-				if (recombination_callbacks.size())
-					sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
-				
-				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
-				
-				if (num_breakpoints)
-				{
-					all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-					all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-					
-					if (all_breakpoints.size() > 1)
-					{
-						std::sort(all_breakpoints.begin(), all_breakpoints.end());
-						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-					}
-				}
-			}
-			else
-			{
-				// we have recombination rates of 0.5, so we need to separate out those breakpoints, which are not GC-eligible
-				std::vector<slim_position_t> breakpoints_r05, gc_starts, gc_ends;
-				
-				DrawUniquedBreakpointsForGC_r05(parent_sex, num_breakpoints, all_breakpoints, breakpoints_r05);
-				DoGeneConversion(all_breakpoints, gc_starts, gc_ends);
-				all_breakpoints.insert(all_breakpoints.end(), breakpoints_r05.begin(), breakpoints_r05.end());
-				
-				if (recombination_callbacks.size())
-					sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
-				
-				num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
-				
-				if (num_breakpoints)
-				{
-					all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-					all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-					
-					if (all_breakpoints.size() > 1)
-					{
-						std::sort(all_breakpoints.begin(), all_breakpoints.end());
-						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-					}
-				}
-			}
-		}
-		else if (recombination_callbacks.size())
-		{
-			// recombination callbacks but no gene conversion
-			DrawUniquedBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
-			
-			std::vector<slim_position_t> gc_starts, gc_ends;
-			
-			sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
-			num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
-			
-			if (num_breakpoints)
-			{
-				all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-				all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
-				
-				if (all_breakpoints.size() > 1)
-				{
-					std::sort(all_breakpoints.begin(), all_breakpoints.end());
-					all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-				}
-			}
-		}
+		if (using_DSB_model_)
+			DrawDSBBreakpoints(parent_sex, num_breakpoints, all_breakpoints, heteroduplex);
 		else
-		{
-			// neither gene conversion nor recombination callbacks
-			DrawUniquedBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
-		}
-	}
-	else if (recombination_callbacks.size())
-	{
-		// no breakpoints from the SLiM core, so no gene conversion can occur, but we still have recombination() callbacks
-		std::vector<slim_position_t> gc_starts, gc_ends;
+			DrawCrossoverBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
 		
-		sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, gc_starts, gc_ends, recombination_callbacks);
-		num_breakpoints = (int)(all_breakpoints.size() + gc_starts.size() + gc_ends.size());
-		
-		if (num_breakpoints)
+		if (recombination_callbacks.size())
 		{
-			all_breakpoints.insert(all_breakpoints.end(), gc_starts.begin(), gc_starts.end());
-			all_breakpoints.insert(all_breakpoints.end(), gc_ends.begin(), gc_ends.end());
+			// a non-zero number of breakpoints, with recombination callbacks
+			sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, recombination_callbacks);
 			
 			if (all_breakpoints.size() > 1)
 			{
 				std::sort(all_breakpoints.begin(), all_breakpoints.end());
 				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			}
+		}
+	}
+	else if (recombination_callbacks.size())
+	{
+		// zero breakpoints from the SLiM core, but we have recombination() callbacks
+		sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, recombination_callbacks);
+		
+		if (all_breakpoints.size() > 1)
+		{
+			std::sort(all_breakpoints.begin(), all_breakpoints.end());
+			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 		}
 	}
 	else
@@ -1952,36 +1903,39 @@ const std::vector<const EidosPropertySignature *> *Chromosome_Class::Properties(
 	{
 		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
 		
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,			true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositions,		true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsM,		true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsF,		true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliers,			true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliersM,		true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliersF,		true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositions,		true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsM,		true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsF,		true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRates,				true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesM,				true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesF,				true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateM,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateF,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateM,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateF,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,	true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsM,	true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsF,	true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,			true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesM,		true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesF,		true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionFraction,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositions,					true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsM,					true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsF,					true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliers,						true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliersM,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotMultipliersF,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositions,					true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsM,					true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationEndPositionsF,					true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRates,							true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesM,							true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesF,							true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateM,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateF,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateM,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallRecombinationRateF,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositions,				true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsM,				true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationEndPositionsF,				true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,						true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesM,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesF,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionEnabled,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionGCBias,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionNonCrossoverFraction,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionSimpleConversionFraction,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,									false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,						false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}

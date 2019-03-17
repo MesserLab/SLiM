@@ -157,8 +157,6 @@ public:
 	bool contains_parent2Genome1_ = false;		// "parent2Genome1" (modifyChild callback parameter)
 	bool contains_parent2Genome2_ = false;		// "parent2Genome2" (modifyChild callback parameter)
 	bool contains_breakpoints_ = false;			// "breakpoints" (recombination callback parameter)
-	bool contains_gcStarts_ = false;			// "gcStarts" (recombination callback parameter)
-	bool contains_gcEnds_ = false;				// "gcEnds" (recombination callback parameter)
 	bool contains_distance_ = false;			// "distance" (interaction callback parameter)
 	bool contains_strength_ = false;			// "strength" (interaction callback parameter)
 	bool contains_receiver_ = false;			// "receiver" (interaction callback parameter)

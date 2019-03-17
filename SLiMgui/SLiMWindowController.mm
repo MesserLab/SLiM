@@ -4266,8 +4266,6 @@
 									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_breakpoints,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
-									(*typeTable)->SetTypeForSymbol(gID_gcStarts,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
-									(*typeTable)->SetTypeForSymbol(gID_gcEnds,			EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
 								case SLiMEidosBlockType::SLiMEidosReproductionCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});

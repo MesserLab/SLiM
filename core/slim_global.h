@@ -474,8 +474,11 @@ extern const std::string gStr_recombinationEndPositionsF;
 extern const std::string gStr_recombinationRates;
 extern const std::string gStr_recombinationRatesM;
 extern const std::string gStr_recombinationRatesF;
-extern const std::string gStr_geneConversionFraction;
+extern const std::string gStr_geneConversionEnabled;
+extern const std::string gStr_geneConversionGCBias;
+extern const std::string gStr_geneConversionNonCrossoverFraction;
 extern const std::string gStr_geneConversionMeanLength;
+extern const std::string gStr_geneConversionSimpleConversionFraction;
 extern const std::string gStr_genomeType;
 extern const std::string gStr_isNullGenome;
 extern const std::string gStr_mutations;
@@ -670,8 +673,6 @@ extern const std::string gStr_mut;
 extern const std::string gStr_relFitness;
 extern const std::string gStr_homozygous;
 extern const std::string gStr_breakpoints;
-extern const std::string gStr_gcStarts;
-extern const std::string gStr_gcEnds;
 extern const std::string gStr_receiver;
 extern const std::string gStr_exerter;
 
@@ -765,8 +766,11 @@ enum _SLiMGlobalStringID : int {
 	gID_recombinationRates,
 	gID_recombinationRatesM,
 	gID_recombinationRatesF,
-	gID_geneConversionFraction,
+	gID_geneConversionEnabled,
+	gID_geneConversionGCBias,
+	gID_geneConversionNonCrossoverFraction,
 	gID_geneConversionMeanLength,
+	gID_geneConversionSimpleConversionFraction,
 	gID_genomeType,
 	gID_isNullGenome,
 	gID_mutations,
@@ -961,8 +965,6 @@ enum _SLiMGlobalStringID : int {
 	gID_relFitness,
 	gID_homozygous,
 	gID_breakpoints,
-	gID_gcStarts,
-	gID_gcEnds,
 	gID_receiver,
 	gID_exerter,
 	

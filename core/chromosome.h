@@ -149,8 +149,12 @@ public:
 	double overall_recombination_rate_M_userlevel_;			// overall recombination rate (unreparameterized; see _InitializeOneRecombinationMap)
 	double overall_recombination_rate_F_userlevel_;			// overall recombination rate (unreparameterized; see _InitializeOneRecombinationMap)
 	
-	double gene_conversion_fraction_;						// gene conversion fraction
+	bool using_DSB_model_;									// if true, we are using the DSB recombination model, involving the variables below
+	double non_crossover_fraction_;							// fraction of DSBs that do not result in crossover
 	double gene_conversion_avg_length_;						// average gene conversion stretch length
+	double gene_conversion_inv_half_length_;				// 1.0 / (gene_conversion_avg_length_ / 2.0), used for geometric draws
+	double simple_conversion_fraction_;						// fraction of gene conversion tracts that are "simple" (no heteroduplex mismatche repair)
+	double mismatch_repair_bias_;							// GC bias in heteroduplex mismatch repair in complex gene conversion tracts
 	
 	int32_t mutrun_count_;									// number of mutation runs being used for all genomes
 	slim_position_t mutrun_length_;							// the length, in base pairs, of each mutation run; the last run may not use its full length
@@ -200,10 +204,9 @@ public:
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;
 	
-	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion probability
-	void DrawUniquedBreakpoints(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const;
-	void DrawUniquedBreakpointsForGC_r05(IndividualSex p_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_crossovers_from_r05) const;
-	void DoGeneConversion(std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_gc_starts, std::vector<slim_position_t> &p_gc_ends) const;
+	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion parameters
+	void DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const;
+	void DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const;
 	
 #ifndef USE_GSL_POISSON
 	// draw both the mutation count and breakpoint count, using a single Poisson draw for speed

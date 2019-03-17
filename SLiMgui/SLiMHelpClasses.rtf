@@ -35,21 +35,52 @@
 \f5\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 geneConversionFraction <\'96> (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+geneConversionEnabled => (logical$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The fraction of crossover events that result in gene conversion; see SLiM\'92s manual for details.
-\f5 \
+\f4\fs20 \cf2 When gene conversion has been enabled by calling 
+\f3\fs18 initializeGeneConversion()
+\f4\fs20 , switching to the DSB recombination model, this property is 
+\f3\fs18 T
+\f4\fs20 ; otherwise, when using the crossover breakpoints model, it is 
+\f3\fs18 F
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 geneConversionMeanLength <\'96> (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 geneConversionGCBias => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The mean length of a gene conversion event (in base positions).
-\f5 \
+\f4\fs20 \cf2 The gBGC coefficient expressing a bias in the resolution of heteroduplex mismatches in complex gene conversion tracts.  When gene conversion has not been enabled by calling 
+\f3\fs18 initializeGeneConversion()
+\f4\fs20 , this property will be unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 genomicElements => (object<GenomicElement>)\
+\f3\fs18 \cf2 geneConversionNonCrossoverFraction => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The fraction of double-stranded breaks that result in non-crossover events.  When gene conversion has not been enabled by calling 
+\f3\fs18 initializeGeneConversion()
+\f4\fs20 , this property will be unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 geneConversionMeanLength => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The mean length of a gene conversion tract (in base positions).  When gene conversion has not been enabled by calling 
+\f3\fs18 initializeGeneConversion()
+\f4\fs20 , this property will be unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 geneConversionSimpleConversionFraction => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The fraction of gene conversion tracts that are \'93simple\'94 (i.e., not involving resolution of heteroduplex mismatches); the remainder will be \'93complex\'94.  When gene conversion has not been enabled by calling 
+\f3\fs18 initializeGeneConversion()
+\f4\fs20 , this property will be unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomicElements => (object<GenomicElement>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 All of the 
@@ -434,8 +465,9 @@ For purposes related to interpreting the nucleotide sequence as a coding sequenc
 \f3\fs18 n
 \f4\fs20 , may be supplied; if it is 
 \f3\fs18 NULL
-\f4\fs20  (the default), the number of breakpoints will be drawn based upon the overall recombination rate and the chromosome length (following the standard procedure in SLiM).  Note that if gene conversion is enabled, the number of breakpoints generated may not be equal to the number requested, because any given breakpoint might become a gene conversion event, which entails an additional breakpoint (to terminate the gene conversion tract).\
-It is generally recommended that the parent individual be supplied to this method, but 
+\f4\fs20  (the default), the number of breakpoints will be drawn based upon the overall recombination rate and the chromosome length (following the standard procedure in SLiM).  Note that if the double-stranded breaks model has been chosen, the number of breakpoints generated will probably not be equal to the number requested, because most breakpoints will entail gene conversion tracts, which entail additional crossover breakpoints.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 It is generally recommended that the parent individual be supplied to this method, but 
 \f3\fs18 parent
 \f4\fs20  is 
 \f3\fs18 NULL
@@ -3728,7 +3760,7 @@ If the model is being profiled, or is executing forward to a generation number e
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 This property has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0   In SLiM 3.2.1 and later, use 
+\f4\b0 \cf2   In SLiM 3.2.1 and later, use 
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -4121,7 +4153,7 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F], [logical$\'a0append\'a0=\'a0F], [logical$\'a0spatialPositions\'a0=\'a0T]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0ages\'a0=\'a0T]\cf2 , [logical$\'a0ancestralNucleotides\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4188,7 +4220,7 @@ Beginning with SLiM 3.0, the
 \f4\fs20 , ages will be output for nonWF models.  In WF simulations, the 
 \f3\fs18 ages
 \f4\fs20  parameter will be ignored.\
-\cf2 Beginning with SLiM 3.3, the 
+Beginning with SLiM 3.3, the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  parameter may be used to control the output of the ancestral nucleotide sequence in nucleotide-based models.  If 
 \f3\fs18 ancestralNucleotides
@@ -4197,8 +4229,8 @@ Beginning with SLiM 3.0, the
 \f4\fs20 , the output will not contain ancestral nucleotide information, and so the ancestral sequence will not be restored correctly if the saved file is loaded with 
 \f3\fs18 readPopulationFile()
 \f4\fs20 .  This option is provided because the ancestral sequence may be quite large, for models with a long chromosome (e.g., 1 GB if the chromosome is 10
-\fs13\fsmilli6667 \super 9
-\fs20 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
+\fs13\fsmilli6667 \cf2 \super 9
+\fs20 \cf2 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
 \f3\fs18 nucleotideBased
 \f4\fs20  parameter to 
 \f3\fs18 initializeSLiMOptions()
@@ -4207,8 +4239,8 @@ Beginning with SLiM 3.0, the
 \f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will 
 \f1\i \cf2 always
 \f4\i0 \cf2  include the nucleotides associated with any nucleotide-based mutations; the 
-\f3\fs18 \cf2 ancestralNucleotides
-\f4\fs20 \cf2  flag governs only the ancestral sequence.\
+\f3\fs18 ancestralNucleotides
+\f4\fs20  flag governs only the ancestral sequence.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
 \f3\fs18 late()
@@ -5246,7 +5278,7 @@ Note that this method is only for use in nonWF models.  See
 \f3\fs18 \cf2 \'96\'a0(No<Individual>$)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Generates a new offspring individual from the given parental genomes with the specified recombination breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  The target subpopulation will be used to locate applicable 
+\f4\fs20 \cf2 Generates a new offspring individual from the given parental genomes with the specified crossover breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  The target subpopulation will be used to locate applicable 
 \f3\fs18 modifyChild()
 \f4\fs20  callbacks governing the generation of the offspring individual (unlike the other 
 \f3\fs18 addX()
@@ -5394,7 +5426,12 @@ These semantics allow several uses for
 \f4\fs20  to replace segments of an otherwise clonal copy of 
 \f3\fs18 strand1
 \f4\fs20 , while the second genome of the generated offspring will again be kept empty; this could be useful for modeling bacterial conjugation, for example.  Other variations are also possible.\
-Note that this method is only for use in nonWF models.  See 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that gene conversion tracts are not explicitly supported by this method; the 
+\f3\fs18 breaks
+\f4\fs20  vectors provide crossover breakpoints, which may be used to implement crossovers or simple gene conversion tracts.  There is no way to specify complex gene conversion tracts with heteroduplex mismatch repair.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0

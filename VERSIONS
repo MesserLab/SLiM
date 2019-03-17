@@ -31,6 +31,9 @@ development head:
 		add hotspot map support: initializeHotspotMap(), setHotspotMap(), and associated properties
 		add output of nucleotides to outputMutations(), outputFixedMutations(), and other output methods
 		add nucleotidesToCodons() function
+		revamp the recombination model for the new gene conversion design
+		remove gcStarts / gcEnds from the recombination() callback specification
+		remove old nucleotide and biased gene conversion recipes
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)

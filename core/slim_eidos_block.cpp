@@ -872,8 +872,6 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_parent2Genome1) == 0)		contains_parent2Genome1_ = true;
 		if (token_string.compare(gStr_parent2Genome2) == 0)		contains_parent2Genome2_ = true;
 		if (token_string.compare(gStr_breakpoints) == 0)		contains_breakpoints_ = true;
-		if (token_string.compare(gStr_gcStarts) == 0)			contains_gcStarts_ = true;
-		if (token_string.compare(gStr_gcEnds) == 0)				contains_gcEnds_ = true;
 		if (token_string.compare(gStr_distance) == 0)			contains_distance_ = true;
 		if (token_string.compare(gStr_strength) == 0)			contains_strength_ = true;
 		if (token_string.compare(gStr_receiver) == 0)			contains_receiver_ = true;
@@ -908,8 +906,6 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 		contains_parent2Genome1_ = true;
 		contains_parent2Genome2_ = true;
 		contains_breakpoints_ = true;
-		contains_gcStarts_ = true;
-		contains_gcEnds_ = true;
 		contains_distance_ = true;
 		contains_strength_ = true;
 		contains_receiver_ = true;
