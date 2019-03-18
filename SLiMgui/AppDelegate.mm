@@ -168,6 +168,7 @@ typedef enum SLiMLaunchAction
 				case 14:chapterName = @"Continuous-space models and interactions";							break;
 				case 15:chapterName = @"Going beyond Wright-Fisher models: nonWF model recipes";			break;
 				case 16:chapterName = @"Tree-sequence recording: tracking population history";				break;
+				case 17:chapterName = @"Modeling explicit nucleotides";										break;
 				default: break;
 			}
 			
