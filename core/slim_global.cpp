@@ -968,6 +968,7 @@ const std::string gStr_maxDistance = "maxDistance";
 // mostly method names
 const std::string gStr_ancestralNucleotides = "ancestralNucleotides";
 const std::string gStr_nucleotides = "nucleotides";
+const std::string gStr_setGeneConversion = "setGeneConversion";
 const std::string gStr_setHotspotMap = "setHotspotMap";
 const std::string gStr_setMutationRate = "setMutationRate";
 const std::string gStr_setRecombinationRate = "setRecombinationRate";
@@ -1299,6 +1300,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gStr_ancestralNucleotides, gID_ancestralNucleotides);
 		Eidos_RegisterStringForGlobalID(gStr_nucleotides, gID_nucleotides);
+		Eidos_RegisterStringForGlobalID(gStr_setGeneConversion, gID_setGeneConversion);
 		Eidos_RegisterStringForGlobalID(gStr_setHotspotMap, gID_setHotspotMap);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate, gID_setMutationRate);
 		Eidos_RegisterStringForGlobalID(gStr_setRecombinationRate, gID_setRecombinationRate);

@@ -35,6 +35,7 @@ development head:
 		remove gcStarts / gcEnds from the recombination() callback specification
 		remove old nucleotide and biased gene conversion recipes
 		fix recipe 6.1.3 (gene conversion)
+		add setGeneConversion() method on Chromosome to change the gene conversion parameters dynamically
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)

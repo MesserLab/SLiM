@@ -555,6 +555,7 @@ extern const std::string gStr_maxDistance;
 
 extern const std::string gStr_ancestralNucleotides;
 extern const std::string gStr_nucleotides;
+extern const std::string gStr_setGeneConversion;
 extern const std::string gStr_setHotspotMap;
 extern const std::string gStr_setMutationRate;
 extern const std::string gStr_setRecombinationRate;
@@ -847,6 +848,7 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_ancestralNucleotides,
 	gID_nucleotides,
+	gID_setGeneConversion,
 	gID_setHotspotMap,
 	gID_setMutationRate,
 	gID_setRecombinationRate,

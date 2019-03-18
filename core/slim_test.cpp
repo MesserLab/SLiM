@@ -1519,6 +1519,20 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 99999), 'M'); stop(); }", 1, 367, "rates must be in [0.0, 0.5]", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 2000), 'M'); stop(); }", 1, 367, "rates must be in [0.0, 0.5]", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.setRecombinationRate(c(0.0, -0.001), c(1000, 100000), 'M'); stop(); }", 1, 367, "rates must be in [0.0, 0.5]", __LINE__);
+	
+	// initializeGeneConversion() tests
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75); } 1 { if (sim.chromosome.geneConversionEnabled == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75); } 1 { if (sim.chromosome.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75); } 1 { if (sim.chromosome.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75); } 1 { if (sim.chromosome.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75); } 1 { if (sim.chromosome.geneConversionGCBias == 0.0) stop(); }", __LINE__);
+	
+	// setGeneConversion() tests
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosome.geneConversionEnabled == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosome.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosome.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosome.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosome.geneConversionGCBias == 0.0) stop(); }", __LINE__);
 }
 
 #pragma mark Mutation tests
@@ -4152,6 +4166,30 @@ void _RunNucleotideMethodTests(void)
 	
 	// MutationType.nucleotideBased
 	SLiMAssertScriptStop(nuc_model_init + "1 { if (m1.nucleotideBased == T) stop(); }", __LINE__);
+	
+	// initializeGeneConversion() tests using GC bias != 0
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 { if (sim.chromosome.geneConversionEnabled == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 { if (sim.chromosome.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 { if (sim.chromosome.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 { if (sim.chromosome.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 { if (sim.chromosome.geneConversionGCBias == -0.01) stop(); }", __LINE__);
+	
+	// Chromosome.setGeneConversion() tests using GC bias != 0
+	SLiMAssertScriptStop(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionEnabled == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionGCBias == -0.01) stop(); }", __LINE__);
+	
+	// Chromosome.setGeneConversion() bounds tests
+	SLiMAssertScriptRaise(nuc_model_init + "1 { sim.chromosome.setGeneConversion(-0.001, 10000000000000, 0.0); stop(); }", 1, 320, "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { sim.chromosome.setGeneConversion(1.001, 10000000000000, 0.0); stop(); }", 1, 320, "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.5, -0.01, 0.0); stop(); }", 1, 320, "meanLength must be >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.5, 1000, -0.001); stop(); }", 1, 320, "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.5, 1000, 1.001); stop(); }", 1, 320, "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.5, 1000, 0.0, -1.001); stop(); }", 1, 320, "bias must be between -1.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { sim.chromosome.setGeneConversion(0.5, 1000, 0.0, 1.001); stop(); }", 1, 320, "bias must be between -1.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosome.setGeneConversion(0.5, 1000, 0.0, 0.1); stop(); }", 1, 231, "must be 0.0 in non-nucleotide-based models", __LINE__);
 }
 
 #pragma mark SLiM timing tests
