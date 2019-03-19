@@ -38,6 +38,7 @@ development head:
 		fix recipe 6.1.3 (gene conversion)
 		add setGeneConversion() method on Chromosome to change the gene conversion parameters dynamically
 		add recipes for chapter 17 (17.1 - 17.10)
+		add recording of nucleotides and ancestral sequence in tree-sequence recording
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)

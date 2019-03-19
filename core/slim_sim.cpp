@@ -5065,7 +5065,8 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	
 	/***  De-ascii-ify Mutation Table ***/
 	{
-		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
+#warning need to handle nucleotide field of MutationMetadataRec
 		
 		// Mutation derived state
 		const char *derived_state = tables_.mutations->derived_state;
@@ -5338,7 +5339,8 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 	
     /***  Ascii-ify Mutation Table ***/
 	{
-		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
+#warning need to handle nucleotide field of MutationMetadataRec
 		
 		// Mutation derived state
 		const char *derived_state = p_tables->mutations->derived_state;
@@ -5576,7 +5578,8 @@ void SLiMSim::DerivedStatesFromAscii(table_collection_t *p_tables)
 	if (ret < 0) handle_error("derived_to_ascii", ret);
 	
 	{
-		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
+#warning need to handle nucleotide field of MutationMetadataRec
 		
 		const char *derived_state = p_tables->mutations->derived_state;
 		table_size_t *derived_state_offset = p_tables->mutations->derived_state_offset;
@@ -5645,7 +5648,8 @@ void SLiMSim::DerivedStatesToAscii(table_collection_t *p_tables)
 	if (ret < 0) handle_error("derived_to_ascii", ret);
 	
 	{
-		static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
+#warning need to handle nucleotide field of MutationMetadataRec
 		
 		const char *derived_state = p_tables->mutations->derived_state;
 		table_size_t *derived_state_offset = p_tables->mutations->derived_state_offset;
@@ -6301,10 +6305,19 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// Write out the copied tables
     if (p_binary)
 	{
-		// derived state data must in ASCII (or unicode) on disk, according to tskit policy
+		// derived state data must be in ASCII (or unicode) on disk, according to tskit policy
 		DerivedStatesToAscii(&output_tables);
 		
 		table_collection_dump(&output_tables, path.c_str(), 0);
+		
+		// In nucleotide-based models, write out the ancestral sequence
+#warning need to write ancestral sequence to kastore; THIS CODE CRASHES RIGHT NOW
+		if (nucleotide_based_)
+		{
+			char *buffer;	// kastore needs to provide us with a memory location to which to write the data
+			
+			chromosome_.AncestralSequence()->WriteNucleotidesToBuffer(buffer);
+		}
     }
 	else
 	{
@@ -6347,6 +6360,20 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			fclose(MspTxtIndividualTable);
 			fclose(MspTxtPopulationTable);
 			fclose(MspTxtProvenanceTable);
+			
+			// In nucleotide-based models, write out the ancestral sequence as a separate text file
+			if (nucleotide_based_)
+			{
+				std::string RefSeqFileName = path + "/ReferenceSequence.txt";
+				std::ofstream outfile;
+				
+				outfile.open(RefSeqFileName, std::ofstream::out);
+				if (!outfile.is_open())
+					EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): treeSeqOutput() could not open "<< RefSeqFileName << "." << EidosTerminate();
+				
+				outfile << *(chromosome_.AncestralSequence());
+				outfile.close();
+			}
 		}
 		else
 		{
@@ -6416,7 +6443,7 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 
 void SLiMSim::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata)
 {
-	static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
 	
 	if (!p_mutation || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForMutation): (internal error) bad parameters to MetadataForMutation()." << EidosTerminate();
@@ -6425,11 +6452,12 @@ void SLiMSim::MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_m
 	p_metadata->selection_coeff_ = p_mutation->selection_coeff_;
 	p_metadata->subpop_index_ = p_mutation->subpop_index_;
 	p_metadata->origin_generation_ = p_mutation->origin_generation_;
+	p_metadata->nucleotide_ = p_mutation->nucleotide_;
 }
 
 void SLiMSim::MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata)
 {
-	static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
 	
 	if (!p_substitution || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForSubstitution): (internal error) bad parameters to MetadataForSubstitution()." << EidosTerminate();
@@ -6438,6 +6466,7 @@ void SLiMSim::MetadataForSubstitution(Substitution *p_substitution, MutationMeta
 	p_metadata->selection_coeff_ = p_substitution->selection_coeff_;
 	p_metadata->subpop_index_ = p_substitution->subpop_index_;
 	p_metadata->origin_generation_ = p_substitution->origin_generation_;
+	p_metadata->nucleotide_ = p_substitution->nucleotide_;
 }
 
 void SLiMSim::MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata)
@@ -6514,6 +6543,7 @@ void SLiMSim::DumpMutationTable(void)
 
 void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 {
+#warning could cross-check nucleotides
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
@@ -7386,7 +7416,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-#warning need to handle the nucleotide field
+#warning need to handle nucleotide field of MutationMetadataRec
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_, generation_, -1);
 			
 			population_.treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(position, sub));
@@ -7400,7 +7430,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-#warning Need to handle the nucleotide field
+#warning Need to handle nucleotide field of MutationMetadataRec
 			new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_, -1);
 			
 			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
@@ -7638,14 +7668,29 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 
 slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
+	std::string directory_path(p_file);
+	
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeTextFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
 	
 	// free the existing table collection
 	FreeTreeSequence();
 	
+	// in nucleotide-based models, read the ancestral sequence
+	if (nucleotide_based_)
+	{
+		std::string RefSeqFileName = directory_path + "/ReferenceSequence.txt";
+		std::ifstream infile;
+		
+		infile.open(RefSeqFileName, std::ifstream::in);
+		if (!infile.is_open())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeTextFile): readFromPopulationFile() could not open "<< RefSeqFileName << "; this model is nucleotide-based, but the ancestral sequence is missing or unreadable." << EidosTerminate();
+		
+		infile >> *(chromosome_.AncestralSequence());	// raises if the sequence is the wrong length
+		infile.close();
+	}
+	
 	// read the files from disk
-	std::string directory_path(p_file);
 	std::string edge_path = directory_path + "/EdgeTable.txt";
 	std::string node_path = directory_path + "/NodeTable.txt";
 	std::string site_path = directory_path + "/SiteTable.txt";
@@ -7667,6 +7712,21 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	
 	// free the existing table collection
 	FreeTreeSequence();
+	
+	// in nucleotide-based models, read the ancestral sequence
+#warning Need to read ancestral sequence from kastore; THIS CODE CRASHES RIGHT NOW
+	if (nucleotide_based_)
+	{
+		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
+		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
+		
+		if (!buffer)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
+		if (buffer_length != chromosome_.AncestralSequence()->size())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
+		
+		chromosome_.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
+	}
 	
 #if 0
 	// CRASHES: the loaded table collection is immutable (non-malloc'd columns)

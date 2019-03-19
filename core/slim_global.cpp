@@ -796,6 +796,31 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 	return gStaticEidosValueNULL;
 }
 
+void NucleotideArray::WriteNucleotidesToBuffer(char *buffer) const
+{
+	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
+	
+	for (std::size_t index = 0; index < length_; ++index)
+		buffer[index] = nuc_chars[NucleotideAtIndex(index)];
+}
+
+void NucleotideArray::ReadNucleotidesFromBuffer(char *buffer)
+{
+	for (std::size_t index = 0; index < length_; ++index)
+	{
+		char nuc_char = buffer[index];
+		uint64_t nuc_int;
+		
+		if (nuc_char == 'A')		nuc_int = 0;
+		else if (nuc_char == 'C')	nuc_int = 1;
+		else if (nuc_char == 'G')	nuc_int = 2;
+		else if (nuc_char == 'T')	nuc_int = 3;
+		else EIDOS_TERMINATION << "ERROR (NucleotideArray::ReadNucleotidesFromBuffer): unexpected character '" << nuc_char << "' in nucleotide sequence." << EidosTerminate();
+		
+		SetNucleotideAtIndex(index, nuc_int);
+	}
+}
+
 std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array)
 {
 	// Emit FASTA format with 70 bases per line
@@ -832,6 +857,47 @@ std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array
 	}
 	
 	return p_out;
+}
+
+std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
+{
+	// read in nucleotides, skipping over newline characters; we expect to read exactly the right number of nucleotides
+	std::size_t index = 0;
+	
+	do
+	{
+		int nuc_char = p_in.get();
+		
+		if (nuc_char)
+		{
+			if ((nuc_char == '\r') || (nuc_char == '\n') || (nuc_char == ' '))
+				continue;
+			if (index >= p_nuc_array.length_)
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::operator>>): excess nucleotide sequence; the sequence length does not match the model." << EidosTerminate();
+			
+			uint64_t nuc_int;
+			
+			if (nuc_char == 'A')		nuc_int = 0;
+			else if (nuc_char == 'C')	nuc_int = 1;
+			else if (nuc_char == 'G')	nuc_int = 2;
+			else if (nuc_char == 'T')	nuc_int = 3;
+			else EIDOS_TERMINATION << "ERROR (NucleotideArray::operator>>): unexpected character '" << nuc_char << "' in nucleotide sequence." << EidosTerminate();
+			
+			p_nuc_array.SetNucleotideAtIndex(index, nuc_int);
+			index++;
+		}
+		else
+		{
+			// we got an EOF; we should be exactly done
+			if (index == p_nuc_array.length_)
+				break;
+			
+			EIDOS_TERMINATION << "ERROR (NucleotideArray::operator>>): premature end of nucleotide sequence; the sequence length does not match the model." << EidosTerminate();
+		}
+	}
+	while (true);
+	
+	return p_in;
 }
 
 

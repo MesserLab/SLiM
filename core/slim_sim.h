@@ -121,6 +121,7 @@ typedef struct __attribute__((__packed__)) {
 	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
 	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
+	int8_t nucleotide_;						// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
 } MutationMetadataRec;
 
 typedef struct __attribute__((__packed__)) {
@@ -161,7 +162,7 @@ typedef struct __attribute__((__packed__)) {
 } SubpopulationMigrationMetadataRec;
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
-static_assert(sizeof(MutationMetadataRec) == 16, "MutationMetadataRec is not 16 bytes!");
+static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec is not 17 bytes!");
 static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
 static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec is not 24 bytes!");
 static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec is not 88 bytes!");

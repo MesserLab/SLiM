@@ -400,12 +400,22 @@ public:
 	}
 	void SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc);
 	
+	// Write nucleotides to a char buffer; the buffer must be allocated with sufficient length
+	void WriteNucleotidesToBuffer(char *buffer) const;
+	
+	// Read nucleotides from a char buffer; the buffer is assumed to be of appropriate length
+	void ReadNucleotidesFromBuffer(char *buffer);
+	
+	// Write nucleotides into an EidosValue, in any of the supported formats
 	EidosValue_SP NucleotidesAsIntegerVector(int64_t start, int64_t end);
 	EidosValue_SP NucleotidesAsCodonVector(int64_t start, int64_t end, bool p_force_vector);
 	EidosValue_SP NucleotidesAsStringVector(int64_t start, int64_t end);
 	EidosValue_SP NucleotidesAsStringSingleton(int64_t start, int64_t end);
 	
+	// Read/write nucleotides to a stream; here FASTA format is used on output (with no header
+	// produced, 70 characters per line), and on input (no header allowed, newlines removed)
 	friend std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array);
+	friend std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array);
 	
 	// Provides a static lookup table for going from char ('A'/'C'/'G'/'T') to int (0/1/2/3; 4 for errors)
 	static uint8_t *NucleotideCharToIntLookup(void);
