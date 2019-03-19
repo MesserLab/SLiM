@@ -65,7 +65,7 @@ extern "C" {
 #endif
 
 // This is the version written to the provenance table of .trees files
-static const char *SLIM_TREES_FILE_VERSION_INITIAL = "0.1";		// SLiM 3.0, before the Inidividual table, etc.; UNSUPPORTED
+static const char *SLIM_TREES_FILE_VERSION_INITIAL __attribute__((unused)) = "0.1";		// SLiM 3.0, before the Inidividual table, etc.; UNSUPPORTED
 static const char *SLIM_TREES_FILE_VERSION_PRENUC = "0.2";		// before introduction of nucleotides
 static const char *SLIM_TREES_FILE_VERSION = "0.3";				// SLiM 3.3 onward, with the added nucleotide field in MutationMetadataRec
 
@@ -6332,8 +6332,11 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			chromosome_.AncestralSequence()->WriteNucleotidesToBuffer(buffer);
 			
 			ret = kastore_open(&store, path.c_str(), "a", 0);
+			if (ret < 0) handle_error("kastore_open", ret);
+				
 #warning this copies the whole buffer; would be nice to have a way to pass in a buffer that kastore takes from us
-			kastore_puts_int8(&store, "reference_sequence/sequence", (int8_t *)buffer, buflen, 0);
+			kastore_puts_int8(&store, "reference_sequence/data", (int8_t *)buffer, buflen, 0);
+			if (ret < 0) handle_error("kastore_puts_int8", ret);
 			
 			free(buffer);
 		}
@@ -7734,21 +7737,6 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	// free the existing table collection
 	FreeTreeSequence();
 	
-	// in nucleotide-based models, read the ancestral sequence
-#warning Need to read ancestral sequence from kastore; THIS CODE CRASHES RIGHT NOW
-	if (nucleotide_based_)
-	{
-		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
-		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
-		
-		if (!buffer)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
-		if (buffer_length != chromosome_.AncestralSequence()->size())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
-		
-		chromosome_.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
-	}
-	
 #if 0
 	// CRASHES: the loaded table collection is immutable (non-malloc'd columns)
 	// Jerome says this is a bug, and that he will add a flag for table_collection_load() to make it copy the blocks
@@ -7780,6 +7768,26 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	
 	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
 	DerivedStatesFromAscii(&tables_);
+	
+	// in nucleotide-based models, read the ancestral sequence from the open kastore of immutable_tables
+	if (nucleotide_based_)
+	{
+		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
+		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
+		
+		ret = kastore_gets_int8(immutable_tables.store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
+		if (ret != 0)
+			buffer = NULL;
+		
+		if (!buffer)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
+		if (buffer_length != chromosome_.AncestralSequence()->size())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromMSPrimeBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
+		
+		chromosome_.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
+		
+		free(buffer);
+	}
 	
 	// free our private immutable tables
 	table_collection_free(&immutable_tables);
