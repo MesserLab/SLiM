@@ -123,6 +123,12 @@ typedef struct __attribute__((__packed__)) {
 	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
 	int8_t nucleotide_;						// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
 } MutationMetadataRec;
+typedef struct __attribute__((__packed__)) {
+	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
+	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
+	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
+	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
+} MutationMetadataRec_PRENUC;	// used to read .trees file version 0.2, before nucleotides were added
 
 typedef struct __attribute__((__packed__)) {
 	slim_genomeid_t genome_id_;				// 8 bytes (int64_t): the SLiM genome ID for this genome, assigned by pedigree rec
@@ -599,7 +605,7 @@ public:
 	void FixAliveIndividuals(table_collection_t *p_tables);
 	void WritePopulationTable(table_collection_t *p_tables);
 	void WriteProvenanceTable(table_collection_t *p_tables, bool p_use_newlines);
-	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type);
+	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, const char **p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
     void ReorderIndividualTable(table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void SimplifyTreeSequence(void);
