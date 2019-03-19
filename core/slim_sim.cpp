@@ -6321,13 +6321,21 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		
 		table_collection_dump(&output_tables, path.c_str(), 0);
 		
-		// In nucleotide-based models, write out the ancestral sequence
-#warning need to write ancestral sequence to kastore; THIS CODE CRASHES RIGHT NOW
+		// In nucleotide-based models, write out the ancestral sequence, re-opening the kastore to append
 		if (nucleotide_based_)
 		{
+			std::size_t buflen = chromosome_.AncestralSequence()->size();
 			char *buffer;	// kastore needs to provide us with a memory location to which to write the data
+			kastore_t store;
 			
+			buffer = (char *)malloc(buflen);
 			chromosome_.AncestralSequence()->WriteNucleotidesToBuffer(buffer);
+			
+			ret = kastore_open(&store, path.c_str(), "a", 0);
+#warning this copies the whole buffer; would be nice to have a way to pass in a buffer that kastore takes from us
+			kastore_puts_int8(&store, "reference_sequence/sequence", (int8_t *)buffer, buflen, 0);
+			
+			free(buffer);
 		}
     }
 	else
