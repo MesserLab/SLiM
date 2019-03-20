@@ -657,12 +657,15 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 	// Determine which parental genome the mutation will be atop (so we can get the genetic context for it)
 	bool on_first_genome = true;
 	
-	for (slim_position_t breakpoint : *all_breakpoints)
+	if (all_breakpoints)
 	{
-		if (breakpoint > position)
-			break;
-		
-		on_first_genome = !on_first_genome;
+		for (slim_position_t breakpoint : *all_breakpoints)
+		{
+			if (breakpoint > position)
+				break;
+			
+			on_first_genome = !on_first_genome;
+		}
 	}
 	
 	Genome *background_genome = (on_first_genome ? parent_genome_1 : parent_genome_2);
