@@ -6334,14 +6334,13 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			ret = kastore_open(&store, path.c_str(), "a", 0);
 			if (ret < 0) handle_error("kastore_open", ret);
 				
-			// FIXME this copies the whole buffer; would be nice to have a way to pass in a buffer that kastore takes from us
-			kastore_puts_int8(&store, "reference_sequence/data", (int8_t *)buffer, buflen, 0);
+			kastore_puts_int8(&store, "reference_sequence/data", (int8_t *)buffer, buflen, KAS_TAKE_BUFFER);
 			if (ret < 0) handle_error("kastore_puts_int8", ret);
 			
 			ret = kastore_close(&store);
 			if (ret < 0) handle_error("kastore_close", ret);
 			
-			free(buffer);
+			// kastore owns buffer now, due to KAS_TAKE_BUFFER, so we do not free it
 		}
     }
 	else

@@ -706,7 +706,7 @@ kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *a
 int KAS_WARN_UNUSED
 kastore_put(kastore_t *self, const char *key, size_t key_len,
        const void *array, size_t array_len, int type,
-       int KAS_UNUSED(flags))
+       int flags)
 {
     int ret = 0;
     kaitem_t *new_item;
@@ -741,7 +741,9 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     new_item->array_len = array_len;
     array_size = type_size(type) * array_len;
     new_item->key = malloc(key_len);
-    new_item->array = malloc(array_size == 0? 1: array_size);
+	// Note we cast away const here on array because we take ownership, so now array is ours and we can modify it if we like
+	// This is not optimal (probably violates the standard); the alternative is to make the parameter array be non-const, I guess
+	new_item->array = (flags & KAS_TAKE_BUFFER) ? (void *)array : malloc(array_size == 0 ? 1 : array_size);
     if (new_item->key == NULL || new_item->array == NULL) {
         kas_safe_free(new_item->key);
         kas_safe_free(new_item->array);
@@ -750,7 +752,8 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     }
     self->num_items++;
     memcpy(new_item->key, key, key_len);
-    memcpy(new_item->array, array, array_size);
+    if ((flags & KAS_TAKE_BUFFER) == 0)
+		memcpy(new_item->array, array, array_size);
 
     /* Check if this key is already in here. OK, this is a quadratic time
      * algorithm, but we're not expecting to have lots of items (< 100). In

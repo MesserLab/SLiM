@@ -45,6 +45,9 @@
 #define KAS_FLOAT64             9
 #define KAS_NUM_TYPES           10
 
+/* Flags for the kastore_put* family of functions */
+#define KAS_TAKE_BUFFER			1
+
 #define KAS_READ                1
 #define KAS_WRITE               2
 
