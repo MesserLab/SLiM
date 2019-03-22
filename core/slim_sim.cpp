@@ -556,6 +556,20 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		int64_t generation_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		slim_generation_t generation = SLiMCastToGenerationTypeOrRaise(generation_long);
 		
+		iss >> sub;		// prevalence, which we discard
+		
+		int8_t nucleotide = -1;
+		if (iss && !iss.eof())
+		{
+			// fetch the nucleotide field if it is present
+			iss >> sub;
+			if (sub == "A") nucleotide = 0;
+			else if (sub == "C") nucleotide = 1;
+			else if (sub == "G") nucleotide = 2;
+			else if (sub == "T") nucleotide = 3;
+			else EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): unrecognized value '"<< sub << "' in nucleotide field." << EidosTerminate();
+		}
+		
 		// look up the mutation type from its index
 		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
 		
@@ -567,11 +581,15 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		if (fabs(mutation_type_ptr->dominance_coeff_ - dominance_coeff) > 0.001)	// a reasonable tolerance to allow for I/O roundoff
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
+		if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
+		if ((nucleotide != -1) && !mutation_type_ptr->nucleotide_based_)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
+		
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-#warning Need to handle the nucleotide field
-		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, -1);
+		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, nucleotide);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 		mutations.insert(std::pair<slim_polymorphismid_t,MutationIndex>(polymorphism_id, new_mut_index));
@@ -683,7 +701,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		}
 	}
 	
-	// Now we are in the Genomes section, which should take us to the end of the file
+	// Now we are in the Genomes section, which should take us to the end of the file unless there is an Ancestral Sequence section
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	while (!infile.eof())
@@ -692,6 +710,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		
 		if (line.length() == 0)
 			continue;
+		if (line.find("Ancestral sequence") != std::string::npos)
+			break;
 		
 		std::istringstream iss(line);
 		
@@ -780,6 +800,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			}
 			while (iss >> sub);
 		}
+	}
+	
+	// Now we are in the Ancestral sequence section, which should take us to the end of the file
+	// Conveniently, NucleotideArray supports operator>> to read nucleotides until the EOF
+	if (line.find("Ancestral sequence") != std::string::npos)
+	{
+		infile >> *(chromosome_.AncestralSequence());
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
