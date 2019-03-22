@@ -45,9 +45,6 @@
 #define KAS_FLOAT64             9
 #define KAS_NUM_TYPES           10
 
-/* Flags for the kastore_put* family of functions */
-#define KAS_TAKE_BUFFER			1
-
 #define KAS_READ                1
 #define KAS_WRITE               2
 
@@ -119,6 +116,32 @@ int kastore_puts_uint64(kastore_t *self, const char *key, const uint64_t *array,
 int kastore_puts_float32(kastore_t *self, const char *key, const float *array,
         size_t array_len, int flags);
 int kastore_puts_float64(kastore_t *self, const char *key, const double *array,
+        size_t array_len, int flags);
+
+int kastore_take(kastore_t *self, const char *key, size_t key_len,
+       void *array, size_t array_len, int type, int flags);
+int kastore_takes(kastore_t *self, const char *key,
+       void *array, size_t array_len, int type, int flags);
+/* Typed takes for convenience */
+int kastore_takes_uint8(kastore_t *self, const char *key, uint8_t *array,
+        size_t array_len, int flags);
+int kastore_takes_int8(kastore_t *self, const char *key, int8_t *array,
+        size_t array_len, int flags);
+int kastore_takes_int16(kastore_t *self, const char *key, int16_t *array,
+        size_t array_len, int flags);
+int kastore_takes_uint16(kastore_t *self, const char *key, uint16_t *array,
+        size_t array_len, int flags);
+int kastore_takes_int32(kastore_t *self, const char *key, int32_t *array,
+        size_t array_len, int flags);
+int kastore_takes_uint32(kastore_t *self, const char *key, uint32_t *array,
+        size_t array_len, int flags);
+int kastore_takes_int64(kastore_t *self, const char *key, int64_t *array,
+        size_t array_len, int flags);
+int kastore_takes_uint64(kastore_t *self, const char *key, uint64_t *array,
+        size_t array_len, int flags);
+int kastore_takes_float32(kastore_t *self, const char *key, float *array,
+        size_t array_len, int flags);
+int kastore_takes_float64(kastore_t *self, const char *key, double *array,
         size_t array_len, int flags);
 
 const char *kas_strerror(int err);

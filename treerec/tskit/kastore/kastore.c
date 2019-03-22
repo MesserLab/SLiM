@@ -741,9 +741,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     new_item->array_len = array_len;
     array_size = type_size(type) * array_len;
     new_item->key = malloc(key_len);
-	// Note we cast away const here on array because we take ownership, so now array is ours and we can modify it if we like
-	// This is not optimal (probably violates the standard); the alternative is to make the parameter array be non-const, I guess
-	new_item->array = (flags & KAS_TAKE_BUFFER) ? (void *)array : malloc(array_size == 0 ? 1 : array_size);
+    new_item->array = malloc(array_size == 0 ? 1 : array_size);
     if (new_item->key == NULL || new_item->array == NULL) {
         kas_safe_free(new_item->key);
         kas_safe_free(new_item->array);
@@ -752,8 +750,7 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     }
     self->num_items++;
     memcpy(new_item->key, key, key_len);
-    if ((flags & KAS_TAKE_BUFFER) == 0)
-		memcpy(new_item->array, array, array_size);
+    memcpy(new_item->array, array, array_size);
 
     /* Check if this key is already in here. OK, this is a quadratic time
      * algorithm, but we're not expecting to have lots of items (< 100). In
@@ -850,6 +847,151 @@ kastore_puts_float64(kastore_t *self, const char *key, const double *array, size
         int flags)
 {
     return kastore_puts(self, key, (const void *) array, array_len, KAS_FLOAT64, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_take(kastore_t *self, const char *key, size_t key_len,
+       void *array, size_t array_len, int type,
+       int flags)
+{
+    int ret = 0;
+    kaitem_t *new_item;
+    void *p;
+    size_t j, array_size;
+
+    if (self->mode != KAS_WRITE) {
+        ret = KAS_ERR_ILLEGAL_OPERATION;
+        goto out;
+    }
+    if (type < 0 || type >= KAS_NUM_TYPES) {
+        ret = KAS_ERR_BAD_TYPE;
+        goto out;
+    }
+    if (key_len == 0) {
+        ret = KAS_ERR_EMPTY_KEY;
+        goto out;
+    }
+    /* This isn't terribly efficient, but we're not expecting large
+     * numbers of items. */
+    p = realloc(self->items, (self->num_items + 1) * sizeof(*self->items));
+    if (p == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    self->items = p;
+    new_item = self->items + self->num_items;
+
+    memset(new_item, 0, sizeof(*new_item));
+    new_item->type = type;
+    new_item->key_len = key_len;
+    new_item->array_len = array_len;
+    array_size = type_size(type) * array_len;
+    new_item->key = malloc(key_len);
+	new_item->array = array;
+    if (new_item->key == NULL || new_item->array == NULL) {
+        kas_safe_free(new_item->key);
+        kas_safe_free(new_item->array);
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    self->num_items++;
+    memcpy(new_item->key, key, key_len);
+
+    /* Check if this key is already in here. OK, this is a quadratic time
+     * algorithm, but we're not expecting to have lots of items (< 100). In
+     * this case, the simple algorithm is probably better. If/when we ever
+     * deal with more items than this, then we will need a better algorithm.
+     */
+    for (j = 0; j < self->num_items - 1; j++) {
+        if (compare_items(new_item, self->items + j) == 0) {
+            /* Free the key memory and remove this item */
+            self->num_items--;
+            kas_safe_free(new_item->key);
+            kas_safe_free(new_item->array);
+            ret = KAS_ERR_DUPLICATE_KEY;
+            goto out;
+        }
+    }
+out:
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_takes(kastore_t *self, const char *key,
+       void *array, size_t array_len, int type, int flags)
+{
+    return kastore_take(self, key, strlen(key), array, array_len, type, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_int8(kastore_t *self, const char *key, int8_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_INT8, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_uint8(kastore_t *self, const char *key, uint8_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT8, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_int16(kastore_t *self, const char *key, int16_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_INT16, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_uint16(kastore_t *self, const char *key, uint16_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT16, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_int32(kastore_t *self, const char *key, int32_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_INT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_uint32(kastore_t *self, const char *key, uint32_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_int64(kastore_t *self, const char *key, int64_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_INT64, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_uint64(kastore_t *self, const char *key, uint64_t *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT64, flags);
+}
+
+
+int KAS_WARN_UNUSED
+kastore_takes_float32(kastore_t *self, const char *key, float *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_FLOAT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_takes_float64(kastore_t *self, const char *key, double *array, size_t array_len,
+        int flags)
+{
+    return kastore_takes(self, key, (void *) array, array_len, KAS_FLOAT64, flags);
 }
 
 void
