@@ -41,6 +41,7 @@ development head:
 		add recording of nucleotides and ancestral sequence in tree-sequence recording
 		incrementing .trees file version to 0.3
 		fix input/output of ASCII trees files
+		fix a bug with ASCII output of non-nuc models with outputFull() that prevented completely verbatim reloading (float precision issue)
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)

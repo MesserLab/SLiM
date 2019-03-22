@@ -5516,17 +5516,27 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			p_out << "p" << subpop_id << ":" << (i * 2);				// genome identifier 1
 			p_out << " p" << subpop_id << ":" << (i * 2 + 1);			// genome identifier 2
 			
-			// output spatial position if requested
+			// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
 			if (spatial_output_count)
 			{
+				static char double_buf[40];
 				Individual &individual = *(subpop->CurrentIndividuals()[i]);
 				
 				if (spatial_output_count >= 1)
-					p_out << " " << individual.spatial_x_;
+				{
+					sprintf(double_buf, "%.*g", EIDOS_DBL_DIGS, individual.spatial_x_);		// necessary precision for non-lossiness
+					p_out << " " << double_buf;
+				}
 				if (spatial_output_count >= 2)
-					p_out << " " << individual.spatial_y_;
+				{
+					sprintf(double_buf, "%.*g", EIDOS_DBL_DIGS, individual.spatial_y_);		// necessary precision for non-lossiness
+					p_out << " " << double_buf;
+				}
 				if (spatial_output_count >= 3)
-					p_out << " " << individual.spatial_z_;
+				{
+					sprintf(double_buf, "%.*g", EIDOS_DBL_DIGS, individual.spatial_z_);		// necessary precision for non-lossiness
+					p_out << " " << double_buf;
+				}
 			}
 			
 #ifdef SLIM_NONWF_ONLY
