@@ -868,7 +868,7 @@ std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
 	{
 		int nuc_char = p_in.get();
 		
-		if (nuc_char)
+		if (nuc_char != EOF)
 		{
 			if ((nuc_char == '\r') || (nuc_char == '\n') || (nuc_char == ' '))
 				continue;

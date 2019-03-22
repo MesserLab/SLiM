@@ -5053,6 +5053,13 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 									 MspTxtProvenanceTable);
     if (ret < 0) handle_error("read_from_ascii", ret);
 	
+	// Parse the provenance info just to find out the file version, which we need for mutation metadata parsing
+	slim_generation_t provinence_gen;
+	SLiMModelType file_model_type;
+	int file_version;
+	
+	ReadProvenanceTable(&tables_, &provinence_gen, &file_model_type, &file_version);
+	
 	// We will be replacing the columns of some of the tables in tables with de-ASCII-fied versions.  That can't be
 	// done in place, so we make a copy of tables here to act as a source for the process of copying new information
 	// back into tables.
@@ -5068,7 +5075,8 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	/***  De-ascii-ify Mutation Table ***/
 	{
 		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-#warning need to handle nucleotide field of MutationMetadataRec
+		
+		bool metadata_has_nucleotide = (file_version >= 3);		// at or after "0.3"
 		
 		// Mutation derived state
 		const char *derived_state = tables_.mutations->derived_state;
@@ -5110,7 +5118,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			{
 				std::vector<std::string> mutation_metadata_subparts = Eidos_string_split(mutation_metadata_part, ",");
 				
-				if (mutation_metadata_subparts.size() != 4)
+				if (mutation_metadata_subparts.size() != (metadata_has_nucleotide ? 5 : 4))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
 				
 				MutationMetadataRec metarec;
@@ -5118,6 +5126,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 				metarec.selection_coeff_ = (slim_selcoeff_t)std::stod(mutation_metadata_subparts[1]);
 				metarec.subpop_index_ = (slim_objectid_t)std::stoll(mutation_metadata_subparts[2]);
 				metarec.origin_generation_ = (slim_generation_t)std::stoll(mutation_metadata_subparts[3]);
+				metarec.nucleotide_ = metadata_has_nucleotide ? (int8_t)std::stod(mutation_metadata_subparts[4]) : (int8_t)-1;
 				binary_mutation_metadata.emplace_back(metarec);
 			}
 			
@@ -5342,7 +5351,6 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
     /***  Ascii-ify Mutation Table ***/
 	{
 		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-#warning need to handle nucleotide field of MutationMetadataRec
 		
 		// Mutation derived state
 		const char *derived_state = p_tables->mutations->derived_state;
@@ -5392,6 +5400,8 @@ void SLiMSim::TreeSequenceDataToAscii(table_collection_t *p_tables)
 				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
 				text_mutation_metadata.append(",");
 				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_generation_));
+				text_mutation_metadata.append(",");
+				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->nucleotide_));	// new in SLiM 3.3, file format 0.3 and later; -1 if no nucleotide
 				struct_mutation_metadata++;
 			}
 			text_mutation_metadata_offset.push_back((table_size_t)text_mutation_metadata.size());
@@ -5580,9 +5590,6 @@ void SLiMSim::DerivedStatesFromAscii(table_collection_t *p_tables)
 	if (ret < 0) handle_error("derived_to_ascii", ret);
 	
 	{
-		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-#warning need to handle nucleotide field of MutationMetadataRec
-		
 		const char *derived_state = p_tables->mutations->derived_state;
 		table_size_t *derived_state_offset = p_tables->mutations->derived_state_offset;
 		std::vector<slim_mutationid_t> binary_derived_state;
@@ -5650,9 +5657,6 @@ void SLiMSim::DerivedStatesToAscii(table_collection_t *p_tables)
 	if (ret < 0) handle_error("derived_to_ascii", ret);
 	
 	{
-		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-#warning need to handle nucleotide field of MutationMetadataRec
-		
 		const char *derived_state = p_tables->mutations->derived_state;
 		table_size_t *derived_state_offset = p_tables->mutations->derived_state_offset;
 		std::string text_derived_state;
