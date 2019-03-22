@@ -821,6 +821,42 @@ void NucleotideArray::ReadNucleotidesFromBuffer(char *buffer)
 	}
 }
 
+void NucleotideArray::WriteCompressedNucleotides(std::ostream &p_out) const
+{
+	// First write out the size of the sequence, in nucleotides, as a 64-bit int
+	int64_t ancestral_sequence_size = (int64_t)size();
+	
+	p_out.write(reinterpret_cast<char *>(&ancestral_sequence_size), sizeof ancestral_sequence_size);
+	
+	// Then write out the compressed nucleotides themselves
+	std::size_t size_bytes = ((ancestral_sequence_size + 31) / 32) * sizeof(uint64_t);
+	
+	p_out.write(reinterpret_cast<char *>(buffer_), size_bytes);
+}
+
+void NucleotideArray::ReadCompressedNucleotides(char **buffer, char *end)
+{
+	// First read the size of the sequence, in nucleotides, as a 64-bit int
+	int64_t ancestral_sequence_size;
+	
+	if ((*buffer) + sizeof(ancestral_sequence_size) > end)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::ReadCompressedNucleotides): out of buffer reading length." << EidosTerminate();
+	
+	ancestral_sequence_size = *(int64_t *)*buffer;
+	(*buffer) += sizeof(ancestral_sequence_size);
+	
+	if ((std::size_t)ancestral_sequence_size != size())
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::ReadCompressedNucleotides): ancestral sequence length does not match the sequence length being read." << EidosTerminate();
+	
+	std::size_t size_bytes = ((ancestral_sequence_size + 31) / 32) * sizeof(uint64_t);
+	
+	if ((*buffer) + size_bytes > end)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::ReadCompressedNucleotides): out of buffer reading nucleotides." << EidosTerminate();
+	
+	memcpy(buffer_, (*buffer), size_bytes);
+	(*buffer) += size_bytes;
+}
+
 std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array)
 {
 	// Emit FASTA format with 70 bases per line

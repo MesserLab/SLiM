@@ -401,10 +401,14 @@ public:
 	void SetNucleotideAtIndex(std::size_t p_index, uint64_t p_nuc);
 	
 	// Write nucleotides to a char buffer; the buffer must be allocated with sufficient length
-	void WriteNucleotidesToBuffer(char *buffer) const;
-	
 	// Read nucleotides from a char buffer; the buffer is assumed to be of appropriate length
+	void WriteNucleotidesToBuffer(char *buffer) const;
 	void ReadNucleotidesFromBuffer(char *buffer);
+	
+	// Write compressed nucleotides to an ostream as a binary block, with a leading 64-bit size in nucleotides
+	// Read compressed nucleotides from a buffer as a binary block, with a leading size, advancing the pointer
+	void WriteCompressedNucleotides(std::ostream &p_out) const;
+	void ReadCompressedNucleotides(char **buffer, char *end);
 	
 	// Write nucleotides into an EidosValue, in any of the supported formats
 	EidosValue_SP NucleotidesAsIntegerVector(int64_t start, int64_t end);

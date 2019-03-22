@@ -42,7 +42,8 @@ development head:
 		incrementing .trees file version to 0.3
 		fix input/output of ASCII trees files
 		fix a bug with ASCII output of non-nuc models with outputFull() that prevented completely verbatim reloading (float precision issue)
-		fix readFromPopulationFile() with a text SLiM output file from outputFull() in a nucleotide-based model; nucleotides and ancestral seq restored correctly
+		add nucleotide support for readFromPopulationFile() with a text SLiM output file from outputFull() in a nucleotide-based model; nucleotides and ancestral seq restored correctly
+		add writing and reading of binary files with outputFull() and readFromPopulationFile() in nucleotide-based models
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)

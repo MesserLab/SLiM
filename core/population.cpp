@@ -5640,6 +5640,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
 	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
 	
+	// We will output nucleotides for all mutations, and an ancestral sequence at the end, if we are nucleotide-based.
+	bool has_nucleotides = sim_.nucleotide_based_;
+	
 	int32_t section_end_tag = 0xFFFF0000;
 	
 	// Header section
@@ -5650,9 +5653,10 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = (age_output_count ? 4 : 3);							// version 2 started with SLiM 2.1
+		int32_t version_tag = 5;													// version 2 started with SLiM 2.1
 																					// version 3 started with SLiM 2.3
 																					// version 4 started with SLiM 3.0, only when individual age is output
+																					// version 5 started with SLiM 3.3, adding a "flags" field and nucleotide support
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
 		// Write the size of a double
@@ -5664,6 +5668,16 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		double double_test = 1234567890.0987654321;
 		
 		p_out.write(reinterpret_cast<char *>(&double_test), sizeof double_test);
+		
+		// Write a "flags" field, new in SLiM 3.3
+		{
+			int64_t flags = 0;
+			
+			if (age_output_count)		flags |= 0x01;
+			if (has_nucleotides)		flags |= 0x02;
+			
+			p_out.write(reinterpret_cast<char *>(&flags), sizeof flags);
+		}
 		
 		// Write the sizes of the various SLiM types
 		int32_t slim_generation_t_size = sizeof(slim_generation_t);
@@ -5790,6 +5804,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 		slim_generation_t generation = mutation_ptr->origin_generation_;
 		slim_refcount_t prevalence = polymorphism.prevalence_;
+		int8_t nucleotide = mutation_ptr->nucleotide_;
 		
 		// Write a tag indicating we are starting a new mutation
 		int32_t mutation_start_tag = 0xFFFF0002;
@@ -5806,6 +5821,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
 		p_out.write(reinterpret_cast<char *>(&generation), sizeof generation);
 		p_out.write(reinterpret_cast<char *>(&prevalence), sizeof prevalence);
+		
+		if (has_nucleotides)
+			p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);							// added in version 5
 		
 		// now will come either a mutation start tag, or a section end tag
 	}
@@ -5936,6 +5954,14 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	
 	// Write a tag indicating the section has ended
 	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+	
+	// Ancestral sequence section, for nucleotide-based models
+	if (has_nucleotides)
+	{
+		sim_.TheChromosome().AncestralSequence()->WriteCompressedNucleotides(p_out);
+		
+		p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+	}
 }
 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
