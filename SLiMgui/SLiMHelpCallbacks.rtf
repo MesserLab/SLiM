@@ -884,7 +884,20 @@ In this design, the recombination callback does not specify a custom recombinati
 \f2\fs22  callbacks.\
 \pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 \cf5 \expnd0\expndtw0\kerning0
-Note that the positions in 
+In SLiM 3.3 the recombination model in SLiM was redesigned (see section 1.5.6 for discussion).  This required a corresponding redesign of 
+\f3\fs18 recombination()
+\f2\fs22  callbacks.  In particular, the 
+\f3\fs18 gcStarts
+\f2\fs22  and 
+\f3\fs18 gcEnds
+\f2\fs22  pseudo-parameters to these callbacks were removed.  In the present design, the callback receives \'93crossover breakpoints\'94 information only, in the 
+\f3\fs18 breakpoints
+\f2\fs22  pseudo-parameter; it receives no information about gene conversion.  However, 
+\f3\fs18 recombination()
+\f2\fs22  callbacks can still be used with the \'93DSB\'94 recombination model; at the point when the callback is called, the pattern of gene conversion tracts will have been simplified down to a vector of crossover breakpoints.  \'93Complex\'94 gene conversion tracts, however, involving heteroduplex mismatch repair, are not compatible with 
+\f3\fs18 recombination()
+\f2\fs22  callbacks, since there is presently no way for them to be specified to the callback; support for this may be added later if there is demand for it.\
+\cf5 Note that the positions in 
 \f3\fs18 breakpoints
 \f2\fs22  are not, in the general case, guaranteed to be sorted or uniqued; in other words, positions may appear out of order, and the same position may appear more than once.  After all 
 \f3\fs18 recombination()
