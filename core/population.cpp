@@ -5388,7 +5388,10 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
 	
 	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different versions, etc.
-	// We use the same version numbers used in PrintAllBinary(), for simplicity.
+	// BEWARE: we no longer use the same version numbers used in PrintAllBinary().  It has moved to version 5, with a flags
+	// field indicating whether ages and nucleotides are present.  In text we can detect whether the nucleotides are
+	// present or not, so I did not increment the version number or add a flags field at this time.  If the format gets
+	// even more complicated in future, though, then the flags scheme used in binary should be adopted.  BCH 3/23/2019
 	if (age_output_count)
 		p_out << "Version: 4" << std::endl;		// version 4 indicates that ages are included in the output
 	else
@@ -5629,7 +5632,6 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 // print all mutations and all genomes to a stream in binary, for maximum reading speed
 void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs) const
 {
-#warning Need to handle p_output_ancestral_nucs and the nucleotide field
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
 	
