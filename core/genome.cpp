@@ -946,6 +946,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		int64_t *int_vec = ((EidosValue_Int_vector *)(codon_value.get()))->data();
 		GenomeWalker walker(this);
 		
+#warning use MoveToPosition() for efficiency here!
+		
 		while (!walker.Finished())
 		{
 			Mutation *mut = walker.CurrentMutation();
@@ -1002,6 +1004,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// singleton case: replace string_value entirely
 			GenomeWalker walker(this);
 			
+#warning use MoveToPosition() for efficiency here!
+			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
@@ -1032,6 +1036,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			std::string &string_string = ((EidosValue_String_singleton *)(string_value.get()))->StringValue_Mutable();
 			char *string_ptr = &string_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
 			GenomeWalker walker(this);
+			
+#warning use MoveToPosition() for efficiency here!
 			
 			while (!walker.Finished())
 			{
@@ -1065,6 +1071,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// singleton case: replace integer_value entirely
 			GenomeWalker walker(this);
 			
+#warning use MoveToPosition() for efficiency here!
+			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
@@ -1094,6 +1102,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// vector case: replace the appropriate element in integer_value
 			int64_t *int_vec = ((EidosValue_Int_vector *)(integer_value.get()))->data();
 			GenomeWalker walker(this);
+			
+#warning use MoveToPosition() for efficiency here!
 			
 			while (!walker.Finished())
 			{
@@ -1127,6 +1137,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// singleton case: replace char_value entirely
 			GenomeWalker walker(this);
 			
+#warning use MoveToPosition() for efficiency here!
+			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
@@ -1156,6 +1168,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// vector case: replace the appropriate element in char_value
 			std::vector<std::string> *char_vec = ((EidosValue_String_vector *)(char_value.get()))->StringVector_Mutable();
 			GenomeWalker walker(this);
+			
+#warning use MoveToPosition() for efficiency here!
 			
 			while (!walker.Finished())
 			{
@@ -2124,6 +2138,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			GenomeWalker walker(target_genome);
 			slim_position_t last_added_pos = -1;
 			
+#warning use MoveToPosition() for efficiency here!
+			
 			for (Mutation *mut : mutations_to_add)
 			{
 				slim_position_t mut_pos = mut->position_;
@@ -2871,6 +2887,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				GenomeWalker walker(target_genome);
 				slim_position_t last_added_pos = -1;
 				
+#warning use MoveToPosition() for efficiency here!
+				
 				for (Mutation *mut : mutations_to_remove)
 				{
 					slim_position_t mut_pos = mut->position_;
@@ -3135,6 +3153,52 @@ void GenomeWalker::NextMutation(void)
 	mutation_ = gSLiM_Mutation_Block + *mutrun_ptr_;
 }
 
+void GenomeWalker::MoveToPosition(slim_position_t p_position)
+{
+	// Move the the first mutation that is at or after the given position.  Using this to move to a
+	// given position is more efficient than iteratively advancing mutation by mutation, because
+	// we can (1) go to the correct mutation run directly, and (2) do a binary search inside the
+	// mutation run for the correct position.
+	Genome *genome = genome_;
+	
+	// start at the mutrun dictated by the position we are moving to
+	mutrun_index_ = (int32_t)(p_position / genome->mutrun_length_);
+	
+	while (true)
+	{
+		// if the mutrun is past the end of the last mutrun, we're done
+		if (mutrun_index_ >= genome->mutrun_count_)
+		{
+			mutation_ = nullptr;
+			return;
+		}
+		
+		// get the information on the mutrun
+		MutationRun *mutrun = genome->mutruns_[mutrun_index_].get();
+		mutrun_ptr_ = mutrun->begin_pointer_const();
+		mutrun_end_ = mutrun->end_pointer_const();
+		
+		// if the mutrun is empty, we will need to move to the next mutrun to find a mutation
+		if (mutrun_ptr_ == mutrun_end_)
+			mutrun_index_++;
+		else
+			break;
+	}
+	
+	// if the mutation found is at or after the requested position, we are already done
+	mutation_ = gSLiM_Mutation_Block + *mutrun_ptr_;
+	
+	if (mutation_->position_ >= p_position)
+		return;
+	
+	// otherwise, we are in the correct mutrun for the position, but the requested position
+	// still lies ahead of us, so we have to advance until we reach or pass the position
+	// FIXME should do a binary search inside the mutation run instead
+	do
+		NextMutation();
+	while (!Finished() && (Position() < p_position));
+}
+
 bool GenomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
 {
 	// We have reached some chromosome position (presumptively the *first mutation* at that position,
@@ -3164,6 +3228,85 @@ bool GenomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
 	}
 	
 	return false;
+}
+
+bool GenomeWalker::IdenticalAtCurrentPositionTo(GenomeWalker &p_other_walker)
+{
+	if (Finished())
+		EIDOS_TERMINATION << "ERROR (GenomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called on a finished walker." << EidosTerminate();
+	if (p_other_walker.Finished())
+		EIDOS_TERMINATION << "ERROR (GenomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called on a finished walker." << EidosTerminate();
+	if (Position() != p_other_walker.Position())
+		EIDOS_TERMINATION << "ERROR (GenomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called with walkers at different positions." << EidosTerminate();
+	
+	// If the two walkers are using the same mutation run, they are identical by definition
+	if (mutrun_ptr_ == p_other_walker.mutrun_ptr_)
+		return true;
+	
+	// If their current mutation differs, then the positions are not identical
+	if (mutation_ != p_other_walker.mutation_)
+		return false;
+	
+	// Scan forward as long as we are still within the same position
+	slim_position_t pos = mutation_->position_;
+	const MutationIndex *search_ptr_1 = mutrun_ptr_ + 1;
+	const MutationIndex *search_ptr_2 = p_other_walker.mutrun_ptr_ + 1;
+	
+	do
+	{
+		Mutation *mut_1 = (search_ptr_1 != mutrun_end_) ? (gSLiM_Mutation_Block + *search_ptr_1) : nullptr;
+		Mutation *mut_2 = (search_ptr_2 != p_other_walker.mutrun_end_) ? (gSLiM_Mutation_Block + *search_ptr_2) : nullptr;
+		bool has_mut_at_position_1 = (mut_1) ? (mut_1->position_ == pos) : false;
+		bool has_mut_at_position_2 = (mut_2) ? (mut_2->position_ == pos) : false;
+		
+		// If we have left the current position for both, simultaneously, then the positions are identical
+		if (!has_mut_at_position_1 && !has_mut_at_position_2)
+			return true;
+		
+		// If we left the current position for one but not for the other, then the positions differ
+		if (!has_mut_at_position_1 || !has_mut_at_position_2)
+			return false;
+		
+		// We are still within the current position in both, so if the mutations we reached differ then the positions differ
+		if (mut_1 != mut_2)
+			return false;
+		
+		// Otherwise we saw identical mutations at the position, and we should continue scanning
+		++search_ptr_1;
+		++search_ptr_2;
+	}
+	while (true);
+}
+
+int8_t GenomeWalker::NucleotideAtCurrentPosition(void)
+{
+	if (Finished())
+		EIDOS_TERMINATION << "ERROR (GenomeWalker::NucleotideAtCurrentPosition): (internal error) NucleotideAtCurrentPosition() called on a finished walker." << EidosTerminate();
+	
+	// First check the mutation we're at, since we already have it
+	int8_t nuc = mutation_->nucleotide_;
+	
+	if (nuc != -1)
+		return nuc;
+	
+	// Then scan forward as long as we are still within the same position
+	slim_position_t pos = mutation_->position_;
+	
+	for (const MutationIndex *search_ptr_ = mutrun_ptr_ + 1; search_ptr_ != mutrun_end_; ++search_ptr_)
+	{
+		MutationIndex mutindex = *search_ptr_;
+		Mutation *mut = gSLiM_Mutation_Block + mutindex;
+		
+		if (mut->position_ != pos)
+			return -1;
+		
+		nuc = mut->nucleotide_;
+		
+		if (nuc != -1)
+			return nuc;
+	}
+	
+	return -1;
 }
 
 

@@ -421,8 +421,8 @@ private:
 	
 public:
 	GenomeWalker(void) = delete;
-	GenomeWalker(const GenomeWalker &p_original) = delete;
-	GenomeWalker& operator= (const GenomeWalker &p_original) = delete;
+	GenomeWalker(const GenomeWalker &p_original) = default;
+	GenomeWalker& operator= (const GenomeWalker &p_original) = default;
 	
 	inline GenomeWalker(Genome *p_genome) : genome_(p_genome), mutrun_index_(-1), mutrun_ptr_(nullptr), mutrun_end_(nullptr), mutation_(nullptr) { NextMutation(); };
 	GenomeWalker(GenomeWalker&&) = default;
@@ -434,7 +434,10 @@ public:
 	inline slim_position_t Position(void) { return mutation_->position_; }		// must be sure the walker is not finished!
 	
 	void NextMutation(void);
+	void MoveToPosition(slim_position_t p_position);
 	bool MutationIsStackedAtCurrentPosition(Mutation *p_search_mut);	// scans for the given mutation in any slot at the current position
+	bool IdenticalAtCurrentPositionTo(GenomeWalker &p_other_walker);	// compares stacked mutations between walkers (reordered is not identical)
+	int8_t NucleotideAtCurrentPosition(void);
 };
 
 

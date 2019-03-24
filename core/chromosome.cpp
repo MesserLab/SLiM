@@ -685,6 +685,8 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 			int8_t background_nuc = -1;
 			GenomeWalker walker(background_genome);
 			
+#warning use MoveToPosition() for efficiency here!
+			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
@@ -733,6 +735,8 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 			// The mutation matrix cares about the trinucleotide context; figure it out
 			int8_t background_nuc1 = -1, background_nuc2 = -1, background_nuc3 = -1;
 			GenomeWalker walker(background_genome);
+			
+#warning use MoveToPosition() for efficiency here!
 			
 			while (!walker.Finished())
 			{
@@ -1085,7 +1089,7 @@ generateDSBs:
 				{
 					// complex gene conversion tract; we need to save it in the list of heteroduplex regions
 					p_heteroduplex.push_back(tract_start);
-					p_heteroduplex.push_back(tract_end);
+					p_heteroduplex.push_back(tract_end - 1);	// heteroduplex positions are base positions, so the last position is to the left of the GC tract end
 				}
 			}
 		}

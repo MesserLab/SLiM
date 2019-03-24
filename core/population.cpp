@@ -2219,9 +2219,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	int num_mutations, num_breakpoints;
 	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
 	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
-	
-#warning do something with heteroduplex!
-	
+															// this is not static since we don't want to call clear() every time for a rare edge case
 	all_breakpoints.clear();
 	
 	if (use_only_strand_1)
@@ -2963,6 +2961,368 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		if (child_genome.mutruns_[i].get() == nullptr)
 			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) null mutation run left at end of crossover-mutation." << EidosTerminate();
 #endif
+	
+	if (heteroduplex.size() > 0)
+		DoHeteroduplexRepair(heteroduplex, all_breakpoints, parent_genome_1, parent_genome_2, &p_child_genome);
+}
+
+void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Genome *p_parent_genome_1, Genome *p_parent_genome_2, Genome *p_child_genome)
+{
+	// Heteroduplex mismatch repair handling: heteroduplex contains a set of start/end position
+	// pairs, representing stretches of the offspring genome that result from "complex" gene
+	// conversion tracts where the two homologous parental strands ended up paired, even though
+	// their sequences do not necessarily match.  The code above designated one parental strand
+	// as the ancestral strand, for purposes of generating the offspring genome and recording
+	// ancestry with tree-sequence recording.  We now need to handle mismatch repair.  For each
+	// heteroduplex stretch, we want to (1) determine which parental strand was considered to be
+	// ancestral, (2) walk through the offspring genome and the non-ancestral strand looking for
+	// mismatches (mutations in one that are not in the other), and (3) repair the mismatch
+	// with equal probability of choosing either strand, unless we're in a nucleotide model and
+	// biased gene conversion is enabled, in which case the choice will be influenced by the
+	// GC bias.  In all cases, if the mismatch involves a newly introduced mutation we will
+	// treat it identically to other mutations; mutations happen before heteroduplex repair,
+	// although after gene conversion tracts get copied from the non-copy strand, and so they
+	// can be reversed by heteroduplex repair.  This seems like the only clear/consistent policy
+	// since new mutations could be stacked with other pre-existing mutations that should be
+	// subject to heteroduplex repair.  Anyway this is such an edge case that our chosen policy
+	// on it shouldn't matter for practical purposes.
+	double gBGC_coeff_scaled = (sim_.TheChromosome().mismatch_repair_bias_ + 1.0) / 2.0;
+	bool repairs_biased = (sim_.IsNucleotideBased() && (gBGC_coeff_scaled != 0.5));
+	NucleotideArray *ancestral_sequence = (repairs_biased ? sim_.TheChromosome().AncestralSequence() : nullptr);
+	int heteroduplex_tract_count = (int)(p_heteroduplex.size() / 2);
+	
+	if (heteroduplex_tract_count * 2 != (int)p_heteroduplex.size())
+		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) The heteroduplex tract vector has an odd length." << EidosTerminate();
+	
+	// We accumulate vectors of all mutations to add to and to remove from the offspring genome,
+	// and do all addition/removal in a single pass at the end of the process
+	std::vector<slim_position_t> repair_removals;
+	std::vector<Mutation*> repair_additions;
+	
+	for (int heteroduplex_tract_index = 0; heteroduplex_tract_index < heteroduplex_tract_count; ++heteroduplex_tract_index)
+	{
+		slim_position_t tract_start = p_heteroduplex[heteroduplex_tract_index * 2];
+		slim_position_t tract_end = p_heteroduplex[heteroduplex_tract_index * 2 + 1];
+		
+		// Determine which parental strand was the non-copy strand in this region, by scanning
+		// the breakpoints vector; it must remain the non-copy strand throughout.
+		bool copy_strand_is_1 = true;
+		
+		for (slim_position_t breakpoint : p_breakpoints)
+		{
+			if (breakpoint <= tract_start)
+				copy_strand_is_1 = !copy_strand_is_1;
+			else if (breakpoint > tract_end)
+				break;
+			else
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) The heteroduplex tract does not have a consistent copy strand." << EidosTerminate();
+		}
+		
+		Genome *noncopy_genome = (copy_strand_is_1 ? p_parent_genome_2 : p_parent_genome_1);
+		
+		// Make genome walkers for the non-copy strand and the offspring strand, and move them
+		// to the start of the heteroduplex tract region; we use SLIM_INF_BASE_POSITION to mean
+		// "past the end of the heteroduplex tract" here
+		GenomeWalker noncopy_walker(noncopy_genome);
+		GenomeWalker offspring_walker(p_child_genome);
+		slim_position_t noncopy_pos, offspring_pos;
+		
+		noncopy_walker.MoveToPosition(tract_start);
+		offspring_walker.MoveToPosition(tract_start);
+		
+		if (noncopy_walker.Finished()) noncopy_pos = SLIM_INF_BASE_POSITION;
+		else {
+			noncopy_pos = noncopy_walker.Position();
+			if (noncopy_pos > tract_end)
+				noncopy_pos = SLIM_INF_BASE_POSITION;
+		}
+		if (offspring_walker.Finished()) offspring_pos = SLIM_INF_BASE_POSITION;
+		else {
+			offspring_pos = offspring_walker.Position();
+			if (offspring_pos > tract_end)
+				offspring_pos = SLIM_INF_BASE_POSITION;
+		}
+		
+		// Move the walkers forward in sync, looking for mismatches until both strands are done
+		while ((offspring_pos != SLIM_INF_BASE_POSITION) || (noncopy_pos != SLIM_INF_BASE_POSITION))
+		{
+			bool repair_toward_noncopy, advance_noncopy, advance_offspring;
+			slim_position_t repair_pos;
+			
+			if (noncopy_pos < offspring_pos)
+			{
+				// A mutation exists on the non-copy strand where the offspring strand is empty;
+				// this is a mismatch that needs to be repaired one way or the other
+				if (repairs_biased)
+				{
+					int noncopy_nuc = noncopy_walker.NucleotideAtCurrentPosition();
+					
+					// The offspring nucleotide is ancestral; if the noncopy nuc is too, GC bias is irrelevant
+					if (noncopy_nuc != -1)
+					{
+						int offspring_nuc = ancestral_sequence->NucleotideAtIndex(noncopy_pos);
+						bool noncopy_nuc_AT = ((noncopy_nuc == 0) || (noncopy_nuc == 3));
+						bool offspring_nuc_AT = ((offspring_nuc == 0) || (offspring_nuc == 3));
+						
+						if (noncopy_nuc_AT != offspring_nuc_AT)
+						{
+							// One nucleotide is A/T, the other is G/C, so GC bias is relevant here;
+							// make a determination based on the assumption that the noncopy nucleotide is G/C
+							repair_toward_noncopy = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
+							
+							// If the noncopy nucleotide is the A/T one, then our determination needs to be flipped
+							if (noncopy_nuc_AT)
+								repair_toward_noncopy = !repair_toward_noncopy;
+							
+							goto biasedRepair1;
+						}
+					}
+				}
+				
+				// The default is unbiased repair; if we are biased we goto over this default
+				repair_toward_noncopy = Eidos_RandomBool();
+				
+			biasedRepair1:
+				advance_noncopy = true;
+				advance_offspring = false;
+				repair_pos = noncopy_pos;
+			}
+			else if (offspring_pos < noncopy_pos)
+			{
+				// A mutation exists on the offspring strand where the non-copy strand is empty;
+				// this is a mismatch that needs to be repaired one way or the other
+				if (repairs_biased)
+				{
+					int offspring_nuc = offspring_walker.NucleotideAtCurrentPosition();
+					
+					// The noncopy nucleotide is ancestral; if the offspring nuc is too, GC bias is irrelevant
+					if (offspring_nuc != -1)
+					{
+						int noncopy_nuc = ancestral_sequence->NucleotideAtIndex(offspring_pos);
+						bool noncopy_nuc_AT = ((noncopy_nuc == 0) || (noncopy_nuc == 3));
+						bool offspring_nuc_AT = ((offspring_nuc == 0) || (offspring_nuc == 3));
+						
+						if (noncopy_nuc_AT != offspring_nuc_AT)
+						{
+							// One nucleotide is A/T, the other is G/C, so GC bias is relevant here;
+							// make a determination based on the assumption that the noncopy nucleotide is G/C
+							repair_toward_noncopy = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
+							
+							// If the noncopy nucleotide is the A/T one, then our determination needs to be flipped
+							if (noncopy_nuc_AT)
+								repair_toward_noncopy = !repair_toward_noncopy;
+							
+							goto biasedRepair2;
+						}
+					}
+				}
+				
+				// The default is unbiased repair; if we are biased we goto over this default
+				repair_toward_noncopy = Eidos_RandomBool();
+				
+			biasedRepair2:
+				advance_noncopy = false;
+				advance_offspring = true;
+				repair_pos = offspring_pos;
+			}
+			else if (offspring_walker.IdenticalAtCurrentPositionTo(noncopy_walker))
+			{
+				// The two walkers have identical state at this position, so there is no mismatch.
+				// We consider identical stacks of mutations that are re-ordered with respect to
+				// each other to be a mismatch, for simplicity; such re-ordered stacks should not
+				// occur anyway unless the user is doing something really weird.
+				repair_toward_noncopy = false;
+				advance_noncopy = true;
+				advance_offspring = true;
+				repair_pos = offspring_pos;
+			}
+			else
+			{
+				// The walkers are at the same position, and there is a mismatch.
+				if (repairs_biased)
+				{
+					int noncopy_nuc = noncopy_walker.NucleotideAtCurrentPosition();
+					int offspring_nuc = offspring_walker.NucleotideAtCurrentPosition();
+					
+					// If both nucleotides are ancestral, GC bias is irrelevant
+					if ((noncopy_nuc != -1) || (offspring_nuc != -1))
+					{
+						if (noncopy_nuc == -1) noncopy_nuc = ancestral_sequence->NucleotideAtIndex(offspring_pos);
+						if (offspring_nuc == -1) offspring_nuc = ancestral_sequence->NucleotideAtIndex(offspring_pos);
+						
+						bool noncopy_nuc_AT = ((noncopy_nuc == 0) || (noncopy_nuc == 3));
+						bool offspring_nuc_AT = ((offspring_nuc == 0) || (offspring_nuc == 3));
+						
+						if (noncopy_nuc_AT != offspring_nuc_AT)
+						{
+							// One nucleotide is A/T, the other is G/C, so GC bias is relevant here;
+							// make a determination based on the assumption that the noncopy nucleotide is G/C
+							repair_toward_noncopy = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
+							
+							// If the noncopy nucleotide is the A/T one, then our determination needs to be flipped
+							if (noncopy_nuc_AT)
+								repair_toward_noncopy = !repair_toward_noncopy;
+							
+							goto biasedRepair3;
+						}
+					}
+				}
+				
+				// The default is unbiased repair; if we are biased we goto over this default
+				repair_toward_noncopy = Eidos_RandomBool();
+				
+			biasedRepair3:
+				advance_noncopy = true;
+				advance_offspring = true;
+				repair_pos = offspring_pos;
+			}
+			
+			// Move past the mismatch, marking mutations for copying if repair is toward the noncopy strand
+			if (advance_noncopy)
+			{
+				while (true)
+				{
+					if (repair_toward_noncopy)
+						repair_additions.push_back(noncopy_walker.CurrentMutation());
+					
+					noncopy_walker.NextMutation();
+					if (noncopy_walker.Finished())
+					{
+						noncopy_pos = SLIM_INF_BASE_POSITION;
+						break;
+					}
+					noncopy_pos = noncopy_walker.Position();
+					if (noncopy_pos > repair_pos)
+					{
+						if (noncopy_pos > tract_end)
+							noncopy_pos = SLIM_INF_BASE_POSITION;
+						break;
+					}
+				}
+			}
+			if (advance_offspring)
+			{
+				if (repair_toward_noncopy)
+					repair_removals.push_back(repair_pos);
+				
+				while (true)
+				{
+					offspring_walker.NextMutation();
+					if (offspring_walker.Finished())
+					{
+						offspring_pos = SLIM_INF_BASE_POSITION;
+						break;
+					}
+					offspring_pos = offspring_walker.Position();
+					if (offspring_pos > repair_pos)
+					{
+						if (offspring_pos > tract_end)
+							offspring_pos = SLIM_INF_BASE_POSITION;
+						break;
+					}
+				}
+			}
+		}
+	}
+	
+	// We are done scanning; now we do all of the planned repairs.  Tree-sequence recording
+	// need to be kept apprised of all the changes made.  Note that in some cases a mutation
+	// might have been newly added at a position, and then removed again by mismatch repair;
+	// we will need to make sure that the recorded state is correct when that occurs.
+	if ((repair_removals.size() > 0) || (repair_additions.size() > 0))
+	{
+		// Tree-sequence recording of the heteroduplex mismatch repairs will be a bit tricky.  One issue is that a mutation
+		// that was just added to the offspring genome may need to be removed from it again immediately; this might cause
+		// an inconsistency in the recorded information, or a parent/child timing issue, I'm not sure.  Pending.  FIXME
+		if (sim_.recording_tree_)
+			EIDOS_TERMINATION << "ERROR (Population::DoHeteroduplexRepair): (internal error) tree sequence recording of heteroduplex mismatch repairs is not yet implemented." << EidosTerminate();
+		
+		// We loop through the mutation runs in p_child_genome, and for each one, if there are
+		// mutations to be added or removed we make a new mutation run and effect the changes
+		// as we copy mutations over.  Mutruns without changes are left untouched.
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		slim_position_t mutrun_length = p_child_genome->mutrun_length_;
+		slim_position_t mutrun_count = p_child_genome->mutrun_count_;
+		std::size_t removal_index = 0, addition_index = 0;
+		slim_position_t next_removal_pos = (removal_index < repair_removals.size()) ? repair_removals[removal_index] : SLIM_INF_BASE_POSITION;
+		slim_position_t next_addition_pos = (addition_index < repair_additions.size()) ? repair_additions[addition_index]->position_ : SLIM_INF_BASE_POSITION;
+		slim_mutrun_index_t next_removal_mutrun_index = (slim_mutrun_index_t)(next_removal_pos / mutrun_length);
+		slim_mutrun_index_t next_addition_mutrun_index = (slim_mutrun_index_t)(next_addition_pos / mutrun_length);
+		slim_mutrun_index_t run_index = std::min(next_removal_mutrun_index, next_addition_mutrun_index);
+		
+		while (run_index < mutrun_count)
+		{
+			// Now we will process *all* additions and removals for run_index
+			MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+			MutationRun *old_run = p_child_genome->mutruns_[run_index].get();
+			const MutationIndex *old_run_iter		= old_run->begin_pointer_const();
+			const MutationIndex *old_run_iter_max	= old_run->end_pointer_const();
+			
+			for ( ; old_run_iter != old_run_iter_max; ++old_run_iter)
+			{
+				MutationIndex old_run_mut_index = *old_run_iter;
+				Mutation *old_run_mut = mut_block_ptr + old_run_mut_index;
+				slim_position_t old_run_mut_pos = old_run_mut->position_;
+				
+				// if we are past the current removal position, advance to the next, which should be at or after our position
+				if (old_run_mut_pos > next_removal_pos)
+				{
+					removal_index++;
+					next_removal_pos = (removal_index < repair_removals.size()) ? repair_removals[removal_index] : SLIM_INF_BASE_POSITION;
+				}
+				
+				// if the current position is being removed, skip over this mutation; we may not be done with this removal position, however
+				if (old_run_mut_pos == next_removal_pos)
+					continue;
+				
+				// we will add the current mutation, but first we must add any addition mutations that come before it
+				while (next_addition_pos < old_run_mut_pos)
+				{
+					Mutation *addition_mut = repair_additions[addition_index];
+					MutationIndex addition_mut_index = (MutationIndex)(addition_mut - mut_block_ptr); // BlockIndex()
+					
+					new_run->emplace_back(addition_mut_index);
+					
+					addition_index++;
+					next_addition_pos = (addition_index < repair_additions.size()) ? repair_additions[addition_index]->position_ : SLIM_INF_BASE_POSITION;
+				}
+				
+				// add the current mutation, since it is not being removed
+				new_run->emplace_back(old_run_mut_index);
+			}
+			
+			// update the mutrun indexes; we don't do this above to avoid lots of redundant division
+			next_removal_mutrun_index = (slim_mutrun_index_t)(next_removal_pos / mutrun_length);
+			next_addition_mutrun_index = (slim_mutrun_index_t)(next_addition_pos / mutrun_length);
+			
+			// if there are any removal positions left in this mutrun, they have been handled above
+			while (next_removal_mutrun_index == run_index)
+			{
+				removal_index++;
+				next_removal_pos = (removal_index < repair_removals.size()) ? repair_removals[removal_index] : SLIM_INF_BASE_POSITION;
+				next_removal_mutrun_index = (slim_mutrun_index_t)(next_removal_pos / mutrun_length);
+			}
+			
+			// if there are addition mutations left in this mutrun, they must go after the end of the old mutrun's mutations
+			while (next_addition_mutrun_index == run_index)
+			{
+				Mutation *addition_mut = repair_additions[addition_index];
+				MutationIndex addition_mut_index = (MutationIndex)(addition_mut - mut_block_ptr); // BlockIndex()
+				
+				new_run->emplace_back(addition_mut_index);
+				
+				addition_index++;
+				next_addition_pos = (addition_index < repair_additions.size()) ? repair_additions[addition_index]->position_ : SLIM_INF_BASE_POSITION;
+				next_addition_mutrun_index = (slim_mutrun_index_t)(next_addition_pos / mutrun_length);
+			}
+			
+			// replace the mutation run at run_index with the newly constructed run that has all additions and removals
+			p_child_genome->mutruns_[run_index].reset(new_run);
+			
+			// go to the next run index that has changes
+			run_index = std::min(next_removal_mutrun_index, next_addition_mutrun_index);
+		}
+	}
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation

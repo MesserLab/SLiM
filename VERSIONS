@@ -44,6 +44,7 @@ development head:
 		fix a bug with ASCII output of non-nuc models with outputFull() that prevented completely verbatim reloading (float precision issue)
 		add nucleotide support for readFromPopulationFile() with a text SLiM output file from outputFull() in a nucleotide-based model; nucleotides and ancestral seq restored correctly
 		add writing and reading of binary files with outputFull() and readFromPopulationFile() in nucleotide-based models
+		add heteroduplex mismatch repair, biased gene conversion, and add recipe 17.11
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
