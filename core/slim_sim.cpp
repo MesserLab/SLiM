@@ -1435,20 +1435,26 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	if (has_nucleotides)
 	{
 		if (p + sizeof(int64_t) > buf_end)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF at ancestral sequence start." << EidosTerminate();
-		
-		chromosome_.AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
-		
-		if (p + sizeof(section_end_tag) > buf_end)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after ancestral sequence." << EidosTerminate();
+		{
+			// The ancestral sequence can be suppressed at save time, to decrease file size etc.  If it is missing,
+			// we do not consider that an error at present.  This is a little weird – it's more useful to suppress
+			// the ancestral sequence when writing text – but maybe the user really doesn't want it.  So do nothing.
+		}
 		else
 		{
-			section_end_tag = *(int32_t *)p;
-			p += sizeof(section_end_tag);
-			(void)p;	// dead store above is deliberate
+			chromosome_.AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
 			
-			if (section_end_tag != (int32_t)0xFFFF0000)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after ancestral sequence." << EidosTerminate();
+			if (p + sizeof(section_end_tag) > buf_end)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after ancestral sequence." << EidosTerminate();
+			else
+			{
+				section_end_tag = *(int32_t *)p;
+				p += sizeof(section_end_tag);
+				(void)p;	// dead store above is deliberate
+				
+				if (section_end_tag != (int32_t)0xFFFF0000)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): missing section end after ancestral sequence." << EidosTerminate();
+			}
 		}
 	}
 	

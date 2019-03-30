@@ -6327,8 +6327,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// Write a tag indicating the section has ended
 	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
 	
-	// Ancestral sequence section, for nucleotide-based models
-	if (has_nucleotides)
+	// Ancestral sequence section, for nucleotide-based models, when requested
+	if (has_nucleotides && p_output_ancestral_nucs)
 	{
 		sim_.TheChromosome().AncestralSequence()->WriteCompressedNucleotides(p_out);
 		
