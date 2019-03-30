@@ -6013,7 +6013,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
 	
 	// We will output nucleotides for all mutations, and an ancestral sequence at the end, if we are nucleotide-based.
-	bool has_nucleotides = sim_.nucleotide_based_;
+	bool has_nucleotides = sim_.IsNucleotideBased();
 	
 	int32_t section_end_tag = 0xFFFF0000;
 	
