@@ -3231,12 +3231,6 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	// we will need to make sure that the recorded state is correct when that occurs.
 	if ((repair_removals.size() > 0) || (repair_additions.size() > 0))
 	{
-		// Tree-sequence recording of the heteroduplex mismatch repairs will be a bit tricky.  One issue is that a mutation
-		// that was just added to the offspring genome may need to be removed from it again immediately; this might cause
-		// an inconsistency in the recorded information, or a parent/child timing issue, I'm not sure.  Pending.  FIXME
-		if (sim_.recording_tree_)
-			EIDOS_TERMINATION << "ERROR (Population::DoHeteroduplexRepair): (internal error) tree sequence recording of heteroduplex mismatch repairs is not yet implemented." << EidosTerminate();
-		
 		// We loop through the mutation runs in p_child_genome, and for each one, if there are
 		// mutations to be added or removed we make a new mutation run and effect the changes
 		// as we copy mutations over.  Mutruns without changes are left untouched.
@@ -3322,6 +3316,22 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 			// go to the next run index that has changes
 			run_index = std::min(next_removal_mutrun_index, next_addition_mutrun_index);
 		}
+	}
+	
+	// TREE SEQUENCE RECORDING
+	if (sim_.RecordingTreeSequenceMutations())
+	{
+		// We repurpose repair_removals here as a vector of all positions that changed due to heteroduplex repair.
+		// We therefore add in the positions for each entry in repair_additions, then sort and unique.
+		for (Mutation *added_mut : repair_additions)
+			repair_removals.push_back(added_mut->position_);
+		
+		std::sort(repair_removals.begin(), repair_removals.end());
+		repair_removals.erase(unique(repair_removals.begin(), repair_removals.end()), repair_removals.end());
+		
+		// Then we record the new derived state at every position that changed
+		for (slim_position_t changed_pos : repair_removals)
+			sim_.RecordNewDerivedState(p_child_genome, changed_pos, *p_child_genome->derived_mutation_ids_at_position(changed_pos));
 	}
 }
 

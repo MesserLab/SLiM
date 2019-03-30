@@ -1063,8 +1063,12 @@ generateDSBs:
 			slim_position_t tract_start = dsb_point - std::get<0>(dsb_info);
 			slim_position_t tract_end = SLiMClampToPositionType(dsb_point + std::get<1>(dsb_info));
 			
-			if (tract_start < 0) tract_start = 0;
-			if (tract_end > last_position_) tract_end = last_position_;
+			// We do not want to allow GC tracts to extend all the way to the chromosome beginning or end
+			// This is partly because biologically it seems weird, and partly because a breakpoint at position 0 breaks tree-seq recording
+			if (tract_start <= 0)
+				goto generateDSBs;
+			if (tract_end > last_position_)
+				goto generateDSBs;
 			
 			if (tract_start <= last_position_used)
 				goto generateDSBs;
