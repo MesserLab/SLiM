@@ -24,6 +24,7 @@
 #include "eidos_rng.h"
 
 #include <string>
+#include <vector>
 
 
 const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(void)

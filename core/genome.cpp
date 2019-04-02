@@ -3078,7 +3078,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	infile.close();
 	
 	// sort the call lines by position, so that we can add them to empty genomes efficiently
-	std::sort(call_lines.begin(), call_lines.end(), [ ](std::pair<slim_position_t, std::string> &l1, std::pair<slim_position_t, std::string> &l2) {return l1.first < l2.first;});
+	std::sort(call_lines.begin(), call_lines.end(), [ ](const std::pair<slim_position_t, std::string> &l1, const std::pair<slim_position_t, std::string> &l2) {return l1.first < l2.first;});
 	
 	// cache target genomes and determine whether they are initially empty, in which case we can do fast mutation addition with emplace_back()
 	std::vector<Genome *> targets;
