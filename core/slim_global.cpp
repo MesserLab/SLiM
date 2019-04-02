@@ -1070,6 +1070,7 @@ const std::string gStr_maxDistance = "maxDistance";
 // mostly method names
 const std::string gStr_ancestralNucleotides = "ancestralNucleotides";
 const std::string gStr_nucleotides = "nucleotides";
+const std::string gStr_setAncestralNucleotides = "setAncestralNucleotides";
 const std::string gStr_setGeneConversion = "setGeneConversion";
 const std::string gStr_setHotspotMap = "setHotspotMap";
 const std::string gStr_setMutationRate = "setMutationRate";
@@ -1087,6 +1088,8 @@ const std::string gStr_mutationsOfType = "mutationsOfType";
 const std::string gStr_setSpatialPosition = "setSpatialPosition";
 const std::string gStr_sumOfMutationsOfType = "sumOfMutationsOfType";
 const std::string gStr_uniqueMutationsOfType = "uniqueMutationsOfType";
+const std::string gStr_readFromMS = "readFromMS";
+const std::string gStr_readFromVCF = "readFromVCF";
 const std::string gStr_removeMutations = "removeMutations";
 const std::string gStr_setGenomicElementType = "setGenomicElementType";
 const std::string gStr_setMutationFractions = "setMutationFractions";
@@ -1402,6 +1405,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		
 		Eidos_RegisterStringForGlobalID(gStr_ancestralNucleotides, gID_ancestralNucleotides);
 		Eidos_RegisterStringForGlobalID(gStr_nucleotides, gID_nucleotides);
+		Eidos_RegisterStringForGlobalID(gStr_setAncestralNucleotides, gID_setAncestralNucleotides);
 		Eidos_RegisterStringForGlobalID(gStr_setGeneConversion, gID_setGeneConversion);
 		Eidos_RegisterStringForGlobalID(gStr_setHotspotMap, gID_setHotspotMap);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationRate, gID_setMutationRate);
@@ -1419,6 +1423,8 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_setSpatialPosition, gID_setSpatialPosition);
 		Eidos_RegisterStringForGlobalID(gStr_sumOfMutationsOfType, gID_sumOfMutationsOfType);
 		Eidos_RegisterStringForGlobalID(gStr_uniqueMutationsOfType, gID_uniqueMutationsOfType);
+		Eidos_RegisterStringForGlobalID(gStr_readFromMS, gID_readFromMS);
+		Eidos_RegisterStringForGlobalID(gStr_readFromVCF, gID_readFromVCF);
 		Eidos_RegisterStringForGlobalID(gStr_removeMutations, gID_removeMutations);
 		Eidos_RegisterStringForGlobalID(gStr_setGenomicElementType, gID_setGenomicElementType);
 		Eidos_RegisterStringForGlobalID(gStr_setMutationFractions, gID_setMutationFractions);

@@ -28,6 +28,7 @@
 #include "subpopulation.h"
 
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <string>
 #include <cmath>
@@ -1427,13 +1428,14 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 {
 	switch (p_method_id)
 	{
-		case gID_ancestralNucleotides:	return ExecuteMethod_ancestralNucleotides(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setGeneConversion:		return ExecuteMethod_setGeneConversion(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setHotspotMap:			return ExecuteMethod_setHotspotMap(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setMutationRate:		return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setRecombinationRate:	return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_drawBreakpoints:		return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_ancestralNucleotides:		return ExecuteMethod_ancestralNucleotides(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setAncestralNucleotides:	return ExecuteMethod_setAncestralNucleotides(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setGeneConversion:			return ExecuteMethod_setGeneConversion(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setHotspotMap:				return ExecuteMethod_setHotspotMap(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setMutationRate:			return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setRecombinationRate:		return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_drawBreakpoints:			return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:							return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
 }
 
@@ -1572,6 +1574,132 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		return gStaticEidosValue_Integer_ZeroVec;
 	else
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(all_breakpoints));
+}
+
+//	*********************	(integer$)setAncestralNucleotides(is sequence)
+//
+EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *sequence_value = p_arguments[0].get();
+	
+	if (!sim_->IsNucleotideBased())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): initializeAncestralNucleotides() may be only be called in nucleotide-based models." << EidosTerminate();
+	
+	EidosValueType sequence_value_type = sequence_value->Type();
+	int sequence_value_count = sequence_value->Count();
+	
+	if (sequence_value_count == 0)
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): initializeAncestralNucleotides() requires a sequence of length >= 1." << EidosTerminate();
+	
+	if (ancestral_seq_buffer_)
+	{
+		delete ancestral_seq_buffer_;
+		ancestral_seq_buffer_ = 0;
+	}
+	
+	if (sequence_value_type == EidosValueType::kValueInt)
+	{
+		// A vector of integers has been provided, where ACGT == 0123
+		if (sequence_value_count == 1)
+		{
+			// singleton case
+			int64_t int_value = sequence_value->IntAtIndex(0, nullptr);
+			
+			ancestral_seq_buffer_ = new NucleotideArray(1);
+			ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
+		}
+		else
+		{
+			// non-singleton, direct access
+			const EidosValue_Int_vector *int_vec = sequence_value->IntVector();
+			const int64_t *int_data = int_vec->data();
+			
+			try {
+				ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
+			} catch (...) {
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+			}
+		}
+	}
+	else if (sequence_value_type == EidosValueType::kValueString)
+	{
+		if (sequence_value_count != 1)
+		{
+			// A vector of characters has been provided, which must all be "A" / "C" / "G" / "T"
+			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			
+			try {
+				ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
+			} catch (...) {
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): string nucleotide values must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			}
+		}
+		else	// sequence_value_count == 1
+		{
+			const std::string &sequence_string = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			bool contains_only_nuc = true;
+			
+			try {
+				ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
+			} catch (...) {
+				contains_only_nuc = false;
+			}
+			
+			if (!contains_only_nuc)
+			{
+				// A singleton string has been provided that contains characters other than ACGT; we will interpret it as a filesystem path for a FASTA file
+				std::string file_path = Eidos_ResolvedPath(sequence_string);
+				std::ifstream file_stream(file_path.c_str());
+				
+				if (!file_stream.is_open())
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): the file at path " << sequence_string << " could not be opened or does not exist." << EidosTerminate();
+				
+				bool started_sequence = false;
+				std::string line, fasta_sequence;
+				
+				while (getline(file_stream, line))
+				{
+					// skippable lines are blank or start with a '>' or ';'
+					// we skip over them if they're at the start of the file; once we start a sequence, they terminate the sequence
+					bool skippable = ((line.length() == 0) || (line[0] == '>') || (line[0] == ';'));
+					
+					if (!started_sequence && skippable)
+						continue;
+					if (skippable)
+						break;
+					
+					// otherwise, append the nucleotides from this line, removing a \r if one is present at the end of the line
+					if (line.back() == '\r')
+						line.pop_back();
+					
+					fasta_sequence.append(line);
+					started_sequence = true;
+				}
+				
+				if (file_stream.bad())
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): a filesystem error occurred while reading the file at path " << sequence_string << "." << EidosTerminate();
+				
+				if (fasta_sequence.length() == 0)
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
+				
+				try {
+					ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
+				} catch (...) {
+					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
+				}
+			}
+		}
+	}
+	
+	// check that the length of the new sequence matches the chromosome length
+	if (ancestral_seq_buffer_->size() != (std::size_t)(last_position_ + 1))
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): The chromosome length (" << last_position_ + 1 << " base" << (last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << ancestral_seq_buffer_->size() << " base" << (ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
+	
+	// debugging
+	//std::cout << "ancestral sequence set: " << *ancestral_seq_buffer_ << std::endl;
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(ancestral_seq_buffer_->size()));
 }
 
 //	*********************	– (void)setGeneConversion(numeric$ nonCrossoverFraction, numeric$ meanLength, numeric$ simpleConversionFraction, [numeric$ bias = 0])
@@ -2015,6 +2143,7 @@ const std::vector<const EidosMethodSignature *> *Chromosome_Class::Methods(void)
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setAncestralNucleotides, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntString("sequence"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGeneConversion, kEidosValueMaskVOID))->AddNumeric_S("nonCrossoverFraction")->AddNumeric_S("meanLength")->AddNumeric_S("simpleConversionFraction")->AddNumeric_OS("bias", gStaticEidosValue_Integer0));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setHotspotMap, kEidosValueMaskVOID))->AddNumeric("multipliers")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationRate, kEidosValueMaskVOID))->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));

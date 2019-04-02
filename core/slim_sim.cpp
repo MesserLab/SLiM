@@ -8115,7 +8115,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			try {
 				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (ExecuteContextFunction_initializeAncestralNucleotides): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
 			}
 		}
 	}
@@ -8129,7 +8129,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			try {
 				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
 			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): string nucleotide values must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): string nucleotide values must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
 		}
 		else	// sequence_value_count == 1

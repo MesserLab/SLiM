@@ -1388,6 +1388,13 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 		std::swap(sorted_polymorphisms, filtered_polymorphisms);
 	}
 	
+	// make a hash table that looks up the genotype string position from a mutation pointer
+	std::unordered_map<const Mutation*, int> genotype_string_positions;
+	int genotype_string_position = 0;
+	
+	for (const Polymorphism &polymorphism : sorted_polymorphisms) 
+		genotype_string_positions.insert(std::pair<const Mutation*, int>(polymorphism.mutation_ptr_, genotype_string_position++));
+	
 	// print header
 	p_out << "//" << std::endl << "segsites: " << sorted_polymorphisms.size() << std::endl;
 	
@@ -1428,19 +1435,9 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 			for (int mut_index = 0; mut_index < mut_count; ++mut_index)
 			{
 				const Mutation *mutation = mut_block_ptr + mut_ptr[mut_index];
-				int genotype_string_position = 0;
 				
-				for (const Polymorphism &polymorphism : sorted_polymorphisms) 
-				{
-					if (polymorphism.mutation_ptr_ == mutation)
-					{
-						// mark this polymorphism as present in the genome, and move on since this mutation can't also match any other polymorphism
-						genotype.replace(genotype_string_position, 1, "1");
-						break;
-					}
-					
-					genotype_string_position++;
-				}
+				genotype_string_position = genotype_string_positions.find(mutation)->second;
+				genotype.replace(genotype_string_position, 1, "1");
 			}
 		}
 		
@@ -1971,6 +1968,8 @@ public:
 	EidosValue_SP ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 };
 
@@ -2019,6 +2018,8 @@ const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readFromMS, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S("filePath")->AddIntObject_S("mutationType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S("filePath")->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
@@ -2041,6 +2042,8 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 		case gID_output:
 		case gID_outputMS:
 		case gID_outputVCF:				return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gID_readFromMS:			return ExecuteMethod_readFromMS(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gID_readFromVCF:			return ExecuteMethod_readFromVCF(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 		case gID_removeMutations:		return ExecuteMethod_removeMutations(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 		default:						return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
 	}
@@ -2747,6 +2750,779 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	}
 	
 	return gStaticEidosValueVOID;
+}
+
+//	*********************	+ (o<Mutation>)readFromMS(s$ filePath = NULL, io<MutationType> mutationType)
+//
+EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *filePath_value = p_arguments[0].get();
+	EidosValue *mutationType_value = p_arguments[1].get();
+	
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	Population &pop = sim.ThePopulation();
+	slim_position_t last_position = sim.TheChromosome().last_position_;
+	bool recording_mutations = sim.RecordingTreeSequenceMutations();
+	bool nucleotide_based = sim.IsNucleotideBased();
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	MutationType *mutation_type_ptr = nullptr;
+	
+	if (mutationType_value->Type() != EidosValueType::kValueNULL)
+		mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, sim, "ExecuteMethod_readFromMS()");
+	
+	if (!mutation_type_ptr)
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): mutation type not found." << EidosTerminate();
+	
+	// Parse the whole input file and retain the information from it
+	std::ifstream infile(file_path);
+	std::string line, sub;
+	int parse_state = 0;
+	int segsites = -1;
+	std::vector<slim_position_t> positions;
+	std::vector<std::string> calls;
+	
+	while (!infile.eof())
+	{
+		getline(infile, line);
+		
+		if ((line.length() == 0) || (line.find("//") == 0))
+			continue;
+		
+		switch (parse_state)
+		{
+			case 0:
+			{
+				// Expecting "segsites: x"
+				std::istringstream iss(line);
+				
+				iss >> sub;
+				if (sub != "segsites:")
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): expecting 'segsites:', found '" << sub << "'." << EidosTerminate();
+				if (iss.eof())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): missing segsites value." << EidosTerminate();
+				
+				iss >> sub;
+				int64_t segsites_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+				
+				if ((segsites_long <= 0) || (segsites_long > 1000000))
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readMS() requires segsites in (0,1000000]." << EidosTerminate();
+				
+				segsites = (int)segsites_long;
+				
+				if (!iss.eof())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): malformed segsites line; additional content after segsites value." << EidosTerminate();
+				
+				parse_state = 1;
+				break;
+			}
+			case 1:
+			{
+				// Expecting "positions: a b c..."
+				std::istringstream iss(line);
+				
+				iss >> sub;
+				if (sub != "positions:")
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): expecting 'positions:', found '" << sub << "'." << EidosTerminate();
+				
+				for (int pos_index = 0; pos_index < segsites; ++pos_index)
+				{
+					if (iss.eof())
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): missing positions value." << EidosTerminate();
+					
+					iss >> sub;
+					double pos_double = EidosInterpreter::FloatForString(sub, nullptr);
+					
+					if ((pos_double < 0.0) || (pos_double > 1.0))
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readMS() requires positions in [0,1]." << EidosTerminate();
+					
+					positions.push_back((slim_position_t)round(pos_double * last_position));
+				}
+				
+				if (!iss.eof())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): malformed positions line; additional content after last expected position." << EidosTerminate();
+				
+				parse_state = 2;
+				break;
+			}
+			case 2:
+			{
+				// Expecting "001010011001101111010..." of length segsites
+				if (line.find_first_not_of("01") != std::string::npos)
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): call lines must be composed entirely of 0 and 1." << EidosTerminate();
+				if ((int)line.length() != segsites)
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): call lines must be equal in length to the segsites value." << EidosTerminate();
+				
+				calls.push_back(line);
+				break;
+			}
+		}
+	}
+	
+	infile.close();
+	
+	// Get the target genomes into a vector
+	int target_size = p_target->Count();
+	
+	if ((int)calls.size() != target_size)
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): target genome vector has size " << target_size << " but " << calls.size() << " call lines found." << EidosTerminate();
+	
+	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+	std::vector<MutationIndex> mutation_indices;
+	
+	for (int mut_index = 0; mut_index < segsites; ++mut_index)
+	{
+		slim_position_t position = positions[mut_index];
+		double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+		slim_objectid_t subpop_index = -1;
+		slim_generation_t origin_generation = sim.Generation();
+		int8_t nucleotide = -1;
+		
+		if (nucleotide_based && mutation_type_ptr->nucleotide_based_)
+		{
+			// select a nucleotide that is different from the ancestral state at this position
+			int8_t ancestral = (int8_t)sim.TheChromosome().AncestralSequence()->NucleotideAtIndex(position);
+			
+			nucleotide = (int8_t)Eidos_rng_uniform_int(EIDOS_GSL_RNG, 3);	// 0, 1, 2
+			
+			if (nucleotide == ancestral)
+				nucleotide++;
+		}
+		
+		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+		
+		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, origin_generation, nucleotide);
+		
+		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+		if (selection_coeff != 0.0)
+		{
+			sim.pure_neutral_ = false;
+			
+			// Fix all_pure_neutral_DFE_ if the selcoeff was not drawn from the muttype's DFE
+			if (p_method_id == gID_addNewMutation)
+				mutation_type_ptr->all_pure_neutral_DFE_ = false;
+		}
+		
+		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+		pop.mutation_registry_.emplace_back(new_mut_index);
+		mutation_indices.emplace_back(new_mut_index);
+		
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+		if (pop.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
+		{
+			// This mutation type is also keeping its own private registry, so we need to add to that as well
+			mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
+		}
+#endif
+	}
+	
+	// Sort the mutations by position so we can add them in order, and make an "order" vector for accessing calls in the sorted order
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	std::vector<int64_t> order_vec = EidosSortIndexes(positions);
+	
+	std::sort(mutation_indices.begin(), mutation_indices.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
+	
+	// Add the mutations to the target genomes, recording a new derived state with each addition
+	for (int genome_index = 0; genome_index < target_size; ++genome_index)
+	{
+		Genome *genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+		bool genome_started_empty = (genome->mutation_count() == 0);
+		slim_position_t mutrun_length = genome->mutrun_length_;
+		slim_mutrun_index_t current_run_index = -1;
+		std::string &genome_string = calls[genome_index];
+		
+		for (int segsite_index = 0; segsite_index < segsites; ++segsite_index)
+		{
+			int64_t call_index = order_vec[segsite_index];
+			char call = genome_string[call_index];
+			
+			if (call == '1')
+			{
+				MutationIndex mut_index = mutation_indices[segsite_index];
+				Mutation *mut = mut_block_ptr + mut_index;
+				slim_position_t mut_pos = mut->position_;
+				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_pos / mutrun_length);
+				
+				if (mut_mutrun_index != current_run_index)
+					genome->WillModifyRun(mut_mutrun_index);
+				
+				MutationRun *mut_mutrun = genome->mutruns_[mut_mutrun_index].get();
+				
+				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
+				if (genome_started_empty)
+					mut_mutrun->emplace_back(mut_index);
+				else
+					mut_mutrun->insert_sorted_mutation(mut_index);
+				
+				if (recording_mutations)
+					sim.RecordNewDerivedState(genome, mut_pos, *genome->derived_mutation_ids_at_position(mut_pos));
+			}
+		}
+	}
+	
+	// Return the instantiated mutations
+	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+	
+	for (MutationIndex mut_index : mutation_indices)
+		retval->push_object_element(mut_block_ptr + mut_index);
+	
+	return retval;
+}
+
+//	*********************	+ (o<Mutation>)readFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
+//
+EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *filePath_value = p_arguments[0].get();
+	EidosValue *mutationType_value = p_arguments[1].get();
+	
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	Population &pop = sim.ThePopulation();
+	slim_position_t last_position = sim.TheChromosome().last_position_;
+	bool recording_mutations = sim.RecordingTreeSequenceMutations();
+	bool nucleotide_based = sim.IsNucleotideBased();
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	MutationType *default_mutation_type_ptr = nullptr;
+	
+	if (mutationType_value->Type() != EidosValueType::kValueNULL)
+		default_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, sim, "readFromVCF()");
+	
+	// Parse the whole input file and retain the information from it
+	std::ifstream infile(file_path);
+	std::string line, sub;
+	int parse_state = 0;
+	int sample_id_count = 0;
+	int target_size = p_target->Count();
+	bool info_MID_defined = false, info_S_defined = false, info_DOM_defined = false, info_PO_defined = false;
+	bool info_GO_defined = false, info_MT_defined = false, info_AA_defined = false, info_NONNUC_defined = false;
+	std::vector<std::pair<slim_position_t, std::string>> call_lines;
+	
+	while (!infile.eof())
+	{
+		getline(infile, line);
+		
+		switch (parse_state)
+		{
+			case 0:
+			{
+				// In header, parsing ## lines, until we get to the #CHROM line; the point of this is that we only want to interpret
+				// INFO fields like MID, S, etc. as having their SLiM-specific meaning if their SLiM-specific definition is present
+				if (line.compare(0, 2, "##") == 0)
+				{
+					if (line == "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">")	info_MID_defined = true;
+					if (line == "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">")		info_S_defined = true;
+					if (line == "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">")				info_DOM_defined = true;
+					if (line == "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">")	info_PO_defined = true;
+					if (line == "##INFO=<ID=GO,Number=.,Type=Integer,Description=\"Generation of Origin\">")	info_GO_defined = true;
+					if (line == "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">")			info_MT_defined = true;
+					if (line == "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">")			info_AA_defined = true;		// this one is standard, so we don't require this definition
+					if (line == "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">")	info_NONNUC_defined = true;
+				}
+				else if (line.compare(0, 1, "#") == 0)
+				{
+					static const char *(header_fields[9]) = {"CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"};
+					std::istringstream iss(line);
+					
+					iss.get();	// eat the initial #
+					
+					// verify that the expected standard columns are present
+					for (int header_index = 0; header_index < 9; ++header_index)
+					{
+						if (iss.eof())
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): missing VCF header '" << header_fields[header_index] << "'." << EidosTerminate();
+						iss >> sub;
+						if (sub != header_fields[header_index])
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): expected VCF header '" << header_fields[header_index] << "', saw '" << sub << "'." << EidosTerminate();
+					}
+					
+					// the remaining columns are sample IDs; we don't care what they are, we just count them
+					while (!iss.eof())
+					{
+						iss >> sub;
+						sample_id_count++;
+					}
+					
+					// now the remainder of the file should be call lines
+					parse_state = 1;
+				}
+				else
+				{
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): unexpected line in VCF header: '" << line << "'." << EidosTerminate();
+				}
+				break;
+			}
+			case 1:
+			{
+				// In call lines, fields are separated by tabs, and could theoretically contain spaces; here we just read a whole line,
+				// extract the position field for the mutation, and save the line indexed by its mutation's position for later handling
+				if (line.length() == 0)
+					break;
+				
+				std::istringstream iss(line);
+				
+				std::getline(iss, sub, '\t');	// CHROM
+				std::getline(iss, sub, '\t');	// POS
+				
+				int64_t pos = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr) - 1;		// -1 because VCF uses 1-based positions
+				
+				if ((pos < 0) || (pos > last_position))
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file POS value " << pos << " out of range." << EidosTerminate();
+				
+				call_lines.push_back(std::pair<slim_position_t, std::string>(pos, line));
+				break;
+			}
+		}
+	}
+	
+	infile.close();
+	
+	// sort the call lines by position, so that we can add them to empty genomes efficiently
+	std::sort(call_lines.begin(), call_lines.end(), [ ](std::pair<slim_position_t, std::string> &l1, std::pair<slim_position_t, std::string> &l2) {return l1.first < l2.first;});
+	
+	// cache target genomes and determine whether they are initially empty, in which case we can do fast mutation addition with emplace_back()
+	std::vector<Genome *> targets;
+	std::vector<slim_mutrun_index_t> target_last_mutrun_modified;
+	bool all_target_genomes_started_empty = true;
+	
+	for (int genome_index = 0; genome_index < target_size; ++genome_index)
+	{
+		Genome *genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+		
+		// null genomes are silently excluded from the target list, for convenience
+		if (!genome->IsNull())
+		{
+			if (genome->mutation_count() != 0)
+				all_target_genomes_started_empty = false;
+			
+			targets.push_back(genome);
+			target_last_mutrun_modified.push_back(-1);
+		}
+	}
+	
+	target_size = (int)targets.size();	// adjust for possible exclusion of null genomes
+	
+	// parse all the call lines, instantiate their mutations, and add the mutations to the target genomes
+	std::vector<MutationIndex> mutation_indices;
+	bool has_initial_mutations = (gSLiM_next_mutation_id != 0);
+	
+	for (std::pair<slim_position_t, std::string> &call_line : call_lines)
+	{
+		slim_position_t mut_position = call_line.first;
+		std::istringstream iss(call_line.second);
+		std::string ref_str, alt_str, info_str;
+		
+		std::getline(iss, sub, '\t');		// CHROM; don't care
+		std::getline(iss, sub, '\t');		// POS; already fetched
+		std::getline(iss, sub, '\t');		// ID; don't care
+		std::getline(iss, ref_str, '\t');	// REF
+		std::getline(iss, alt_str, '\t');	// ALT
+		std::getline(iss, sub, '\t');		// QUAL; don't care
+		std::getline(iss, sub, '\t');		// FILTER; don't care
+		std::getline(iss, info_str, '\t');	// INFO
+		std::getline(iss, sub, '\t');		// FORMAT; don't care (GT must be first, according to the standard; we don't check)
+		
+		// parse/validate the REF nucleotide
+		int8_t ref_nuc;
+		
+		if (ref_str == "A")			ref_nuc = 0;
+		else if (ref_str == "C")	ref_nuc = 1;
+		else if (ref_str == "G")	ref_nuc = 2;
+		else if (ref_str == "T")	ref_nuc = 3;
+		else						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file REF value must be A/C/G/T." << EidosTerminate();
+		
+		// parse/validate the ALT nucleotides
+		std::vector<std::string> alt_substrs = Eidos_string_split(alt_str, ",");
+		std::vector<int8_t> alt_nucs;
+		
+		for (std::string &alt_substr : alt_substrs)
+		{
+			if (alt_substr == "A")			alt_nucs.push_back(0);
+			else if (alt_substr == "C")		alt_nucs.push_back(1);
+			else if (alt_substr == "G")		alt_nucs.push_back(2);
+			else if (alt_substr == "T")		alt_nucs.push_back(3);
+			else							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file ALT value must be A/C/G/T." << EidosTerminate();
+		}
+		
+		std::size_t alt_allele_count = alt_nucs.size();
+		
+		// parse/validate the INFO fields that we recognize
+		std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
+		std::vector<slim_mutationid_t> info_mutids;
+		std::vector<double> info_selcoeffs;
+		std::vector<double> info_domcoeffs;
+		std::vector<slim_objectid_t> info_poporigin;
+		std::vector<slim_generation_t> info_genorigin;
+		std::vector<slim_objectid_t> info_muttype;
+		int8_t info_ancestral_nuc = -1;
+		bool info_is_nonnuc = false;
+		
+		for (std::string &info_substr : info_substrs)
+		{
+			if (info_MID_defined && (info_substr.compare(0, 4, "MID=") == 0))		// Mutation ID
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
+				
+				for (std::string &value_substr : value_substrs)
+					info_mutids.push_back((slim_mutationid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+				
+				if (info_mutids.size() && has_initial_mutations)
+				{
+					if (!gEidosSuppressWarnings)
+					{
+						if (!sim.warned_readFromVCF_mutIDs_unused_)
+						{
+							p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation iDs." << std::endl;
+							sim.warned_readFromVCF_mutIDs_unused_ = true;
+						}
+					}
+					
+					// disable use of MID for this read
+					info_MID_defined = false;
+					info_mutids.clear();
+				}
+			}
+			else if (info_S_defined && (info_substr.compare(0, 2, "S=") == 0))		// Selection Coefficient
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(2), ",");
+				
+				for (std::string &value_substr : value_substrs)
+					info_selcoeffs.push_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+			}
+			else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance Coefficient
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
+				
+				for (std::string &value_substr : value_substrs)
+					info_domcoeffs.push_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+			}
+			else if (info_PO_defined && (info_substr.compare(0, 3, "PO=") == 0))	// Population of Origin
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
+				
+				for (std::string &value_substr : value_substrs)
+					info_poporigin.push_back((slim_objectid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+			}
+			else if (info_GO_defined && (info_substr.compare(0, 3, "GO=") == 0))	// Generation of Origin
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
+				
+				for (std::string &value_substr : value_substrs)
+					info_genorigin.push_back((slim_generation_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+			}
+			else if (info_MT_defined && (info_substr.compare(0, 3, "MT=") == 0))	// Mutation Type
+			{
+				std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
+				
+				for (std::string &value_substr : value_substrs)
+					info_muttype.push_back((slim_objectid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+			}
+			else if (/* info_AA_defined && */ (info_substr.compare(0, 3, "AA=") == 0))	// Ancestral Allele; definition not required since it is a standard field
+			{
+				std::string aa_str = info_substr.substr(3);
+				
+				if (aa_str == "A")			info_ancestral_nuc = 0;
+				else if (aa_str == "C")		info_ancestral_nuc = 1;
+				else if (aa_str == "G")		info_ancestral_nuc = 2;
+				else if (aa_str == "T")		info_ancestral_nuc = 3;
+				else						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file AA value must be A/C/G/T." << EidosTerminate();
+			}
+			else if (info_NONNUC_defined && (info_substr == "NONNUC"))				// Non-nucleotide-based
+			{
+				info_is_nonnuc = true;
+			}
+			
+			if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
+			if ((info_selcoeffs.size() != 0) && (info_selcoeffs.size() != alt_allele_count))
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
+			if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
+			if ((info_poporigin.size() != 0) && (info_poporigin.size() != alt_allele_count))
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
+			if ((info_genorigin.size() != 0) && (info_genorigin.size() != alt_allele_count))
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for GO field." << EidosTerminate();
+			if ((info_muttype.size() != 0) && (info_muttype.size() != alt_allele_count))
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MT field." << EidosTerminate();
+		}
+		
+		// read the genotype data for each sample id, which might be diploid or haploid, and might have data beyond GT
+		std::vector<int> genotype_calls;
+		
+		for (int sample_index = 0; sample_index < sample_id_count; ++sample_index)
+		{
+			if (iss.eof())
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call line ended unexpectly before the last sample." << EidosTerminate();
+			
+			std::getline(iss, sub, '\t');
+			
+			// extract just the GT field if others are present
+			std::size_t colon_pos = sub.find_first_of(':');
+			
+			if (colon_pos != std::string::npos)
+				sub = sub.substr(0, colon_pos);
+			
+			// separate haploid calls that are joined by | or /; this is the hotspot of the whole method, so we try to be efficient here
+			bool call_handled = false;
+			
+			if ((sub.length() == 3) && ((sub[1] == '|') || (sub[1] == '/')))
+			{
+				// diploid, both single-digit
+				char sub_ch1 = sub[0];
+				char sub_ch2 = sub[2];
+				
+				if ((sub_ch1 >= '0') && (sub_ch1 <= '9') && (sub_ch2 >= '0') && (sub_ch2 <= '9'))
+				{
+					int genotype_call1 = (int)(sub_ch1 - '0');
+					int genotype_call2 = (int)(sub_ch2 - '0');
+					
+					if ((genotype_call1 < 0) || (genotype_call1 > (int)alt_allele_count) || (genotype_call2 < 0) || (genotype_call2 > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+					
+					genotype_calls.push_back(genotype_call1);
+					genotype_calls.push_back(genotype_call2);
+					call_handled = true;
+				}
+			}
+			else if (sub.length() == 1)
+			{
+				// haploid, single-digit
+				char sub_ch = sub[0];
+				
+				if ((sub_ch >= '0') && (sub_ch <= '9'))
+				{
+					int genotype_call = (int)(sub_ch - '0');
+					
+					if ((genotype_call < 0) || (genotype_call > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+					
+					genotype_calls.push_back(genotype_call);
+					call_handled = true;
+				}
+			}
+			
+			if (!call_handled)
+			{
+				std::vector<std::string> genotype_substrs;
+				
+				if (sub.find("|") != std::string::npos)
+					genotype_substrs = Eidos_string_split(sub, "|");	// phased
+				else if (sub.find("/") != std::string::npos)
+					genotype_substrs = Eidos_string_split(sub, "/");	// unphased; we don't worry about that
+				else
+					genotype_substrs.push_back(sub);					// haploid, presumably
+				
+				if ((genotype_substrs.size() < 1) || (genotype_substrs.size() > 2))
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file genotype calls must be diploid or haploid; " << genotype_substrs.size() << " calls found in one sample." << EidosTerminate();
+				
+				// extract the calls' integer values, validate them, and keep them; we don't care which call was in which sample, we just preserve their order
+				for (std::string &genotype_substr : genotype_substrs)
+				{
+					std::size_t genotype_call = EidosInterpreter::NonnegativeIntegerForString(genotype_substr, nullptr);
+					
+					if ((genotype_call < 0) || (genotype_call > alt_allele_count))	// 0 is REF, 1..n are ALT alleles
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+					
+					genotype_calls.push_back((int)genotype_call);
+				}
+			}
+		}
+		
+		if (!iss.eof())
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
+		if ((int)genotype_calls.size() != target_size)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): target genome vector has size " << target_size << " but " << genotype_calls.size() << " calls were found in one call line." << EidosTerminate();
+		
+		// instantiate the mutations involved in this call line; the REF allele represents no mutation, ALT alleles are each separate mutations
+		std::vector<MutationIndex> alt_allele_mut_indices;
+		
+		for (std::size_t alt_allele_index = 0; alt_allele_index < alt_allele_count; ++alt_allele_index)
+		{
+			// figure out the mutation type; if specified with MT, look it up, otherwise use the default supplied
+			MutationType *mutation_type_ptr = default_mutation_type_ptr;
+			
+			if (info_muttype.size() > 0)
+			{
+				slim_objectid_t mutation_type_id = info_muttype[alt_allele_index];
+				
+				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
+				
+				if (found_muttype_pair == sim.MutationTypes().end())
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file MT field references a mutation type m" << mutation_type_id << " that is not defined." << EidosTerminate();
+				
+				mutation_type_ptr = found_muttype_pair->second;
+			}
+			
+			if (!mutation_type_ptr)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
+			
+			// check the dominance coefficient of DOM against that of the mutation type
+			if (info_domcoeffs.size() > 0)
+			{
+				if (abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
+			}
+			
+			// get the selection coefficient from S, or draw one
+			double selection_coeff;
+			
+			if (info_selcoeffs.size() > 0)
+				selection_coeff = info_selcoeffs[alt_allele_index];
+			else
+				selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+			
+			// get the subpop index from PO, or set to -1; no bounds checking on this
+			slim_objectid_t subpop_index = -1;
+			
+			if (info_poporigin.size() > 0)
+				subpop_index = info_poporigin[alt_allele_index];
+			
+			// get the origin generation from gO, or set to the current generation; no bounds checking on this
+			slim_generation_t origin_generation;
+			
+			if (info_genorigin.size() > 0)
+				origin_generation = info_genorigin[alt_allele_index];
+			else
+				origin_generation = sim.Generation();
+			
+			// figure out the nucleotide and do nucleotide-related checks
+			int8_t alt_allele_nuc = alt_nucs[alt_allele_index];		// must be defined, in all cases, but might be ignored
+			int8_t nucleotide;
+			
+			if (nucleotide_based)
+			{
+				if (info_NONNUC_defined)
+				{
+					// We are reading a SLiM-generated VCF file that uses NONNUC to designate non-nucleotide-based mutations
+					if (info_is_nonnuc)
+					{
+						// This call line is marked NONNUC, so there is no associated nucleotide; check against the mutation type
+						if (mutation_type_ptr->nucleotide_based_)
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): a mutation marked NONNUC cannot use a nucleotide-based mutation type." << EidosTerminate();
+						
+						nucleotide = -1;
+					}
+					else
+					{
+						// This call line is not marked NONNUC, so it represents nucleotide-based alleles
+						if (!mutation_type_ptr->nucleotide_based_)
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): a nucleotide-based mutation cannot use a non-nucleotide-based mutation type." << EidosTerminate();
+						if (ref_nuc != info_ancestral_nuc)
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): the REF nucleotide does not match the AA nucleotide." << EidosTerminate();
+						
+						int8_t ancestral = (int8_t)sim.TheChromosome().AncestralSequence()->NucleotideAtIndex(mut_position);
+						
+						if (ancestral != ref_nuc)
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): the REF/AA nucleotide does not match the ancestral nucleotide at the same position; a matching ancestral nucleotide sequence must be set prior to calling readFromVCF()." << EidosTerminate();
+						
+						nucleotide = alt_allele_nuc;
+					}
+				}
+				else
+				{
+					// We are reading a generic VCF file that does not use NONNUC, so we follow the mutation type's lead; if it is nucleotide-based, we use the nucleotide specified
+					if (mutation_type_ptr->nucleotide_based_)
+					{
+						// The mutation type is nucleotide-based, so use the nucleotide specified; in this case we ignore REF and AA, however
+						nucleotide = alt_allele_nuc;
+					}
+					else
+					{
+						// The mutation type is non-nucleotide-based, so we ignore the nucleotide supplied, as well as REF/AA
+						nucleotide = -1;
+					}
+				}
+			}
+			else
+			{
+				// We are a non-nucleotide-based model, so NONNUC should not be defined; we do not understand nucleotides and will ignore them
+				if (info_NONNUC_defined)
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): cannot read a VCF file generated by a nucleotide-based model into a non-nucleotide-based model." << EidosTerminate();
+				
+				nucleotide = -1;
+			}
+			
+			// instantiate the mutation with the values decided upon
+			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			
+			if (info_mutids.size() > 0)
+			{
+				// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
+				slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
+				
+				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_generation, nucleotide);
+			}
+			else
+			{
+				// no mutation ID supplied, so use whatever is next
+				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_generation, nucleotide);
+			}
+			
+			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+			if (selection_coeff != 0.0)
+			{
+				sim.pure_neutral_ = false;
+				
+				// Fix all_pure_neutral_DFE_ if the selcoeff was not drawn from the muttype's DFE
+				if (p_method_id == gID_addNewMutation)
+					mutation_type_ptr->all_pure_neutral_DFE_ = false;
+			}
+			
+			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+			pop.mutation_registry_.emplace_back(new_mut_index);
+			alt_allele_mut_indices.push_back(new_mut_index);
+			mutation_indices.push_back(new_mut_index);
+			
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+			if (pop.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
+			{
+				// This mutation type is also keeping its own private registry, so we need to add to that as well
+				mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
+			}
+#endif
+		}
+		
+		// add the mutations to the appropriate genomes and record the new derived states
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		{
+			int call = genotype_calls[genome_index];
+			
+			if (call != 0)
+			{
+				Genome *genome = targets[genome_index];
+				slim_mutrun_index_t &genome_last_mutrun_modified = target_last_mutrun_modified[genome_index];
+				slim_position_t mutrun_length = genome->mutrun_length_;
+				MutationIndex mut_index = alt_allele_mut_indices[call - 1];
+				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
+				
+				if (mut_mutrun_index != genome_last_mutrun_modified)
+				{
+					genome->WillModifyRun(mut_mutrun_index);
+					genome_last_mutrun_modified = mut_mutrun_index;
+				}
+				
+				MutationRun *mut_mutrun = genome->mutruns_[mut_mutrun_index].get();
+				
+				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
+				if (all_target_genomes_started_empty)
+					mut_mutrun->emplace_back(mut_index);
+				else
+					mut_mutrun->insert_sorted_mutation(mut_index);
+				
+				if (recording_mutations)
+					sim.RecordNewDerivedState(genome, mut_position, *genome->derived_mutation_ids_at_position(mut_position));
+			}
+		}
+	}
+	
+	// Return the instantiated mutations
+	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	for (MutationIndex mut_index : mutation_indices)
+		retval->push_object_element(mut_block_ptr + mut_index);
+	
+	return retval;
 }
 
 //	*********************	+ (void)removeMutations([No<Mutation> mutations = NULL], [logical$ substitute = F])

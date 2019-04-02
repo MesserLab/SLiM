@@ -569,6 +569,7 @@ extern const std::string gStr_maxDistance;
 
 extern const std::string gStr_ancestralNucleotides;
 extern const std::string gStr_nucleotides;
+extern const std::string gStr_setAncestralNucleotides;
 extern const std::string gStr_setGeneConversion;
 extern const std::string gStr_setHotspotMap;
 extern const std::string gStr_setMutationRate;
@@ -586,6 +587,8 @@ extern const std::string gStr_mutationsOfType;
 extern const std::string gStr_setSpatialPosition;
 extern const std::string gStr_sumOfMutationsOfType;
 extern const std::string gStr_uniqueMutationsOfType;
+extern const std::string gStr_readFromMS;
+extern const std::string gStr_readFromVCF;
 extern const std::string gStr_removeMutations;
 extern const std::string gStr_setGenomicElementType;
 extern const std::string gStr_setMutationFractions;
@@ -862,6 +865,7 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_ancestralNucleotides,
 	gID_nucleotides,
+	gID_setAncestralNucleotides,
 	gID_setGeneConversion,
 	gID_setHotspotMap,
 	gID_setMutationRate,
@@ -879,6 +883,8 @@ enum _SLiMGlobalStringID : int {
 	gID_setSpatialPosition,
 	gID_sumOfMutationsOfType,
 	gID_uniqueMutationsOfType,
+	gID_readFromMS,
+	gID_readFromVCF,
 	gID_removeMutations,
 	gID_setGenomicElementType,
 	gID_setMutationFractions,

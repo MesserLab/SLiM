@@ -1251,6 +1251,7 @@
 						   @"mutationMatrix =>",
 						   @"– setMutationMatrix()",
 						   @"– ancestralNucleotides()",
+						   @"– setAncestralNucleotides()",
 						   @"– nucleotides()",
 						   @"hotspotEndPositions =>",
 						   @"hotspotEndPositionsF =>",

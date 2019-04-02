@@ -511,7 +511,27 @@ It is generally recommended that the parent individual be supplied to this metho
 \f4\fs20  in particular.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setGeneConversion(numeric$\'a0nonCrossoverFraction, numeric$\'a0meanLength, numeric$\'a0simpleConversionFraction, [numeric$\'a0bias\'a0=\'a00])\
+\f3\fs18 \cf2 \'96\'a0(integer$)setAncestralNucleotides(is\'a0sequence)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This method, which may be called only in nucleotide-based models (see section 1.8), replaces the ancestral nucleotide sequence for the model.  The 
+\f3\fs18 sequence
+\f4\fs20  parameter is interpreted exactly as it is in the 
+\f3\fs18 initializeAncestralSequence()
+\f4\fs20  function; see that documentation for details.  The length of the ancestral sequence is returned.\
+It is unusual to replace the ancestral sequence in a running simulation, since the nucleotide states of segregating and fixed mutations will depend upon the original ancestral sequence.  It can be useful when loading a new population state with 
+\f3\fs18 readFromMS()
+\f4\fs20  or 
+\f3\fs18 readFromVCF()
+\f4\fs20 , such as when resetting the simulation state to an earlier state in a conditional simulation; however, that is more commonly done using 
+\f3\fs18 readFromPopulationFile()
+\f4\fs20  with a SLiM or 
+\f3\fs18 .trees
+\f4\fs20  file.
+\f1\i \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(void)setGeneConversion(numeric$\'a0nonCrossoverFraction, numeric$\'a0meanLength, numeric$\'a0simpleConversionFraction, [numeric$\'a0bias\'a0=\'a00])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 This method switches the recombination model to the \'93double-stranded break (DSB)\'94 model (if it is not already set to that), and configures the details of the gene conversion tracts that will therefore be modeled.  The meanings and effects of the parameters exactly mirror the 
@@ -1350,7 +1370,145 @@ The parameters
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-+\'a0(void)removeMutations([No<Mutation>\'a0mutations\'a0=\'a0NULL], [logical$\'a0substitute\'a0=\'a0F])\
++\'a0(\cf0 \kerning1\expnd0\expndtw0 object\cf2 \expnd0\expndtw0\kerning0
+<Mutation>)readFromMS(string$\'a0filePath, io<MutationType>$\'a0mutationType)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Read new mutations from the MS format file at 
+\f3\fs18 filePath
+\f4\fs20  and add them to the target genomes.  The number of target genomes must match the number of genomes represented in the MS file.  To read into all of the genomes in a given subpopulation 
+\f3\fs18 pN
+\f4\fs20 , simply call 
+\f3\fs18 pN.genomes.readFromMS()
+\f4\fs20 , assuming the subpopulation\'92s size matches that of the MS file.  A vector containing all of the mutations created by 
+\f3\fs18 readFromMS()
+\f4\fs20  is returned.\
+Each mutation is created at the position specified in the file, using the mutation type given by 
+\f3\fs18 mutationType
+\f4\fs20 .  Positions are expected to be in [0,1], and are scaled to the length of the chromosome by multiplying by the last valid base position of the chromosome (i.e., one less than the chromosome length).  Selection coefficients are drawn from the mutation type.  The population of origin for each mutation is set to 
+\f3\fs18 -1
+\f4\fs20 , and the generation of origin is set to the current generation.  In a nucleotide-based model, if 
+\f3\fs18 mutationType
+\f4\fs20  is nucleotide-based, a random nucleotide different from the ancestral nucleotide at the position will be chosen with equal probability.\
+The target genomes correspond, in order, to the call lines in the MS file.  In sex-based models that simulate the X or Y chromosome, null genomes in the target vector will be skipped, and will not be used to correspond to any call line; however, care should be taken in this case that the lines in the MS file correspond to the target genomes in the manner desired.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(\cf0 \kerning1\expnd0\expndtw0 object\cf2 \expnd0\expndtw0\kerning0
+<Mutation>)readFromVCF(string$\'a0filePath, [Nio<MutationType>$\'a0mutationType\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Read new mutations from the VCF format file at 
+\f3\fs18 filePath
+\f4\fs20  and add them to the target genomes.  The number of target genomes must match the number of genomes represented in the VCF file (i.e., two times the number of samples, if each sample is diploid).  To read into all of the genomes in a given subpopulation 
+\f3\fs18 pN
+\f4\fs20 , simply call 
+\f3\fs18 pN.genomes.readFromVCF()
+\f4\fs20 , assuming the subpopulation\'92s size matches that of the VCF file taking ploidy into account.  A vector containing all of the mutations created by 
+\f3\fs18 readFromVCF()
+\f4\fs20  is returned.\
+SLiM\'92s VCF parsing is quite primitive.  The header is parsed only inasmuch as SLiM looks to see whether SLiM-specific VCF fields (see sections 24.2.3 and 24.2.4) are defined or not; the rest of the header information is ignored.  Call lines are assumed to follow the format:\
+
+\f3\fs18 #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT i0...iN\
+
+\f4\fs20 The 
+\f3\fs18 CHROM
+\f4\fs20 , 
+\f3\fs18 ID
+\f4\fs20 , 
+\f3\fs18 QUAL
+\f4\fs20 , 
+\f3\fs18 FILTER
+\f4\fs20 , and 
+\f3\fs18 FORMAT
+\f4\fs20  fields are ignored, and information in the genotype fields beyond the 
+\f3\fs18 GT
+\f4\fs20  genotype subfield are also ignored.  SLiM\'92s own VCF annotations (see section 24.2.3) are honored; in particular, mutations will be created using the given values of 
+\f3\fs18 MID
+\f4\fs20 , 
+\f3\fs18 S
+\f4\fs20 , 
+\f3\fs18 PO
+\f4\fs20 , 
+\f3\fs18 GO
+\f4\fs20 , and 
+\f3\fs18 MT
+\f4\fs20  if those subfields are present, and 
+\f3\fs18 DOM
+\f4\fs20 , if it is present, must match the dominance coefficient of the mutation type.  The parameter 
+\f3\fs18 mutationType
+\f4\fs20  (a 
+\f3\fs18 MutationType
+\f4\fs20  object or id) will be used for any mutations that have no supplied mutation type id in the 
+\f3\fs18 MT
+\f4\fs20  subfield; if 
+\f3\fs18 mutationType
+\f4\fs20  would be used but is 
+\f3\fs18 NULL
+\f4\fs20  an error will result.  Mutation IDs supplied in 
+\f3\fs18 MID
+\f4\fs20  will be used if no mutation IDs have been used in the simulation so far; if any have been used, it is difficult for SLiM to guarantee that there are no conflicts, so a warning will be emitted and the 
+\f3\fs18 MID
+\f4\fs20  values will be ignored.  If selection coefficients are not supplied with the 
+\f3\fs18 S
+\f4\fs20  subfield, they will be drawn from the mutation type used for the mutation.  If a population of origin is not supplied with the 
+\f3\fs18 PO
+\f4\fs20  subfield, 
+\f3\fs18 -1
+\f4\fs20  will be used.  If a generation of origin is not supplied with the 
+\f3\fs18 GO
+\f4\fs20  subfield, the current generation will be used.\
+
+\f3\fs18 REF
+\f4\fs20  and 
+\f3\fs18 ALT
+\f4\fs20  must always be comprised of simple nucleotides (
+\f3\fs18 A
+\f4\fs20 /
+\f3\fs18 C
+\f4\fs20 /
+\f3\fs18 G
+\f4\fs20 /
+\f3\fs18 T
+\f4\fs20 ) rather than values representing indels or other complex states.  Beyond this, the handling of the 
+\f3\fs18 REF
+\f4\fs20  and 
+\f3\fs18 ALT
+\f4\fs20  fields depends upon several factors.  First of all, these fields are ignored in non-nucleotide-based models, although they are still checked for conformance.  In nucleotide-based models, when a header definition for SLiM\'92s 
+\f3\fs18 NONNUC
+\f4\fs20  tag is present (as when nucleotide-based output is generated by SLiM): Second, if a 
+\f3\fs18 NONNUC
+\f4\fs20  field is present in the 
+\f3\fs18 INFO
+\f4\fs20  field the call line is taken to represent a non-nucleotide-based mutation, and 
+\f3\fs18 REF
+\f4\fs20  and 
+\f3\fs18 ALT
+\f4\fs20  are again ignored.  In this case the mutation type used must be non-nucleotide-based.  Third, if 
+\f3\fs18 NONNUC
+\f4\fs20  is 
+\f1\i not
+\f4\i0  present the call line is taken to represent a nucleotide-based mutation.  In this case, the mutation type used must be nucleotide-based.  Also, in this case, the specified reference nucleotide must match the existing ancestral nucleotide at the given position.  In nucleotide-based models, when a header definition for SLiM\'92s 
+\f3\fs18 NONNUC
+\f4\fs20  tag is not present (as when loading a non-SLiM-generated VCF file): The mutation type will govern the way nucleotides are handled.  If the mutation type used for a mutation is nucleotide-based, the nucleotide provided in the VCF file for that allele will be used.  If the mutation type is non-nucleotide-based, the nucleotide provided will be ignored.\
+If multiple alleles using the same nucleotide at the same position are specified in the VCF file, a separate mutation will be created for each, mirroring SLiM\'92s behavior with independent mutational lineages when writing VCF (see section 24.2.4).  The 
+\f3\fs18 MULTIALLELIC
+\f4\fs20  flag is ignored by 
+\f3\fs18 readFromVCF()
+\f4\fs20 ; call lines for mutations at the same base position in the same genome will result in stacked mutations whether or not 
+\f3\fs18 MULTIALLELIC
+\f4\fs20  is present.\
+The target genomes correspond, in order, to the haploid or diploid calls provided for 
+\f3\fs18 i0
+\f4\fs20 \'85
+\f3\fs18 iN
+\f4\fs20  (the sample IDs) in the VCF file.  In sex-based models that simulate the X or Y chromosome, null genomes in the target vector will be skipped, and will not be used to correspond to any of 
+\f3\fs18 i0
+\f4\fs20 \'85
+\f3\fs18 iN
+\f4\fs20 ; however, care should be taken in this case that the genomes in the VCF file correspond to the target genomes in the manner desired.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)removeMutations([No<Mutation>\'a0mutations\'a0=\'a0NULL], [logical$\'a0substitute\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Remove the mutations in 

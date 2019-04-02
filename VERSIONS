@@ -45,6 +45,9 @@ development head:
 		add nucleotide support for readFromPopulationFile() with a text SLiM output file from outputFull() in a nucleotide-based model; nucleotides and ancestral seq restored correctly
 		add writing and reading of binary files with outputFull() and readFromPopulationFile() in nucleotide-based models
 		add heteroduplex mismatch repair, biased gene conversion, and add recipe 17.11
+		add readFromVCF() for reading from VCF files, readFromMS() for reading from MS files
+		speed up output of MS format for large models
+		add setAncestralNucleotides() method to Chromosome
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
