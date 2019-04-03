@@ -2,7 +2,7 @@
 
 initialize() {
 	initializeSLiMOptions(nucleotideBased=T);
-	length = initializeAncestralNucleotides("hs37d5_chr22_patched.txt");
+	length = initializeAncestralNucleotides("hs37d5_chr22_patched.fa");
 	defineConstant("L", length);
 	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
 	initializeMutationTypeNuc("m2", 0.5, "f", 0.0);
