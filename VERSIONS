@@ -48,6 +48,7 @@ development head:
 		add readFromVCF() for reading from VCF files, readFromMS() for reading from MS files
 		speed up output of MS format for large models
 		add setAncestralNucleotides() method to Chromosome
+		add recipe 17.12, demonstrating loading from an empirical VCF file
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
