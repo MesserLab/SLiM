@@ -946,47 +946,45 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		int64_t *int_vec = ((EidosValue_Int_vector *)(codon_value.get()))->data();
 		GenomeWalker walker(this);
 		
-#warning use MoveToPosition() for efficiency here!
+		walker.MoveToPosition(start);
 		
 		while (!walker.Finished())
 		{
 			Mutation *mut = walker.CurrentMutation();
 			slim_position_t pos = mut->position_;
 			
-			if (pos >= start)
+			// pos >= start is guaranteed by MoveToPosition()
+			if (pos > end)
+				break;
+			
+			int8_t nuc = mut->nucleotide_;
+			
+			if (nuc != -1)
 			{
-				if (pos > end)
-					break;
+				// We have a nucleotide-based mutation within the sequence range.  We need to get the current codon value,
+				// deconstruct it into nucleotides, replace the overlaid nucleotide, reconstruct the codon value, and put
+				// it back into the codon vector.
+				int64_t codon_index = (pos - start) / 3;
+				int codon_offset = (pos - start) % 3;
+				int codon = (int)int_vec[codon_index];
 				
-				int8_t nuc = mut->nucleotide_;
-				
-				if (nuc != -1)
+				if (codon_offset == 0)
 				{
-					// We have a nucleotide-based mutation within the sequence range.  We need to get the current codon value,
-					// deconstruct it into nucleotides, replace the overlaid nucleotide, reconstruct the codon value, and put
-					// it back into the codon vector.
-					int64_t codon_index = (pos - start) / 3;
-					int codon_offset = (pos - start) % 3;
-					int codon = (int)int_vec[codon_index];
-					
-					if (codon_offset == 0)
-					{
-						codon = codon & 0x0F;
-						codon |= (nuc * 16);
-					}
-					else if (codon_offset == 1)
-					{
-						codon = codon & 0x33;
-						codon |= (nuc * 4);
-					}
-					else
-					{
-						codon = codon & 0x3C;
-						codon |= nuc;
-					}
-					
-					int_vec[codon_index] = codon;
+					codon = codon & 0x0F;
+					codon |= (nuc * 16);
 				}
+				else if (codon_offset == 1)
+				{
+					codon = codon & 0x33;
+					codon |= (nuc * 4);
+				}
+				else
+				{
+					codon = codon & 0x3C;
+					codon |= nuc;
+				}
+				
+				int_vec[codon_index] = codon;
 			}
 			
 			walker.NextMutation();
@@ -1004,27 +1002,25 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// singleton case: replace string_value entirely
 			GenomeWalker walker(this);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(start);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos >= start)
+				// pos >= start is guaranteed by MoveToPosition()
+				if (pos > end)
+					break;
+				
+				int8_t nuc = mut->nucleotide_;
+				
+				if (nuc != -1)
 				{
-					if (pos > end)
-						break;
-					
-					int8_t nuc = mut->nucleotide_;
-					
-					if (nuc != -1)
-					{
-						if (nuc == 0)			string_value = gStaticEidosValue_StringA;
-						else if (nuc == 1)		string_value = gStaticEidosValue_StringC;
-						else if (nuc == 2)		string_value = gStaticEidosValue_StringG;
-						else /* (nuc == 3) */	string_value = gStaticEidosValue_StringT;
-					}
+					if (nuc == 0)			string_value = gStaticEidosValue_StringA;
+					else if (nuc == 1)		string_value = gStaticEidosValue_StringC;
+					else if (nuc == 2)		string_value = gStaticEidosValue_StringG;
+					else /* (nuc == 3) */	string_value = gStaticEidosValue_StringT;
 				}
 				
 				walker.NextMutation();
@@ -1037,23 +1033,21 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			char *string_ptr = &string_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
 			GenomeWalker walker(this);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(start);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos >= start)
-				{
-					if (pos > end)
-						break;
-					
-					int8_t nuc = mut->nucleotide_;
-					
-					if (nuc != -1)
-						string_ptr[pos - start] = nuc_chars[nuc];
-				}
+				// pos >= start is guaranteed by MoveToPosition()
+				if (pos > end)
+					break;
+				
+				int8_t nuc = mut->nucleotide_;
+				
+				if (nuc != -1)
+					string_ptr[pos - start] = nuc_chars[nuc];
 				
 				walker.NextMutation();
 			}
@@ -1071,27 +1065,25 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// singleton case: replace integer_value entirely
 			GenomeWalker walker(this);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(start);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos >= start)
+				// pos >= start is guaranteed by MoveToPosition()
+				if (pos > end)
+					break;
+				
+				int8_t nuc = mut->nucleotide_;
+				
+				if (nuc != -1)
 				{
-					if (pos > end)
-						break;
-					
-					int8_t nuc = mut->nucleotide_;
-					
-					if (nuc != -1)
-					{
-						if (nuc == 0)			integer_value = gStaticEidosValue_Integer0;
-						else if (nuc == 1)		integer_value = gStaticEidosValue_Integer1;
-						else if (nuc == 2)		integer_value = gStaticEidosValue_Integer2;
-						else /* (nuc == 3) */	integer_value = gStaticEidosValue_Integer3;
-					}
+					if (nuc == 0)			integer_value = gStaticEidosValue_Integer0;
+					else if (nuc == 1)		integer_value = gStaticEidosValue_Integer1;
+					else if (nuc == 2)		integer_value = gStaticEidosValue_Integer2;
+					else /* (nuc == 3) */	integer_value = gStaticEidosValue_Integer3;
 				}
 				
 				walker.NextMutation();
@@ -1103,23 +1095,21 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			int64_t *int_vec = ((EidosValue_Int_vector *)(integer_value.get()))->data();
 			GenomeWalker walker(this);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(start);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos >= start)
-				{
-					if (pos > end)
-						break;
-					
-					int8_t nuc = mut->nucleotide_;
-					
-					if (nuc != -1)
-						int_vec[pos-start] = nuc;
-				}
+				// pos >= start is guaranteed by MoveToPosition()
+				if (pos > end)
+					break;
+				
+				int8_t nuc = mut->nucleotide_;
+				
+				if (nuc != -1)
+					int_vec[pos-start] = nuc;
 				
 				walker.NextMutation();
 			}
@@ -1137,27 +1127,25 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// singleton case: replace char_value entirely
 			GenomeWalker walker(this);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(start);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos >= start)
+				// pos >= start is guaranteed by MoveToPosition()
+				if (pos > end)
+					break;
+				
+				int8_t nuc = mut->nucleotide_;
+				
+				if (nuc != -1)
 				{
-					if (pos > end)
-						break;
-					
-					int8_t nuc = mut->nucleotide_;
-					
-					if (nuc != -1)
-					{
-						if (nuc == 0)			char_value = gStaticEidosValue_StringA;
-						else if (nuc == 1)		char_value = gStaticEidosValue_StringC;
-						else if (nuc == 2)		char_value = gStaticEidosValue_StringG;
-						else /* (nuc == 3) */	char_value = gStaticEidosValue_StringT;
-					}
+					if (nuc == 0)			char_value = gStaticEidosValue_StringA;
+					else if (nuc == 1)		char_value = gStaticEidosValue_StringC;
+					else if (nuc == 2)		char_value = gStaticEidosValue_StringG;
+					else /* (nuc == 3) */	char_value = gStaticEidosValue_StringT;
 				}
 				
 				walker.NextMutation();
@@ -1169,23 +1157,21 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			std::vector<std::string> *char_vec = ((EidosValue_String_vector *)(char_value.get()))->StringVector_Mutable();
 			GenomeWalker walker(this);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(start);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos >= start)
-				{
-					if (pos > end)
-						break;
-					
-					int8_t nuc = mut->nucleotide_;
-					
-					if (nuc != -1)
-						(*char_vec)[pos - start] = nuc_chars[nuc];
-				}
+				// pos >= start is guaranteed by MoveToPosition()
+				if (pos > end)
+					break;
+				
+				int8_t nuc = mut->nucleotide_;
+				
+				if (nuc != -1)
+					(*char_vec)[pos - start] = nuc_chars[nuc];
 				
 				walker.NextMutation();
 			}
@@ -2140,8 +2126,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			GenomeWalker walker(target_genome);
 			slim_position_t last_added_pos = -1;
-			
-#warning use MoveToPosition() for efficiency here!
 			
 			for (Mutation *mut : mutations_to_add)
 			{
@@ -3663,8 +3647,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				GenomeWalker walker(target_genome);
 				slim_position_t last_added_pos = -1;
 				
-#warning use MoveToPosition() for efficiency here!
-				
 				for (Mutation *mut : mutations_to_remove)
 				{
 					slim_position_t mut_pos = mut->position_;
@@ -3937,8 +3919,10 @@ void GenomeWalker::MoveToPosition(slim_position_t p_position)
 	// mutation run for the correct position.
 	Genome *genome = genome_;
 	
-	// start at the mutrun dictated by the position we are moving to
+	// start at the mutrun dictated by the position we are moving to; positions < 0 start at 0
 	mutrun_index_ = (int32_t)(p_position / genome->mutrun_length_);
+	if (mutrun_index_ < 0)
+		mutrun_index_ = 0;
 	
 	while (true)
 	{

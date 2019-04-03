@@ -686,18 +686,15 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 			int8_t background_nuc = -1;
 			GenomeWalker walker(background_genome);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(position);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos < position)
-				{
-					walker.NextMutation();
-				}
-				else if (pos == position)
+				// pos >= position is guaranteed by MoveToPosition()
+				if (pos == position)
 				{
 					int8_t mut_nuc = mut->nucleotide_;
 					
@@ -737,18 +734,15 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 			int8_t background_nuc1 = -1, background_nuc2 = -1, background_nuc3 = -1;
 			GenomeWalker walker(background_genome);
 			
-#warning use MoveToPosition() for efficiency here!
+			walker.MoveToPosition(position - 1);
 			
 			while (!walker.Finished())
 			{
 				Mutation *mut = walker.CurrentMutation();
 				slim_position_t pos = mut->position_;
 				
-				if (pos < position - 1)
-				{
-					walker.NextMutation();
-				}
-				else if (pos == position - 1)
+				// pos >= position - 1 is guaranteed by MoveToPosition()
+				if (pos == position - 1)
 				{
 					int8_t mut_nuc = mut->nucleotide_;
 					
