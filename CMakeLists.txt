@@ -63,16 +63,18 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 # Test for -flto support
-include(CheckCXXCompilerFlag)
-include(CheckCCompilerFlag)
-CHECK_CXX_COMPILER_FLAG(-flto CXX_SUPPORTS_FLTO)
-CHECK_C_COMPILER_FLAG(-flto C_SUPPORTS_FLTO)
-if(CXX_SUPPORTS_FLTO AND C_SUPPORTS_FLTO)
-    message(STATUS "Compiling with FLTO support")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
-endif()
+# BCH 4/4/2019: I am disabling this LTO stuff for now.  It made only a very small performance
+# difference, and multiple users reported build problems associated with it (see Issue #33).
+#include(CheckCXXCompilerFlag)
+#include(CheckCCompilerFlag)
+#CHECK_CXX_COMPILER_FLAG(-flto CXX_SUPPORTS_FLTO)
+#CHECK_C_COMPILER_FLAG(-flto C_SUPPORTS_FLTO)
+#if(CXX_SUPPORTS_FLTO AND C_SUPPORTS_FLTO)
+#    message(STATUS "Compiling with FLTO support")
+#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
+#endif()
 
 # GSL 
 set(TARGET_NAME gsl)
