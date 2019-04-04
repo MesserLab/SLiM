@@ -56,15 +56,15 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "To cite SLiM in publications please use:" << std::endl << std::endl;
-		SLIM_OUTSTREAM << "Haller, B.C., and Messer, P.W. (2018). SLiM 3: Forward genetic simulations" << std::endl;
-		SLIM_OUTSTREAM << "beyond the Wright–Fisher model. Molecular Biology and Evolution (early access)." << std::endl;
-		SLIM_OUTSTREAM << "DOI: 10.1093/molbev/msy228" << std::endl << std::endl;
+		SLIM_OUTSTREAM << "Haller, B.C., and Messer, P.W. (2019). SLiM 3: Forward genetic simulations" << std::endl;
+		SLIM_OUTSTREAM << "beyond the Wright–Fisher model. Molecular Biology and Evolution 36(3), 632-637." << std::endl;
+		SLIM_OUTSTREAM << "DOI: http://dx.doi.org/10.1093/molbev/msy228" << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "For papers using tree-sequence recording, please cite:" << std::endl << std::endl;
-		SLIM_OUTSTREAM << "Haller, B.C., Galloway, J., Kelleher, J., Messer, P.W., & Ralph, P.L. (2018)." << std::endl;
+		SLIM_OUTSTREAM << "Haller, B.C., Galloway, J., Kelleher, J., Messer, P.W., & Ralph, P.L. (2019)." << std::endl;
 		SLIM_OUTSTREAM << "Tree‐sequence recording in SLiM opens new horizons for forward‐time simulation" << std::endl;
-		SLIM_OUTSTREAM << "of whole genomes. Molecular Ecology Resources (early access)." << std::endl;
-		SLIM_OUTSTREAM << "DOI: 10.1093/molbev/msy228" << std::endl << std::endl;
+		SLIM_OUTSTREAM << "of whole genomes. Molecular Ecology Resources 19(2), 552-566." << std::endl;
+		SLIM_OUTSTREAM << "DOI: https://doi.org/10.1111/1755-0998.12968" << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
 		
