@@ -294,6 +294,9 @@
 		[[result cell] setLineBreakMode:NSLineBreakByTruncatingTail];
 		[[result cell] setTruncatesLastVisibleLine:YES];
 		[result setAllowsExpansionToolTips:YES];
+		
+		// make the textfield uneditable
+		[result setEditable:NO];
 	}
 	
 	return result;
