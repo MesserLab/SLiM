@@ -922,9 +922,9 @@ If
 \cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [float$\'a0simplificationRatio\'a0=\'a010]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
-\f4 \
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nf$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F])
+\f4 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
@@ -934,30 +934,67 @@ The
 \f2\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned on by default since mutation recording is generally useful.\
 The 
 \f1\fs18 simplificationRatio
-\f2\fs20  parameter controls how often automatic simplification of the recorded tree sequence occurs.  This is a speed\'96memory tradeoff: more frequent simplification (lower 
+\f2\fs20  and 
+\f1\fs18 simplificationInterval
+\f2\fs20  parameters control how often automatic simplification of the recorded tree sequence occurs.  This is a speed\'96memory tradeoff: more frequent simplification (lower 
 \f1\fs18 simplificationRatio
+\f2\fs20  or smaller 
+\f1\fs18 simplificationInterval
 \f2\fs20 ) means the stored tree sequences will use less memory, but at a cost of somewhat longer run times.  Conversely, a larger 
 \f1\fs18 simplificationRatio
-\f2\fs20  means that SLiM will wait longer between simplifications.  SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
+\f2\fs20  or 
+\f1\fs18 simplificationInterval
+\f2\fs20  means that SLiM will wait longer between simplifications.  There are three ways these parameters can be used.  With the first option, with a non-
+\f1\fs18 NULL
+\f2\fs20  
+\f1\fs18 simplificationRatio
+\f2\fs20  and a 
+\f1\fs18 NULL
+\f2\fs20  value for 
+\f1\fs18 simplificationInterval
+\f2\fs20 , SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
 \f1\fs18 10
-\f2\fs20  thus requests that SLiM try to find a generation interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
+\f2\fs20  (used if both 
+\f1\fs18 simplificationRatio
+\f2\fs20  and 
+\f1\fs18 simplificationInterval
+\f2\fs20  are 
+\f1\fs18 NULL
+\f2\fs20 ) thus requests that SLiM try to find a generation interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
 \f1\fs18 INF
-\f2\fs20  may be supplied as a special value indicating that automatic simplification should never occur; 
+\f2\fs20  may be supplied to indicate that automatic simplification should never occur; 
 \f1\fs18 0
-\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.\
-The 
-\f1\fs18 checkCoalescence
-\f2\fs20  parameter controls whether a check for full coalescence is conducted after each simplification.  If a model will call 
-\f1\fs18 treeSeqCoalesced()
-\f2\fs20  to check for coalescence during its execution, 
-\f1\fs18 checkCoalescence
-\f2\fs20  should be set to 
-\f1\fs18 T
-\f2\fs20 .  Since the coalescence checks entail a performance penalty, the default of 
-\f1\fs18 F
-\f2\fs20  is preferable otherwise.  See the documentation for 
-\f1\fs18 treeSeqCoalesced()
-\f2\fs20  for further discussion.\
+\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.  Alternatively \'96 the second option \'96 
+\f1\fs18 simplificationRatio
+\f2\fs20  may be 
+\f1\fs18 NULL
+\f2\fs20  and 
+\f1\fs18 simplificationInterval
+\f2\fs20  may be set to the interval, in generations, between simplifications.  This may provide more reliable performance, but the interval must be chosen carefully to avoid exceeding the available memory.  Again, 
+\f1\fs18 simplificationInterval
+\f2\fs20  may be a very large number to specify that simplification should never occur (not 
+\f1\fs18 INF
+\f2\fs20 , though, since it is an 
+\f1\fs18 integer
+\f2\fs20  value), or 
+\f1\fs18 0
+\f2\fs20  (or 
+\f1\fs18 1
+\f2\fs20 ) to simplify every generation.  Finally \'96 the third option \'96 both parameters may be non-
+\f1\fs18 NULL
+\f2\fs20 , in which case 
+\f1\fs18 simplificationRatio
+\f2\fs20  is used as described above, while 
+\f1\fs18 simplificationInterval
+\f2\fs20  provides the 
+\f3\i initial
+\f2\i0  interval first used by SLiM (and then subsequently increased or decreased to try to match the requested simplification ratio).  The default initial interval, used when 
+\f1\fs18 simplificationInterval
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , is usually 
+\f1\fs18 20
+\f2\fs20 ; this is chosen to be relatively frequent, and thus unlikely to lead to a memory overflow, but it can result in rather slow spool-up for models where the equilibrium simplification interval, as determined by the simplification ratio, is much longer.  It can therefore be helpful to set a larger initial interval so that the early part of the model run is not excessively bogged down in simplification.\
 The 
 \f1\fs18 runCrosschecks
 \f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\

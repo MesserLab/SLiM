@@ -437,8 +437,9 @@ private:
 	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ generations
 	
 	double simplification_ratio_;				// the pre:post table size ratio we target with our automatic simplification heuristic
-	slim_generation_t simplify_elapsed_ = 0;	// the number of generations elapsed since a simplification was done (automatic or otherwise)
-	double simplify_interval_;					// the number of generations between automatic simplifications
+	int64_t simplification_interval_;			// the generation interval between simplifications; -1 if not used (in which case the ratio is used)
+	int64_t simplify_elapsed_ = 0;				// the number of generations elapsed since a simplification was done (automatic or otherwise)
+	double simplify_interval_;					// the current number of generations between automatic simplifications when using simplification_ratio_
 	
 	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
 												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring

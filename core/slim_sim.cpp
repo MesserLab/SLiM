@@ -5053,7 +5053,16 @@ void SLiMSim::CheckAutoSimplification(void)
 	// automatically"; we check for that up front.
 	++simplify_elapsed_;
 	
-	if (!std::isinf(simplification_ratio_))
+	if (simplification_interval_ != -1)
+	{
+		// BCH 4/5/2019: Adding support for a chosen simplification interval rather than a ratio.  A value of -1
+		// means the simplification ratio is being used, as implemented below; any other value is a target interval.
+		if ((simplify_elapsed_ >= 1) && (simplify_elapsed_ >= simplification_interval_))
+		{
+			SimplifyTreeSequence();
+		}
+	}
+	else if (!std::isinf(simplification_ratio_))
 	{
 		if (simplify_elapsed_ >= simplify_interval_)
 		{
@@ -5073,9 +5082,9 @@ void SLiMSim::CheckAutoSimplification(void)
             new_table_size += (uint64_t)tables_.mutations->num_rows;
 			double ratio = old_table_size / (double)new_table_size;
 			
-			//std::cout << "auto-simplified in generation " << generation_ << "; old size " << old_table_size << ", new size " << new_table_size;
-			//std::cout << "; ratio " << ratio << ", target " << simplification_ratio_ << std::endl;
-			//std::cout << "old interval " << simplify_interval_ << ", new interval ";
+			std::cout << "auto-simplified in generation " << generation_ << "; old size " << old_table_size << ", new size " << new_table_size;
+			std::cout << "; ratio " << ratio << ", target " << simplification_ratio_ << std::endl;
+			std::cout << "old interval " << simplify_interval_ << ", new interval ";
 			
 			// Adjust our automatic simplification interval based upon the observed change in storage space used.
 			// Not sure if this is exactly what we want to do; this will hunt around a lot without settling on a value,
@@ -5101,7 +5110,7 @@ void SLiMSim::CheckAutoSimplification(void)
 					simplify_interval_ = 1.0;
 			}
 			
-			//std::cout << simplify_interval_ << std::endl;
+			std::cout << simplify_interval_ << std::endl;
 		}
 	}
 }
@@ -6960,14 +6969,15 @@ void SLiMSim::TSXC_Enable(void)
 	// command-line flag, so that my existing test suite can be crosschecked easily.  The -TSXC flag is not public.
 	recording_tree_ = true;
 	recording_mutations_ = true;
-	simplification_ratio_ = 10;
+	simplification_ratio_ = 10.0;
+	simplification_interval_ = -1;			// this means "use the ratio, not a fixed interval"
+	simplify_interval_ = 20;				// this is the initial simplification interval
 	running_coalescence_checks_ = false;
 	running_treeseq_crosschecks_ = true;
 	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
 	
 	pedigrees_enabled_ = true;
 	pedigrees_enabled_by_tree_seq_ = true;
-	simplify_interval_ = 20;
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
@@ -9244,15 +9254,16 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [float$ simplificationRatio = 10], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F])
+//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nf$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_argument_count, p_interpreter)
 	EidosValue *arg_recordMutations_value = p_arguments[0].get();
 	EidosValue *arg_simplificationRatio_value = p_arguments[1].get();
-	EidosValue *arg_checkCoalescence_value = p_arguments[2].get();
-	EidosValue *arg_runCrosschecks_value = p_arguments[3].get();
+	EidosValue *arg_simplificationInterval_value = p_arguments[2].get();
+	EidosValue *arg_checkCoalescence_value = p_arguments[3].get();
+	EidosValue *arg_runCrosschecks_value = p_arguments[4].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_treeseq_declarations_ > 0)
@@ -9263,21 +9274,58 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	
 	recording_tree_ = true;
 	recording_mutations_ = arg_recordMutations_value->LogicalAtIndex(0, nullptr);
-	simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
 	running_coalescence_checks_ = arg_checkCoalescence_value->LogicalAtIndex(0, nullptr);
 	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex(0, nullptr);
 	treeseq_crosschecks_interval_ = 1;		// this interval is presently not exposed in the Eidos API
+	
+	if ((arg_simplificationRatio_value->Type() == EidosValueType::kValueNULL) && (arg_simplificationInterval_value->Type() == EidosValueType::kValueNULL))
+	{
+		// Both ratio and interval are NULL; use the default behavior of a ratio of 10
+		simplification_ratio_ = 10.0;
+		simplification_interval_ = -1;
+		simplify_interval_ = 20;
+	}
+	else if (arg_simplificationRatio_value->Type() != EidosValueType::kValueNULL)
+	{
+		// The ratio is non-NULL; using the specified ratio
+		simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
+		simplification_interval_ = -1;
+		
+		if (std::isnan(simplification_ratio_) || (simplification_ratio_ < 0))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires simplificationRatio to be >= 0." << EidosTerminate();
+		
+		// Choose an initial auto-simplification interval
+		if (arg_simplificationInterval_value->Type() != EidosValueType::kValueNULL)
+		{
+			// Both ratio and interval are non-NULL; the interval is thus interpreted as the *initial* interval
+			simplify_interval_ = arg_simplificationInterval_value->IntAtIndex(0, nullptr);
+			
+			if (simplify_interval_ <= 0)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires simplificationInterval to be > 0." << EidosTerminate();
+		}
+		else
+		{
+			// The interval is NULL, so use the default
+			if (simplification_ratio_ == 0.0)
+				simplify_interval_ = 1.0;
+			else
+				simplify_interval_ = 20;
+		}
+	}
+	else if (arg_simplificationInterval_value->Type() != EidosValueType::kValueNULL)
+	{
+		// The ratio is NULL, interval is not; using the specified interval
+		simplification_ratio_ = 0.0;
+		simplification_interval_ = arg_simplificationInterval_value->IntAtIndex(0, nullptr);
+		
+		if (simplification_interval_ <= 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires simplificationInterval to be > 0." << EidosTerminate();
+	}
 	
 	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
 	// have unique identifiers for every individual; pedigree recording does that for us
 	pedigrees_enabled_ = true;
 	pedigrees_enabled_by_tree_seq_ = true;
-	
-	// Choose an initial auto-simplification interval
-	if (simplification_ratio_ == 0.0)
-		simplify_interval_ = 1.0;
-	else
-		simplify_interval_ = 20;
 	
 	if (DEBUG_INPUT)
 	{
@@ -9292,10 +9340,17 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 			previous_params = true;
 		}
 		
-		if (simplification_ratio_ != 10.0)
+		if (arg_simplificationRatio_value->Type() != EidosValueType::kValueNULL)
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "simplificationRatio = " << simplification_ratio_;
+			previous_params = true;
+		}
+		
+		if (arg_simplificationInterval_value->Type() != EidosValueType::kValueNULL)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "simplificationInterval = " << arg_simplificationInterval_value->IntAtIndex(0, nullptr);
 			previous_params = true;
 		}
 		
@@ -9399,7 +9454,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
-									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OS("simplificationRatio", gStaticEidosValue_Float10)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF));
+									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddFloat_OSN("simplificationRatio", gStaticEidosValueNULL)->AddInt_OSN("simplificationInterval", gStaticEidosValueNULL)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddString_S("modelType"));
 	}

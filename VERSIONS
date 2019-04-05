@@ -50,6 +50,7 @@ development head:
 		add setAncestralNucleotides() method to Chromosome
 		add recipe 17.12, demonstrating loading from an empirical VCF file
 		fix a bug with the time base of WF models when a .trees is loaded in an early() event; a parent/child timestamp conflict could result
+		add simplificationInterval parameter to initializeTreeSeq() (breaking backward compatibility, for those not using named arguments for checkCoalescence / runCrosschecks)
 
 from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
