@@ -5138,11 +5138,11 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
     if (ret < 0) handle_error("read_from_ascii", ret);
 	
 	// Parse the provenance info just to find out the file version, which we need for mutation metadata parsing
-	slim_generation_t provinence_gen;
+	slim_generation_t provenance_gen;
 	SLiMModelType file_model_type;
 	int file_version;
 	
-	ReadProvenanceTable(&tables_, &provinence_gen, &file_model_type, &file_version);
+	ReadProvenanceTable(&tables_, &provenance_gen, &file_model_type, &file_version);
 	
 	// We will be replacing the columns of some of the tables in tables with de-ASCII-fied versions.  That can't be
 	// done in place, so we make a copy of tables here to act as a source for the process of copying new information
@@ -6394,8 +6394,12 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	UnmarkFirstGenerationSamples(&output_tables);
 	
 	// Rebase the times in the nodes to be in msprime-land; see _InstantiateSLiMObjectsFromTables() for the inverse operation
+	// BCH 4/4/2019: switched to using tree_seq_generation_ to avoid a parent/child timestamp conflict
+	// This makes sense; as far as tree-seq recording is concerned, tree_seq_generation_ is the generation counter
+	slim_generation_t time_adjustment = tree_seq_generation_;
+	
 	for (size_t node_index = 0; node_index < output_tables.nodes->num_rows; ++node_index)
-		output_tables.nodes->time[node_index] += generation_;
+		output_tables.nodes->time[node_index] += time_adjustment;
 	
 	// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
 	// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
@@ -7689,19 +7693,23 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	// if it is, set the generation from the provenance data
 	// note that ReadProvenanceTable() presently throws an exception if asked to read a SLiM 3.0 .trees file;
 	// the changes in the tables, metadata, etc., were just too extensive for it to be reasonable to do...
-	slim_generation_t provinence_gen;
+	slim_generation_t provenance_gen;
 	SLiMModelType file_model_type;
 	int file_version;
 	
 	if (tables_.sequence_length != chromosome_.last_position_ + 1)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population does not match the configured chromosome length." << EidosTerminate();
 	
-	ReadProvenanceTable(&tables_, &provinence_gen, &file_model_type, &file_version);
-	SetGeneration(provinence_gen);
+	ReadProvenanceTable(&tables_, &provenance_gen, &file_model_type, &file_version);
+	SetGeneration(provenance_gen);
 	
 	// rebase the times in the nodes to be in SLiM-land; see WriteTreeSequence for the inverse operation
+	// BCH 4/4/2019: switched to using tree_seq_generation_ to avoid a parent/child timestamp conflict
+	// This makes sense; as far as tree-seq recording is concerned, tree_seq_generation_ is the generation counter
+	slim_generation_t time_adjustment = tree_seq_generation_;
+	
 	for (size_t node_index = 0; node_index < tables_.nodes->num_rows; ++node_index)
-		tables_.nodes->time[node_index] -= generation_;
+		tables_.nodes->time[node_index] -= time_adjustment;
 	
 	// allocate and set up the tree_sequence object that contains all the tree sequences
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
@@ -7790,7 +7798,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	last_coalescence_state_ = false;
 	
 	// return the current simulation generation as reconstructed from the file
-	return provinence_gen;
+	return provenance_gen;
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter)
