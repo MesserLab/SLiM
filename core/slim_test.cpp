@@ -723,7 +723,8 @@ void _RunSLiMSimTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.subpopulations = _Test(7); } ", 1, 235, "cannot be object element type", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.substitutions) == 0) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.substitutions = _Test(7); } ", 1, 234, "cannot be object element type", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag; } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.tag; } ", 1, 220, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { c(sim,sim).tag; } ", 1, 227, "before being set", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.tag = -17; } 2 { if (sim.tag == -17) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.dimensionality == '') stop(); }", __LINE__);
@@ -1003,6 +1004,8 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.colorSubstitution = ''; } 2 { if (m1.colorSubstitution == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.colorSubstitution = 'red'; } 2 { if (m1.colorSubstitution == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.colorSubstitution = '#FF0000'; } 2 { if (m1.colorSubstitution == '#FF0000') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { m1.tag; }", 1, 219, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { c(m1,m1).tag; }", 1, 225, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { m1.tag = 17; } 2 { if (m1.tag == 17) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.convertToSubstitution = F; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { m1.mutationStackGroup = -17; }", __LINE__);
@@ -1087,6 +1090,8 @@ void _RunGenomicElementTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { g1.color = ''; } 2 { if (g1.color == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { g1.color = 'red'; } 2 { if (g1.color == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { g1.color = '#FF0000'; } 2 { if (g1.color == '#FF0000') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { g1.tag; }", 1, 219, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { c(g1,g1).tag; }", 1, 225, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { g1.tag = 17; } 2 { if (g1.tag == 17) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationFractions = 1.0; }", 1, 237, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { g1.mutationTypes = m1; }", 1, 233, "read-only property", __LINE__);
@@ -1121,6 +1126,7 @@ void _RunGenomicElementTests(void)
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.endPosition == 999) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.startPosition == 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; if (ge.genomicElementType == g1) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.tag; }", 1, 300, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.tag = -12; if (ge.tag == -12) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.endPosition = 999; stop(); }", 1, 312, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.startPosition = 0; stop(); }", 1, 314, "read-only property", __LINE__);
@@ -1128,10 +1134,12 @@ void _RunGenomicElementTests(void)
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.endPosition == 99999) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.startPosition == 1000) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; if (ge.genomicElementType == g1) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.tag; }", 1, 300, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.tag = -17; if (ge.tag == -17) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.endPosition = 99999; stop(); }", 1, 312, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.startPosition = 1000; stop(); }", 1, 314, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[1]; ge.genomicElementType = g1; stop(); }", 1, 319, "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements; ge.tag; }", 1, 297, "before being set", __LINE__);
 	
 	// Test GenomicElement - (void)setGenomicElementType(io<GenomicElementType>$ genomicElementType)
 	SLiMAssertScriptStop(gen1_setup_2ge + "1 { ge = sim.chromosome.genomicElements[0]; ge.setGenomicElementType(g1); stop(); }", __LINE__);
@@ -1184,6 +1192,8 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = ''; if (ch.colorSubstitution == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.tag; }", 1, 240, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; c(ch,ch).tag; }", 1, 246, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 256, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 253, "read-only property", __LINE__);
@@ -1235,6 +1245,8 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = ''; if (ch.colorSubstitution == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.tag; }", 1, 260, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; c(ch,ch).tag; }", 1, 266, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 276, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 273, "read-only property", __LINE__);
@@ -1288,6 +1300,8 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = ''; if (ch.colorSubstitution == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = 'red'; if (ch.colorSubstitution == 'red') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.colorSubstitution = '#FF0000'; if (ch.colorSubstitution == '#FF0000') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.tag; }", 1, 367, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; c(ch,ch).tag; }", 1, 373, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.tag = 3294; if (ch.tag == 3294) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.genomicElements = ch.genomicElements; stop(); }", 1, 383, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_2rates + "1 { ch = sim.chromosome; ch.lastPosition = 99999; stop(); }", 1, 380, "read-only property", __LINE__);
@@ -1554,6 +1568,9 @@ void _RunMutationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.position = 0; stop(); }", 1, 285, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.selectionCoeff = 0.1; stop(); }", 1, 291, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.subpopID = 237; if (mut.subpopID == 237) stop(); }", __LINE__);						// legal; this field may be used as a user tag
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.tag; }", 1, 276, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; c(mut,mut).tag; }", 1, 283, "before being set", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.tag = 278; if (mut.tag == 278) stop(); }", __LINE__);
 	
 	// Test Mutation - (void)setMutationType(io<MutationType>$ mutType)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { mut = sim.mutations[0]; mut.setMutationType(m1); if (mut.mutationType == m1) stop(); }", __LINE__);
@@ -1579,6 +1596,8 @@ void _RunGenomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.genomeType == 'A') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; if (gen.isNullGenome == F) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 { gen = p1.genomes[0]; if (gen.mutations[0].mutationType == m1) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.tag; }", 1, 272, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; c(gen,gen).tag; }", 1, 279, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.tag = 278; if (gen.tag == 278) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.genomeType = 'A'; stop(); }", 1, 283, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { gen = p1.genomes[0]; gen.isNullGenome = F; stop(); }", 1, 285, "read-only property", __LINE__);
@@ -1811,6 +1830,8 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.selfingRate == 0.0) stop(); }", __LINE__);									// legal but always 0.0 in non-sexual sims
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.sexRatio == 0.0) stop(); }", __LINE__);										// legal but always 0.0 in non-sexual sims
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.individualCount == 10) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.tag; }", 1, 250, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { c(p1,p1).tag; }", 1, 256, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.fitnessScaling = 135.0; if (p1.fitnessScaling == 135.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.fitnessScaling = 0.0; if (p1.fitnessScaling == 0.0) stop(); }", __LINE__);
@@ -1838,6 +1859,8 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.selfingRate == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.sexRatio == 0.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.individualCount == 10) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.tag; }", 1, 270, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { c(p1,p1).tag; }", 1, 276, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.tag = 135; if (p1.tag == 135) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.fitnessScaling = 135.0; if (p1.fitnessScaling == 135.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.fitnessScaling = 0.0; if (p1.fitnessScaling == 0.0) stop(); }", __LINE__);
@@ -2668,7 +2691,11 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.sex == rep('H', 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.color = 'red'; if (all(i.color == 'red')) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i[0].tag; }", 1, 272, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.tag; }", 1, 269, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i[0].tagF; }", 1, 272, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.tagF; }", 1, 269, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.tagF = 135.0; if (all(i.tagF == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (size(i.migrant) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.migrant == F)) stop(); }", __LINE__);
@@ -2699,7 +2726,11 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.sex == repEach(c('F','M'), 5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.color = 'red'; if (all(i.color == 'red')) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i[0].tag; }", 1, 292, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tag; }", 1, 289, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i[0].tagF; }", 1, 292, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tagF; }", 1, 289, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.tagF = 135.0; if (all(i.tagF == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (size(i.migrant) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.migrant == F)) stop(); }", __LINE__);
@@ -2836,6 +2867,8 @@ void _RunInteractionTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i1.reciprocal = F; }", 1, 435, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i1.sexSegregation = '**'; }", 1, 439, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i1.spatiality = 'x'; }", 1, 435, "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { i1.tag; }", 1, 424, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { c(i1,i1).tag; }", 1, 430, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { i1.tag = 17; } 2 { if (i1.tag == 17) stop(); }", __LINE__);
 	
 	// Run tests in a variety of combinations
@@ -3513,7 +3546,6 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.id == 1) stop(); } s1 2:4 { sim = 10; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.source == '{ sim = 10; }') stop(); } s1 2:4 { sim = 10; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.start == 2) stop(); } s1 2:4 { sim = 10; } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.tag; stop(); } s1 2:4 { sim = 10; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'early') stop(); } s1 2:4 { sim = 10; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'early') stop(); } s1 2:4 early() { sim = 10; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (s1.type == 'late') stop(); } s1 2:4 late() { sim = 10; } ", __LINE__);
@@ -3522,6 +3554,8 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.id = 1; stop(); } s1 2:4 { sim = 10; } ", 1, 253, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.source = '{ sim = 10; }'; stop(); } s1 2:4 { sim = 10; } ", 1, 257, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.start = 2; stop(); } s1 2:4 { sim = 10; } ", 1, 256, "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.tag; } s1 2:4 { sim = 10; } ", 1, 250, "before being set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { c(s1,s1).tag; } s1 2:4 { sim = 10; } ", 1, 256, "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { s1.tag = 219; if (s1.tag == 219) stop(); } s1 2:4 { sim = 10; } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1.type = 'event'; stop(); } s1 2:4 { sim = 10; } ", 1, 255, "read-only property", __LINE__);
 	

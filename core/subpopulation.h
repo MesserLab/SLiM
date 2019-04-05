@@ -227,7 +227,7 @@ public:
 	double bounds_z0_ = 0.0, bounds_z1_ = 1.0;
 	SpatialMapMap spatial_maps_;
 	
-	slim_usertag_t tag_value_;							// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;	// a user-defined tag value
 	
 	double fitness_scaling_ = 1.0;						// the fitnessScaling property value
 #ifdef SLIMGUI

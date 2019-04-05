@@ -130,7 +130,7 @@ public:
 	const EidosToken *identifier_token_ = nullptr;
 	
 	slim_usertag_t active_ = -1;								// the "active" property of the block: 0 if inactive, all other values are active
-	slim_usertag_t tag_value_;									// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
 	bool contains_wildcard_ = false;			// "apply", "sapply", "executeLambda", "_executeLambda_OUTER", "ls", "rm"; all other contains_ flags will be T if this is T

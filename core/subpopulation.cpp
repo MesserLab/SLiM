@@ -2931,6 +2931,12 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		{
 			child->RemoveAllKeys();
 			child->ClearColor();
+			
+			// reset tags in individuals and genomes to the "unset" value
+			child->tag_value_ = SLIM_TAG_UNSET_VALUE;
+			child->tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+			child->genome1_->tag_value_ = SLIM_TAG_UNSET_VALUE;
+			child->genome2_->tag_value_ = SLIM_TAG_UNSET_VALUE;
 		}
 	}
 	else
@@ -2942,6 +2948,15 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		if (Individual::s_any_individual_color_set_)
 			for (Individual *child : child_individuals_)
 				child->ClearColor();
+		
+		// reset tags in individuals and genomes to the "unset" value
+		for (Individual *child : child_individuals_)
+		{
+			child->tag_value_ = SLIM_TAG_UNSET_VALUE;
+			child->tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+			child->genome1_->tag_value_ = SLIM_TAG_UNSET_VALUE;
+			child->genome2_->tag_value_ = SLIM_TAG_UNSET_VALUE;
+		}
 	}
 	
 	// The parents now have the values that used to belong to the children.
@@ -3452,7 +3467,14 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_tag:					// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+		{
+			slim_usertag_t tag_value = tag_value_;
+			
+			if (tag_value == SLIM_TAG_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property tag accessed on subpopulation before being set." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+		}
 		case gID_fitnessScaling:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness_scaling_));
 			
@@ -3511,8 +3533,12 @@ EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObjectElement **p_va
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Subpopulation *value = (Subpopulation *)(p_values[value_index]);
+		slim_usertag_t tag_value = value->tag_value_;
 		
-		int_result->set_int_no_check(value->tag_value_, value_index);
+		if (tag_value == SLIM_TAG_UNSET_VALUE)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property tag accessed on subpopulation before being set." << EidosTerminate();
+		
+		int_result->set_int_no_check(tag_value, value_index);
 	}
 	
 	return int_result;

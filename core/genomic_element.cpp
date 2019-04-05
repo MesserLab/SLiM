@@ -124,7 +124,14 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_tag:					// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+		{
+			slim_usertag_t tag_value = tag_value_;
+			
+			if (tag_value == SLIM_TAG_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (GenomicElement::GetProperty): property tag accessed on genomic element before being set." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+		}
 			
 			// all others, including gID_none
 		default:
@@ -167,8 +174,12 @@ EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObjectElement **p_v
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		GenomicElement *value = (GenomicElement *)(p_values[value_index]);
+		slim_usertag_t tag_value = value->tag_value_;
 		
-		int_result->set_int_no_check(value->tag_value_, value_index);
+		if (tag_value == SLIM_TAG_UNSET_VALUE)
+			EIDOS_TERMINATION << "ERROR (GenomicElement::GetProperty): property tag accessed on genomic element before being set." << EidosTerminate();
+		
+		int_result->set_int_no_check(tag_value, value_index);
 	}
 	
 	return int_result;

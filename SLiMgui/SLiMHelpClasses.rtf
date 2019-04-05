@@ -345,7 +345,8 @@ The recombination rate for each of the recombination regions specified by
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.
 \f5 \
@@ -721,7 +722,7 @@ genomePedigreeID => (integer$)\
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  \cf2 If pedigree tracking is not on, this property is unavailable.\cf2 \
+\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  If pedigree tracking is not on, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomeType => (string$)\
@@ -760,7 +761,8 @@ genomePedigreeID => (integer$)\
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.\
 Note that the 
@@ -1613,7 +1615,8 @@ The optional parameter
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.
 \f5 \
@@ -1704,7 +1707,8 @@ mutationMatrix => (float)\
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
 \f3\fs18 getValue()
@@ -2002,7 +2006,8 @@ If pedigree tracking is turned on with
 \f3\fs18 float
 \f4\fs20 ).  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
 \f3\fs18 getValue()
@@ -2036,7 +2041,8 @@ Note that the
 \f3\fs18 integer
 \f4\fs20 ).  The value of 
 \f3\fs18 tagF
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tagF
 \f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
 \f3\fs18 getValue()
@@ -2483,7 +2489,8 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
 \f3\fs18 getValue()
@@ -3099,7 +3106,8 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
@@ -3571,7 +3579,8 @@ In nucleotide-based models, the stacking policy for nucleotide-based mutation ty
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
 \f3\fs18 getValue()
@@ -3748,7 +3757,8 @@ In nucleotide-based models, the stacking policy for nucleotide-based mutation ty
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -3910,7 +3920,7 @@ If the model is being profiled, or is executing forward to a generation number e
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 This property has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0 \cf2   In SLiM 3.2.1 and later, use 
+\f4\b0   In SLiM 3.2.1 and later, use 
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -4035,7 +4045,8 @@ The spatial periodicity of the simulation, as specified in
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
 \f3\fs18 getValue()
@@ -4379,16 +4390,16 @@ Beginning with SLiM 3.3, the
 \f4\fs20 , the output will not contain ancestral nucleotide information, and so the ancestral sequence will not be restored correctly if the saved file is loaded with 
 \f3\fs18 readPopulationFile()
 \f4\fs20 .  This option is provided because the ancestral sequence may be quite large, for models with a long chromosome (e.g., 1 GB if the chromosome is 10
-\fs13\fsmilli6667 \cf2 \super 9
-\fs20 \cf2 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
+\fs13\fsmilli6667 \super 9
+\fs20 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
 \f3\fs18 nucleotideBased
 \f4\fs20  parameter to 
 \f3\fs18 initializeSLiMOptions()
 \f4\fs20 ), the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will 
-\f1\i \cf2 always
-\f4\i0 \cf2  include the nucleotides associated with any nucleotide-based mutations; the 
+\f1\i always
+\f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -5279,7 +5290,8 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 integer
 \f4\fs20  value.  The value of 
 \f3\fs18 tag
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
+, and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
 \f3\fs18 getValue()

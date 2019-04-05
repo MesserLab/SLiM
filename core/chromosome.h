@@ -172,7 +172,7 @@ public:
 	std::vector<double> hotspot_multipliers_M_;
 	std::vector<double> hotspot_multipliers_F_;
 	
-	slim_usertag_t tag_value_;								// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying

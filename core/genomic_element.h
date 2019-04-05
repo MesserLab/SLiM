@@ -51,7 +51,7 @@ public:
 	slim_position_t start_position_;						// the start position of the element
 	slim_position_t end_position_;							// the end position of the element
 	
-	slim_usertag_t tag_value_;								// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;		// a user-defined tag value
 	
 	//
 	//	This class should not be copied, in general, but the default copy constructor and assignment operator cannot be entirely

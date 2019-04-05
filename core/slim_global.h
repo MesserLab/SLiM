@@ -139,6 +139,8 @@ typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-
 #define SLIM_INF_BASE_POSITION	(1100000000000000L)	// used to represent a base position infinitely beyond the end of the chromosome
 #define SLIM_MAX_ID_VALUE		(1000000000L)	// IDs for subpops, genomic elements, etc. can range from 0 to this
 #define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
+#define SLIM_TAG_UNSET_VALUE	(INT64_MIN)		// for tags of type slim_usertag_t, the flag value for "unset"
+#define SLIM_TAGF_UNSET_VALUE	(-DBL_MAX)		// for tags of type double (i.e. tagF), the flag value for "unset"
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely; not needed for slim_refcount_t at present
 void SLiM_RaiseGenerationRangeError(int64_t p_long_value);

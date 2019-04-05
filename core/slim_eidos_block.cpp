@@ -1000,7 +1000,14 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_active:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(active_));
 		case gID_tag:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+		{
+			slim_usertag_t tag_value = tag_value_;
+			
+			if (tag_value == SLIM_TAG_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): property tag accessed on script block before being set." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+		}
 			
 			// all others, including gID_none
 		default:

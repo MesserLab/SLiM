@@ -181,6 +181,9 @@ slim_mutationid_t gSLiM_next_mutation_id = 0;
 Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
+	// initialize the tag to the "unset" value
+	tag_value_ = SLIM_TAG_UNSET_VALUE;
+	
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
@@ -230,10 +233,13 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
+	// initialize the tag to the "unset" value
+	tag_value_ = SLIM_TAG_UNSET_VALUE;
+	
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-
+	
 	// zero out our refcount, which is now kept in a separate buffer
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
 	
@@ -319,7 +325,14 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_tag:				// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+		{
+			slim_usertag_t tag_value = tag_value_;
+			
+			if (tag_value == SLIM_TAG_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): property tag accessed on mutation before being set." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+		}
 			
 			// all others, including gID_none
 		default:
@@ -433,8 +446,12 @@ EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObjectElement **p_values,
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Mutation *value = (Mutation *)(p_values[value_index]);
+		slim_usertag_t tag_value = value->tag_value_;
 		
-		int_result->set_int_no_check(value->tag_value_, value_index);
+		if (tag_value == SLIM_TAG_UNSET_VALUE)
+			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): property tag accessed on mutation before being set." << EidosTerminate();
+		
+		int_result->set_int_no_check(tag_value, value_index);
 	}
 	
 	return int_result;

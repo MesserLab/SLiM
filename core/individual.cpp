@@ -66,6 +66,12 @@ Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individu
 	// Set up the pointers from our genomes to us
 	p_genome1->individual_ = this;
 	p_genome2->individual_ = this;
+	
+	// Initialize tag values to the "unset" value
+	tag_value_ = SLIM_TAG_UNSET_VALUE;
+	tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
+	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
 }
 
 double Individual::RelatednessToIndividual(Individual &p_ind)
@@ -412,11 +418,21 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_tag:				// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+			slim_usertag_t tag_value = tag_value_;
+			
+			if (tag_value == SLIM_TAG_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tag accessed on individual before being set." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
 		}
 		case gID_tagF:				// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(tagF_value_));
+			double tagF_value = tagF_value_;
+			
+			if (tagF_value == SLIM_TAGF_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagF accessed on individual before being set." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(tagF_value));
 		}
 		case gID_migrant:			// ACCELERATED
 		{
@@ -493,8 +509,12 @@ EidosValue *Individual::GetProperty_Accelerated_tag(EidosObjectElement **p_value
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
+		slim_usertag_t tag_value = value->tag_value_;
 		
-		int_result->set_int_no_check(value->tag_value_, value_index);
+		if (tag_value == SLIM_TAG_UNSET_VALUE)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tag accessed on individual before being set." << EidosTerminate();
+		
+		int_result->set_int_no_check(tag_value, value_index);
 	}
 	
 	return int_result;
@@ -526,8 +546,12 @@ EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObjectElement **p_valu
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
+		double tagF_value = value->tagF_value_;
 		
-		float_result->set_float_no_check(value->tagF_value_, value_index);
+		if (tagF_value == SLIM_TAGF_UNSET_VALUE)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagF accessed on individual before being set." << EidosTerminate();
+		
+		float_result->set_float_no_check(tagF_value, value_index);
 	}
 	
 	return float_result;

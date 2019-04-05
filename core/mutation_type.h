@@ -99,7 +99,7 @@ public:
 	std::string color_sub_;										// color to use when displayed (in SLiMgui), when fixed
 	float color_sub_red_, color_sub_green_, color_sub_blue_;	// cached color components from color_sub_; should always be in sync
 	
-	slim_usertag_t tag_value_;					// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
 
 	mutable EidosScript *cached_dfe_script_;	// used by DFE type 's' to hold a cached script for the DFE
 	

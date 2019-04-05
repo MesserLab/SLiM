@@ -138,7 +138,7 @@ private:
 	IndividualSex receiver_sex_;				// the sex of the individuals that feel the interaction
 	IndividualSex exerter_sex_;					// the sex of the individuals that exert the interaction
 	
-	slim_usertag_t tag_value_;					// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;	// a user-defined tag value
 	
 	IFType if_type_;							// the interaction function (IF) to use
 	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)

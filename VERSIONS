@@ -53,6 +53,7 @@ development head:
 	add simplificationInterval parameter to initializeTreeSeq() (breaking backward compatibility, for those not using named arguments for checkCoalescence / runCrosschecks)
 	vectorize initializeGenomicElement(), fix recipe 17.7 to use it
 	make pedigree ID properties inaccessible when pedigree recording has not been enabled, to prevent confusion
+	make tag/tagF properties inaccessible when they have not been previously set, eliminating this class of bugs
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

@@ -67,7 +67,7 @@ public:
 	std::string color_;													// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;						// cached color components from color_; should always be in sync
 	
-	slim_usertag_t tag_value_;											// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;					// a user-defined tag value
 	
 	EidosValue_Float_vector_SP mutation_matrix_;						// in nucleotide-based models only, the 4x4 or 64x4 float mutation matrix
 	double *mm_thresholds = nullptr;									// mutation matrix threshold values for determining derived nucleotides; cached in CacheNucleotideMatrices()

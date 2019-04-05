@@ -388,7 +388,7 @@ private:
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
-	slim_usertag_t tag_value_;														// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;								// a user-defined tag value
 	
 	// Mutation run optimization.  The ivars here are used only internally by SLiMSim; the canonical reference regarding the
 	// number and length of mutation runs is kept by Chromosome (for the simulation) and by Genome (for each genome object).

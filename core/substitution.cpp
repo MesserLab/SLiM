@@ -40,7 +40,7 @@ mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position
 }
 
 Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_generation_t p_fixation_generation, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), fixation_generation_(p_fixation_generation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(-1)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), fixation_generation_(p_fixation_generation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
 {
 }
 
@@ -124,7 +124,14 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_tag:					// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value_));
+		{
+			slim_usertag_t tag_value = tag_value_;
+			
+			if (tag_value == SLIM_TAG_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property tag accessed on substitution before being set." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+		}
 			
 			// all others, including gID_none
 		default:
@@ -252,8 +259,12 @@ EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObjectElement **p_val
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Substitution *value = (Substitution *)(p_values[value_index]);
+		slim_usertag_t tag_value = value->tag_value_;
 		
-		int_result->set_int_no_check(value->tag_value_, value_index);
+		if (tag_value == SLIM_TAG_UNSET_VALUE)
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property tag accessed on substitution before being set." << EidosTerminate();
+		
+		int_result->set_int_no_check(tag_value, value_index);
 	}
 	
 	return int_result;
