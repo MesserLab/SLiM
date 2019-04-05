@@ -721,11 +721,7 @@ genomePedigreeID => (integer$)\
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  If pedigree tracking is not on, the value of 
-\f3\fs18 genomePedigreeID
-\f4\fs20  will be a singleton 
-\f3\fs18 -1
-\f4\fs20 .\
+\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  \cf2 If pedigree tracking is not on, this property is unavailable.\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomeType => (string$)\
@@ -1907,58 +1903,47 @@ In nonWF models, this flag is
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeID => (integer$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 If pedigree tracking is turned on with 
+\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
+If pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
 \f3\fs18 pedigreeID
-\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  If pedigree tracking is not on, the value of 
-\f3\fs18 pedigreeID
-\f4\fs20  will be a singleton 
-\f3\fs18 -1
-\f5\fs20 .\
+\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  If pedigree tracking is not on, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 pedigreeParentIDs => (integer)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeParentIDs => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 If pedigree tracking is turned on with 
+\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
+If pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
 \f3\fs18 pedigreeParentIDs
 \f4\fs20  contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  If pedigree tracking is not on, 
-\f3\fs18 pedigreeParentIDs
-\f4\fs20  will contain two 
+\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  If pedigree tracking is not on, this property is unavailable.  Parental values may be 
 \f3\fs18 -1
-\f4\fs20  values.  Parental values may also be 
-\f3\fs18 -1
-\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).
-\f5 \
+\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 pedigreeGrandparentIDs => (integer)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeGrandparentIDs => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 If pedigree tracking is turned on with 
+\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
+If pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
 \f3\fs18 pedigreeGrandparentIDs
 \f4\fs20  contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  If pedigree tracking is not on, 
-\f3\fs18 pedigreeGrandparentIDs
-\f4\fs20  will contain four 
+\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  If pedigree tracking is not on, this property is unavailable.  Grandparental values may be 
 \f3\fs18 -1
-\f4\fs20  values.  Grandparental values may also be 
-\f3\fs18 -1
-\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).
-\f5 \
+\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 sex => (string$)\
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 sex => (string$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The sex of the individual.  This will be 
@@ -3925,7 +3910,7 @@ If the model is being profiled, or is executing forward to a generation number e
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 This property has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0   In SLiM 3.2.1 and later, use 
+\f4\b0 \cf2   In SLiM 3.2.1 and later, use 
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -4394,16 +4379,16 @@ Beginning with SLiM 3.3, the
 \f4\fs20 , the output will not contain ancestral nucleotide information, and so the ancestral sequence will not be restored correctly if the saved file is loaded with 
 \f3\fs18 readPopulationFile()
 \f4\fs20 .  This option is provided because the ancestral sequence may be quite large, for models with a long chromosome (e.g., 1 GB if the chromosome is 10
-\fs13\fsmilli6667 \super 9
-\fs20 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
+\fs13\fsmilli6667 \cf2 \super 9
+\fs20 \cf2 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
 \f3\fs18 nucleotideBased
 \f4\fs20  parameter to 
 \f3\fs18 initializeSLiMOptions()
 \f4\fs20 ), the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will 
-\f1\i always
-\f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
+\f1\i \cf2 always
+\f4\i0 \cf2  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0

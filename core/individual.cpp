@@ -209,10 +209,16 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 #endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
+			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
 		case gID_pedigreeParentIDs:
 		{
+			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeParentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
 			
 			vec->set_int_no_check(pedigree_p1_, 0);
@@ -222,6 +228,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_pedigreeGrandparentIDs:
 		{
+			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeGrandparentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
 			
 			vec->set_int_no_check(pedigree_g1_, 0);
@@ -453,8 +462,21 @@ EidosValue *Individual::GetProperty_Accelerated_index(EidosObjectElement **p_val
 EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObjectElement **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	size_t value_index = 0;
 	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	// check that pedigrees are enabled, once
+	if (value_index < p_values_size)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		if (!value->subpopulation_.population_.sim_.PedigreesEnabledByUser())
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+		
+		int_result->set_int_no_check(value->pedigree_id_, value_index);
+		++value_index;
+	}
+	
+	for ( ; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		

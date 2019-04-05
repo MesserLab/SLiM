@@ -52,6 +52,7 @@ development head:
 	fix a bug with the time base of WF models when a .trees is loaded in an early() event; a parent/child timestamp conflict could result
 	add simplificationInterval parameter to initializeTreeSeq() (breaking backward compatibility, for those not using named arguments for checkCoalescence / runCrosschecks)
 	vectorize initializeGenomicElement(), fix recipe 17.7 to use it
+	make pedigree ID properties inaccessible when pedigree recording has not been enabled, to prevent confusion
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

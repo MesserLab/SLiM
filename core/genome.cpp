@@ -548,6 +548,9 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomePedigreeID:		// ACCELERATED
 		{
+			if (!subpop_->population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genome_id_));
 		}
 		case gID_genomeType:
@@ -595,8 +598,21 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObjectElement **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	size_t value_index = 0;
 	
-	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	// check that pedigrees are enabled, once
+	if (value_index < p_values_size)
+	{
+		Genome *value = (Genome *)(p_values[value_index]);
+		
+		if (!value->subpop_->population_.sim_.PedigreesEnabledByUser())
+			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+		
+		int_result->set_int_no_check(value->genome_id_, value_index);
+		++value_index;
+	}
+	
+	for ( ; value_index < p_values_size; ++value_index)
 	{
 		Genome *value = (Genome *)(p_values[value_index]);
 		

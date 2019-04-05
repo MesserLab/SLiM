@@ -1222,7 +1222,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 		if (population_.keeping_muttype_registries_)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
 		
 		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_

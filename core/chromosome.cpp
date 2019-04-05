@@ -612,6 +612,8 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
 	new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, -1);
 	
+	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
+	
 	return new_mut_index;
 }
 
@@ -814,6 +816,8 @@ MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 	
 	new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, nucleotide);
+	
+	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
 	return new_mut_index;
 }
