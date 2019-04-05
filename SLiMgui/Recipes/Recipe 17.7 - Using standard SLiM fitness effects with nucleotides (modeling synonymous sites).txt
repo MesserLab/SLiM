@@ -9,13 +9,12 @@ initialize() {
 	initializeMutationTypeNuc("m2", 0.1, "g", -0.03, 0.2);  // deleterious
 	initializeGenomicElementType("g1", c(m1,m2), c(3,3), mm);  // pos 1/2
 	initializeGenomicElementType("g2", c(m1,m2), c(5,1), mm);  // pos 3
-	
-	for (trinuc in 0:(1e5-1))
-	{
-		initializeGenomicElement(g1, trinuc * 3, trinuc * 3 + 1);
-		initializeGenomicElement(g2, trinuc * 3 + 2, trinuc * 3 + 2);
-	}
 	initializeRecombinationRate(1e-8);
+	
+	types = rep(c(g1,g2), 1e5);
+	starts = repEach(seqLen(1e5) * 3, 2) + rep(c(0,2), 1e5);
+	ends = starts + rep(c(1,0), 1e5);
+	initializeGenomicElement(types, starts, ends);
 }
 1 {
 	sim.addSubpop("p1", 500);

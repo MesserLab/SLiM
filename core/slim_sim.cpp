@@ -5082,9 +5082,9 @@ void SLiMSim::CheckAutoSimplification(void)
             new_table_size += (uint64_t)tables_.mutations->num_rows;
 			double ratio = old_table_size / (double)new_table_size;
 			
-			std::cout << "auto-simplified in generation " << generation_ << "; old size " << old_table_size << ", new size " << new_table_size;
-			std::cout << "; ratio " << ratio << ", target " << simplification_ratio_ << std::endl;
-			std::cout << "old interval " << simplify_interval_ << ", new interval ";
+			//std::cout << "auto-simplified in generation " << generation_ << "; old size " << old_table_size << ", new size " << new_table_size;
+			//std::cout << "; ratio " << ratio << ", target " << simplification_ratio_ << std::endl;
+			//std::cout << "old interval " << simplify_interval_ << ", new interval ";
 			
 			// Adjust our automatic simplification interval based upon the observed change in storage space used.
 			// Not sure if this is exactly what we want to do; this will hunt around a lot without settling on a value,
@@ -5110,7 +5110,7 @@ void SLiMSim::CheckAutoSimplification(void)
 					simplify_interval_ = 1.0;
 			}
 			
-			std::cout << simplify_interval_ << std::endl;
+			//std::cout << simplify_interval_ << std::endl;
 		}
 	}
 }
@@ -8229,7 +8229,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(chromosome_.ancestral_seq_buffer_->size()));
 }
 
-//	*********************	(void)initializeGenomicElement(io<GenomicElementType>$ genomicElementType, integer$ start, integer$ end)
+//	*********************	(void)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -8239,51 +8239,72 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 	EidosValue *end_value = p_arguments[2].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	GenomicElementType *genomic_element_type_ptr = SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, *this, "initializeGenomicElement()");
-	slim_position_t start_position = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex(0, nullptr));
-	slim_position_t end_position = SLiMCastToPositionTypeOrRaise(end_value->IntAtIndex(0, nullptr));
+	if (start_value->Count() != end_value->Count())
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() requires start and end to be the same length." << EidosTerminate();
+	if ((genomicElementType_value->Count() != 1) && (genomicElementType_value->Count() != start_value->Count()))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() requires genomicElementType to be a singleton, or to match the length of start and end." << EidosTerminate();
 	
-	if (end_position < start_position)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << EidosTerminate();
+	int element_count = start_value->Count();
+	int type_count = genomicElementType_value->Count();
 	
-	// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
-	// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
-	// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
-	if (start_position <= last_genomic_element_position_)
+	if (element_count == 0)
+		return gStaticEidosValueVOID;
+	
+	GenomicElementType *genomic_element_type_ptr_0 = ((type_count == 1) ? SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, *this, "initializeGenomicElement()") : nullptr);
+	GenomicElementType *genomic_element_type_ptr = nullptr;
+	slim_position_t start_position = 0, end_position = 0;
+	
+	for (int element_index = 0; element_index < element_count; ++element_index)
 	{
-		for (auto &element : chromosome_)
+		genomic_element_type_ptr = ((type_count == 1) ? genomic_element_type_ptr_0 : SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, element_index, *this, "initializeGenomicElement()"));
+		start_position = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex(element_index, nullptr));
+		end_position = SLiMCastToPositionTypeOrRaise(end_value->IntAtIndex(element_index, nullptr));
+		
+		if (end_position < start_position)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << EidosTerminate();
+		
+		// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
+		// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
+		// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
+		if (start_position <= last_genomic_element_position_)
 		{
-			if ((element.start_position_ <= end_position) && (element.end_position_ >= start_position))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << EidosTerminate();
+			for (auto &element : chromosome_)
+			{
+				if ((element.start_position_ <= end_position) && (element.end_position_ >= start_position))
+					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << EidosTerminate();
+			}
 		}
+		
+		if (end_position > last_genomic_element_position_)
+			last_genomic_element_position_ = end_position;
+		
+		// Create and add the new element
+		GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
+		
+		bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
+		chromosome_.emplace_back(new_genomic_element);
+		GenomicElement::LogGenomicElementCopyAndAssign(old_log);
+		
+		chromosome_changed_ = true;
+		num_genomic_elements_++;
 	}
-	
-	if (end_position > last_genomic_element_position_)
-		last_genomic_element_position_ = end_position;
-	
-	// Create and add the new element
-	GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
-	
-	bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
-	chromosome_.emplace_back(new_genomic_element);
-	GenomicElement::LogGenomicElementCopyAndAssign(old_log);
-	
-	chromosome_changed_ = true;
 	
 	if (DEBUG_INPUT)
 	{
-		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_elements_ > 99))
+		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_elements_ > 20) && (num_genomic_elements_ != element_count))
 		{
-			if (num_genomic_elements_ == 100)
-				output_stream << "(...more initializeGenomicElement() calls omitted...)" << std::endl;
+			if ((num_genomic_elements_ - element_count) <= 20)
+				output_stream << "(...initializeGenomicElement() calls omitted...)" << std::endl;
 		}
-		else
+		else if (element_count == 1)
 		{
 			output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ", " << start_position << ", " << end_position << ");" << std::endl;
 		}
+		else
+		{
+			output_stream << "initializeGenomicElement(...);" << std::endl;
+		}
 	}
-	
-	num_genomic_elements_++;
 	
 	return gStaticEidosValueVOID;
 }
@@ -9432,7 +9453,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralNucleotides, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
 									   ->AddIntString("sequence"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskVOID, "SLiM"))
-										->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt_S("start")->AddInt_S("end"));
+										->AddIntObject("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt("start")->AddInt("end"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, "SLiM"))
 										->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions")->AddFloat_ON("mutationMatrix", gStaticEidosValueNULL));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeInteractionType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_InteractionType_Class, "SLiM"))

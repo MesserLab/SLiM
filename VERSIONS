@@ -8,52 +8,50 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
-	add new nucleotide-based model type:
-		add nucleotideBased flag to initializeSLiMOptions()
-		add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
-		add initializeAncestralSequence() function
-		add Chromosome.ancestralNucleotides() method
-		add randomSequence() function
-		add nucleotideBased property
-		add nucleotideCount(), nucleotideFrequency() functions
-		add codonsToAminoAcids(), nucleotidesToCodons() functions
-		add initializeMutationTypeNuc() and nucleotideBased property on MutationType
-		add mutationMatrix to initializeGenomicElementType()
-		add mutationMatrix property and setMutationMatrix() method to GenomicElementType
-		add Mutation support for nucleotides: nucleotide, nucleotideValue, ditto for Substitution
-		add nucleotide argument to addNewMutation() and addNewDrawnMutation()
-		add nucleotides() method to Genome
-		add mmJukesCantor() and mmKimura() mutational models
-		implement sequence-based mutation
-		add mm16To256() function to expand a single-nucleotide mutation matrix into a trinucleotide mutation matrix
-		disable initializeMutationRate() and related API in nucleotide-based models
-		update the ancestral nucleotide sequence upon fixation
-		add hotspot map support: initializeHotspotMap(), setHotspotMap(), and associated properties
-		add output of nucleotides to outputMutations(), outputFixedMutations(), and other output methods
-		add nucleotidesToCodons() function
-		revamp the recombination model for the new gene conversion design
-		geneConversionFraction property removed, geneConversionEnabled / geneConversionNonCrossoverFraction / geneConversionSimpleConversionFraction / geneConversionGCBias added
-		remove gcStarts / gcEnds from the recombination() callback specification
-		remove old nucleotide and biased gene conversion recipes
-		fix recipe 6.1.3 (gene conversion)
-		add setGeneConversion() method on Chromosome to change the gene conversion parameters dynamically
-		add recipes for chapter 17 (17.1 - 17.10)
-		add recording of nucleotides and ancestral sequence in tree-sequence recording
-		incrementing .trees file version to 0.3
-		fix input/output of ASCII trees files
-		fix a bug with ASCII output of non-nuc models with outputFull() that prevented completely verbatim reloading (float precision issue)
-		add nucleotide support for readFromPopulationFile() with a text SLiM output file from outputFull() in a nucleotide-based model; nucleotides and ancestral seq restored correctly
-		add writing and reading of binary files with outputFull() and readFromPopulationFile() in nucleotide-based models
-		add heteroduplex mismatch repair, biased gene conversion, and add recipe 17.11
-		add readFromVCF() for reading from VCF files, readFromMS() for reading from MS files
-		speed up output of MS format for large models
-		add setAncestralNucleotides() method to Chromosome
-		add recipe 17.12, demonstrating loading from an empirical VCF file
-		fix a bug with the time base of WF models when a .trees is loaded in an early() event; a parent/child timestamp conflict could result
-		add simplificationInterval parameter to initializeTreeSeq() (breaking backward compatibility, for those not using named arguments for checkCoalescence / runCrosschecks)
-
-from master branch:
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
+	add nucleotideBased flag to initializeSLiMOptions()
+	add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
+	add initializeAncestralSequence() function
+	add Chromosome.ancestralNucleotides() method
+	add randomSequence() function
+	add nucleotideBased property
+	add nucleotideCount(), nucleotideFrequency() functions
+	add codonsToAminoAcids(), nucleotidesToCodons() functions
+	add initializeMutationTypeNuc() and nucleotideBased property on MutationType
+	add mutationMatrix to initializeGenomicElementType()
+	add mutationMatrix property and setMutationMatrix() method to GenomicElementType
+	add Mutation support for nucleotides: nucleotide, nucleotideValue, ditto for Substitution
+	add nucleotide argument to addNewMutation() and addNewDrawnMutation()
+	add nucleotides() method to Genome
+	add mmJukesCantor() and mmKimura() mutational models
+	implement sequence-based mutation
+	add mm16To256() function to expand a single-nucleotide mutation matrix into a trinucleotide mutation matrix
+	disable initializeMutationRate() and related API in nucleotide-based models
+	update the ancestral nucleotide sequence upon fixation
+	add hotspot map support: initializeHotspotMap(), setHotspotMap(), and associated properties
+	add output of nucleotides to outputMutations(), outputFixedMutations(), and other output methods
+	add nucleotidesToCodons() function
+	revamp the recombination model for the new gene conversion design
+	geneConversionFraction property removed, geneConversionEnabled / geneConversionNonCrossoverFraction / geneConversionSimpleConversionFraction / geneConversionGCBias added
+	remove gcStarts / gcEnds from the recombination() callback specification
+	remove old nucleotide and biased gene conversion recipes
+	fix recipe 6.1.3 (gene conversion)
+	add setGeneConversion() method on Chromosome to change the gene conversion parameters dynamically
+	add recipes for chapter 17 (17.1 - 17.10)
+	add recording of nucleotides and ancestral sequence in tree-sequence recording
+	incrementing .trees file version to 0.3
+	fix input/output of ASCII trees files
+	fix a bug with ASCII output of non-nuc models with outputFull() that prevented completely verbatim reloading (float precision issue)
+	add nucleotide support for readFromPopulationFile() with a text SLiM output file from outputFull() in a nucleotide-based model; nucleotides and ancestral seq restored correctly
+	add writing and reading of binary files with outputFull() and readFromPopulationFile() in nucleotide-based models
+	add heteroduplex mismatch repair, biased gene conversion, and add recipe 17.11
+	add readFromVCF() for reading from VCF files, readFromMS() for reading from MS files
+	speed up output of MS format for large models
+	add setAncestralNucleotides() method to Chromosome
+	add recipe 17.12, demonstrating loading from an empirical VCF file
+	fix a bug with the time base of WF models when a .trees is loaded in an early() event; a parent/child timestamp conflict could result
+	add simplificationInterval parameter to initializeTreeSeq() (breaking backward compatibility, for those not using named arguments for checkCoalescence / runCrosschecks)
+	vectorize initializeGenomicElement(), fix recipe 17.7 to use it
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

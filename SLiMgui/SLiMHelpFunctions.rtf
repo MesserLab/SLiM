@@ -88,15 +88,16 @@ A utility function,
 \f2\fs20  mutations.  A non-zero bias may only be set in nucleotide-based models (see section 1.8).  This function, and the way that gene conversion is modeled, fundamentally changed in SLiM 3.3; see section 1.5.6 for discussion.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeGenomicElement(io<GenomicElementType>$\'a0genomicElementType, integer$\'a0start, integer$\'a0end)
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, integer\'a0start, integer\'a0end)
 \f4 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add a genomic element to the chromosome at initialization time.  The 
+\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+Add a genomic element to the chromosome at initialization time.  The 
 \f1\fs18 start
 \f2\fs20  and 
 \f1\fs18 end
-\f2\fs20  parameters give the first and last base positions to be spanned by the new genomic element.  The new element based upon the genomic element type identified by 
+\f2\fs20  parameters give the first and last base positions to be spanned by the new genomic element.  The new element will be based upon the genomic element type identified by 
 \f1\fs18 genomicElementType
 \f2\fs20 , which can be either an 
 \f1\fs18 integer
@@ -104,11 +105,31 @@ A utility function,
 \f1\fs18 object
 \f2\fs20  of type 
 \f1\fs18 GenomicElementType
-\f2\fs20 , specified directly.
-\f4 \
+\f2\fs20  specified directly.\
+Beginning in SLiM 3.3, this function is vectorized: the 
+\f1\fs18 genomicElementType
+\f2\fs20 , 
+\f1\fs18 start
+\f2\fs20 , and 
+\f1\fs18 end
+\f2\fs20  parameters do not have to be singletons.  In particular, 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  may be of any length, but must be equal in length; each 
+\f1\fs18 start
+\f2\fs20 /
+\f1\fs18 end
+\f2\fs20  element pair will generate one new genomic element spanning the given base positions.  In this case, 
+\f1\fs18 genomicElementType
+\f2\fs20  may still be a singleton, providing the genomic element type to be used for all of the new genomic elements, or it may be equal in length to 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20 , providing an independent genomic element type for each new element.  When adding a large number of genomic elements, it will be much faster to add them in order of ascending position with a vectorized call.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<GenomicElementType>$)initializeGenomicElementType(is$\'a0id, io<MutationType>\'a0mutationTypes, numeric\'a0proportions\cf2 \expnd0\expndtw0\kerning0
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<GenomicElementType>$)initializeGenomicElementType(is$\'a0id, io<MutationType>\'a0mutationTypes, numeric\'a0proportions\cf2 \expnd0\expndtw0\kerning0
 , [Nf\'a0mutationMatrix\'a0=\'a0NULL]\cf0 \kerning1\expnd0\expndtw0 )
 \f4 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
