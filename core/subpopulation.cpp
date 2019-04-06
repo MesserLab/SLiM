@@ -1566,10 +1566,14 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		
 		totalFitness += totalMaleFitness;
-		(void)totalFitness;		// tell the static analyzer that we know we just did a dead store
 		
-		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalMaleFitness <= 0.0))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
+		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		{
+			if (totalMaleFitness <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
+			if (!std::isfinite(totalFitness))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of subpopulation is not finite; numerical error will prevent accurate simulation." << EidosTerminate(nullptr);
+		}
 	}
 	else
 	{
@@ -1647,8 +1651,13 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			}
 		}
 		
-		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalFitness <= 0.0))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
+		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		{
+			if (totalFitness <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
+			if (!std::isfinite(totalFitness))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of subpopulation is not finite; numerical error will prevent accurate simulation." << EidosTerminate(nullptr);
+		}
 	}
 	
 #ifdef SLIM_WF_ONLY
