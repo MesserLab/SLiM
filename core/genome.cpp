@@ -670,6 +670,7 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
+			Individual::s_any_individual_or_genome_tag_set_ = true;
 			return;
 		}
 			
@@ -682,6 +683,8 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 
 void Genome::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+	Individual::s_any_individual_or_genome_tag_set_ = true;
+	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{

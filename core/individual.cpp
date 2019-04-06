@@ -39,6 +39,7 @@ slim_pedigreeid_t gSLiM_next_pedigree_id = 0;
 // Static member bools that track whether any individual has ever sustained a particular type of change
 bool Individual::s_any_individual_color_set_ = false;
 bool Individual::s_any_individual_dictionary_set_ = false;
+bool Individual::s_any_individual_or_genome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
@@ -689,11 +690,13 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
+			s_any_individual_or_genome_tag_set_ = true;
 			return;
 		}
 		case gID_tagF:				// ACCELERATED
 		{
 			tagF_value_ = p_value.FloatAtIndex(0, nullptr);
+			s_any_individual_or_genome_tag_set_ = true;
 			return;
 		}
 		case gID_fitnessScaling:	// ACCELERATED
@@ -739,6 +742,8 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 
 void Individual::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+	s_any_individual_or_genome_tag_set_ = true;
+	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
@@ -758,6 +763,8 @@ void Individual::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size
 
 void Individual::SetProperty_Accelerated_tagF(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+	s_any_individual_or_genome_tag_set_ = true;
+	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{

@@ -213,6 +213,7 @@ public:
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
 	static bool s_any_individual_color_set_;
 	static bool s_any_individual_dictionary_set_;
+	static bool s_any_individual_or_genome_tag_set_;
 	static bool s_any_individual_fitness_scaling_set_;
 	
 	// for Subpopulation::ExecuteMethod_takeMigrants()

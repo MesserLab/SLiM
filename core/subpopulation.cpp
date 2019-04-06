@@ -2934,31 +2934,21 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	
 	// Clear out any dictionary values and color values stored in what are now the child individuals; since this is per-individual it
 	// takes a significant amount of time, so we try to minimize the overhead by doing it only when these facilities have been used
-	if (Individual::s_any_individual_dictionary_set_ && Individual::s_any_individual_color_set_)
+	// BCH 6 April 2019: likewise, now, with resetting tags in individuals and genomes to the "unset" value
+	if (Individual::s_any_individual_dictionary_set_)
 	{
 		for (Individual *child : child_individuals_)
-		{
 			child->RemoveAllKeys();
-			child->ClearColor();
-			
-			// reset tags in individuals and genomes to the "unset" value
-			child->tag_value_ = SLIM_TAG_UNSET_VALUE;
-			child->tagF_value_ = SLIM_TAGF_UNSET_VALUE;
-			child->genome1_->tag_value_ = SLIM_TAG_UNSET_VALUE;
-			child->genome2_->tag_value_ = SLIM_TAG_UNSET_VALUE;
-		}
 	}
-	else
+	
+	if (Individual::s_any_individual_color_set_)
 	{
-		if (Individual::s_any_individual_dictionary_set_)
-			for (Individual *child : child_individuals_)
-				child->RemoveAllKeys();
-		
-		if (Individual::s_any_individual_color_set_)
-			for (Individual *child : child_individuals_)
-				child->ClearColor();
-		
-		// reset tags in individuals and genomes to the "unset" value
+		for (Individual *child : child_individuals_)
+			child->ClearColor();
+	}
+	
+	if (Individual::s_any_individual_or_genome_tag_set_)
+	{
 		for (Individual *child : child_individuals_)
 		{
 			child->tag_value_ = SLIM_TAG_UNSET_VALUE;
