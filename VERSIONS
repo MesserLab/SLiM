@@ -55,6 +55,7 @@ development head:
 	make pedigree ID properties inaccessible when pedigree recording has not been enabled, to prevent confusion
 	make tag/tagF properties inaccessible when they have not been previously set, eliminating this class of bugs
 	in WF models, enforce that subpopulation total fitness must be finite, to catch overflows
+	fix minor code completion bug involving completing off of language keywords, like trying to complete "for" to "format=" in ancestralNucleotides()
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

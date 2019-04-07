@@ -320,25 +320,28 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 				// We may be completing off an identifier (with partial typing), or off a bad token (with no typing).
 				// That token should be at or after the script end (if it is a bad token it may be immediately after, since
 				// it may have gotten its position from an EOF at the end of the token stream).
-				if (argument_completions_ &&
-					((child->token_->token_type_ == EidosTokenType::kTokenIdentifier) || (child->token_->token_type_ == EidosTokenType::kTokenBad)) &&
-					(script_length_ <= (size_t)child->token_->token_end_ + 1))
+				// BCH 6 April 2019: We may also be completing off of what appears to be a language keyword, such as "for"
+				// trying to complete to "format=".  We want to treat language keywords like identifiers here,
+				if (argument_completions_ && (script_length_ <= (size_t)child->token_->token_end_ + 1))
 				{
-					// Check each argument in the signature as a possibility for completion
-					for (int sig_arg_match_index = sig_arg_index; sig_arg_match_index < sig_arg_count; ++sig_arg_match_index)
+					if ((child->token_->token_type_ == EidosTokenType::kTokenIdentifier) || (child->token_->token_type_ == EidosTokenType::kTokenBad) || (child->token_->token_type_ >= EidosTokenType::kFirstIdentifierLikeToken))
 					{
-						EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_match_index];
-						const std::string &arg_name = Eidos_StringForGlobalStringID(arg_name_ID);
-						
-						// To be a completion match, the name must not be private API ('_' prefix)
-						// Whether it is an acceptable completion in other respects will be checked by the completion engine
-						if (arg_name[0] != '_')
-							argument_completions_->push_back(arg_name);
-						
-						// If the argument we just examined is non-optional, we don't want to offer any further suggestions
-						// since they would not be legal to supply in this position in the function/method call.
-						if (!(p_call_signature->arg_masks_[sig_arg_match_index] & kEidosValueMaskOptional))
-							break;
+						// Check each argument in the signature as a possibility for completion
+						for (int sig_arg_match_index = sig_arg_index; sig_arg_match_index < sig_arg_count; ++sig_arg_match_index)
+						{
+							EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_match_index];
+							const std::string &arg_name = Eidos_StringForGlobalStringID(arg_name_ID);
+							
+							// To be a completion match, the name must not be private API ('_' prefix)
+							// Whether it is an acceptable completion in other respects will be checked by the completion engine
+							if (arg_name[0] != '_')
+								argument_completions_->push_back(arg_name);
+							
+							// If the argument we just examined is non-optional, we don't want to offer any further suggestions
+							// since they would not be legal to supply in this position in the function/method call.
+							if (!(p_call_signature->arg_masks_[sig_arg_match_index] & kEidosValueMaskOptional))
+								break;
+						}
 					}
 				}
 				
