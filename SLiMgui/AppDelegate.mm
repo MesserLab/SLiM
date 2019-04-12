@@ -164,11 +164,12 @@ typedef enum SLiMLaunchAction
 				case 10:chapterName = @"Selective sweeps";													break;
 				case 11:chapterName = @"Complex mating schemes using mateChoice() callbacks";				break;
 				case 12:chapterName = @"Direct child modifications using modifyChild() callbacks";			break;
-				case 13:chapterName = @"Advanced models";													break;
-				case 14:chapterName = @"Continuous-space models and interactions";							break;
-				case 15:chapterName = @"Going beyond Wright-Fisher models: nonWF model recipes";			break;
-				case 16:chapterName = @"Tree-sequence recording: tracking population history";				break;
-				case 17:chapterName = @"Modeling explicit nucleotides";										break;
+				case 13:chapterName = @"Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
+				case 14:chapterName = @"Advanced models";													break;
+				case 15:chapterName = @"Continuous-space models and interactions";							break;
+				case 16:chapterName = @"Going beyond Wright-Fisher models: nonWF model recipes";			break;
+				case 17:chapterName = @"Tree-sequence recording: tracking population history";				break;
+				case 18:chapterName = @"Modeling explicit nucleotides";										break;
 				default: break;
 			}
 			
