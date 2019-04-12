@@ -51,7 +51,7 @@ A utility function,
 \f1\i0\fs18 \cf2 (void)initializeGeneConversion(numeric$\'a0nonCrossoverFraction, numeric$\'a0meanLength, numeric$\'a0simpleConversionFraction, [numeric$\'a0bias\'a0=\'a00])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calling this function switches the recombination model from a \'93simple crossover\'94 model to a \'93double-stranded break (DSB)\'94 model, and configures the details of the gene conversion tracts that will therefore be modeled (see section 1.5.6 for discussion of these models).  The fraction of DSBs that will be modeled as non-crossover events is given by 
+\f2\fs20 \cf2 Calling this function switches the recombination model from a \'93simple crossover\'94 model to a \'93double-stranded break (DSB)\'94 model, and configures the details of the gene conversion tracts that will therefore be modeled.  The fraction of DSBs that will be modeled as non-crossover events is given by 
 \f1\fs18 nonCrossoverFraction
 \f2\fs20 .  The mean length of gene conversion tracts (whether associated with crossover or non-crossover events) is given by 
 \f1\fs18 meanLength
@@ -85,7 +85,7 @@ A utility function,
 \f1\fs18 G
 \f2\fs20 /
 \f1\fs18 C
-\f2\fs20  mutations.  A non-zero bias may only be set in nucleotide-based models (see section 1.8).  This function, and the way that gene conversion is modeled, fundamentally changed in SLiM 3.3; see section 1.5.6 for discussion.\
+\f2\fs20  mutations.  A non-zero bias may only be set in nucleotide-based models.  This function, and the way that gene conversion is modeled, fundamentally changed in SLiM 3.3.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, integer\'a0start, integer\'a0end)
