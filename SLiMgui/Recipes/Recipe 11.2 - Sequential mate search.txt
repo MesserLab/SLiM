@@ -1,9 +1,9 @@
-// Keywords: 
+// Keywords: choosy, choosiness, ornament, mate choice
 
 initialize() {
 	initializeMutationRate(1e-7);
-	initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
-	initializeMutationType("m2", 0.5, "f", -0.01);  // ornamental
+	initializeMutationType("m1", 0.5, "f", 0.0);     // neutral
+	initializeMutationType("m2", 0.5, "f", -0.025);  // ornamental
 	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.01));
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
@@ -13,17 +13,18 @@ mateChoice() {
 	fixedMuts = sum(sim.substitutions.mutationType == m2);
 	for (attempt in 1:5)
 	{
-		mate = sample(0:499, 1, T, weights);
-		osize = 1.0 + (fixedMuts * 0.01) - p1.cachedFitness(mate);
+		mate = sample(p1.individuals, 1, T, weights);
+		osize = fixedMuts * 2 + mate.countOfMutationsOfType(m2);
 		
-		if (runif(1) < osize * 10 + 0.1)
-			return p1.individuals[mate];
+		if (runif(1) < log(osize + 1) * 0.1 + attempt * 0.1)
+			return mate;
 	}
 	return float(0);
 }
-2001 early() {
-	fixedMuts = sum(sim.substitutions.mutationType == m2);
-	osize = 1.0 + (fixedMuts * 0.01) - mean(p1.cachedFitness(NULL));
-	cat("Mean ornament size: " + osize);
-	sim.simulationFinished();
+1:10001 early() {
+	if (sim.generation % 1000 == 1) {
+		fixedMuts = sum(sim.substitutions.mutationType == m2);
+		osize = fixedMuts * 2 + p1.individuals.countOfMutationsOfType(m2);
+		catn(sim.generation + ": Mean ornament size == " + mean(osize));
+	}
 }

@@ -1,10 +1,11 @@
-// Keywords: 
+// Keywords: polygenic selection, fitness(NULL), global fitness callback
 
 initialize() {
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
-	initializeMutationType("m2", 0.5, "f", -0.04);  // polygenic
+	initializeMutationType("m2", 0.5, "f", 0.0);  // polygenic
 	m2.convertToSubstitution = F;
+	m2.color = "red";
 	initializeGenomicElementType("g1", m1, 1);
 	initializeGenomicElementType("g2", m2, 1);
 	initializeGenomicElement(g1, 0, 20000);
@@ -13,14 +14,10 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 { sim.addSubpop("p1", 500); }
-1:10000 {
-	if (sim.mutationsOfType(m2).size() > 100)
-		sim.simulationFinished();
-}
-fitness(m2) {
+fitness(NULL) {
 	count = sum(c(genome1,genome2).countOfMutationsOfType(m2));
-	if ((count > 2) & homozygous)
-		return 1.0 + count * 0.1;
-	else
-		return relFitness;
+	return 1.5 - (count - 10)^2 * 0.005;
+}
+5000 late() {
+	print(sim.mutationFrequencies(NULL, sim.mutationsOfType(m2)));
 }

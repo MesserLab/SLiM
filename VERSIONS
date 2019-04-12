@@ -56,6 +56,7 @@ development head:
 	make tag/tagF properties inaccessible when they have not been previously set, eliminating this class of bugs
 	in WF models, enforce that subpopulation total fitness must be finite, to catch overflows
 	fix minor code completion bug involving completing off of language keywords, like trying to complete "for" to "format=" in ancestralNucleotides()
+	revise recipe 9.3.2, remove recipe 9.4.2, revise recipe 9.4.4, revise recipes 11.1, 11.2
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

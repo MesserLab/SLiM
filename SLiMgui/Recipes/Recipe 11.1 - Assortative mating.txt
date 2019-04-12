@@ -32,19 +32,30 @@ initialize() {
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
-fitness(m2, p2) { return -0.2; }
-2000: mateChoice() {
-	parent1HasMut = (individual.countOfMutationsOfType(m2) > 0);
-	parent2HasMut = (sourceSubpop.individuals.countOfMutationsOfType(m2) > 0);
-	if (parent1HasMut)
-		return weights * ifelse(parent2HasMut, 2.0, 1.0);
-	else
-		return weights * ifelse(parent2HasMut, 0.5, 1.0);
+fitness(m2, p2) { return 0.2; }
+2000: early() {
+	// tag all individuals with their m2 mutation count
+	inds = sim.subpopulations.individuals;
+	inds.tag = inds.countOfMutationsOfType(m2);
+	
+	// precalculate the mating weights vectors
+	for (subpop in c(p1,p2))
+	{
+		has_m2 = (subpop.individuals.tag > 0);
+		subpop.setValue("weights1", ifelse(has_m2, 2.0, 1.0));
+		subpop.setValue("weights2", ifelse(has_m2, 0.5, 1.0));
+	}
 }
-3000: late() {
+2000: mateChoice() {
+	if (individual.tag > 0)
+		return weights * sourceSubpop.getValue("weights1");
+	else
+		return weights * sourceSubpop.getValue("weights2");
+}
+10000: late() {
 	sim.setValue("FST", sim.getValue("FST") + calcFST(p1, p2));
 }
-3499 late() {
-	cat("Mean FST at equilibrium: " + (sim.getValue("FST") / 500));
+19999 late() {
+	cat("Mean FST at equilibrium: " + (sim.getValue("FST") / 10000));
 	sim.simulationFinished();
 }
