@@ -57,6 +57,7 @@ development head:
 	in WF models, enforce that subpopulation total fitness must be finite, to catch overflows
 	fix minor code completion bug involving completing off of language keywords, like trying to complete "for" to "format=" in ancestralNucleotides()
 	revise recipe 9.3.2, remove recipe 9.4.2, revise recipe 9.4.4, revise recipes 11.1, 11.2
+	renumber recipes to make room for new chapter 13, move existing QTL recipes into chapter 13, add new recipe 13.2 to better introduce QTL model concepts
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
