@@ -1,0 +1,23 @@
+// Keywords: separate sexes, sexual model, sex chromosomes, sex ratio, Wolbachia
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	p1.individuals.tag = repEach(0:1, 250);  // F==0, M==1
+}
+modifyChild() {
+	if (parent1.tag + parent2.tag != 1)
+		return F;
+	child.tag = rdunif(1);
+	return T;
+}
+1: late() {
+	catn("Sex ratio (M:M+F): " + mean(p1.individuals.tag));
+}
+2000 late() { sim.outputFixedMutations(); }

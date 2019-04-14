@@ -1,4 +1,4 @@
-// Keywords: sexual, MS format
+// Keywords: sexual, MS format, pseudo-autosomal region
 
 initialize()
 {
@@ -21,34 +21,19 @@ initialize()
 	initializeRecombinationRate(1e-8, sex="F");
 }
 
-// initialize the pop, with a Y marker for each male
 1 late() {
+	// initialize the pop, with a Y marker for each male
 	sim.addSubpop("p1", 1000);
 	i = p1.individuals;
-	males = (i.sex == "M");
-	maleGenomes = i[males].genomes;
-	yChromosomes = maleGenomes[rep(c(F,T), sum(males))];
-	yChromosomes.addNewMutation(m3, 0.0, 5999999);
+	i[i.sex == "M"].genome2.addNewMutation(m3, 0.0, 5999999);
 }
 
 modifyChild() {
 	// females should not have a Y, males should have a Y
 	if (child.sex == "F")
-	{
-		if (childGenome1.containsMarkerMutation(m3, 5999999))
-			return F;
-		if (childGenome2.containsMarkerMutation(m3, 5999999))
-			return F;
-		return T;
-	}
+		return !childGenome2.containsMarkerMutation(m3, 5999999);
 	else
-	{
-		if (childGenome1.containsMarkerMutation(m3, 5999999))
-			return T;
-		if (childGenome2.containsMarkerMutation(m3, 5999999))
-			return T;
-		return F;
-	}
+		return childGenome2.containsMarkerMutation(m3, 5999999);
 }
 
 1:10000 late() {

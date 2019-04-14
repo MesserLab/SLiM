@@ -1,7 +1,7 @@
 // Keywords: migration, dispersal, QTL, quantitative trait loci
 
 initialize() {
-	initializeMutationRate(1e-5);
+	initializeMutationRate(1e-6);
 	
 	// neutral mutations in non-coding regions
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -40,7 +40,7 @@ initialize() {
 	ends = (repEach(Q + W, 2) + rep(c(0,1), C))[0:(C*2 - 2)];
 	initializeRecombinationRate(rates, ends);
 }
-1 early() {
+1 late() {
 	sim.addSubpop("p1", 500);
 	sim.addSubpop("p2", 500);
 	
@@ -48,41 +48,34 @@ initialize() {
 	p1.setMigrationRates(p2, 0.01);
 	p2.setMigrationRates(p1, 0.01);
 	
+	// replicate the s1 event to output in generation 2 also
 	sim.registerEarlyEvent("s2", s1.source, 2, 2);
-}
-1 late() {
+	
 	// optional: give m2 mutations to everyone, as standing variation
-	// if this is commented out, QTLs effectively start as 0
 	g = sim.subpopulations.genomes;
-	n = size(g);
 	
 	for (q in Q)
 	{
-		isPlus = asLogical(rbinom(n, 1, 0.5));
+		isPlus = asLogical(rbinom(size(g), 1, 0.5));
 		g[isPlus].addNewMutation(m2, 1.0, q);
 		g[!isPlus].addNewMutation(m2, -1.0, q);
 	}
 }
+fitness(m2) { return 1.0; }
 1: late() {
-	// construct phenotypes for the additive effects of QTLs
-	inds = sim.subpopulations.individuals;
-	inds.tag = asInteger(inds.sumOfMutationsOfType(m2));
-}
-fitness(m2) {
-	// the QTLs themselves are neutral; their effect is handled below
-	return 1.0;
-}
-fitness(NULL, p1) {
-	// optimum of +10
-	return 1.0 + dnorm(10.0 - individual.tag, 0.0, 5.0);
-}
-fitness(NULL, p2) {
-	// optimum of -10
-	return 1.0 + dnorm(-10.0 - individual.tag, 0.0, 5.0);
+	// evaluate and save the additive effects of QTLs
+	for (subpop in c(p1,p2))
+	{
+		inds = subpop.individuals;
+		phenotype = inds.sumOfMutationsOfType(m2);
+		optimum = (subpop == p1 ? 10.0 else -10.0);
+		inds.fitnessScaling = 1.0 + dnorm(optimum - phenotype, 0.0, 5.0);
+		inds.tagF = phenotype;
+	}
 }
 mateChoice() {
-	phenotype = asFloat(individual.tag);
-	others = asFloat(sourceSubpop.individuals.tag);
+	phenotype = individual.tagF;
+	others = sourceSubpop.individuals.tagF;
 	return weights * dnorm(others, phenotype, 5.0);
 }
 s1 2001 early() {
@@ -94,8 +87,8 @@ s1 2001 early() {
 	cat("p2 mean fitness = " + mean(p2.cachedFitness(NULL)) + "\n");
 	
 	// Output population additive QTL-based phenotypes
-	cat("p1 mean phenotype = " + mean(p1.individuals.tag) + "\n");
-	cat("p2 mean phenotype = " + mean(p2.individuals.tag) + "\n");
+	cat("p1 mean phenotype = " + mean(p1.individuals.tagF) + "\n");
+	cat("p2 mean phenotype = " + mean(p2.individuals.tagF) + "\n");
 	
 	// Output frequencies of +1/-1 alleles at the QTLs
 	muts = sim.mutationsOfType(m2);

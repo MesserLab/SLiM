@@ -1,9 +1,10 @@
-// Keywords: 
+// Keywords: recombination suppression, inversion, gamete generation, meiosis
 
 initialize() {
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
-	initializeMutationType("m2", 0.5, "f", -0.05);  // inversion marker
+	initializeMutationType("m2", 0.5, "f", 0.0);  // inversion marker
+	m2.color = "red";
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-6);

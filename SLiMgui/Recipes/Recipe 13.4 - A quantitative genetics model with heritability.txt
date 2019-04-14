@@ -1,4 +1,4 @@
-// Keywords: QTL, quantitative trait loci
+// Keywords: QTLs, quantitative trait loci, heritability, environmental variance, breeding values, additive genetic variance
 
 initialize() {
 	defineConstant("h2", 0.1);     // target heritability
@@ -17,23 +17,21 @@ initialize() {
 	sim.addSubpop("p1", 1000);
 }
 1: late() {
-	// construct phenotypes from the additive effects of QTLs
+	// sum the additive effects of QTLs
 	inds = sim.subpopulations.individuals;
-	tags = inds.sumOfMutationsOfType(m2);
+	additive = inds.sumOfMutationsOfType(m2);
 	
 	// add in environmental variance, according to the target heritability
-	V_A = sd(tags)^2;
+	V_A = sd(additive)^2;
 	V_E = (V_A - h2 * V_A) / h2;    // from h2 == V_A / (V_A + V_E)
 	env = rnorm(size(inds), 0.0, sqrt(V_E));
 	
-	// set phenotypes
-	inds.tagF = tags + env;
+	// set fitness effects and remember phenotypes
+	inds.fitnessScaling = 1.0 + dnorm(10.0 - additive, 0.0, 5.0);
+	inds.tagF = additive + env;
 }
 fitness(m2) {
 	return 1.0;   // QTLs are neutral; fitness effects are handled below
-}
-fitness(NULL) {
-	return 1.0 + dnorm(10.0 - individual.tagF, 0.0, 5.0);  // optimum +10
 }
 1:100000 late() {
 	if (sim.generation == 1)

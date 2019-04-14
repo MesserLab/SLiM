@@ -1,4 +1,4 @@
-// Keywords: QTL, quantitative trait loci, live plotting
+// Keywords: QTL, quantitative trait loci, pleiotropy, M-matrix, live plotting
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -61,7 +61,7 @@ late() {
 		
 		for (i in seqAlong(new_m2))
 		{
-			e = effects[i,];	// each draw is one row in effects
+			e = effects[i,];    // each draw is one row in effects
 			mut = new_m2[i];
 			mut.setValue("e0", e[0]);
 			mut.setValue("e1", e[1]);
@@ -70,33 +70,20 @@ late() {
 }
 
 late() {
-	// construct phenotypes from additive effects of QTL mutations
-	inds = sim.subpopulations.individuals;
-	
-	for (ind in inds)
+	for (ind in sim.subpopulations.individuals)
 	{
+		// construct phenotypes from additive effects of QTL mutations
 		muts = ind.genomes.mutationsOfType(m2);
+		phenotype0 = size(muts) ? sum(muts.getValue("e0")) else 0.0;
+		phenotype1 = size(muts) ? sum(muts.getValue("e1")) else 0.0;
+		ind.setValue("phenotype0", phenotype0);
+		ind.setValue("phenotype1", phenotype1);
 		
-		// we have to special-case when muts is empty
-		if (size(muts)) {
-			ind.setValue("phenotype0", sum(muts.getValue("e0")));
-			ind.setValue("phenotype1", sum(muts.getValue("e1")));
-		} else {
-			ind.setValue("phenotype0", 0.0);
-			ind.setValue("phenotype1", 0.0);
-		}
+		// calculate fitness effects
+		effect0 = 1.0 + dnorm(QTL_optima[0] - phenotype0, 0.0, 20.0) * 10.0;
+		effect1 = 1.0 + dnorm(QTL_optima[1] - phenotype1, 0.0, 20.0) * 10.0;
+		ind.fitnessScaling = effect0 * effect1;
 	}
-}
-
-fitness(NULL) {
-	// phenotype 0 fitness effect, with optimum of QTL_optima[0]
-	phenotype = individual.getValue("phenotype0");
-	return 1.0 + dnorm(QTL_optima[0] - phenotype, 0.0, 20.0) * 10.0;
-}
-fitness(NULL) {
-	// phenotype 1 fitness effect, with  optimum of QTL_optima[1]
-	phenotype = individual.getValue("phenotype1");
-	return 1.0 + dnorm(QTL_optima[1] - phenotype, 0.0, 20.0) * 10.0;
 }
 
 1:1000000 late() {
@@ -158,34 +145,17 @@ fitness(NULL) {
 	// now output a list of the QTL mutations and their effect sizes
 	catn("\nQTL mutations (f: e0, e1):");
 	for (i in seqAlong(m2muts))
-	{
-		mut = m2muts[i];
-		f = m2freqs[i];
-		e0 = m2e0[i];
-		e1 = m2e1[i];
-		catn(f + ": " + e0 + ", " + e1);
-	}
+		catn(m2freqs[i] + ": " + m2e0[i] + ", " + m2e1[i]);
 	
-	// output the covariance between e0 and e1 among the QTLs that fixed
+	// output covariances
 	fixed_m2 = m2muts[m2freqs == 1.0];
-	e0 = fixed_m2.getValue("e0");
-	e1 = fixed_m2.getValue("e1");
-	e0_mean = mean(e0);
-	e1_mean = mean(e1);
-	cov_e0e1 = sum((e0 - e0_mean) * (e1 - e1_mean)) / (size(e0) - 1);
-	
-	catn("\nCovariance of effects among fixed QTLs: " + cov_e0e1);
-	catn("\nCovariance of effects specified by the QTL DFE: " + QTL_cov);
-	
-	// output the covariance between e0 and e1 across all draws
+	cov_fixed = cov(fixed_m2.getValue("e0"), fixed_m2.getValue("e1"));
 	effects = sim.getValue("all_effects");
-	e0 = effects[,0];
-	e1 = effects[,1];
-	e0_mean = mean(e0);
-	e1_mean = mean(e1);
-	cov_e0e1 = sum((e0 - e0_mean) * (e1 - e1_mean)) / (size(e0) - 1);
+	cov_drawn = cov(drop(effects[,0]), drop(effects[,1]));
 	
-	catn("\nCovariance of effects across all QTL draws: " + cov_e0e1);
+	catn("\nCovariance of effects among fixed QTLs: " + cov_fixed);
+	catn("\nCovariance of effects specified by the QTL DFE: " + QTL_cov);
+	catn("\nCovariance of effects across all QTL draws: " + cov_drawn);
 	
 	sim.simulationFinished();
 }
