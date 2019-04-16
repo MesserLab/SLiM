@@ -15,8 +15,7 @@ initialize() {
 	sim.addSubpop("p1", 500);
 	
 	// Initial positions are random within spatialBounds
-	for (ind in p1.individuals)
-		ind.setSpatialPosition(p1.pointUniform());
+	p1.individuals.setSpatialPosition(p1.pointUniform(500));
 }
 1: late() {
 	i1.evaluate();

@@ -18,17 +18,15 @@ initialize() {
 }
 1 late() {
 	sim.addSubpop("p1", 500);
-	
-	for (ind in p1.individuals)
-		ind.setSpatialPosition(p1.pointUniform());
+	p1.individuals.setSpatialPosition(p1.pointUniform(500));
 }
 1: late() {
 	i1.evaluate();
+	inds = sim.subpopulations.individuals;
+	competition = i1.totalOfNeighborStrengths(inds);
+	inds.fitnessScaling = 1.1 - competition / size(inds);
+	
 	i2.evaluate();
-}
-fitness(NULL) {
-	totalStrength = i1.totalOfNeighborStrengths(individual);
-	return 1.1 - totalStrength / p1.individualCount;
 }
 1: mateChoice() {
 	// spatial mate choice

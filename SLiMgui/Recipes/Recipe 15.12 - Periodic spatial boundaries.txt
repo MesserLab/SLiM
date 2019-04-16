@@ -12,8 +12,7 @@ initialize() {
 }
 1 late() {
 	sim.addSubpop("p1", 2000);
-	p1.individuals.x = runif(p1.individualCount);
-	p1.individuals.y = runif(p1.individualCount);
+	p1.individuals.setSpatialPosition(p1.pointUniform(2000));
 }
 late()
 {

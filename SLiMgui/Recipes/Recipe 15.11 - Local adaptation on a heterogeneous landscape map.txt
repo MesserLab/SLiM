@@ -18,54 +18,52 @@ initialize() {
 	
 	initializeInteractionType(1, "xyz", reciprocal=T, maxDistance=sigma_C * 3);     // competition
 	i1.setInteractionFunction("n", 1.0, sigma_C);
+	
 	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=sigma_M * 3);     // mate choice
 	i2.setInteractionFunction("n", 1.0, sigma_M);
 }
+fitness(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", N);
 	p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.0, 1.0, 1.0));
+	p1.individuals.setSpatialPosition(p1.pointUniform(N));
+	p1.individuals.z = 0.0;
 	
 	defineConstant("mapValues", runif(25, 0, 1));
 	p1.defineSpatialMap("map1", "xy", c(5, 5), mapValues, interpolate=T,
 		valueRange=c(0.0, 1.0), colors=c("red", "yellow"));
-	
-	for (ind in p1.individuals)
-		ind.setSpatialPosition(p1.pointUniform());
-	p1.individuals.z = 0.0;
 }
 modifyChild() {
 	// set offspring position based on parental position
-	do
-		pos = c(parent1.spatialPosition[0:1] + rnorm(2, 0, 0.005), 0.0);
+	do pos = c(parent1.spatialPosition[0:1] + rnorm(2, 0, 0.005), 0.0);
 	while (!p1.pointInBounds(pos));
 	child.setSpatialPosition(pos);
 	
 	return T;
 }
 1: late() {
-	// construct phenotypes from the additive effects of QTLs
+	// construct phenotypes and fitness effects from QTLs
 	inds = sim.subpopulations.individuals;
 	phenotype = inds.sumOfMutationsOfType(m2);
 	inds.z = phenotype;
 	
+	for (ind in inds) {
+		location = ind.spatialPosition[0:1];
+		optimum = p1.spatialMapValue("map1", location);
+		ind.fitnessScaling = 1.0 + dnorm(ind.z, optimum, sigma_K);
+	}
+	
 	// color individuals according to phenotype
 	inds.color = p1.spatialMapColor("map1", phenotype);
 	
-	// evaluate interactions
+	// evaluate phenotypic competition
 	i1.evaluate();
+	competition = sapply(inds, "sum(i1.strength(applyValue));");
+	effects = 1.0 - competition / size(inds);
+	inds.fitnessScaling = inds.fitnessScaling * effects;
+	
+	// evaluate mate choice in preparation for next generation
 	i2.evaluate();
-}
-fitness(m2) {      // make QTLs intrinsically neutral
-	return 1.0;
-}
-fitness(NULL) {    // reward proximity to the optimum
-	location = individual.spatialPosition[0:1];
-	optimum = subpop.spatialMapValue("map1", location);
-	return 1.0 + dnorm(optimum - individual.z, mean=0.0, sd=sigma_K);
-}
-fitness(NULL) {    // phenotypic competition
-	totalStrength = sum(i1.strength(individual));
-	return 1.0 - totalStrength / p1.individualCount;
 }
 mateChoice() {
 	// spatial mate choice

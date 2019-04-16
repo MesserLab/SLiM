@@ -17,25 +17,20 @@ initialize() {
 }
 1 late() {
 	sim.addSubpop("p1", 500);
-	
-	for (ind in p1.individuals)
-		ind.setSpatialPosition(p1.pointUniform());
+	p1.individuals.setSpatialPosition(p1.pointUniform(500));
 }
 1: late() {
 	i1.evaluate();
+	inds = sim.subpopulations.individuals;
+	competition = i1.totalOfNeighborStrengths(inds);
+	inds.fitnessScaling = 1.1 - competition / size(inds);
+	
 	i2.evaluate();
 }
-fitness(NULL) {
-	totalStrength = i1.totalOfNeighborStrengths(individual);
-	return 1.1 - totalStrength / p1.individualCount;
-}
 1: mateChoice() {
-	// nearest-neighbor mate choice
+	// nearest-neighbor spatial mate choice
 	neighbors = i2.nearestNeighbors(individual, 3);
-	mates = rep(0.0, p1.individualCount);
-	mates[neighbors.index] = 1.0;
-	
-	return mates;
+	return (size(neighbors) ? sample(neighbors, 1) else float(0));
 }
 modifyChild() {
 	do pos = parent1.spatialPosition + rnorm(2, 0, 0.02);

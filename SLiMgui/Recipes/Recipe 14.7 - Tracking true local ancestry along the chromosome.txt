@@ -11,12 +11,10 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-7);
 }
-
 1 {
 	sim.addSubpop("p1", 500);
 	sim.addSubpop("p2", 500);
 }
-
 1 late() {
 	// p1 and p2 are each fixed for one beneficial mutation
 	p1.genomes.addNewDrawnMutation(m1, asInteger(L * 0.2));
@@ -29,14 +27,12 @@ initialize() {
 	sim.addSubpop("p3", 1000);
 	p3.setMigrationRates(c(p1, p2), c(0.5, 0.5));
 }
-
 2 late() {
 	// get rid of p1 and p2
 	p3.setMigrationRates(c(p1, p2), c(0.0, 0.0));
 	p1.setSubpopulationSize(0);
 	p2.setSubpopulationSize(0);
 }
-
 2: late() {
 	if (sim.mutationsOfType(m1).size() == 0)
 	{
@@ -58,7 +54,6 @@ initialize() {
 		sim.simulationFinished();
 	}
 }
-
 100000 late() {
 	stop("Did not reach fixation of beneficial alleles.");
 }
