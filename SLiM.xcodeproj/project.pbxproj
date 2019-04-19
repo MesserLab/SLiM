@@ -1962,7 +1962,7 @@
 			};
 			buildConfigurationList = 9826634B1A3BABD300A0CBBF /* Build configuration list for PBXProject "SLiM" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
