@@ -72,6 +72,9 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	[super dealloc];
 }
 
+/*
+// BCH 4/19/2019: these subclass methods are not needed, and are generating a warning in Xcode 10.2, so I'm removing them
+ 
 // Called after being summoned from a NIB/XIB.
 - (void)prepareOpenGL
 {
@@ -81,6 +84,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)reshape
 {
 }
+*/
 
 - (void)drawViewFrameInBounds:(NSRect)bounds
 {
@@ -1135,7 +1139,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	SpatialMap *background_map = nullptr;
 	std::string background_map_name;
 	
-	for (const SpatialMapPair &map_pair : spatial_maps)
+	for (const auto &map_pair : spatial_maps)
 	{
 		SpatialMap *map = map_pair.second;
 		
@@ -1923,7 +1927,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			// look for spatial maps to offer as choices; need to scan the defined maps for the ones we can use
 			SpatialMapMap &spatial_maps = subpopForEvent->spatial_maps_;
 			
-			for (const SpatialMapPair &map_pair : spatial_maps)
+			for (const auto &map_pair : spatial_maps)
 			{
 				SpatialMap *map = map_pair.second;
 				

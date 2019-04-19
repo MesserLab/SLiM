@@ -36,6 +36,9 @@
 	[super dealloc];
 }
 
+/*
+// BCH 4/19/2019: these subclass methods are not needed, and are generating a warning in Xcode 10.2, so I'm removing them
+ 
 // Called after being summoned from a NIB/XIB.
 - (void)prepareOpenGL
 {
@@ -45,6 +48,7 @@
 - (void)reshape
 {
 }
+*/
 
 - (void)drawRect:(NSRect)rect
 {

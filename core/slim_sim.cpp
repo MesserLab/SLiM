@@ -30,6 +30,7 @@
 #include "subpopulation.h"
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>

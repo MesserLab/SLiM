@@ -63,6 +63,7 @@ development head:
 	revise recipes 14.7, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 15.11, 15.12
 	add recipe 9.6 (varying dominance coefficients)
 	fix a bug that would produce incorrect results from mutationCounts() / mutationFrequencies() in early() events in nonWF models (not including the newly generated offspring)
+	fix compile issues on Xcode 10.2, upgrade to JSON for Modern C++ version 3.6.1 (from 3.1.2)
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

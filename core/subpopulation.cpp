@@ -1190,7 +1190,7 @@ Subpopulation::~Subpopulation(void)
 	delete genome_pool_;
 	delete individual_pool_;
 	
-	for (const SpatialMapPair &map_pair : spatial_maps_)
+	for (const auto &map_pair : spatial_maps_)
 	{
 		SpatialMap *map_ptr = map_pair.second;
 		
