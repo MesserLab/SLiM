@@ -29,6 +29,16 @@
 //#include <gsl/gsl_blas_types.h>
 #include "gsl_blas.h"
 
+/* ========================================================================
+ * Level 1
+ * ========================================================================
+ */
+
+/* CBLAS defines vector sizes in terms of int. GSL defines sizes in
+ terms of size_t, so we need to convert these into integers.  There
+ is the possibility of overflow here. FIXME: Maybe this could be
+ caught */
+
 #define INT(X) ((int)(X))
 
 
