@@ -62,6 +62,7 @@ development head:
 	remove recipe 14.6 (forcing a pedigree in a WF model)
 	revise recipes 14.7, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 15.11, 15.12
 	add recipe 9.6 (varying dominance coefficients)
+	fix a bug that would produce incorrect results from mutationCounts() / mutationFrequencies() in early() events in nonWF models (not including the newly generated offspring)
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

@@ -3539,6 +3539,9 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 			for (Individual *individual : subpop_pair.second->parent_individuals_)
 				individual->migrant_ = false;
 		
+		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+		population_.cached_tally_genome_count_ = 0;
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
