@@ -36,7 +36,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(vo
 	{
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddLogical_OS("long", gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mm16To256", SLiM_ExecuteFunction_mm16To256, kEidosValueMaskFloat, "SLiM"))->AddFloat("mutationMatrix16"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmJukesCantor", SLiM_ExecuteFunction_mmJukesCantor, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("mu"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmJukesCantor", SLiM_ExecuteFunction_mmJukesCantor, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmKimura", SLiM_ExecuteFunction_mmKimura, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha")->AddFloat_S("beta"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideFrequencies", SLiM_ExecuteFunction_nucleotideFrequencies, kEidosValueMaskFloat, "SLiM"))->AddIntString("sequence"));
@@ -499,36 +499,37 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const EidosValue_SP *const p_argume
 	return EidosValue_SP(float_result);
 }
 
-//	(float)mmJukesCantor(float$ mu)
+//	(float)mmJukesCantor(float$ alpha)
 EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	EidosValue *mu_value = p_arguments[0].get();
-	double mu = mu_value->FloatAtIndex(0, nullptr);
+	EidosValue *alpha_value = p_arguments[0].get();
+	double alpha = alpha_value->FloatAtIndex(0, nullptr);
 	
-	if ((mu < 0.0) || (mu > 1.0))
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmJukesCantor): function mmJukesCantor() requires mu to be in [0.0, 1.0]." << EidosTerminate(nullptr);
+	if (alpha < 0.0)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmJukesCantor): function mmJukesCantor() requires alpha >= 0.0." << EidosTerminate(nullptr);
+	if (3 * alpha > 1.0)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmJukesCantor): function mmJukesCantor() requires 3 * alpha <= 1.0." << EidosTerminate(nullptr);
 	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(16);
-	double mu_4 = mu / 4.0;
 	
 	float_result->set_float_no_check(0.0, 0);
-	float_result->set_float_no_check(mu_4, 1);
-	float_result->set_float_no_check(mu_4, 2);
-	float_result->set_float_no_check(mu_4, 3);
+	float_result->set_float_no_check(alpha, 1);
+	float_result->set_float_no_check(alpha, 2);
+	float_result->set_float_no_check(alpha, 3);
 	
-	float_result->set_float_no_check(mu_4, 4);
+	float_result->set_float_no_check(alpha, 4);
 	float_result->set_float_no_check(0.0, 5);
-	float_result->set_float_no_check(mu_4, 6);
-	float_result->set_float_no_check(mu_4, 7);
+	float_result->set_float_no_check(alpha, 6);
+	float_result->set_float_no_check(alpha, 7);
 	
-	float_result->set_float_no_check(mu_4, 8);
-	float_result->set_float_no_check(mu_4, 9);
+	float_result->set_float_no_check(alpha, 8);
+	float_result->set_float_no_check(alpha, 9);
 	float_result->set_float_no_check(0.0, 10);
-	float_result->set_float_no_check(mu_4, 11);
+	float_result->set_float_no_check(alpha, 11);
 	
-	float_result->set_float_no_check(mu_4, 12);
-	float_result->set_float_no_check(mu_4, 13);
-	float_result->set_float_no_check(mu_4, 14);
+	float_result->set_float_no_check(alpha, 12);
+	float_result->set_float_no_check(alpha, 13);
+	float_result->set_float_no_check(alpha, 14);
 	float_result->set_float_no_check(0.0, 15);
 	
 	const int64_t dims[2] = {4, 4};

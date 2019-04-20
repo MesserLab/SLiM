@@ -65,6 +65,7 @@ development head:
 	fix a bug that would produce incorrect results from mutationCounts() / mutationFrequencies() in early() events in nonWF models (not including the newly generated offspring)
 	fix compile issues on Xcode 10.2, upgrade to JSON for Modern C++ version 3.6.1 (from 3.1.2)
 	update GSL code to version 2.5  (no user-visible impact)
+	change mmJukesCantor() to take alpha, not mu, for consistency; revise recipes and doc
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

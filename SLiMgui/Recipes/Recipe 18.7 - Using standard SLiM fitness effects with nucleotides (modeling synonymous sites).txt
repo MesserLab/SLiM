@@ -4,7 +4,7 @@ initialize() {
 	initializeSLiMOptions(nucleotideBased=T);
 	initializeAncestralNucleotides(randomNucleotides(3e5));
 	
-	mm = mmJukesCantor(1e-7);
+	mm = mmJukesCantor(2.5e-8);
 	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);         // neutral
 	initializeMutationTypeNuc("m2", 0.1, "g", -0.03, 0.2);  // deleterious
 	initializeGenomicElementType("g1", c(m1,m2), c(3,3), mm);  // pos 1/2

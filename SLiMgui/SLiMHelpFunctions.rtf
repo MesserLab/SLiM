@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf200
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf400
 {\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fswiss\fcharset0 Helvetica;
 }
@@ -1190,20 +1190,16 @@ The
 \f2\fs20 .  This function can be used to easily construct a simple trinucleotide-based mutation matrix which can then be modified so that specific trinucleotides sustain a mutation rate that does not depend only upon their central nucleotide.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float)mmJukesCantor(float$\'a0mu)\
+\f1\fs18 \cf2 (float)mmJukesCantor(float$\'a0alpha)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Returns a mutation matrix representing a Jukes\'96Cantor model with substitution rate 
-\f1\fs18 mu
-\f2\fs20 .  This 2\'d72 matrix is suitable for use with 
+\f2\fs20 \cf2 Returns a mutation matrix representing a Jukes\'96Cantor (1969) model with mutation rate 
+\f1\fs18 alpha
+\f2\fs20  to each possible alternative nucleotide at a site\cf2 .  This 2\'d72 matrix is suitable for use with 
 \f1\fs18 initializeGenomicElementType()
-\f2\fs20 .  Note that the actual mutation rate produced by this matrix is 
-\f3\i not
-\f2\i0  
-\f1\fs18 mu
-\f2\fs20 , but is rather 
-\f1\fs18 0.75*mu
-\f2\fs20 , following the standard definition of the Jukes\'96Cantor model.\
+\f2\fs20 .  \cf2 Note that the actual mutation rate produced by this matrix is 
+\f1\fs18 3*alpha
+\f2\fs20 .\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float)mmKimura(float$\'a0alpha, float$\'a0beta)\

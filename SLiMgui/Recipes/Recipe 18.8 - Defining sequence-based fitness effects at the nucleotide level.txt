@@ -9,7 +9,7 @@ initialize() {
 	initializeAncestralNucleotides(seq);
 	
 	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
-	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(1e-6));
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(2.5e-7));
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-8);
 }

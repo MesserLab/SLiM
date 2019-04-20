@@ -3754,10 +3754,10 @@ void _RunNucleotideFunctionTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(mm16To256(matrix(rep(0.25,16), ncol=4)), matrix(rep(0.25,256),ncol=4))) stop(); }", __LINE__);
 	
 	// mmJukesCantor()
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mmJukesCantor(-0.1); }", 1, 247, "requires mu to be in", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mmJukesCantor(1.1); }", 1, 247, "requires mu to be in", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mmJukesCantor(-0.1); }", 1, 247, "requires alpha >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mmJukesCantor(0.35); }", 1, 247, "requires 3 * alpha <= 1.0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(mmJukesCantor(0.0), matrix(rep(0.0,16),ncol=4))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(mmJukesCantor(1.0), matrix(c(0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0),ncol=4))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(mmJukesCantor(0.25), matrix(c(0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0),ncol=4))) stop(); }", __LINE__);
 	
 	// mmKimura()
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mmKimura(-0.1, 0.5); }", 1, 247, "requires alpha to be in", __LINE__);
@@ -4047,12 +4047,12 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, matrix(rep(1.0, 256), ncol=2)); } ", 1, 316, "a 4x4 or 64x4 matrix", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, matrix(rep(1.0, 16), ncol=4)); } ", 1, 316, "must contain 0.0 for all", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, matrix(rep(1.0, 256), ncol=4)); } ", 1, 316, "must contain 0.0 for all", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mmJukesCantor(1.0)*2); } ", 1, 316, "requires the sum of each mutation matrix row", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mm16To256(mmJukesCantor(1.0))*2); } ", 1, 316, "requires the sum of each mutation matrix row", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "initialize() { mm = mmJukesCantor(1.0); mm[0,1] = -0.1; initializeGenomicElementType('g2', m1, 1.0, mm); } ", 1, 357, "to be finite and >= 0.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "initialize() { mm = mm16To256(mmJukesCantor(1.0)); mm[0,1] = -0.1; initializeGenomicElementType('g2', m1, 1.0, mm); } ", 1, 368, "to be finite and >= 0.0", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mmJukesCantor(1.0)); stop(); } ", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mm16To256(mmJukesCantor(1.0))); stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mmJukesCantor(0.25)*2); } ", 1, 316, "requires the sum of each mutation matrix row", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mm16To256(mmJukesCantor(0.25))*2); } ", 1, 316, "requires the sum of each mutation matrix row", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "initialize() { mm = mmJukesCantor(0.25); mm[0,1] = -0.1; initializeGenomicElementType('g2', m1, 1.0, mm); } ", 1, 358, "to be finite and >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "initialize() { mm = mm16To256(mmJukesCantor(0.25)); mm[0,1] = -0.1; initializeGenomicElementType('g2', m1, 1.0, mm); } ", 1, 369, "to be finite and >= 0.0", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mmJukesCantor(0.25)); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mm16To256(mmJukesCantor(0.25))); stop(); } ", __LINE__);
 	
 	// hotspotEndPositions, hotspotEndPositionsM, hotspotEndPositionsF
 	SLiMAssertScriptStop(nuc_model_init + "1 { if (sim.chromosome.hotspotEndPositions == 1e2-1) stop(); }", __LINE__);
@@ -4147,12 +4147,12 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_init + "1 { g1.setMutationMatrix(matrix(rep(1.0, 256), ncol=2)); } ", 1, 308, "a 4x4 or 64x4 matrix", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "1 { g1.setMutationMatrix(matrix(rep(1.0, 16), ncol=4)); } ", 1, 308, "must contain 0.0 for all", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "1 { g1.setMutationMatrix(matrix(rep(1.0, 256), ncol=4)); } ", 1, 308, "must contain 0.0 for all", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 { g1.setMutationMatrix(mmJukesCantor(1.0)*2); } ", 1, 308, "requires the sum of each mutation matrix row", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 { g1.setMutationMatrix(mm16To256(mmJukesCantor(1.0))*2); } ", 1, 308, "requires the sum of each mutation matrix row", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 { mm = mmJukesCantor(1.0); mm[0,1] = -0.1; g1.setMutationMatrix(mm); } ", 1, 349, "to be finite and >= 0.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 { mm = mm16To256(mmJukesCantor(1.0)); mm[0,1] = -0.1; g1.setMutationMatrix(mm); } ", 1, 360, "to be finite and >= 0.0", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 { g1.setMutationMatrix(mmJukesCantor(1.0)); stop(); } ", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 { g1.setMutationMatrix(mm16To256(mmJukesCantor(1.0))); stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { g1.setMutationMatrix(mmJukesCantor(0.25)*2); } ", 1, 308, "requires the sum of each mutation matrix row", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { g1.setMutationMatrix(mm16To256(mmJukesCantor(0.25))*2); } ", 1, 308, "requires the sum of each mutation matrix row", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { mm = mmJukesCantor(0.25); mm[0,1] = -0.1; g1.setMutationMatrix(mm); } ", 1, 350, "to be finite and >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 { mm = mm16To256(mmJukesCantor(0.25)); mm[0,1] = -0.1; g1.setMutationMatrix(mm); } ", 1, 361, "to be finite and >= 0.0", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 { g1.setMutationMatrix(mmJukesCantor(0.25)); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 { g1.setMutationMatrix(mm16To256(mmJukesCantor(0.25))); stop(); } ", __LINE__);
 	
 	// nucleotide & nucleotideValue
 	std::string nuc_highmut("initialize() { initializeSLiMOptions(nucleotideBased=T); initializeAncestralNucleotides(randomNucleotides(1e2)); initializeMutationTypeNuc('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-2)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
