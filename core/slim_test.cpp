@@ -3765,7 +3765,7 @@ void _RunNucleotideFunctionTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mmKimura(0.5, -0.1); }", 1, 247, "requires beta to be in", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mmKimura(0.5, 1.1); }", 1, 247, "requires beta to be in", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(mmKimura(0.0, 0.0), matrix(rep(0.0,16),ncol=4))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(mmKimura(0.5, 0.25), matrix(c(0.0, 0.5, 0.25, 0.25, 0.5, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.5, 0.25, 0.25, 0.5, 0.0),ncol=4))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(mmKimura(0.5, 0.25), matrix(c(0.0, 0.25, 0.5, 0.25, 0.25, 0.0, 0.25, 0.5, 0.5, 0.25, 0.0, 0.25, 0.25, 0.5, 0.25, 0.0),ncol=4))) stop(); }", __LINE__);
 	
 	// nucleotideCounts()
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(nucleotideCounts(string(0)), c(0,0,0,0))) stop(); }", __LINE__);

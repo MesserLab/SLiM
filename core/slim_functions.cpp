@@ -557,23 +557,23 @@ EidosValue_SP SLiM_ExecuteFunction_mmKimura(const EidosValue_SP *const p_argumen
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(16);
 	
 	float_result->set_float_no_check(0.0, 0);
-	float_result->set_float_no_check(alpha, 1);
-	float_result->set_float_no_check(beta, 2);
+	float_result->set_float_no_check(beta, 1);
+	float_result->set_float_no_check(alpha, 2);
 	float_result->set_float_no_check(beta, 3);
 	
-	float_result->set_float_no_check(alpha, 4);
+	float_result->set_float_no_check(beta, 4);
 	float_result->set_float_no_check(0.0, 5);
 	float_result->set_float_no_check(beta, 6);
-	float_result->set_float_no_check(beta, 7);
+	float_result->set_float_no_check(alpha, 7);
 	
-	float_result->set_float_no_check(beta, 8);
+	float_result->set_float_no_check(alpha, 8);
 	float_result->set_float_no_check(beta, 9);
 	float_result->set_float_no_check(0.0, 10);
-	float_result->set_float_no_check(alpha, 11);
+	float_result->set_float_no_check(beta, 11);
 	
 	float_result->set_float_no_check(beta, 12);
-	float_result->set_float_no_check(beta, 13);
-	float_result->set_float_no_check(alpha, 14);
+	float_result->set_float_no_check(alpha, 13);
+	float_result->set_float_no_check(beta, 14);
 	float_result->set_float_no_check(0.0, 15);
 	
 	const int64_t dims[2] = {4, 4};
