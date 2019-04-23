@@ -53,6 +53,4 @@ late() {
 		writeFile("~/Desktop/death.txt", line, append=T);
 	}
 }
-100 late() {
-	sim.simulationFinished();
-}
+100 late() { sim.simulationFinished(); }

@@ -66,6 +66,7 @@ development head:
 	fix compile issues on Xcode 10.2, upgrade to JSON for Modern C++ version 3.6.1 (from 3.1.2)
 	update GSL code to version 2.5  (no user-visible impact)
 	change mmJukesCantor() to take alpha, not mu, for consistency; revise recipes and doc
+	revise recipe 14.9, 16.2, 16.9, 16.10, 16.11, 16.12, 16.13
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

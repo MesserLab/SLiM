@@ -18,7 +18,8 @@ late() {
 	// remove mutations in the haploid genomes that have fixed
 	muts = sim.mutationsOfType(m1);
 	freqs = sim.mutationFrequencies(NULL, muts);
-	sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
+	if (any(freqs == 0.5))
+		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
 200000 late() {
 	sim.outputFixedMutations();

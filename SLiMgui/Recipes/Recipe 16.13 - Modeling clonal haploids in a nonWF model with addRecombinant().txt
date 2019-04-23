@@ -23,7 +23,7 @@ late() {
 	muts = sim.mutationsOfType(m1);
 	freqs = sim.mutationFrequencies(NULL, muts);
 	
-	if (sum(freqs == 0.5))
+	if (any(freqs == 0.5))
 		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
 50000 late() { sim.outputFixedMutations(); }

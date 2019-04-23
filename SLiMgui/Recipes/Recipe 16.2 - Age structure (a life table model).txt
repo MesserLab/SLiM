@@ -14,8 +14,10 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 reproduction() {
-	if (individual.age > 2)
-		subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+	if (individual.age > 2) {
+		mate = subpop.sampleIndividuals(1, minAge=3);
+		subpop.addCrossed(individual, mate);
+	}
 }
 1 early() {
 	sim.addSubpop("p1", 10);

@@ -36,18 +36,19 @@ reproduction(NULL, "F") {
 	p1.individuals.setValue("penalty", 1.0);
 }
 early() {
-	// QTL calculations
+	// non-overlapping generations
 	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+	inds = inds[inds.age == 0];  // focus on juveniles
+	
+	// QTL calculations
 	inds.tagF = inds.sumOfMutationsOfType(m2);
 	
 	// parental investment fitness penalties
 	inds.fitnessScaling = inds.getValue("penalty");
 	
-	// non-overlapping generations
-	inds[inds.age >= 1].fitnessScaling = 0.0;
-	
-	// density-dependence, assuming 50% die of old age
-	p1.fitnessScaling = K / (p1.individualCount / 2);
+	// density-dependence for juveniles
+	p1.fitnessScaling = K / size(inds);
 }
 fitness(m2) { return 1.0; }
 late() {

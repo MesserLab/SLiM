@@ -40,8 +40,7 @@ reproduction() {
 	sim.addSubpop("p1", 1);
 	
 	// random initial positions
-	for (ind in p1.individuals)
-		ind.setSpatialPosition(p1.pointUniform());
+	p1.individuals.setSpatialPosition(p1.pointUniform(1));
 }
 early() {
 	i1.evaluate();
