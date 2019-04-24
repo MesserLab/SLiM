@@ -67,7 +67,8 @@ development head:
 	update GSL code to version 2.5  (no user-visible impact)
 	change mmJukesCantor() to take alpha, not mu, for consistency; revise recipes and doc
 	revise recipe 14.9, 16.2, 16.9, 16.10, 16.11, 16.12, 16.13
-	fix bug in mmKimura() mutation matrix
+	fix bug in mmKimura() mutation matrix (never released publicly)
+	fix bug in outputMS() and outputMSSample() with filterMonomorphic=T (not the default) that could result in incorrect output, or in a crash
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

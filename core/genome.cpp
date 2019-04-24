@@ -1451,9 +1451,11 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 			for (int mut_index = 0; mut_index < mut_count; ++mut_index)
 			{
 				const Mutation *mutation = mut_block_ptr + mut_ptr[mut_index];
+				auto found_position = genotype_string_positions.find(mutation);
 				
-				genotype_string_position = genotype_string_positions.find(mutation)->second;
-				genotype.replace(genotype_string_position, 1, "1");
+				// BCH 4/24/2019: when p_filter_monomorphic is true, mutations in a given genome may not exist in the position map
+				if (found_position != genotype_string_positions.end())
+					genotype.replace(found_position->second, 1, "1");
 			}
 		}
 		
