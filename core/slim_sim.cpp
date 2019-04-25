@@ -7543,7 +7543,8 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	{
 		slim_mutationid_t mutation_id = mut_info_iter.first;
 		ts_mut_info &mut_info = mut_info_iter.second;
-		MutationMetadataRec *metadata = mut_info.metadata;
+		MutationMetadataRec *metadata_ptr = mut_info.metadata;
+		MutationMetadataRec metadata;
 		slim_position_t position = mut_info.position;
 		
 		// a mutation might not be refered by any extant genome; it might be present in an ancestral node,
@@ -7551,18 +7552,24 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if (mut_info.ref_count == 0)
 			continue;
 		
+		// BCH 4/25/2019: copy the metadata with memcpy(), avoiding a misaligned pointer access; this is needed because
+		// sizeof(MutationMetadataRec) is odd, according to Xcode.  Actually I think this might be a bug in Xcode's runtime
+		// checking, because MutationMetadataRec is defined as packed so the compiler should not use aligned reads for it...?
+		// Anyway, it's a safe fix and will probably get optimized away by the compiler, so whatever...
+		memcpy(&metadata, metadata_ptr, sizeof(MutationMetadataRec));
+		
 		// look up the mutation type from its index
-		auto found_muttype_pair = mutation_types_.find(metadata->mutation_type_id_);
+		auto found_muttype_pair = mutation_types_.find(metadata.mutation_type_id_);
 		
 		if (found_muttype_pair == mutation_types_.end()) 
-			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateMutationsFromTabulation): mutation type m" << metadata->mutation_type_id_ << " has not been defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateMutationsFromTabulation): mutation type m" << metadata.mutation_type_id_ << " has not been defined." << EidosTerminate();
 		
 		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_, generation_, metadata->nucleotide_);
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_generation_, generation_, metadata.nucleotide_);
 			
 			population_.treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(position, sub));
 			population_.substitutions_.emplace_back(sub);
@@ -7575,7 +7582,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata->selection_coeff_, metadata->subpop_index_, metadata->origin_generation_, metadata->nucleotide_);
+			new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_generation_, metadata.nucleotide_);
 			
 			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;
@@ -7588,7 +7595,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		}
 		
 		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
-		if (metadata->selection_coeff_ != 0.0)
+		if (metadata.selection_coeff_ != 0.0)
 		{
 			pure_neutral_ = false;
 			mutation_type_ptr->all_pure_neutral_DFE_ = false;
@@ -7882,6 +7889,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromMSPrimeBinaryFile(const char
 	
 	ret = table_collection_load(&immutable_tables, p_file, 0);
 	if (ret != 0) handle_error("table_collection_load", ret);
+	
+	// BCH 4/25/2019: if indexes are present on immutable_tables we want to drop them; they are synced up
+	// with the edge table, but we plan to modify the edge table so they will become invalid anyway, and
+	// then they can cause a crash because of their unsynced-ness; see tskit issue #179
+	ret = table_collection_drop_indexes(&immutable_tables);
+	if (ret != 0) handle_error("table_collection_drop_indexes", ret);
 	
 	// copy the immutable table collection to make a mutable collection
 	ret = table_collection_alloc(&tables_, MSP_ALLOC_TABLES);
