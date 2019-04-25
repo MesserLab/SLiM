@@ -5687,7 +5687,8 @@ table_collection_deduplicate_sites(table_collection_t *self, int MSP_UNUSED(flag
     if (ret != 0) {
         goto out;
     }
-    site_id_map = malloc(copy.num_rows * sizeof(*site_id_map));
+	// BCH: temporary fix for tskit issue #178, https://github.com/tskit-dev/tskit/issues/178
+    site_id_map = malloc((copy.num_rows + 1) * sizeof(*site_id_map));
     if (site_id_map == NULL) {
         ret = MSP_ERR_NO_MEMORY;
         goto out;
