@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf200
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf400
 {\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-BoldMT;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
@@ -1755,7 +1755,7 @@ mutationMatrix => (float)\
 \f3\fs18 integer
 \f4\fs20  identifiers), and the 
 \f3\fs18 proportions
-\f4\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from each corresponding type.  This is normally a constant in simulations, so be sure you know what you are doing.
+\f4\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be drawn from each corresponding type.  This is normally a constant in simulations, so be sure you know what you are doing.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2961,21 +2961,28 @@ If the needed interaction strengths have already been calculated, those cached v
 
 \f3\fs18 \cf0 \'96\'a0(void)unevaluate(void)
 \f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Discards all evaluation of this interaction, for all subpopulations.  The state of the 
+\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
+Discards all evaluation of this interaction, for all subpopulations.  The state of the 
 \f3\fs18 InteractionType
 \f4\fs20  is reset to a state prior to evaluation.  This can be useful if the model state has changed in such a way that the evaluation already conducted is no longer valid.  For example, if the maximum distance or the interaction function of the 
 \f3\fs18 InteractionType
-\f4\fs20  need to be changed with immediate effect, or if the data used by an interaction() callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
+\f4\fs20  need to be changed with immediate effect, or if the data used by an 
+\f3\fs18 interaction()
+\f4\fs20  callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
 \f3\fs18 unevaluate()
 \f4\fs20  allows the interaction to begin again from scratch.\
-Note that all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the generation cycle).  Most simulations therefore never have any reason to call 
+In WF models, all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the generation cycle).\
+In nonWF models, all interactions are automatically reset to an unevaluated state twice per generation: immediately after 
+\f3\fs18 reproduction()
+\f4\fs20  callbacks have completed (after step 1 in the generation cycle), and immediately before viability/survival selection (before step 4 in the generation cycle).\
+Given this automatic invalidation, most simulations have no reason to call 
 \f3\fs18 unevaluate()
-\f5\fs20 .\
+\f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.8  Class Mutation\
+\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.8  Class Mutation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\b0 \cf0 5.8.1  
@@ -4476,47 +4483,6 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f3\fs18 Substitution
 \f4\fs20  will be removed as a side effect of this method, since all such variables would refer to objects that no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
 \f3\fs18 Subpopulation
-\f4\fs20  objects loaded from the file.  Fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
-\f3\fs18 fitness()
-\f4\fs20  callbacks.  Note that it is likely to be better to call 
-\f3\fs18 readFromPopulationFile()
-\f4\fs20  in a 
-\f3\fs18 late()
-\f4\fs20  event, so that fitness values are being recalculated at the usual time in the generation life cycle.\
-As of SLiM 2.1, this method changes the generation counter to the generation read from the file.  If you do not want the generation counter to be changed, you can change it back after reading, by setting 
-\f3\fs18 sim.generation
-\f4\fs20  to whatever value you wish.  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
-\f3\fs18 setSeed()
-\f4\fs20  can be used to establish a new seed value.  Any changes made to the simulation\'92s structure (mutation types, genomic element types, etc.) will not be wiped and re-established by 
-\f3\fs18 readFromPopulationFile()
-\f4\fs20 ; this method loads only the population\'92s state, not the simulation configuration, so care should be taken to ensure that the simulation structure meshes coherently with the loaded data.\
-As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the simulation has enabled continuous space (see 
-\f3\fs18 outputFull()
-\f4\fs20  for details).  If spatial positions are present in the output file but the simulation has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the simulation has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Read from a population initialization file, whether in text or binary format as previously specified to 
-\f3\fs18 outputFull()
-\f5\fs20 ,
-\f4  and return the generation counter value represented by the file\'92s contents (i.e., the generation at which the file was generated).  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in generation 1, immediately after simulation initialization), it may be called in any Eidos event; the current state of all populations will be wiped and replaced by the state in the file at 
-\f3\fs18 filePath
-\f4\fs20 .  All Eidos variables that are of type 
-\f3\fs18 object
-\f4\fs20  and have element type 
-\f3\fs18 Subpopulation
-\f4\fs20 , 
-\f3\fs18 Genome
-\f4\fs20 , 
-\f3\fs18 Mutation
-\f4\fs20 , 
-\f3\fs18 Individual
-\f4\fs20 , or 
-\f3\fs18 Substitution
-\f4\fs20  will be removed as a side effect of this method, since all such variables would refer to objects that no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
-\f3\fs18 Subpopulation
 \f4\fs20  objects loaded from the file.\
 If the file being read was written by a version of SLiM prior to 2.3, then for backward compatibility fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
 \f3\fs18 fitness()
@@ -4555,7 +4521,11 @@ As of SLiM 2.3, this method will read and restore the spatial positions of indiv
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
+\f1\i \cf2 vice versa
+\f4\i0 \cf2 , will produce an error.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)recalculateFitness([Ni$\'a0generation\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0

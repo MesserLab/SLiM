@@ -140,7 +140,7 @@ Beginning in SLiM 3.3, this function is vectorized: the
 \f1\fs18 mutationTypes
 \f2\fs20  vector identifies the mutation types used by the genomic element, and the 
 \f1\fs18 proportions
-\f2\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be draw from the corresponding mutation type (proportions do not need to add up to one; they are interpreted relatively).  The 
+\f2\fs20  vector should be of equal length, specifying the relative proportion of mutations that will be drawn from the corresponding mutation type (proportions do not need to add up to one; they are interpreted relatively).  The 
 \f1\fs18 id
 \f2\fs20  parameter may be either an 
 \f1\fs18 integer
@@ -158,7 +158,6 @@ Beginning in SLiM 3.3, this function is vectorized: the
 \f1\fs18 MutationType
 \f2\fs20  elements specified directly.  The global symbol for the new genomic element type is immediately available; the return value also provides the new object.
 \f4 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2 \cf2 \expnd0\expndtw0\kerning0
 The 
@@ -179,7 +178,23 @@ The
 \f1\fs18 0
 \f2\fs20 \'96
 \f1\fs18 3
-\f2\fs20  representing A/C/G/T) to each of the four possible derived nucleotide states (columns, with the same meaning).  For sequence-based mutation rates that depend upon the trinucleotide sequence centered upon a mutation site (the adjacent bases to the left and right, in other words, as well as the mutating nucleotide itself), 
+\f2\fs20  representing A/C/G/T) to each of the four possible derived nucleotide states (columns, with the same meaning).  The mutation rates in this matrix are absolute rates, per nucleotide per generation; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (see 
+\f1\fs18 initializeHotspotMap()
+\f2\fs20 ).  Rates in 
+\f1\fs18 mutationMatrix
+\f2\fs20  that involve the mutation of a nucleotide to itself (
+\f1\fs18 A
+\f2\fs20  to 
+\f1\fs18 A
+\f2\fs20 , 
+\f1\fs18 C
+\f2\fs20  to 
+\f1\fs18 C
+\f2\fs20 , etc.) are not used by SLiM and must be 
+\f1\fs18 0.0
+\f2\fs20  by convention.\
+It is important to note that the order of the rows and columns used in SLiM, A/C/G/T, is not a universal convention; other sources will present substitution-rate/transition-rate matrices using different conventions, and so care must be taken when importing such matrices into SLiM.\
+For sequence-based mutation rates that depend upon the trinucleotide sequence centered upon a mutation site (the adjacent bases to the left and right, in other words, as well as the mutating nucleotide itself), 
 \f1\fs18 mutationMatrix
 \f2\fs20  should be a 64\'d74 
 \f1\fs18 float
@@ -195,15 +210,10 @@ The
 \f1\fs18 0
 \f2\fs20 \'96
 \f1\fs18 3
-\f2\fs20  as before).  The mutation rates in this matrix are absolute rates, per nucleotide per generation; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (see 
-\f1\fs18 initializeHotspotMap()
-\f2\fs20 ).  Rates in 
-\f1\fs18 mutationMatrix
-\f2\fs20  that involve the mutation of a nucleotide to itself (A to A, C to C, etc.) are not used by SLiM and must be 
-\f1\fs18 0.0
-\f2\fs20  by convention.  Several helper functions are defined to construct common types of mutation matrices, such as 
+\f2\fs20  for A/C/G/T as before).  Note that in every case it is the central nucleotide of the trinucleotide sequence that is mutating, but rates can be specified independently based upon the nucleotides in the first and third positions as well, with this type of mutation matrix.\
+Several helper functions are defined to construct common types of mutation matrices, such as 
 \f1\fs18 mmJukesCantor()
-\f2\fs20  to create a mutation matrix for a Jukes\'96Cantor model.\
+\f2\fs20  to create a mutation matrix for a Jukes\'96Cantor model.\cf2 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)initializeHotspotMap(numeric\'a0multipliers, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])\
@@ -1187,7 +1197,10 @@ The
 \f1\fs18 mutationMatrix16
 \f2\fs20 .  The mutation rate for each of the 64 trinucleotides will depend only upon the central nucleotide of the trinucleotide, and will be taken from the corresponding entry for the same nucleotide in 
 \f1\fs18 mutationMatrix16
-\f2\fs20 .  This function can be used to easily construct a simple trinucleotide-based mutation matrix which can then be modified so that specific trinucleotides sustain a mutation rate that does not depend only upon their central nucleotide.\
+\f2\fs20 .  This function can be used to easily construct a simple trinucleotide-based mutation matrix which can then be modified so that specific trinucleotides sustain a mutation rate that does not depend only upon their central nucleotide.\cf2 \
+See the documentation for 
+\f1\fs18 initializeGenomicElementType()
+\f2\fs20  for further discussion of how these 64\'d74 mutation matrices are interpreted and used.\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float)mmJukesCantor(float$\'a0alpha)\
