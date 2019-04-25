@@ -124,7 +124,8 @@ private:
 	// to callers up the chain, since they are not in scope).  The parent_symbol_table_ ivar is the next symbol table upward –
 	// either the caller or the first constants table – but it is not used for much since scoped searching is usually desired.
 	EidosSymbolTable *chain_symbol_table_ = nullptr;	// NOT OWNED
-	EidosSymbolTable *parent_symbol_table_ = nullptr;	// NOT OWNED
+	EidosSymbolTable *parent_symbol_table_ = nullptr;	// NOT OWNED unless the parent_symbol_table_owned_ flag is set
+	bool parent_symbol_table_owned_ = false;			// set to true if we own our parent table, which would be a defined-constants table
 	
 	// Utility methods called by the public methods to do the real work
 	std::vector<std::string> _SymbolNames(bool p_include_constants, bool p_include_variables) const;

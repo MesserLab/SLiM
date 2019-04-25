@@ -150,6 +150,7 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 	{
 		// If a parent table is given, we adopt it and do not add Eidos constants; they will be in the search chain
 		parent_symbol_table_ = p_parent_table;
+		parent_symbol_table_owned_ = false;
 		
 		// If the parent table is a constants table of some kind, then it is the next table in the search chain;
 		// if it is a variables table, however, then it is our caller, and is not in scope for us, so we skip
@@ -198,10 +199,16 @@ EidosSymbolTable::~EidosSymbolTable(void)
 	// symbol table chain dynamically by DefineConstantForSymbol().  They need to be freed, so the policy we have is
 	// that they are owned by their child table, which has a pointer up to them.  That means that unlike other types
 	// of tables, DEFINED CONSTANTS TABLES MUST NEVER BE DIRECTLY REFERENCED BY MORE THAN ONE CHILD TABLE.
-	if (parent_symbol_table_ && (parent_symbol_table_->table_type_ == EidosSymbolTableType::kEidosDefinedConstantsTable))
+	if (parent_symbol_table_owned_)
 	{
+		if (!parent_symbol_table_)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::~EidosSymbolTable): (internal error) owned parent symbol table was already freed." << EidosTerminate(nullptr);
+		if (parent_symbol_table_->table_type_ != EidosSymbolTableType::kEidosDefinedConstantsTable)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::~EidosSymbolTable): (internal error) owned parent symbol table is of unexpected type." << EidosTerminate(nullptr);
+		
 		delete parent_symbol_table_;
 		parent_symbol_table_ = nullptr;
+		parent_symbol_table_owned_ = false;
 	}
 }
 
@@ -479,6 +486,7 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 		// owned by childTable, which will free it whenever childTable is destructed
 		definedConstantsTable = new EidosSymbolTable(EidosSymbolTableType::kEidosDefinedConstantsTable, intrinsicConstantsTable);
 		childTable->parent_symbol_table_ = definedConstantsTable;
+		childTable->parent_symbol_table_owned_ = true;
 		childTable->chain_symbol_table_ = definedConstantsTable;
 		
 		// There may be intervening tables that chain up to the intrinsic constants table;

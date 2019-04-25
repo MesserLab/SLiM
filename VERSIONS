@@ -70,6 +70,7 @@ development head:
 	fix bug in mmKimura() mutation matrix (never released publicly)
 	fix bug in outputMS() and outputMSSample() with filterMonomorphic=T (not the default) that could result in incorrect output, or in a crash
 	fix unitialized value bug with InteractionsData (never seen in the wild, probably inconsequential)
+	fix symbol table double-dealloc bug (never seen in the wild, probably inconsequential)
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
