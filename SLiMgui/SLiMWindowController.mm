@@ -3922,8 +3922,8 @@
 {
 	// A few strings which, when option-clicked, should result in more targeted searches.
 	// @"initialize" is deliberately omitted here so that the initialize...() methods also come up.
-	if ([clickedText isEqualToString:@"early"])			return @"early()";
-	if ([clickedText isEqualToString:@"late"])			return @"late()";
+	if ([clickedText isEqualToString:@"early"])			return @"Eidos events";
+	if ([clickedText isEqualToString:@"late"])			return @"Eidos events";
 	if ([clickedText isEqualToString:@"fitness"])		return @"fitness() callbacks";
 	if ([clickedText isEqualToString:@"interaction"])	return @"interaction() callbacks";
 	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
