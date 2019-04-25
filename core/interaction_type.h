@@ -90,7 +90,7 @@ struct _InteractionsData
 	// unless the subpopulation size changes (which forces a reallocation).  This is important because these blocks can be so large
 	// that they are considered "large blocks" by malloc, triggering some very slow processing such as madvise() that is to be
 	// avoided at all costs.
-	bool evaluated_, distances_calculated_, strengths_calculated_;
+	bool evaluated_ = false, distances_calculated_ = false, strengths_calculated_ = false;
 	std::vector<SLiMEidosBlock*> evaluation_interaction_callbacks_;
 	
 	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
