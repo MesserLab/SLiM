@@ -1404,7 +1404,7 @@ The target genomes correspond, in order, to the call lines in the MS file.  In s
 \f4\fs20 , assuming the subpopulation\'92s size matches that of the VCF file taking ploidy into account.  A vector containing all of the mutations created by 
 \f3\fs18 readFromVCF()
 \f4\fs20  is returned.\
-SLiM\'92s VCF parsing is quite primitive.  The header is parsed only inasmuch as SLiM looks to see whether SLiM-specific VCF fields (see sections 24.2.3 and 24.2.4) are defined or not; the rest of the header information is ignored.  Call lines are assumed to follow the format:\
+SLiM\'92s VCF parsing is quite primitive.  The header is parsed only inasmuch as SLiM looks to see whether SLiM-specific VCF fields are defined or not; the rest of the header information is ignored.  Call lines are assumed to follow the format:\
 
 \f3\fs18 #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT i0...iN\
 
@@ -3608,7 +3608,7 @@ In nucleotide-based models, the stacking policy for nucleotide-based mutation ty
 
 \f4\fs20 \cf2 Draws and returns a vector of 
 \f3\fs18 n
-\f4\fs20  selection coefficients using the currently defined distribution of fitness effects (DFE) for the target mutation type.  See section 23.9 above for discussion of the supported distributions and their uses.  If the DFE is type 
+\f4\fs20  selection coefficients using the currently defined distribution of fitness effects (DFE) for the target mutation type.  If the DFE is type 
 \f3\fs18 "s"
 \f4\fs20 , this method will result in synchronous execution of the DFE\'92s script.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
