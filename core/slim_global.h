@@ -597,6 +597,7 @@ extern const std::string gStr_setMutationFractions;
 extern const std::string gStr_setMutationMatrix;
 extern const std::string gStr_setSelectionCoeff;
 extern const std::string gStr_setMutationType;
+extern const std::string gStr_drawSelectionCoefficient;
 extern const std::string gStr_setDistribution;
 extern const std::string gStr_addSubpop;
 extern const std::string gStr_addSubpopSplit;
@@ -893,6 +894,7 @@ enum _SLiMGlobalStringID : int {
 	gID_setMutationMatrix,
 	gID_setSelectionCoeff,
 	gID_setMutationType,
+	gID_drawSelectionCoefficient,
 	gID_setDistribution,
 	gID_addSubpop,
 	gID_addSubpopSplit,

@@ -655,9 +655,38 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
-		case gID_setDistribution:	return ExecuteMethod_setDistribution(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:					return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_drawSelectionCoefficient:	return ExecuteMethod_drawSelectionCoefficient(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setDistribution:			return ExecuteMethod_setDistribution(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
 	}
+}
+
+//	*********************	- (float)drawSelectionCoefficient([integer$ n = 1])
+//
+EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue_SP result_SP(nullptr);
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (ExecuteMethod_drawSelectionCoefficient): drawSelectionCoefficient() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	
+	if (num_draws == 1)
+	{
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(DrawSelectionCoefficient()));
+	}
+	else
+	{
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+			float_result->set_float_no_check(DrawSelectionCoefficient(), draw_index);
+	}
+	
+	return result_SP;
 }
 
 //	*********************	- (void)setDistribution(string$ distributionType, ...)
@@ -758,6 +787,7 @@ const std::vector<const EidosMethodSignature *> *MutationType_Class::Methods(voi
 	{
 		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawSelectionCoefficient, kEidosValueMaskFloat))->AddInt_OS("n", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setDistribution, kEidosValueMaskVOID))->AddString_S("distributionType")->AddEllipsis());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
