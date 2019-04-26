@@ -73,6 +73,7 @@ development head:
 	fix symbol table double-dealloc bug (never seen in the wild, probably inconsequential)
 	fix a possible misaligned pointer access when loading .trees files (never seen in the wild, only a problem on non-Intel architectures like ARM, might not even be a bug)
 	fix an edge-case crasher in tree-seq models (never seen in the wild, perhaps only occurs when crosschecks are enabled)
+	add ancestral sequence to memory usage stats
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

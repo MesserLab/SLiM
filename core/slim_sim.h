@@ -189,6 +189,7 @@ typedef struct
 	size_t chromosomeObjects;
 	size_t chromosomeMutationRateMaps;
 	size_t chromosomeRecombinationRateMaps;
+	size_t chromosomeAncestralSequence;
 	
 	int64_t genomeObjects_count;
 	size_t genomeObjects;

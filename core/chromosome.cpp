@@ -1140,6 +1140,20 @@ size_t Chromosome::MemoryUsageForRecombinationMaps(void)
 	return usage;
 }
 
+size_t Chromosome::MemoryUsageForAncestralSequence(void)
+{
+	size_t usage = 0;
+	
+	if (ancestral_seq_buffer_)
+	{
+		std::size_t length = ancestral_seq_buffer_->size();
+		
+		usage += ((length + 31) / 32) * sizeof(uint64_t);
+	}
+	
+	return usage;
+}
+
 
 //
 // Eidos support

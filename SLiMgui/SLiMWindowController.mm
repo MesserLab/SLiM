@@ -1954,6 +1954,12 @@
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeRecombinationRateMaps total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : recombination rate maps\n" attributes:optima13_d];
+
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeAncestralSequence / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeAncestralSequence total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : ancestral nucleotides\n" attributes:optima13_d];
 		
 		// Genome
 		[content eidosAppendString:@"\n" attributes:optima8_d];

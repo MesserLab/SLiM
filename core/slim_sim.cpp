@@ -4246,6 +4246,8 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 		p_usage->chromosomeMutationRateMaps = chromosome_.MemoryUsageForMutationMaps();
 		
 		p_usage->chromosomeRecombinationRateMaps = chromosome_.MemoryUsageForRecombinationMaps();
+		
+		p_usage->chromosomeAncestralSequence = chromosome_.MemoryUsageForAncestralSequence();
 	}
 	
 	// Genome
@@ -4467,6 +4469,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	total_usage += p_usage->chromosomeObjects;
 	total_usage += p_usage->chromosomeMutationRateMaps;
 	total_usage += p_usage->chromosomeRecombinationRateMaps;
+	total_usage += p_usage->chromosomeAncestralSequence;
 	
 	total_usage += p_usage->genomeObjects;
 	total_usage += p_usage->genomeExternalBuffers;
@@ -4525,6 +4528,7 @@ void SLiMSim::CollectSLiMguiMemoryUsageProfileInfo(void)
 	profile_total_memory_usage_.chromosomeObjects += profile_last_memory_usage_.chromosomeObjects;
 	profile_total_memory_usage_.chromosomeMutationRateMaps += profile_last_memory_usage_.chromosomeMutationRateMaps;
 	profile_total_memory_usage_.chromosomeRecombinationRateMaps += profile_last_memory_usage_.chromosomeRecombinationRateMaps;
+	profile_total_memory_usage_.chromosomeAncestralSequence += profile_last_memory_usage_.chromosomeAncestralSequence;
 	
 	profile_total_memory_usage_.genomeObjects_count += profile_last_memory_usage_.genomeObjects_count;
 	profile_total_memory_usage_.genomeObjects += profile_last_memory_usage_.genomeObjects;
@@ -10726,6 +10730,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id
 		
 		out << "      Recombination rate maps: ";
 		PrintBytes(out, usage.chromosomeRecombinationRateMaps);
+		
+		out << "      Ancestral nucleotides: ";
+		PrintBytes(out, usage.chromosomeAncestralSequence);
 	}
 	
 	// Genome

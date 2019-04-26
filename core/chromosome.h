@@ -225,6 +225,7 @@ public:
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForMutationMaps(void);
 	size_t MemoryUsageForRecombinationMaps(void);
+	size_t MemoryUsageForAncestralSequence(void);
 	
 	
 	//
