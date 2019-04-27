@@ -4532,8 +4532,7 @@ As of SLiM 2.3, this method will read and restore the spatial positions of indiv
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
+As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i \cf2 vice versa
 \f4\i0 \cf2 , will produce an error.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5683,7 +5682,7 @@ The
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, Ni
 \f5 \'a0
-\f3 gridSize, float\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nf\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
+\f3 gridSize, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 \expnd0\expndtw0\kerning0
@@ -6313,7 +6312,7 @@ This method is similar to getting the
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)setSpatialBounds(float\'a0bounds)
+\f3\fs18 \cf0 \'96\'a0(void)setSpatialBounds(numeric\'a0bounds)
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6391,7 +6390,7 @@ Set the spatial boundaries of the subpopulation to
 
 \f3\fs18 \cf0 \'96
 \f5 \'a0
-\f3 (string)spatialMapColor(string$\'a0name, float\'a0value)
+\f3 (string)spatialMapColor(string$\'a0name, numeric\'a0value)
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

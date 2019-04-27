@@ -954,7 +954,7 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
-(void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nf$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F])
+(void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nif$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F])
 \f4 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1380,7 +1380,7 @@ The nucleotide sequence in
 \f2\fs20  format will certainly be the most memory-efficient for long sequences, and will probably also be the fastest.  The nucleotide sequence provided must be a multiple of three in length, so that it translates to an integral number of codons.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (is)randomNucleotides(integer$\'a0length, [Nf\'a0basis\'a0=\'a0NULL], [string$\'a0format\'a0=\'a0"string"])\
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (is)randomNucleotides(integer$\'a0length, [Nif\'a0basis\'a0=\'a0NULL], [string$\'a0format\'a0=\'a0"string"])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
@@ -1393,6 +1393,8 @@ Generates a new random nucleotide sequence with
 \f2\fs20  (the default); otherwise, 
 \f1\fs18 basis
 \f2\fs20  may be a 4-element 
+\f1\fs18 integer
+\f2\fs20  or 
 \f1\fs18 float
 \f2\fs20  vector providing relative fractions for A, C, G, and T respectively (these need not sum to 
 \f1\fs18 1.0
