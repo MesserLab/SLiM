@@ -14,7 +14,7 @@ initialize() {
 }
 1:10000 {
 	counts = p1.genomes.countOfMutationsOfType(m1);
-	freq = mean(asInteger(counts > 0));
+	freq = mean(counts > 0);
 	
 	if (freq == 1.0)
 	{
@@ -22,7 +22,7 @@ initialize() {
 		
 		for (mut in sortBy(sim.mutations, "originGeneration"))
 		{
-			mutFreq = mean(asInteger(p1.genomes.containsMutations(mut)));
+			mutFreq = mean(p1.genomes.containsMutations(mut));
 			cat("Origin " + mut.originGeneration+ ": " + mutFreq + "\n");
 		}
 		

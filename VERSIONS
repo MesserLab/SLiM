@@ -75,6 +75,7 @@ development head:
 	fix an edge-case crasher in tree-seq models (never seen in the wild, perhaps only occurs when crosschecks are enabled)
 	add ancestral sequence to memory usage stats
 	add drawSelectionCoefficient() method to MutationType
+	revise recipes 7.3, 7.4, 10.5.1 to eliminate unnecessary asInteger() calls
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
