@@ -78,6 +78,7 @@ development head:
 	revise recipes 7.3, 7.4, 10.5.1 to eliminate unnecessary asInteger() calls
 	convert some float-type parameters to numeric-type: initializeTreeSeq(simplificationRatio), randomNucleotides(basis), spatialMapColor(value), defineSpatialMap(values, valueRange), setSpatialBounds()
 	highlight matches in the Find Recipe panel
+	the selected display mutation types now apply to substitutions as well as mutations
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

@@ -876,27 +876,30 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		// This is the simple version of the display code, avoiding the memory allocations and such
 		for (const Substitution *substitution : substitutions)
 		{
-			slim_position_t substitutionPosition = substitution->position_;
-			NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
-			
-			if (!shouldDrawMutations || !chromosomeHasDefaultColor)
+			if (substitution->mutation_type_ptr_->mutation_type_displayed_)
 			{
-				// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
-				// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
-				const MutationType *mutType = substitution->mutation_type_ptr_;
+				slim_position_t substitutionPosition = substitution->position_;
+				NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
 				
-				if (!mutType->color_sub_.empty())
+				if (!shouldDrawMutations || !chromosomeHasDefaultColor)
 				{
-					[[NSColor colorWithCalibratedRed:mutType->color_sub_red_ green:mutType->color_sub_green_ blue:mutType->color_sub_blue_ alpha:1.0] set];
+					// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
+					// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+					const MutationType *mutType = substitution->mutation_type_ptr_;
+					
+					if (!mutType->color_sub_.empty())
+					{
+						[[NSColor colorWithCalibratedRed:mutType->color_sub_red_ green:mutType->color_sub_green_ blue:mutType->color_sub_blue_ alpha:1.0] set];
+					}
+					else
+					{
+						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+					}
 				}
-				else
-				{
-					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
-				}
+				
+				NSRectFill(substitutionTickRect);
 			}
-			
-			NSRectFill(substitutionTickRect);
 		}
 	}
 	else
@@ -907,12 +910,15 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		for (const Substitution *substitution : substitutions)
 		{
-			slim_position_t substitutionPosition = substitution->position_;
-			double startFraction = (substitutionPosition - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
-			int xPos = (int)floor(startFraction * interiorRect.size.width);
-			
-			if ((xPos >= 0) && (xPos < displayPixelWidth))
-				subBuffer[xPos] = substitution;
+			if (substitution->mutation_type_ptr_->mutation_type_displayed_)
+			{
+				slim_position_t substitutionPosition = substitution->position_;
+				double startFraction = (substitutionPosition - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
+				int xPos = (int)floor(startFraction * interiorRect.size.width);
+				
+				if ((xPos >= 0) && (xPos < displayPixelWidth))
+					subBuffer[xPos] = substitution;
+			}
 		}
 		
 		if (shouldDrawMutations && chromosomeHasDefaultColor)
@@ -999,31 +1005,34 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		// This is the simple version of the display code, avoiding the memory allocations and such
 		for (const Substitution *substitution : substitutions)
 		{
-			slim_position_t substitutionPosition = substitution->position_;
-			NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
-			
-			if (!shouldDrawMutations || !chromosomeHasDefaultColor)
+			if (substitution->mutation_type_ptr_->mutation_type_displayed_)
 			{
-				// If we're drawing mutations as well, then substitutions just get colored blue (set above), to contrast
-				// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
-				const MutationType *mutType = substitution->mutation_type_ptr_;
+				slim_position_t substitutionPosition = substitution->position_;
+				NSRect substitutionTickRect = [self rectEncompassingBase:substitutionPosition toBase:substitutionPosition interiorRect:interiorRect displayedRange:displayedRange];
 				
-				if (!mutType->color_sub_.empty())
+				if (!shouldDrawMutations || !chromosomeHasDefaultColor)
 				{
-					colorRed = mutType->color_sub_red_;
-					colorGreen = mutType->color_sub_green_;
-					colorBlue = mutType->color_sub_blue_;
+					// If we're drawing mutations as well, then substitutions just get colored blue (set above), to contrast
+					// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+					const MutationType *mutType = substitution->mutation_type_ptr_;
+					
+					if (!mutType->color_sub_.empty())
+					{
+						colorRed = mutType->color_sub_red_;
+						colorGreen = mutType->color_sub_green_;
+						colorBlue = mutType->color_sub_blue_;
+					}
+					else
+					{
+						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					}
 				}
-				else
-				{
-					RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-				}
+				
+				SLIM_GL_DEFCOORDS(substitutionTickRect);
+				SLIM_GL_PUSHRECT();
+				SLIM_GL_PUSHRECT_COLORS();
+				SLIM_GL_CHECKBUFFERS();
 			}
-			
-			SLIM_GL_DEFCOORDS(substitutionTickRect);
-			SLIM_GL_PUSHRECT();
-			SLIM_GL_PUSHRECT_COLORS();
-			SLIM_GL_CHECKBUFFERS();
 		}
 	}
 	else
@@ -1034,12 +1043,15 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		for (const Substitution *substitution : substitutions)
 		{
-			slim_position_t substitutionPosition = substitution->position_;
-			double startFraction = (substitutionPosition - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
-			int xPos = (int)floor(startFraction * interiorRect.size.width);
-			
-			if ((xPos >= 0) && (xPos < displayPixelWidth))
-				subBuffer[xPos] = substitution;
+			if (substitution->mutation_type_ptr_->mutation_type_displayed_)
+			{
+				slim_position_t substitutionPosition = substitution->position_;
+				double startFraction = (substitutionPosition - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
+				int xPos = (int)floor(startFraction * interiorRect.size.width);
+				
+				if ((xPos >= 0) && (xPos < displayPixelWidth))
+					subBuffer[xPos] = substitution;
+			}
 		}
 		
 		if (shouldDrawMutations && chromosomeHasDefaultColor)
@@ -1713,16 +1725,17 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			if (shouldDrawGenomicElements)
 				[self drawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
 			
+			// figure out which mutation types we're displaying
+			if (shouldDrawFixedSubstitutions || shouldDrawMutations)
+				[self updateDisplayedMutationTypes];
+			
 			// draw fixed substitutions in interior
 			if (shouldDrawFixedSubstitutions)
 				[self drawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
 			
 			// draw mutations in interior
 			if (shouldDrawMutations)
-			{
-				[self updateDisplayedMutationTypes];
 				[self drawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
-			}
 		}
 		
 		// frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
@@ -1783,6 +1796,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		if (shouldDrawGenomicElements)
 			[self glDrawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
 		
+		// figure out which mutation types we're displaying
+		if (shouldDrawFixedSubstitutions || shouldDrawMutations)
+			[self updateDisplayedMutationTypes];
+		
 		// draw fixed substitutions in interior
 		if (shouldDrawFixedSubstitutions)
 			[self glDrawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
@@ -1790,8 +1807,6 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		// draw mutations in interior
 		if (shouldDrawMutations)
 		{
-			[self updateDisplayedMutationTypes];
-			
 			if (display_haplotypes_)
 			{
 				// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
