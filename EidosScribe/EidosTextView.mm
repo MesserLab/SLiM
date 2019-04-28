@@ -1385,6 +1385,52 @@
 		[self recolorAfterChanges];
 }
 
+- (void)clearHighlightMatches
+{
+	NSRange fullRange = NSMakeRange(0, [[self textStorage] length]);
+	NSLayoutManager *lm = [self layoutManager];
+	
+	[lm ensureGlyphsForCharacterRange:fullRange];
+	[lm removeTemporaryAttribute:NSBackgroundColorAttributeName forCharacterRange:fullRange];
+}
+
+- (void)highlightMatchesForString:(NSString *)matchString
+{
+	NSColor *highlightColor;
+	
+	// Get the find highlight color if available, otherwise the standard selected-text background color
+	if (@available(macOS 10.13, *)) {
+		highlightColor = [NSColor findHighlightColor];
+	} else {
+		highlightColor = [NSColor selectedControlColor];
+	}
+	
+	// Highlight using the background color on all matches
+	NSRange fullRange = NSMakeRange(0, [[self textStorage] length]);
+	NSString *string = [[self textStorage] string];
+	NSLayoutManager *lm = [self layoutManager];
+	
+	[lm ensureGlyphsForCharacterRange:fullRange];
+	
+	// thanks to https://stackoverflow.com/a/7033787/2752221
+	NSRange searchRange = fullRange, foundRange;
+	
+	while (searchRange.location < string.length)
+	{
+		searchRange.length = string.length - searchRange.location;
+		foundRange = [string rangeOfString:matchString options:0 range:searchRange];
+		
+		if (foundRange.location != NSNotFound)
+		{
+			[lm addTemporaryAttribute:NSBackgroundColorAttributeName value:highlightColor forCharacterRange:foundRange];
+			
+			searchRange.location = foundRange.location + 1;
+		} else {
+			break;
+		}
+	}
+}
+
 
 //
 //	Signature display

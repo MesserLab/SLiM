@@ -187,7 +187,25 @@
 		
 		[scriptPreview setString:scriptString];
 		[scriptPreview recolorAfterChanges];
+		[self highlightPreview];
 	}
+}
+
+- (void)highlightPreview
+{
+	// Highlight matches in the selected recipe
+	[scriptPreview clearHighlightMatches];
+	
+	NSString *keyword1 = [keyword1TextField stringValue];
+	NSString *keyword2 = [keyword2TextField stringValue];
+	NSString *keyword3 = [keyword3TextField stringValue];
+	
+	if ([keyword1 length])
+		[scriptPreview highlightMatchesForString:keyword1];
+	if ([keyword2 length])
+		[scriptPreview highlightMatchesForString:keyword2];
+	if ([keyword3 length])
+		[scriptPreview highlightMatchesForString:keyword3];
 }
 
 - (void)keywordChanged:(id)sender
@@ -222,7 +240,11 @@
 			}
 		}
 		
-		if (!foundSelection)
+		if (foundSelection)
+		{
+			[self highlightPreview];
+		}
+		else
 		{
 			// tableViewSelectionDidChange: is not called when the selection is lost by reloadData
 			[self validateOK];

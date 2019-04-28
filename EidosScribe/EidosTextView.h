@@ -83,6 +83,10 @@ typedef enum EidosSyntaxColoringOption
 // Called after disabling syntax coloring with shouldRecolorAfterChanges, to provide the coalesced recoloring
 - (void)recolorAfterChanges;
 
+// These are used by the Find Recipe panel in SLiM to highlight matches with search terms
+- (void)clearHighlightMatches;
+- (void)highlightMatchesForString:(NSString *)matchString;
+
 // This method is used to construct the function/method prototypes shown in the status bar; client code
 // probably will not call it, but possibly it could be used for context-sensitive help or something
 - (NSAttributedString *)attributedSignatureForScriptString:(NSString *)scriptString selection:(NSRange)selection;
