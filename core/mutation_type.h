@@ -139,7 +139,7 @@ public:
 	// (i.e., return 1.0) that is global (i.e., applies to all subpops) and active.  This flag should be consulted only when the
 	// "nonneutral regime" (i.e., sim.last_nonneutral_regime_) is 2 (constant neutral fitness callbacks only); it is not valid in
 	// other scenarios, so it should be used with extreme caution.
-	mutable bool set_neutral_by_global_active_callback_;
+	mutable bool set_neutral_by_global_active_callback_ = false;
 	mutable bool previous_set_neutral_by_global_active_callback_;	// the previous value; scratch space for RecalculateFitness()
 	
 	// subject_to_fitness_callback_ is set by RecalculateFitness() if the muttype is currently influenced by a callback in any subpop.
@@ -147,7 +147,7 @@ public:
 	// this flag set, on the other hand, are not influenced by any callback (active or inactive), so their selcoeff may be consulted.
 	// This flag is valid only when the "nonneutral regime" (i.e., sim.last_nonneutral_regime_) is 3 (non-constant or non-neutral
 	// callbacks present); it is not valid in other scenarios, so it should be used with extreme caution.
-	mutable bool subject_to_fitness_callback_;
+	mutable bool subject_to_fitness_callback_ = false;
 	mutable bool previous_subject_to_fitness_callback_;				// the previous value; scratch space for RecalculateFitness()
 	
 #ifdef SLIMGUI
