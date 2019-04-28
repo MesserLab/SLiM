@@ -6295,7 +6295,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() could not find map with name " << map_name << "." << EidosTerminate();
 }
 
-//	*********************	– (float$)spatialMapValue(string$ name, float point)
+//	*********************	– (float)spatialMapValue(string$ name, float point)
 //
 #define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
 
@@ -6317,89 +6317,115 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 	if (map_iter != spatial_maps_.end())
 	{
 		SpatialMap *map = map_iter->second;
+		EidosValue_Float_vector *float_result;
+		int x_count;
 		
-		if (point->Count() != map->spatiality_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() length of point does not match spatiality of map " << map_name << "." << EidosTerminate();
-		
-		// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
-		// There is doubtless a way to make this code smarter, but brute force is sometimes best...
-		double point_vec[3];
-		
-		switch (map->spatiality_)
+		if (point->Count() == map->spatiality_)
 		{
-			case 1:
+			x_count = 1;
+			float_result = nullptr;
+		}
+		else if (point->Count() % map->spatiality_ == 0)
+		{
+			x_count = point->Count() / map->spatiality_;
+			float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() length of point must match spatiality of map " << map_name << ", or be a multiple thereof." << EidosTerminate();
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
+		{
+			// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
+			// There is doubtless a way to make this code smarter, but brute force is sometimes best...
+			double point_vec[3];
+			
+			switch (map->spatiality_)
 			{
-				if (map->spatiality_string_ == "x")
+				case 1:
 				{
-					double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
-					point_vec[0] = SLiMClampCoordinate(x);
+					int value_offset = value_index;
+					
+					if (map->spatiality_string_ == "x")
+					{
+						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+						point_vec[0] = SLiMClampCoordinate(x);
+					}
+					else if (map->spatiality_string_ == "y")
+					{
+						double y = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+						point_vec[0] = SLiMClampCoordinate(y);
+					}
+					else if (map->spatiality_string_ == "z")
+					{
+						double z = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+						point_vec[0] = SLiMClampCoordinate(z);
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+					break;
 				}
-				else if (map->spatiality_string_ == "y")
+				case 2:
 				{
-					double y = (point->FloatAtIndex(0, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
-					point_vec[0] = SLiMClampCoordinate(y);
+					int value_offset = value_index * 2;
+					
+					if (map->spatiality_string_ == "xy")
+					{
+						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+						point_vec[0] = SLiMClampCoordinate(x);
+						
+						double y = (point->FloatAtIndex(1 + value_offset, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+						point_vec[1] = SLiMClampCoordinate(y);
+					}
+					else if (map->spatiality_string_ == "yz")
+					{
+						double y = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+						point_vec[0] = SLiMClampCoordinate(y);
+						
+						double z = (point->FloatAtIndex(1 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+						point_vec[1] = SLiMClampCoordinate(z);
+					}
+					else if (map->spatiality_string_ == "xz")
+					{
+						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+						point_vec[0] = SLiMClampCoordinate(x);
+						
+						double z = (point->FloatAtIndex(1 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+						point_vec[1] = SLiMClampCoordinate(z);
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+					break;
 				}
-				else if (map->spatiality_string_ == "z")
+				case 3:
 				{
-					double z = (point->FloatAtIndex(0, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
-					point_vec[0] = SLiMClampCoordinate(z);
+					int value_offset = value_index * 3;
+					
+					if (map->spatiality_string_ == "xyz")
+					{
+						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
+						point_vec[0] = SLiMClampCoordinate(x);
+						
+						double y = (point->FloatAtIndex(1 + value_offset, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
+						point_vec[1] = SLiMClampCoordinate(y);
+						
+						double z = (point->FloatAtIndex(2 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
+						point_vec[2] = SLiMClampCoordinate(z);
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+					break;
 				}
-				else
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
-				break;
 			}
-			case 2:
-			{
-				if (map->spatiality_string_ == "xy")
-				{
-					double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
-					point_vec[0] = SLiMClampCoordinate(x);
-					
-					double y = (point->FloatAtIndex(1, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
-					point_vec[1] = SLiMClampCoordinate(y);
-				}
-				else if (map->spatiality_string_ == "yz")
-				{
-					double y = (point->FloatAtIndex(0, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
-					point_vec[0] = SLiMClampCoordinate(y);
-					
-					double z = (point->FloatAtIndex(1, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
-					point_vec[1] = SLiMClampCoordinate(z);
-				}
-				else if (map->spatiality_string_ == "xz")
-				{
-					double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
-					point_vec[0] = SLiMClampCoordinate(x);
-					
-					double z = (point->FloatAtIndex(1, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
-					point_vec[1] = SLiMClampCoordinate(z);
-				}
-				else
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
-				break;
-			}
-			case 3:
-			{
-				if (map->spatiality_string_ == "xyz")
-				{
-					double x = (point->FloatAtIndex(0, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
-					point_vec[0] = SLiMClampCoordinate(x);
-					
-					double y = (point->FloatAtIndex(1, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
-					point_vec[1] = SLiMClampCoordinate(y);
-					
-					double z = (point->FloatAtIndex(2, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
-					point_vec[2] = SLiMClampCoordinate(z);
-				}
-				else
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
-				break;
-			}
+			
+			double map_value = map->ValueAtPoint(point_vec);
+			
+			if (float_result)
+				float_result->set_float_no_check(map_value, value_index);
+			else
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(map_value));
 		}
 		
-		double map_value = map->ValueAtPoint(point_vec);
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(map_value));
+		return EidosValue_SP(float_result);
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() could not find map with name " << map_name << "." << EidosTerminate();
@@ -6714,7 +6740,7 @@ const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(vo
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskVOID))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddNumeric("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddNumeric("value"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_S("name")->AddFloat("point"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat))->AddString_S("name")->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));

@@ -45,13 +45,10 @@ modifyChild() {
 	// construct phenotypes and fitness effects from QTLs
 	inds = sim.subpopulations.individuals;
 	phenotype = inds.sumOfMutationsOfType(m2);
+	location = inds.spatialPosition[rep(c(T,T,F), inds.size())];
+	optimum = p1.spatialMapValue("map1", location);
+	inds.fitnessScaling = 1.0 + dnorm(phenotype, optimum, sigma_K);
 	inds.z = phenotype;
-	
-	for (ind in inds) {
-		location = ind.spatialPosition[0:1];
-		optimum = p1.spatialMapValue("map1", location);
-		ind.fitnessScaling = 1.0 + dnorm(ind.z, optimum, sigma_K);
-	}
 	
 	// color individuals according to phenotype
 	inds.color = p1.spatialMapColor("map1", phenotype);

@@ -6412,7 +6412,7 @@ Set the spatial boundaries of the subpopulation to
 
 \f3\fs18 \cf0 \'96
 \f5 \'a0
-\f3 (float$)spatialMapValue(string$\'a0name, float\'a0point)
+\f3 (float)spatialMapValue(string$\'a0name, float\'a0point)
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6446,7 +6446,32 @@ Looks up the spatial map indicated by
 \f4\fs20  to wrap the point coordinates first if desired.  See the documentation for 
 \f3\fs18 defineSpatialMap()
 \f4\fs20  for information regarding the details of value mapping.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\cf2 Beginning in SLiM 3.3, 
+\f3\fs18 point
+\f4\fs20  may contain more than one point to be looked up.  In this case, the length of 
+\f3\fs18 point
+\f4\fs20  must be an exact multiple of the spatiality of the spatial map; for a spatial map with spatiality 
+\f3\fs18 "xz"
+\f4\fs20 , for example, the length of 
+\f3\fs18 point
+\f4\fs20  must be an exact multiple of 
+\f3\fs18 2
+\f4\fs20 , and successive pairs of elements from point (elements 
+\f3\fs18 0
+\f4\fs20  and 
+\f3\fs18 1
+\f4\fs20 , then elements 
+\f3\fs18 2
+\f4\fs20  and 
+\f3\fs18 3
+\f4\fs20 , etc.) will be taken as the 
+\f1\i \cf2 x
+\f4\i0 \cf2  and 
+\f1\i \cf2 z
+\f4\i0 \cf2  coordinates of the points to be evaluated.  This allows 
+\f3\fs18 spatialMapValue()
+\f4\fs20  to be used in a vectorized fashion.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
 (object<Individual>)subsetIndividuals([No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL])
