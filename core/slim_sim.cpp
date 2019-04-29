@@ -5870,10 +5870,15 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
                    && (sizeof(IndividualMetadataRec)
                        == (p_tables->individuals->metadata_offset[msp_individual + 1]
                            - p_tables->individuals->metadata_offset[msp_individual])));
-            assert(((size_t) p_tables->nodes->individual[ind->genome1_->msp_node_id_]
+            
+			// BCH 4/29/2019: This assert is, we think, not technically necessary – the code
+			// would work even if it were violated.  But it's a nice invariant to guarantee,
+			// and right now it is always true.
+			assert(((size_t) p_tables->nodes->individual[ind->genome1_->msp_node_id_]
                      == msp_individual)
                    && ((size_t) p_tables->nodes->individual[ind->genome2_->msp_node_id_]
                        == msp_individual));
+			
 			memcpy(p_tables->individuals->location
 				   + p_tables->individuals->location_offset[msp_individual],
 				   location.data(), location.size() * sizeof(double));
@@ -5885,6 +5890,10 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             // Check node table
             assert(ind->genome1_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows
                    && ind->genome2_->msp_node_id_ < (node_id_t) p_tables->nodes->num_rows);
+			
+			// BCH 4/29/2019: These asserts are, we think, not technically necessary – the code
+			// would work even if they were violated.  But they're a nice invariant to guarantee,
+			// and right now they are always true.
             assert(p_tables->nodes->individual[ind->genome1_->msp_node_id_] == (individual_id_t)msp_individual);
             assert(p_tables->nodes->individual[ind->genome2_->msp_node_id_] == (individual_id_t)msp_individual);
         }
@@ -7789,9 +7798,29 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	if (remembered_genomes_.size() != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): (internal error) remembered_genomes_ is not empty." << EidosTerminate();
 	
-    // FIXME: look these up from the individual table
+	// BCH 4/27/2019: remembered_genomes_ are always the first remembered_genome_count entries in the node table...
 	for (size_t i = 0; i < remembered_genome_count; ++i)
 		remembered_genomes_.push_back((node_id_t)i);
+	
+	// ...but we should check that they are all in the individuals table, and either Remembered or FirstGen...
+	for (size_t i = 0; i < remembered_genome_count; ++i)
+	{
+		assert((table_size_t)i < tables_.nodes->num_rows);
+		individual_id_t ind = tables_.nodes->individual[i];
+		assert((ind >= 0) && ((table_size_t)ind < tables_.individuals->num_rows));
+		uint32_t ind_flags = tables_.individuals->flags[ind];
+		assert((ind_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) || (ind_flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN));
+	}
+	
+	// ... and then we should sort them to match the order of the individual table, so that they satisfy
+	// the invariants asserted in SLiMSim::AddIndividualsToTable(); see the comments there
+	std::sort(remembered_genomes_.begin(), remembered_genomes_.end(), [this](node_id_t l, node_id_t r) {
+		individual_id_t l_ind = tables_.nodes->individual[l];
+		individual_id_t r_ind = tables_.nodes->individual[r];
+		if (l_ind != r_ind)
+			return l_ind < r_ind;
+		return l < r;
+	});
 	
     // Re-mark the FIRST_GEN individuals as samples so they persist through simplify
     RemarkFirstGenerationSamples(&tables_);
