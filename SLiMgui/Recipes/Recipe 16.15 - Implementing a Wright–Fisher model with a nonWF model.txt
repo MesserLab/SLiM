@@ -14,7 +14,7 @@ reproduction() {
 	for (i in seqLen(K))
 	{
 		firstParent = p1.sampleIndividuals(1);
-		secondParent = p1.sampleIndividuals(1, exclude=firstParent);
+		secondParent = p1.sampleIndividuals(1);
 		p1.addCrossed(firstParent, secondParent);
 	}
 	self.active = 0;
