@@ -1610,6 +1610,15 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 			EidosValue_SP child_value = FastEvaluateNode(subset_index_node);
 			EidosValueType child_type = child_value->Type();
 			
+			// BCH 4/29/2019: handle the simple case of a singleton integer subset as fast as we can, since this is the common case
+			// This can be commented out harmlessly; this case is also handled below, just slower
+			if ((child_count == 2) && (child_type == EidosValueType::kValueInt) && (child_value->Count() == 1) && (child_value->DimensionCount() == 1))
+			{
+				int subset_index = (int)child_value->IntAtIndex(0, operator_token);
+				EIDOS_EXIT_EXECUTION_LOG("Evaluate_Subset()");
+				return first_child_value->GetValueAtIndex(subset_index, operator_token);
+			}
+			
 			if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << child_type << " is not supported by the '[]' operator." << EidosTerminate(operator_token);
 			if (child_value->DimensionCount() != 1)

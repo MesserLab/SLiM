@@ -82,6 +82,7 @@ development head:
 	vectorize spatialMapValue() and revise recipe 15.11 to use it
 	optimize sample() with weights, revise recipe 11.2 (splitting it into version I and II)
 	correct recipe 16.15, which did not match the manual
+	optimize operator subset [] with a singleton integer argument, since that is the common case
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
