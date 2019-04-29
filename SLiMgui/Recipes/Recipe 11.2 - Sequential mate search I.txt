@@ -9,6 +9,13 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 { sim.addSubpop("p1", 500); }
+1:10001 early() {
+	if (sim.generation % 1000 == 1) {
+		fixedMuts = sum(sim.substitutions.mutationType == m2);
+		osize = fixedMuts * 2 + p1.individuals.countOfMutationsOfType(m2);
+		catn(sim.generation + ": Mean ornament size == " + mean(osize));
+	}
+}
 mateChoice() {
 	fixedMuts = sum(sim.substitutions.mutationType == m2);
 	for (attempt in 1:5)
@@ -20,11 +27,4 @@ mateChoice() {
 			return mate;
 	}
 	return float(0);
-}
-1:10001 early() {
-	if (sim.generation % 1000 == 1) {
-		fixedMuts = sum(sim.substitutions.mutationType == m2);
-		osize = fixedMuts * 2 + p1.individuals.countOfMutationsOfType(m2);
-		catn(sim.generation + ": Mean ornament size == " + mean(osize));
-	}
 }

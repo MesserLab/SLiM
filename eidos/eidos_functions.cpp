@@ -5933,70 +5933,243 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 	if (!replace && (x_count < sample_size))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() provided with insufficient elements (" << x_count << " supplied, " << sample_size << " needed)." << EidosTerminate(nullptr);
 	
-	// the algorithm used depends on whether weights were supplied
-	if (weights_value->Type() != EidosValueType::kValueNULL)
+	// decide whether to use weights, if weights were supplied
+	EidosValueType weights_type = weights_value->Type();
+	int weights_count = weights_value->Count();
+	
+	if (weights_type == EidosValueType::kValueNULL)
 	{
-		// weights supplied; individual cases are not optimized for this branch right now, since supplying weights seems rare
-		result_SP = x_value->NewMatchingType();
-		EidosValue *result = result_SP.get();
-		
-		std::vector<double> weights_vector;
-		double weights_sum = 0.0;
-		int weights_count = weights_value->Count();
-		
+		weights_value = nullptr;
+	}
+	else
+	{
 		if (weights_count != x_count)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires x and weights to be the same length." << EidosTerminate(nullptr);
 		
-		for (int value_index = 0; value_index < x_count; ++value_index)
+		if (weights_count == 1)
 		{
-			double weight = weights_value->FloatAtIndex(value_index, nullptr);
+			double weight = weights_value->FloatAtIndex(0, nullptr);
 			
 			if ((weight < 0.0) || std::isnan(weight))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << EidosStringForFloat(weight) << " supplied)." << EidosTerminate(nullptr);
+			if (weight == 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 			
-			weights_vector.emplace_back(weight);
-			weights_sum += weight;
+			// one weight, greater than zero; no need to use it, and this guarantees below that weights_value is non-singleton
+			weights_value = nullptr;
 		}
-		
-		// get indices of x; we sample from this vector and then look up the corresponding EidosValue element
-		std::vector<int> index_vector;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			index_vector.emplace_back(value_index);
-		
-		// do the sampling
-		int64_t contender_count = x_count;
-		
-		for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+	}
+	
+	// if replace==F but we're only sampling one item, we might as well set replace=T, which chooses a simpler case below
+	// at present this doesn't matter since sample_size == 1 is handled separately anyway, but it is a good inference to draw
+	if (!replace && (sample_size == 1))
+		replace = true;
+	
+	// the algorithm used depends on whether weights were supplied
+	if (weights_value)
+	{
+		// handle the weights vector with separate cases for float and integer, so we can access it directly for speed
+		if (weights_type == EidosValueType::kValueFloat)
 		{
-			if (contender_count <= 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() ran out of eligible elements from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
+			const double *weights_float = weights_value->FloatVector()->data();
+			double weights_sum = 0.0;
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+			{
+				double weight = weights_float[value_index];
+				
+				if ((weight < 0.0) || std::isnan(weight))
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << EidosStringForFloat(weight) << " supplied)." << EidosTerminate(nullptr);
+				
+				weights_sum += weight;
+			}
+			
 			if (weights_sum <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 			
-			double rose = Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum;
-			double rose_sum = 0.0;
-			int rose_index;
-			
-			for (rose_index = 0; rose_index < contender_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
+			if (sample_size == 1)
 			{
-				rose_sum += weights_vector[rose_index];
+				// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
+				double rose = Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum;
+				double rose_sum = 0.0;
+				int rose_index;
 				
-				if (rose <= rose_sum)
-					break;
+				for (rose_index = 0; rose_index < x_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
+				{
+					rose_sum += weights_float[rose_index];
+					
+					if (rose <= rose_sum)
+						break;
+				}
+				
+				return x_value->GetValueAtIndex(rose_index, nullptr);
 			}
-			
-			result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
-			
-			if (!replace)
+			else if (replace)
 			{
-				weights_sum -= weights_vector[rose_index];	// possible source of numerical error
+				// with replacement, we can just do a series of independent draws
+				result_SP = x_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
 				
-				index_vector.erase(index_vector.begin() + rose_index);
-				weights_vector.erase(weights_vector.begin() + rose_index);
-				--contender_count;
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					double rose = Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum;
+					double rose_sum = 0.0;
+					int rose_index;
+					
+					for (rose_index = 0; rose_index < x_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
+					{
+						rose_sum += weights_float[rose_index];
+						
+						if (rose <= rose_sum)
+							break;
+					}
+					
+					result->PushValueFromIndexOfEidosValue(rose_index, *x_value, nullptr);
+				}
+			}
+			else
+			{
+				result_SP = x_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				// get indices of x; we sample from this vector and then look up the corresponding weight and EidosValue element
+				std::vector<int> index_vector;
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+					index_vector.emplace_back(value_index);
+				
+				// do the sampling
+				int64_t contender_count = x_count;
+				
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					if (weights_sum <= 0.0)
+						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
+					
+					double rose = Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum;
+					double rose_sum = 0.0;
+					int rose_index;
+					
+					for (rose_index = 0; rose_index < contender_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
+					{
+						rose_sum += weights_float[index_vector[rose_index]];
+						
+						if (rose <= rose_sum)
+							break;
+					}
+					
+					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
+					
+					// remove the sampled index since replace==F
+					weights_sum -= weights_float[index_vector[rose_index]];	// possible source of numerical error
+					index_vector.erase(index_vector.begin() + rose_index);
+					--contender_count;
+				}
 			}
 		}
+		else if (weights_type == EidosValueType::kValueInt)
+		{
+			const int64_t *weights_int = weights_value->IntVector()->data();
+			int64_t weights_sum = 0;
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+			{
+				int64_t weight = weights_int[value_index];
+				
+				if (weight < 0)
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << weight << " supplied)." << EidosTerminate(nullptr);
+				
+				weights_sum += weight;
+				
+				if (weights_sum < 0)
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): overflow of integer sum of weights in function sample(); the weights used are too large." << EidosTerminate(nullptr);
+			}
+			
+			if (weights_sum <= 0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
+			
+			if (sample_size == 1)
+			{
+				// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
+				int64_t rose = (int64_t)ceil(Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum);
+				int64_t rose_sum = 0;
+				int rose_index;
+				
+				for (rose_index = 0; rose_index < x_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
+				{
+					rose_sum += weights_int[rose_index];
+					
+					if (rose <= rose_sum)
+						break;
+				}
+				
+				return x_value->GetValueAtIndex(rose_index, nullptr);
+			}
+			else if (replace)
+			{
+				// with replacement, we can just do a series of independent draws
+				result_SP = x_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum);
+					int64_t rose_sum = 0;
+					int rose_index;
+					
+					for (rose_index = 0; rose_index < x_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
+					{
+						rose_sum += weights_int[rose_index];
+						
+						if (rose <= rose_sum)
+							break;
+					}
+					
+					result->PushValueFromIndexOfEidosValue(rose_index, *x_value, nullptr);
+				}
+			}
+			else
+			{
+				result_SP = x_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				// get indices of x; we sample from this vector and then look up the corresponding weight and EidosValue element
+				std::vector<int> index_vector;
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+					index_vector.emplace_back(value_index);
+				
+				// do the sampling
+				int64_t contender_count = x_count;
+				
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					if (weights_sum <= 0)
+						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
+					
+					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum);
+					int64_t rose_sum = 0;
+					int rose_index;
+					
+					for (rose_index = 0; rose_index < contender_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
+					{
+						rose_sum += weights_int[index_vector[rose_index]];
+						
+						if (rose <= rose_sum)
+							break;
+					}
+					
+					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
+					
+					// remove the sampled index since replace==F
+					weights_sum -= weights_int[index_vector[rose_index]];
+					index_vector.erase(index_vector.begin() + rose_index);
+					--contender_count;
+				}
+			}
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) weights vector must be type float or integer." << EidosTerminate(nullptr);
 	}
 	else
 	{
@@ -6031,10 +6204,6 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
-				// this error should never occur, since we checked the count above
-				if (contender_count <= 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) function sample() ran out of eligible elements from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
-				
 				int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
 				
 				result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
@@ -6047,7 +6216,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 				//index_vector.resize(--contender_count);
 				
 				// also note that if you decide to break backward compatibility at some point, it would be good to separately
-				// the case where a full sample with replacement – i.e. a shuffle – is requested; no index_vector needed
+				// handle the case where a full sample without replacement – i.e. a shuffle – is requested; no index_vector needed
 			}
 		}
 	}
