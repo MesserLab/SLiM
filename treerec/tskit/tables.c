@@ -5477,7 +5477,7 @@ table_collection_load(table_collection_t *self, const char *filename, int MSP_UN
      * Without a great deal of extra effort catching SIGBUS here and transforming
      * it into an error return value, we can't be sure that this function won't
      * abort. Therefore, use the simple 'read in everything once' mode */
-    ret = kastore_open(self->store, filename, "r", KAS_NO_MMAP);
+    ret = kastore_open(self->store, filename, "r", KAS_READ_ALL);
     if (ret != 0) {
         ret = msp_set_kas_error(ret);
         goto out;

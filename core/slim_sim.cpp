@@ -6452,8 +6452,8 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			ret = kastore_open(&store, path.c_str(), "a", 0);
 			if (ret < 0) handle_error("kastore_open", ret);
 				
-			kastore_takes_int8(&store, "reference_sequence/data", (int8_t *)buffer, buflen, 0);
-			if (ret < 0) handle_error("kastore_takes_int8", ret);
+			kastore_oputs_int8(&store, "reference_sequence/data", (int8_t *)buffer, buflen, 0);
+			if (ret < 0) handle_error("kastore_oputs_int8", ret);
 			
 			ret = kastore_close(&store);
 			if (ret < 0) handle_error("kastore_close", ret);

@@ -68,6 +68,17 @@ kas_strerror(int err)
     return ret;
 }
 
+kas_version_t
+kas_version(void)
+{
+    kas_version_t version;
+
+    version.major = KAS_VERSION_MAJOR;
+    version.minor = KAS_VERSION_MINOR;
+    version.patch = KAS_VERSION_PATCH;
+    return version;
+}
+
 static size_t
 type_size(int type)
 {
@@ -162,7 +173,7 @@ kastore_read_header(kastore_t *self)
         goto out;
     }
     self->num_items = num_items;
-    self->file_size = file_size;
+    self->file_size = (size_t) file_size;
     if (self->file_size < KAS_HEADER_SIZE) {
         ret = KAS_ERR_BAD_FILE_FORMAT;
         goto out;
@@ -235,15 +246,27 @@ kastore_read_descriptors(kastore_t *self)
     uint8_t type;
     uint64_t key_start, key_len, array_start, array_len;
     char *descriptor;
-    size_t descriptor_offset, offset, remainder;
+    size_t descriptor_offset, offset, remainder, size, count;
+    char *read_buffer = NULL;
 
-    descriptor_offset = KAS_HEADER_SIZE;
-    if (descriptor_offset + self->num_items * KAS_ITEM_DESCRIPTOR_SIZE
-            > self->file_size) {
+    size = self->num_items * KAS_ITEM_DESCRIPTOR_SIZE;
+    if (size + KAS_HEADER_SIZE > self->file_size) {
         goto out;
     }
+    read_buffer = malloc(size);
+    if (read_buffer == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    count = fread(read_buffer, size, 1, self->file);
+    if (count == 0) {
+        ret = kastore_get_read_io_error(self);
+        goto out;
+    }
+
+    descriptor_offset = 0;
     for (j = 0; j < self->num_items; j++) {
-        descriptor = self->read_buffer + descriptor_offset;
+        descriptor = read_buffer + descriptor_offset;
         descriptor_offset += KAS_ITEM_DESCRIPTOR_SIZE;
         memcpy(&type, descriptor, 1);
         memcpy(&key_start, descriptor + 8, 8);
@@ -261,13 +284,11 @@ kastore_read_descriptors(kastore_t *self)
         }
         self->items[j].key_start = (size_t) key_start;
         self->items[j].key_len = (size_t) key_len;
-        self->items[j].key = self->read_buffer + key_start;
         if (array_start + array_len * type_size(type) > self->file_size) {
             goto out;
         }
         self->items[j].array_start = (size_t) array_start;
         self->items[j].array_len = (size_t) array_len;
-        self->items[j].array = self->read_buffer + array_start;
     }
 
     /* Check the integrity of the key and array packing. Keys must
@@ -292,9 +313,13 @@ kastore_read_descriptors(kastore_t *self)
         }
         offset += self->items[j].array_len * type_size(self->items[j].type);
     }
-
+    if (offset != self->file_size) {
+        ret = KAS_ERR_BAD_FILE_FORMAT;
+        goto out;
+    }
     ret = 0;
 out:
+    kas_safe_free(read_buffer);
     return ret;
 }
 
@@ -335,50 +360,21 @@ out:
     return ret;
 }
 
-#if __unix__
-static int KAS_WARN_UNUSED
-kastore_mmap_file(kastore_t *self)
-{
-    int ret = 0;
-    void *p;
-    struct stat st;
-
-    if (stat(self->filename, &st) != 0) {
-        ret = KAS_ERR_IO;
-        goto out;
-    }
-    if (self->file_size != (size_t) st.st_size) {
-        ret = KAS_ERR_BAD_FILE_FORMAT;
-        goto out;
-    }
-    p = mmap(NULL, self->file_size, PROT_READ,  MAP_PRIVATE,
-            fileno(self->file), 0);
-    if (p == MAP_FAILED) {
-        ret = KAS_ERR_IO;
-        goto out;
-    }
-    self->read_buffer = p;
-out:
-    return ret;
-}
-
-static void
-kastore_munmap_file(kastore_t *self)
-{
-    if (self->read_buffer != NULL) {
-        munmap(self->read_buffer, self->file_size);
-    }
-}
-#endif
-
 static int KAS_WARN_UNUSED
 kastore_read_file(kastore_t *self)
 {
     int ret = 0;
     int err;
-    size_t count;
+    size_t count, size, j;
+    bool read_all = !!(self->flags & KAS_READ_ALL);
 
-    self->read_buffer = malloc(self->file_size);
+    size = self->file_size;
+    if (!read_all) {
+        /* Read in up to the start of first array. This will contain all the keys. */
+        size = self->items[0].array_start;
+    }
+
+    self->read_buffer = malloc(size);
     if (self->read_buffer == NULL) {
         ret = KAS_ERR_NO_MEMORY;
         goto out;
@@ -388,10 +384,46 @@ kastore_read_file(kastore_t *self)
         ret = KAS_ERR_IO;
         goto out;
     }
-    count = fread(self->read_buffer, self->file_size, 1, self->file);
+    count = fread(self->read_buffer, size, 1, self->file);
     if (count == 0) {
         ret = kastore_get_read_io_error(self);
         goto out;
+    }
+    /* Assign the pointers for the keys and arrays */
+    for (j = 0; j < self->num_items; j++) {
+        self->items[j].key = self->read_buffer + self->items[j].key_start;
+        if (read_all) {
+            self->items[j].array = self->read_buffer + self->items[j].array_start;
+        }
+    }
+out:
+    return ret;
+}
+
+static int KAS_WARN_UNUSED
+kastore_read_item(kastore_t *self, kaitem_t *item)
+{
+    int ret = 0;
+    int err;
+    size_t size = item->array_len * type_size(item->type);
+    size_t count;
+
+    item->array = malloc(size == 0? 1: size);
+    if (item->array == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    if (size > 0) {
+        err = fseek(self->file, (long) item->array_start, SEEK_SET);
+        if (err != 0) {
+            ret = KAS_ERR_IO;
+            goto out;
+        }
+        count = fread(item->array, size, 1, self->file);
+        if (count == 0) {
+            ret = kastore_get_read_io_error(self);
+            goto out;
+        }
     }
 out:
     return ret;
@@ -429,23 +461,6 @@ kastore_read(kastore_t *self)
     if (ret != 0) {
         goto out;
     }
-#ifdef __unix__
-    if (!self->flags & KAS_NO_MMAP) {
-        ret = kastore_mmap_file(self);
-        if (ret != 0) {
-            goto out;
-        }
-#else
-    /* On windows we silently ignore MMAP */
-    if (0) {
-#endif
-    } else {
-        ret = kastore_read_file(self);
-        if (ret != 0) {
-            goto out;
-        }
-    }
-
     if (self->num_items > 0) {
         self->items = calloc(self->num_items, sizeof(*self->items));
         if (self->items == NULL) {
@@ -456,6 +471,13 @@ kastore_read(kastore_t *self)
         if (ret != 0) {
             goto out;
         }
+        ret = kastore_read_file(self);
+        if (ret != 0) {
+            goto out;
+        }
+    } else if (self->file_size != KAS_HEADER_SIZE) {
+        ret = KAS_ERR_BAD_FILE_FORMAT;
+        goto out;
     }
 out:
     return ret;
@@ -512,7 +534,7 @@ kastore_open(kastore_t *self, const char *filename, const char *mode, int flags)
     self->flags = flags;
     self->filename = filename;
     if (appending) {
-        ret = kastore_open(&tmp, self->filename, "r", KAS_NO_MMAP);
+        ret = kastore_open(&tmp, self->filename, "r", KAS_READ_ALL);
         if (ret != 0) {
             goto out;
         }
@@ -564,18 +586,18 @@ kastore_close(kastore_t *self)
                 kas_safe_free(self->items[j].array);
             }
         }
-    }
-    kas_safe_free(self->items);
-#if __unix__
-    if (! (self->flags & KAS_NO_MMAP)) {
-        kastore_munmap_file(self);
     } else {
         kas_safe_free(self->read_buffer);
+        if (! (self->flags & KAS_READ_ALL)) {
+            /* The arrays have been individually malloced on demand. */
+            if (self->items != NULL) {
+                for (j = 0; j < self->num_items; j++) {
+                    kas_safe_free(self->items[j].array);
+                }
+            }
+        }
     }
-#else
-    /* On windows we must have alloced the read buffer. */
-    kas_safe_free(self->read_buffer);
-#endif
+    kas_safe_free(self->items);
     if (self->file != NULL) {
         err = fclose(self->file);
         if (err != 0) {
@@ -584,6 +606,28 @@ kastore_close(kastore_t *self)
     }
     memset(self, 0, sizeof(*self));
     return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_contains(kastore_t *self, const char *key, size_t key_len)
+{
+    void *array;
+    size_t array_len;
+    int type;
+    int ret = kastore_get(self, key, key_len, &array, &array_len, &type);
+
+    if (ret == 0) {
+        ret = 1;
+    } else if (ret == KAS_ERR_KEY_NOT_FOUND) {
+        ret = 0;
+    }
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_containss(kastore_t *self, const char *key)
+{
+    return kastore_contains(self, key, strlen(key));
 }
 
 int KAS_WARN_UNUSED
@@ -609,6 +653,12 @@ kastore_get(kastore_t *self, const char *key, size_t key_len,
             compare_items);
     if (item == NULL) {
         goto out;
+    }
+    if (item->array == NULL) {
+        ret = kastore_read_item(self, item);
+        if (ret != 0) {
+            goto out;
+        }
     }
     *array = item->array;
     *array_len = item->array_len;
@@ -705,13 +755,42 @@ kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *a
 
 int KAS_WARN_UNUSED
 kastore_put(kastore_t *self, const char *key, size_t key_len,
-       const void *array, size_t array_len, int type,
-       int flags)
+       const void *array, size_t array_len, int type, int flags)
+{
+    int ret;
+    size_t array_size;
+    void *array_copy = NULL;
+
+    if (type < 0 || type >= KAS_NUM_TYPES) {
+        ret = KAS_ERR_BAD_TYPE;
+        goto out;
+    }
+    array_size = type_size(type) * array_len;
+    array_copy = malloc(array_size == 0? 1: array_size);
+    if (array_copy == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    memcpy(array_copy, array, array_size);
+
+    ret = kastore_oput(self, key, key_len, array_copy, array_len, type, flags);
+    if (ret == 0) {
+        /* Kastore has taken ownership of the array, so we don't need to free it */
+        array_copy = NULL;
+    }
+out:
+    kas_safe_free(array_copy);
+    return ret;
+}
+
+int KAS_WARN_UNUSED
+kastore_oput(kastore_t *self, const char *key, size_t key_len,
+       void *array, size_t array_len, int type, int KAS_UNUSED(flags))
 {
     int ret = 0;
     kaitem_t *new_item;
     void *p;
-    size_t j, array_size;
+    size_t j;
 
     if (self->mode != KAS_WRITE) {
         ret = KAS_ERR_ILLEGAL_OPERATION;
@@ -739,18 +818,15 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
     new_item->type = type;
     new_item->key_len = key_len;
     new_item->array_len = array_len;
-    array_size = type_size(type) * array_len;
+    new_item->array = array;
     new_item->key = malloc(key_len);
-    new_item->array = malloc(array_size == 0 ? 1 : array_size);
-    if (new_item->key == NULL || new_item->array == NULL) {
+    if (new_item->key == NULL) {
         kas_safe_free(new_item->key);
-        kas_safe_free(new_item->array);
         ret = KAS_ERR_NO_MEMORY;
         goto out;
     }
     self->num_items++;
     memcpy(new_item->key, key, key_len);
-    memcpy(new_item->array, array, array_size);
 
     /* Check if this key is already in here. OK, this is a quadratic time
      * algorithm, but we're not expecting to have lots of items (< 100). In
@@ -762,12 +838,12 @@ kastore_put(kastore_t *self, const char *key, size_t key_len,
             /* Free the key memory and remove this item */
             self->num_items--;
             kas_safe_free(new_item->key);
-            kas_safe_free(new_item->array);
             ret = KAS_ERR_DUPLICATE_KEY;
             goto out;
         }
     }
 out:
+
     return ret;
 }
 
@@ -850,148 +926,80 @@ kastore_puts_float64(kastore_t *self, const char *key, const double *array, size
 }
 
 int KAS_WARN_UNUSED
-kastore_take(kastore_t *self, const char *key, size_t key_len,
-       void *array, size_t array_len, int type,
-       int flags)
-{
-    int ret = 0;
-    kaitem_t *new_item;
-    void *p;
-    size_t j, array_size;
-
-    if (self->mode != KAS_WRITE) {
-        ret = KAS_ERR_ILLEGAL_OPERATION;
-        goto out;
-    }
-    if (type < 0 || type >= KAS_NUM_TYPES) {
-        ret = KAS_ERR_BAD_TYPE;
-        goto out;
-    }
-    if (key_len == 0) {
-        ret = KAS_ERR_EMPTY_KEY;
-        goto out;
-    }
-    /* This isn't terribly efficient, but we're not expecting large
-     * numbers of items. */
-    p = realloc(self->items, (self->num_items + 1) * sizeof(*self->items));
-    if (p == NULL) {
-        ret = KAS_ERR_NO_MEMORY;
-        goto out;
-    }
-    self->items = p;
-    new_item = self->items + self->num_items;
-
-    memset(new_item, 0, sizeof(*new_item));
-    new_item->type = type;
-    new_item->key_len = key_len;
-    new_item->array_len = array_len;
-    array_size = type_size(type) * array_len;
-    new_item->key = malloc(key_len);
-	new_item->array = array;
-    if (new_item->key == NULL || new_item->array == NULL) {
-        kas_safe_free(new_item->key);
-        kas_safe_free(new_item->array);
-        ret = KAS_ERR_NO_MEMORY;
-        goto out;
-    }
-    self->num_items++;
-    memcpy(new_item->key, key, key_len);
-
-    /* Check if this key is already in here. OK, this is a quadratic time
-     * algorithm, but we're not expecting to have lots of items (< 100). In
-     * this case, the simple algorithm is probably better. If/when we ever
-     * deal with more items than this, then we will need a better algorithm.
-     */
-    for (j = 0; j < self->num_items - 1; j++) {
-        if (compare_items(new_item, self->items + j) == 0) {
-            /* Free the key memory and remove this item */
-            self->num_items--;
-            kas_safe_free(new_item->key);
-            kas_safe_free(new_item->array);
-            ret = KAS_ERR_DUPLICATE_KEY;
-            goto out;
-        }
-    }
-out:
-    return ret;
-}
-
-int KAS_WARN_UNUSED
-kastore_takes(kastore_t *self, const char *key,
+kastore_oputs(kastore_t *self, const char *key,
        void *array, size_t array_len, int type, int flags)
 {
-    return kastore_take(self, key, strlen(key), array, array_len, type, flags);
+    return kastore_oput(self, key, strlen(key), array, array_len, type, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_int8(kastore_t *self, const char *key, int8_t *array, size_t array_len,
+kastore_oputs_int8(kastore_t *self, const char *key, int8_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_INT8, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_uint8(kastore_t *self, const char *key, uint8_t *array, size_t array_len,
+kastore_oputs_uint8(kastore_t *self, const char *key, uint8_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT8, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT8, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_int16(kastore_t *self, const char *key, int16_t *array, size_t array_len,
+kastore_oputs_int16(kastore_t *self, const char *key, int16_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_INT16, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_uint16(kastore_t *self, const char *key, uint16_t *array, size_t array_len,
+kastore_oputs_uint16(kastore_t *self, const char *key, uint16_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT16, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT16, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_int32(kastore_t *self, const char *key, int32_t *array, size_t array_len,
+kastore_oputs_int32(kastore_t *self, const char *key, int32_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_INT32, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_uint32(kastore_t *self, const char *key, uint32_t *array, size_t array_len,
+kastore_oputs_uint32(kastore_t *self, const char *key, uint32_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT32, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT32, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_int64(kastore_t *self, const char *key, int64_t *array, size_t array_len,
+kastore_oputs_int64(kastore_t *self, const char *key, int64_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_INT64, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_INT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_uint64(kastore_t *self, const char *key, uint64_t *array, size_t array_len,
+kastore_oputs_uint64(kastore_t *self, const char *key, uint64_t *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_UINT64, flags);
-}
-
-
-int KAS_WARN_UNUSED
-kastore_takes_float32(kastore_t *self, const char *key, float *array, size_t array_len,
-        int flags)
-{
-    return kastore_takes(self, key, (void *) array, array_len, KAS_FLOAT32, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_UINT64, flags);
 }
 
 int KAS_WARN_UNUSED
-kastore_takes_float64(kastore_t *self, const char *key, double *array, size_t array_len,
+kastore_oputs_float32(kastore_t *self, const char *key, float *array, size_t array_len,
         int flags)
 {
-    return kastore_takes(self, key, (void *) array, array_len, KAS_FLOAT64, flags);
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_FLOAT32, flags);
+}
+
+int KAS_WARN_UNUSED
+kastore_oputs_float64(kastore_t *self, const char *key, double *array, size_t array_len,
+        int flags)
+{
+    return kastore_oputs(self, key, (void *) array, array_len, KAS_FLOAT64, flags);
 }
 
 void
@@ -1003,7 +1011,8 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "============================\n");
     fprintf(out, "kastore state\n");
     fprintf(out, "file_version = %d.%d\n", self->file_version[0], self->file_version[1]);
-    fprintf(out, "mode = %d\n", self->mode);
+    fprintf(out, "mode  = %d\n", self->mode);
+    fprintf(out, "flags = %d\n", self->flags);
     fprintf(out, "num_items = %zu\n", self->num_items);
     fprintf(out, "file_size = %zu\n", self->file_size);
     fprintf(out, "filename = '%s'\n", self->filename);
@@ -1011,9 +1020,11 @@ kastore_print_state(kastore_t *self, FILE *out)
     fprintf(out, "============================\n");
     for (j = 0; j < self->num_items; j++) {
         item = self->items + j;
-        fprintf(out, "%.*s: type=%d, key_start=%zu, key_len=%zu, array_start=%zu, array_len=%zu\n",
+        fprintf(out, "%.*s: type=%d, key_start=%zu, key_len=%zu, key=%p, "
+                "array_start=%zu, array_len=%zu, array=%p\n",
                 (int) item->key_len, item->key, item->type, item->key_start, item->key_len,
-                item->array_start, item->array_len);
+                (void *) item->key, item->array_start, item->array_len,
+                (void *) item->array);
 
     }
     fprintf(out, "============================\n");
