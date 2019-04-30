@@ -123,6 +123,10 @@ void test_exit(int test_result)
 	Eidos_FreeGlobalStrings();
 	EidosTestElement::FreeThunks();
 	
+	// sleep() to give time to assess leaks at the command line
+	//std::cout << "\nSLEEPING" << std::endl;
+	//sleep(100000);
+	
 	exit(test_result);
 }
 
@@ -387,7 +391,12 @@ int main(int argc, char *argv[])
 		
 		// clean up; but this is an unnecessary waste of time in the command-line context
 		//delete sim;
-		//gsl_rng_free(gEidos_rng);
+		//sim = nullptr;
+		//Eidos_FreeRNG(gEidos_RNG);
+		
+		// sleep() to give time to assess leaks at the command line
+		//std::cout << "\nSLEEPING" << std::endl;
+		//sleep(100000);
 	}
 	
 	// end timing and print elapsed time

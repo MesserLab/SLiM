@@ -84,6 +84,7 @@ development head:
 	correct recipe 16.15, which did not match the manual
 	optimize operator subset [] with a singleton integer argument, since that is the common case
 	fix an ordering problem with the remembered genomes after loading a .trees file (didn't match the order in the individuals table)
+    merge in kastore 67c5a6af4b85ea263e5cab854d94b691949e88ae and tskit 3d16a36f8e54ac01a86f182dc73103bd07badf3e
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

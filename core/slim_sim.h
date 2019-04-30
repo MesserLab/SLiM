@@ -99,9 +99,9 @@ enum class SLiMFileFormat
 	kFormatUnrecognized = 0,
 	kFormatSLiMText,				// as saved by outputFull(filePath, binary=F)
 	kFormatSLiMBinary,				// as saved by outputFull(filePath, binary=T)
-	kFormatMSPrimeText,				// as saved by treeSeqOutput(path, binary=F)
-	kFormatMSPrimeBinary_HDF5,		// old file format, no longer supported
-	kFormatMSPrimeBinary_kastore,	// as saved by treeSeqOutput(path, binary=T)
+	kFormatTskitText,				// as saved by treeSeqOutput(path, binary=F)
+	kFormatTskitBinary_HDF5,		// old file format, no longer supported
+	kFormatTskitBinary_kastore,	// as saved by treeSeqOutput(path, binary=T)
 };
 
 
@@ -425,10 +425,10 @@ private:
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	
-	table_collection_t tables_;
-	table_collection_position_t table_position_;
+	tsk_table_collection_t tables_;
+	tsk_bookmark_t table_position_;
 	
-    std::vector<node_id_t> remembered_genomes_;
+    std::vector<tsk_id_t> remembered_genomes_;
 	//Individual *current_new_individual_;
 	
 	bool running_coalescence_checks_ = false;	// true if we check for coalescence after each simplification
@@ -592,9 +592,9 @@ public:
 	static void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
 	static void MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata);
 	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
-	static void TreeSequenceDataToAscii(table_collection_t *p_tables);
-	static void DerivedStatesFromAscii(table_collection_t *p_tables);
-	static void DerivedStatesToAscii(table_collection_t *p_tables);
+	static void TreeSequenceDataToAscii(tsk_table_collection_t *p_tables);
+	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
+	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
 	
 	void RecordTablePosition(void);
 	void AllocateTreeSequenceTables(void);
@@ -602,16 +602,16 @@ public:
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
-    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, table_collection_t *p_tables, uint32_t p_flags);
-	void AddCurrentGenerationToIndividuals(table_collection_t *p_tables);
-	void UnmarkFirstGenerationSamples(table_collection_t *p_tables);
-	void RemarkFirstGenerationSamples(table_collection_t *p_tables);
-	void FixAliveIndividuals(table_collection_t *p_tables);
-	void WritePopulationTable(table_collection_t *p_tables);
-	void WriteProvenanceTable(table_collection_t *p_tables, bool p_use_newlines);
-	void ReadProvenanceTable(table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
+    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, uint32_t p_flags);
+	void AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables);
+	void UnmarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
+	void RemarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
+	void FixAliveIndividuals(tsk_table_collection_t *p_tables);
+	void WritePopulationTable(tsk_table_collection_t *p_tables);
+	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines);
+	void ReadProvenanceTable(tsk_table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify);
-    void ReorderIndividualTable(table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
+    void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);
 	void CheckAutoSimplification(void);
@@ -624,17 +624,17 @@ public:
 	void CrosscheckTreeSeqIntegrity(void);
 	void TSXC_Enable(void);
 	
-	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tree_sequence_t *p_ts, SLiMModelType p_file_model_type);
-	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<node_id_t, Genome *> &p_nodeToGenomeMap);
+	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
+	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap);
 	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter);
 	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, int p_file_version);
-	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<node_id_t, Genome *> p_nodeToGenomeMap, tree_sequence_t *p_ts);
+	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
-	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<node_id_t, Genome *> p_nodeToGenomeMap, tree_sequence_t *p_ts);
+	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
 	slim_generation_t _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter);								// given tree-seq tables, makes individuals, genomes, and mutations
-	slim_generation_t _InitializePopulationFromMSPrimeTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime text file
-	slim_generation_t _InitializePopulationFromMSPrimeBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an msprime binary file
-	size_t MemoryUsageForTables(table_collection_t &p_tables);
+	slim_generation_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit text file
+	slim_generation_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit binary file
+	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);
 	
 	//
 	// Eidos support
