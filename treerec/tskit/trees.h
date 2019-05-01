@@ -1,3 +1,32 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2019 Tskit Developers
+ * Copyright (c) 2015-2018 University of Oxford
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+/**
+ * @file trees.h
+ * @brief Tskit core tree sequence operations.
+ */
 #ifndef TSK_TREES_H
 #define TSK_TREES_H
 
@@ -5,293 +34,228 @@
 extern "C" {
 #endif
 
-#include "tables.h"
+#include <tskit/tables.h>
 
-#ifndef MSP_LIBRARY_VERSION_STR
-#define MSP_LIBRARY_VERSION_STR "undefined"
-#endif
+#define TSK_SAMPLE_COUNTS  (1 << 0)
+#define TSK_SAMPLE_LISTS   (1 << 1)
 
-#define MSP_SAMPLE_COUNTS  (1 << 0)
-#define MSP_SAMPLE_LISTS   (1 << 1)
+#define TSK_DIR_FORWARD 1
+#define TSK_DIR_REVERSE -1
 
-#define MSP_16_BIT_GENOTYPES    1
-
-#define MSP_DIR_FORWARD 1
-#define MSP_DIR_REVERSE -1
-
-/* Tree sequences */
+/**
+@brief The tree sequence object.
+*/
 typedef struct {
-    size_t num_trees;
-    size_t num_samples;
-    node_id_t *samples;
-    /* If a node is a sample, map to it's index in the samples list */
-    node_id_t *sample_index_map;
+    tsk_size_t num_trees;
+    tsk_size_t num_samples;
+    tsk_id_t *samples;
+    /* If a node is a sample, map to its index in the samples list */
+    tsk_id_t *sample_index_map;
     /* Map individuals to the list of nodes that reference them */
-    node_id_t *individual_nodes_mem;
-    node_id_t **individual_nodes;
-    table_size_t *individual_nodes_length;
+    tsk_id_t *individual_nodes_mem;
+    tsk_id_t **individual_nodes;
+    tsk_size_t *individual_nodes_length;
     /* For each tree, a list of sites on that tree */
-    site_t *tree_sites_mem;
-    site_t **tree_sites;
-    table_size_t *tree_sites_length;
+    tsk_site_t *tree_sites_mem;
+    tsk_site_t **tree_sites;
+    tsk_size_t *tree_sites_length;
     /* For each site, a list of mutations at that site */
-    mutation_t *site_mutations_mem;
-    mutation_t **site_mutations;
-    table_size_t *site_mutations_length;
+    tsk_mutation_t *site_mutations_mem;
+    tsk_mutation_t **site_mutations;
+    tsk_size_t *site_mutations_length;
     /* The underlying tables */
-    table_collection_t *tables;
-} tree_sequence_t;
-
-typedef struct _edge_list_t {
-    edge_t edge;
-    struct _edge_list_t *next;
-} edge_list_t;
-
+    tsk_table_collection_t *tables;
+} tsk_treeseq_t;
 
 typedef struct {
-    size_t num_nodes;
-    size_t num_edges;
-    double tree_left;
-    tree_sequence_t *tree_sequence;
-    size_t insertion_index;
-    size_t removal_index;
-    size_t tree_index;
-    edge_list_t *edge_list_nodes;
-} tree_diff_iterator_t;
-
-typedef struct {
-    tree_sequence_t *tree_sequence;
-    size_t num_nodes;
-    int flags;
-    node_id_t *samples;
+    tsk_treeseq_t *tree_sequence;
+    tsk_size_t num_nodes;
+    tsk_flags_t options;
+    tsk_id_t *samples;
     /* The left-most root in the forest. Roots are sibs and all roots are found
      * via left_sib and right_sib */
-    node_id_t left_root;
+    tsk_id_t left_root;
     /* Left and right physical coordinates of the tree */
     double left;
     double right;
-    node_id_t *parent;          /* parent of node u */
-    node_id_t *left_child;      /* leftmost child of node u */
-    node_id_t *right_child;     /* rightmost child of node u */
-    node_id_t *left_sib;        /* sibling to right of node u */
-    node_id_t *right_sib;       /* sibling to the left of node u */
+    tsk_id_t *parent;          /* parent of node u */
+    tsk_id_t *left_child;      /* leftmost child of node u */
+    tsk_id_t *right_child;     /* rightmost child of node u */
+    tsk_id_t *left_sib;        /* sibling to right of node u */
+    tsk_id_t *right_sib;       /* sibling to the left of node u */
     bool *above_sample;
-    size_t index;
+    tsk_id_t index;
     /* These are involved in the optional sample tracking; num_samples counts
      * all samples below a give node, and num_tracked_samples counts those
      * from a specific subset. */
-    node_id_t *num_samples;
-    node_id_t *num_tracked_samples;
+    tsk_id_t *num_samples;
+    tsk_id_t *num_tracked_samples;
     /* All nodes that are marked during a particular transition are marked
      * with a given value. */
     uint8_t *marked;
     uint8_t mark;
     /* These are for the optional sample list tracking. */
-    node_id_t *left_sample;
-    node_id_t *right_sample;
-    node_id_t *next_sample;
-    node_id_t *sample_index_map;
+    tsk_id_t *left_sample;
+    tsk_id_t *right_sample;
+    tsk_id_t *next_sample;
     /* traversal stacks */
-    node_id_t *stack1;
-    node_id_t *stack2;
+    tsk_id_t *stack1;
+    tsk_id_t *stack2;
     /* The sites on this tree */
-    site_t *sites;
-    table_size_t sites_length;
+    tsk_site_t *sites;
+    tsk_size_t sites_length;
     /* Counters needed for next() and prev() transformations. */
     int direction;
-    node_id_t left_index;
-    node_id_t right_index;
-} sparse_tree_t;
+    tsk_id_t left_index;
+    tsk_id_t right_index;
+} tsk_tree_t;
+
+/* Diff iterator. TODO Not sure if we want to keep this, as it's not used
+ * very much in the C code. */
+typedef struct _tsk_edge_list_t {
+    tsk_edge_t edge;
+    struct _tsk_edge_list_t *next;
+} tsk_edge_list_t;
 
 typedef struct {
-    size_t precision;
-    int flags;
-    char *newick;
-    sparse_tree_t *tree;
-} newick_converter_t;
+    size_t num_nodes;
+    size_t num_edges;
+    double tree_left;
+    tsk_treeseq_t *tree_sequence;
+    size_t insertion_index;
+    size_t removal_index;
+    size_t tree_index;
+    tsk_edge_list_t *edge_list_nodes;
+} tsk_diff_iter_t;
 
-typedef struct {
-    size_t num_samples;
-    double sequence_length;
-    size_t num_sites;
-    tree_sequence_t *tree_sequence;
-    node_id_t *sample_index_map;
-    char *output_haplotype;
-    char *haplotype_matrix;
-    sparse_tree_t tree;
-} hapgen_t;
+/****************************************************************************/
+/* Tree sequence.*/
+/****************************************************************************/
 
-typedef struct {
-    site_t *site;
-    const char **alleles;
-    table_size_t *allele_lengths;
-    table_size_t num_alleles;
-    table_size_t max_alleles;
-    union {
-        uint8_t *u8;
-        uint16_t *u16;
-    } genotypes;
-} variant_t;
+/**
+@defgroup TREESEQ_API_GROUP Tree sequence API
+@{
+*/
+int tsk_treeseq_init(tsk_treeseq_t *self, tsk_table_collection_t *tables, tsk_flags_t options);
 
-typedef struct {
-    size_t num_samples;
-    size_t num_sites;
-    tree_sequence_t *tree_sequence;
-    node_id_t *samples;
-    node_id_t *sample_index_map;
-    size_t tree_site_index;
-    int finished;
-    sparse_tree_t tree;
-    int flags;
-    variant_t variant;
-} vargen_t;
+int tsk_treeseq_load(tsk_treeseq_t *self, const char *filename, tsk_flags_t options);
 
-typedef struct {
-    size_t num_samples;
-    size_t num_vcf_samples;
-    unsigned int ploidy;
-    char *genotypes;
-    char *header;
-    char *record;
-    char *vcf_genotypes;
-    size_t vcf_genotypes_size;
-    size_t contig_id_size;
-    size_t record_size;
-    size_t num_sites;
-    unsigned long contig_length;
-    unsigned long *positions;
-    vargen_t *vargen;
-} vcf_converter_t;
+int tsk_treeseq_dump(tsk_treeseq_t *self, const char *filename, tsk_flags_t options);
+int tsk_treeseq_copy_tables(tsk_treeseq_t *self, tsk_table_collection_t *tables,
+        tsk_flags_t options);
+int tsk_treeseq_free(tsk_treeseq_t *self);
+void tsk_treeseq_print_state(tsk_treeseq_t *self, FILE *out);
 
-typedef struct {
-    sparse_tree_t *outer_tree;
-    sparse_tree_t *inner_tree;
-    size_t num_sites;
-    int tree_changed;
-    tree_sequence_t *tree_sequence;
-} ld_calc_t;
+/** @} */
 
-void tree_sequence_print_state(tree_sequence_t *self, FILE *out);
-int tree_sequence_load_tables(tree_sequence_t *self, table_collection_t *tables,
-        int flags);
-int tree_sequence_dump_tables(tree_sequence_t *self, table_collection_t *tables,
-        int flags);
-int tree_sequence_load(tree_sequence_t *self, const char *filename, int flags);
-int tree_sequence_dump(tree_sequence_t *self, const char *filename, int flags);
-int tree_sequence_free(tree_sequence_t *self);
+tsk_size_t tsk_treeseq_get_num_nodes(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_edges(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_migrations(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_sites(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_mutations(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_provenances(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_populations(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_individuals(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_trees(tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_num_samples(tsk_treeseq_t *self);
+char * tsk_treeseq_get_file_uuid(tsk_treeseq_t *self);
+double tsk_treeseq_get_sequence_length(tsk_treeseq_t *self);
+bool tsk_treeseq_is_sample(tsk_treeseq_t *self, tsk_id_t u);
 
-size_t tree_sequence_get_num_nodes(tree_sequence_t *self);
-size_t tree_sequence_get_num_edges(tree_sequence_t *self);
-size_t tree_sequence_get_num_migrations(tree_sequence_t *self);
-size_t tree_sequence_get_num_sites(tree_sequence_t *self);
-size_t tree_sequence_get_num_mutations(tree_sequence_t *self);
-size_t tree_sequence_get_num_provenances(tree_sequence_t *self);
-size_t tree_sequence_get_num_populations(tree_sequence_t *self);
-size_t tree_sequence_get_num_individuals(tree_sequence_t *self);
-size_t tree_sequence_get_num_trees(tree_sequence_t *self);
-size_t tree_sequence_get_num_samples(tree_sequence_t *self);
-char * tree_sequence_get_file_uuid(tree_sequence_t *self);
-double tree_sequence_get_sequence_length(tree_sequence_t *self);
-bool tree_sequence_is_sample(tree_sequence_t *self, node_id_t u);
+int tsk_treeseq_get_node(tsk_treeseq_t *self, tsk_id_t index, tsk_node_t *node);
+int tsk_treeseq_get_edge(tsk_treeseq_t *self, tsk_id_t index, tsk_edge_t *edge);
+int tsk_treeseq_get_migration(tsk_treeseq_t *self, tsk_id_t index,
+        tsk_migration_t *migration);
+int tsk_treeseq_get_site(tsk_treeseq_t *self, tsk_id_t index, tsk_site_t *site);
+int tsk_treeseq_get_mutation(tsk_treeseq_t *self, tsk_id_t index,
+        tsk_mutation_t *mutation);
+int tsk_treeseq_get_provenance(tsk_treeseq_t *self, tsk_id_t index,
+        tsk_provenance_t *provenance);
+int tsk_treeseq_get_population(tsk_treeseq_t *self, tsk_id_t index,
+        tsk_population_t *population);
+int tsk_treeseq_get_individual(tsk_treeseq_t *self, tsk_id_t index,
+        tsk_individual_t *individual);
+int tsk_treeseq_get_samples(tsk_treeseq_t *self, tsk_id_t **samples);
+int tsk_treeseq_get_sample_index_map(tsk_treeseq_t *self,
+        tsk_id_t **sample_index_map);
 
-int tree_sequence_get_node(tree_sequence_t *self, size_t index, node_t *node);
-int tree_sequence_get_edge(tree_sequence_t *self, size_t index, edge_t *edge);
-int tree_sequence_get_migration(tree_sequence_t *self, size_t index,
-        migration_t *migration);
-int tree_sequence_get_site(tree_sequence_t *self, size_t index, site_t *site);
-int tree_sequence_get_mutation(tree_sequence_t *self, size_t index,
-        mutation_t *mutation);
-int tree_sequence_get_provenance(tree_sequence_t *self, size_t index,
-        provenance_t *provenance);
-int tree_sequence_get_population(tree_sequence_t *self, size_t index,
-        tmp_population_t *population);
-int tree_sequence_get_individual(tree_sequence_t *self, size_t index,
-        individual_t *individual);
-int tree_sequence_get_samples(tree_sequence_t *self, node_id_t **samples);
-int tree_sequence_get_sample_index_map(tree_sequence_t *self,
-        node_id_t **sample_index_map);
+int tsk_treeseq_simplify(tsk_treeseq_t *self, tsk_id_t *samples,
+        tsk_size_t num_samples, tsk_flags_t options, tsk_treeseq_t *output,
+        tsk_id_t *node_map);
+/* TODO do these belong in trees or stats? They should probably be in stats.
+ * Keep them here for now until we figure out the correct interface.
+ */
+int tsk_treeseq_get_pairwise_diversity(tsk_treeseq_t *self,
+    tsk_id_t *samples, size_t num_samples, double *pi);
+int tsk_treeseq_genealogical_nearest_neighbours(tsk_treeseq_t *self,
+        tsk_id_t *focal, size_t num_focal,
+        tsk_id_t **reference_sets, size_t *reference_set_size, size_t num_reference_sets,
+        tsk_flags_t options, double *ret_array);
+int tsk_treeseq_mean_descendants(tsk_treeseq_t *self,
+        tsk_id_t **reference_sets, size_t *reference_set_size, size_t num_reference_sets,
+        tsk_flags_t options, double *ret_array);
 
-int tree_sequence_simplify(tree_sequence_t *self, node_id_t *samples,
-        size_t num_samples, int flags, tree_sequence_t *output,
-        node_id_t *node_map);
-int tree_sequence_get_pairwise_diversity(tree_sequence_t *self,
-    node_id_t *samples, size_t num_samples, double *pi);
-int tree_diff_iterator_alloc(tree_diff_iterator_t *self,
-        tree_sequence_t *tree_sequence);
-int tree_diff_iterator_free(tree_diff_iterator_t *self);
-int tree_diff_iterator_next(tree_diff_iterator_t *self,
-        double *left, double *right,
-        edge_list_t **edges_out, edge_list_t **edges_in);
-void tree_diff_iterator_print_state(tree_diff_iterator_t *self, FILE *out);
 
-int sparse_tree_alloc(sparse_tree_t *self, tree_sequence_t *tree_sequence,
-        int flags);
-int sparse_tree_free(sparse_tree_t *self);
-bool sparse_tree_has_sample_lists(sparse_tree_t *self);
-bool sparse_tree_has_sample_counts(sparse_tree_t *self);
-int sparse_tree_copy(sparse_tree_t *self, sparse_tree_t *source);
-int sparse_tree_equal(sparse_tree_t *self, sparse_tree_t *other);
-int sparse_tree_set_tracked_samples(sparse_tree_t *self,
-        size_t num_tracked_samples, node_id_t *tracked_samples);
-int sparse_tree_set_tracked_samples_from_sample_list(sparse_tree_t *self,
-        sparse_tree_t *other, node_id_t node);
-int sparse_tree_get_root(sparse_tree_t *self, node_id_t *root);
-bool sparse_tree_is_sample(sparse_tree_t *self, node_id_t u);
-size_t sparse_tree_get_num_roots(sparse_tree_t *self);
-int sparse_tree_get_parent(sparse_tree_t *self, node_id_t u, node_id_t *parent);
-int sparse_tree_get_time(sparse_tree_t *self, node_id_t u, double *t);
-int sparse_tree_get_mrca(sparse_tree_t *self, node_id_t u, node_id_t v, node_id_t *mrca);
-int sparse_tree_get_num_samples(sparse_tree_t *self, node_id_t u, size_t *num_samples);
-int sparse_tree_get_num_tracked_samples(sparse_tree_t *self, node_id_t u,
+/****************************************************************************/
+/* Tree */
+/****************************************************************************/
+
+
+/**
+@defgroup TREE_API_GROUP Tree sequence API
+@{
+*/
+
+int tsk_tree_init(tsk_tree_t *self, tsk_treeseq_t *tree_sequence, tsk_flags_t options);
+int tsk_tree_free(tsk_tree_t *self);
+
+tsk_id_t tsk_tree_get_index(tsk_tree_t *self);
+tsk_size_t tsk_tree_get_num_roots(tsk_tree_t *self);
+
+int tsk_tree_first(tsk_tree_t *self);
+int tsk_tree_last(tsk_tree_t *self);
+int tsk_tree_next(tsk_tree_t *self);
+int tsk_tree_prev(tsk_tree_t *self);
+int tsk_tree_clear(tsk_tree_t *self);
+
+void tsk_tree_print_state(tsk_tree_t *self, FILE *out);
+/** @} */
+
+bool tsk_tree_has_sample_lists(tsk_tree_t *self);
+bool tsk_tree_has_sample_counts(tsk_tree_t *self);
+bool tsk_tree_equals(tsk_tree_t *self, tsk_tree_t *other);
+/* Returns true if u is a descendant of v; false otherwise */
+bool tsk_tree_is_descendant(tsk_tree_t *self, tsk_id_t u, tsk_id_t v);
+bool tsk_tree_is_sample(tsk_tree_t *self, tsk_id_t u);
+
+int tsk_tree_copy(tsk_tree_t *self, tsk_tree_t *dest, tsk_flags_t options);
+int tsk_tree_set_tracked_samples(tsk_tree_t *self,
+        size_t num_tracked_samples, tsk_id_t *tracked_samples);
+int tsk_tree_set_tracked_samples_from_sample_list(tsk_tree_t *self,
+        tsk_tree_t *other, tsk_id_t node);
+int tsk_tree_get_root(tsk_tree_t *self, tsk_id_t *root);
+
+int tsk_tree_get_parent(tsk_tree_t *self, tsk_id_t u, tsk_id_t *parent);
+int tsk_tree_get_time(tsk_tree_t *self, tsk_id_t u, double *t);
+int tsk_tree_get_mrca(tsk_tree_t *self, tsk_id_t u, tsk_id_t v, tsk_id_t *mrca);
+int tsk_tree_get_num_samples(tsk_tree_t *self, tsk_id_t u, size_t *num_samples);
+int tsk_tree_get_num_tracked_samples(tsk_tree_t *self, tsk_id_t u,
         size_t *num_tracked_samples);
-int sparse_tree_get_sites(sparse_tree_t *self, site_t **sites, table_size_t *sites_length);
-int sparse_tree_get_newick(sparse_tree_t *self, node_id_t root,
-        size_t precision, int flags, size_t buffer_size, char *newick_buffer);
-
-void sparse_tree_print_state(sparse_tree_t *self, FILE *out);
-/* Method for positioning the tree in the sequence. */
-int sparse_tree_first(sparse_tree_t *self);
-int sparse_tree_last(sparse_tree_t *self);
-int sparse_tree_next(sparse_tree_t *self);
-int sparse_tree_prev(sparse_tree_t *self);
-
-/* TODO remove this from the public API. */
-int newick_converter_alloc(newick_converter_t *self,
-        sparse_tree_t *tree, size_t precision, int flags);
-int newick_converter_run(newick_converter_t *self, node_id_t root,
-        size_t buffer_size, char *buffer);
-int newick_converter_free(newick_converter_t *self);
-
-int vcf_converter_alloc(vcf_converter_t *self,
-        tree_sequence_t *tree_sequence, unsigned int ploidy, const char *chrom);
-int vcf_converter_get_header(vcf_converter_t *self, char **header);
-int vcf_converter_next(vcf_converter_t *self, char **record);
-int vcf_converter_free(vcf_converter_t *self);
-void vcf_converter_print_state(vcf_converter_t *self, FILE *out);
-
-int ld_calc_alloc(ld_calc_t *self, tree_sequence_t *tree_sequence);
-int ld_calc_free(ld_calc_t *self);
-void ld_calc_print_state(ld_calc_t *self, FILE *out);
-int ld_calc_get_r2(ld_calc_t *self, size_t a, size_t b, double *r2);
-int ld_calc_get_r2_array(ld_calc_t *self, size_t a, int direction,
-        size_t max_mutations, double max_distance,
-        double *r2, size_t *num_r2_values);
-
-int hapgen_alloc(hapgen_t *self, tree_sequence_t *tree_sequence);
-int hapgen_get_haplotype(hapgen_t *self, node_id_t j, char **haplotype);
-int hapgen_free(hapgen_t *self);
-void hapgen_print_state(hapgen_t *self, FILE *out);
-
-int vargen_alloc(vargen_t *self, tree_sequence_t *tree_sequence,
-        node_id_t *samples, size_t num_samples, int flags);
-int vargen_next(vargen_t *self, variant_t **variant);
-int vargen_free(vargen_t *self);
-void vargen_print_state(vargen_t *self, FILE *out);
+int tsk_tree_get_sites(tsk_tree_t *self, tsk_site_t **sites, tsk_size_t *sites_length);
 
 
+/****************************************************************************/
+/* Diff iterator */
+/****************************************************************************/
+
+int tsk_diff_iter_init(tsk_diff_iter_t *self, tsk_treeseq_t *tree_sequence);
+int tsk_diff_iter_free(tsk_diff_iter_t *self);
+int tsk_diff_iter_next(tsk_diff_iter_t *self,
+        double *left, double *right,
+        tsk_edge_list_t **edges_out, tsk_edge_list_t **edges_in);
+void tsk_diff_iter_print_state(tsk_diff_iter_t *self, FILE *out);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* TSK_TREES_H */
+#endif

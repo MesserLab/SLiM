@@ -100,7 +100,7 @@ private:
 	
 	// TREE SEQUENCE RECORDING
 	slim_genomeid_t genome_id_;		// a unique id assigned by SLiM, as a side effect of pedigree recording, that never changes
-	node_id_t msp_node_id_;			// msprime's node_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
+	tsk_id_t tsk_node_id_;			// tskit's tsk_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
 	
 	// ********** BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE **********
 	//

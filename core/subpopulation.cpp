@@ -4641,7 +4641,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			genome1->mutruns_ = nullptr;
 			genome1_transmogrified->tag_value_ = genome1->tag_value_;
 			genome1_transmogrified->genome_id_ = genome1->genome_id_;
-			genome1_transmogrified->msp_node_id_ = genome1->msp_node_id_;
+			genome1_transmogrified->tsk_node_id_ = genome1->tsk_node_id_;
 			
 			genome2_transmogrified->genome_type_ = genome2->genome_type_;
 			std::swap(genome2->mutrun_count_, genome2_transmogrified->mutrun_count_);
@@ -4660,7 +4660,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			genome2->mutruns_ = nullptr;
 			genome2_transmogrified->tag_value_ = genome2->tag_value_;
 			genome2_transmogrified->genome_id_ = genome2->genome_id_;
-			genome2_transmogrified->msp_node_id_ = genome2->msp_node_id_;
+			genome2_transmogrified->tsk_node_id_ = genome2->tsk_node_id_;
 			
 			migrant_transmogrified->color_ = migrant->color_;
 			migrant_transmogrified->color_red_ = migrant->color_red_;

@@ -93,9 +93,10 @@ target_include_directories(${TARGET_NAME} PUBLIC)
 # TSKIT
 set(TARGET_NAME tables)
 file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/*.c)
+set(TSKIT_INCLUDES ${PROJECT_SOURCE_DIR}/treerec)
 add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} ${KASTORE_INCLUDES})
-target_include_directories(${TARGET_NAME} PUBLIC ${KASTORE_INCLUDES})
+target_include_directories(${TARGET_NAME} PUBLIC ${KASTORE_INCLUDES} ${TSKIT_INCLUDES})
 
 set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
