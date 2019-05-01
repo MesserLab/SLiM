@@ -484,6 +484,9 @@ void EidosValue::SetDimensions(int64_t p_dim_count, const int64_t *p_dim_buffer)
 			EIDOS_TERMINATION << "ERROR (EidosValue::SetDimensions): mismatch between vector length and requested dimensions." << EidosTerminate(nullptr);
 		
 		// OK, the size works and the individual dimensions check out, so make our dim_ buffer
+		free(dim_);
+		dim_ = nullptr;
+		
 		dim_ = (int64_t *)malloc((p_dim_count + 1) * sizeof(int64_t));
 		dim_[0] = p_dim_count;
 		memcpy(dim_ + 1, p_dim_buffer, p_dim_count * sizeof(int64_t));
