@@ -180,6 +180,10 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	buffer << p_infile.rdbuf();
 	
 	// Tokenize and parse
+	// BCH 5/1/2019: Note that this script_ variable may leak if tokenization/parsing raises below, because this method
+	// is called while the SLiMSim constructor is still in progress, so the destructor is not called to clean up.  But
+	// we can't actually clean up this variable, because it is used by SLiMAssertScriptRaise() to diagnose where the raise
+	// occurred in the user's script; we'd have to redesign that code to fix this leak.  So be it.  It's not a large leak.
 	script_ = new SLiMEidosScript(buffer.str());
 	
 	// Set up top-level error-reporting info

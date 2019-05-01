@@ -803,7 +803,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_obje
 			}
 		}
 		else
-			EIDOS_TERMINATION << "ERROR (Chromosome::DrawNewMutationNuc): (internal error) unexpected mutation matrix size." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawNewMutationExtended): (internal error) unexpected mutation matrix size." << EidosTerminate();
 	}
 	
 	// Draw mutation type and selection coefficient, and create the new mutation
