@@ -40,10 +40,18 @@
 #include "eidos_test_element.h"
 
 
-void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage);
-void test_exit(int test_result);
+// To leak-check slim, a few steps are recommended (BCH 5/1/2019):
+//
+//	- turn on Malloc Scribble so spurious pointers left over in deallocated blocks are not taken to be live references
+//	- turn on Malloc Logging so you get backtraces from every leaked allocation
+//	- use a DEBUG build of slim so the backtraces are accurate and not obfuscated by optimization
+//	- set this #define to 1 so slim cleans up a bit and then sleeps before exit, waiting for its leaks to be assessed
+//	- run "leaks slim" in Terminal; the leaks tool in Instruments seems to be very confused and reports tons of false positives
+//
+#define SLIM_LEAK_CHECKING	0
 
-void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
+
+static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 {
 	if (p_print_header)
 	{
@@ -116,16 +124,27 @@ void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	exit(0);
 }
 
-void test_exit(int test_result)
+#if SLIM_LEAK_CHECKING
+static void clean_up_leak_false_positives(void)
 {
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
 	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
 	Eidos_FreeGlobalStrings();
 	EidosTestElement::FreeThunks();
+	MutationRun::DeleteMutationRunFreeList();
+	Eidos_FreeRNG(gEidos_RNG);
+}
+#endif
+
+static void test_exit(int test_result)
+{
+#if SLIM_LEAK_CHECKING
+	clean_up_leak_false_positives();
 	
 	// sleep() to give time to assess leaks at the command line
-	//std::cout << "\nSLEEPING" << std::endl;
-	//sleep(100000);
+	std::cout << "\nSLEEPING" << std::endl;
+	sleep(100000);
+#endif
 	
 	exit(test_result);
 }
@@ -390,13 +409,15 @@ int main(int argc, char *argv[])
 		}
 		
 		// clean up; but this is an unnecessary waste of time in the command-line context
-		//delete sim;
-		//sim = nullptr;
-		//Eidos_FreeRNG(gEidos_RNG);
+#if SLIM_LEAK_CHECKING
+		delete sim;
+		sim = nullptr;
+		clean_up_leak_false_positives();
 		
 		// sleep() to give time to assess leaks at the command line
-		//std::cout << "\nSLEEPING" << std::endl;
-		//sleep(100000);
+		std::cout << "\nSLEEPING" << std::endl;
+		sleep(100000);
+#endif
 	}
 	
 	// end timing and print elapsed time
