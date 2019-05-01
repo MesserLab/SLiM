@@ -112,7 +112,6 @@ Chromosome::~Chromosome(void)
 	// Dispose of any nucleotide sequence
 	delete ancestral_seq_buffer_;
 	ancestral_seq_buffer_ = nullptr;
-	
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
@@ -1614,7 +1613,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 	if (ancestral_seq_buffer_)
 	{
 		delete ancestral_seq_buffer_;
-		ancestral_seq_buffer_ = 0;
+		ancestral_seq_buffer_ = nullptr;
 	}
 	
 	if (sequence_value_type == EidosValueType::kValueInt)

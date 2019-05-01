@@ -549,7 +549,12 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const int64_t *p_int_buff
 			uint64_t nuc = (uint64_t)p_int_buffer[index + i];
 			
 			if (nuc > 3)	// values < 0 will becomes > 3 after casting above
+			{
+				free(buffer_);
+				buffer_ = nullptr;
+				
 				throw std::out_of_range("integer nucleotide value out of range");
+			}
 			
 			accumulator |= (nuc << (i * 2));
 			
@@ -601,7 +606,12 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 			uint64_t nuc = nuc_lookup[nuc_char];
 			
 			if (nuc > 3)
+			{
+				free(buffer_);
+				buffer_ = nullptr;
+				
 				throw std::out_of_range("char nucleotide value out of range");
+			}
 			
 			accumulator |= (nuc << (i * 2));
 			
@@ -633,7 +643,13 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::st
 			else if (nuc_string == gStr_C) nuc = 1;
 			else if (nuc_string == gStr_G) nuc = 2;
 			else if (nuc_string == gStr_T) nuc = 3;
-			else throw std::out_of_range("string nucleotide value out of range");
+			else
+			{
+				free(buffer_);
+				buffer_ = nullptr;
+				
+				throw std::out_of_range("string nucleotide value out of range");
+			}
 			
 			accumulator |= (nuc << (i * 2));
 			

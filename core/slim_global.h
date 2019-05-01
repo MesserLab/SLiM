@@ -384,7 +384,7 @@ public:
 		buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
 	}
 	~NucleotideArray(void) {
-		if (buffer_) free(buffer_);
+		if (buffer_) { free(buffer_); buffer_ = nullptr; }
 	}
 	
 	// Constructors that take sequences.  These raise a C++ exception if the sequence data is invalid,
