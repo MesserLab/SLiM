@@ -4600,6 +4600,13 @@ EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_argumen
 	{
 		gsl_set_error_handler(old_handler);
 		
+		// Clean up GSL stuff
+		gsl_vector_free(gsl_mu);
+		gsl_matrix_free(gsl_Sigma);
+		gsl_matrix_free(gsl_L);
+		gsl_vector_free(gsl_x);
+		gsl_vector_free(gsl_work);
+		
 		if (gsl_err == GSL_EDOM)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() requires that sigma, the variance-covariance matrix, be positive-definite." << EidosTerminate(nullptr);
 		else
@@ -5365,6 +5372,12 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const EidosValue_SP *const p_argumen
 	if (gsl_err)
 	{
 		gsl_set_error_handler(old_handler);
+		
+		// Clean up GSL stuff
+		gsl_vector_free(gsl_mu);
+		gsl_matrix_free(gsl_Sigma);
+		gsl_matrix_free(gsl_L);
+		gsl_vector_free(gsl_result);
 		
 		if (gsl_err == GSL_EDOM)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires that sigma, the variance-covariance matrix, be positive-definite." << EidosTerminate(nullptr);
