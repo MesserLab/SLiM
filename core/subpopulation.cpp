@@ -619,7 +619,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	parent_individuals_.reserve(parent_subpop_size_);
 	
 	// Now create new individuals and genomes appropriate for the requested sex ratio and subpop size
-	MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+	MutationRun *shared_empty_run = (parent_subpop_size_ ? MutationRun::NewMutationRun() : nullptr);
 	
 	if (sex_enabled_)
 	{
