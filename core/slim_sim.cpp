@@ -91,7 +91,19 @@ SLiMSim::SLiMSim(std::istream &p_infile) : chromosome_(this), population_(*this)
 	// read all configuration information from the input file
 	p_infile.clear();
 	p_infile.seekg(0, std::fstream::beg);
-	InitializeFromFile(p_infile);
+	
+	try {
+		InitializeFromFile(p_infile);
+	}
+	catch (...) {
+		// try to clean up what we've allocated so far
+		delete simulation_constants_;
+		simulation_constants_ = nullptr;
+		
+		simulation_functions_.clear();
+		
+		throw;
+	}
 }
 
 SLiMSim::~SLiMSim(void)
