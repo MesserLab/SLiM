@@ -46,6 +46,7 @@ enum class SLiMEidosBlockType {
 	SLiMEidosMateChoiceCallback,
 	SLiMEidosModifyChildCallback,
 	SLiMEidosRecombinationCallback,
+	SLiMEidosMutationCallback,
 	SLiMEidosReproductionCallback,
 	
 	SLiMEidosUserDefinedFunction,
@@ -135,12 +136,13 @@ public:
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
 	bool contains_wildcard_ = false;			// "apply", "sapply", "executeLambda", "_executeLambda_OUTER", "ls", "rm"; all other contains_ flags will be T if this is T
 	bool contains_self_ = false;				// "self"
-	bool contains_mut_ = false;					// "mut" (fitness callback parameter)
+	bool contains_mut_ = false;					// "mut" (fitness/mutation callback parameter)
 	bool contains_relFitness_ = false;			// "relFitness" (fitness callback parameter)
 	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination/reproduction callback parameter)
+	bool contains_genome_ = false;				// "genome" (mutation callback parameter)
 	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination/reproduction callback parameter)
 	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination/reproduction callback parameter)
-	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination/reproduction callback parameter)
+	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination/reproduction/mutation callback parameter)
 	bool contains_homozygous_ = false;			// "homozygous" (fitness callback parameter)
 	bool contains_sourceSubpop_ = false;		// "sourceSubpop" (mateChoice/modifyChild callback parameter)
 	bool contains_weights_ = false;				// "weights" (mateChoice callback parameter)
@@ -148,6 +150,7 @@ public:
 	bool contains_childGenome1_ = false;		// "childGenome1" (modifyChild callback parameter)
 	bool contains_childGenome2_ = false;		// "childGenome2" (modifyChild callback parameter)
 	bool contains_childIsFemale_ = false;		// "childIsFemale" (modifyChild callback parameter)
+	bool contains_parent_ = false;				// "parent" (mutation callback parameter)
 	bool contains_parent1_ = false;				// "parent1" (modifyChild callback parameter)
 	bool contains_parent1Genome1_ = false;		// "parent1Genome1" (modifyChild callback parameter)
 	bool contains_parent1Genome2_ = false;		// "parent1Genome2" (modifyChild callback parameter)
@@ -161,6 +164,7 @@ public:
 	bool contains_strength_ = false;			// "strength" (interaction callback parameter)
 	bool contains_receiver_ = false;			// "receiver" (interaction callback parameter)
 	bool contains_exerter_ = false;				// "exerter" (interaction callback parameter)
+	bool contains_originalNuc_ = false;			// "originalNuc" (mutation callback parameter)
 	
 	// Special-case optimizations for particular common callback types.  If a callback can be substituted by C++ code,
 	// has_cached_optimization_ will be true and the flags and values below will indicate exactly how to do so.

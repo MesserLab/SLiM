@@ -617,8 +617,8 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 	return new_mut_index;
 }
 
-// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models
-MutationIndex Chromosome::DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints) const
+// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
+MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
 {
 	gsl_ran_discrete_t *lookup;
 	const vector<GESubrange> *subranges;

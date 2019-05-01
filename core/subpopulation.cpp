@@ -3787,6 +3787,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
+	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
 		individual->TrackPedigreeWithParents(*parent, *parent);
@@ -3799,8 +3800,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		sim.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
 	}
 	
-	population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex);
-	population_.DoClonalMutation(&parent_subpop, *genome2, parent_genome_2, child_sex);
+	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+	
+	population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex, parent_mutation_callbacks);
+	population_.DoClonalMutation(&parent_subpop, *genome2, parent_genome_2, child_sex, parent_mutation_callbacks);
 	
 	// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
 	bool proposed_child_accepted = true;
@@ -3885,6 +3888,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
 		individual->TrackPedigreeWithParents(*parent1, *parent2);
@@ -3895,9 +3900,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
 	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
+	if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
+	if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
 	
-	population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks);
-	population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks);
+	population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks, parent1_mutation_callbacks);
+	population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks, parent2_mutation_callbacks);
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
 	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent1_subpop.registered_modify_child_callbacks_;
@@ -4163,6 +4170,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
 		individual->TrackPedigreeWithoutParents();
@@ -4170,6 +4178,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
 		sim.SetCurrentNewIndividual(individual);
+	
+	if (!mutation_callbacks) mutation_callbacks = nullptr;
 	
 	// Construct the first child genome, depending upon whether recombination is requested, etc.
 	if (strand1)
@@ -4201,7 +4211,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (sim.RecordingTreeSequence())
 				sim.RecordNewGenome(&breakvec1, genome1, strand1, strand2);
 			
-			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome1, strand1, strand2, parent_sex, breakvec1);
+			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome1, strand1, strand2, parent_sex, breakvec1, mutation_callbacks);
 		}
 		else
 		{
@@ -4209,7 +4219,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (sim.RecordingTreeSequence())
 				sim.RecordNewGenome(nullptr, genome1, strand1, nullptr);
 			
-			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome1, *strand1, child_sex);
+			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome1, *strand1, child_sex, mutation_callbacks);
 		}
 	}
 	else
@@ -4251,7 +4261,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (sim.RecordingTreeSequence())
 				sim.RecordNewGenome(&breakvec2, genome2, strand3, strand4);
 			
-			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome2, strand3, strand4, parent_sex, breakvec2);
+			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome2, strand3, strand4, parent_sex, breakvec2, mutation_callbacks);
 		}
 		else
 		{
@@ -4259,7 +4269,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (sim.RecordingTreeSequence())
 				sim.RecordNewGenome(nullptr, genome2, strand3, nullptr);
 			
-			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome2, *strand3, child_sex);
+			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome2, *strand3, child_sex, mutation_callbacks);
 		}
 	}
 	else
@@ -4446,6 +4456,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
 		individual->TrackPedigreeWithParents(*parent, *parent);
@@ -4455,9 +4466,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		sim.SetCurrentNewIndividual(individual);
 	
 	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
+	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
 	
-	population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
-	population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks);
+	population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
+	population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
 	
 	// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
 	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;

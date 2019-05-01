@@ -1118,6 +1118,7 @@ const std::string gStr_registerInteractionCallback = "registerInteractionCallbac
 const std::string gStr_registerMateChoiceCallback = "registerMateChoiceCallback";
 const std::string gStr_registerModifyChildCallback = "registerModifyChildCallback";
 const std::string gStr_registerRecombinationCallback = "registerRecombinationCallback";
+const std::string gStr_registerMutationCallback = "registerMutationCallback";
 const std::string gStr_registerReproductionCallback = "registerReproductionCallback";
 const std::string gStr_rescheduleScriptBlock = "rescheduleScriptBlock";
 const std::string gStr_simulationFinished = "simulationFinished";
@@ -1173,6 +1174,7 @@ const std::string gStr_drawByStrength = "drawByStrength";
 const std::string gStr_sim = "sim";
 const std::string gStr_self = "self";
 const std::string gStr_individual = "individual";
+const std::string gStr_genome = "genome";
 const std::string gStr_genome1 = "genome1";
 const std::string gStr_genome2 = "genome2";
 const std::string gStr_subpop = "subpop";
@@ -1182,6 +1184,7 @@ const std::string gStr_child = "child";
 const std::string gStr_childGenome1 = "childGenome1";
 const std::string gStr_childGenome2 = "childGenome2";
 const std::string gStr_childIsFemale = "childIsFemale";
+const std::string gStr_parent = "parent";
 const std::string gStr_parent1 = "parent1";
 const std::string gStr_parent1Genome1 = "parent1Genome1";
 const std::string gStr_parent1Genome2 = "parent1Genome2";
@@ -1196,6 +1199,7 @@ const std::string gStr_homozygous = "homozygous";
 const std::string gStr_breakpoints = "breakpoints";
 const std::string gStr_receiver = "receiver";
 const std::string gStr_exerter = "exerter";
+const std::string gStr_originalNuc = "originalNuc";
 
 // SLiMgui instance name and methods
 const std::string gStr_slimgui = "slimgui";
@@ -1242,6 +1246,7 @@ const std::string gStr_interaction = "interaction";
 const std::string gStr_mateChoice = "mateChoice";
 const std::string gStr_modifyChild = "modifyChild";
 const std::string gStr_recombination = "recombination";
+const std::string gStr_mutation = "mutation";
 const std::string gStr_reproduction = "reproduction";
 
 
@@ -1452,6 +1457,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_registerMateChoiceCallback, gID_registerMateChoiceCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerModifyChildCallback, gID_registerModifyChildCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerRecombinationCallback, gID_registerRecombinationCallback);
+		Eidos_RegisterStringForGlobalID(gStr_registerMutationCallback, gID_registerMutationCallback);
 		Eidos_RegisterStringForGlobalID(gStr_registerReproductionCallback, gID_registerReproductionCallback);
 		Eidos_RegisterStringForGlobalID(gStr_rescheduleScriptBlock, gID_rescheduleScriptBlock);
 		Eidos_RegisterStringForGlobalID(gStr_simulationFinished, gID_simulationFinished);
@@ -1506,6 +1512,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_sim, gID_sim);
 		Eidos_RegisterStringForGlobalID(gStr_self, gID_self);
 		Eidos_RegisterStringForGlobalID(gStr_individual, gID_individual);
+		Eidos_RegisterStringForGlobalID(gStr_genome, gID_genome);
 		Eidos_RegisterStringForGlobalID(gStr_genome1, gID_genome1);
 		Eidos_RegisterStringForGlobalID(gStr_genome2, gID_genome2);
 		Eidos_RegisterStringForGlobalID(gStr_subpop, gID_subpop);
@@ -1514,6 +1521,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_childGenome1, gID_childGenome1);
 		Eidos_RegisterStringForGlobalID(gStr_childGenome2, gID_childGenome2);
 		Eidos_RegisterStringForGlobalID(gStr_childIsFemale, gID_childIsFemale);
+		Eidos_RegisterStringForGlobalID(gStr_parent, gID_parent);
 		Eidos_RegisterStringForGlobalID(gStr_parent1, gID_parent1);
 		Eidos_RegisterStringForGlobalID(gStr_parent1Genome1, gID_parent1Genome1);
 		Eidos_RegisterStringForGlobalID(gStr_parent1Genome2, gID_parent1Genome2);
@@ -1528,6 +1536,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_breakpoints, gID_breakpoints);
 		Eidos_RegisterStringForGlobalID(gStr_receiver, gID_receiver);
 		Eidos_RegisterStringForGlobalID(gStr_exerter, gID_exerter);
+		Eidos_RegisterStringForGlobalID(gStr_originalNuc, gID_originalNuc);
 		
 		Eidos_RegisterStringForGlobalID(gStr_slimgui, gID_slimgui);
 		Eidos_RegisterStringForGlobalID(gStr_pid, gID_pid);
@@ -1566,6 +1575,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_mateChoice, gID_mateChoice);
 		Eidos_RegisterStringForGlobalID(gStr_modifyChild, gID_modifyChild);
 		Eidos_RegisterStringForGlobalID(gStr_recombination, gID_recombination);
+		Eidos_RegisterStringForGlobalID(gStr_mutation, gID_mutation);
 		Eidos_RegisterStringForGlobalID(gStr_reproduction, gID_reproduction);
 	}
 }

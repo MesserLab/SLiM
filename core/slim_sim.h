@@ -282,6 +282,7 @@ private:
 	std::vector<SLiMEidosBlock*> cached_matechoice_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_modifychild_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> cached_mutation_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_reproduction_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_userdef_functions_;
 	
@@ -293,7 +294,7 @@ public:
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
 	eidos_profile_t profile_stage_totals_[7];										// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
-	eidos_profile_t profile_callback_totals_[10];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
+	eidos_profile_t profile_callback_totals_[11];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
 	
 	SLiM_MemoryUsage profile_last_memory_usage_;
 	SLiM_MemoryUsage profile_total_memory_usage_;
@@ -697,6 +698,7 @@ public:
 	EidosValue_SP ExecuteMethod_registerFitnessCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerMateModifyRecCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);

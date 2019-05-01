@@ -198,8 +198,8 @@ public:
 	// draw a new mutation, based on the genomic element types present and their mutational proclivities
 	MutationIndex DrawNewMutation(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;
 	
-	// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models
-	MutationIndex DrawNewMutationNuc(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints) const;
+	// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
+	MutationIndex DrawNewMutationExtended(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const;
 	
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;

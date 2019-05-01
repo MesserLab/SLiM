@@ -182,10 +182,11 @@ public:
 #endif  // SLIM_NONWF_ONLY
 	
 #ifdef SLIM_WF_ONLY
-	std::vector<SLiMEidosBlock*> registered_mate_choice_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
+	std::vector<SLiMEidosBlock*> registered_mate_choice_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 #endif	// SLIM_WF_ONLY
 	std::vector<SLiMEidosBlock*> registered_modify_child_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 	std::vector<SLiMEidosBlock*> registered_recombination_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
+	std::vector<SLiMEidosBlock*> registered_mutation_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 #ifdef SLIM_NONWF_ONLY
 	std::vector<SLiMEidosBlock*> registered_reproduction_callbacks_;	// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 #endif  // SLIM_NONWF_ONLY

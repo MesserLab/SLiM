@@ -1516,6 +1516,7 @@
 		double elapsedType7Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[7]);
 		double elapsedType8Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[8]);
 		double elapsedType9Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[9]);
+		double elapsedType10Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[10]);
 		double percentType0 = (elapsedType0Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentType1 = (elapsedType1Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentType2 = (elapsedType2Time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1526,6 +1527,7 @@
 		double percentType7 = (elapsedType7Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentType8 = (elapsedType8Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentType9 = (elapsedType9Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType10 = (elapsedType10Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4, fw2 = 4;
 		
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType0Time))));
@@ -1538,6 +1540,7 @@
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType7Time))));
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType8Time))));
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType9Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType10Time))));
 		
 		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType0))));
 		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType1))));
@@ -1549,6 +1552,7 @@
 		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType7))));
 		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType8))));
 		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType9))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType10))));
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"Callback type breakdown\n" attributes:optima14b_d];
@@ -1568,6 +1572,9 @@
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType8Time, fw2, percentType8] attributes:menlo11_d];
 			[content eidosAppendString:@" : recombination() callbacks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType9Time, fw2, percentType9] attributes:menlo11_d];
+			[content eidosAppendString:@" : mutation() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType7Time, fw2, percentType7] attributes:menlo11_d];
 			[content eidosAppendString:@" : modifyChild() callbacks\n" attributes:optima13_d];
@@ -1589,11 +1596,14 @@
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType2Time, fw2, percentType2] attributes:menlo11_d];
 			[content eidosAppendString:@" : initialize() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType9Time, fw2, percentType9] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType10Time, fw2, percentType10] attributes:menlo11_d];
 			[content eidosAppendString:@" : reproduction() events\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType8Time, fw2, percentType8] attributes:menlo11_d];
 			[content eidosAppendString:@" : recombination() callbacks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType9Time, fw2, percentType9] attributes:menlo11_d];
+			[content eidosAppendString:@" : mutation() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType7Time, fw2, percentType7] attributes:menlo11_d];
 			[content eidosAppendString:@" : modifyChild() callbacks\n" attributes:optima13_d];
@@ -2249,6 +2259,7 @@
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
 	
 	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
@@ -3897,6 +3908,8 @@
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("recombination") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("mutation") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("reproduction") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	*/
@@ -3935,6 +3948,7 @@
 	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
 	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
 	if ([clickedText isEqualToString:@"recombination"])	return @"recombination() callbacks";
+	if ([clickedText isEqualToString:@"mutation"])		return @"mutation() callbacks";
 	if ([clickedText isEqualToString:@"reproduction"])	return @"reproduction() callbacks";
 	
 	return nil;
@@ -4149,6 +4163,7 @@
 							else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
 							else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+							else if (child_string.compare(gStr_mutation) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
 							else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 							
 							// Check for an sX designation on a script block and, if found, add a symbol for it
@@ -4273,6 +4288,13 @@
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_breakpoints,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
+								case SLiMEidosBlockType::SLiMEidosMutationCallback:
+									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
+									(*typeTable)->SetTypeForSymbol(gID_parent,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+									(*typeTable)->SetTypeForSymbol(gID_genome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									(*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
+									break;
 								case SLiMEidosBlockType::SLiMEidosReproductionCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
 									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
@@ -4345,9 +4367,10 @@
 		// have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
 		// existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
 		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-		// keywords like "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", and "reproduction" are.
+		// keywords like "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", "mutation",
+		// and "reproduction" are.
 		[keywords removeAllObjects];
-		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"reproduction() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
+		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"mutation() {\n\n}\n", @"reproduction() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
 		
 		// At the outer level, functions are also not legal
 		(*functionMap)->clear();
@@ -4536,6 +4559,15 @@
 			
 			if (!callbackSig)
 				callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskVOID))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+			
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+		}
+		else if ([signatureString hasPrefix:@"mutation()"])
+		{
+			static EidosCallSignature *callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = (new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskVOID))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
@@ -4966,6 +4998,7 @@
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return @"mateChoice()";
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";
 						case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return @"recombination()";
+						case SLiMEidosBlockType::SLiMEidosMutationCallback:			return @"mutation()";
 						case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return @"reproduction()";
 						case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 						{

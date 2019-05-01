@@ -89,9 +89,13 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(position_));
 		case gID_selectionCoeff:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selection_coeff_));
-		case gID_subpopID:				// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
-		case gID_nucleotide:		// ACCELERATED
+		case gID_originGeneration:		// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_generation_));
+		case gID_fixationGeneration:	// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_generation_));
+			
+			// variables
+		case gID_nucleotide:			// ACCELERATED
 		{
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
@@ -104,7 +108,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				case 3:	return gStaticEidosValue_StringT;
 			}
 		}
-		case gID_nucleotideValue:	// ACCELERATED
+		case gID_nucleotideValue:		// ACCELERATED
 		{
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property nucleotideValue is only defined for nucleotide-based mutations." << EidosTerminate();
@@ -117,12 +121,8 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				case 3:	return gStaticEidosValue_Integer3;
 			}
 		}
-		case gID_originGeneration:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_generation_));
-		case gID_fixationGeneration:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_generation_));
-			
-			// variables
+		case gID_subpopID:				// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
 		case gID_tag:					// ACCELERATED
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -303,6 +303,32 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
+		case gID_nucleotide:
+		{
+			std::string nucleotide = p_value.StringAtIndex(0, nullptr);
+			
+			if (nucleotide_ == -1)
+				EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotide is only defined for nucleotide-based substitutions." << EidosTerminate();
+			
+			if (nucleotide == gStr_A)		nucleotide_ = 0;
+			else if (nucleotide == gStr_C)	nucleotide_ = 1;
+			else if (nucleotide == gStr_G)	nucleotide_ = 2;
+			else if (nucleotide == gStr_T)	nucleotide_ = 3;
+			else EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotide may only be set to 'A', 'C', 'G', or 'T'." << EidosTerminate();
+			return;
+		}
+		case gID_nucleotideValue:
+		{
+			int64_t nucleotide = p_value.IntAtIndex(0, nullptr);
+			
+			if (nucleotide_ == -1)
+				EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotideValue is only defined for nucleotide-based substitutions." << EidosTerminate();
+			if ((nucleotide < 0) || (nucleotide > 3))
+				EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotideValue may only be set to 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
+			
+			nucleotide_ = (int8_t)nucleotide;
+			return;
+		}
 		case gID_subpopID:
 		{
 			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex(0, nullptr));
@@ -375,8 +401,8 @@ const std::vector<const EidosPropertySignature *> *Substitution_Class::Propertie
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_selectionCoeff));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			true,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originGeneration));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationGeneration));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag));

@@ -861,7 +861,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 
 #ifdef SLIM_WF_ONLY
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present)
+void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
 {
 	bool pedigrees_enabled = sim_.PedigreesEnabled();
 	bool recording_tree_sequence = sim_.RecordingTreeSequence();
@@ -927,7 +927,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population." << EidosTerminate();
 	}
 	
-	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present)
+	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present)
 	{
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
@@ -948,7 +948,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			double cloning_fraction = source_subpop.female_clone_fraction_;
 			
 			// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
-			std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr, *recombination_callbacks = nullptr;
+			std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr, *recombination_callbacks = nullptr, *mutation_callbacks = nullptr;
 			
 			if (p_mate_choice_callbacks_present && source_subpop.registered_mate_choice_callbacks_.size())
 				mate_choice_callbacks = &source_subpop.registered_mate_choice_callbacks_;
@@ -956,6 +956,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				modify_child_callbacks = &source_subpop.registered_modify_child_callbacks_;
 			if (p_recombination_callbacks_present && source_subpop.registered_recombination_callbacks_.size())
 				recombination_callbacks = &source_subpop.registered_recombination_callbacks_;
+			if (p_mutation_callbacks_present && source_subpop.registered_mutation_callbacks_.size())
+				mutation_callbacks = &source_subpop.registered_mutation_callbacks_;
 			
 			if (sex_enabled || (selfing_fraction > 0.0) || (cloning_fraction > 0.0))
 			{
@@ -1163,8 +1165,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 						}
 						
-						DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex);
-						DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex);
+						DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, mutation_callbacks);
+						DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, mutation_callbacks);
 					}
 					else
 					{
@@ -1229,8 +1231,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							sim_.SetCurrentNewIndividual(new_child);
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks);
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
 					}
 					
 					if (modify_child_callbacks)
@@ -1308,8 +1310,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						sim_.SetCurrentNewIndividual(new_child);
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
 					
 					if (modify_child_callbacks)
 					{
@@ -1498,7 +1500,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			retryWithNewSourceSubpop:
 				
 				// figure out our callback situation for this source subpop; callbacks come from the source, not the destination
-				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr, *recombination_callbacks = nullptr;
+				std::vector<SLiMEidosBlock*> *mate_choice_callbacks = nullptr, *modify_child_callbacks = nullptr, *recombination_callbacks = nullptr, *mutation_callbacks = nullptr;
 				
 				if (source_subpop->registered_mate_choice_callbacks_.size())
 					mate_choice_callbacks = &source_subpop->registered_mate_choice_callbacks_;
@@ -1506,6 +1508,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					modify_child_callbacks = &source_subpop->registered_modify_child_callbacks_;
 				if (source_subpop->registered_recombination_callbacks_.size())
 					recombination_callbacks = &source_subpop->registered_recombination_callbacks_;
+				if (source_subpop->registered_mutation_callbacks_.size())
+					mutation_callbacks = &source_subpop->registered_mutation_callbacks_;
 				
 				// Similar to retryWithNewSourceSubpop: but assumes that the subpop remains unchanged; used after a failed mateChoice()
 				// callback, which rejects parent1 but does not cause a redraw of the source subpop.
@@ -1589,8 +1593,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 					}
 					
-					DoClonalMutation(source_subpop, child_genome_1, parent_genome_1, child_sex);
-					DoClonalMutation(source_subpop, child_genome_2, parent_genome_2, child_sex);
+					DoClonalMutation(source_subpop, child_genome_1, parent_genome_1, child_sex, mutation_callbacks);
+					DoClonalMutation(source_subpop, child_genome_2, parent_genome_2, child_sex, mutation_callbacks);
 				}
 				else
 				{
@@ -1655,8 +1659,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						sim_.SetCurrentNewIndividual(new_child);
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks);
-					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
 				}
 				
 				if (modify_child_callbacks)
@@ -1785,8 +1789,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									sim_.SetCurrentNewIndividual(new_child);
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kFemale, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kMale, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
 								
 								migrant_count++;
 								child_count++;
@@ -1814,8 +1818,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									sim_.SetCurrentNewIndividual(new_child);
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
 								
 								migrant_count++;
 								child_count++;
@@ -1860,8 +1864,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 								}
 								
-								DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex);
-								DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex);
+								DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);
+								DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, nullptr);
 							}
 							else
 							{
@@ -1912,8 +1916,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									sim_.SetCurrentNewIndividual(new_child);
 								
 								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, parent1_sex, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, parent2_sex, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, parent1_sex, nullptr, nullptr);
+								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, parent2_sex, nullptr, nullptr);
 							}
 							
 							// change counters
@@ -2057,7 +2061,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks)
+void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
 	slim_popsize_t parent_genome_2_index = parent_genome_1_index + 1;
@@ -2463,17 +2467,18 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		int mutrun_count = p_child_genome.mutrun_count_;
 		
 		// create vector with the mutations to be added
+		bool use_extended_draw_mutation = (sim_.IsNucleotideBased() || p_mutation_callbacks);
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		if (sim_.IsNucleotideBased())
+		if (use_extended_draw_mutation)
 		{
-			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
+			// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
 			// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
 			// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
 			for (int k = 0; k < num_mutations; k++)
 			{
-				MutationIndex new_mutation = chromosome.DrawNewMutationNuc(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation(), parent_genome_1, parent_genome_2, &all_breakpoints);
+				MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
 				
 				if (new_mutation != -1)
 					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
@@ -3336,7 +3341,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 }
 
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome *p_parent_genome_1, Genome *p_parent_genome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints)
+void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome *p_parent_genome_1, Genome *p_parent_genome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 	// This is parallel to DoCrossoverMutation(), but is provided with parental genomes and breakpoints.
 	// It is called only by Subpopulation::ExecuteMethod_addRecombinant() to execute the user's plan.
@@ -3491,17 +3496,18 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		int mutrun_count = p_child_genome.mutrun_count_;
 		
 		// create vector with the mutations to be added
+		bool use_extended_draw_mutation = (sim_.IsNucleotideBased() || p_mutation_callbacks);
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		if (sim_.IsNucleotideBased())
+		if (use_extended_draw_mutation)
 		{
-			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
+			// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
 			// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
 			// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
 			for (int k = 0; k < num_mutations; k++)
 			{
-				MutationIndex new_mutation = chromosome.DrawNewMutationNuc(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints);
+				MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
 				
 				if (new_mutation != -1)
 					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
@@ -3889,7 +3895,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 #endif
 }
 
-void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex)
+void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #pragma unused(p_child_sex)
 #ifdef DEBUG
@@ -3936,17 +3942,18 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 #endif
 		
 		// create vector with the mutations to be added
+		bool use_extended_draw_mutation = (sim_.IsNucleotideBased() || p_mutation_callbacks);
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		if (sim_.IsNucleotideBased())
+		if (use_extended_draw_mutation)
 		{
-			// In nucleotide-based models, chromosome.DrawNewMutationNuc() will return new mutations to us with nucleotide_ set correctly.
+			// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 			// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
 			// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
 			// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
 			for (int k = 0; k < num_mutations; k++)
 			{
-				MutationIndex new_mutation = chromosome.DrawNewMutationNuc(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), &p_parent_genome, nullptr, nullptr);
+				MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
 				
 				if (new_mutation != -1)
 					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast

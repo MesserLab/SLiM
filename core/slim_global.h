@@ -619,6 +619,7 @@ extern const std::string gStr_registerInteractionCallback;
 extern const std::string gStr_registerMateChoiceCallback;
 extern const std::string gStr_registerModifyChildCallback;
 extern const std::string gStr_registerRecombinationCallback;
+extern const std::string gStr_registerMutationCallback;
 extern const std::string gStr_registerReproductionCallback;
 extern const std::string gStr_rescheduleScriptBlock;
 extern const std::string gStr_simulationFinished;
@@ -673,6 +674,7 @@ extern const std::string gStr_drawByStrength;
 extern const std::string gStr_sim;
 extern const std::string gStr_self;
 extern const std::string gStr_individual;
+extern const std::string gStr_genome;
 extern const std::string gStr_genome1;
 extern const std::string gStr_genome2;
 extern const std::string gStr_subpop;
@@ -682,6 +684,7 @@ extern const std::string gStr_child;
 extern const std::string gStr_childGenome1;
 extern const std::string gStr_childGenome2;
 extern const std::string gStr_childIsFemale;
+extern const std::string gStr_parent;
 extern const std::string gStr_parent1;
 extern const std::string gStr_parent1Genome1;
 extern const std::string gStr_parent1Genome2;
@@ -696,6 +699,7 @@ extern const std::string gStr_homozygous;
 extern const std::string gStr_breakpoints;
 extern const std::string gStr_receiver;
 extern const std::string gStr_exerter;
+extern const std::string gStr_originalNuc;
 
 extern const std::string gStr_slimgui;
 extern const std::string gStr_pid;
@@ -738,6 +742,7 @@ extern const std::string gStr_fitness;
 extern const std::string gStr_interaction;
 extern const std::string gStr_mateChoice;
 extern const std::string gStr_modifyChild;
+extern const std::string gStr_mutation;
 extern const std::string gStr_recombination;
 extern const std::string gStr_reproduction;
 
@@ -916,6 +921,7 @@ enum _SLiMGlobalStringID : int {
 	gID_registerMateChoiceCallback,
 	gID_registerModifyChildCallback,
 	gID_registerRecombinationCallback,
+	gID_registerMutationCallback,
 	gID_registerReproductionCallback,
 	gID_rescheduleScriptBlock,
 	gID_simulationFinished,
@@ -970,6 +976,7 @@ enum _SLiMGlobalStringID : int {
 	gID_sim,
 	gID_self,
 	gID_individual,
+	gID_genome,
 	gID_genome1,
 	gID_genome2,
 	gID_subpop,
@@ -979,6 +986,7 @@ enum _SLiMGlobalStringID : int {
 	gID_childGenome1,
 	gID_childGenome2,
 	gID_childIsFemale,
+	gID_parent,
 	gID_parent1,
 	gID_parent1Genome1,
 	gID_parent1Genome2,
@@ -993,6 +1001,7 @@ enum _SLiMGlobalStringID : int {
 	gID_breakpoints,
 	gID_receiver,
 	gID_exerter,
+	gID_originalNuc,
 	
 	gID_slimgui,
 	gID_pid,
@@ -1032,6 +1041,7 @@ enum _SLiMGlobalStringID : int {
 	gID_mateChoice,
 	gID_modifyChild,
 	gID_recombination,
+	gID_mutation,
 	gID_reproduction,
 	
 	gID_LastSLiMEntry	// must come last

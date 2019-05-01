@@ -1539,6 +1539,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 		cached_matechoice_callbacks_.clear();
 		cached_modifychild_callbacks_.clear();
 		cached_recombination_callbacks_.clear();
+		cached_mutation_callbacks_.clear();
 		cached_reproduction_callbacks_.clear();
 		cached_userdef_functions_.clear();
 		
@@ -1586,6 +1587,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		cached_matechoice_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		cached_modifychild_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	cached_recombination_callbacks_.push_back(script_block);	break;
+				case SLiMEidosBlockType::SLiMEidosMutationCallback:			cached_mutation_callbacks_.push_back(script_block);			break;
 				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		cached_reproduction_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		cached_userdef_functions_.push_back(script_block);			break;
 				case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
@@ -1624,6 +1626,7 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		block_list = &cached_matechoice_callbacks_;				break;
 		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		block_list = &cached_modifychild_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	block_list = &cached_recombination_callbacks_;			break;
+		case SLiMEidosBlockType::SLiMEidosMutationCallback:			block_list = &cached_mutation_callbacks_;				break;
 		case SLiMEidosBlockType::SLiMEidosReproductionCallback:		block_list = &cached_reproduction_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		block_list = &cached_userdef_functions_;				break;
 		case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
@@ -3089,14 +3092,16 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		std::vector<SLiMEidosBlock*> mate_choice_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMateChoiceCallback, -1, -1, -1);
 		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
 		std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> mutation_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1);
 		bool mate_choice_callbacks_present = mate_choice_callbacks.size();
 		bool modify_child_callbacks_present = modify_child_callbacks.size();
 		bool recombination_callbacks_present = recombination_callbacks.size();
+		bool mutation_callbacks_present = mutation_callbacks.size();
 		bool no_active_callbacks = true;
 		
 		// if there are no active callbacks of any type, we can pretend there are no callbacks at all
 		// if there is a callback of any type, however, then inactive callbacks could become active
-		if (mate_choice_callbacks_present || modify_child_callbacks_present || recombination_callbacks_present)
+		if (mate_choice_callbacks_present || modify_child_callbacks_present || recombination_callbacks_present || mutation_callbacks_present)
 		{
 			for (SLiMEidosBlock *callback : mate_choice_callbacks)
 				if (callback->active_)
@@ -3120,12 +3125,20 @@ bool SLiMSim::_RunOneGenerationWF(void)
 						no_active_callbacks = false;
 						break;
 					}
+			
+			if (no_active_callbacks)
+				for (SLiMEidosBlock *callback : mutation_callbacks)
+					if (callback->active_)
+					{
+						no_active_callbacks = false;
+						break;
+					}
 		}
 		
 		if (no_active_callbacks)
 		{
 			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-				population_.EvolveSubpopulation(*subpop_pair.second, false, false, false);
+				population_.EvolveSubpopulation(*subpop_pair.second, false, false, false, false);
 		}
 		else
 		{
@@ -3167,11 +3180,22 @@ bool SLiMSim::_RunOneGenerationWF(void)
 					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
 						subpop->registered_recombination_callbacks_.emplace_back(callback);
 				}
+				
+				// Get mutation() callbacks that apply to this subpopulation
+				subpop->registered_mutation_callbacks_.clear();
+				
+				for (SLiMEidosBlock *callback : mutation_callbacks)
+				{
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+					
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop->registered_mutation_callbacks_.emplace_back(callback);
+				}
 			}
 			
 			// then evolve each subpop
 			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
-				population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present);
+				population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present);
 		}
 		
 		// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
@@ -3475,6 +3499,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		std::vector<SLiMEidosBlock*> reproduction_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosReproductionCallback, -1, -1, -1);
 		std::vector<SLiMEidosBlock*> modify_child_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosModifyChildCallback, -1, -1, -1);
 		std::vector<SLiMEidosBlock*> recombination_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> mutation_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1);
 		
 		// cache a list of callbacks registered for each subpop
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
@@ -3513,6 +3538,17 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 				
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
 					subpop->registered_recombination_callbacks_.emplace_back(callback);
+			}
+			
+			// Get mutation() callbacks that apply to this subpopulation
+			subpop->registered_mutation_callbacks_.clear();
+			
+			for (SLiMEidosBlock *callback : mutation_callbacks)
+			{
+				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+				
+				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+					subpop->registered_mutation_callbacks_.emplace_back(callback);
 			}
 		}
 		
@@ -9987,6 +10023,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerMateChoiceCallback:
 		case gID_registerModifyChildCallback:
 		case gID_registerRecombinationCallback:	return ExecuteMethod_registerMateModifyRecCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_registerMutationCallback:		return ExecuteMethod_registerMutationCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_registerReproductionCallback:	return ExecuteMethod_registerReproductionCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -11115,6 +11152,49 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 	return new_script_block->SelfSymbolTableEntry().second;
 }
 
+//	*********************	– (object<SLiMEidosBlock>$)registerMutationCallback(Nis$ id, string$ source, [Nio<MutationType>$ mutType = NULL], [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+//
+EidosValue_SP SLiMSim::ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *source_value = p_arguments[1].get();
+	EidosValue *mutType_value = p_arguments[2].get();
+	EidosValue *subpop_value = p_arguments[3].get();
+	EidosValue *start_value = p_arguments[4].get();
+	EidosValue *end_value = p_arguments[5].get();
+	
+	slim_objectid_t script_id = -1;		// used if id_value is NULL, to indicate an anonymous block
+	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	slim_objectid_t mut_type_id = -1;	// used if mutType_value is NULL, to indicate applicability to all mutation types
+	slim_objectid_t subpop_id = -1;		// used if subpop_value is NULL, to indicate applicability to all subpops
+	slim_generation_t start_generation = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
+	slim_generation_t end_generation = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToGenerationTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_GENERATION + 1);
+	
+	if (id_value->Type() != EidosValueType::kValueNULL)
+		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
+	
+	if (mutType_value->Type() != EidosValueType::kValueNULL)
+		mut_type_id = (mutType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(mutType_value->IntAtIndex(0, nullptr)) : ((MutationType *)mutType_value->ObjectElementAtIndex(0, nullptr))->mutation_type_id_;
+	
+	if (subpop_value->Type() != EidosValueType::kValueNULL)
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+	
+	if (start_generation > end_generation)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFitnessCallback): registerMutationCallback() requires start <= end." << EidosTerminate();
+	
+	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage2GenerateOffspring : SLiMGenerationStage::kNonWFStage1GenerateOffspring);
+	
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosMutationCallback, start_generation, end_generation);
+	
+	new_script_block->mutation_type_id_ = mut_type_id;
+	new_script_block->subpopulation_id_ = subpop_id;
+	
+	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
+	
+	return new_script_block->SelfSymbolTableEntry().second;
+}
+
 //	*********************	– (object<SLiMEidosBlock>$)registerReproductionCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ns$ sex = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
@@ -11209,6 +11289,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
 			default: EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
 		}
@@ -11226,6 +11307,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
 			default: EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
 		}
@@ -11408,6 +11490,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	
 	// BCH 14 November 2018: removed a block on calling treeSeqRememberIndividuals() from fitness() callbacks,
 	// because it turns out that can be useful (see correspondence with Yan Wong)
+	// BCH 30 April 2019: also allowing mutation() callbacks, since I can see how that could be useful...
 	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
@@ -11547,6 +11630,7 @@ const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) co
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMutationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
