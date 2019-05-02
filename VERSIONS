@@ -88,6 +88,7 @@ development head:
 	add mutation() callbacks and registerMutationCallback()
 	make nucleotide/nucleotideValue properties on Mutation writeable
 	fix some leaks
+	revise recipes 9.6 and 13.5 to use mutation() callbacks
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):

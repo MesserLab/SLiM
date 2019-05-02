@@ -11,11 +11,9 @@ initialize() {
 1 {
 	sim.addSubpop("p1", 500);
 }
-1: late() {
-	muts = sim.mutationsOfType(m2);
-	new_muts = muts[muts.originGeneration == sim.generation];
-	for (mut in new_muts)
-		mut.setValue("dom", runif(1));
+mutation(m2) {
+	mut.setValue("dom", runif(1));
+	return T;
 }
 fitness(m2) {
    if (homozygous)

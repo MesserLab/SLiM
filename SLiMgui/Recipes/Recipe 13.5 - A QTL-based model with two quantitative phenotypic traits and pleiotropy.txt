@@ -45,28 +45,17 @@ initialize() {
 		slimgui.openDocument(pdfPath);
 }
 
-late() {
-	// add effect sizes into new mutation objects
-	all_m2 = sim.mutationsOfType(m2);
-	new_m2 = all_m2[all_m2.originGeneration == sim.generation];
+mutation(m2) {
+	// draw mutational effects for the new m2 mutation
+	effects = rmvnorm(1, QTL_mu, QTL_sigma);
+	mut.setValue("e0", effects[0]);
+	mut.setValue("e1", effects[1]);
 	
-	if (size(new_m2))
-	{
-		// draw mutational effects for all new mutations at once
-		effects = rmvnorm(size(new_m2), QTL_mu, QTL_sigma);
-		
-		// remember all drawn effects, for our final output
-		old_effects = sim.getValue("all_effects");
-		sim.setValue("all_effects", rbind(old_effects, effects));
-		
-		for (i in seqAlong(new_m2))
-		{
-			e = effects[i,];    // each draw is one row in effects
-			mut = new_m2[i];
-			mut.setValue("e0", e[0]);
-			mut.setValue("e1", e[1]);
-		}
-	}
+	// remember all drawn effects, for our final output
+	old_effects = sim.getValue("all_effects");
+	sim.setValue("all_effects", rbind(old_effects, effects));
+	
+	return T;
 }
 
 late() {
