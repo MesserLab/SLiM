@@ -709,7 +709,7 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, int8_
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)]);
+	SLIM_PROFILE_BLOCK_END(sim_->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)]);
 #endif
 	
 	return mutation_accepted;
