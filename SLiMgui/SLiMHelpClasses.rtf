@@ -3023,7 +3023,7 @@ nucleotide <\'96> (string$)\
 \f4\fs20 .  If the mutation is not nucleotide-based, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 nucleotideValue \cf2 <\'96>\cf2  (integer$)\
+\f3\fs18 \cf2 nucleotideValue <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 An 
@@ -3938,7 +3938,7 @@ If the model is being profiled, or is executing forward to a generation number e
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 This property has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0   In SLiM 3.2.1 and later, use 
+\f4\b0 \cf2   In SLiM 3.2.1 and later, use 
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -4408,16 +4408,16 @@ Beginning with SLiM 3.3, the
 \f4\fs20 , the output will not contain ancestral nucleotide information, and so the ancestral sequence will not be restored correctly if the saved file is loaded with 
 \f3\fs18 readPopulationFile()
 \f4\fs20 .  This option is provided because the ancestral sequence may be quite large, for models with a long chromosome (e.g., 1 GB if the chromosome is 10
-\fs13\fsmilli6667 \super 9
-\fs20 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
+\fs13\fsmilli6667 \cf2 \super 9
+\fs20 \cf2 \nosupersub  bases long, when saved in text format, or 0.25 GB when saved in binary format).  If the model is not nucleotide-based (as enabled with the 
 \f3\fs18 nucleotideBased
 \f4\fs20  parameter to 
 \f3\fs18 initializeSLiMOptions()
 \f4\fs20 ), the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will 
-\f1\i always
-\f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
+\f1\i \cf2 always
+\f4\i0 \cf2  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -4533,8 +4533,8 @@ As of SLiM 2.3, this method will read and restore the spatial positions of indiv
 \cf2 \expnd0\expndtw0\kerning0
 As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
-\f1\i vice versa
-\f4\i0 , will produce an error.\
+\f1\i \cf2 vice versa
+\f4\i0 \cf2 , will produce an error.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)recalculateFitness([Ni$\'a0generation\'a0=\'a0NULL])\
@@ -4878,7 +4878,7 @@ The optional parameter
 \f3\fs18 integer
 \f4\fs20  mutation type identifier, or 
 \f3\fs18 NULL
-\f4\fs20 , the default, to indicate all mutation types \'96 see section 24.8), optional subpopulation 
+\f4\fs20 , the default, to indicate all mutation types), optional subpopulation 
 \f3\fs18 subpop
 \f4\fs20  (which may also be an 
 \f3\fs18 integer
@@ -4902,9 +4902,9 @@ The optional parameter
 \f3\fs18 SLiMEidosBlock
 \f4\fs20  objects, and is active immediately; it 
 \f1\i may
-\f4\i0  be eligible to execute in the current generation (see section 24.9 for details).  The new 
+\f4\i0  be eligible to execute in the current generation.  The new 
 \f3\fs18 SLiMEidosBlock
-\f4\fs20  will be defined as a global variable immediately by this method (see section 23.10), and will also be returned by this method.\
+\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerReproductionCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
