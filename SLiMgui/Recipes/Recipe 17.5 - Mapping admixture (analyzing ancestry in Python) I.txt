@@ -28,7 +28,7 @@ initialize() {
 2: late() {
 	if (sim.mutationsOfType(m1).size() == 0)
 	{
-		sim.treeSeqOutput("./recipe_16.5.trees");
+		sim.treeSeqOutput("./recipe_17.5.trees");
 		sim.simulationFinished();
 	}
 }

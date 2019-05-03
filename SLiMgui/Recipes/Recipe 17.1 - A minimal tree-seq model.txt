@@ -12,7 +12,7 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 5000 late() {
-	sim.treeSeqOutput("./recipe_16.1.trees");
+	sim.treeSeqOutput("./recipe_17.1.trees");
 }
 
 // Section 16.2's recipe, which is a Python script that overlays

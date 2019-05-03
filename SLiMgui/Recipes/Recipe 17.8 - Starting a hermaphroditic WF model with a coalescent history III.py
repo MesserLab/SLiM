@@ -2,7 +2,7 @@
 
 import msprime, pyslim
 
-ts = pyslim.load("recipe_16.8_II.trees").simplify()
+ts = pyslim.load("recipe_17.8_II.trees").simplify()
 
 for tree in ts.trees():
     for root in tree.roots:

@@ -4,6 +4,6 @@
 
 import msprime, pyslim
 
-ts = pyslim.load("./recipe_16.1.trees").simplify()
+ts = pyslim.load("./recipe_17.1.trees").simplify()
 mutated = msprime.mutate(ts, rate=1e-7, random_seed=1, keep=True)
-mutated.dump("./recipe_16.1_overlaid.trees")
+mutated.dump("./recipe_17.1_overlaid.trees")

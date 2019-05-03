@@ -19,7 +19,7 @@ reproduction(NULL, "F") {
 	subpop.addCrossed(individual, subpop.sampleIndividuals(1, sex="M"));
 }
 1 early() {
-	sim.readFromPopulationFile("recipe_16.9.trees");
+	sim.readFromPopulationFile("recipe_17.9.trees");
 	target = sample(sim.subpopulations.genomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
@@ -29,7 +29,7 @@ early() {
 1: late() {
 	if (sim.mutationsOfType(m2).size() == 0) {
 		print(sim.substitutions.size() ? "FIXED" else "LOST");
-		sim.treeSeqOutput("recipe_16.9_II.trees");
+		sim.treeSeqOutput("recipe_17.9_II.trees");
 		sim.simulationFinished();
 	}
 }

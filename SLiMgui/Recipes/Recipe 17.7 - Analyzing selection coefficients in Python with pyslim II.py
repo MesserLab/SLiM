@@ -2,7 +2,7 @@
 
 import msprime, pyslim
 
-ts = pyslim.load("recipe_16.7.trees").simplify()
+ts = pyslim.load("recipe_17.7.trees").simplify()
 
 # selection coefficients and locations of all selected mutations
 coeffs = []

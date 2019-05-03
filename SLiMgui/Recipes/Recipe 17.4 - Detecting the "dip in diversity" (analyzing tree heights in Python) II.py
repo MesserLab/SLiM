@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Run the SLiM model and load the resulting .trees
-subprocess.check_output(["slim", "-m", "-s", "0", "./recipe_16.4.slim"])
-ts = pyslim.load("./recipe_16.4.trees").simplify()
+subprocess.check_output(["slim", "-m", "-s", "0", "./recipe_17.4.slim"])
+ts = pyslim.load("./recipe_17.4.trees").simplify()
 
 # Measure the tree height at each base position
 height_for_pos = np.zeros(int(ts.sequence_length))

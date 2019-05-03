@@ -14,4 +14,4 @@ for j in range(len(individual_metadata)):
 
 pyslim.annotate_individual_metadata(tables, individual_metadata)
 slim_ts = pyslim.load_tables(tables)
-slim_ts.dump("recipe_16.9.trees")
+slim_ts.dump("recipe_17.9.trees")
