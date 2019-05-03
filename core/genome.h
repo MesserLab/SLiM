@@ -121,7 +121,9 @@ public:
 	Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
 	~Genome(void);
 	
-	inline __attribute__((always_inline)) slim_genomeid_t GenomeID()			{ return genome_id_; }
+	inline __attribute__((always_inline)) slim_genomeid_t GenomeID(void)			{ return genome_id_; }
+	inline __attribute__((always_inline)) Subpopulation *OwningSubpopulation(void)	{ return subpop_; }
+	inline __attribute__((always_inline)) Individual *OwningIndividual(void)		{ return individual_; }
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	

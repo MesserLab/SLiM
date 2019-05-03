@@ -665,11 +665,11 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, int8_
 						callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
 					}
 					if (mutation_callback->contains_parent_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_parent, p_genome->individual_->CachedEidosValue());
+						callback_symbols.InitializeConstantSymbolEntry(gID_parent, p_genome->OwningIndividual()->CachedEidosValue());
 					if (mutation_callback->contains_genome_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_genome, p_genome->CachedEidosValue());
 					if (mutation_callback->contains_subpop_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_genome->subpop_->SymbolTableEntry().second);
+						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_genome->OwningSubpopulation()->SymbolTableEntry().second);
 					if (mutation_callback->contains_originalNuc_)
 					{
 						local_originalNuc.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
