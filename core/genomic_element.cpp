@@ -55,6 +55,12 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElement &p_geno
 #pragma mark Eidos support
 #pragma mark -
 
+void GenomicElement::GenerateCachedEidosValue(void)
+{
+	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElement_Class));
+}
+
 const EidosObjectClass *GenomicElement::Class(void) const
 {
 	return gSLiM_GenomicElement_Class;

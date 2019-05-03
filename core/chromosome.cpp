@@ -621,7 +621,7 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 }
 
 // apply mutation() to a generated mutation; a return of T means accept, F means reject
-bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
+bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -672,6 +672,8 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, int8_
 						callback_symbols.InitializeConstantSymbolEntry(gID_parent, p_genome->OwningIndividual()->CachedEidosValue());
 					if (mutation_callback->contains_genome_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_genome, p_genome->CachedEidosValue());
+					if (mutation_callback->contains_element_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_element, p_genomic_element->CachedEidosValue());
 					if (mutation_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_genome->OwningSubpopulation()->SymbolTableEntry().second);
 					if (mutation_callback->contains_originalNuc_)
@@ -752,7 +754,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_obje
 	
 	int mut_subrange_index = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
 	const GESubrange &subrange = (*subranges)[mut_subrange_index];
-	const GenomicElement &source_element = *(subrange.genomic_element_ptr_);
+	GenomicElement &source_element = *(subrange.genomic_element_ptr_);
 	
 	// Draw the position along the chromosome for the mutation, within the genomic element
 	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(subrange.end_position_ - subrange.start_position_ + 1));
@@ -921,7 +923,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_obje
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
 	{
-		bool callback_result = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_genome, original_nucleotide, *p_mutation_callbacks);
+		bool callback_result = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_genome, &source_element, original_nucleotide, *p_mutation_callbacks);
 		
 		if (!callback_result)
 		{

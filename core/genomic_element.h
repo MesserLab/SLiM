@@ -43,6 +43,8 @@ class GenomicElement : public EidosObjectElement
 	
 public:
 	
+	EidosValue_SP self_value_;								// cached EidosValue object for speed
+	
 	GenomicElementType *genomic_element_type_ptr_;			// pointer to the type of genomic element this is
 	slim_position_t start_position_;						// the start position of the element
 	slim_position_t end_position_;							// the end position of the element
@@ -58,6 +60,9 @@ public:
 	//
 	// Eidos support
 	//
+	void GenerateCachedEidosValue(void);
+	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
+	
 	virtual const EidosObjectClass *Class(void) const;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);

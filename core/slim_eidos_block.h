@@ -139,6 +139,7 @@ public:
 	bool contains_mut_ = false;					// "mut" (fitness/mutation callback parameter)
 	bool contains_relFitness_ = false;			// "relFitness" (fitness callback parameter)
 	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination/reproduction callback parameter)
+	bool contains_element_ = false;				// "element" (mutation callback parameter)
 	bool contains_genome_ = false;				// "genome" (mutation callback parameter)
 	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination/reproduction callback parameter)
 	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination/reproduction callback parameter)

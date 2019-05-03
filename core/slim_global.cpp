@@ -1190,6 +1190,7 @@ const std::string gStr_drawByStrength = "drawByStrength";
 const std::string gStr_sim = "sim";
 const std::string gStr_self = "self";
 const std::string gStr_individual = "individual";
+const std::string gStr_element = "element";
 const std::string gStr_genome = "genome";
 const std::string gStr_genome1 = "genome1";
 const std::string gStr_genome2 = "genome2";
@@ -1528,6 +1529,7 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_sim, gID_sim);
 		Eidos_RegisterStringForGlobalID(gStr_self, gID_self);
 		Eidos_RegisterStringForGlobalID(gStr_individual, gID_individual);
+		Eidos_RegisterStringForGlobalID(gStr_element, gID_element);
 		Eidos_RegisterStringForGlobalID(gStr_genome, gID_genome);
 		Eidos_RegisterStringForGlobalID(gStr_genome1, gID_genome1);
 		Eidos_RegisterStringForGlobalID(gStr_genome2, gID_genome2);

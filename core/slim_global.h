@@ -674,6 +674,7 @@ extern const std::string gStr_drawByStrength;
 extern const std::string gStr_sim;
 extern const std::string gStr_self;
 extern const std::string gStr_individual;
+extern const std::string gStr_element;
 extern const std::string gStr_genome;
 extern const std::string gStr_genome1;
 extern const std::string gStr_genome2;
@@ -976,6 +977,7 @@ enum _SLiMGlobalStringID : int {
 	gID_sim,
 	gID_self,
 	gID_individual,
+	gID_element,
 	gID_genome,
 	gID_genome1,
 	gID_genome2,

@@ -906,19 +906,20 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 	{
 		const std::string &token_string = p_scan_node->token_->token_string_;
 		
-		if (token_string.compare(gEidosStr_apply) == 0)				contains_wildcard_ = true;
-		if (token_string.compare(gEidosStr_sapply) == 0)			contains_wildcard_ = true;
-		if (token_string.compare(gEidosStr_doCall) == 0)			contains_wildcard_ = true;
-		if (token_string.compare(gEidosStr_executeLambda) == 0)		contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_apply) == 0)						contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_sapply) == 0)					contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_doCall) == 0)					contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_executeLambda) == 0)				contains_wildcard_ = true;
 		if (token_string.compare(gEidosStr__executeLambda_OUTER) == 0)		contains_wildcard_ = true;
-		if (token_string.compare(gEidosStr_ls) == 0)				contains_wildcard_ = true;
-		if (token_string.compare(gEidosStr_rm) == 0)				contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_ls) == 0)						contains_wildcard_ = true;
+		if (token_string.compare(gEidosStr_rm) == 0)						contains_wildcard_ = true;
 		
 		if (token_string.compare(gStr_self) == 0)				contains_self_ = true;
 		
 		if (token_string.compare(gStr_mut) == 0)				contains_mut_ = true;
 		if (token_string.compare(gStr_relFitness) == 0)			contains_relFitness_ = true;
 		if (token_string.compare(gStr_individual) == 0)			contains_individual_ = true;
+		if (token_string.compare(gStr_element) == 0)			contains_element_ = true;
 		if (token_string.compare(gStr_genome) == 0)				contains_genome_ = true;
 		if (token_string.compare(gStr_genome1) == 0)			contains_genome1_ = true;
 		if (token_string.compare(gStr_genome2) == 0)			contains_genome2_ = true;
@@ -960,6 +961,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 		contains_mut_ = true;
 		contains_relFitness_ = true;
 		contains_individual_ = true;
+		contains_element_ = true;
 		contains_genome_ = true;
 		contains_genome1_ = true;
 		contains_genome2_ = true;

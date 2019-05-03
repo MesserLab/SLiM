@@ -91,6 +91,7 @@ development head:
 	revise recipes 9.6 and 13.5 to use mutation() callbacks
 	switch Chromosome to keeping pointers to GenomicElement, fixing a potential crash (which I don't think anyone ever hit)
 	make initializeGenomicElement() return the new element, following the pattern of the other initialize...() functions
+	add GenomicElement pseudo-parameter element to mutation() callback API
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
