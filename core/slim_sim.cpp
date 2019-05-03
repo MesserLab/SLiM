@@ -654,9 +654,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			int64_t individual_index = EidosInterpreter::NonnegativeIntegerForString(individual_index_string.c_str() + 1, nullptr);
 			
-			auto subpop_pair = population_.find(subpop_id);
+			auto subpop_pair = population_.subpops_.find(subpop_id);
 			
-			if (subpop_pair == population_.end())
+			if (subpop_pair == population_.subpops_.end())
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
 			Subpopulation &subpop = *subpop_pair->second;
@@ -738,9 +738,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		std::string &&subpop_id_string = sub.substr(0, pos);
 		slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
 		
-		auto subpop_pair = population_.find(subpop_id);
+		auto subpop_pair = population_.subpops_.find(subpop_id);
 		
-		if (subpop_pair == population_.end())
+		if (subpop_pair == population_.subpops_.end())
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		Subpopulation &subpop = *subpop_pair->second;
@@ -860,7 +860,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
 		executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
@@ -1297,9 +1297,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(genome_index);
 		
 		// Look up the subpopulation
-		auto subpop_pair = population_.find(subpop_id);
+		auto subpop_pair = population_.subpops_.find(subpop_id);
 		
-		if (subpop_pair == population_.end())
+		if (subpop_pair == population_.subpops_.end())
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		Subpopulation &subpop = *subpop_pair->second;
@@ -1509,7 +1509,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
 		executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
@@ -3081,7 +3081,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3153,13 +3153,13 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		if (no_active_callbacks)
 		{
-			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 				population_.EvolveSubpopulation(*subpop_pair.second, false, false, false, false);
 		}
 		else
 		{
 			// cache a list of callbacks registered for each subpop
-			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			{
 				slim_objectid_t subpop_id = subpop_pair.first;
 				Subpopulation *subpop = subpop_pair.second;
@@ -3210,12 +3210,12 @@ bool SLiMSim::_RunOneGenerationWF(void)
 			}
 			
 			// then evolve each subpop
-			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 				population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present);
 		}
 		
 		// then switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpop_pair.second->child_generation_valid_ = true;
 		
 		population_.child_generation_valid_ = true;
@@ -3236,7 +3236,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3280,7 +3280,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3307,7 +3307,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3362,7 +3362,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3482,7 +3482,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	{
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		// zero out offspring counts used for SLiMgui's display
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			
@@ -3494,7 +3494,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		}
 		
 		// zero out migration counts used for SLiMgui's display
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			
@@ -3518,7 +3518,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		std::vector<SLiMEidosBlock*> mutation_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1);
 		
 		// cache a list of callbacks registered for each subpop
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
@@ -3572,7 +3572,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
 		executing_block_type_ = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpop_pair.second->ReproduceSubpopulation();
 		
 		executing_block_type_ = old_executing_block_type;
@@ -3585,11 +3585,11 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		DeregisterScheduledInteractionBlocks();
 		
 		// then merge in the generated offspring; we don't want to do this until all callbacks have executed for all subpops
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpop_pair.second->MergeReproductionOffspring();
 		
 		// clear the "migrant" property on all individuals
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			for (Individual *individual : subpop_pair.second->parent_individuals_)
 				individual->migrant_ = false;
 		
@@ -3607,7 +3607,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3662,7 +3662,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3710,7 +3710,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage4SurvivalSelection;
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpop_pair.second->ViabilitySelection();
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -3721,7 +3721,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3758,7 +3758,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3817,7 +3817,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->CheckIndividualIntegrity();
 #endif
 	
@@ -3859,7 +3859,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		tree_seq_generation_++;
 		tree_seq_generation_offset_ = 0;
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpop_pair.second->IncrementIndividualAges();
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
@@ -4275,7 +4275,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	std::vector<Genome *> all_genomes_in_use, all_genomes_not_in_use;
 	size_t genome_pool_usage = 0, individual_pool_usage = 0;
 	
-	for (auto iter : population_)
+	for (auto iter : population_.subpops_)
 	{
 		Subpopulation &subpop = *iter.second;
 		
@@ -4337,7 +4337,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	// Individual
 	{
 		p_usage->individualObjects_count = 0;
-		for (auto iter : population_)
+		for (auto iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
 			
@@ -4438,12 +4438,12 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// Subpopulation
 	{
-		p_usage->subpopulationObjects_count = (int64_t)population_.size();
+		p_usage->subpopulationObjects_count = (int64_t)population_.subpops_.size();
 		
 		p_usage->subpopulationObjects = sizeof(Subpopulation) * p_usage->subpopulationObjects_count;
 		
 		p_usage->subpopulationFitnessCaches = 0;
-		for (auto iter : population_)
+		for (auto iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
 			
@@ -4454,7 +4454,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 		}
 		
 		p_usage->subpopulationParentTables = 0;
-		for (auto iter : population_)
+		for (auto iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
 			
@@ -4463,7 +4463,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 		
 		p_usage->subpopulationSpatialMaps = 0;
 		p_usage->subpopulationSpatialMapsDisplay = 0;
-		for (auto iter : population_)
+		for (auto iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
 			
@@ -4737,7 +4737,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 	// and then come all the genomes of the extant individuals
 	tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_genomes_.size();
 	
-	for (auto it = population_.begin(); it != population_.end(); it++)
+	for (auto it = population_.subpops_.begin(); it != population_.subpops_.end(); it++)
 	{
 		std::vector<Genome *> &subpopulationGenomes = it->second->parent_genomes_;
 		
@@ -4821,7 +4821,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	// Collect a vector of all extant genome node IDs
 	std::vector<tsk_id_t> all_extant_nodes;
 	
-	for (auto subpop_iter : population_)
+	for (auto subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		std::vector<Genome *> &genomes = subpop->parent_genomes_;
@@ -5949,7 +5949,7 @@ void SLiMSim::AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables
 {
 	// add currently alive individuals to the individuals table, so they persist
 	// through simplify and can be revived when loading saved state
-	for (auto subpop_iter : population_)
+	for (auto subpop_iter : population_.subpops_)
 	{
         AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(),
                               subpop_iter.second->parent_individuals_.size(), 
@@ -6024,7 +6024,7 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 	// write out an entry for each subpop
 	slim_objectid_t last_id_written = -1;
 	
-	for (auto subpop_iter : population_)
+	for (auto subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
 		slim_objectid_t subpop_id = subpop->subpopulation_id_;
@@ -6442,7 +6442,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// SLiM so that when we read back in it doesn't cause a reordering as a side effect
 	std::vector<int> individual_map;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
@@ -6600,7 +6600,7 @@ void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
 	// that modifyChild() callbacks do not happen in this scenario, so new individuals will not get retracted.  Note
 	// also that new mutations will not be added one at a time, when they are stacked; instead, each block of stacked
 	// mutations in a genome will be added with a single derived state call here.
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
@@ -6751,7 +6751,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 	static std::vector<Genome *> genomes;
 	genomes.clear();
 	
-	for (auto pop_iter : population_)
+	for (auto pop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = pop_iter.second;
 		
@@ -6798,7 +6798,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		{
 			std::vector<tsk_id_t> samples;
 			
-			for (auto iter = population_.begin(); iter != population_.end(); iter++)
+			for (auto iter = population_.subpops_.begin(); iter != population_.subpops_.end(); iter++)
 				for (Genome *genome : iter->second->parent_genomes_)
 					samples.push_back(genome->tsk_node_id_);
 			
@@ -7319,7 +7319,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 				++nonempty_count;
 		}
 		
-		if ((size_t)nonempty_count != population_.size())
+		if ((size_t)nonempty_count != population_.subpops_.size())
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): subpopulation count mismatch; this file cannot be read." << EidosTerminate();
 	}
 	
@@ -7341,8 +7341,8 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		SubpopulationMetadataRec *metadata = (SubpopulationMetadataRec *)metadata_char;
 		SubpopulationMigrationMetadataRec *migration_recs = (SubpopulationMigrationMetadataRec *)(metadata + 1);
 		slim_objectid_t subpop_id = metadata->subpopulation_id_;
-		auto subpop_iter = population_.find(subpop_id);
-		Subpopulation *subpop = (subpop_iter == population_.end()) ? nullptr : subpop_iter->second;
+		auto subpop_iter = population_.subpops_.find(subpop_id);
+		Subpopulation *subpop = (subpop_iter == population_.subpops_.end()) ? nullptr : subpop_iter->second;
 		
 		if (!subpop)
 		{
@@ -7585,7 +7585,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	// count the number of non-null genomes there are; this is the count that would represent fixation
 	slim_refcount_t fixation_count = 0;
 	
-	for (auto pop_iter : population_)
+	for (auto pop_iter : population_.subpops_)
 		for (Genome *genome : pop_iter.second->parent_genomes_)
 			if (!genome->IsNull())
 				fixation_count++;
@@ -9895,7 +9895,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Subpopulation_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto pop = population_.begin(); pop != population_.end(); ++pop)
+			for (auto pop = population_.subpops_.begin(); pop != population_.subpops_.end(); ++pop)
 				vec->push_object_element(pop->second);
 			
 			return result_SP;
@@ -10693,7 +10693,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	if (mutations_count > 0)
 	{
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			PolymorphismMap polymorphisms;

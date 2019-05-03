@@ -379,7 +379,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 {
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	int subpopCount = (int)pop.size();
+	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
 		return;
@@ -393,7 +393,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	connected = (BOOL *)calloc(subpopCount * subpopCount, sizeof(BOOL));
 	
 	// We start by figuring out connectivity
-	auto subpopIter = pop.begin();
+	auto subpopIter = pop.subpops_.begin();
 	
 	for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 	{
@@ -404,7 +404,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 			slim_objectid_t migrant_source_id = fractions_pair.first;
 			
 			// We need to get from the source ID to the index of the source subpop in the pop array
-			auto sourceIter = pop.begin();
+			auto sourceIter = pop.subpops_.begin();
 			int sourceIndex;
 			
 			for (sourceIndex = 0; sourceIndex < subpopCount; ++sourceIndex)
@@ -557,7 +557,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	}
 	
 	// Finally, we set the positions we have arrived at back into the subpops
-	subpopIter = pop.begin();
+	subpopIter = pop.subpops_.begin();
 	
 	for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 	{
@@ -583,7 +583,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 {
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	int subpopCount = (int)pop.size();
+	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
 	{
@@ -615,7 +615,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	
 	if (subpopCount == 1)
 	{
-		auto subpopIter = pop.begin();
+		auto subpopIter = pop.subpops_.begin();
 		
 		// a single subpop is shown as a circle at the center
 		[self drawSubpop:(*subpopIter).second withID:(*subpopIter).first centeredAt:NSMakePoint(0.5, 0.5) controller:controller];
@@ -626,7 +626,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		BOOL allUserConfigured = true;
 		
 		{
-			auto subpopIter = pop.begin();
+			auto subpopIter = pop.subpops_.begin();
 			
 			for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 			{
@@ -655,7 +655,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 			NSRect boundingBox = NSZeroRect;
 			
 			{
-				auto subpopIter = pop.begin();
+				auto subpopIter = pop.subpops_.begin();
 				
 				for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 				{
@@ -681,7 +681,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		
 		// then we draw the subpops
 		{
-			auto subpopIter = pop.begin();
+			auto subpopIter = pop.subpops_.begin();
 			
 			for (int subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 			{
@@ -697,7 +697,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		// in the multipop case, we need to draw migration arrows, too
 #if (defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY))
 		{
-			for (auto destSubpopIter = pop.begin(); destSubpopIter != pop.end(); ++destSubpopIter)
+			for (auto destSubpopIter = pop.subpops_.begin(); destSubpopIter != pop.subpops_.end(); ++destSubpopIter)
 			{
 				Subpopulation *destSubpop = (*destSubpopIter).second;
 				std::map<slim_objectid_t,double> &destMigrants = (sim->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
@@ -705,9 +705,9 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
 				{
 					slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
-					auto sourceSubpopPair = pop.find(sourceSubpopID);
+					auto sourceSubpopPair = pop.subpops_.find(sourceSubpopID);
 					
-					if (sourceSubpopPair != pop.end())
+					if (sourceSubpopPair != pop.subpops_.end())
 					{
 						Subpopulation *sourceSubpop = sourceSubpopPair->second;
 						double migrantFraction = (*sourceSubpopIter).second;
@@ -769,7 +769,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	{
 		// If any subpop has a user-defined center, disable position optimization; it doesn't know how to
 		// handle those, and there's no way to revert back after it messes things up, and so forth
-		for (auto subpopIter = pop.begin(); subpopIter != pop.end(); ++subpopIter)
+		for (auto subpopIter = pop.subpops_.begin(); subpopIter != pop.subpops_.end(); ++subpopIter)
 			if (((*subpopIter).second)->gui_center_from_user_)
 				return NO;
 	}

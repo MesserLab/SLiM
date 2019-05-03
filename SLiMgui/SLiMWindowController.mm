@@ -662,8 +662,8 @@
 		else
 		{
 			Population &population = sim->population_;
-			int subpopCount = (int)population.size();
-			auto popIter = population.begin();
+			int subpopCount = (int)population.subpops_.size();
+			auto popIter = population.subpops_.begin();
 			NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
 			
 			for (int i = 0; i < subpopCount; ++i)
@@ -900,8 +900,8 @@
 	if (![self invalidSimulation] && sim)
 	{
 		Population &population = sim->population_;
-		int subpopCount = (int)population.size();
-		auto popIter = population.begin();
+		int subpopCount = (int)population.subpops_.size();
+		auto popIter = population.subpops_.begin();
 		
 		for (int i = 0; i < subpopCount; ++i)
 		{
@@ -1010,7 +1010,7 @@
 	if (sel == @selector(graphFitnessOverTime:))
 		return !(invalidSimulation);
 	if (sel == @selector(graphHaplotypes:))
-		return (!invalidSimulation && sim && (sim->generation_ > 1) && (sim->population_.size() > 0));	// must be past initialize() and have subpops
+		return (!invalidSimulation && sim && (sim->generation_ > 1) && (sim->population_.subpops_.size() > 0));	// must be past initialize() and have subpops
 	
 	if (sel == @selector(checkScript:))
 		return !(continuousPlayOn || generationPlayOn);
@@ -4617,8 +4617,8 @@
 		if (aTableView == subpopTableView && !reloadingSubpopTableview)		// see comment in -updateAfterTick after reloadingSubpopTableview
 		{
 			Population &population = sim->population_;
-			int subpopCount = (int)population.size();
-			auto popIter = population.begin();
+			int subpopCount = (int)population.subpops_.size();
+			auto popIter = population.subpops_.begin();
 			bool all_selected = true;
 			
 			for (int i = 0; i < subpopCount; ++i)
@@ -4659,7 +4659,7 @@
 	{
 		if (aTableView == subpopTableView)
 		{
-			return sim->population_.size();
+			return sim->population_.subpops_.size();
 		}
 		else if (aTableView == mutTypeTableView)
 		{
@@ -4689,11 +4689,11 @@
 		if (aTableView == subpopTableView)
 		{
 			Population &population = sim->population_;
-			int subpopCount = (int)population.size();
+			int subpopCount = (int)population.subpops_.size();
 			
 			if (rowIndex < subpopCount)
 			{
-				auto popIter = population.begin();
+				auto popIter = population.subpops_.begin();
 				
 				std::advance(popIter, rowIndex);
 				slim_objectid_t subpop_id = popIter->first;

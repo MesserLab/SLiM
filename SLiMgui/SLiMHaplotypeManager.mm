@@ -69,12 +69,12 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 		// Figure out which subpops are selected (or if none are, consider all to be); we will display only the selected subpops
 		std::vector<Subpopulation *> selected_subpops;
 		
-		for (auto subpop_pair : population)
+		for (auto subpop_pair : population.subpops_)
 			if (subpop_pair.second->gui_selected_)
 				selected_subpops.push_back(subpop_pair.second);
 		
 		if (selected_subpops.size() == 0)
-			for (auto subpop_pair : population)
+			for (auto subpop_pair : population.subpops_)
 				selected_subpops.push_back(subpop_pair.second);
 		
 		// Figure out whether we're analyzing / displaying a subrange; gross that we go right into the ChromosomeView, I know...

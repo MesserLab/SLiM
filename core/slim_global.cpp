@@ -439,9 +439,9 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-		auto found_subpop_pair = p_sim.ThePopulation().find(source_subpop_id);
+		auto found_subpop_pair = p_sim.ThePopulation().subpops_.find(source_subpop_id);
 		
-		if (found_subpop_pair == p_sim.ThePopulation().end())
+		if (found_subpop_pair == p_sim.ThePopulation().subpops_.end())
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
 		
 		return found_subpop_pair->second;

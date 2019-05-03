@@ -4545,7 +4545,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	
 	// First, clear our genome and individual caches in all subpopulations; we don't want to have to do the work of patching them below, and any
 	// subpops involved in the migration will be invalidated anyway so this probably isn't even that much overkill in most models.
-	for (auto subpop_pair : population_)
+	for (auto subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		

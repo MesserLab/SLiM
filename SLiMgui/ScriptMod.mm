@@ -306,7 +306,7 @@
 
 - (BOOL)checkSubpopsDefined
 {
-	if (controller->sim->population_.size() == 0)
+	if (controller->sim->population_.subpops_.size() == 0)
 	{
 		NSAlert *alert = [[NSAlert alloc] init];
 		
@@ -598,7 +598,7 @@
 	{
 		Population &population = controller->sim->population_;
 		
-		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
+		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
 		{
 			slim_objectid_t subpopID = popIter->first;
 			//Subpopulation *subpop = popIter->second;
@@ -634,7 +634,7 @@
 	{
 		Population &population = controller->sim->population_;
 		
-		if (population.find(subpopID) != population.end())
+		if (population.subpops_.find(subpopID) != population.subpops_.end())
 			return NO;
 	}
 	
@@ -649,7 +649,7 @@
 	{
 		Population &population = controller->sim->population_;
 		
-		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
+		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
 		{
 			slim_objectid_t subpopID = popIter->first;
 			

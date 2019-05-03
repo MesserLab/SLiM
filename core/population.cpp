@@ -69,10 +69,10 @@ Population::~Population(void)
 void Population::RemoveAllSubpopulationInfo(void)
 {
 	// Free all subpopulations and then clear out our subpopulation list
-	for (auto subpopulation : *this)
+	for (auto subpopulation : subpops_)
 		delete subpopulation.second;
 	
-	this->clear();
+	subpops_.clear();
 	
 	// Free all substitutions and clear out the substitution vector
 	for (auto substitution : substitutions_)
@@ -147,7 +147,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 // add new empty subpopulation p_subpop_id of size p_subpop_size
 Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio) 
 { 
-	if (count(p_subpop_id) != 0)
+	if (subpops_.count(p_subpop_id) != 0)
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " already exists." << EidosTerminate();
 	if ((p_subpop_size < 1) && (sim_.ModelType() == SLiMModelType::kModelTypeWF))	// allowed in nonWF models
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
@@ -171,7 +171,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	new_subpop->gui_selected_ = gui_all_selected_;
 #endif
 	
-	insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
+	subpops_.insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
 	
 	return new_subpop;
 }
@@ -180,7 +180,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 // add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
 Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Subpopulation &p_source_subpop, slim_popsize_t p_subpop_size, double p_initial_sex_ratio)
 {
-	if (count(p_subpop_id) != 0)
+	if (subpops_.count(p_subpop_id) != 0)
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): subpopulation p" << p_subpop_id << " already exists." << EidosTerminate();
 	if (p_subpop_size < 1)
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
@@ -202,7 +202,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	new_subpop->gui_selected_ = gui_all_selected_;
 #endif
 	
-	insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
+	subpops_.insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = *new_subpop;
@@ -286,16 +286,16 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 		slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 		
 		// only remove if we have not already removed
-		if (find(subpop_id) != this->end())
+		if (subpops_.find(subpop_id) != subpops_.end())
 		{
 			// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
 			// First we remove the symbol for the subpop
 			sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 			
 			// Then we immediately remove the subpop from our list of subpops
-			erase(subpop_id);
+			subpops_.erase(subpop_id);
 			
-			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 				subpop_pair.second->migrant_fractions_.erase(subpop_id);
 			
 			// remember the subpop for later disposal
@@ -318,14 +318,14 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 	slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 	
 	// only remove if we have not already removed
-	if (find(subpop_id) != this->end())
+	if (subpops_.find(subpop_id) != subpops_.end())
 	{
 		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
 		// First we remove the symbol for the subpop
 		sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 		
 		// Then we immediately remove the subpop from our list of subpops
-		erase(subpop_id);
+		subpops_.erase(subpop_id);
 		
 		// remember the subpop for later disposal
 		removed_subpops_.emplace_back(&p_subpop);
@@ -337,7 +337,7 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
 void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
-	if (count(p_source_subpop_id) == 0)
+	if (subpops_.count(p_source_subpop_id) == 0)
 		EIDOS_TERMINATION << "ERROR (Population::SetMigration): no subpopulation p" << p_source_subpop_id << "." << EidosTerminate();
 	if ((p_migrant_fraction < 0.0) || (p_migrant_fraction > 1.0) || std::isnan(p_migrant_fraction))
 		EIDOS_TERMINATION << "ERROR (Population::SetMigration): migration fraction has to be within [0,1] (" << EidosStringForFloat(p_migrant_fraction) << " supplied)." << EidosTerminate();
@@ -884,9 +884,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		for (const std::pair<const slim_objectid_t,double> &fractions_pair : p_subpop.migrant_fractions_)
 		{
 			slim_objectid_t migrant_source_id = fractions_pair.first;
-			auto migrant_source_pair = find(migrant_source_id);
+			auto migrant_source_pair = subpops_.find(migrant_source_id);
 			
-			if (migrant_source_pair == end())
+			if (migrant_source_pair == subpops_.end())
 				EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): no migrant source subpopulation p" << migrant_source_id << "." << EidosTerminate();
 			
 			migration_rates[pop_count] = fractions_pair.second;
@@ -4164,7 +4164,7 @@ void Population::SurveyPopulation(void)
 	slim_popsize_t individualCount = 0;
 	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
 	
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
 		
@@ -4435,12 +4435,12 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	{
 		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			subpop_pair.second->UpdateFitness(no_fitness_callbacks, no_fitness_callbacks);
 	}
 	else
 	{
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
@@ -4471,7 +4471,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	sim_.executing_block_type_ = old_executing_block_type;
 	
 	// reset fitness_scaling_ to 1.0 on subpops and individuals
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
@@ -4496,7 +4496,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 // Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
 void Population::ClearParentalGenomes(void)
 {
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
@@ -4539,7 +4539,7 @@ void Population::UniqueMutationRuns(void)
 	
 	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
@@ -4644,7 +4644,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 	if (sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
@@ -4692,7 +4692,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 	int mutruns_buf_index;
 	
 	// for every subpop
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
@@ -4816,7 +4816,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 	if (sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
@@ -4864,7 +4864,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 	int mutruns_buf_index;
 	
 	// for every subpop
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
@@ -5009,7 +5009,7 @@ void Population::AssessMutationRuns(void)
 		
 		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 		
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
@@ -5078,7 +5078,7 @@ void Population::SwapGenerations(void)
 	}
 	
 	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		subpop_pair.second->SwapChildAndParentGenomes();
 	
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
@@ -5093,7 +5093,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 	// First, figure out whether we're doing all subpops or a subset
 	if (p_subpops_to_tally)
 	{
-		if (p_subpops_to_tally->size() == this->size())
+		if (p_subpops_to_tally->size() == subpops_.size())
 		{
 			// Rather than doing an equality test, we'll just assume that if there are N subpops and we've been asked to tally across N subpops,
 			// we have been asked to tally across the whole population.  Hard to imagine a rational case that would violate that assumption.
@@ -5180,7 +5180,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		// separate from slim's since the user can select just a subset of subpopulations.
 		bool slimgui_subpop_subset_selected = false;
 		
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			if (!subpop_pair.second->gui_selected_)
 				slimgui_subpop_subset_selected = true;
 		
@@ -5199,7 +5199,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			slim_refcount_t total_genome_count = 0, tally_mutrun_ref_count = 0, total_mutrun_count = 0;
 			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 			
-			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
 				Subpopulation *subpop = subpop_pair.second;
 				
@@ -5303,7 +5303,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			// then increment the refcounts through all pointers to Mutation in all genomes
 			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 			
-			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
 				Subpopulation *subpop = subpop_pair.second;
 				
@@ -5442,7 +5442,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	slim_refcount_t total_genome_count = 0;
 	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
@@ -5631,7 +5631,7 @@ void Population::RemoveAllFixedMutations(void)
 		// We remove fixed mutations from each MutationRun just once; this is the operation ID we use for that
 		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)		// subpopulations
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
 			std::vector<Genome *> &subpop_genomes = subpop_pair.second->CurrentGenomes();
 			slim_popsize_t subpop_genome_count = subpop_pair.second->CurrentGenomeCount();
@@ -5735,7 +5735,7 @@ void Population::CheckMutationRegistry(void)
 			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << std::endl;
 	
 	// then check that we don't have any zombies in any genomes
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)		// subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
@@ -5794,7 +5794,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	
 	// Output populations first
 	p_out << "Populations:" << std::endl;
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
@@ -5840,7 +5840,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	// add all polymorphisms
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
@@ -5895,7 +5895,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	// print all individuals
 	p_out << "Individuals:" << std::endl;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
@@ -5964,7 +5964,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	// print all genomes
 	p_out << "Genomes:" << std::endl;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
@@ -6108,7 +6108,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
 	
 	// Populations section
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
@@ -6158,7 +6158,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	PolymorphismMap polymorphisms;
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
@@ -6231,7 +6231,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// Genomes section
 	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : *this)			// go through all subpopulations
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;

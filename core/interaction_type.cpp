@@ -3206,7 +3206,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim.ThePopulation())
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim.ThePopulation().subpops_)
 			EvaluateSubpopulation(subpop_pair.second, immediate);
 	}
 	else

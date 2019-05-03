@@ -121,7 +121,7 @@
 	{
 		Population &population = controller->sim->population_;
 		
-		for (auto popIter = population.begin(); popIter != population.end(); ++popIter)
+		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
 		{
 			slim_objectid_t subpopID = popIter->first;
 			//Subpopulation *subpop = popIter->second;
@@ -262,7 +262,7 @@
 	BOOL foundSelectedSubpop = NO;
 	BOOL foundSelectedMutType = NO;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
 		if (subpop_pair.first == _selectedSubpopulationID)	// find our chosen subpop
 			foundSelectedSubpop = YES;
 	
@@ -316,7 +316,7 @@
 	for (; registry_iter != registry_iter_end; ++registry_iter)
 		(mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population)
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
 	{
 		if (subpop_pair.first == _selectedSubpopulationID)	// tally only within our chosen subpop
 		{
