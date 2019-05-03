@@ -47,7 +47,7 @@ class SLiMSim;
 extern EidosObjectClass *gSLiM_Chromosome_Class;
 
 
-class Chromosome : private std::vector<GenomicElement>, public EidosObjectElement
+class Chromosome : public EidosObjectElement
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -57,6 +57,7 @@ public:
 private:
 #endif
 	
+	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
 	SLiMSim *sim_;
 	
 	// We now allow different recombination maps for males and females, optionally.  Unfortunately, this means we have a bit of an
@@ -103,18 +104,11 @@ private:
 #endif
 	
 	// GESubrange vectors used to facilitate new mutation generation – draw a subrange, then draw a position inside the subrange
-	vector<GESubrange> mutation_subranges_H_;
-	vector<GESubrange> mutation_subranges_M_;
-	vector<GESubrange> mutation_subranges_F_;
+	std::vector<GESubrange> mutation_subranges_H_;
+	std::vector<GESubrange> mutation_subranges_M_;
+	std::vector<GESubrange> mutation_subranges_F_;
 	
 public:
-	
-	// We use private inheritance from std::vector<GenomicElement> to avoid issues with Chromosome being treated polymorphically
-	// as a std::vector, and forward only the minimal set of std::vector methods that users of Chromosome actually want.
-	// See http://stackoverflow.com/questions/4353203/thou-shalt-not-inherit-from-stdvector for discussion.
-	using std::vector<GenomicElement>::emplace_back;
-	using std::vector<GenomicElement>::begin;
-	using std::vector<GenomicElement>::end;
 	
 	std::vector<slim_position_t> mutation_end_positions_H_;		// end positions of each defined mutation region (BEFORE intersection with GEs)
 	std::vector<slim_position_t> mutation_end_positions_M_;
@@ -180,17 +174,18 @@ public:
 	explicit Chromosome(SLiMSim *p_sim);									// construct with a simulation object
 	~Chromosome(void);														// destructor
 	
-	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)											{ return ancestral_seq_buffer_; }
+	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
+	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)						{ return ancestral_seq_buffer_; }
 	
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void InitializeDraws(void);
-	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel);
-	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, vector<GESubrange> &p_subranges);
+	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel);
+	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges);
 	void ChooseMutationRunLayout(int p_preferred_count);
 	
 	inline bool UsingSingleRecombinationMap(void) const { return single_recombination_map_; }
 	inline bool UsingSingleMutationMap(void) const { return single_mutation_map_; }
-	inline size_t GenomicElementCount(void) const { return size(); }
+	inline size_t GenomicElementCount(void) const { return genomic_elements_.size(); }
 	
 	// draw the number of mutations that occur, based on the overall mutation rate
 	int DrawMutationCount(IndividualSex p_sex) const;

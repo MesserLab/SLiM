@@ -33,8 +33,6 @@
 #pragma mark GenomicElement
 #pragma mark -
 
-bool GenomicElement::s_log_copy_and_assign_ = true;
-
 
 GenomicElement::GenomicElement(GenomicElementType *p_genomic_element_type_ptr, slim_position_t p_start_position, slim_position_t p_end_position) :
 	genomic_element_type_ptr_(p_genomic_element_type_ptr), start_position_(p_start_position), end_position_(p_end_position)
@@ -47,53 +45,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElement &p_geno
 	p_outstream << "GenomicElement{genomic_element_type_ g" << p_genomic_element.genomic_element_type_ptr_->genomic_element_type_id_ << ", start_position_ " << p_genomic_element.start_position_ << ", end_position_ " << p_genomic_element.end_position_ << "}";
 	
 	return p_outstream;
-}
-
-
-//
-//	Methods to enforce limited copying
-//
-
-GenomicElement::GenomicElement(const GenomicElement& p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		SLIM_ERRSTREAM << "********* GenomicElement::GenomicElement(GenomicElement&) called!" << std::endl;
-		Eidos_PrintStacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
-	}
-	
-	genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
-	start_position_ = p_original.start_position_;
-	end_position_ = p_original.end_position_;
-}
-
-GenomicElement& GenomicElement::operator= (const GenomicElement& p_original)
-{
-	if (s_log_copy_and_assign_)
-	{
-		SLIM_ERRSTREAM << "********* GenomicElement::operator=(GenomicElement&) called!" << std::endl;
-		Eidos_PrintStacktrace(stderr);
-		SLIM_ERRSTREAM << "************************************************" << std::endl;
-	}
-	
-	if (&p_original != this)
-	{
-		genomic_element_type_ptr_ = p_original.genomic_element_type_ptr_;
-		start_position_ = p_original.start_position_;
-		end_position_ = p_original.end_position_;
-	}
-	
-	return *this;
-}
-
-bool GenomicElement::LogGenomicElementCopyAndAssign(bool p_log)
-{
-	bool old_value = s_log_copy_and_assign_;
-	
-	s_log_copy_and_assign_ = p_log;
-	
-	return old_value;
 }
 
 

@@ -419,10 +419,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	Chromosome &chromosome = controller->sim->chromosome_;
 	CGFloat previousIntervalLeftEdge = -10000;
 	
-	for (GenomicElement &genomicElement : chromosome)
+	for (GenomicElement *genomicElement : chromosome.GenomicElements())
 	{
-		slim_position_t startPosition = genomicElement.start_position_;
-		slim_position_t endPosition = genomicElement.end_position_;
+		slim_position_t startPosition = genomicElement->start_position_;
+		slim_position_t endPosition = genomicElement->end_position_;
 		NSRect elementRect = [self rectEncompassingBase:startPosition toBase:endPosition interiorRect:interiorRect displayedRange:displayedRange];
 		BOOL widthOne = (elementRect.size.width == 1);
 		
@@ -439,7 +439,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		if (!NSIsEmptyRect(elementRect))
 		{
-			GenomicElementType *geType = genomicElement.genomic_element_type_ptr_;
+			GenomicElementType *geType = genomicElement->genomic_element_type_ptr_;
 			NSColor *elementColor = [controller colorForGenomicElementType:geType withID:geType->genomic_element_type_id_];
 			
 			[elementColor set];
@@ -461,10 +461,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	SLIM_GL_PREPARE();
 	
-	for (GenomicElement &genomicElement : chromosome)
+	for (GenomicElement *genomicElement : chromosome.GenomicElements())
 	{
-		slim_position_t startPosition = genomicElement.start_position_;
-		slim_position_t endPosition = genomicElement.end_position_;
+		slim_position_t startPosition = genomicElement->start_position_;
+		slim_position_t endPosition = genomicElement->end_position_;
 		NSRect elementRect = [self rectEncompassingBase:startPosition toBase:endPosition interiorRect:interiorRect displayedRange:displayedRange];
 		BOOL widthOne = (elementRect.size.width == 1);
 		
@@ -481,7 +481,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		if (!NSIsEmptyRect(elementRect))
 		{
-			GenomicElementType *geType = genomicElement.genomic_element_type_ptr_;
+			GenomicElementType *geType = genomicElement->genomic_element_type_ptr_;
 			float colorRed, colorGreen, colorBlue, colorAlpha;
 			
 			if (!geType->color_.empty())
@@ -1870,10 +1870,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				NSRange selectionRange = NSMakeRange(0, 0);
 				Chromosome &chromosome = controller->sim->chromosome_;
 				
-				for (GenomicElement &genomicElement : chromosome)
+				for (GenomicElement *genomicElement : chromosome.GenomicElements())
 				{
-					slim_position_t startPosition = genomicElement.start_position_;
-					slim_position_t endPosition = genomicElement.end_position_;
+					slim_position_t startPosition = genomicElement->start_position_;
+					slim_position_t endPosition = genomicElement->end_position_;
 					
 					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
 						selectionRange = NSMakeRange(startPosition, endPosition - startPosition + 1);

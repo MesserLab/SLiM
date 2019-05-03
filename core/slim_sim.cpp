@@ -8285,7 +8285,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(chromosome_.ancestral_seq_buffer_->size()));
 }
 
-//	*********************	(void)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)
+//	*********************	(object<GenomicElement>)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -8309,6 +8309,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 	GenomicElementType *genomic_element_type_ptr_0 = ((type_count == 1) ? SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, *this, "initializeGenomicElement()") : nullptr);
 	GenomicElementType *genomic_element_type_ptr = nullptr;
 	slim_position_t start_position = 0, end_position = 0;
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElement_Class))->resize_no_initialize(element_count);
 	
 	for (int element_index = 0; element_index < element_count; ++element_index)
 	{
@@ -8324,9 +8325,9 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
 		if (start_position <= last_genomic_element_position_)
 		{
-			for (auto &element : chromosome_)
+			for (GenomicElement *element : chromosome_.GenomicElements())
 			{
-				if ((element.start_position_ <= end_position) && (element.end_position_ >= start_position))
+				if ((element->start_position_ <= end_position) && (element->end_position_ >= start_position))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << EidosTerminate();
 			}
 		}
@@ -8335,11 +8336,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 			last_genomic_element_position_ = end_position;
 		
 		// Create and add the new element
-		GenomicElement new_genomic_element(genomic_element_type_ptr, start_position, end_position);
+		GenomicElement *new_genomic_element = new GenomicElement(genomic_element_type_ptr, start_position, end_position);
 		
-		bool old_log = GenomicElement::LogGenomicElementCopyAndAssign(false);
-		chromosome_.emplace_back(new_genomic_element);
-		GenomicElement::LogGenomicElementCopyAndAssign(old_log);
+		chromosome_.GenomicElements().emplace_back(new_genomic_element);
+		result_vec->set_object_element_no_check(new_genomic_element, element_index);
 		
 		chromosome_changed_ = true;
 		num_genomic_elements_++;
@@ -8362,7 +8362,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		}
 	}
 	
-	return gStaticEidosValueVOID;
+	return EidosValue_SP(result_vec);
 }
 
 //	*********************	(object<GenomicElementType>$)initializeGenomicElementType(is$ id, io<MutationType> mutationTypes, numeric proportions, [Nf mutationMatrix = NULL])
@@ -9508,7 +9508,7 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 	{
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralNucleotides, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
 									   ->AddIntString("sequence"));
-		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskVOID, "SLiM"))
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskObject, gSLiM_GenomicElement_Class, "SLiM"))
 										->AddIntObject("genomicElementType", gSLiM_GenomicElementType_Class)->AddInt("start")->AddInt("end"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElementType, nullptr, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class, "SLiM"))
 										->AddIntString_S("id")->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions")->AddFloat_ON("mutationMatrix", gStaticEidosValueNULL));

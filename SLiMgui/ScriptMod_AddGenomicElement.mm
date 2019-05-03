@@ -43,10 +43,9 @@
 	Chromosome &chromosome = controller->sim->chromosome_;
 	slim_position_t lastPosition = 0;
 	
-	for (auto geIter = chromosome.begin(); geIter != chromosome.end(); geIter++)
+	for (GenomicElement *element : chromosome.GenomicElements())
 	{
-		GenomicElement &element = *geIter;
-		slim_position_t endPosition = element.end_position_;
+		slim_position_t endPosition = element->end_position_;
 		
 		if (endPosition > lastPosition)
 			lastPosition = endPosition;

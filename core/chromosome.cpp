@@ -112,12 +112,16 @@ Chromosome::~Chromosome(void)
 	// Dispose of any nucleotide sequence
 	delete ancestral_seq_buffer_;
 	ancestral_seq_buffer_ = nullptr;
+	
+	// Dispose of all genomic elements, which we own
+	for (GenomicElement *element : genomic_elements_)
+		delete element;
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 void Chromosome::InitializeDraws(void)
 {
-	if (size() == 0)
+	if (genomic_elements_.size() == 0)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome." << EidosTerminate();
 	
 	// determine which case we are working with: separate recombination maps for the sexes, or one map
@@ -151,10 +155,10 @@ void Chromosome::InitializeDraws(void)
 	cached_value_lastpos_.reset();
 	last_position_ = 0;
 	
-	for (unsigned int i = 0; i < size(); i++) 
+	for (unsigned int i = 0; i < genomic_elements_.size(); i++) 
 	{ 
-		if ((*this)[i].end_position_ > last_position_)
-			last_position_ = (*this)[i].end_position_;
+		if (genomic_elements_[i]->end_position_ > last_position_)
+			last_position_ = genomic_elements_[i]->end_position_;
 	}
 	
 	if (single_mutation_map_)
@@ -346,7 +350,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 }
 
 // initialize one recombination map, used internally by InitializeDraws() to avoid code duplication
-void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel)
+void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel)
 {
 	// Patch the recombination interval end vector if it is empty; see setRecombinationRate() and initializeRecombinationRate().
 	// Basically, the length of the chromosome might not have been known yet when the user set the rate.
@@ -471,7 +475,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, v
 }
 
 // initialize one mutation map, used internally by InitializeDraws() to avoid code duplication
-void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector<slim_position_t> &p_end_positions, vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, vector<GESubrange> &p_subranges)
+void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges)
 {
 	// Patch the mutation interval end vector if it is empty; see setMutationRate() and initializeMutationRate().
 	// Basically, the length of the chromosome might not have been known yet when the user set the rate.
@@ -502,9 +506,9 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, vector
 	unsigned int mutrange_index = 0;
 	slim_position_t end_of_previous_mutrange = -1;
 	
-	for (unsigned int ge_index = 0; ge_index < size(); ge_index++) 
+	for (unsigned int ge_index = 0; ge_index < genomic_elements_.size(); ge_index++) 
 	{
-		GenomicElement &ge = (*this)[ge_index];
+		GenomicElement &ge = *genomic_elements_[ge_index];
 		
 		for ( ; mutrange_index < p_rates.size(); mutrange_index++)
 		{
@@ -566,7 +570,7 @@ void Chromosome::RecombinationMapConfigError(void) const
 MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
 {
 	gsl_ran_discrete_t *lookup;
-	const vector<GESubrange> *subranges;
+	const std::vector<GESubrange> *subranges;
 	
 	if (single_mutation_map_)
 	{
@@ -719,7 +723,7 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, int8_
 MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
 {
 	gsl_ran_discrete_t *lookup;
-	const vector<GESubrange> *subranges;
+	const std::vector<GESubrange> *subranges;
 	
 	if (single_mutation_map_)
 	{
@@ -941,7 +945,7 @@ void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int 
 #endif
 	
 	gsl_ran_discrete_t *lookup;
-	const vector<slim_position_t> *end_positions;
+	const std::vector<slim_position_t> *end_positions;
 	
 	if (single_recombination_map_)
 	{
@@ -1046,8 +1050,8 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 #endif
 	
 	gsl_ran_discrete_t *lookup;
-	const vector<slim_position_t> *end_positions;
-	const vector<double> *rates;
+	const std::vector<slim_position_t> *end_positions;
+	const std::vector<double> *rates;
 	
 	if (single_recombination_map_)
 	{
@@ -1287,8 +1291,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElement_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto genomic_element_iter = this->begin(); genomic_element_iter != this->end(); genomic_element_iter++)
-				vec->push_object_element(&(*genomic_element_iter));		// operator * can be overloaded by the iterator
+			for (GenomicElement *genomic_element : genomic_elements_)
+				vec->push_object_element(genomic_element);
 			
 			return result_SP;
 		}
@@ -1899,9 +1903,9 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? hotspot_end_positions_H_ : 
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? hotspot_end_positions_H_ : 
 										  ((requested_sex == IndividualSex::kMale) ? hotspot_end_positions_M_ : hotspot_end_positions_F_));
-	vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? hotspot_multipliers_H_ : 
+	std::vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? hotspot_multipliers_H_ : 
 							 ((requested_sex == IndividualSex::kMale) ? hotspot_multipliers_M_ : hotspot_multipliers_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
@@ -2007,9 +2011,9 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? mutation_end_positions_H_ : 
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? mutation_end_positions_H_ : 
 										  ((requested_sex == IndividualSex::kMale) ? mutation_end_positions_M_ : mutation_end_positions_F_));
-	vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? mutation_rates_H_ : 
+	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? mutation_rates_H_ : 
 							 ((requested_sex == IndividualSex::kMale) ? mutation_rates_M_ : mutation_rates_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
@@ -2111,9 +2115,9 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? recombination_end_positions_H_ : 
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? recombination_end_positions_H_ : 
 										  ((requested_sex == IndividualSex::kMale) ? recombination_end_positions_M_ : recombination_end_positions_F_));
-	vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? recombination_rates_H_ : 
+	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? recombination_rates_H_ : 
 							 ((requested_sex == IndividualSex::kMale) ? recombination_rates_M_ : recombination_rates_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
