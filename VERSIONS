@@ -93,6 +93,7 @@ development head:
 	make initializeGenomicElement() return the new element, following the pattern of the other initialize...() functions
 	add GenomicElement pseudo-parameter element to mutation() callback API
 	switch Population from a subclass of std::map to containing a std::map of subpopulations (no user-visible effect)
+	add recipe 14.14 (Visualizing ancestry and admixture with mutation() callbacks)
 
 
 3.2.1 (build 1897; Eidos version 2.2.1):
