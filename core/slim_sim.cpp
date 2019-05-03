@@ -2851,7 +2851,7 @@ void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
 	// tally up the number of mutation runs, mutation usage metrics, etc.
 	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
 	
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_)
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
