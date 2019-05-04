@@ -4312,7 +4312,7 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 						// The script is a constant expression such as "{ return 1.1; }"
 						EidosValue *result = compound_statement_node->cached_return_value_.get();
 						
-						if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
+						if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
 						{
 							if (result->FloatAtIndex(0, nullptr) == 1.0)
 							{

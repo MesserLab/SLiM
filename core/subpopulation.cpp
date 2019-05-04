@@ -1335,7 +1335,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					// The script is a constant expression such as "{ return 1.1; }"
 					EidosValue *result = compound_statement_node->cached_return_value_.get();
 					
-					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
+					if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
 					{
 						if (result->FloatAtIndex(0, nullptr) == 1.0)
 						{
