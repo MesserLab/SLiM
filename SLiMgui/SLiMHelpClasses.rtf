@@ -2631,17 +2631,22 @@ If the needed interaction strengths have already been calculated, those cached v
 \f3\fs18 subpops
 \f4\fs20  is 
 \f3\fs18 NULL
-\f4\fs20 ).  By default, the effects of this may be limited, however, since the underlying implementation may choose to postpone some computations lazily.  At a minimum, is it guaranteed that this method will discard all previously cached data for the subpopulation(s), and will cache the current positions of all individuals (so that individuals may then move without disturbing the state of the interaction at the moment of evaluation).  Notably, 
+\f4\fs20 ).  By default, the effects of this may be limited, however, since the underlying implementation may choose to postpone some computations lazily.  At a minimum, is it guaranteed that this method will discard all previously cached data for the subpopulation(s), and will cache the current spatial positions of all individuals (so that individuals may then move without disturbing the state of the interaction at the moment of evaluation).  Notably, 
 \f3\fs18 interaction()
 \f4\fs20  callbacks may not be called in response to this method; instead, their evaluation may be deferred until required to satisfy queries (at which point the generation counter may have advanced by one, so be careful with the generation ranges used in defining such callbacks).\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 If 
 \f3\fs18 T
 \f4\fs20  is passed for 
 \f3\fs18 immediate
 \f4\fs20 , the interaction will immediately and synchronously evaluate all interactions between all individuals in the subpopulation(s), calling any applicable 
 \f3\fs18 interaction()
-\f4\fs20  callbacks as necessary.  However, depending upon what queries are later executed, this may represent considerable wasted computation, since it is an O(N\super 2\nosupersub ) operation.  Immediate evaluation usually generates only a slight performance improvement even if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is that deferred calculation of interactions would lead to incorrect results due to changes in model state.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\f4\fs20  callbacks as necessary \'96 if the interaction is spatial (see below).  However, depending upon what queries are later executed, this may represent considerable wasted computation.  Immediate evaluation usually generates only a slight performance improvement even if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is that deferred calculation of interactions would lead to incorrect results due to changes in model state.  For non-spatial interactions, distances and interaction strengths are never cached since such caching would require O(N
+\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub ) memory and time, which is deemed unacceptable in general; for non-spatial interactions, the 
+\f3\fs18 immediate
+\f4\fs20  parameter is therefore ignored.\cf0 \kerning1\expnd0\expndtw0 \
 \cf2 \expnd0\expndtw0\kerning0
 You must explicitly call 
 \f3\fs18 evaluate()
