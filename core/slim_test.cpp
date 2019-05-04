@@ -3576,6 +3576,272 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)A(i x) {return B(x)+1;} function (i)B(i x) {return x*2;} 1 { if (A(2) == 5) stop(); } 10 {  } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } 1 { if (fac(5) == 120) stop(); } 10 {  } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "function (i)spsize(o<Subpopulation>$ sp) { return sp.individualCount; } 2 { if (spsize(p1) == 10) stop(); } 10 {  } ", __LINE__);
+	
+	// Test callbacks; we don't attempt to test their functionality here, just their declaration and the fact that they get called
+	// Their actual functionality gets tested by the R test suite and the recipes; we want to probe error cases here, more
+	// Things to be careful of: declaration syntax, return value types, special optimized cases, pseudo-parameter definitions
+	
+	// fitness() callbacks
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { return relFitness; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL) { return relFitness; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1, p1) { return relFitness; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1, p1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL, p1) { return relFitness; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL, p1) { stop(); } 100 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(m2) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(m2, p1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(m1, p4) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(NULL, p4) { stop(); } 100 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitness(m1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitness(m1, p1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitness(NULL, p1) { stop(); } 100 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness() { stop(); } 100 { ; }", 1, 301, "mutation type id is required", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1, p1, p2) { stop(); } 100 { ; }", 1, 307, "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1, m1) { stop(); } 100 { ; }", 1, 305, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(p1) { stop(); } 100 { ; }", 1, 301, "identifier prefix \"m\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1, NULL) { stop(); } 100 { ; }", 1, 305, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(NULL, m1) { stop(); } 100 { ; }", 1, 307, "identifier prefix \"p\" was expected", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { ; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return NULL; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return F; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return T; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return 1; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return 'a'; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return mut; } 100 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; ; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return NULL; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return F; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return T; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return 1; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return 'a'; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return mut; } 100 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { mut; homozygous; individual; genome1; genome2; subpop; return relFitness; } 100 { stop(); }", __LINE__);
+	
+	// mateChoice() callbacks
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice() { return weights; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice() { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { return weights; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mateChoice(p4) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mateChoice(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(m1) { stop(); } 10 { ; }", 1, 304, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1, p1) { stop(); } 10 { ; }", 1, 306, "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(NULL) { stop(); } 10 { ; }", 1, 304, "identifier prefix \"p\" was expected", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { ; } 10 { ; }", 1, 293, "must explicitly return a value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return F; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return T; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 1.0; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 'a'; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return genome1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; ; } 10 { ; }", 1, 293, "must explicitly return a value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return F; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return T; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 1.0; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 'a'; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return genome1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { individual; genome1; genome2; subpop; sourceSubpop; return weights; } 10 { stop(); }", __LINE__);
+	
+	// modifyChild() callbacks
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild() { return T; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild() { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild(p1) { return T; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "modifyChild(p4) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 modifyChild(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(m1) { stop(); } 10 { ; }", 1, 305, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1, p1) { stop(); } 10 { ; }", 1, 307, "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(NULL) { stop(); } 10 { ; }", 1, 305, "identifier prefix \"p\" was expected", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { ; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { return NULL; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { return 1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { return 1.0; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { return 'a'; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { return child; } 10 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; ; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return NULL; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return 1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return 1.0; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return 'a'; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return child; } 10 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild(p1) { child; childGenome1; childGenome2; parent1; parent1Genome1; parent1Genome2; isCloning; isSelfing; parent2; parent2Genome1; parent2Genome2; subpop; sourceSubpop; return T; } 10 { stop(); }", __LINE__);
+	
+	// recombination() callbacks
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination() { return F; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination() { return T; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination() { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { return F; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { return T; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "recombination(p4) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 recombination(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(m1) { stop(); } 10 { ; }", 1, 307, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1, p1) { stop(); } 10 { ; }", 1, 309, "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(NULL) { stop(); } 10 { ; }", 1, 307, "identifier prefix \"p\" was expected", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { ; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { return NULL; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { return 1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { return 1.0; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { return 'a'; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { return subpop; } 10 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; ; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return NULL; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return 1; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return 1.0; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return 'a'; } 10 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return subpop; } 10 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { individual; genome1; genome2; subpop; breakpoints; return T; } 10 { stop(); }", __LINE__);
+	
+	// interaction() callbacks
+	static std::string gen1_setup_p1p2p3_i1(gen1_setup_p1p2p3 + "initialize() { initializeInteractionType('i1', ''); } { i1.evaluate(immediate=T); i1.strength(p1.individuals[0]); } ");
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { return 1.0; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1, p1) { return 1.0; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1, p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_i1 + "interaction(i2) { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_i1 + "interaction(i2, p1) { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_i1 + "interaction(i1, p4) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess("early() { s1.active = 0; } " + gen1_setup_p1p2p3_i1 + "s1 interaction(i1) { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptSuccess("early() { s1.active = 0; } " + gen1_setup_p1p2p3_i1 + "s1 interaction(i1, p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction() { stop(); } 10 { ; }", 1, 421, "interaction type id is required", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, p1, p2) { stop(); } 10 { ; }", 1, 427, "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, i1) { stop(); } 10 { ; }", 1, 425, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(p1) { stop(); } 10 { ; }", 1, 421, "identifier prefix \"i\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, NULL) { stop(); } 10 { ; }", 1, 425, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(NULL, i1) { stop(); } 10 { ; }", 1, 421, "identifier prefix \"i\" was expected", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { ; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return NULL; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return F; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return T; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return 1; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return 'a'; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return subpop; } 10 { ; }", 1, 409, "return value", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; ; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return F; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return T; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return 1; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return 'a'; } 10 { ; }", 1, 409, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return subpop; } 10 { ; }", 1, 409, "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { distance; strength; receiver; exerter; subpop; return 1.0; } 10 { stop(); }", __LINE__);
+	
+	// reproduction() callbacks
+	static std::string gen1_setup_p1p2p3_nonWF(nonWF_prefix + gen1_setup_sex_p1 + "1 { sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } " + "late() { sim.subpopulations.individuals.fitnessScaling = 0.0; } ");
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction() { subpop.addCloned(individual); } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction() { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop.addCloned(individual); } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1, 'F') { subpop.addCloned(individual); } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1, 'F') { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(NULL, 'F') { subpop.addCloned(individual); } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(NULL, 'F') { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1, NULL) { subpop.addCloned(individual); } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1, NULL) { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(NULL, NULL) { subpop.addCloned(individual); } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(NULL, NULL) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF + "reproduction(p4) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF + "reproduction() { s1.active = 0; } s1 reproduction(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(m1) { stop(); } 10 { ; }", 1, 447, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1, p1) { stop(); } 10 { ; }", 1, 434, "needs a value for sex", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(NULL, '*') { stop(); } 10 { ; }", 1, 434, "needs a value for sex", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { return NULL; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { return F; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { return T; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { return 1; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { return 1.0; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { return 'a'; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { return subpop; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return NULL; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return F; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return T; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return 1; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return 1.0; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return 'a'; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return subpop; } 10 { ; }", 1, 434, "must return void", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { individual; genome1; genome2; subpop; subpop.addCloned(individual); } 10 { stop(); }", __LINE__);
+	
+	// mutation() callbacks
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation() { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation() { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1, p1) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1, p1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL, p1) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL, p1) { stop(); } 100 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutation(m2) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutation(m2, p1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutation(m1, p4) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutation(NULL, p4) { stop(); } 100 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutation(m1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutation(m1, p1) { stop(); } 100 { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutation(NULL, p1) { stop(); } 100 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, p1, p2) { stop(); } 100 { ; }", 1, 308, "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, m1) { stop(); } 100 { ; }", 1, 306, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(p1) { stop(); } 100 { ; }", 1, 302, "identifier prefix \"m\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, NULL) { stop(); } 100 { ; }", 1, 306, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(NULL, m1) { stop(); } 100 { ; }", 1, 308, "identifier prefix \"p\" was expected", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { ; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return NULL; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return 1; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return 1.0; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return 'a'; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return mut; } 100 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; ; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return NULL; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 1; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 1.0; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 'a'; } 100 { ; }", 1, 293, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return mut; } 100 { ; }", 1, 293, "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { mut; genome; element; originalNuc; parent; subpop; return T; } 100 { stop(); }", __LINE__);
 }
 
 #pragma mark Continuous space tests
