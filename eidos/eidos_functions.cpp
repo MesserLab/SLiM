@@ -315,6 +315,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("filesAtPath",		Eidos_ExecuteFunction_filesAtPath,	kEidosValueMaskString))->AddString_S("path")->AddLogical_OS("fullPaths", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getwd",				Eidos_ExecuteFunction_getwd,		kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("deleteFile",		Eidos_ExecuteFunction_deleteFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("fileExists",		Eidos_ExecuteFunction_fileExists,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setwd",				Eidos_ExecuteFunction_setwd,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("path"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF));
@@ -9342,6 +9343,25 @@ EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_argu
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	result_SP = ((remove(file_path.c_str()) == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	
+	return result_SP;
+}
+
+//	(logical$)fileExists(string$ filePath)
+EidosValue_SP Eidos_ExecuteFunction_fileExists(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *filePath_value = p_arguments[0].get();
+	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string file_path = Eidos_ResolvedPath(base_path);
+	
+	struct stat file_info;
+	bool path_exists = (stat(file_path.c_str(), &file_info) == 0);
+	
+	result_SP = (path_exists ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	
 	return result_SP;
 }

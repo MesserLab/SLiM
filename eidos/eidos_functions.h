@@ -211,6 +211,7 @@ EidosValue_SP Eidos_ExecuteFunction_t(const EidosValue_SP *const p_arguments, in
 //	filesystem access functions
 EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_fileExists(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_getwd(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
