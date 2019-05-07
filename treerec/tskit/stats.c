@@ -39,6 +39,10 @@ tsk_ld_calc_check_state(tsk_ld_calc_t *self)
     tsk_tree_t *tA = self->outer_tree;
     tsk_tree_t *tB = self->inner_tree;
 
+	/* Suppress unused variable warnings when assert() is a no-op */
+	(void)(tA);
+	(void)(tB);
+	
     assert(tA->index == tB->index);
 
     /* The inner tree's mark values should all be zero. */
