@@ -7847,7 +7847,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 		assert((tsk_size_t)i < tables_.nodes.num_rows);
 		tsk_id_t ind = tables_.nodes.individual[i];
 		assert((ind >= 0) && ((tsk_size_t)ind < tables_.individuals.num_rows));
-		tsk_flags_t ind_flags = tables_.individuals.flags[ind];
+		tsk_flags_t __attribute__((__unused__)) ind_flags = tables_.individuals.flags[ind];
 		assert((ind_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) || (ind_flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN));
 	}
 	
