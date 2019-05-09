@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+version 3.3 (build 2054; Eidos version 2.3):
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
 	add nucleotideBased flag to initializeSLiMOptions()
 	add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
@@ -69,7 +72,7 @@ development head:
 	revise recipe 14.9, 16.2, 16.9, 16.10, 16.11, 16.12, 16.13
 	fix bug in mmKimura() mutation matrix (never released publicly)
 	fix bug in outputMS() and outputMSSample() with filterMonomorphic=T (not the default) that could result in incorrect output, or in a crash
-	fix unitialized value bug with InteractionsData (never seen in the wild, probably inconsequential)
+	fix uninitialized value bug with InteractionsData (never seen in the wild, probably inconsequential)
 	fix symbol table double-dealloc bug (never seen in the wild, probably inconsequential)
 	fix a possible misaligned pointer access when loading .trees files (never seen in the wild, only a problem on non-Intel architectures like ARM, might not even be a bug)
 	fix an edge-case crasher in tree-seq models (never seen in the wild, perhaps only occurs when crosschecks are enabled)
@@ -84,7 +87,7 @@ development head:
 	correct recipe 16.15, which did not match the manual
 	optimize operator subset [] with a singleton integer argument, since that is the common case
 	fix an ordering problem with the remembered genomes after loading a .trees file (didn't match the order in the individuals table)
-    merge in kastore C_1.1.0 (67c5a6af4b85ea263e5cab854d94b691949e88ae) and tskit post-0.1.5 (3d16a36f8e54ac01a86f182dc73103bd07badf3e)
+	merge in kastore C_1.1.0 (67c5a6af4b85ea263e5cab854d94b691949e88ae) and tskit post-0.1.5 (3d16a36f8e54ac01a86f182dc73103bd07badf3e)
 	add mutation() callbacks and registerMutationCallback()
 	make nucleotide/nucleotideValue properties on Mutation writeable
 	fix some leaks
@@ -94,8 +97,7 @@ development head:
 	add GenomicElement pseudo-parameter element to mutation() callback API
 	switch Population from a subclass of std::map to containing a std::map of subpopulations (no user-visible effect)
 	add recipe 14.14 (Visualizing ancestry and admixture with mutation() callbacks)
-    add fileExists() function to Eidos
-
+	add fileExists() function to Eidos
 
 3.2.1 (build 1897; Eidos version 2.2.1):
 	add support for the slim command-line tool to read its script from stdin instead of from a supplied input script file
