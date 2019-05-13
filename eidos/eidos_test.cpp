@@ -4922,10 +4922,18 @@ void _RunFunctionStatisticsTests(void)
 	EidosAssertScriptSuccess("max(string(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("max(c(1.0, 5.0, NAN, 2.0));", gStaticEidosValue_FloatNAN);
 	
+	EidosAssertScriptSuccess("max(F, T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("max(T, F);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("max(F, c(F,F), logical(0), c(F,F,F,F,F));", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("max(F, c(F,F), logical(0), c(T,F,F,F,F));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("max(1, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess("max(2, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
 	EidosAssertScriptSuccess("max(integer(0), c(3,7,-8,0), 0, c(-10,10));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess("max(1.0, 2.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(2.0)));
+	EidosAssertScriptSuccess("max(2.0, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(2.0)));
 	EidosAssertScriptSuccess("max(c(3.,7.,-8.,0.), 0., c(-10.,0.), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(7)));
+	EidosAssertScriptSuccess("max('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	EidosAssertScriptSuccess("max('bar', 'foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
 	EidosAssertScriptSuccess("max('foo', string(0), c('baz','bar'), 'xyzzy', c('foobar', 'barbaz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyzzy")));
 	
 	// mean()
@@ -4964,10 +4972,18 @@ void _RunFunctionStatisticsTests(void)
 	EidosAssertScriptSuccess("min(string(0));", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("min(c(1.0, 5.0, NAN, 2.0));", gStaticEidosValue_FloatNAN);
 	
+	EidosAssertScriptSuccess("min(T, F);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("min(F, T);", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("min(T, c(T,T), logical(0), c(T,T,T,T,T));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("min(F, c(T,T), logical(0), c(T,T,T,T,T));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("min(1, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1)));
+	EidosAssertScriptSuccess("min(2, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1)));
 	EidosAssertScriptSuccess("min(integer(0), c(3,7,-8,0), 0, c(-10,10));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-10)));
+	EidosAssertScriptSuccess("min(1.0, 2.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1.0)));
+	EidosAssertScriptSuccess("min(2.0, 1.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1.0)));
 	EidosAssertScriptSuccess("min(c(3.,7.,-8.,0.), 0., c(0.,10.), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-8)));
+	EidosAssertScriptSuccess("min('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
+	EidosAssertScriptSuccess("min('bar', 'foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	EidosAssertScriptSuccess("min('foo', string(0), c('baz','bar'), 'xyzzy', c('foobar', 'barbaz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	
 	// pmax()

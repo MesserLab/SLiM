@@ -15,6 +15,6 @@ initialize() {
 	sim.treeSeqOutput("./recipe_17.1.trees");
 }
 
-// Section 16.2's recipe, which is a Python script that overlays
+// Section 17.2's recipe, which is a Python script that overlays
 // neutral mutations onto the .trees file saved here, may be found in
 // the Recipes archive downloadable at https://messerlab.org/slim/

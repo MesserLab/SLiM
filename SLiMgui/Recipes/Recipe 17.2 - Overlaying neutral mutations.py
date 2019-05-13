@@ -1,6 +1,6 @@
 # Keywords: Python, tree-sequence recording, tree sequence recording
 
-# This is a Python recipe, to be run after the section 16.1 recipe
+# This is a Python recipe, to be run after the section 17.1 recipe
 
 import msprime, pyslim
 

@@ -3615,7 +3615,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 			
 			if (arg_count == 1)
 			{
-				int64_t temp = arg_value->LogicalAtIndex(0, nullptr);
+				int64_t temp = arg_value->IntAtIndex(0, nullptr);
 				if (max < temp)
 					max = temp;
 			}
