@@ -7571,10 +7571,20 @@ void _RunUserDefinedFunctionTests(void)
 	
 	
 	// Tests mimicking built-in Eidos functions; these are good for testing user-defined functions, but also good for testing our built-ins!
-	//for (int testidx = 0; testidx < 100; testidx++)	// uncomment this for a more thorough stress test
-	EidosAssertScriptSuccess(
+	const std::string &builtins_test_string =
 #include "eidos_test_builtins.h"
-		, gStaticEidosValue_LogicalT);
+	;
+	std::vector<std::string> test_strings = Eidos_string_split(builtins_test_string, "// ***********************************************************************************************");
+	
+	//for (int testidx = 0; testidx < 100; testidx++)	// uncomment this for a more thorough stress test
+	{
+		for (std::string &test_string : test_strings)
+		{
+			std::string test_string_fixed = test_string + "\nreturn T;\n";
+			
+			EidosAssertScriptSuccess(test_string_fixed, gStaticEidosValue_LogicalT);
+		}
+	}
 }
 
 #pragma mark void EidosValue

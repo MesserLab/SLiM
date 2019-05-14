@@ -10,7 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 
 
-version 3.3 (build 2055; Eidos version 2.3):
+version 3.3 (build 2057; Eidos version 2.3):
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
 	add nucleotideBased flag to initializeSLiMOptions()
 	add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
