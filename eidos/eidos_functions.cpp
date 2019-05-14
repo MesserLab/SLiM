@@ -254,7 +254,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dim",				Eidos_ExecuteFunction_dim,			kEidosValueMaskInt))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("drop",				Eidos_ExecuteFunction_drop,			kEidosValueMaskAny))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("matrix",			Eidos_ExecuteFunction_matrix,		kEidosValueMaskAny))->AddAny("data")->AddInt_OSN("nrow", gStaticEidosValueNULL)->AddInt_OSN("ncol", gStaticEidosValueNULL)->AddLogical_OS("byrow", gStaticEidosValue_LogicalF));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("matrixMult",		Eidos_ExecuteFunction_matrixMult,	kEidosValueMaskAny))->AddAny("x")->AddAny("y"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("matrixMult",		Eidos_ExecuteFunction_matrixMult,	kEidosValueMaskNumeric))->AddNumeric("x")->AddNumeric("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ncol",				Eidos_ExecuteFunction_ncol,			kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nrow",				Eidos_ExecuteFunction_nrow,			kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbind",				Eidos_ExecuteFunction_rbind,		kEidosValueMaskAny))->AddEllipsis());
@@ -4418,23 +4418,11 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be non-NULL." << EidosTerminate(nullptr);
 	if ((y_type != EidosValueType::kValueNULL) && (mu_type != EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires either y or mu to be NULL." << EidosTerminate(nullptr);
-	
-	double pvalue = 0.0;
-	const double *vec1 = nullptr;
-	double singleton1;
-	
-	if (x_count == 1)
-	{
-		singleton1 = x_value->FloatAtIndex(0, nullptr);
-		vec1 = &singleton1;
-	}
-	else
-	{
-		vec1 = x_value->FloatVector()->data();
-	}
-	
 	if (x_count <= 1)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x to compute variance." << EidosTerminate(nullptr);
+	
+	const double *vec1 = x_value->FloatVector()->data();
+	double pvalue = 0.0;
 	
 	if (y_type != EidosValueType::kValueNULL)
 	{
@@ -4442,18 +4430,7 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments
 		if (y_count <= 1)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in y to compute variance." << EidosTerminate(nullptr);
 		
-		const double *vec2 = nullptr;
-		double singleton2;
-		
-		if (y_count == 1)
-		{
-			singleton2 = y_value->FloatAtIndex(0, nullptr);
-			vec2 = &singleton2;
-		}
-		else
-		{
-			vec2 = y_value->FloatVector()->data();
-		}
+		const double *vec2 = y_value->FloatVector()->data();
 		
 		// Right now this function only provides a two-sample t-test; we could add an optional mu argument and make y optional in order to allow a one-sample test as well
 		// If we got into that, we'd probably want to provide one-sided t-tests as well, yada yada...
@@ -6183,7 +6160,10 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 			}
 		}
 		else
+		{
+			// CODE COVERAGE: This is dead code
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) weights vector must be type float or integer." << EidosTerminate(nullptr);
+		}
 	}
 	else
 	{
@@ -8890,7 +8870,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const EidosValue_SP *const p_argument
 	return result_SP;
 }
 
-// (*)matrixMult(* x, * y)
+// (numeric)matrixMult(numeric x, numeric y)
 EidosValue_SP Eidos_ExecuteFunction_matrixMult(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
@@ -8906,20 +8886,6 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const EidosValue_SP *const p_argu
 	
 	if (x_type != y_type)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrixMult): function matrixMult() requires that x and y are the same type." << EidosTerminate(nullptr);
-	
-	if ((x_type != EidosValueType::kValueInt) && (x_type != EidosValueType::kValueFloat))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrixMult): function matrixMult() requires matrices of type integer or float." << EidosTerminate(nullptr);
-	
-	if (x_type == EidosValueType::kValueObject)
-	{
-		EidosValue_Object *x_object = (EidosValue_Object *)x_value;
-		const EidosObjectClass *x_class = x_object->Class();
-		EidosValue_Object *y_object = (EidosValue_Object *)y_value;
-		const EidosObjectClass *y_class = y_object->Class();
-		
-		if (x_class != y_class)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrixMult): function matrixMult() requires that x and y are of the same class." << EidosTerminate(nullptr);
-	}
 	
 	const int64_t *x_dim = x_value->Dimensions();
 	int64_t x_rows = x_dim[0];
@@ -9095,10 +9061,10 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const EidosValue_SP *const p_argu
 					{
 						int64_t x_row = result_row_index;
 						int64_t x_col = product_index;
-						int64_t x_index = x_col * x_cols + x_row;
+						int64_t x_index = x_col * x_rows + x_row;
 						int64_t y_row = product_index;
 						int64_t y_col = result_col_index;
-						int64_t y_index = y_col * y_cols + y_row;
+						int64_t y_index = y_col * y_rows + y_row;
 						double x_operand = x_data[x_index];
 						double y_operand = y_data[y_index];
 						
@@ -10726,6 +10692,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments,
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_stop): stop() called." << EidosTerminate(nullptr);
 	}
 	
+	// CODE COVERAGE: This is dead code
 	return result_SP;
 }
 

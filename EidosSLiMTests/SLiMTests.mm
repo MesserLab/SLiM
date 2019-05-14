@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/27/17.
-//  Copyright (c) 2017-2018 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2017-2019 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -21,6 +21,8 @@
 #import <XCTest/XCTest.h>
 
 #import "slim_test.h"
+#import "individual.h"
+#import "mutation.h"
 
 
 @interface SLiMTests : XCTestCase
@@ -31,7 +33,15 @@
 
 - (void)setUp {
     [super setUp];
+	
     // Put setup code here. This method is called before the invocation of each test method in the class.
+	
+	// our self-tests run in SLiMgui, but eidosConsoleWindowControllerDidExecuteScript: puts nasty values into
+	// these variables to help find bugs, and we run our tests outside of any SLiMgui window so the nasty
+	// values bite us...
+	
+	gSLiM_next_pedigree_id = 0;
+	gSLiM_next_mutation_id = 0;
 }
 
 - (void)tearDown {

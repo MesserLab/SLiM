@@ -757,6 +757,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const 
 		return EidosValue_SP(string_result);
 	}
 	
+	// CODE COVERAGE: This is dead code
 	return result_SP;
 }
 

@@ -2931,6 +2931,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2943,6 +2944,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COPY_PHASE_STRIP = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -3081,6 +3083,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = slim;
 				SYSTEM_HEADER_SEARCH_PATHS = "\"${SRCROOT}\"/treerec/ \"${SRCROOT}\"/treerec/tskit/kastore/";
@@ -3091,6 +3094,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_NAME = slim;
 				SYSTEM_HEADER_SEARCH_PATHS = "\"${SRCROOT}\"/treerec/ \"${SRCROOT}\"/treerec/tskit/kastore/";
@@ -3114,6 +3118,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stick.EidosSLiMTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SYSTEM_HEADER_SEARCH_PATHS = "\"${SRCROOT}\"/treerec/ \"${SRCROOT}\"/treerec/tskit/kastore/";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SLiMgui.app/Contents/MacOS/SLiMgui";
 			};
 			name = Debug;
@@ -3136,6 +3141,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stick.EidosSLiMTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SYSTEM_HEADER_SEARCH_PATHS = "\"${SRCROOT}\"/treerec/ \"${SRCROOT}\"/treerec/tskit/kastore/";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SLiMgui.app/Contents/MacOS/SLiMgui";
 			};
 			name = Release;
