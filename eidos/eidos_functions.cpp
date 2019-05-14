@@ -221,8 +221,8 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("substr",			Eidos_ExecuteFunction_substr,		kEidosValueMaskString))->AddString("x")->AddInt("first")->AddInt_ON("last", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("unique",			Eidos_ExecuteFunction_unique,		kEidosValueMaskAny))->AddAny("x")->AddLogical_OS("preserveOrder", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("which",				Eidos_ExecuteFunction_which,		kEidosValueMaskInt))->AddLogical("x"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMax",			Eidos_ExecuteFunction_whichMax,		kEidosValueMaskInt))->AddAnyBase("x"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMin",			Eidos_ExecuteFunction_whichMin,		kEidosValueMaskInt))->AddAnyBase("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMax",			Eidos_ExecuteFunction_whichMax,		kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAnyBase("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMin",			Eidos_ExecuteFunction_whichMin,		kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAnyBase("x"));
 		
 		
 		// ************************************************************************************
@@ -7884,7 +7884,7 @@ EidosValue_SP Eidos_ExecuteFunction_which(const EidosValue_SP *const p_arguments
 	return result_SP;
 }
 
-//	(integer)whichMax(+ x)
+//	(integer$)whichMax(+ x)
 EidosValue_SP Eidos_ExecuteFunction_whichMax(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -7974,7 +7974,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const EidosValue_SP *const p_argume
 	return result_SP;
 }
 
-//	(integer)whichMin(+ x)
+//	(integer$)whichMin(+ x)
 EidosValue_SP Eidos_ExecuteFunction_whichMin(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
