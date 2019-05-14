@@ -5074,6 +5074,12 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     }
 	
 	// find and incorporate any fixed mutations at this position, which exist in all new derived states but are not included by SLiM
+	// BCH 5/14/2019: Note that this means that derived states will be recorded that look "stacked" even when those mutations would
+	// not have stacked, by the stacking policy, had they occurred in the same genome at the same time.  So this is a bit weird.
+	// For example, you can end up with a derived state that appears to show two nucleotides stacked at the same position; but one
+	// fixed before the other one occurred, so they aren't stacked really, the new one just occurred on the ancestral background of
+	// the old one.  Possibly we ought to do something different about this (and not record a stacked derived state), but that
+	// would be a big change since it has implications for crosscheck, etc.  FIXME
 	auto position_range_iter = population_.treeseq_substitutions_map_.equal_range(p_position);
 	
 	for (auto position_iter = position_range_iter.first; position_iter != position_range_iter.second; ++position_iter)

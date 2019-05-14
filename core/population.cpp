@@ -2475,8 +2475,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
-				// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
+				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
 					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
@@ -2486,6 +2486,17 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 					
 					// see further comments below, in the non-nucleotide case; they apply here as well
 				}
+				
+				// FIXME: Note that there is a little issue here.  Two nucleotide-based mutations can arise at the same position during the same
+				// gamete-generation.  If the ancestral position is A, the first might be drawn as an A->G mutation.  The second will be drawn
+				// on the background of A again, and could again be an A->G mutation, for example.  A mutation() callback will see this as two
+				// A->G mutations in a row with the same parental genome, but tree-seq recording will (more correctly, really) record it as an
+				// A->G and then a G->G.  The second mutation should have used the G background, but that is very hard to achieve with this design.
+				// I think the best fix might be to draw positions for all mutations and unique them, and *then* generate mutations at those
+				// positions, preventing two mutations at the same position during a single gamete-genesis (which kind of doesn't make biological
+				// sense anyway – either the copying enzyme makes a mistake or it doesn't).  But I'm not going to make that fix right now, as it
+				// is complicated, risky, and has potential impact of performance.  It is an extreme edge case anyway, for realistic mutation
+				// rates.  BCH 5/14/2019
 			}
 			else
 			{
@@ -3510,8 +3521,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
-				// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
+				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
 					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
@@ -3521,6 +3532,17 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 					
 					// see further comments below, in the non-nucleotide case; they apply here as well
 				}
+				
+				// FIXME: Note that there is a little issue here.  Two nucleotide-based mutations can arise at the same position during the same
+				// gamete-generation.  If the ancestral position is A, the first might be drawn as an A->G mutation.  The second will be drawn
+				// on the background of A again, and could again be an A->G mutation, for example.  A mutation() callback will see this as two
+				// A->G mutations in a row with the same parental genome, but tree-seq recording will (more correctly, really) record it as an
+				// A->G and then a G->G.  The second mutation should have used the G background, but that is very hard to achieve with this design.
+				// I think the best fix might be to draw positions for all mutations and unique them, and *then* generate mutations at those
+				// positions, preventing two mutations at the same position during a single gamete-genesis (which kind of doesn't make biological
+				// sense anyway – either the copying enzyme makes a mistake or it doesn't).  But I'm not going to make that fix right now, as it
+				// is complicated, risky, and has potential impact of performance.  It is an extreme edge case anyway, for realistic mutation
+				// rates.  BCH 5/14/2019
 			}
 			else
 			{
@@ -3962,8 +3984,8 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path will probably also
-				// be used if we add a mutation() callback in future, since that will also want to be able to see the context of the mutation.
+				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
 					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
@@ -3973,6 +3995,17 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 					
 					// see further comments below, in the non-nucleotide case; they apply here as well
 				}
+				
+				// FIXME: Note that there is a little issue here.  Two nucleotide-based mutations can arise at the same position during the same
+				// gamete-generation.  If the ancestral position is A, the first might be drawn as an A->G mutation.  The second will be drawn
+				// on the background of A again, and could again be an A->G mutation, for example.  A mutation() callback will see this as two
+				// A->G mutations in a row with the same parental genome, but tree-seq recording will (more correctly, really) record it as an
+				// A->G and then a G->G.  The second mutation should have used the G background, but that is very hard to achieve with this design.
+				// I think the best fix might be to draw positions for all mutations and unique them, and *then* generate mutations at those
+				// positions, preventing two mutations at the same position during a single gamete-genesis (which kind of doesn't make biological
+				// sense anyway – either the copying enzyme makes a mistake or it doesn't).  But I'm not going to make that fix right now, as it
+				// is complicated, risky, and has potential impact of performance.  It is an extreme edge case anyway, for realistic mutation
+				// rates.  BCH 5/14/2019
 			}
 			else
 			{
