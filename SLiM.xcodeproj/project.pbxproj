@@ -1055,6 +1055,8 @@
 		98F65D531DF145230058BD29 /* TipsWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TipsWindowController.m; sourceTree = "<group>"; };
 		98F65D551DF14DA40058BD29 /* Tips */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Tips; path = SLiMgui/Tips; sourceTree = "<group>"; };
 		98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Tip_END.rtfd; sourceTree = "<group>"; };
+		98FF384D228AFDD900A96440 /* SLiMgui.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SLiMgui.entitlements; sourceTree = "<group>"; };
+		98FF384E228AFE1E00A96440 /* EidosScribe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EidosScribe.entitlements; sourceTree = "<group>"; };
 		D05AC1EA20B47EC400FFD319 /* text_input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = text_input.h; path = treerec/tskit/text_input.h; sourceTree = "<group>"; };
 		D0A758F620A4CC9800132D2F /* text_input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = text_input.c; path = treerec/tskit/text_input.c; sourceTree = "<group>"; };
 		D0A758F820A4CCC900132D2F /* trees.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = trees.h; path = treerec/tskit/trees.h; sourceTree = "<group>"; };
@@ -1408,6 +1410,7 @@
 		985724B01AD478630047C223 /* EidosScribe */ = {
 			isa = PBXGroup;
 			children = (
+				98FF384E228AFE1E00A96440 /* EidosScribe.entitlements */,
 				985724B31AD478630047C223 /* EidosAppDelegate.h */,
 				985724B41AD478630047C223 /* EidosAppDelegate.mm */,
 				9825565D1BA32F030054CB3F /* EidosCocoaExtra.h */,
@@ -1727,6 +1730,7 @@
 		98D4C1B41A6F537B00FFB083 /* SLiMgui */ = {
 			isa = PBXGroup;
 			children = (
+				98FF384D228AFDD900A96440 /* SLiMgui.entitlements */,
 				98EBCD1321F3CFC600B385CF /* slim_gui.h */,
 				98EBCD1221F3CFC600B385CF /* slim_gui.mm */,
 				986926D61AA13D340000E138 /* Graphing */,
@@ -1942,9 +1946,19 @@
 					};
 					985724AE1AD478630047C223 = {
 						CreatedOnToolsVersion = 6.1.1;
+						SystemCapabilities = {
+							com.apple.HardenedRuntime = {
+								enabled = 1;
+							};
+						};
 					};
 					98D4C1B21A6F537B00FFB083 = {
 						CreatedOnToolsVersion = 6.1.1;
+						SystemCapabilities = {
+							com.apple.HardenedRuntime = {
+								enabled = 1;
+							};
+						};
 					};
 				};
 			};
@@ -3132,6 +3146,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					EIDOS_GUI,
 					"$(inherited)",
@@ -3152,6 +3167,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = EIDOS_GUI;
 				GCC_WARN_UNUSED_PARAMETER = NO;
 				GCC_WARN_UNUSED_VALUE = NO;
@@ -3170,6 +3186,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"SLIMGUI=1",
@@ -3192,6 +3209,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"SLIMGUI=1",
 					EIDOS_GUI,
