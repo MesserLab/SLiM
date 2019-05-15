@@ -10,7 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 
 
-version 3.3 (build 2060; Eidos version 2.3):
+version 3.3 (build 2061; Eidos version 2.3):
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
 	add nucleotideBased flag to initializeSLiMOptions()
 	add a NucleotideArray class to keep compact nucleotide sequences (2 bits per nucleotide)
@@ -103,6 +103,7 @@ version 3.3 (build 2060; Eidos version 2.3):
 	switch to "hardened runtime" in preparation for Apple's notarization procedure
 	improve self-tests
 	fix bug in matrix multiplication with type float
+	add recipe 18.13 (Tree-sequence recording and nucleotide-based models)
 
 3.2.1 (build 1897; Eidos version 2.2.1):
 	add support for the slim command-line tool to read its script from stdin instead of from a supplied input script file
