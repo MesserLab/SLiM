@@ -3377,7 +3377,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			// check the dominance coefficient of DOM against that of the mutation type
 			if (info_domcoeffs.size() > 0)
 			{
-				if (abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
+				if (std::abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
 			}
 			
