@@ -160,8 +160,8 @@ typedef enum SLiMLaunchAction
 				case 6: chapterName = @"Sexual reproduction";												break;
 				case 7: chapterName = @"Mutation types, genomic elements, and chromosome structure";		break;
 				case 8: chapterName = @"SLiMgui visualizations for polymorphism patterns";					break;
-				case 9:	chapterName = @"Context-dependent selection using fitness() callbacks";				break;
-				case 10:chapterName = @"Selective sweeps";													break;
+				case 9:	chapterName = @"Selective sweeps";													break;
+				case 10:chapterName = @"Context-dependent selection using fitness() callbacks";				break;
 				case 11:chapterName = @"Complex mating schemes using mateChoice() callbacks";				break;
 				case 12:chapterName = @"Direct child modifications using modifyChild() callbacks";			break;
 				case 13:chapterName = @"Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
