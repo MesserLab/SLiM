@@ -1229,7 +1229,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
 				if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
 				{
-					slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+					slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_selcoeff_t)mut_type->dfe_parameters_[0]);
 					
 					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					
@@ -1464,7 +1464,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
 					if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
 					{
-						slim_selcoeff_t mut_type_selcoeff = (slim_selcoeff_t)mut_type->dfe_parameters_[0];
+						slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_selcoeff_t)mut_type->dfe_parameters_[0]);
 						
 						EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 						
