@@ -9548,6 +9548,9 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	
 	EidosValue_SP result_SP(nullptr);
 	
+	if (!Eidos_SlashTmpExists())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), the /tmp directory appears not to exist or is not writeable." << EidosTerminate(nullptr);
+	
 	EidosValue *prefix_value = p_arguments[0].get();
 	std::string prefix = prefix_value->StringAtIndex(0, nullptr);
 	EidosValue *suffix_value = p_arguments[1].get();
@@ -10714,6 +10717,9 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
+	
+	if (!Eidos_SlashTmpExists())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): in function system(), the /tmp directory appears not to exist or is not writeable." << EidosTerminate(nullptr);
 	
 	EidosValue *command_value = p_arguments[0].get();
 	EidosValue *args_value = p_arguments[1].get();

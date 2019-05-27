@@ -9,6 +9,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 development head:
 	fix SLiMgui crashing bug involving (a) a type "s" mutation type with (b) a fixed color set for it
+	protect against a non-existent or non-writeable /tmp directory, which apparently some systems have
 
 
 version 3.3 (build 2062; Eidos version 2.3):

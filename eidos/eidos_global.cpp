@@ -46,8 +46,9 @@
 #include <utility>
 #include <sys/param.h>
 
-// added for Eidos_mkstemps()
+// added for Eidos_mkstemps() and Eidos_SlashTmpExists()
 #include <sys/stat.h>
+#include <fstream>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
@@ -1220,6 +1221,67 @@ bool Eidos_CreateDirectory(std::string p_path, std::string* p_error_string)
 		p_error_string->assign("#WARNING (Eidos_ExecuteFunction_createDirectory): function createDirectory() could not create a directory because of an unspecified filesystem error.");
 		return false;
 	}
+}
+
+bool Eidos_SlashTmpExists(void)
+{
+	// we cache the result for speed, making the assumption that /tmp will not change underneath us
+	static bool been_here = false;
+	static bool exists = false;
+	
+	if (!been_here)
+	{
+		std::string path = "/tmp";
+		struct stat file_info;
+		bool path_exists = (stat(path.c_str(), &file_info) == 0);
+		
+		// test that /tmp itself exists and is a directory
+		if (path_exists)
+		{
+			bool is_directory = !!(file_info.st_mode & S_IFDIR);
+			
+			if (is_directory)
+			{
+				// test that it is writeable, in practice, by creating a temp file
+				std::string prefix = "/tmp/eidos_tmp_test";
+				std::string suffix = ".txt";
+				std::string file_path_template = prefix + "XXXXXX" + suffix;
+				char *file_path_cstr = strdup(file_path_template.c_str());
+				int fd = Eidos_mkstemps(file_path_cstr, 4);
+				
+				if (fd != -1)
+				{
+					std::string file_path(file_path_cstr);
+					std::ofstream file_stream(file_path.c_str(), std::ios_base::out);
+					close(fd);	// opened by Eidos_mkstemps()
+					
+					if (file_stream.is_open())
+					{
+						file_stream << "Eidos test of /tmp" << std::endl;
+						
+						if (!file_stream.bad())
+						{
+							file_stream.close();
+							
+							// test that we can delete the temp file
+							if (remove(file_path.c_str()) == 0)
+							{
+								// passed all tests, so we consider that /tmp exists
+								exists = true;
+							}
+						}
+					}
+				}
+				
+				free(file_path_cstr);
+				file_path_cstr = nullptr;
+			}
+		}
+		
+		been_here = true;
+	}
+	
+	return exists;
 }
 
 // Create a temporary file based upon a template filename; note that pattern is modified!

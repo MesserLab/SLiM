@@ -286,6 +286,9 @@ int RunEidosTests(void)
 	std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
 #endif
 	
+	if (!Eidos_SlashTmpExists())
+		std::cout << "WARNING: This system does not appear to have a writeable /tmp directory.  Filesystem tests are disabled, and functions such as writeTempFile() and system() that depend upon the existence of /tmp will raise an exception if called (and are therefore also not tested).  If this is surprising, contact the system administrator for details." << std::endl;
+	
 	// Run tests
 	_RunLiteralsIdentifiersAndTokenizationTests();
 	_RunSymbolsAndVariablesTests();
@@ -6888,6 +6891,9 @@ void _RunFunctionMatrixArrayTests(void)
 #pragma mark filesystem access
 void _RunFunctionFilesystemTests(void)
 {
+	if (!Eidos_SlashTmpExists())
+		return;
+	
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
 	EidosAssertScriptSuccess("type(filesAtPath('/tmp')) == 'string';", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("type(filesAtPath('/tmp/')) == 'string';", gStaticEidosValue_LogicalT);
@@ -7434,7 +7440,8 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptRaise("getSeed(_Test(7));", 0, "too many arguments supplied");
 	
 	// source()
-	EidosAssertScriptSuccess("path = '/tmp/EidosSourceTest.txt'; writeFile(path, 'x=9*9;'); source(path); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(81)));
+	if (Eidos_SlashTmpExists())
+		EidosAssertScriptSuccess("path = '/tmp/EidosSourceTest.txt'; writeFile(path, 'x=9*9;'); source(path); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(81)));
 	
 	// stop()
 	EidosAssertScriptRaise("stop();", 0, "stop() called");
@@ -7451,15 +7458,18 @@ void _RunFunctionMiscTests(void)
 	EidosAssertScriptSuccess("suppressWarnings(T); suppressWarnings(F);", gStaticEidosValue_LogicalT);
 	
 	// system()
-	EidosAssertScriptRaise("system('');", 0, "non-empty command string");
-	EidosAssertScriptSuccess("system('expr 5 + 5');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));
-	EidosAssertScriptSuccess("system('expr', args=c('5', '+', '5'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));
-	EidosAssertScriptSuccess("err = system('expr 5 / 0', stderr=T); (err == 'expr: division by zero') | (err == 'expr: división por cero') | (err == 'expr: division par zéro') | (substr(err, 0, 5) == 'expr: ');", gStaticEidosValue_LogicalT);	// unfortunately system localization makes the message returned vary
-	EidosAssertScriptSuccess("system('printf foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
-	EidosAssertScriptSuccess("system(\"printf 'foo bar baz' | wc -m | sed 's/ //g'\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("11")));
-	EidosAssertScriptSuccess("system(\"(wc -l | sed 's/ //g')\", input='foo\\nbar\\nbaz\\n');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("3")));
-	EidosAssertScriptSuccess("system(\"(wc -l | sed 's/ //g')\", input=c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("3")));
-	EidosAssertScriptSuccess("system(\"echo foo; echo bar; echo baz;\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar", "baz"}));
+	if (Eidos_SlashTmpExists())
+	{
+		EidosAssertScriptRaise("system('');", 0, "non-empty command string");
+		EidosAssertScriptSuccess("system('expr 5 + 5');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));
+		EidosAssertScriptSuccess("system('expr', args=c('5', '+', '5'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("10")));
+		EidosAssertScriptSuccess("err = system('expr 5 / 0', stderr=T); (err == 'expr: division by zero') | (err == 'expr: división por cero') | (err == 'expr: division par zéro') | (substr(err, 0, 5) == 'expr: ');", gStaticEidosValue_LogicalT);	// unfortunately system localization makes the message returned vary
+		EidosAssertScriptSuccess("system('printf foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+		EidosAssertScriptSuccess("system(\"printf 'foo bar baz' | wc -m | sed 's/ //g'\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("11")));
+		EidosAssertScriptSuccess("system(\"(wc -l | sed 's/ //g')\", input='foo\\nbar\\nbaz\\n');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("3")));
+		EidosAssertScriptSuccess("system(\"(wc -l | sed 's/ //g')\", input=c('foo', 'bar', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("3")));
+		EidosAssertScriptSuccess("system(\"echo foo; echo bar; echo baz;\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar", "baz"}));
+	}
 	
 	// time()
 	EidosAssertScriptSuccess("size(strsplit(time(), ':'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));

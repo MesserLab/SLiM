@@ -314,6 +314,10 @@ std::string Eidos_StripTrailingSlash(std::string p_path);
 // if the directory already exists a warning is emitted but the return value is true.
 bool Eidos_CreateDirectory(std::string p_path, std::string *p_error_string);
 
+// Returns true if /tmp appears to exist and be writeable, false otherwise
+// Apparently on some cluster systems /tmp does not exist, weirdly... I have no idea what's up with that...
+bool Eidos_SlashTmpExists(void);
+
 // Create a temporary file based upon a template filename; note that pattern is modified!
 int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
 
