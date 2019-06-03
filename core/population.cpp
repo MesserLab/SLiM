@@ -2241,8 +2241,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 #ifdef USE_GSL_POISSON
 		// When using the GSL's poisson draw, we have to draw the mutation count and breakpoint count separately;
 		// the DrawMutationAndBreakpointCounts() method does not support USE_GSL_POISSON
-		num_mutations = p_chromosome.DrawMutationCount(p_parent_sex);
-		num_breakpoints = p_chromosome.DrawBreakpointCount(p_parent_sex);
+		num_mutations = chromosome.DrawMutationCount(p_parent_sex);
+		num_breakpoints = chromosome.DrawBreakpointCount(p_parent_sex);
 #else
 		// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
 		chromosome.DrawMutationAndBreakpointCounts(p_parent_sex, &num_mutations, &num_breakpoints);

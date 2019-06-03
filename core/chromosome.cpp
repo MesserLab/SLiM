@@ -502,13 +502,20 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 	// The class we use to represent these constant-rate subregions is GESubrange, declared in chromosome.h.
 	p_subranges.clear();
 	
+	// We need to work with a *sorted* genomic elements vector here.  We sort it internally here, rather than in
+	// genomic_elements_, so that genomic_elements_ reflects exactly what they user gave us (mostly for backward
+	// compatibility).
+	std::vector<GenomicElement *> sorted_ge_vec = genomic_elements_;
+	
+	std::sort(sorted_ge_vec.begin(), sorted_ge_vec.end(), [](GenomicElement *ge1, GenomicElement *ge2) {return ge1->start_position_ < ge2->start_position_;});
+	
 	std::vector<double> B;
 	unsigned int mutrange_index = 0;
 	slim_position_t end_of_previous_mutrange = -1;
 	
-	for (unsigned int ge_index = 0; ge_index < genomic_elements_.size(); ge_index++) 
+	for (unsigned int ge_index = 0; ge_index < sorted_ge_vec.size(); ge_index++) 
 	{
-		GenomicElement &ge = *genomic_elements_[ge_index];
+		GenomicElement &ge = *sorted_ge_vec[ge_index];
 		
 		for ( ; mutrange_index < p_rates.size(); mutrange_index++)
 		{

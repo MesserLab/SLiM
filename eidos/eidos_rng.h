@@ -175,7 +175,7 @@ inline __attribute__((always_inline)) uint32_t Eidos_rng_uniform_int(gsl_rng *p_
 // speed difference, though, so that option is turned off by default.  Note that at present the
 // rpois() Eidos function always uses the GSL in any case.
 
-//#define USE_GSL_POISSON
+#define USE_GSL_POISSON
 
 #ifndef USE_GSL_POISSON
 
