@@ -76,7 +76,10 @@
 		
 		// We cache this so that we know whether we are expandable without needing to dereference wrappedValue;
 		// we therefore know whether or not we are expandable even after wrappedValue is invalidated
-		isExpandable = (wrappedValue->Type() == EidosValueType::kValueObject);
+		if (wrappedValue)
+			isExpandable = (wrappedValue->Type() == EidosValueType::kValueObject);
+		else
+			isExpandable = false;
 		
 		// We want to display Eidos constants in gray text, to de-emphasize them.  For now, we just hard-code them
 		// as a hack, because we *don't* want SLiM constants (sim, g1, p1, etc.) to display dimmed
@@ -129,6 +132,10 @@
 		// If we don't have our cache of child wrappers, set it up on demand
 		childWrappers = [NSMutableArray new];
 		
+		// If we have no wrapped value, we have no children
+		if (!wrappedValue)
+			return childWrappers;
+		
 		int elementCount = wrappedValue->Count();
 		
 		// values which are of object type and contain more than one element get displayed as a list of elements
@@ -155,8 +162,15 @@
 				const EidosPropertySignature *propertySig = (*properties)[index];
 				const std::string &symbolName = propertySig->property_name_;
 				EidosGlobalStringID symbolID = propertySig->property_id_;
-				EidosValue_SP symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];
+				EidosValue_SP symbolValue;
+				
+				// protect against raises in property accesses due to inaccessible properties
+				try {
+					symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
+				} catch (...) {
+				}
+				
 				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:self value:std::move(symbolValue)];
 				
 				[childWrappers addObject:childWrapper];
@@ -238,6 +252,10 @@
 	if (wrappedIndex != -1)
 		return @"";
 	
+	// If the value is inaccessible display nothing
+	if (!wrappedValue)
+		return @"";
+	
 	EidosValueType type = wrappedValue->Type();
 	std::string type_string = StringForEidosValueType(type);
 	const char *type_cstr = type_string.c_str();
@@ -265,6 +283,10 @@
 	if (wrappedIndex != -1)
 		return @"";
 	
+	// If the value is inaccessible display nothing
+	if (!wrappedValue)
+		return @"";
+	
 	NSString *sizeString = [NSString stringWithFormat:@"%d", wrappedValue->Count()];
 	
 	if (isConstant)
@@ -278,6 +300,10 @@
 	// If this row is a marker for an element within an object we treat it specially
 	if (wrappedIndex != -1)
 		return @"";
+	
+	// If the value is inaccessible display "<inaccessible>"
+	if (!wrappedValue)
+		return @"<inaccessible>";
 	
 	int value_count = wrappedValue->Count();
 	std::ostringstream outstream;
