@@ -216,8 +216,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 #endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			if (!(subpopulation_.population_.sim_.PedigreesEnabledByUser()
+                  || subpopulation_.population_.sim_.RecordingTreeSequence()))
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): tree sequence recording and/or pedigree recording must be enabled for property genomePedigreeID to be available." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
@@ -486,8 +487,9 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObjectElement **
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		if (!value->subpopulation_.population_.sim_.PedigreesEnabledByUser())
-			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+		if (!(value->subpopulation_.population_.sim_.PedigreesEnabledByUser()
+              || value->subpopulation_.population_.sim_.RecordingTreeSequence()))
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): tree sequence recording and/or pedigree recording must be enabled for property genomePedigreeID to be available." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->pedigree_id_, value_index);
 		++value_index;
