@@ -3287,6 +3287,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex(0, nullptr)));
 		}
 		else
+#ifndef EIDOS_SLIM_OPEN_MP
 		{
 			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
 			const int64_t *int_data = x_value->IntVector()->data();
@@ -3321,6 +3322,27 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			else
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum_d));
 		}
+#else
+		{
+			// In the OpenMP case we want to follow fairly different logic, because dealing with catching the overflow
+			// case across multiple threads seems excessively complex; instead we look for an overflow afterwards
+			const int64_t *int_data = x_value->IntVector()->data();
+			double sum_d = 0;
+			
+#pragma omp parallel for default(none) shared(int_data, x_count) reduction(+: sum_d)
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				sum_d += int_data[value_index];
+			
+			// 2^53 is the largest integer such that it and all smaller integers can be represented in double losslessly
+			int64_t sum = (int64_t)sum_d;
+			bool fits_in_integer = (((double)sum == sum_d) && (sum < 9007199254740992L) && (sum > -9007199254740992L));
+			
+			if (fits_in_integer)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(sum));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum_d));
+		}
+#endif
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -3347,6 +3369,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 		const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
 		int64_t sum = 0;
 		
+#pragma omp parallel for default(none) shared(logical_data, x_count) reduction(+: sum)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			sum += logical_data[value_index];
 		
