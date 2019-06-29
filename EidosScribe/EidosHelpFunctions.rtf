@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf400
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf500
 {\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fswiss\fcharset0 Optima-Regular;\f4\fswiss\fcharset0 Optima-BoldItalic;\f5\fnil\fcharset0 Menlo-Italic;
 \f6\fnil\fcharset0 AppleSymbols;\f7\fswiss\fcharset0 Optima-Italic;\f8\froman\fcharset0 TimesNewRomanPS-ItalicMT;
@@ -4336,12 +4336,17 @@ When
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (float$)clock(void)\
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float$)clock([string$\'a0type\'a0=\'a0"cpu"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf0 Returns the 
-\f0\b current CPU usage clock
-\f3\b0 .  This is the amount of CPU time used by the current process, in seconds; it is unrelated to the current time of day (for that, see the 
+\f3\fs20 \cf2 Returns the value of a 
+\f0\b system clock
+\f3\b0 .  If 
+\f1\fs18 type
+\f3\fs20  is 
+\f1\fs18 "cpu"
+\f3\fs20 , this returns the current value of the CPU usage clock.  This is the amount of CPU time used by the current process, in seconds; it is unrelated to the current time of day (for that, see the 
 \f1\fs18 time()
 \f3\fs20  function).  This is useful mainly for determining how much processor time a given section of code takes; 
 \f1\fs18 clock()
@@ -4349,8 +4354,13 @@ When
 \f1\fs18 timed
 \f3\fs20  parameter of 
 \f1\fs18 executeLambda()
-\f3\fs20 , which automates this procedure.
-\f2 \
+\f3\fs20 , which automates this procedure.  Note that if multiple cores are utilized by the process, the CPU usage clock will be the sum of the CPU usage across all cores, and may therefore run faster than the wall clock.\
+If 
+\f1\fs18 type
+\f3\fs20  is 
+\f1\fs18 "mono"
+\f3\fs20 , this returns the value of the system\'92s monotonic clock.  This represents user-perceived (\'93wall clock\'94) elapsed time from some arbitrary timebase (which will not change during the execution of the program), but it will not jump if the time zone or the wall clock time are changed for the system.  This clock is useful for measuring user-perceived elapsed time, as described above, and may provide a more useful metric for performance than CPU time if multiple cores are being utilized.
+\f2 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string$)date(void)\
