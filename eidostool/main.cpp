@@ -18,6 +18,10 @@
 #include "eidos_interpreter.h"
 #include "eidos_test.h"
 
+#ifdef EIDOS_SLIM_OPEN_MP
+#include "omp.h"
+#endif
+
 
 void PrintUsageAndDie();
 
@@ -92,9 +96,13 @@ int main(int argc, const char * argv[])
 	if (!input_file)
 		PrintUsageAndDie();
 	
-	// announce if we are running a debug build
+	// announce if we are running a debug build, etc.
 #ifdef DEBUG
 	std::cout << "// ********** DEBUG defined – you are not using a release build of Eidos" << std::endl << std::endl;
+#endif
+	
+#if EIDOS_SLIM_OPEN_MP
+	std::cout << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl << std::endl;
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)

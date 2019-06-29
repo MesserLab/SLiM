@@ -47,6 +47,10 @@
 #include "gsl_errno.h"
 #include "gsl_cdf.h"
 
+#ifdef EIDOS_SLIM_OPEN_MP
+#include "omp.h"
+#endif
+
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
 // builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
@@ -3330,6 +3334,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const double *float_data = x_value->FloatVector()->data();
 			double sum = 0;
 			
+#pragma omp parallel for default(none) shared(float_data) firstprivate(x_count) reduction(+: sum)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
 			

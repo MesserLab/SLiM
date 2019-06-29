@@ -39,6 +39,10 @@
 #include "slim_test.h"
 #include "eidos_test_element.h"
 
+#ifdef EIDOS_SLIM_OPEN_MP
+#include "omp.h"
+#endif
+
 
 // To leak-check slim, a few steps are recommended (BCH 5/1/2019):
 //
@@ -289,12 +293,18 @@ int main(int argc, char *argv[])
 	if (!input_file && isatty(fileno(stdin)))
 		PrintUsageAndDie(false, true);
 	
-	// announce if we are running a debug build or are skipping runtime checks
+	// announce if we are running a debug build, are skipping runtime checks, etc.
 #ifdef DEBUG
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
+	
+#if EIDOS_SLIM_OPEN_MP
+	std::cout << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl << std::endl;
+#endif
+	
 	if (verbose_output)
 		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output" << std::endl << std::endl;
+	
 	if (skip_checks)
 		SLIM_ERRSTREAM << "// ********** The -x command-line option has disabled some runtime checks" << std::endl << std::endl;
 	
