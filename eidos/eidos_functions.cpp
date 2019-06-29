@@ -289,7 +289,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_sapply,	Eidos_ExecuteFunction_sapply,		kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource")->AddString_OS("simplify", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("vector"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				Eidos_ExecuteFunction_beep,			kEidosValueMaskVOID))->AddString_OSN("soundName", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskVOID)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_OS("type", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("cpu"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAnyBase("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("functionName")->AddEllipsis());
@@ -10033,19 +10033,65 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const Eidos
 	return gStaticEidosValueVOID;
 }
 
-//	(float$)clock(void)
+//	(float$)clock([string$ type = "cpu"])
 EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
+	std::string type_name = p_arguments[0]->StringAtIndex(0, nullptr);
 	
-	clock_t cpu_time = clock();
-	double cpu_time_d = static_cast<double>(cpu_time) / CLOCKS_PER_SEC;
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cpu_time_d));
-	
-	return result_SP;
+	if (type_name == "cpu")
+	{
+		// elapsed CPU time; this is across all cores, so it can be larger than the elapsed wall clock time!
+		clock_t cpu_time = clock();
+		double cpu_time_d = static_cast<double>(cpu_time) / CLOCKS_PER_SEC;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cpu_time_d));
+	}
+	else if (type_name == "mono")
+	{
+		// monotonic clock time; this is best for measured user-perceived elapsed times
+		struct timespec ts;
+
+#if defined(CLOCK_UPTIME_RAW)
+		// this is the best, if it is available; it does not tick when the system is asleep
+		if (clock_gettime(CLOCK_UPTIME_RAW, &ts))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): clock_gettime() error encountered in function clock()." << EidosTerminate(nullptr);
+#elif defined(CLOCK_MONOTONIC_RAW)
+		// this is second best, if it is available; it does not include timestream adjustments
+		if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): clock_gettime() error encountered in function clock()." << EidosTerminate(nullptr);
+#else
+		// this basic monotonic clock should be available on all POSIX systems
+		if (clock_gettime(CLOCK_MONOTONIC, &ts))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): clock_gettime() error encountered in function clock()." << EidosTerminate(nullptr);
+#endif
+		
+		// we need to start the clock from a recent timebase, so that we don't lose precision;
+		// we set up the timebase the first time we are called, so it changes from run to run
+		static bool timebase_fetched = false;
+		static timespec timebase;
+		
+		if (!timebase_fetched)
+		{
+			timebase.tv_sec = ts.tv_sec;
+			timebase.tv_nsec = 0;	// just to be clear
+			timebase_fetched = true;
+		}
+		
+		// subtract the whole seconds of the timebase from the clock; this provides nanosecond
+		// accuracy for the first ~104 days after the first clock call, which seems good enough,
+		// according to random stuff I read on the web that is doubtless accurate :->
+		ts.tv_sec -= timebase.tv_sec;
+		
+		double mono = (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000.0;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(mono));
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): unrecognized clock type " << type_name << " in function clock()." << EidosTerminate(nullptr);
+	}
 }
 
 //	(string$)date(void)
