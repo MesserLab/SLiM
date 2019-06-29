@@ -14,6 +14,21 @@ development head:
 	fix bug involving (a) genomic elements specified out of sorted order, AND (b) a non-uniform mutation rate map; some genomic elements can end up not generating any mutations at all (present since SLiM 2.5)
 	add an option to clock() to select the clock type ("cpu" or "monotonic", for now)
 
+OpenMP additions:
+	made a separate project, SLiM_OpenMP.xcodeproj, with custom build settings:
+		user needs to run "sudo port install clang-8.0" to install a clang version that supports OpenMP
+		add custom CC setting: /opt/local/libexec/llvm-8.0/bin/clang
+		add header search path: /opt/local/include/libomp (non-recursive)
+		add library search path: /opt/local/lib/libomp (non-recursive)
+		add link to binary library, under "Build Phases" on all targets: /opt/local/lib/libomp/libiomp5.dylib
+		add -fopenmp to other C flags
+		set Enable Index-While-Building Functionality to NO in Build Settings
+		disable Link-Time Optimization, which appears to be incompatible with OpenMP
+		see http://antonmenshov.com/2017/09/09/clang-openmp-setup-in-xcode/
+	defined EIDOS_SLIM_OPEN_MP as a project-defined flag indicating that OpenMP is being used
+	added a message to std::cout indicating that OpenMP is enabled
+	made sum() multithreaded for float
+
 
 version 3.3 (build 2062; Eidos version 2.3):
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)

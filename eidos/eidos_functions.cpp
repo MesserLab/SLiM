@@ -3334,7 +3334,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const double *float_data = x_value->FloatVector()->data();
 			double sum = 0;
 			
-#pragma omp parallel for default(none) shared(float_data) firstprivate(x_count) reduction(+: sum)
+#pragma omp parallel for default(none) shared(float_data, x_count) reduction(+: sum)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
 			
