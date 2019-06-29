@@ -27,7 +27,7 @@ OpenMP additions:
 		see http://antonmenshov.com/2017/09/09/clang-openmp-setup-in-xcode/
 	defined EIDOS_SLIM_OPEN_MP as a project-defined flag indicating that OpenMP is being used
 	added a message to std::cout indicating that OpenMP is enabled
-	made sum() multithreaded
+	made sum(), -[Individual sumOfMutationsOfType] multithreaded
 
 
 version 3.3 (build 2062; Eidos version 2.3):
