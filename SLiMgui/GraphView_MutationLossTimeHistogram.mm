@@ -94,7 +94,7 @@
 		{
 			int binIndex = mutationTypeIndex + bin * mutationTypeCount;
 			
-			total += rebin[binIndex];
+			total += (int64_t)rebin[binIndex];
 		}
 		
 		for (int bin = 0; bin < binCount; ++bin)
