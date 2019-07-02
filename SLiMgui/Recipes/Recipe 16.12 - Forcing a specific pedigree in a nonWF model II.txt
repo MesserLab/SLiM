@@ -2,8 +2,11 @@
 
 function (i)readIntTable(s$ path)
 {
+	if (!fileExists(path))
+		stop("readIntTable(): File not found at path " + path);
 	l = readFile(path);
-	return t(sapply(l, "asInteger(strsplit(applyValue));", simplify="matrix"));
+	m = sapply(l, "asInteger(strsplit(applyValue));", simplify="matrix");
+	return t(m);
 }
 
 initialize() {
@@ -54,6 +57,4 @@ early() {
 	indices = match(d, inds.tag);
 	inds[indices].fitnessScaling = 0.0;
 }
-100 late() {
-	sim.simulationFinished();
-}
+100 late() { sim.simulationFinished(); }
