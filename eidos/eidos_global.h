@@ -370,6 +370,21 @@ std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascend
 
 std::string EidosStringForFloat(double p_value);
 
+// Get the best monotonic timer available on the system; return 0 for no error condition
+inline __attribute__((always_inline)) int Eidos_GetMonotonicTimer(struct timespec *ts)
+{
+#if defined(CLOCK_UPTIME_RAW)
+	// this is the best, if it is available; it does not tick when the system is asleep
+	return clock_gettime(CLOCK_UPTIME_RAW, ts);
+#elif defined(CLOCK_MONOTONIC_RAW)
+	// this is second best, if it is available; it does not include timestream adjustments
+	return clock_gettime(CLOCK_MONOTONIC_RAW, ts);
+#else
+	// this basic monotonic clock should be available on all POSIX systems
+	return clock_gettime(CLOCK_MONOTONIC, ts);
+#endif
+}
+
 
 // *******************************************************************************************************************
 //

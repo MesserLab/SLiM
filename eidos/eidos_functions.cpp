@@ -293,8 +293,8 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAnyBase("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("functionName")->AddEllipsis());
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddLogical_OS("timed", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional, "timed", nullptr, gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional, "timed", nullptr, gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			Eidos_ExecuteFunction_exists,		kEidosValueMaskLogical))->AddString("symbol"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSignature",	Eidos_ExecuteFunction_functionSignature,	kEidosValueMaskVOID))->AddString_OSN("functionName", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID)));
@@ -10075,20 +10075,9 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosVal
 	{
 		// monotonic clock time; this is best for measured user-perceived elapsed times
 		struct timespec ts;
-
-#if defined(CLOCK_UPTIME_RAW)
-		// this is the best, if it is available; it does not tick when the system is asleep
-		if (clock_gettime(CLOCK_UPTIME_RAW, &ts))
+		
+		if (Eidos_GetMonotonicTimer(&ts))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): clock_gettime() error encountered in function clock()." << EidosTerminate(nullptr);
-#elif defined(CLOCK_MONOTONIC_RAW)
-		// this is second best, if it is available; it does not include timestream adjustments
-		if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): clock_gettime() error encountered in function clock()." << EidosTerminate(nullptr);
-#else
-		// this basic monotonic clock should be available on all POSIX systems
-		if (clock_gettime(CLOCK_MONOTONIC, &ts))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): clock_gettime() error encountered in function clock()." << EidosTerminate(nullptr);
-#endif
 		
 		// we need to start the clock from a recent timebase, so that we don't lose precision;
 		// we set up the timebase the first time we are called, so it changes from run to run
@@ -10279,8 +10268,38 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 	}
 	
 	// Execute inside try/catch so we can handle errors well
-	bool timed = p_arguments[1]->LogicalAtIndex(0, nullptr);
-	clock_t begin = 0, end = 0;
+	EidosValue *timed_value = p_arguments[1].get();
+	EidosValueType timed_value_type = timed_value->Type();
+	bool timed = false;
+	int timer_type = 0;		// cpu by default, for legacy reasons
+	
+	if (timed_value_type == EidosValueType::kValueLogical)
+	{
+		if (timed_value->LogicalAtIndex(0, nullptr))
+			timed = true;
+	}
+	else if (timed_value_type == EidosValueType::kValueString)
+	{
+		std::string timed_string = timed_value->StringAtIndex(0, nullptr);
+		
+		if (timed_string == "cpu")
+		{
+			timed = true;
+			timer_type = 0;		// cpu timer
+		}
+		else if (timed_string == "mono")
+		{
+			timed = true;
+			timer_type = 1;		// monotonic timer
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteLambdaInternal): unrecognized clock type " << timed_string << " in function executeLambda()." << EidosTerminate(nullptr);
+		}
+	}
+	
+	clock_t begin_clock = 0, end_clock = 0;
+	struct timespec begin_ts, end_ts;
 	
 	gEidosCharacterStartOfError = -1;
 	gEidosCharacterEndOfError = -1;
@@ -10299,7 +10318,15 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 		EidosInterpreter interpreter(*script, *symbols, p_interpreter.FunctionMap(), p_interpreter.Context());
 		
 		if (timed)
-			begin = clock();
+		{
+			if (timer_type == 0)
+				begin_clock = clock();
+			else
+			{
+				if (Eidos_GetMonotonicTimer(&begin_ts))
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteLambdaInternal): clock_gettime() error encountered in function executeLambda()." << EidosTerminate(nullptr);
+			}
+		}
 		
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
@@ -10307,7 +10334,15 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 		result_SP = interpreter.EvaluateInterpreterBlock(false, true);		// do not print output, return the last statement value
 		
 		if (timed)
-			end = clock();
+		{
+			if (timer_type == 0)
+				end_clock = clock();
+			else
+			{
+				if (Eidos_GetMonotonicTimer(&end_ts))
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteLambdaInternal): clock_gettime() error encountered in function executeLambda()." << EidosTerminate(nullptr);
+			}
+		}
 		
 		// Assimilate output
 		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
@@ -10344,7 +10379,15 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 	
 	if (timed)
 	{
-		double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
+		double time_spent;
+		
+		if (timer_type == 0)
+			time_spent = static_cast<double>(end_clock - begin_clock) / CLOCKS_PER_SEC;
+		else
+		{
+			time_spent = (end_ts.tv_nsec - begin_ts.tv_nsec) / 1000000000.0;
+			time_spent += (end_ts.tv_sec - begin_ts.tv_sec);
+		}
 		
 		p_interpreter.ExecutionOutputStream() << "// ********** executeLambda() elapsed time: " << time_spent << std::endl;
 	}
@@ -10355,7 +10398,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 	return result_SP;
 }
 
-//	(*)executeLambda(string$ lambdaSource, [logical$ timed = F])
+//	(*)executeLambda(string$ lambdaSource, [ls$ timed = F])
 EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -10363,7 +10406,7 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 	return Eidos_ExecuteLambdaInternal(p_arguments, p_interpreter, false);
 }
 
-//	(*)_executeLambda_OUTER(string$ lambdaSource, [logical$ timed = F])
+//	(*)_executeLambda_OUTER(string$ lambdaSource, [ls$ timed = F])
 EidosValue_SP Eidos_ExecuteFunction__executeLambda_OUTER(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design

@@ -12,7 +12,7 @@ development head:
 	protect against a non-existent or non-writeable /tmp directory, which apparently some systems have
 	fix crash in SLiMgui due to inaccessible properties
 	fix bug involving (a) genomic elements specified out of sorted order, AND (b) a non-uniform mutation rate map; some genomic elements can end up not generating any mutations at all (present since SLiM 2.5)
-	add an option to clock() to select the clock type ("cpu" or "monotonic", for now)
+	add an option to clock() to select the clock type ("cpu" or "monotonic", for now); add the same option to executeLambda()
 
 OpenMP additions:
 	made a separate project, SLiM_OpenMP.xcodeproj, with custom build settings:
