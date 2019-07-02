@@ -74,6 +74,11 @@
 	[[self openGLContext] flushBuffer];
 }
 
+- (NSMenu *)menuForEvent:(NSEvent *)event
+{
+	return [[self superview] menuForEvent:event];
+}
+
 @end
 
 
