@@ -403,7 +403,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		BOOL forceCenteredLabel = (displayedRange.length <= 101);	// a selected subrange is never <=101 length, so this is safe even with large chromosomes
 		
 		if ((tickIndex == lastTickIndex) && !forceCenteredLabel)
-			tickLabelX -= (tickLabelSize.width - 2);
+			tickLabelX -= (int)round(tickLabelSize.width - 2);
 		else if ((tickIndex > 0) || forceCenteredLabel)
 			tickLabelX -= (int)round(tickLabelSize.width / 2.0);
 		
