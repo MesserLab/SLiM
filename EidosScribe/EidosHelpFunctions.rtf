@@ -4421,17 +4421,16 @@ vNlifso\cf0 \kerning1\expnd0\expndtw0 )doCall(string$\'a0functionName, ...)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (\cf2 \expnd0\expndtw0\kerning0
-vNlifso\cf0 \kerning1\expnd0\expndtw0 )executeLambda(string$\'a0lambdaSource, [logical$\'a0timed\'a0=\'a0F])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+vNlifso\cf0 \kerning1\expnd0\expndtw0 )executeLambda(string$\'a0lambdaSource, [ls$\'a0timed\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Executes a block of Eidos code
+\f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
+Executes a block of Eidos code
 \f3\b0  defined by 
 \f1\fs18 lambdaSource
-\f3\fs20 .  
-\fs22 Eidos allows you to execute 
+\f3\fs20 .  Eidos allows you to execute 
 \f7\i lambdas
-\f3\i0 : blocks of Eidos code which can be called directly within the same scope as the caller.  Eidos lambdas do not take arguments; for this reason, they are not first-class functions.  (Since they share the scope of the caller, however, you may effectively pass values in and out of a lambda using global variables.)
-\fs20   The 
+\f3\i0 : blocks of Eidos code which can be called directly within the same scope as the caller.  Eidos lambdas do not take arguments; for this reason, they are not first-class functions.  (Since they share the scope of the caller, however, you may effectively pass values in and out of a lambda using global variables.)  The 
 \f1\fs18 string
 \f3\fs20  argument 
 \f1\fs18 lambdaSource
@@ -4443,19 +4442,25 @@ vNlifso\cf0 \kerning1\expnd0\expndtw0 )executeLambda(string$\'a0lambdaSource, [l
 \f1\fs18 lambdaSource
 \f3\fs20 ; the executable code is not made available programmatically.  If an error occurs during the tokenization, parsing, or execution of the lambda, that error is raised as usual; executing code inside a lambda does not provide any additional protection against exceptions raised.  The return value produced by the code in the lambda is returned by 
 \f1\fs18 executeLambda()
-\f2\fs20 .
-\f3   If the optional parameter 
+\f3\fs20 .  If the optional parameter 
 \f1\fs18 timed
 \f3\fs20  is 
 \f1\fs18 T
-\f3\fs20 , the total (user clock) execution time for the lambda will be printed after the lambda has completed
-\fs22  (see 
+\f3\fs20 , the total (CPU clock) execution time for the lambda will be printed after the lambda has completed (see 
 \f1\fs18 clock()
-\f3\fs22 )
-\fs20 ; if it is 
+\f3\fs20 ); if it is 
 \f1\fs18 F
-\f3\fs20  (the default), no timing information will be printed.\
-The current implementation of 
+\f3\fs20  (the default), no timing information will be printed.  The 
+\f1\fs18 timed
+\f3\fs20  parameter may also be 
+\f1\fs18 "cpu"
+\f3\fs20  or 
+\f1\fs18 "mono"
+\f3\fs20  to specifically request timing with the CPU clock (which will count the usage across all cores, and may thus run faster than wall clock time if multiple cores are being utilized) or the monotonic clock (which will correspond, more or less, to elapsed wall clock time regardless of multithreading); see the documentation for 
+\f1\fs18 clock()
+\f3\fs20  for further discussion of these timing options.\cf0 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 The current implementation of 
 \f1\fs18 executeLambda()
 \f3\fs20  caches a tokenized and parsed version of 
 \f1\fs18 lambdaSource
