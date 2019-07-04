@@ -1089,6 +1089,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_elements_size);
 	
 #pragma omp parallel for default(none) shared(p_elements_size, p_elements, mut_block_ptr, mutation_type_ptr, float_result)
+	// FIXME: should have an if() clause based on performance testing, probably...
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);
