@@ -46,7 +46,7 @@ recombination() {
 		return F;
 	
 	inInv = (breakpoints > 25000) & (breakpoints < 75000);
-	if (sum(inInv) == 0)
+	if (!any(inInv))
 		return F;
 	
 	breakpoints = breakpoints[!inInv];

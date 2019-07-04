@@ -73,12 +73,15 @@
 	NSPopUpButton *popupButton = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(10, 10, 100, 47) pullsDown:NO];
 	[popupButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSMiniControlSize]]];
 	
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma deploymate push "ignored-api-availability"				// setControlSize: is available on 10.10 and later
 	if ([popupButton respondsToSelector:@selector(setControlSize:)])
 		[popupButton setControlSize:NSMiniControlSize];
 	else
 		[[popupButton cell] setControlSize:NSMiniControlSize];	// BCH 4/7/2016: call on the cell; on the view, not supported in 10.9
 #pragma deploymate pop
+#pragma GCC diagnostic pop
 	
 	[popupButton setAutoenablesItems:NO];
 	[popupButton setTarget:self];

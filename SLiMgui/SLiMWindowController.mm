@@ -5240,12 +5240,15 @@
 	{
 		NSArray *subviews;
 		
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma deploymate push "ignored-api-availability"	// arrangedSubviews: is available on 10.11 and later
 		if ([splitView respondsToSelector:@selector(arrangedSubviews)])
 			subviews = [splitView arrangedSubviews];
 		else
 			subviews = [splitView subviews];		// on 10.10 and before, all subviews are arranged
 #pragma deploymate pop
+#pragma GCC diagnostic pop
 		
 		if ([subviews count] == 2)
 		{
