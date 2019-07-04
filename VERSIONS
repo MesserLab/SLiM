@@ -28,6 +28,7 @@ OpenMP additions:
 	defined EIDOS_SLIM_OPEN_MP as a project-defined flag indicating that OpenMP is being used
 	added a message to std::cout indicating that OpenMP is enabled
 	made sum(), -[Individual sumOfMutationsOfType] multithreaded
+	add a command-line option, -maxthreads <n>, to control the maximum number of threads used in OpenMP
 
 
 version 3.3 (build 2062; Eidos version 2.3):
