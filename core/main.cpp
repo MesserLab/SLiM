@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
 	bool verbose_output = false, keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false;
 	std::vector<std::string> defined_constants;
 	
-#if EIDOS_SLIM_OPEN_MP
+#ifdef EIDOS_SLIM_OPEN_MP
 	long max_thread_count = omp_get_max_threads();
 	bool changed_max_thread_count = false;
 #endif
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
-			Eidos_WarmUpOpenMP(changed_max_thread_count, (int)max_thread_count);
+			Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 			Eidos_WarmUp();
 			Eidos_FinishWarmUp();
 			
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
 			gEidosTerminateThrows = true;
-			Eidos_WarmUpOpenMP(changed_max_thread_count, (int)max_thread_count);
+			Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 			Eidos_WarmUp();
 			SLiM_WarmUp();
 			Eidos_FinishWarmUp();
@@ -285,7 +285,7 @@ int main(int argc, char *argv[])
 		
 		if (strcmp(arg, "-maxthreads") == 0)
 		{
-#if EIDOS_SLIM_OPEN_MP
+#ifdef EIDOS_SLIM_OPEN_MP
 			if (++arg_index == argc)
 				PrintUsageAndDie(false, true);
 			
@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
-	Eidos_WarmUpOpenMP(changed_max_thread_count, (int)max_thread_count);
+	Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 	
 	if (verbose_output)
 		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output" << std::endl << std::endl;

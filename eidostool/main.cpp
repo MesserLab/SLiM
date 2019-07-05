@@ -41,7 +41,7 @@ int main(int argc, const char * argv[])
 	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false;
 	
-#if EIDOS_SLIM_OPEN_MP
+#ifdef EIDOS_SLIM_OPEN_MP
 	long max_thread_count = omp_get_max_threads();
 	bool changed_max_thread_count = false;
 #endif
@@ -77,7 +77,7 @@ int main(int argc, const char * argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
-			Eidos_WarmUpOpenMP(changed_max_thread_count, (int)max_thread_count);
+			Eidos_WarmUpOpenMP(std::cout, changed_max_thread_count, (int)max_thread_count, true);
 			Eidos_WarmUp();
 			Eidos_FinishWarmUp();
 			
@@ -94,7 +94,7 @@ int main(int argc, const char * argv[])
 		
 		if (strcmp(arg, "-maxthreads") == 0)
 		{
-#if EIDOS_SLIM_OPEN_MP
+#ifdef EIDOS_SLIM_OPEN_MP
 			if (++arg_index == argc)
 				PrintUsageAndDie();
 			
@@ -130,7 +130,7 @@ int main(int argc, const char * argv[])
 	std::cout << "// ********** DEBUG defined – you are not using a release build of Eidos" << std::endl << std::endl;
 #endif
 	
-	Eidos_WarmUpOpenMP(changed_max_thread_count, (int)max_thread_count);
+	Eidos_WarmUpOpenMP(std::cout, changed_max_thread_count, (int)max_thread_count, true);
 	
 	// keep time (we do this whether or not the -time flag was passed)
 	clock_t begin = clock();

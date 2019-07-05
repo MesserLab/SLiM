@@ -44,7 +44,7 @@ class EidosToken;
 
 
 // This should be called once at startup to give Eidos an opportunity to initialize static state
-void Eidos_WarmUpOpenMP(bool changed_max_thread_count, int new_max_thread_count);
+void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads);
 void Eidos_WarmUp(void);
 void Eidos_FinishWarmUp(void);
 
@@ -385,6 +385,9 @@ inline __attribute__((always_inline)) int Eidos_GetMonotonicTimer(struct timespe
 	return clock_gettime(CLOCK_MONOTONIC, ts);
 #endif
 }
+
+// Returns the number of physical cores (i.e., not counting hyperthreading)
+unsigned int Eidos_PhysicalCoreCount();
 
 
 // *******************************************************************************************************************

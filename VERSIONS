@@ -29,7 +29,8 @@ OpenMP additions:
 	added a message to std::cout indicating that OpenMP is enabled
 	made sum(), -[Individual sumOfMutationsOfType] multithreaded
 	add a command-line option, -maxthreads <n>, to control the maximum number of threads used in OpenMP
-	set default values for OMP_WAIT_POLICY (active) and OMP_PROC_BIND (true); did not set a default for OMP_DYNAMIC at this time, but maybe we should
+	set default values for OMP_WAIT_POLICY (active) and OMP_PROC_BIND (false) and OMP_DYNAMIC (false) for slim and eidos
+	set SLiMgui and EidosScribe to run with a single OpenMP thread; active threads peg the CPU, passive threads are slower than single-threaded
 
 
 version 3.3 (build 2062; Eidos version 2.3):
