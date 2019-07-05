@@ -168,9 +168,9 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
 
 
+#ifdef EIDOS_SLIM_OPEN_MP
 void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads)
 {
-#ifdef EIDOS_SLIM_OPEN_MP
 	// When running under OpenMP, print a log, and also set values for the OpenMP ICV's that we want to guarantee
 	// See http://www.archer.ac.uk/training/course-material/2018/09/openmp-imp/Slides/L10-TipsTricksGotchas.pdf
 	// We set these with overwrite=0 so the user can override them with custom values from the environment
@@ -227,8 +227,8 @@ void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, 
 #endif
 	
 	outstream << std::endl;
-#endif
 }
+#endif
 
 void Eidos_WarmUp(void)
 {

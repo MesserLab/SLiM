@@ -245,7 +245,9 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
+#ifdef EIDOS_SLIM_OPEN_MP
 			Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 			Eidos_WarmUp();
 			Eidos_FinishWarmUp();
 			
@@ -258,7 +260,9 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
 			gEidosTerminateThrows = true;
+#ifdef EIDOS_SLIM_OPEN_MP
 			Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 			Eidos_WarmUp();
 			SLiM_WarmUp();
 			Eidos_FinishWarmUp();
@@ -328,7 +332,9 @@ int main(int argc, char *argv[])
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
+#ifdef EIDOS_SLIM_OPEN_MP
 	Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 	
 	if (verbose_output)
 		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output" << std::endl << std::endl;

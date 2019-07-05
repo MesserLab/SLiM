@@ -77,7 +77,9 @@ int main(int argc, const char * argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
+#ifdef EIDOS_SLIM_OPEN_MP
 			Eidos_WarmUpOpenMP(std::cout, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 			Eidos_WarmUp();
 			Eidos_FinishWarmUp();
 			
@@ -130,7 +132,9 @@ int main(int argc, const char * argv[])
 	std::cout << "// ********** DEBUG defined – you are not using a release build of Eidos" << std::endl << std::endl;
 #endif
 	
+#ifdef EIDOS_SLIM_OPEN_MP
 	Eidos_WarmUpOpenMP(std::cout, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 	
 	// keep time (we do this whether or not the -time flag was passed)
 	clock_t begin = clock();
