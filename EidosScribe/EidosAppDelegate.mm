@@ -63,6 +63,7 @@
         [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
     
 	// Warm up our back end before anything else happens
+	Eidos_WarmUpOpenMP(false, 1);	// use default number of threads
 	Eidos_WarmUp();
 	Eidos_FinishWarmUp();
 }

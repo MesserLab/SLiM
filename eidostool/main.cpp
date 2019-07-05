@@ -19,7 +19,6 @@
 #include "eidos_test.h"
 
 #ifdef EIDOS_SLIM_OPEN_MP
-#include <stdlib.h>
 #include "omp.h"
 #endif
 
@@ -78,6 +77,7 @@ int main(int argc, const char * argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
+			Eidos_WarmUpOpenMP(changed_max_thread_count, (int)max_thread_count);
 			Eidos_WarmUp();
 			Eidos_FinishWarmUp();
 			
@@ -130,18 +130,7 @@ int main(int argc, const char * argv[])
 	std::cout << "// ********** DEBUG defined – you are not using a release build of Eidos" << std::endl << std::endl;
 #endif
 	
-#if EIDOS_SLIM_OPEN_MP
-	// When running under OpenMP, print a log, and also set values for the OpenMP ICV's that we want to guarantee
-	// See http://www.archer.ac.uk/training/course-material/2018/09/openmp-imp/Slides/L10-TipsTricksGotchas.pdf
-	setenv("OMP_WAIT_POLICY", "active", 1);		// Encourages idle threads to spin rather than sleep
-	//setenv("OMP_DYNAMIC", "false", 1);		// Don’t let the runtime deliver fewer threads than you asked for - BCH 7/4/2019: it is not clear to me that dyn-var is bad...?
-	setenv("OMP_PROC_BIND", "true", 1);			// Prevents threads migrating between cores
-	
-	if (changed_max_thread_count)
-		omp_set_num_threads((int)max_thread_count);		// confusingly, sets the *max* threads as returned by omp_get_max_threads()
-	
-	std::cout << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl << std::endl;
-#endif
+	Eidos_WarmUpOpenMP(changed_max_thread_count, (int)max_thread_count);
 	
 	// keep time (we do this whether or not the -time flag was passed)
 	clock_t begin = clock();

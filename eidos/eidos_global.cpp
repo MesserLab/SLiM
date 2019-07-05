@@ -56,6 +56,11 @@
 // for Eidos_WelchTTest()
 #include "gsl_cdf.h"
 
+#ifdef EIDOS_SLIM_OPEN_MP
+#include <stdlib.h>
+#include "omp.h"
+#endif
+
 
 bool eidos_do_memory_checks = true;
 
@@ -158,6 +163,24 @@ void Eidos_PrepareForProfiling(void)
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
 
+
+void Eidos_WarmUpOpenMP(bool changed_max_thread_count, int new_max_thread_count)
+{
+#if EIDOS_SLIM_OPEN_MP
+	// When running under OpenMP, print a log, and also set values for the OpenMP ICV's that we want to guarantee
+	// See http://www.archer.ac.uk/training/course-material/2018/09/openmp-imp/Slides/L10-TipsTricksGotchas.pdf
+	// We set these with overwrite=0 so the user can override them with custom values from the environment
+	// This should be documented somewhere...
+	setenv("OMP_WAIT_POLICY", "active", 0);		// "active" encourages idle threads to spin rather than sleep; "active" seems to be much faster, maybe lower lag?
+	setenv("OMP_DYNAMIC", "true", 0);			// "false" == don’t let the runtime deliver fewer threads than you asked for
+	setenv("OMP_PROC_BIND", "false", 0);		// "true" prevents threads migrating between cores; "false" seems to result in better performance, for me on macOS
+	
+	if (changed_max_thread_count)
+		omp_set_num_threads(new_max_thread_count);		// confusingly, sets the *max* threads as returned by omp_get_max_threads()
+	
+	std::cout << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl << std::endl;
+#endif
+}
 
 void Eidos_WarmUp(void)
 {

@@ -44,6 +44,7 @@ class EidosToken;
 
 
 // This should be called once at startup to give Eidos an opportunity to initialize static state
+void Eidos_WarmUpOpenMP(bool changed_max_thread_count, int new_max_thread_count);
 void Eidos_WarmUp(void);
 void Eidos_FinishWarmUp(void);
 

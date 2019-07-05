@@ -207,6 +207,7 @@ typedef enum SLiMLaunchAction
         [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
     
 	// Warm up our back ends before anything else happens
+	Eidos_WarmUpOpenMP(false, 1);	// use default number of threads
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	gEidosContextClasses.push_back(gSLiM_SLiMgui_Class);			// available only in SLiMgui
