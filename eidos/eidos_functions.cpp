@@ -3329,21 +3329,10 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const int64_t *int_data = x_value->IntVector()->data();
 			double sum_d = 0;
 			
-#pragma omp parallel for default(none) shared(int_data, x_count) reduction(+: sum_d) if(x_count >= 4000)
+#pragma omp parallel for default(none) shared(int_data, x_count) reduction(+: sum_d) if(x_count >= 2000)
+			// BCH 7/5/2019: Timed with test_sum_integer.txt; results are in that file.
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum_d += int_data[value_index];
-			// BCH 7/4/2019: Timing as per comment below, with Eidos code:
-			//
-			// y = 1:4000;
-			// start = clock("mono");
-			// for (i in 1:1000000) x = sum(y);
-			// print(clock("mono") - start);
-			//
-			// with 1000 integers: 1.55428 (1 thread via num_threads) vs. 4.06224 (8 threads)
-			// with 2000 integers: 2.75626 (1 thread via num_threads) vs. 4.29366 (8 threads)
-			// with 3000 integers: 3.87754 (1 thread via num_threads) vs. 4.34578 (8 threads)
-			// with 4000 integers: 5.09321 (1 thread via num_threads) vs. 4.70348 (8 threads)
-			// with 10000 integers: 11.784 (1 thread via num_threads) vs. 5.48504 (8 threads)
 			
 			// 2^53 is the largest integer such that it and all smaller integers can be represented in double losslessly
 			int64_t sum = (int64_t)sum_d;
@@ -3368,37 +3357,19 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const double *float_data = x_value->FloatVector()->data();
 			double sum = 0;
 			
-#pragma omp parallel for default(none) shared(float_data, x_count) reduction(+: sum) if(x_count >= 4000)
+#pragma omp parallel for default(none) shared(float_data, x_count) reduction(+: sum) if(x_count >= 2000)
+			// BCH 7/5/2019: Timed with test_sum_float.txt; results are in that file.
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
-			// BCH 7/4/2019: Timing with Clang 8.0 on macOS 10.14.5, Xcode 10.2.1, on a 4-core MacBook Pro 2016,
-			// 2.9 GHz Intel Core i7, with hyperthreading (8 virtual cores), using Eidos test code:
-			//
-			// y = 1.0:100;
-			// start = clock("mono");
-			// for (i in 1:1000000) x = sum(y);
-			// print(clock("mono") - start);
-			//
-			// with 10 floats: 0.299714 (1 thread via num_threads) vs. 3.86522 (8 threads)
-			// with 100 floats: 0.421297 (1 thread via num_threads) vs. 4.03096 (8 threads)
-			// with 1000 floats: 1.4886 (1 thread via num_threads) vs. 4.21578 (8 threads)
-			// with 2000 floats: 3.01648 (1 thread via num_threads) vs. 4.72275 (8 threads)
-			// with 4000 floats: 5.66206 (1 thread via num_threads) vs. 5.48813 (8 threads)
-			// with 10000 floats: 11.8295 (1 thread via num_threads) vs. 7.81025 (8 threads)
-			// with 100000 floats: 129.551 (1 thread via num_threads) vs. 19.8275 (8 threads)
-			//
-			// with 100 floats, with the OpenMP pragma commented out: 0.177133, 0.182492, 0.176714
-			// with 100 floats, with the OpenMP pragma disabled by if(): 0.382235, 0.373675, 0.383757
-			//
-			// with 2000 floats, with 4 threads (with num_threads) instead of 8: 2.25659, 2.2311, 2.26254
-			// with 100000 floats, with 4 threads instead of 8: 31.4291
+			
+			// General conclusions from those test results:
 			//
 			// #1: An OpenMP parallel directive with num_threads(1) already adds a substantial amount of overhead
 			// compared to having no such directive at all.  So we should only parallelize spots that are expected
 			// to hit big cases often; spots that usually handle small cases should not be parallelized even with
 			// the use of an if() clause.
 			//
-			// #2: Multithreading on this platform with a team of 8 is not a win until almost 4000, so again,
+			// #2: Multithreading on this platform with a team of 8 is not a win until almost 2000, so again,
 			// don't parallelize spots that will usually process smaller datasets, *and* put if() clauses on
 			// parallel statements that might be frequently called for smaller datasets if you do choose to make
 			// them parallel, because the overhead for assembling a team for a small dataset is huge.
@@ -3406,10 +3377,11 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			// #3: Hyperthreading is a win for sufficiently large N (see the result for only 4 threads with
 			// 100000 floats), but it involves more constant overhead to set up the team, so it is actually
 			// a lose below some threshold; with 2000 floats, 4 threads is actually faster than either 1 or 8.
-			// So for maximal performance the number of threads would dynamically adjust; but that is tricky.
+			// So for maximal performance the number of threads would dynamically adjust; but that is tricky,
+			// and the effect size is not huge, and the band where this occurs is probably somewhat narrow.
 			//
 			// It is not really clear from these platform-specific results what minimum size to use for the
-			// if() clause; for now I'll set it to 4000, but that may be a poor choice on other platforms.
+			// if() clause; for now I'll set it to 2000, but that may be a poor choice on other platforms.
 			// What to do?  Is there a good way to dynamically adjust without adding substantial overhead?
 			//
 			// And note that a different loop might have a (radically) different optimum.  The overhead for
@@ -3426,25 +3398,14 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 		const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
 		int64_t sum = 0;
 		
-#pragma omp parallel for default(none) shared(logical_data, x_count) reduction(+: sum) if(x_count >= 15000)
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			sum += logical_data[value_index];
-		// BCH 7/4/2019: Timing as per comment above, with the following Eidos test code:
-		//
-		// y = runif(15000) < 0.5;
-		// start = clock("mono");
-		// for (i in 1:1000000) x = sum(y);
-		// print(clock("mono") - start);
-		//
-		// with 1000 logicals: 0.698203 (1 thread via num_threads) vs. 4.07713 (8 threads)
-		// with 10000 logicals: 4.3917 (1 thread via num_threads) vs. 5.00266 (8 threads)
-		// with 15000 logicals: 6.15196 (1 thread via num_threads) vs. 5.45249 (8 threads)
-		// with 20000 logicals: 8.017 (1 thread via num_threads) vs. 5.9199 (8 threads)
-		// with 100000 logicals: 36.9641 (1 thread via num_threads) vs. 13.9751 (8 threads)
+#pragma omp parallel for default(none) shared(logical_data, x_count) reduction(+: sum) if(x_count >= 6000)
+		// BCH 7/5/2019: Timed with test_sum_logical.txt; results are in that file.
 		//
 		// Note the crossover point here is quite different; this is apparently because there is much more
 		// work to do per iteration when adding floats than when adding logicals.  This is probably mostly
 		// to do with their memory footprint – more logicals per cache line.
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			sum += logical_data[value_index];
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(sum));
 	}
