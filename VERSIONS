@@ -14,6 +14,7 @@ development head:
 	fix bug involving (a) genomic elements specified out of sorted order, AND (b) a non-uniform mutation rate map; some genomic elements can end up not generating any mutations at all (present since SLiM 2.5)
 	add an option to clock() to select the clock type ("cpu" or "monotonic", for now); add the same option to executeLambda()
 	fix a VCF output bug: blank lines in nucleotide-based output when a back-mutation is suppressed by simplifyNucleotides=T
+	add a wait=T optional parameter to system(), allowing wait=F (or a & at the end of the command line) to execute a system command in the background
 
 
 version 3.3 (build 2062; Eidos version 2.3):

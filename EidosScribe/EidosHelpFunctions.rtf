@@ -4818,7 +4818,7 @@ Prior to Eidos 1.6 (SLiM 2.6),
 \f3\fs20 , making it easy to suppress warnings from a given call and then return to the previous suppression state afterwards.  It is recommended that warnings be suppressed only around short blocks of code (not all the time), so that unexpected but perhaps important warnings are not missed.  And of course warnings are generally emitted for good reasons; before deciding to disregard a given warning, make sure that you understand exactly why it is being issued, and are certain that it does not represent a serious problem.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)system(string$\'a0command, [string\'a0args\'a0=\'a0""], [string\'a0input\'a0=\'a0""], [logical$\'a0stderr\'a0=\'a0F])\
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)system(string$\'a0command, [string\'a0args\'a0=\'a0""], [string\'a0input\'a0=\'a0""], [logical$\'a0stderr\'a0=\'a0F], [logical$\'a0wait\'a0=\'a0T])\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Runs a Un*x command in a 
@@ -4889,9 +4889,41 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f3\fs20  with 
 \f1\fs18 <
 \f2\fs20 .\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3 \cf2 \expnd0\expndtw0\kerning0
+If 
+\f1\fs18 wait
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20  (the default), 
+\f1\fs18 system()
+\f3\fs20  will wait for the command to finish, and return the output generated as a 
+\f1\fs18 string
+\f3\fs20  vector, as described above.  If 
+\f1\fs18 wait
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20 , 
+\f1\fs18 system()
+\f3\fs20  will instead append 
+\f1\fs18 " &"
+\f3\fs20  to the end of the command line to request that it be run in the background, and it will not collect and return the output from the command; instead it will return 
+\f1\fs18 string(0)
+\f3\fs20  immediately.  If the output from the command is needed, it could be redirected to a file, and that file could be checked periodically in Eidos for some indication that the command had completed; if output is not redirected to a file, it may appear in SLiM\'92s output stream.  If the final command line executed by 
+\f1\fs18 system()
+\f3\fs20  ends in 
+\f1\fs18 " &"
+\f3\fs20 , the behavior of 
+\f1\fs18 system()
+\f3\fs20  should be just as if 
+\f1\fs18 wait=T
+\f3\fs20  had been supplied, but it is recommended to use 
+\f1\fs18 wait=T
+\f3\fs20  instead to ensure that the command line is correctly assembled.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string$)time(void)\
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string$)time(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf0 Returns a 

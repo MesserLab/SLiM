@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <fstream>
 #include <stdexcept>
@@ -300,7 +301,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskVOID))->AddString_OSN("message", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("suppressWarnings",	Eidos_ExecuteFunction_suppressWarnings,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical_S("suppress"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF)->AddLogical_OS("wait", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("usage",				Eidos_ExecuteFunction_usage,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddLogical_OS("peak", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("version",			Eidos_ExecuteFunction_version,		kEidosValueMaskFloat))->AddLogical_OS("print", gStaticEidosValue_LogicalT));
@@ -10800,7 +10801,7 @@ EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const EidosValue_SP *const 
 	return (old_suppress ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
-//	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F])
+//	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F], [logical$ wait = T])
 EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -10818,6 +10819,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 	int input_count = input_value->Count();
 	bool has_input = ((input_count > 1) || ((input_count == 1) && (input_value->StringAtIndex(0, nullptr).length() > 0)));
 	bool redirect_stderr = p_arguments[3]->LogicalAtIndex(0, nullptr);
+	bool wait = p_arguments[4]->LogicalAtIndex(0, nullptr);
 	
 	// Construct the command string
 	std::string command_string = command_value->StringAtIndex(0, nullptr);
@@ -10883,31 +10885,53 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 		command_string.append(" 2>&1");
 	}
 	
-	// Execute the command string; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
-	//std::cout << "Executing command string: " << command_string << std::endl;
-	//std::cout << "Command string length: " << command_string.length() << " bytes" << std::endl;
-	
-	char buffer[128];
-	std::string result = "";
-	std::shared_ptr<FILE> command_pipe(popen(command_string.c_str(), "r"), pclose);
-	if (!command_pipe)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) popen() failed!" << EidosTerminate(nullptr);
-	while (!feof(command_pipe.get())) {
-		if (fgets(buffer, 128, command_pipe.get()) != NULL)
-			result += buffer;
+	// Run in the background, if requested
+	if (!wait)
+	{
+		command_string.append(" &");
 	}
 	
-	// Parse the result into lines and make a result vector
-	std::istringstream result_stream(result);
-	EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
-	result_SP = EidosValue_SP(string_result);
+	// Determine whether we are running in the background, as indicated by a command line ending in " &"
+	if ((command_string.length() > 2) && (command_string.substr(command_string.length() - 2, std::string::npos) == " &"))
+	{
+		wait = false;
+	}
 	
-	std::string line;
-	
-	while (getline(result_stream, line))
-		string_result->PushString(line);
-	
-	return result_SP;
+	if (wait)
+	{
+		// Execute the command string; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
+		//std::cout << "Executing command string: " << command_string << std::endl;
+		//std::cout << "Command string length: " << command_string.length() << " bytes" << std::endl;
+		
+		char buffer[128];
+		std::string result = "";
+		std::shared_ptr<FILE> command_pipe(popen(command_string.c_str(), "r"), pclose);
+		if (!command_pipe)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) popen() failed!" << EidosTerminate(nullptr);
+		while (!feof(command_pipe.get())) {
+			if (fgets(buffer, 128, command_pipe.get()) != NULL)
+				result += buffer;
+		}
+		
+		// Parse the result into lines and make a result vector
+		std::istringstream result_stream(result);
+		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+		result_SP = EidosValue_SP(string_result);
+		
+		std::string line;
+		
+		while (getline(result_stream, line))
+			string_result->PushString(line);
+		
+		return result_SP;
+	}
+	else
+	{
+		// Execute the command string without collecting output, hopefully in the background with an immediate return from system()
+		system(command_string.c_str());
+		
+		return gStaticEidosValue_String_ZeroVec;
+	}
 }
 
 //	(string$)time(void)
