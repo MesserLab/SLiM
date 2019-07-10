@@ -16,6 +16,7 @@ development head:
 	fix a VCF output bug: blank lines in nucleotide-based output when a back-mutation is suppressed by simplifyNucleotides=T
 	add a wait=T optional parameter to system(), allowing wait=F (or a & at the end of the command line) to execute a system command in the background
 	enable access to pedigree IDs whenever they are valid (i.e., when tree-sequence recording is enabled, as well as when pedigree tracking is enabled), and add them to VCF output when available
+	add an "individual" property to Genome that provides the individual to which a given genome belongs
 
 
 version 3.3 (build 2062; Eidos version 2.3):
