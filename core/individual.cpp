@@ -216,8 +216,8 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 #endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			if (!subpopulation_.population_.sim_.PedigreesEnabled())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
@@ -486,8 +486,8 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObjectElement **
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		if (!value->subpopulation_.population_.sim_.PedigreesEnabledByUser())
-			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+		if (!value->subpopulation_.population_.sim_.PedigreesEnabled())
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->pedigree_id_, value_index);
 		++value_index;
@@ -1049,11 +1049,17 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	EidosValue *individuals_value = p_arguments[0].get();
 	
 	int individuals_count = individuals_value->Count();
+	bool pedigree_tracking_enabled = subpopulation_.population_.sim_.PedigreesEnabledByUser();
 	
 	if (individuals_count == 1)
 	{
 		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(0, nullptr));
-		double relatedness = RelatednessToIndividual(*ind);
+		double relatedness;
+		
+		if (pedigree_tracking_enabled)
+			relatedness = RelatednessToIndividual(*ind);
+		else
+			relatedness = (ind == this) ? 1.0 : 0.0;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(relatedness));
 	}
@@ -1061,12 +1067,25 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(individuals_count);
 		
-		for (int value_index = 0; value_index < individuals_count; ++value_index)
+		if (pedigree_tracking_enabled)
 		{
-			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
-			double relatedness = RelatednessToIndividual(*ind);
-			
-			float_result->set_float_no_check(relatedness, value_index);
+			for (int value_index = 0; value_index < individuals_count; ++value_index)
+			{
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				double relatedness = RelatednessToIndividual(*ind);
+				
+				float_result->set_float_no_check(relatedness, value_index);
+			}
+		}
+		else
+		{
+			for (int value_index = 0; value_index < individuals_count; ++value_index)
+			{
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				double relatedness = (ind == this) ? 1.0 : 0.0;
+				
+				float_result->set_float_no_check(relatedness, value_index);
+			}
 		}
 		
 		return EidosValue_SP(float_result);
