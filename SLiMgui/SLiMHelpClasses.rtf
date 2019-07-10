@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf400
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf500
 {\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-BoldMT;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
@@ -722,7 +722,7 @@ genomePedigreeID => (integer$)\
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  If pedigree tracking is not on, this property is unavailable.\
+\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomeType => (string$)\
@@ -737,7 +737,16 @@ genomePedigreeID => (integer$)\
 \f5\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 isNullGenome => (logical$)\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+individual => (object<Individual>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Individual
+\f4\fs20  object to which this genome belongs.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 isNullGenome => (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 T
 \f4\fs20  if the genome is a \'93null\'94 genome, 
@@ -1914,7 +1923,7 @@ If pedigree tracking is turned on with
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
 \f3\fs18 pedigreeID
-\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  If pedigree tracking is not on, this property is unavailable.\
+\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeParentIDs => (integer)\
@@ -2643,8 +2652,8 @@ If
 \f4\fs20 , the interaction will immediately and synchronously evaluate all interactions between all individuals in the subpopulation(s), calling any applicable 
 \f3\fs18 interaction()
 \f4\fs20  callbacks as necessary \'96 if the interaction is spatial (see below).  However, depending upon what queries are later executed, this may represent considerable wasted computation.  Immediate evaluation usually generates only a slight performance improvement even if the interactions between all pairs of individuals are eventually accessed; the main reason to choose immediate evaluation, then, is that deferred calculation of interactions would lead to incorrect results due to changes in model state.  For non-spatial interactions, distances and interaction strengths are never cached since such caching would require O(N
-\fs13\fsmilli6667 \super 2
-\fs20 \nosupersub ) memory and time, which is deemed unacceptable in general; for non-spatial interactions, the 
+\fs13\fsmilli6667 \cf2 \super 2
+\fs20 \cf2 \nosupersub ) memory and time, which is deemed unacceptable in general; for non-spatial interactions, the 
 \f3\fs18 immediate
 \f4\fs20  parameter is therefore ignored.\cf0 \kerning1\expnd0\expndtw0 \
 \cf2 \expnd0\expndtw0\kerning0
@@ -3943,7 +3952,7 @@ If the model is being profiled, or is executing forward to a generation number e
 
 \f0\b\fs20 \cf2 \expnd0\expndtw0\kerning0
 This property has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0 \cf2   In SLiM 3.2.1 and later, use 
+\f4\b0   In SLiM 3.2.1 and later, use 
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0

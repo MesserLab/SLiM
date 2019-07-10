@@ -548,8 +548,8 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomePedigreeID:		// ACCELERATED
 		{
-			if (!subpop_->population_.sim_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			if (!subpop_->population_.sim_.PedigreesEnabled())
+				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genome_id_));
 		}
@@ -561,6 +561,10 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 				case GenomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_X));
 				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_Y));
 			}
+		}
+		case gID_individual:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(individual_, gSLiM_Individual_Class));
 		}
 		case gID_isNullGenome:		// ACCELERATED
 			return ((mutrun_count_ == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -612,8 +616,8 @@ EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObjectElement 
 	{
 		Genome *value = (Genome *)(p_values[value_index]);
 		
-		if (!value->subpop_->population_.sim_.PedigreesEnabledByUser())
-			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+		if (!value->subpop_->population_.sim_.PedigreesEnabled())
+			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->genome_id_, value_index);
 		++value_index;
@@ -1524,10 +1528,31 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 		p_out << "##fileDate=" << std::string(buffer) << std::endl;
 	}
 	
+	p_out << "##source=SLiM" << std::endl;
+	
+	// BCH 10 July 2019: output genome pedigree IDs, if available, for all of the genomes being output.
+	// It would be nice to be able to output individual pedigree IDs, but since we are working with a
+	// vector of genomes there is no guarantee that the pairs of genomes here come from the same individuals.
+	if (p_genomes.size() > 0)
+	{
+		Genome *genome0 = p_genomes[0];
+		
+		if (genome0->subpop_->population_.sim_.PedigreesEnabled())
+		{
+			p_out << "##slimGenomePedigreeIDs=";
+			for (slim_popsize_t index = 0; index < (slim_popsize_t)p_genomes.size(); index++)
+			{
+				if (index > 0)
+					p_out << ",";
+				p_out << p_genomes[index]->genome_id_;
+			}
+			p_out << std::endl;
+		}
+	}
+	
 	// BCH 6 March 2019: Note that all of the INFO fields that provide per-mutation information have been
 	// changed from a Number of 1 to a Number of ., since in nucleotide-based models we can call more than
 	// one allele in a single call line (unlike in non-nucleotide-based models).
-	p_out << "##source=SLiM" << std::endl;
 	p_out << "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
 	p_out << "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
 	p_out << "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">" << std::endl;
@@ -1728,6 +1753,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 								p_out << '|';
 						}
 					}
+					
+					p_out << std::endl;
 				}
 			}
 			else
@@ -1868,9 +1895,9 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 							p_out << '|';
 					}
 				}
+				
+				p_out << std::endl;
 			}
-			
-			p_out << std::endl;
 		}
 		
 		// Emit the non-nucleotide-based mutations at this position as individual call lines, each as an A->T mutation
@@ -2009,6 +2036,7 @@ const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_genomePedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individual,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_isNullGenome));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Genome::SetProperty_Accelerated_tag));
