@@ -1728,6 +1728,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 								p_out << '|';
 						}
 					}
+					
+					p_out << std::endl;
 				}
 			}
 			else
@@ -1868,9 +1870,9 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 							p_out << '|';
 					}
 				}
+				
+				p_out << std::endl;
 			}
-			
-			p_out << std::endl;
 		}
 		
 		// Emit the non-nucleotide-based mutations at this position as individual call lines, each as an A->T mutation
