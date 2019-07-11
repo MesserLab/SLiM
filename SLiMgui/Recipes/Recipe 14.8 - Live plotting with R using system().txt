@@ -44,5 +44,6 @@ initialize() {
 	
 	scriptPath = writeTempFile("plot_", ".R", rstr);
 	system("/usr/local/bin/Rscript", args=scriptPath);
+	deleteFile(scriptPath);
 }
 50000 late() { sim.outputFixedMutations(); }
