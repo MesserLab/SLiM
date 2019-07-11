@@ -10928,7 +10928,10 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 	else
 	{
 		// Execute the command string without collecting output, hopefully in the background with an immediate return from system()
-		system(command_string.c_str());
+		int ret = system(command_string.c_str());
+		
+		if (ret != 0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): (internal error) system() failed with return code " << ret << "." << EidosTerminate(nullptr);
 		
 		return gStaticEidosValue_String_ZeroVec;
 	}
