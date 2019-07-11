@@ -578,10 +578,10 @@ uint8_t *NucleotideArray::NucleotideCharToIntLookup(void)
 		for (int i = 0; i < 256; ++i)
 			nuc_lookup[i] = 4;	// placeholder illegal value
 		
-		nuc_lookup['A'] = 0;
-		nuc_lookup['C'] = 1;
-		nuc_lookup['G'] = 2;
-		nuc_lookup['T'] = 3;
+		nuc_lookup[(int)('A')] = 0;
+		nuc_lookup[(int)('C')] = 1;
+		nuc_lookup[(int)('G')] = 2;
+		nuc_lookup[(int)('T')] = 3;
 	}
 	
 	return nuc_lookup;
@@ -603,7 +603,7 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 		for (std::size_t i = 0; i < 32; )
 		{
 			char nuc_char = p_char_buffer[index + i];
-			uint64_t nuc = nuc_lookup[nuc_char];
+			uint64_t nuc = nuc_lookup[(int)(nuc_char)];
 			
 			if (nuc > 3)
 			{
