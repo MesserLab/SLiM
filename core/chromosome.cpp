@@ -61,15 +61,11 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 Chromosome::Chromosome(SLiMSim *p_sim) :
 
 	sim_(p_sim),
+	single_recombination_map_(true), 
 	single_mutation_map_(true),
 	lookup_mutation_H_(nullptr), lookup_mutation_M_(nullptr), lookup_mutation_F_(nullptr), 
-	overall_mutation_rate_H_(0.0), overall_mutation_rate_M_(0.0), overall_mutation_rate_F_(0.0),
-	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
-	
-	single_recombination_map_(true), 
 	lookup_recombination_H_(nullptr), lookup_recombination_M_(nullptr), lookup_recombination_F_(nullptr),
-	overall_recombination_rate_H_(0.0), overall_recombination_rate_M_(0.0), overall_recombination_rate_F_(0.0),
-	overall_recombination_rate_H_userlevel_(0.0), overall_recombination_rate_M_userlevel_(0.0), overall_recombination_rate_F_userlevel_(0.0),
+	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
 	
 #ifndef USE_GSL_POISSON
@@ -77,9 +73,13 @@ Chromosome::Chromosome(SLiMSim *p_sim) :
 	probability_both_0_M_(0.0), probability_both_0_OR_mut_0_break_non0_M_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_M_(0.0),
 	probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), 
 #endif
-
-	last_position_(0), last_position_mutrun_(0),
-	using_DSB_model_(false), non_crossover_fraction_(0.0), gene_conversion_avg_length_(0.0), gene_conversion_inv_half_length_(0.0), simple_conversion_fraction_(0.0), mismatch_repair_bias_(0.0)
+	
+	last_position_(0),
+	overall_mutation_rate_H_(0.0), overall_mutation_rate_M_(0.0), overall_mutation_rate_F_(0.0),
+	overall_recombination_rate_H_(0.0), overall_recombination_rate_M_(0.0), overall_recombination_rate_F_(0.0),
+	overall_recombination_rate_H_userlevel_(0.0), overall_recombination_rate_M_userlevel_(0.0), overall_recombination_rate_F_userlevel_(0.0),
+	using_DSB_model_(false), non_crossover_fraction_(0.0), gene_conversion_avg_length_(0.0), gene_conversion_inv_half_length_(0.0), simple_conversion_fraction_(0.0), mismatch_repair_bias_(0.0),
+	last_position_mutrun_(0)
 {
 	// Set up the default color for fixed mutations in SLiMgui
 	color_sub_ = "#3333FF";

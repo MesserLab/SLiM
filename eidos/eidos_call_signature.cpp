@@ -556,12 +556,12 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 }
 
 EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const std::string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_return_mask), delegate_name_(p_delegate_name), internal_function_(p_function_ptr)
+	: EidosCallSignature(p_function_name, p_return_mask), internal_function_(p_function_ptr), delegate_name_(p_delegate_name)
 {
 }
 
 EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, const std::string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), delegate_name_(p_delegate_name), internal_function_(p_function_ptr)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), internal_function_(p_function_ptr), delegate_name_(p_delegate_name)
 {
 }
 

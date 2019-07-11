@@ -315,9 +315,9 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const EidosValue_SP *cons
 			{
 				int64_t codon_base = value_index * 3;
 				
-				int nuc1 = nuc_lookup[string_ref[codon_base]];
-				int nuc2 = nuc_lookup[string_ref[codon_base + 1]];
-				int nuc3 = nuc_lookup[string_ref[codon_base + 2]];
+				int nuc1 = nuc_lookup[(int)(string_ref[codon_base])];
+				int nuc2 = nuc_lookup[(int)(string_ref[codon_base + 1])];
+				int nuc3 = nuc_lookup[(int)(string_ref[codon_base + 2])];
 				
 				if ((nuc1 > 3) || (nuc2 > 3) || (nuc3 > 3))
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
@@ -358,9 +358,9 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const EidosValue_SP *cons
 				if ((nucstring1.length() != 1) || (nucstring2.length() != 1) || (nucstring3.length() != 1))
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
 				
-				int nuc1 = nuc_lookup[nucstring1[0]];
-				int nuc2 = nuc_lookup[nucstring2[0]];
-				int nuc3 = nuc_lookup[nucstring3[0]];
+				int nuc1 = nuc_lookup[(int)(nucstring1[0])];
+				int nuc2 = nuc_lookup[(int)(nucstring2[0])];
+				int nuc3 = nuc_lookup[(int)(nucstring3[0])];
 				
 				if ((nuc1 > 3) || (nuc2 > 3) || (nuc3 > 3))
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
@@ -422,7 +422,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 			for (std::size_t i = 0; i < length; ++i)
 			{
 				char nuc_char = string_ref[i];
-				uint8_t nuc_index = nuc_lookup[nuc_char];
+				uint8_t nuc_index = nuc_lookup[(int)(nuc_char)];
 				
 				if (nuc_index > 3)
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
@@ -461,7 +461,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
 				
 				char nuc_char = nuc_string[0];
-				uint8_t nuc_index = nuc_lookup[nuc_char];
+				uint8_t nuc_index = nuc_lookup[(int)(nuc_char)];
 				
 				if (nuc_index > 3)
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);

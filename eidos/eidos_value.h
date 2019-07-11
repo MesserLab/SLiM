@@ -688,7 +688,7 @@ public:
 	EidosValue_String_singleton(const EidosValue_String_singleton &p_original) = delete;	// no copy-construct
 	EidosValue_String_singleton& operator=(const EidosValue_String_singleton&) = delete;	// no copying
 	EidosValue_String_singleton(void) = delete;
-	explicit inline EidosValue_String_singleton(const std::string &p_string1) : value_(p_string1), EidosValue_String(true) { }
+	explicit inline EidosValue_String_singleton(const std::string &p_string1) : EidosValue_String(true), value_(p_string1) { }
 	inline virtual ~EidosValue_String_singleton(void) { delete cached_script_; }
 	
 	virtual int Count_Virtual(void) const;
@@ -830,7 +830,7 @@ public:
 	EidosValue_Int_singleton(const EidosValue_Int_singleton &p_original) = delete;	// no copy-construct
 	EidosValue_Int_singleton& operator=(const EidosValue_Int_singleton&) = delete;	// no copying
 	EidosValue_Int_singleton(void) = delete;
-	explicit inline EidosValue_Int_singleton(int64_t p_int1) : value_(p_int1), EidosValue_Int(true) { }
+	explicit inline EidosValue_Int_singleton(int64_t p_int1) : EidosValue_Int(true), value_(p_int1) { }
 	inline virtual ~EidosValue_Int_singleton(void) { }
 	
 	virtual int Count_Virtual(void) const;
@@ -966,7 +966,7 @@ public:
 	EidosValue_Float_singleton(const EidosValue_Float_singleton &p_original) = delete;	// no copy-construct
 	EidosValue_Float_singleton& operator=(const EidosValue_Float_singleton&) = delete;	// no copying
 	EidosValue_Float_singleton(void) = delete;
-	explicit inline EidosValue_Float_singleton(double p_float1) : value_(p_float1), EidosValue_Float(true) { }
+	explicit inline EidosValue_Float_singleton(double p_float1) : EidosValue_Float(true), value_(p_float1) { }
 	inline virtual ~EidosValue_Float_singleton(void) { }
 	
 	virtual int Count_Virtual(void) const;

@@ -2471,7 +2471,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
 			{
-				uint8_t nuc = nucleotide_lookup[arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0]];
+				uint8_t nuc = nucleotide_lookup[(int)(arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0])];
 				
 				if (nuc > 3)
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
@@ -2544,7 +2544,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	else if (arg_nucleotide->Type() == EidosValueType::kValueInt)
 		singleton_nucleotide = arg_nucleotide->IntAtIndex(0, nullptr);
 	else
-		singleton_nucleotide = nucleotide_lookup[arg_nucleotide->StringAtIndex(0, nullptr)[0]];
+		singleton_nucleotide = nucleotide_lookup[(int)(arg_nucleotide->StringAtIndex(0, nullptr)[0])];
 	
 	// ok, now loop to add the mutations in a single bulk operation per mutation run
 	bool recording_tree_sequence_mutations = sim.RecordingTreeSequenceMutations();
@@ -2606,7 +2606,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 					if (arg_nucleotide->Type() == EidosValueType::kValueInt)
 						nucleotide = arg_nucleotide->IntAtIndex(mut_parameter_index, nullptr);
 					else
-						nucleotide = nucleotide_lookup[arg_nucleotide->StringAtIndex(mut_parameter_index, nullptr)[0]];
+						nucleotide = nucleotide_lookup[(int)(arg_nucleotide->StringAtIndex(mut_parameter_index, nullptr)[0])];
 				}
 				
 				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
