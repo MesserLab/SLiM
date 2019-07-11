@@ -34,8 +34,8 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_),
-	SLiMEidosDictionary(p_mutation)
+	SLiMEidosDictionary(p_mutation), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+	
 {
 }
 
