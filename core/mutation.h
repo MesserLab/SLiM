@@ -30,7 +30,7 @@
 
 #include <iostream>
 
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_value.h"
 #include "slim_eidos_dictionary.h"
 

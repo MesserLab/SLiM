@@ -9,7 +9,7 @@
 
 #include "slim_eidos_block.h"
 #include "eidos_interpreter.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"

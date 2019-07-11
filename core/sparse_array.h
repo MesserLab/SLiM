@@ -21,7 +21,7 @@
 #define sparse_array_h
 
 
-#include "slim_global.h"
+#include "slim_globals.h"
 
 #include <vector>
 

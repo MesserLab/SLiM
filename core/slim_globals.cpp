@@ -1,5 +1,5 @@
 //
-//  slim_global.cpp
+//  slim_globals.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 1/4/15.
@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "mutation.h"
 #include "mutation_run.h"
 #include "slim_sim.h"

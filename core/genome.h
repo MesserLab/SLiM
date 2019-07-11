@@ -29,7 +29,7 @@
 
 
 #include "mutation.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_value.h"
 #include "chromosome.h"
 #include "mutation_run.h"

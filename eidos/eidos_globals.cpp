@@ -1,5 +1,5 @@
 //
-//  eidos_global.cpp
+//  eidos_globals.cpp
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_script.h"
 #include "eidos_value.h"
 #include "eidos_interpreter.h"

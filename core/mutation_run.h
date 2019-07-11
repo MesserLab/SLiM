@@ -30,7 +30,7 @@
 
 
 #include "mutation.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_intrusive_ptr.h"
 #include "eidos_object_pool.h"
 

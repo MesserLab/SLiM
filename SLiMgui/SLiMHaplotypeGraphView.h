@@ -20,7 +20,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "mutation.h"
 
 

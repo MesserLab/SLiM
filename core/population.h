@@ -33,7 +33,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "substitution.h"
 #include "chromosome.h"
 #include "slim_eidos_block.h"

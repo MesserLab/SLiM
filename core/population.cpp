@@ -28,7 +28,7 @@
 #include <unordered_map>
 
 #include "slim_sim.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_script.h"
 #include "eidos_interpreter.h"
 #include "eidos_symbol_table.h"

@@ -1,5 +1,5 @@
 //
-//  slim_global.h
+//  slim_globals.h
 //  SLiM
 //
 //  Created by Ben Haller on 1/4/15.
@@ -23,12 +23,12 @@
  
  */
 
-#ifndef __SLiM__slim_global__
-#define __SLiM__slim_global__
+#ifndef __SLiM__slim_globals__
+#define __SLiM__slim_globals__
 
 #include <stdio.h>
 
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_value.h"
 
 class MutationType;
@@ -1051,7 +1051,7 @@ enum _SLiMGlobalStringID : int {
 
 static_assert((int)gID_LastSLiMEntry <= (int)gEidosID_LastContextEntry, "the Context's last EidosGlobalStringID is greater than Eidos's upper limit");
 
-#endif /* defined(__SLiM__slim_global__) */
+#endif /* defined(__SLiM__slim_globals__) */
 
 
 

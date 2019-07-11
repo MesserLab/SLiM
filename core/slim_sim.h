@@ -32,7 +32,7 @@
 #include <vector>
 #include <iostream>
 
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "mutation.h"
 #include "mutation_type.h"
 #include "population.h"

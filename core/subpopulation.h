@@ -49,7 +49,7 @@
 #define __SLiM__subpopulation__
 
 
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_rng.h"
 #include "genome.h"
 #include "chromosome.h"

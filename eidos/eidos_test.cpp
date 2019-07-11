@@ -22,7 +22,7 @@
 #include "eidos_script.h"
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_rng.h"
 #include "eidos_test_element.h"
 
@@ -1099,7 +1099,7 @@ int RunEidosTests(void)
 
 	 So mach_absolute_time() is the fastest, and also gives us the information in a convenient form.  It is only
 	 available on OS X, of course, but that is fine since we only offer profiling in SLiMgui.  I have therefore
-	 defined Eidos_ProfileTime() as using mach_absolute_time() in eidos_global.h.
+	 defined Eidos_ProfileTime() as using mach_absolute_time() in eidos_globals.h.
 	 
 	 */
 #endif

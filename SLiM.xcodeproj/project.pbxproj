@@ -32,7 +32,7 @@
 		982556A31BA5F0810054CB3F /* SLiMHelpClasses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */; };
 		982556AC1BA8E77C0054CB3F /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982556AB1BA8E77C0054CB3F /* main.cpp */; };
 		982556B01BA8EF720054CB3F /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
-		982556B11BA8EF760054CB3F /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
+		982556B11BA8EF760054CB3F /* eidos_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_globals.cpp */; };
 		982556B21BA8EF790054CB3F /* eidos_token.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A5134D1B66B69E005A753D /* eidos_token.cpp */; };
 		982556B31BA8EF7C0054CB3F /* eidos_ast_node.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98A513521B66B6CA005A753D /* eidos_ast_node.cpp */; };
 		982556B41BA8EF7F0054CB3F /* eidos_script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981BAC681ACC6E8B0005BE94 /* eidos_script.cpp */; };
@@ -47,9 +47,9 @@
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		982A9DDE1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 982A9DDC1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib */; };
 		98321F911B406417007337A3 /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
-		98321F941B406B67007337A3 /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
-		98321F951B406B67007337A3 /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
-		98321F961B406B67007337A3 /* eidos_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_global.cpp */; };
+		98321F941B406B67007337A3 /* eidos_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_globals.cpp */; };
+		98321F951B406B67007337A3 /* eidos_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_globals.cpp */; };
+		98321F961B406B67007337A3 /* eidos_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_globals.cpp */; };
 		98332A9E1FDB98ED00274FF0 /* mvgauss.c in Sources */ = {isa = PBXBuildFile; fileRef = 98332A9D1FDB98ED00274FF0 /* mvgauss.c */; };
 		98332A9F1FDB990400274FF0 /* mvgauss.c in Sources */ = {isa = PBXBuildFile; fileRef = 98332A9D1FDB98ED00274FF0 /* mvgauss.c */; };
 		98332AA01FDB990500274FF0 /* mvgauss.c in Sources */ = {isa = PBXBuildFile; fileRef = 98332A9D1FDB98ED00274FF0 /* mvgauss.c */; };
@@ -289,7 +289,7 @@
 		989790DA1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
 		989790DC1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */; };
-		9898172F1A59750300F7417C /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
+		9898172F1A59750300F7417C /* slim_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_globals.cpp */; };
 		98A240591B8E3295005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
 		98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
 		98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A2405C1B8E338E005C9A30 /* OpenGL.framework */; };
@@ -460,7 +460,7 @@
 		98D4C1BB1A6F537B00FFB083 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98D4C1BA1A6F537B00FFB083 /* main.m */; };
 		98D4C1BD1A6F537B00FFB083 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C1BC1A6F537B00FFB083 /* Images.xcassets */; };
 		98D4C1C01A6F537B00FFB083 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */; };
-		98D4C1D31A6F541200FFB083 /* slim_global.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_global.cpp */; };
+		98D4C1D31A6F541200FFB083 /* slim_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_globals.cpp */; };
 		98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
 		98D4C1D61A6F541F00FFB083 /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
 		98D4C1D81A6F542600FFB083 /* mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6881A3CCFD0000AD4FC /* mutation.cpp */; };
@@ -680,8 +680,8 @@
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		982A9DDD1FCA9FF0007BA3DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphBarRescaleSheet.xib; sourceTree = "<group>"; };
-		98321F921B406B67007337A3 /* eidos_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_global.cpp; sourceTree = "<group>"; };
-		98321F931B406B67007337A3 /* eidos_global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_global.h; sourceTree = "<group>"; };
+		98321F921B406B67007337A3 /* eidos_globals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_globals.cpp; sourceTree = "<group>"; };
+		98321F931B406B67007337A3 /* eidos_globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_globals.h; sourceTree = "<group>"; };
 		98332A9D1FDB98ED00274FF0 /* mvgauss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mvgauss.c; sourceTree = "<group>"; };
 		98332AA51FDB997E00274FF0 /* gsl_matrix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gsl_matrix.h; path = matrix/gsl_matrix.h; sourceTree = "<group>"; };
 		98332AA71FDB99AA00274FF0 /* gsl_vector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gsl_vector.h; path = vector/gsl_vector.h; sourceTree = "<group>"; };
@@ -872,8 +872,8 @@
 		989524A81E40AE74007E62FA /* SLiMDocument.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMDocument.mm; sourceTree = "<group>"; };
 		989790D81AF3D0E100C6B14C /* eidos_test_element.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_test_element.cpp; sourceTree = "<group>"; };
 		989790D91AF3D0E100C6B14C /* eidos_test_element.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_test_element.h; sourceTree = "<group>"; };
-		9898172D1A59750300F7417C /* slim_global.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_global.cpp; sourceTree = "<group>"; };
-		9898172E1A59750300F7417C /* slim_global.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_global.h; sourceTree = "<group>"; };
+		9898172D1A59750300F7417C /* slim_globals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_globals.cpp; sourceTree = "<group>"; };
+		9898172E1A59750300F7417C /* slim_globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_globals.h; sourceTree = "<group>"; };
 		98A02F931BA1E3E1002DDE54 /* EidosTextViewDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosTextViewDelegate.h; sourceTree = "<group>"; };
 		98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowControllerDelegate.h; sourceTree = "<group>"; };
 		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
@@ -1224,8 +1224,8 @@
 			isa = PBXGroup;
 			children = (
 				982663531A3BABD300A0CBBF /* main.cpp */,
-				9898172E1A59750300F7417C /* slim_global.h */,
-				9898172D1A59750300F7417C /* slim_global.cpp */,
+				9898172E1A59750300F7417C /* slim_globals.h */,
+				9898172D1A59750300F7417C /* slim_globals.cpp */,
 				9878A93E1A4E57E70007B9D6 /* slim_sim.h */,
 				9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */,
 				98DDAED5221765480038C133 /* slim_functions.h */,
@@ -1370,8 +1370,8 @@
 			children = (
 				98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */,
 				98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */,
-				98321F931B406B67007337A3 /* eidos_global.h */,
-				98321F921B406B67007337A3 /* eidos_global.cpp */,
+				98321F931B406B67007337A3 /* eidos_globals.h */,
+				98321F921B406B67007337A3 /* eidos_globals.cpp */,
 				98A5134E1B66B69E005A753D /* eidos_token.h */,
 				98A5134D1B66B69E005A753D /* eidos_token.cpp */,
 				98A513531B66B6CA005A753D /* eidos_ast_node.h */,
@@ -2252,7 +2252,7 @@
 				9876E5F81ED5573800FF9762 /* tdist.c in Sources */,
 				98332ADF1FDBC0D800274FF0 /* dgemv.c in Sources */,
 				98C821871C7A983800548839 /* gamma.c in Sources */,
-				982556B11BA8EF760054CB3F /* eidos_global.cpp in Sources */,
+				982556B11BA8EF760054CB3F /* eidos_globals.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2342,12 +2342,12 @@
 				9854D2612278B9F8001D43BC /* genotypes.c in Sources */,
 				98C821391C7A980000548839 /* exp.c in Sources */,
 				98C8213E1C7A980000548839 /* trig.c in Sources */,
-				98321F941B406B67007337A3 /* eidos_global.cpp in Sources */,
+				98321F941B406B67007337A3 /* eidos_globals.cpp in Sources */,
 				98C821301C7A980000548839 /* multinomial.c in Sources */,
 				98332B0A1FDBD00800274FF0 /* init.c in Sources */,
 				98C821251C7A980000548839 /* math.c in Sources */,
 				98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */,
-				9898172F1A59750300F7417C /* slim_global.cpp in Sources */,
+				9898172F1A59750300F7417C /* slim_globals.cpp in Sources */,
 				98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */,
 				98E9A6AB1A3CD5BB000AD4FC /* subpopulation.cpp in Sources */,
 				98332AF71FDBC3F100274FF0 /* swap.c in Sources */,
@@ -2389,7 +2389,7 @@
 				9876E60F1ED55C0C00FF9762 /* expint.c in Sources */,
 				98C8217C1C7A983800548839 /* coerce.c in Sources */,
 				98C821651C7A983800548839 /* stream.c in Sources */,
-				98321F961B406B67007337A3 /* eidos_global.cpp in Sources */,
+				98321F961B406B67007337A3 /* eidos_globals.cpp in Sources */,
 				985724CF1AD479010047C223 /* eidos_script.cpp in Sources */,
 				98C821741C7A983800548839 /* elementary.c in Sources */,
 				98332ABB1FDBA32500274FF0 /* dtrmv.c in Sources */,
@@ -2475,7 +2475,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				98321F951B406B67007337A3 /* eidos_global.cpp in Sources */,
+				98321F951B406B67007337A3 /* eidos_globals.cpp in Sources */,
 				989790DB1AF3D0E100C6B14C /* eidos_test_element.cpp in Sources */,
 				98C8215A1C7A983700548839 /* pow_int.c in Sources */,
 				98DE4C1E1B713F28004FDF5F /* ScriptMod_SplitSubpop.mm in Sources */,
@@ -2615,7 +2615,7 @@
 				987AD8861B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
 				98EBCD1421F3CFC600B385CF /* slim_gui.mm in Sources */,
 				98D4C1D81A6F542600FFB083 /* mutation.cpp in Sources */,
-				98D4C1D31A6F541200FFB083 /* slim_global.cpp in Sources */,
+				98D4C1D31A6F541200FFB083 /* slim_globals.cpp in Sources */,
 				98DE4C201B713F30004FDF5F /* ScriptMod_ChangeMigration.mm in Sources */,
 				98A513551B66B6CA005A753D /* eidos_ast_node.cpp in Sources */,
 				98332AF11FDBC36300274FF0 /* submatrix.c in Sources */,

@@ -26,7 +26,7 @@
 #include <string>
 #include <ostream>
 
-#include "eidos_global.h"
+#include "eidos_globals.h"
 
 
 // An enumeration for all token types, whether real or virtual

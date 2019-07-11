@@ -29,7 +29,7 @@
 #import "EidosPrettyprinter.h"
 
 #include "eidos_script.h"
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
 

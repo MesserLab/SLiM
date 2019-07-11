@@ -19,7 +19,7 @@
 
 
 #include "slim_functions.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "slim_sim.h"
 #include "eidos_rng.h"
 
