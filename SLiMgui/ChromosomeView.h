@@ -21,7 +21,7 @@
 #import <Cocoa/Cocoa.h>
 
 #import "CocoaExtra.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "ChromosomeGLView.h"
 
 #include <vector>

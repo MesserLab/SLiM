@@ -19,7 +19,7 @@
 
 
 #include "genomic_element_type.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "slim_sim.h"
 #include "mutation_type.h"
 #include "eidos_call_signature.h"

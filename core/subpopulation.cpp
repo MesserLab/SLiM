@@ -20,12 +20,12 @@
 
 #include "subpopulation.h"
 #include "slim_sim.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "population.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
-#include "eidos_global.h"
+#include "eidos_globals.h"
 
 #include <iostream>
 #include <fstream>

@@ -1,5 +1,5 @@
 //
-//  eidos_global.h
+//  eidos_globals.h
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
@@ -18,8 +18,8 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#ifndef __Eidos__eidos_global__
-#define __Eidos__eidos_global__
+#ifndef __Eidos__eidos_globals__
+#define __Eidos__eidos_globals__
 
 #include <stdio.h>
 #include <iostream>
@@ -242,7 +242,7 @@ void Eidos_PrepareForProfiling(void);
 #pragma mark Termination handling
 #pragma mark -
 
-// Print a demangled stack backtrace of the caller function to FILE* out; see eidos_global.cpp for credits and comments.
+// Print a demangled stack backtrace of the caller function to FILE* out; see eidos_globals.cpp for credits and comments.
 void Eidos_PrintStacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
 
 // Print an offending line of script with carets indicating an error position
@@ -695,7 +695,7 @@ void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, doubl
 void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, double *p_v);
 
 
-#endif /* defined(__Eidos__eidos_global__) */
+#endif /* defined(__Eidos__eidos_globals__) */
 
 
 

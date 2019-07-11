@@ -26,7 +26,7 @@
 #import "EidosHelpController.h"
 #import "EidosCocoaExtra.h"
 
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_test.h"
 
 #include <stdexcept>

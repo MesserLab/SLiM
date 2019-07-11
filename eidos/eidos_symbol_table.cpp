@@ -20,7 +20,7 @@
 
 #include "eidos_symbol_table.h"
 #include "eidos_value.h"
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_token.h"
 #include "eidos_type_table.h"
 

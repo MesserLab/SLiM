@@ -33,7 +33,7 @@
 
 #include "eidos_value.h"
 #include "eidos_symbol_table.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 
 @class SLiMWindowController;
 

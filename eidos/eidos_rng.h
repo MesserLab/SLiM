@@ -34,7 +34,7 @@
 
 #include <stdint.h>
 #include <cmath>
-#include "eidos_global.h"
+#include "eidos_globals.h"
 
 
 // This cruft belongs to the 64-bit Mersenne Twister code below; it is up here because we need it to define the global RNG

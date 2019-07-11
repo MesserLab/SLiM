@@ -33,7 +33,7 @@
 #include <vector>
 #include <iostream>
 
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_rng.h"
 #include "mutation_type.h"
 #include "eidos_value.h"

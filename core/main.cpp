@@ -34,7 +34,7 @@
 #include "time.h"
 
 #include "slim_sim.h"
-#include "slim_global.h"
+#include "slim_globals.h"
 #include "eidos_test.h"
 #include "slim_test.h"
 #include "eidos_test_element.h"

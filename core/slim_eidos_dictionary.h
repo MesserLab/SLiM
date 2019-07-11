@@ -31,7 +31,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_value.h"
 #include "eidos_interpreter.h"
 

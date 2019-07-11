@@ -21,7 +21,7 @@
 #import "EidosConsoleTextView.h"
 #import "EidosConsoleTextViewDelegate.h"
 #import "EidosCocoaExtra.h"
-#include "eidos_global.h"
+#include "eidos_globals.h"
 
 
 @implementation EidosConsoleTextView

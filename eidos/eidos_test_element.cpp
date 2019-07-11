@@ -22,7 +22,7 @@
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
-#include "eidos_global.h"
+#include "eidos_globals.h"
 
 #include <stdio.h>
 #include <sys/types.h>

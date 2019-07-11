@@ -35,7 +35,7 @@
 #include <initializer_list>
 #include <unordered_map>
 
-#include "eidos_global.h"
+#include "eidos_globals.h"
 #include "eidos_intrusive_ptr.h"
 #include "eidos_object_pool.h"
 #include "eidos_script.h"
