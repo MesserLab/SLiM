@@ -322,7 +322,7 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), invisible_(false), cached_type_(p_value_type), is_singleton_(p_singleton), dim_(nullptr)
+EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), cached_type_(p_value_type), invisible_(false), is_singleton_(p_singleton), dim_(nullptr)
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;
@@ -3081,7 +3081,7 @@ void EidosValue_Object_vector::erase_index(size_t p_index)
 // EidosValue_Object_singleton
 #pragma mark EidosValue_Object_singleton
 
-EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class) : value_(p_element1), EidosValue_Object(true, p_class)
+EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class) : EidosValue_Object(true, p_class), value_(p_element1)
 {
 	// we want to allow nullptr as a momentary placeholder, although in general a value should exist
 	if (p_element1)
@@ -3095,7 +3095,7 @@ EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_e
 	}
 }
 
-EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class, bool p_register_for_patching) : value_(p_element1), EidosValue_Object(true, p_class, p_register_for_patching)
+EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class, bool p_register_for_patching) : EidosValue_Object(true, p_class, p_register_for_patching), value_(p_element1)
 {
 	// This is a special variant constructor used for EidosValues that are self-pointers and should not be
 	// patched by the address-patching mechanism; see EidosValue_Object::EidosValue_Object() for comments.
