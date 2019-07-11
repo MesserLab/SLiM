@@ -109,7 +109,7 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 #pragma mark -
 
 EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
-	: root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
+	: eidos_context_(p_eidos_context), root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions)
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
@@ -121,7 +121,7 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 }
 
 EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
-	: root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), eidos_context_(p_eidos_context)
+	: eidos_context_(p_eidos_context), root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions)
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
