@@ -11,8 +11,11 @@ TEMPLATE = lib
 
 DEFINES += TSKIT_LIBRARY
 
+CONFIG -= qt
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CFLAGS_RELEASE += -O3
+
+INCLUDEPATH = . .. kastore
 
 SOURCES += \
     convert.c \
@@ -21,7 +24,8 @@ SOURCES += \
     stats.c \
     tables.c \
     text_input.c \
-    trees.c
+    trees.c \
+    kastore/kastore.c
 
 HEADERS += \
     tskit_global.h \
@@ -31,5 +35,6 @@ HEADERS += \
     stats.h \
     tables.h \
     text_input.h \
-    trees.h
+    trees.h \
+    kastore/kastore.h
 

@@ -11,8 +11,12 @@ TEMPLATE = lib
 
 DEFINES += GSL_LIBRARY
 
+CONFIG -= qt
+CONFIG += object_parallel_to_source
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CFLAGS_RELEASE += -O3
+
+INCLUDEPATH = . ./blas ./block ./cblas ./cdf ./complex ./err ./linalg ./matrix ./randist ./rng ./specfunc ./sys ./vector
 
 SOURCES += \
     blas/blas.c \
@@ -22,8 +26,6 @@ SOURCES += \
     cblas/dtrmv.c \
     cblas/dtrsv.c \
     cblas/xerbla.c \
-    cdf/gauss.c \
-    cdf/tdist.c \
     cdf/gauss.c \
     cdf/tdist.c \
     complex/inline.c \

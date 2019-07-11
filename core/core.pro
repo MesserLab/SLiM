@@ -12,10 +12,31 @@ TEMPLATE = lib
 DEFINES += CORE_LIBRARY
 
 CONFIG += c++11
+CONFIG -= qt
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CFLAGS_RELEASE += -O3
 QMAKE_CXXFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CXXFLAGS_RELEASE += -O3
+
+# gsl library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../gsl/release/ -lgsl
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../gsl/debug/ -lgsl
+else:unix: LIBS += -L$$OUT_PWD/../gsl/ -lgsl
+INCLUDEPATH += $$PWD/../gsl $$PWD/../gsl/blas $$PWD/../gsl/block $$PWD/../gsl/cblas $$PWD/../gsl/cdf
+INCLUDEPATH += $$PWD/../gsl/complex $$PWD/../gsl/err $$PWD/../gsl/linalg $$PWD/../gsl/matrix
+INCLUDEPATH += $$PWD/../gsl/randist $$PWD/../gsl/rng $$PWD/../gsl/specfunc $$PWD/../gsl/sys $$PWD/../gsl/vector
+
+# eidos library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../eidos/release/ -leidos
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../eidos/debug/ -leidos
+else:unix: LIBS += -L$$OUT_PWD/../eidos/ -leidos
+INCLUDEPATH += $$PWD/../eidos
+
+# tskit library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../treerec/tskit/release/ -ltskit
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../treerec/tskit/debug/ -ltskit
+else:unix: LIBS += -L$$OUT_PWD/../treerec/tskit/ -ltskit
+INCLUDEPATH += $$PWD/../treerec/tskit $$PWD/../treerec $$PWD/../treerec/tskit/kastore
 
 SOURCES += \
     chromosome.cpp \
@@ -62,4 +83,3 @@ HEADERS += \
     sparse_array.h \
     subpopulation.h \
     substitution.h
-
