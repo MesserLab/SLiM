@@ -5953,7 +5953,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 {
 #pragma unused(p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Return()");
-	EIDOS_ASSERT_CHILD_RANGE("EidosInterpreter::Evaluate_Return", 0L, 1);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"	// the number of children is unsigned and cannot be less than 0, which some compilers warn about...
+	EIDOS_ASSERT_CHILD_RANGE("EidosInterpreter::Evaluate_Return", 0, 1);
+#pragma GCC diagnostic pop
 	
 	// set a flag in the interpreter, which will be seen by the eval methods and will cause them to return up to the top-level block immediately
 	return_statement_hit_ = true;
