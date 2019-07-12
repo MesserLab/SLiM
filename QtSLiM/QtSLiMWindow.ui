@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1058</width>
-    <height>851</height>
+    <width>914</width>
+    <height>691</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>800</width>
+    <height>500</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>QtSLiM</string>
@@ -28,152 +34,164 @@
      <number>10</number>
     </property>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QVBoxLayout" name="overallTopLayout">
       <item>
-       <widget class="QTableView" name="tableView">
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>130</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
+       <layout class="QHBoxLayout" name="topLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetDefaultConstraint</enum>
-          </property>
-          <item>
-           <widget class="QPushButton" name="pushButton_3">
-            <property name="minimumSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/play_step.png</normaloff>:/buttons/play_step.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_2">
-            <property name="minimumSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/play.png</normaloff>:/buttons/play.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_4">
-            <property name="minimumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/profile.png</normaloff>:/buttons/profile.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton">
-            <property name="minimumSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/recycle.png</normaloff>:/buttons/recycle.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>60</width>
-              <height>60</height>
-             </size>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item alignment="Qt::AlignHCenter">
-         <widget class="QSlider" name="horizontalSlider">
+         <widget class="QTableView" name="subpopTableView">
           <property name="maximumSize">
            <size>
-            <width>60</width>
-            <height>16777215</height>
+            <width>16777215</width>
+            <height>130</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true">QSlider::groove:horizontal {
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="topRightLayout">
+          <item>
+           <layout class="QHBoxLayout" name="playControlsLayout">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetDefaultConstraint</enum>
+            </property>
+            <item>
+             <widget class="QPushButton" name="playOneStepButton">
+              <property name="minimumSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/play_step.png</normaloff>
+                <normalon>:/buttons/play_step_H.png</normalon>:/buttons/play_step.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="playButton">
+              <property name="minimumSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/play.png</normaloff>
+                <normalon>:/buttons/play_H.png</normalon>:/buttons/play.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="profileButton">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/profile.png</normaloff>
+                <normalon>:/buttons/profile_H.png</normalon>:/buttons/profile.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="recycleButton">
+              <property name="minimumSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/recycle.png</normaloff>
+                <normalon>:/buttons/recycle_H.png</normalon>:/buttons/recycle.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item alignment="Qt::AlignHCenter">
+           <widget class="QSlider" name="playSpeedSlider">
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QSlider::groove:horizontal {
     border: 1px solid #888888;
     border-radius: 1px;
     height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
@@ -189,253 +207,283 @@ QSlider::handle:horizontal {
     border-radius: 4px;
 }
 </string>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="invertedAppearance">
-           <bool>false</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>15</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetDefaultConstraint</enum>
-          </property>
-          <item>
-           <spacer name="horizontalSpacer">
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="sliderPosition">
+             <number>100</number>
+            </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="invertedAppearance">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
             </property>
             <property name="sizeType">
              <enum>QSizePolicy::Fixed</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>2</width>
-              <height>10</height>
+              <width>20</width>
+              <height>15</height>
              </size>
             </property>
            </spacer>
           </item>
           <item>
-           <widget class="QLabel" name="label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
+           <layout class="QHBoxLayout" name="generationLayout">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetDefaultConstraint</enum>
             </property>
-            <property name="minimumSize">
-             <size>
-              <width>80</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>80</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Generation:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lineEdit">
-            <property name="maximumSize">
-             <size>
-              <width>100</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>2</width>
-              <height>10</height>
-             </size>
-            </property>
-           </spacer>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>2</width>
+                <height>10</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="generationLabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>80</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Generation:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="generationLineEdit">
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>initialize()</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>2</width>
+                <height>10</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
        </layout>
       </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_7">
       <item>
-       <widget class="QTableView" name="tableView_2">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>66</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>66</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="0">
-         <widget class="QPushButton" name="pushButton_14">
+       <layout class="QHBoxLayout" name="chromosomeLayout">
+        <item>
+         <widget class="QTableView" name="tableView_2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="minimumSize">
            <size>
-            <width>30</width>
-            <height>30</height>
+            <width>0</width>
+            <height>66</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>30</width>
-            <height>30</height>
+            <width>16777215</width>
+            <height>66</height>
            </size>
-          </property>
-          <property name="icon">
-           <iconset resource="buttons.qrc">
-            <normaloff>:/buttons/show_recombination.png</normaloff>:/buttons/show_recombination.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="flat">
-           <bool>true</bool>
           </property>
          </widget>
         </item>
-        <item row="0" column="2">
-         <widget class="QPushButton" name="pushButton_16">
-          <property name="minimumSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="icon">
-           <iconset resource="buttons.qrc">
-            <normaloff>:/buttons/show_genomicelements.png</normaloff>:/buttons/show_genomicelements.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="flat">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="2">
-         <widget class="QPushButton" name="pushButton_15">
-          <property name="minimumSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="icon">
-           <iconset resource="buttons.qrc">
-            <normaloff>:/buttons/show_fixed.png</normaloff>:/buttons/show_fixed.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="flat">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QPushButton" name="pushButton_13">
-          <property name="minimumSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="icon">
-           <iconset resource="buttons.qrc">
-            <normaloff>:/buttons/show_mutations.png</normaloff>:/buttons/show_mutations.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>30</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="flat">
-           <bool>true</bool>
-          </property>
-         </widget>
+        <item>
+         <layout class="QGridLayout" name="chromosomeButtonsLayout">
+          <item row="0" column="0">
+           <widget class="QPushButton" name="showChromosomeMapsButton">
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/show_recombination.png</normaloff>
+              <normalon>:/buttons/show_recombination_H.png</normalon>:/buttons/show_recombination.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="showGenomicElementsButton">
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/show_genomicelements.png</normaloff>
+              <normalon>:/buttons/show_genomicelements_H.png</normalon>:/buttons/show_genomicelements.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="showFixedSubstitutionsButton">
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/show_fixed.png</normaloff>
+              <normalon>:/buttons/show_fixed_H.png</normalon>:/buttons/show_fixed.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QPushButton" name="showMutationsButton">
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/show_mutations.png</normaloff>
+              <normalon>:/buttons/show_mutations_H.png</normalon>:/buttons/show_mutations.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>
@@ -449,13 +497,13 @@ QSlider::handle:horizontal {
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <layout class="QHBoxLayout" name="overallBottomLayout" stretch="2,1">
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_4">
+       <layout class="QVBoxLayout" name="scriptLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <layout class="QHBoxLayout" name="scriptHeaderLayout">
           <item>
-           <widget class="QPushButton" name="pushButton_5">
+           <widget class="QPushButton" name="checkScriptButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -470,7 +518,8 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/check.png</normaloff>:/buttons/check.png</iconset>
+              <normaloff>:/buttons/check.png</normaloff>
+              <normalon>:/buttons/check_H.png</normalon>:/buttons/check.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -484,7 +533,7 @@ QSlider::handle:horizontal {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_6">
+           <widget class="QPushButton" name="prettyprintButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -499,7 +548,8 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/prettyprint.png</normaloff>:/buttons/prettyprint.png</iconset>
+              <normaloff>:/buttons/prettyprint.png</normaloff>
+              <normalon>:/buttons/prettyprint_H.png</normalon>:/buttons/prettyprint.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -513,7 +563,7 @@ QSlider::handle:horizontal {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_7">
+           <widget class="QPushButton" name="scriptHelpButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -528,7 +578,8 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/syntax_help.png</normaloff>:/buttons/syntax_help.png</iconset>
+              <normaloff>:/buttons/syntax_help.png</normaloff>
+              <normalon>:/buttons/syntax_help_H.png</normalon>:/buttons/syntax_help.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -542,7 +593,7 @@ QSlider::handle:horizontal {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_8">
+           <widget class="QPushButton" name="consoleButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -557,7 +608,8 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/show_console.png</normaloff>:/buttons/show_console.png</iconset>
+              <normaloff>:/buttons/show_console.png</normaloff>
+              <normalon>:/buttons/show_console_H.png</normalon>:/buttons/show_console.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -565,13 +617,16 @@ QSlider::handle:horizontal {
               <height>20</height>
              </size>
             </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
             <property name="flat">
              <bool>true</bool>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_9">
+           <widget class="QPushButton" name="browserButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -586,7 +641,8 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/show_browser.png</normaloff>:/buttons/show_browser.png</iconset>
+              <normaloff>:/buttons/show_browser.png</normaloff>
+              <normalon>:/buttons/show_browser_H.png</normalon>:/buttons/show_browser.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -594,13 +650,16 @@ QSlider::handle:horizontal {
               <height>20</height>
              </size>
             </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
             <property name="flat">
              <bool>true</bool>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="scriptHeaderLabel">
             <property name="text">
              <string>Input Commands:</string>
             </property>
@@ -609,16 +668,16 @@ QSlider::handle:horizontal {
          </layout>
         </item>
         <item>
-         <widget class="QTextEdit" name="textEdit_2"/>
+         <widget class="QTextEdit" name="scriptTextEdit"/>
         </item>
        </layout>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="outputLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <layout class="QHBoxLayout" name="outputHeaderLayout">
           <item>
-           <widget class="QPushButton" name="pushButton_10">
+           <widget class="QPushButton" name="clearOutputButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -633,7 +692,8 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/delete.png</normaloff>:/buttons/delete.png</iconset>
+              <normaloff>:/buttons/delete.png</normaloff>
+              <normalon>:/buttons/delete_H.png</normalon>:/buttons/delete.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -647,7 +707,7 @@ QSlider::handle:horizontal {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_11">
+           <widget class="QPushButton" name="dumpPopulationButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -662,7 +722,8 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/dump_output.png</normaloff>:/buttons/dump_output.png</iconset>
+              <normaloff>:/buttons/dump_output.png</normaloff>
+              <normalon>:/buttons/dump_output_H.png</normalon>:/buttons/dump_output.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -676,14 +737,14 @@ QSlider::handle:horizontal {
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="outputHeaderLabel">
             <property name="text">
              <string>Run Output:</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_12">
+           <widget class="QPushButton" name="graphPopupButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -698,7 +759,51 @@ QSlider::handle:horizontal {
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/change_folder.png</normaloff>:/buttons/change_folder.png</iconset>
+              <normaloff>:/buttons/graph_submenu.png</normaloff>
+              <normalon>:/buttons/graph_submenu_H.png</normalon>:/buttons/graph_submenu.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="changeDirectoryButton">
+            <property name="minimumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/change_folder.png</normaloff>
+              <normalon>:/buttons/change_folder_H.png</normalon>:/buttons/change_folder.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -714,7 +819,7 @@ QSlider::handle:horizontal {
          </layout>
         </item>
         <item>
-         <widget class="QTextEdit" name="textEdit"/>
+         <widget class="QTextEdit" name="outputTextEdit"/>
         </item>
        </layout>
       </item>
@@ -727,7 +832,7 @@ QSlider::handle:horizontal {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1058</width>
+     <width>914</width>
      <height>22</height>
     </rect>
    </property>
