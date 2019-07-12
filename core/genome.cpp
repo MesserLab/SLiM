@@ -3041,7 +3041,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	int sample_id_count = 0;
 	int target_size = p_target->Count();
 	bool info_MID_defined = false, info_S_defined = false, info_DOM_defined = false, info_PO_defined = false;
-	bool info_GO_defined = false, info_MT_defined = false, info_AA_defined = false, info_NONNUC_defined = false;
+	bool info_GO_defined = false, info_MT_defined = false, /*info_AA_defined = false,*/ info_NONNUC_defined = false;
 	std::vector<std::pair<slim_position_t, std::string>> call_lines;
 	
 	while (!infile.eof())
@@ -3062,7 +3062,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					if (line == "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">")	info_PO_defined = true;
 					if (line == "##INFO=<ID=GO,Number=.,Type=Integer,Description=\"Generation of Origin\">")	info_GO_defined = true;
 					if (line == "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">")			info_MT_defined = true;
-					if (line == "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">")			info_AA_defined = true;		// this one is standard, so we don't require this definition
+					/*if (line == "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">")			info_AA_defined = true;*/		// this one is standard, so we don't require this definition
 					if (line == "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">")	info_NONNUC_defined = true;
 				}
 				else if (line.compare(0, 1, "#") == 0)
@@ -3366,7 +3366,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				{
 					std::size_t genotype_call = EidosInterpreter::NonnegativeIntegerForString(genotype_substr, nullptr);
 					
-					if ((genotype_call < 0) || (genotype_call > alt_allele_count))	// 0 is REF, 1..n are ALT alleles
+					if (/*(genotype_call < 0) ||*/ (genotype_call > alt_allele_count))	// 0 is REF, 1..n are ALT alleles
 						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
 					
 					genotype_calls.push_back((int)genotype_call);

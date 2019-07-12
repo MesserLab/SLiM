@@ -417,6 +417,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				case DFEType::kNormal:			return static_dfe_string_n;
 				case DFEType::kWeibull:			return static_dfe_string_w;
 				case DFEType::kScript:			return static_dfe_string_s;
+				default:						return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
 		case gID_distributionParams:
@@ -458,6 +459,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				case MutationStackPolicy::kStack:		return static_policy_string_s;
 				case MutationStackPolicy::kKeepFirst:	return static_policy_string_f;
 				case MutationStackPolicy::kKeepLast:	return static_policy_string_l;
+				default:								return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
 		case gID_tag:						// ACCELERATED
