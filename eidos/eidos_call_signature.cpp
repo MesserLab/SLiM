@@ -336,6 +336,7 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 				}
 				break;
 			}
+			default: type_ok = false; break;	// never hit, here to make the Ubuntu compiler happy
 		}
 		
 		if (!type_ok)

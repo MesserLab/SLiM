@@ -32,7 +32,7 @@
 #pragma mark SLiMEidosDictionary
 #pragma mark -
 
-SLiMEidosDictionary::SLiMEidosDictionary(__attribute__((unused)) const SLiMEidosDictionary &p_original)
+SLiMEidosDictionary::SLiMEidosDictionary(__attribute__((unused)) const SLiMEidosDictionary &p_original) : EidosObjectElement()
 {
 	// copy hash_symbols_ from p_original; I think this is called only when a Substitution is created from a Mutation
 	if (p_original.hash_symbols_)

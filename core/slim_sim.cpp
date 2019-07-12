@@ -1388,7 +1388,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 					p += sizeof(mutation_id);
 					
 					// Add mutation to genome
-					if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
+					if (/*(mutation_id < 0) ||*/ (mutation_id >= mutation_map_size)) 
 						EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
 					
 					genomebuf[mutcount] = mutations[mutation_id];
@@ -4731,8 +4731,8 @@ void SLiMSim::SimplifyTreeSequence(void)
 	std::vector<tsk_id_t> samples;
 	
 	// the remembered_genomes_ come first in the list of samples
-    for (tsk_id_t sid : remembered_genomes_) 
-        samples.push_back(sid);
+	for (tsk_id_t sid : remembered_genomes_) 
+		samples.push_back(sid);
 	
 	// and then come all the genomes of the extant individuals
 	tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_genomes_.size();
@@ -4767,20 +4767,20 @@ void SLiMSim::SimplifyTreeSequence(void)
 	// sort the table collection
 	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ 0, /* flags */ 0);
 	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
-
-    // remove redundant sites we added
-    ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
-    if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+	
+	// remove redundant sites we added
+	ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
+	if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 	
 	// simplify
 	ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS, NULL);
-    if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
+	if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 	
-    // update map of remembered_genomes_, which are now the first n entries in the node table
+	// update map of remembered_genomes_, which are now the first n entries in the node table
 	for (tsk_id_t i = 0; i < (tsk_id_t)remembered_genomes_.size(); i++)
-        remembered_genomes_[i] = i;
+		remembered_genomes_[i] = i;
 	
-    // reset current position, used to rewind individuals that are rejected by modifyChild()
+	// reset current position, used to rewind individuals that are rejected by modifyChild()
 	RecordTablePosition();
 	
 	// and reset our elapsed time since last simplification, for auto-simplification
@@ -8009,113 +8009,113 @@ size_t SLiMSim::MemoryUsageForTables(tsk_table_collection_t &p_tables)
 	tsk_table_collection_t &t = p_tables;
 	size_t usage = 0;
 	
-    usage += sizeof(tsk_individual_table_t);
-    
-    if (t.individuals.flags)
-        usage += t.individuals.max_rows * sizeof(uint32_t);
-    if (t.individuals.location_offset)
-        usage += t.individuals.max_rows * sizeof(tsk_size_t);
-    if (t.individuals.metadata_offset)
-        usage += t.individuals.max_rows * sizeof(tsk_size_t);
-    
-    if (t.individuals.location)
-        usage += t.individuals.max_location_length * sizeof(double);
-    if (t.individuals.metadata)
-        usage += t.individuals.max_metadata_length * sizeof(char);
+	usage += sizeof(tsk_individual_table_t);
 	
-    usage += sizeof(tsk_node_table_t);
-    
-    if (t.nodes.flags)
-        usage += t.nodes.max_rows * sizeof(uint32_t);
-    if (t.nodes.time)
-        usage += t.nodes.max_rows * sizeof(double);
-    if (t.nodes.population)
-        usage += t.nodes.max_rows * sizeof(tsk_id_t);
-    if (t.nodes.individual)
-        usage += t.nodes.max_rows * sizeof(tsk_id_t);
-    if (t.nodes.metadata_offset)
-        usage += t.nodes.max_rows * sizeof(tsk_size_t);
-    
-    if (t.nodes.metadata)
-        usage += t.nodes.max_metadata_length * sizeof(char);
+	if (t.individuals.flags)
+		usage += t.individuals.max_rows * sizeof(uint32_t);
+	if (t.individuals.location_offset)
+		usage += t.individuals.max_rows * sizeof(tsk_size_t);
+	if (t.individuals.metadata_offset)
+		usage += t.individuals.max_rows * sizeof(tsk_size_t);
 	
-    usage += sizeof(tsk_edge_table_t);
-    
-    if (t.edges.left)
-        usage += t.edges.max_rows * sizeof(double);
-    if (t.edges.right)
-        usage += t.edges.max_rows * sizeof(double);
-    if (t.edges.parent)
-        usage += t.edges.max_rows * sizeof(tsk_id_t);
-    if (t.edges.child)
-        usage += t.edges.max_rows * sizeof(tsk_id_t);
+	if (t.individuals.location)
+		usage += t.individuals.max_location_length * sizeof(double);
+	if (t.individuals.metadata)
+		usage += t.individuals.max_metadata_length * sizeof(char);
 	
-    usage += sizeof(tsk_migration_table_t);
-    
-    if (t.migrations.source)
-        usage += t.migrations.max_rows * sizeof(tsk_id_t);
-    if (t.migrations.dest)
-        usage += t.migrations.max_rows * sizeof(tsk_id_t);
-    if (t.migrations.node)
-        usage += t.migrations.max_rows * sizeof(tsk_id_t);
-    if (t.migrations.left)
-        usage += t.migrations.max_rows * sizeof(double);
-    if (t.migrations.right)
-        usage += t.migrations.max_rows * sizeof(double);
-    if (t.migrations.time)
-        usage += t.migrations.max_rows * sizeof(double);
+	usage += sizeof(tsk_node_table_t);
 	
-    usage += sizeof(tsk_site_table_t);
-    
-    if (t.sites.position)
-        usage += t.sites.max_rows * sizeof(double);
-    if (t.sites.ancestral_state_offset)
-        usage += t.sites.max_rows * sizeof(tsk_size_t);
-    if (t.sites.metadata_offset)
-        usage += t.sites.max_rows * sizeof(tsk_size_t);
-    
-    if (t.sites.ancestral_state)
-        usage += t.sites.max_ancestral_state_length * sizeof(char);
-    if (t.sites.metadata)
-        usage += t.sites.max_metadata_length * sizeof(char);
+	if (t.nodes.flags)
+		usage += t.nodes.max_rows * sizeof(uint32_t);
+	if (t.nodes.time)
+		usage += t.nodes.max_rows * sizeof(double);
+	if (t.nodes.population)
+		usage += t.nodes.max_rows * sizeof(tsk_id_t);
+	if (t.nodes.individual)
+		usage += t.nodes.max_rows * sizeof(tsk_id_t);
+	if (t.nodes.metadata_offset)
+		usage += t.nodes.max_rows * sizeof(tsk_size_t);
 	
-    usage += sizeof(tsk_mutation_table_t);
-    
-    if (t.mutations.node)
-        usage += t.mutations.max_rows * sizeof(tsk_id_t);
-    if (t.mutations.site)
-        usage += t.mutations.max_rows * sizeof(tsk_id_t);
-    if (t.mutations.parent)
-        usage += t.mutations.max_rows * sizeof(tsk_id_t);
-    if (t.mutations.derived_state_offset)
-        usage += t.mutations.max_rows * sizeof(tsk_size_t);
-    if (t.mutations.metadata_offset)
-        usage += t.mutations.max_rows * sizeof(tsk_size_t);
-    
-    if (t.mutations.derived_state)
-        usage += t.mutations.max_derived_state_length * sizeof(char);
-    if (t.mutations.metadata)
-        usage += t.mutations.max_metadata_length * sizeof(char);
+	if (t.nodes.metadata)
+		usage += t.nodes.max_metadata_length * sizeof(char);
 	
-    usage += sizeof(tsk_population_table_t);
-    
-    if (t.populations.metadata_offset)
-        usage += t.populations.max_rows * sizeof(tsk_size_t);
-    
-    if (t.populations.metadata)
-        usage += t.populations.max_metadata_length * sizeof(char);
+	usage += sizeof(tsk_edge_table_t);
 	
-    usage += sizeof(tsk_provenance_table_t);
-    
-    if (t.provenances.timestamp_offset)
-        usage += t.provenances.max_rows * sizeof(tsk_size_t);
-    if (t.provenances.record_offset)
-        usage += t.provenances.max_rows * sizeof(tsk_size_t);
-    
-    if (t.provenances.timestamp)
-        usage += t.provenances.max_timestamp_length * sizeof(char);
-    if (t.provenances.record)
-        usage += t.provenances.max_record_length * sizeof(char);
+	if (t.edges.left)
+		usage += t.edges.max_rows * sizeof(double);
+	if (t.edges.right)
+		usage += t.edges.max_rows * sizeof(double);
+	if (t.edges.parent)
+		usage += t.edges.max_rows * sizeof(tsk_id_t);
+	if (t.edges.child)
+		usage += t.edges.max_rows * sizeof(tsk_id_t);
+	
+	usage += sizeof(tsk_migration_table_t);
+	
+	if (t.migrations.source)
+		usage += t.migrations.max_rows * sizeof(tsk_id_t);
+	if (t.migrations.dest)
+		usage += t.migrations.max_rows * sizeof(tsk_id_t);
+	if (t.migrations.node)
+		usage += t.migrations.max_rows * sizeof(tsk_id_t);
+	if (t.migrations.left)
+		usage += t.migrations.max_rows * sizeof(double);
+	if (t.migrations.right)
+		usage += t.migrations.max_rows * sizeof(double);
+	if (t.migrations.time)
+		usage += t.migrations.max_rows * sizeof(double);
+	
+	usage += sizeof(tsk_site_table_t);
+	
+	if (t.sites.position)
+		usage += t.sites.max_rows * sizeof(double);
+	if (t.sites.ancestral_state_offset)
+		usage += t.sites.max_rows * sizeof(tsk_size_t);
+	if (t.sites.metadata_offset)
+		usage += t.sites.max_rows * sizeof(tsk_size_t);
+	
+	if (t.sites.ancestral_state)
+		usage += t.sites.max_ancestral_state_length * sizeof(char);
+	if (t.sites.metadata)
+		usage += t.sites.max_metadata_length * sizeof(char);
+	
+	usage += sizeof(tsk_mutation_table_t);
+	
+	if (t.mutations.node)
+		usage += t.mutations.max_rows * sizeof(tsk_id_t);
+	if (t.mutations.site)
+		usage += t.mutations.max_rows * sizeof(tsk_id_t);
+	if (t.mutations.parent)
+		usage += t.mutations.max_rows * sizeof(tsk_id_t);
+	if (t.mutations.derived_state_offset)
+		usage += t.mutations.max_rows * sizeof(tsk_size_t);
+	if (t.mutations.metadata_offset)
+		usage += t.mutations.max_rows * sizeof(tsk_size_t);
+	
+	if (t.mutations.derived_state)
+		usage += t.mutations.max_derived_state_length * sizeof(char);
+	if (t.mutations.metadata)
+		usage += t.mutations.max_metadata_length * sizeof(char);
+	
+	usage += sizeof(tsk_population_table_t);
+	
+	if (t.populations.metadata_offset)
+		usage += t.populations.max_rows * sizeof(tsk_size_t);
+	
+	if (t.populations.metadata)
+		usage += t.populations.max_metadata_length * sizeof(char);
+	
+	usage += sizeof(tsk_provenance_table_t);
+	
+	if (t.provenances.timestamp_offset)
+		usage += t.provenances.max_rows * sizeof(tsk_size_t);
+	if (t.provenances.record_offset)
+		usage += t.provenances.max_rows * sizeof(tsk_size_t);
+	
+	if (t.provenances.timestamp)
+		usage += t.provenances.max_timestamp_length * sizeof(char);
+	if (t.provenances.record)
+		usage += t.provenances.max_record_length * sizeof(char);
 	
 	usage += remembered_genomes_.size() * sizeof(tsk_id_t);
 	
@@ -9771,6 +9771,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 				case 1:		return static_dimensionality_string_x;
 				case 2:		return static_dimensionality_string_xy;
 				case 3:		return static_dimensionality_string_xyz;
+				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
 		case gID_periodicity:
@@ -9853,6 +9854,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				case SLiMModelType::kModelTypeWF:		return static_model_type_string_WF;
 				case SLiMModelType::kModelTypeNonWF:	return static_model_type_string_nonWF;
+				default:								return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
 		case gID_mutations:
