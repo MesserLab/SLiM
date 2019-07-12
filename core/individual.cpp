@@ -263,6 +263,8 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_});
 				case 3:
 					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{spatial_x_, spatial_y_, spatial_z_});
+				default:
+					return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
 		case gID_uniqueMutations:
