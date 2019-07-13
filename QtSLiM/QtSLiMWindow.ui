@@ -68,6 +68,14 @@
                 <height>60</height>
                </size>
               </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
+              </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
                 <normaloff>:/buttons/play_step.png</normaloff>
@@ -97,6 +105,14 @@
                 <width>60</width>
                 <height>60</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
               </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
@@ -131,6 +147,14 @@
                 <height>30</height>
                </size>
               </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
+              </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
                 <normaloff>:/buttons/profile.png</normaloff>
@@ -163,6 +187,14 @@
                 <width>60</width>
                 <height>60</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
               </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
@@ -335,13 +367,13 @@ QSlider::handle:horizontal {
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>66</height>
+            <height>64</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>66</height>
+            <height>64</height>
            </size>
           </property>
          </widget>
@@ -361,6 +393,14 @@ QSlider::handle:horizontal {
               <width>30</width>
               <height>30</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -395,6 +435,14 @@ QSlider::handle:horizontal {
               <height>30</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
+            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/show_genomicelements.png</normaloff>
@@ -428,6 +476,14 @@ QSlider::handle:horizontal {
               <height>30</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
+            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/show_fixed.png</normaloff>
@@ -460,6 +516,14 @@ QSlider::handle:horizontal {
               <width>30</width>
               <height>30</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -516,6 +580,14 @@ QSlider::handle:horizontal {
               <height>20</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
+            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/check.png</normaloff>
@@ -545,6 +617,14 @@ QSlider::handle:horizontal {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -576,6 +656,14 @@ QSlider::handle:horizontal {
               <height>20</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
+            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/syntax_help.png</normaloff>
@@ -605,6 +693,14 @@ QSlider::handle:horizontal {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -638,6 +734,14 @@ QSlider::handle:horizontal {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -690,6 +794,14 @@ QSlider::handle:horizontal {
               <height>20</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
+            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/delete.png</normaloff>
@@ -719,6 +831,14 @@ QSlider::handle:horizontal {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -756,6 +876,14 @@ QSlider::handle:horizontal {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -799,6 +927,14 @@ QSlider::handle:horizontal {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:pressed {
+     background-color: #00000000;
+}
+QPushButton:checked {
+     background-color: #00000000;
+}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">

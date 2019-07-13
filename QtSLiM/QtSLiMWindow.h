@@ -41,8 +41,43 @@ public slots:
     void changeDirectoryClicked(void);
 
 private slots:
+    void playOneStepPressed(void);
+    void playOneStepReleased(void);
     void playPressed(void);
     void playReleased(void);
+    void profilePressed(void);
+    void profileReleased(void);
+    void recyclePressed(void);
+    void recycleReleased(void);
+
+    void showMutationsPressed(void);
+    void showMutationsReleased(void);
+    void showFixedSubstitutionsPressed(void);
+    void showFixedSubstitutionsReleased(void);
+    void showChromosomeMapsPressed(void);
+    void showChromosomeMapsReleased(void);
+    void showGenomicElementsPressed(void);
+    void showGenomicElementsReleased(void);
+
+    void checkScriptPressed(void);
+    void checkScriptReleased(void);
+    void prettyprintPressed(void);
+    void prettyprintReleased(void);
+    void scriptHelpPressed(void);
+    void scriptHelpReleased(void);
+    void showConsolePressed(void);
+    void showConsoleReleased(void);
+    void showBrowserPressed(void);
+    void showBrowserReleased(void);
+
+    void clearOutputPressed(void);
+    void clearOutputReleased(void);
+    void dumpPopulationPressed(void);
+    void dumpPopulationReleased(void);
+    void graphPopupButtonPressed(void);
+    void graphPopupButtonReleased(void);
+    void changeDirectoryPressed(void);
+    void changeDirectoryReleased(void);
 
 private:
     Ui::QtSLiMWindow *ui;
