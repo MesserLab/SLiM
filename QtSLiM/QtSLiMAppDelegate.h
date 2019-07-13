@@ -24,6 +24,8 @@ public slots:
     // FIXME pull in other actions from AppDelegate
 };
 
+extern QtSLiMAppDelegate *qtSLiMAppDelegate;    // global instance
+
 #endif // QTSLIMAPPDELEGATE_H
 
 

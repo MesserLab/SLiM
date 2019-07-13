@@ -1,10 +1,16 @@
 #include "QtSLiMWindow.h"
 #include "ui_QtSLiMWindow.h"
+#include "QtSLiMAppDelegate.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
 #include <QFontMetrics>
 #include <QtDebug>
+
+#include <unistd.h>
+
+#include "individual.h"
+
 
 // TO DO:
 //
@@ -22,8 +28,44 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::QtSLiMWindow)
 {
-    ui->setupUi(this);
+    // set default viewing state; this might come from user defaults on a per-script basis eventually...
+    zoomedChromosomeShowsRateMaps = false;
+    zoomedChromosomeShowsGenomicElements = false;
+    zoomedChromosomeShowsMutations = true;
+    zoomedChromosomeShowsFixedSubstitutions = false;
 
+    // create the window UI
+    ui->setupUi(this);
+    initializeUI();
+
+    // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
+    // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
+    sim_working_dir = Eidos_ResolvedPath("~/Desktop");
+    sim_requested_working_dir = sim_working_dir;	// return to Desktop on recycle unless the user overrides it
+}
+
+QtSLiMWindow::~QtSLiMWindow()
+{
+    delete ui;
+
+    if (sim)
+    {
+        delete sim;
+        sim = nullptr;
+    }
+//    if (slimgui)
+//	{
+//		delete slimgui;
+//		slimgui = nullptr;
+//	}
+
+    Eidos_FreeRNG(sim_RNG);
+
+    setInvalidSimulation(true);
+}
+
+void QtSLiMWindow::initializeUI(void)
+{
     // connect all QtSLiMWindow slots
     connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);
     connect(ui->playButton, &QPushButton::clicked, this, &QtSLiMWindow::playClicked);
@@ -103,7 +145,6 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
 
     ui->scriptTextEdit->setFont(scriptFont);
     ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
-    ui->scriptTextEdit->setText(QtSLiMWindow::defaultWFScriptString());
 
     ui->outputTextEdit->setFont(scriptFont);
     ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
@@ -113,11 +154,20 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
 
     ui->playControlsLayout->removeWidget(profileButton);
     delete profileButton;
-}
 
-QtSLiMWindow::~QtSLiMWindow()
-{
-    delete ui;
+    // set button states
+    ui->showChromosomeMapsButton->setChecked(zoomedChromosomeShowsRateMaps);
+    ui->showGenomicElementsButton->setChecked(zoomedChromosomeShowsGenomicElements);
+    ui->showMutationsButton->setChecked(zoomedChromosomeShowsMutations);
+    ui->showFixedSubstitutionsButton->setChecked(zoomedChromosomeShowsFixedSubstitutions);
+
+    // set up the initial script
+    scriptString = QtSLiMWindow::defaultWFScriptString();
+    ui->scriptTextEdit->setText(QString::fromStdString(scriptString));
+    setScriptStringAndInitializeSimulation(scriptString);
+
+    // Update all our UI to reflect the current state of the simulation
+    updateAfterTickFull(true);
 }
 
 QFont &QtSLiMWindow::defaultScriptFont(int *p_tabWidth)
@@ -155,9 +205,9 @@ QFont &QtSLiMWindow::defaultScriptFont(int *p_tabWidth)
     return *scriptFont;
 }
 
-QString QtSLiMWindow::defaultWFScriptString(void)
+std::string QtSLiMWindow::defaultWFScriptString(void)
 {
-    return QString(
+    return std::string(
                 "// set up a simple neutral simulation\n"
                 "initialize() {\n"
                 "	initializeMutationRate(1e-7);\n"
@@ -184,9 +234,9 @@ QString QtSLiMWindow::defaultWFScriptString(void)
                 "2000 late() { sim.outputFixedMutations(); }\n");
 }
 
-QString QtSLiMWindow::defaultNonWFScriptString(void)
+std::string QtSLiMWindow::defaultNonWFScriptString(void)
 {
-    return QString(
+    return std::string(
                 "// set up a simple neutral nonWF simulation\n"
                 "initialize() {\n"
                 "	initializeSLiMModelType(\"nonWF\");\n"
@@ -221,6 +271,214 @@ QString QtSLiMWindow::defaultNonWFScriptString(void)
                 "2000 late() { sim.outputFixedMutations(); }\n");
 }
 
+void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
+{
+    invalidSimulation = p_invalid;
+}
+
+void QtSLiMWindow::setReachedSimulationEnd(bool p_reachedEnd)
+{
+    reachedSimulationEnd = p_reachedEnd;
+}
+
+void QtSLiMWindow::checkForSimulationTermination(void)
+{
+    std::string &&terminationMessage = gEidosTermination.str();
+
+    if (!terminationMessage.empty())
+    {
+        const char *cstr = terminationMessage.c_str();
+        //std::string str(cstr);
+
+        gEidosTermination.clear();
+        gEidosTermination.str("");
+
+        qDebug() << cstr;
+        //[self performSelector:@selector(showTerminationMessage:) withObject:[str retain] afterDelay:0.0];	// showTerminationMessage: will release the string
+
+        // Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
+        // of the old simulation object; who knows what state it is in, touching it might crash.
+        sim = nullptr;
+        //slimgui = nullptr;
+
+        Eidos_FreeRNG(sim_RNG);
+
+        setReachedSimulationEnd(true);
+        setInvalidSimulation(true);
+    }
+}
+
+void QtSLiMWindow::startNewSimulationFromScript(void)
+{
+    if (sim)
+    {
+        delete sim;
+        sim = nullptr;
+    }
+//    if (slimgui)
+//    {
+//        delete slimgui;
+//        slimgui = nullptr;
+//    }
+
+    // Free the old simulation RNG and let SLiM make one for us
+    Eidos_FreeRNG(sim_RNG);
+
+    if (EIDOS_GSL_RNG)
+        qDebug() << "gEidos_RNG already set up in startNewSimulationFromScript!";
+
+    std::istringstream infile(scriptString);
+
+    try
+    {
+        sim = new SLiMSim(infile);
+        sim->InitializeRNGFromSeed(nullptr);
+
+        // We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
+        sim_RNG = gEidos_RNG;
+        EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+
+        // We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
+        sim_next_pedigree_id = 0;
+        sim_next_mutation_id = 0;
+        sim_suppress_warnings = false;
+
+        // The current working directory was set up in -init to be ~/Desktop, and should not be reset here; if the
+        // user has changed it, that change ought to stick across recycles.  So this bounces us back to the last dir chosen.
+        sim_working_dir = sim_requested_working_dir;
+
+        setReachedSimulationEnd(false);
+        setInvalidSimulation(false);
+        hasImported = false;
+    }
+    catch (...)
+    {
+        if (sim)
+            sim->simulation_valid_ = false;
+        setReachedSimulationEnd(true);
+        checkForSimulationTermination();
+    }
+
+    if (sim)
+    {
+        // make a new SLiMgui instance to represent SLiMgui in Eidos
+        //slimgui = new SLiMgui(*sim, self);
+
+        // set up the "slimgui" symbol for it immediately
+        //sim->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
+    }
+}
+
+void QtSLiMWindow::setScriptStringAndInitializeSimulation(std::string string)
+{
+    scriptString = string;
+    startNewSimulationFromScript();
+}
+
+void QtSLiMWindow::updateAfterTickFull(bool p_fullUpdate)
+{
+    if (sim)
+    {
+        qDebug() << "updateAfterTickFull: sim->generation_ == " << sim->generation_;
+    }
+    else
+    {
+        qDebug() << "updateAfterTickFull: sim is nullptr";
+    }
+}
+
+//
+//  simulation play mechanics
+//
+
+void QtSLiMWindow::willExecuteScript(void)
+{
+    // Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_rng is NULL.
+    // The goal here is to keep each SLiM window independent in its random number sequence.
+    if (EIDOS_GSL_RNG)
+        qDebug() << "eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!";
+
+    gEidos_RNG = sim_RNG;
+
+    // We also swap in the pedigree id and mutation id counters; each SLiMgui window is independent
+    gSLiM_next_pedigree_id = sim_next_pedigree_id;
+    gSLiM_next_mutation_id = sim_next_mutation_id;
+    gEidosSuppressWarnings = sim_suppress_warnings;
+
+    // Set the current directory to its value for this window
+    errno = 0;
+    int retval = chdir(sim_working_dir.c_str());
+
+    if (retval == -1)
+        qDebug() << "willExecuteScript: Unable to set the working directory to " << sim_working_dir.c_str() << " (error " << errno << ")";
+}
+
+void QtSLiMWindow::didExecuteScript(void)
+{
+    // Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
+    sim_RNG = gEidos_RNG;
+    EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+
+    // Swap out our pedigree id and mutation id counters; see -eidosConsoleWindowControllerWillExecuteScript
+    // Setting to -100000 here is not necessary, but will maybe help find bugs...
+    sim_next_pedigree_id = gSLiM_next_pedigree_id;
+    gSLiM_next_pedigree_id = -100000;
+
+    sim_next_mutation_id = gSLiM_next_mutation_id;
+    gSLiM_next_mutation_id = -100000;
+
+    sim_suppress_warnings = gEidosSuppressWarnings;
+    gEidosSuppressWarnings = false;
+
+    // Get the current working directory; each SLiM window has its own cwd, which may have been changed in script since ...WillExecuteScript:
+    sim_working_dir = Eidos_CurrentDirectory();
+
+    // Return to the app's working directory when not running SLiM/Eidos code
+    std::string &app_cwd = qtSLiMAppDelegate->QtSLiMCurrentWorkingDirectory();
+    errno = 0;
+    int retval = chdir(app_cwd.c_str());
+
+    if (retval == -1)
+        qDebug() << "didExecuteScript: Unable to set the working directory to " << app_cwd.c_str() << " (error " << errno << ")";
+}
+
+bool QtSLiMWindow::runSimOneGeneration(void)
+{
+    // This method should always be used when calling out to run the simulation, because it swaps the correct random number
+    // generator stuff in and out bracketing the call to RunOneGeneration().  This bracketing would need to be done around
+    // any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
+    bool stillRunning = true;
+
+    willExecuteScript();
+
+//	if (profilePlayOn)
+//	{
+//		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
+//		// as profile report percentages are fractions of the total elapsed wall clock time.
+//		clock_t startCPUClock = clock();
+//		SLIM_PROFILE_BLOCK_START();
+
+//		stillRunning = sim->RunOneGeneration();
+
+//		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
+//		clock_t endCPUClock = clock();
+
+//		profileElapsedCPUClock += (endCPUClock - startCPUClock);
+//	}
+//	else
+    {
+        stillRunning = sim->RunOneGeneration();
+    }
+
+    didExecuteScript();
+
+    // We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
+    // happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
+    //[self sendAllLinkedViewsSelector:@selector(controllerGenerationFinished)];
+
+    return stillRunning;
+}
+
 
 //
 //  public slots
@@ -229,6 +487,14 @@ QString QtSLiMWindow::defaultNonWFScriptString(void)
 void QtSLiMWindow::playOneStepClicked(void)
 {
     qDebug() << "playOneStepClicked";
+
+    if (!invalidSimulation)
+    {
+        //[_consoleController invalidateSymbolTableAndFunctionMap];
+        setReachedSimulationEnd(!runSimOneGeneration());
+        //[_consoleController validateSymbolTableAndFunctionMap];
+        updateAfterTickFull(true);
+    }
 }
 
 void QtSLiMWindow::playClicked(void)

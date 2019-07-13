@@ -15,6 +15,10 @@ TEMPLATE = app
 DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+# SLiMgui and QtSLiM get to see private stuff in SLiM
+DEFINES += EIDOS_GUI
+DEFINES += SLIMGUI=1
+
 CONFIG += c++11
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CFLAGS_RELEASE += -O3

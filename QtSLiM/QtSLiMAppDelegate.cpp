@@ -5,6 +5,8 @@
 #include "slim_globals.h"
 
 
+QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
+
 QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
 {
     // Warm up our back ends before anything else happens
@@ -26,6 +28,9 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
 
     connect(app, &QApplication::lastWindowClosed, this, &QtSLiMAppDelegate::lastWindowClosed);
     connect(app, &QApplication::aboutToQuit, this, &QtSLiMAppDelegate::aboutToQuit);
+
+    // We assume we are the global instance; FIXME singleton pattern would be good
+    qtSLiMAppDelegate = this;
 }
 
 
