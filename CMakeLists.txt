@@ -64,14 +64,17 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-option(OMP "serial or parallel" OFF)
+set(OMP "OFF" CACHE STRING "Parallel or Serial")
+
 if(OMP MATCHES "ON")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 endif(OMP MATCHES "ON")
 
+message("flags ${CMAKE_C_FLAGS}")
 # Report the build and execution type
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE} and parallel execution is ${OMP}")
+
 
 # Test for -flto support
 # BCH 4/4/2019: I am disabling this LTO stuff for now.  It made only a very small performance
