@@ -40,6 +40,11 @@
 # Then you can just do "make"; cmake will automatically be re-run by make since the CMakeLists.txt
 # file has changed.
 
+# By default, this will make a serial execution build but can be changed by setting OMP flags for parallel execution:
+#
+#   mkdir Debug
+#   cd Debug
+#   Cmake -D OMP=ON
 
 cmake_minimum_required (VERSION 2.6)
 
@@ -59,8 +64,14 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-# Report the build type
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+option(OMP "serial or parallel" OFF)
+if(OMP MATCHES "ON")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+endif(OMP MATCHES "ON")
+
+# Report the build and execution type
+message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE} and parallel execution is ${OMP}")
 
 # Test for -flto support
 # BCH 4/4/2019: I am disabling this LTO stuff for now.  It made only a very small performance

@@ -1886,7 +1886,8 @@ unsigned int Eidos_PhysicalCoreCount()
 	size_t len;
 	unsigned int ncpu;
 	len = sizeof(ncpu);
-	sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
+    //Removed by Sudharshan for Linux compatibility
+	//sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
 	return ncpu;
 }
 
