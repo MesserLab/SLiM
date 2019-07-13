@@ -2,6 +2,8 @@
 #include "ui_QtSLiMWindow.h"
 
 #include <QCoreApplication>
+#include <QFontDatabase>
+#include <QFontMetrics>
 #include <QtDebug>
 
 // TO DO:
@@ -96,14 +98,15 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     ui->playControlsLayout->setMargin(0);
 
     // set up the script and output textedits
-    ui->scriptTextEdit->setFontFamily("Menlo");
-    ui->scriptTextEdit->setFontPointSize(11);
-    ui->scriptTextEdit->setTabStopWidth(20);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
+    int tabWidth = 0;
+    QFont &scriptFont = QtSLiMWindow::defaultScriptFont(&tabWidth);
+
+    ui->scriptTextEdit->setFont(scriptFont);
+    ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
     ui->scriptTextEdit->setText(QtSLiMWindow::defaultWFScriptString());
 
-    ui->outputTextEdit->setFontFamily("Menlo");
-    ui->outputTextEdit->setFontPointSize(11);
-    ui->scriptTextEdit->setTabStopWidth(20);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
+    ui->outputTextEdit->setFont(scriptFont);
+    ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
 
     // remove the profile button, for the time being
     QPushButton *profileButton = ui->profileButton;
@@ -115,6 +118,41 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
 QtSLiMWindow::~QtSLiMWindow()
 {
     delete ui;
+}
+
+QFont &QtSLiMWindow::defaultScriptFont(int *p_tabWidth)
+{
+    static QFont *scriptFont = nullptr;
+    static int tabWidth = 0;
+    
+    if (!scriptFont)
+    {
+        QFontDatabase fontdb;
+        QStringList families = fontdb.families();
+        
+        //qDebug() << families;
+        
+        // Use filter() to look for matches, since the foundry can be appended after the name (why isn't this easier??)
+        // FIXME should have preferences UI for choosing the font and size
+        if (families.filter("DejaVu Sans Mono").size() > 0)
+            scriptFont = new QFont("DejaVu Sans Mono", 9);
+        else if (families.filter("Source Code Pro").size() > 0)
+            scriptFont = new QFont("Source Code Pro", 9);
+        else if (families.filter("Menlo").size() > 0)
+            scriptFont = new QFont("Menlo", 11);
+        else
+            scriptFont = new QFont("Courier", 9);
+        
+        //qDebug() << "Chosen font: " << scriptFont->family();
+        
+        QFontMetrics fm(*scriptFont);
+        
+        //tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
+        tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
+    }
+    
+    *p_tabWidth = tabWidth;
+    return *scriptFont;
 }
 
 QString QtSLiMWindow::defaultWFScriptString(void)

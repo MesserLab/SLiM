@@ -12,7 +12,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>800</width>
+    <width>850</width>
     <height>500</height>
    </size>
   </property>
@@ -70,10 +70,12 @@
               </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
               </property>
               <property name="icon">
@@ -108,10 +110,12 @@ QPushButton:checked {
               </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
               </property>
               <property name="icon">
@@ -149,10 +153,12 @@ QPushButton:checked {
               </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
               </property>
               <property name="icon">
@@ -190,10 +196,12 @@ QPushButton:checked {
               </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
               </property>
               <property name="icon">
@@ -396,10 +404,12 @@ QSlider::handle:horizontal {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -437,10 +447,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -478,10 +490,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -519,10 +533,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -582,10 +598,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -620,10 +638,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -658,10 +678,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -696,10 +718,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -737,10 +761,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -796,10 +822,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -834,10 +862,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -879,10 +909,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">
@@ -930,10 +962,12 @@ QPushButton:checked {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }
 QPushButton:checked {
-     background-color: #00000000;
+	background-color: #00000000;
+	border: 0px;
 }</string>
             </property>
             <property name="icon">

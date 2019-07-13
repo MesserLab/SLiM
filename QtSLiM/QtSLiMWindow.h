@@ -15,6 +15,7 @@ public:
     explicit QtSLiMWindow(QWidget *parent = nullptr);
     ~QtSLiMWindow();
 
+    static QFont &defaultScriptFont(int *p_tabWidth);
     static QString defaultWFScriptString(void);
     static QString defaultNonWFScriptString(void);
 
