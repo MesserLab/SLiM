@@ -21,15 +21,43 @@ QMAKE_CFLAGS_RELEASE += -O3
 QMAKE_CXXFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CXXFLAGS_RELEASE += -O3
 
+# gsl library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../gsl/release/ -lgsl
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../gsl/debug/ -lgsl
+else:unix: LIBS += -L$$OUT_PWD/../gsl/ -lgsl
+INCLUDEPATH += $$PWD/../gsl $$PWD/../gsl/blas $$PWD/../gsl/block $$PWD/../gsl/cblas $$PWD/../gsl/cdf
+INCLUDEPATH += $$PWD/../gsl/complex $$PWD/../gsl/err $$PWD/../gsl/linalg $$PWD/../gsl/matrix
+INCLUDEPATH += $$PWD/../gsl/randist $$PWD/../gsl/rng $$PWD/../gsl/specfunc $$PWD/../gsl/sys $$PWD/../gsl/vector
+
+# eidos library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../eidos/release/ -leidos
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../eidos/debug/ -leidos
+else:unix: LIBS += -L$$OUT_PWD/../eidos/ -leidos
+INCLUDEPATH += $$PWD/../eidos
+
+# core library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../core/release/ -lcore
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../core/debug/ -lcore
+else:unix: LIBS += -L$$OUT_PWD/../core/ -lcore
+INCLUDEPATH += $$PWD/../core
+
+# tskit library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../treerec/tskit/release/ -ltskit
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../treerec/tskit/debug/ -ltskit
+else:unix: LIBS += -L$$OUT_PWD/../treerec/tskit/ -ltskit
+INCLUDEPATH += $$PWD/../treerec/tskit $$PWD/../treerec $$PWD/../treerec/tskit/kastore
+
 SOURCES += \
-        main.cpp \
-        QtSLiMWindow.cpp
+    main.cpp \
+    QtSLiMWindow.cpp \
+    QtSLiMAppDelegate.cpp
 
 HEADERS += \
-        QtSLiMWindow.h
+    QtSLiMWindow.h \
+    QtSLiMAppDelegate.h
 
 FORMS += \
-        QtSLiMWindow.ui
+    QtSLiMWindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

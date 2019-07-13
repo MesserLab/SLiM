@@ -9,4 +9,4 @@ SUBDIRS += \
 
 eidos.depends = gsl
 core.depends = gsl eidos treerec/tskit
-QTSLiM.depends = gsl eidos treerec/tskit core
+QtSLiM.depends = gsl eidos core treerec/tskit

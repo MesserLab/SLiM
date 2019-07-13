@@ -9,6 +9,12 @@
 // custom layout for play/profile buttons: https://doc.qt.io/qt-5/layout.html
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
+// get the tableview columns configured correctly
+// make the chromosome view
+// make the population view
+// syntax coloring in the script and output textedits
+// implement pop-up menu for graph pop-up button
+// create a simulation object and hook up recycle, step, play
 
 QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -84,16 +90,26 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     ui->outputHeaderLabel->setContentsMargins(8, 0, 15, 0);
 
     ui->chromosomeButtonsLayout->setSpacing(4);
+    ui->chromosomeButtonsLayout->setMargin(0);
+
+    ui->playControlsLayout->setSpacing(4);
+    ui->playControlsLayout->setMargin(0);
 
     // set up the script and output textedits
     ui->scriptTextEdit->setFontFamily("Menlo");
     ui->scriptTextEdit->setFontPointSize(11);
-    ui->scriptTextEdit->setTabStopWidth(20);    // should use setTabStopDistance(), see https://stackoverflow.com/a/54605709/2752221
+    ui->scriptTextEdit->setTabStopWidth(20);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
     ui->scriptTextEdit->setText(QtSLiMWindow::defaultWFScriptString());
 
     ui->outputTextEdit->setFontFamily("Menlo");
     ui->outputTextEdit->setFontPointSize(11);
-    ui->scriptTextEdit->setTabStopWidth(20);    // should use setTabStopDistance(), see https://stackoverflow.com/a/54605709/2752221
+    ui->scriptTextEdit->setTabStopWidth(20);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
+
+    // remove the profile button, for the time being
+    QPushButton *profileButton = ui->profileButton;
+
+    ui->playControlsLayout->removeWidget(profileButton);
+    delete profileButton;
 }
 
 QtSLiMWindow::~QtSLiMWindow()
