@@ -18,6 +18,11 @@ QMAKE_CFLAGS_RELEASE += -O3
 QMAKE_CXXFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CXXFLAGS_RELEASE += -O3
 
+# get rid of spurious errors on Ubuntu, for now
+linux-*: {
+    QMAKE_CXXFLAGS += -Wno-unknown-pragmas -Wno-attributes -Wno-unused-parameter
+}
+
 # gsl library dependency
 win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../gsl/release/ -lgsl
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../gsl/debug/ -lgsl

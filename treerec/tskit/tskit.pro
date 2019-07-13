@@ -15,6 +15,11 @@ CONFIG -= qt
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CFLAGS_RELEASE += -O3
 
+# get rid of spurious errors on Ubuntu, for now
+linux-*: {
+    QMAKE_CFLAGS += -Wno-unknown-pragmas -Wno-attributes -Wno-unused-parameter -Wno-unused-but-set-parameter
+}
+
 INCLUDEPATH = . .. kastore
 
 SOURCES += \

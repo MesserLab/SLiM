@@ -16,6 +16,11 @@ CONFIG += object_parallel_to_source
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CFLAGS_RELEASE += -O3
 
+# get rid of spurious errors on Ubuntu, for now
+linux-*: {
+    QMAKE_CFLAGS += -Wno-unknown-pragmas -Wno-attributes -Wno-unused-parameter -Wno-unused-but-set-parameter
+}
+
 INCLUDEPATH = . ./blas ./block ./cblas ./cdf ./complex ./err ./linalg ./matrix ./randist ./rng ./specfunc ./sys ./vector
 
 SOURCES += \
