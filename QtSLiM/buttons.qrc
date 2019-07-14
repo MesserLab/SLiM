@@ -49,5 +49,7 @@
         <file>buttons/syntax_help.png</file>
         <file>buttons/open_type_drawer_H.png</file>
         <file>buttons/open_type_drawer.png</file>
+        <file>buttons/recycle_G.png</file>
+        <file>buttons/recycle_GH.png</file>
     </qresource>
 </RCC>

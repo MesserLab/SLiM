@@ -54,7 +54,8 @@ INCLUDEPATH += $$PWD/../treerec/tskit $$PWD/../treerec $$PWD/../treerec/tskit/ka
 SOURCES += \
     main.cpp \
     QtSLiMWindow.cpp \
-    QtSLiMAppDelegate.cpp
+    QtSLiMAppDelegate.cpp \
+    QtSLiMWindow_glue.cpp
 
 HEADERS += \
     QtSLiMWindow.h \

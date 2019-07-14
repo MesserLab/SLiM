@@ -22,7 +22,7 @@
 // make the population view
 // syntax coloring in the script and output textedits
 // implement pop-up menu for graph pop-up button
-// create a simulation object and hook up recycle, step, play
+// implement continuous play
 
 QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -66,64 +66,8 @@ QtSLiMWindow::~QtSLiMWindow()
 
 void QtSLiMWindow::initializeUI(void)
 {
-    // connect all QtSLiMWindow slots
-    connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);
-    connect(ui->playButton, &QPushButton::clicked, this, &QtSLiMWindow::playClicked);
-    connect(ui->profileButton, &QPushButton::clicked, this, &QtSLiMWindow::profileClicked);
-    connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
-
-    connect(ui->showMutationsButton, &QPushButton::clicked, this, &QtSLiMWindow::showMutationsToggled);
-    connect(ui->showFixedSubstitutionsButton, &QPushButton::clicked, this, &QtSLiMWindow::showFixedSubstitutionsToggled);
-    connect(ui->showChromosomeMapsButton, &QPushButton::clicked, this, &QtSLiMWindow::showChromosomeMapsToggled);
-    connect(ui->showGenomicElementsButton, &QPushButton::clicked, this, &QtSLiMWindow::showGenomicElementsToggled);
-
-    connect(ui->checkScriptButton, &QPushButton::clicked, this, &QtSLiMWindow::checkScriptClicked);
-    connect(ui->prettyprintButton, &QPushButton::clicked, this, &QtSLiMWindow::prettyprintClicked);
-    connect(ui->scriptHelpButton, &QPushButton::clicked, this, &QtSLiMWindow::scriptHelpClicked);
-    connect(ui->consoleButton, &QPushButton::clicked, this, &QtSLiMWindow::showConsoleClicked);
-    connect(ui->browserButton, &QPushButton::clicked, this, &QtSLiMWindow::showBrowserClicked);
-
-    connect(ui->clearOutputButton, &QPushButton::clicked, this, &QtSLiMWindow::clearOutputClicked);
-    connect(ui->dumpPopulationButton, &QPushButton::clicked, this, &QtSLiMWindow::dumpPopulationClicked);
-    connect(ui->graphPopupButton, &QPushButton::clicked, this, &QtSLiMWindow::graphPopupButtonClicked);
-    connect(ui->changeDirectoryButton, &QPushButton::clicked, this, &QtSLiMWindow::changeDirectoryClicked);
-
-    // set up all icon-based QPushButtons to change their icon as they track
-    connect(ui->playOneStepButton, &QPushButton::pressed, this, &QtSLiMWindow::playOneStepPressed);
-    connect(ui->playOneStepButton, &QPushButton::released, this, &QtSLiMWindow::playOneStepReleased);
-    connect(ui->playButton, &QPushButton::pressed, this, &QtSLiMWindow::playPressed);
-    connect(ui->playButton, &QPushButton::released, this, &QtSLiMWindow::playReleased);
-    connect(ui->profileButton, &QPushButton::pressed, this, &QtSLiMWindow::profilePressed);
-    connect(ui->profileButton, &QPushButton::released, this, &QtSLiMWindow::profileReleased);
-    connect(ui->recycleButton, &QPushButton::pressed, this, &QtSLiMWindow::recyclePressed);
-    connect(ui->recycleButton, &QPushButton::released, this, &QtSLiMWindow::recycleReleased);
-    connect(ui->showMutationsButton, &QPushButton::pressed, this, &QtSLiMWindow::showMutationsPressed);
-    connect(ui->showMutationsButton, &QPushButton::released, this, &QtSLiMWindow::showMutationsReleased);
-    connect(ui->showFixedSubstitutionsButton, &QPushButton::pressed, this, &QtSLiMWindow::showFixedSubstitutionsPressed);
-    connect(ui->showFixedSubstitutionsButton, &QPushButton::released, this, &QtSLiMWindow::showFixedSubstitutionsReleased);
-    connect(ui->showChromosomeMapsButton, &QPushButton::pressed, this, &QtSLiMWindow::showChromosomeMapsPressed);
-    connect(ui->showChromosomeMapsButton, &QPushButton::released, this, &QtSLiMWindow::showChromosomeMapsReleased);
-    connect(ui->showGenomicElementsButton, &QPushButton::pressed, this, &QtSLiMWindow::showGenomicElementsPressed);
-    connect(ui->showGenomicElementsButton, &QPushButton::released, this, &QtSLiMWindow::showGenomicElementsReleased);
-    connect(ui->checkScriptButton, &QPushButton::pressed, this, &QtSLiMWindow::checkScriptPressed);
-    connect(ui->checkScriptButton, &QPushButton::released, this, &QtSLiMWindow::checkScriptReleased);
-    connect(ui->prettyprintButton, &QPushButton::pressed, this, &QtSLiMWindow::prettyprintPressed);
-    connect(ui->prettyprintButton, &QPushButton::released, this, &QtSLiMWindow::prettyprintReleased);
-    connect(ui->scriptHelpButton, &QPushButton::pressed, this, &QtSLiMWindow::scriptHelpPressed);
-    connect(ui->scriptHelpButton, &QPushButton::released, this, &QtSLiMWindow::scriptHelpReleased);
-    connect(ui->consoleButton, &QPushButton::pressed, this, &QtSLiMWindow::showConsolePressed);
-    connect(ui->consoleButton, &QPushButton::released, this, &QtSLiMWindow::showConsoleReleased);
-    connect(ui->browserButton, &QPushButton::pressed, this, &QtSLiMWindow::showBrowserPressed);
-    connect(ui->browserButton, &QPushButton::released, this, &QtSLiMWindow::showBrowserReleased);
-    connect(ui->clearOutputButton, &QPushButton::pressed, this, &QtSLiMWindow::clearOutputPressed);
-    connect(ui->clearOutputButton, &QPushButton::released, this, &QtSLiMWindow::clearOutputReleased);
-    connect(ui->dumpPopulationButton, &QPushButton::pressed, this, &QtSLiMWindow::dumpPopulationPressed);
-    connect(ui->dumpPopulationButton, &QPushButton::released, this, &QtSLiMWindow::dumpPopulationReleased);
-    connect(ui->graphPopupButton, &QPushButton::pressed, this, &QtSLiMWindow::graphPopupButtonPressed);
-    connect(ui->graphPopupButton, &QPushButton::released, this, &QtSLiMWindow::graphPopupButtonReleased);
-    connect(ui->changeDirectoryButton, &QPushButton::pressed, this, &QtSLiMWindow::changeDirectoryPressed);
-    connect(ui->changeDirectoryButton, &QPushButton::released, this, &QtSLiMWindow::changeDirectoryReleased);
-
+    glueUI();
+    
     // fix the layout of the window
     ui->scriptHeaderLayout->setSpacing(4);
     ui->scriptHeaderLayout->setMargin(0);
@@ -165,6 +109,8 @@ void QtSLiMWindow::initializeUI(void)
     scriptString = QtSLiMWindow::defaultWFScriptString();
     ui->scriptTextEdit->setText(QString::fromStdString(scriptString));
     setScriptStringAndInitializeSimulation(scriptString);
+    
+    connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
 
     // Update all our UI to reflect the current state of the simulation
     updateAfterTickFull(true);
@@ -273,12 +219,12 @@ std::string QtSLiMWindow::defaultNonWFScriptString(void)
 
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
-    invalidSimulation = p_invalid;
+    invalidSimulation_ = p_invalid;
 }
 
 void QtSLiMWindow::setReachedSimulationEnd(bool p_reachedEnd)
 {
-    reachedSimulationEnd = p_reachedEnd;
+    reachedSimulationEnd_ = p_reachedEnd;
 }
 
 void QtSLiMWindow::checkForSimulationTermination(void)
@@ -349,7 +295,7 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
 
         setReachedSimulationEnd(false);
         setInvalidSimulation(false);
-        hasImported = false;
+        hasImported_ = false;
     }
     catch (...)
     {
@@ -375,17 +321,183 @@ void QtSLiMWindow::setScriptStringAndInitializeSimulation(std::string string)
     startNewSimulationFromScript();
 }
 
-void QtSLiMWindow::updateAfterTickFull(bool p_fullUpdate)
+void QtSLiMWindow::updateOutputTextView(void)
 {
-    if (sim)
-    {
-        qDebug() << "updateAfterTickFull: sim->generation_ == " << sim->generation_;
-    }
-    else
-    {
-        qDebug() << "updateAfterTickFull: sim is nullptr";
-    }
+    std::string &&newOutput = gSLiMOut.str();
+	
+	if (!newOutput.empty())
+	{
+        QString str = QString::fromStdString(newOutput);
+		
+		// So, ideally we would stay pinned at the bottom if the user had scrolled to the bottom, but would stay
+		// at the user's chosen scroll position above the bottom if they chose such a position.  Unfortunately,
+		// this doesn't seem to work.  I'm not quite sure why.  Particularly when large amounts of output get
+		// added quickly, the scroller doesn't seem to catch up, and then it reads here as not being at the
+		// bottom, and so we become unpinned even though we used to be pinned.  I'm going to just give up, for
+		// now, and always scroll to the bottom when new output comes out.  That's what many other such apps
+		// do anyway; it's a little annoying if you're trying to read old output, but so it goes.
+		
+		//NSScrollView *enclosingScrollView = [outputTextView enclosingScrollView];
+		//BOOL scrolledToBottom = YES; //(![enclosingScrollView hasVerticalScroller] || [[enclosingScrollView verticalScroller] doubleValue] == 1.0);
+		
+        // ui->outputTextEdit->append(str) would seem the obvious thing to do, but that adds an extra newline (!),
+        // so it can't be used.  WTF.  The solution here does not preserve the user's scroll position; see discussion at
+        // https://stackoverflow.com/questions/13559990/how-to-append-text-to-qplaintextedit-without-adding-newline-and-keep-scroll-at
+        // which has a complex solution involving subclassing QTextEdit... sigh...
+        ui->outputTextEdit->moveCursor(QTextCursor::End);
+        ui->outputTextEdit->insertPlainText(str);
+        ui->outputTextEdit->moveCursor(QTextCursor::End);
+        
+		//if ([[NSUserDefaults standardUserDefaults] boolForKey:defaultsSyntaxHighlightOutputKey])
+		//	[outputTextView recolorAfterChanges];
+		
+		// if the user was scrolled to the bottom, we keep them there; otherwise, we let them stay where they were
+		//if (scrolledToBottom)
+		//	[outputTextView scrollRangeToVisible:NSMakeRange([[outputTextView string] length], 0)];
+		
+		// clear any error flags set on the stream and empty out its string so it is ready to receive new output
+		gSLiMOut.clear();
+		gSLiMOut.str("");
+	}
 }
+
+void QtSLiMWindow::updateGenerationCounter(void)
+{
+    if (!invalidSimulation())
+	{
+		if (sim->generation_ == 0)
+            ui->generationLineEdit->setText("initialize()");
+		else
+            ui->generationLineEdit->setText(QString::number(sim->generation_));
+	}
+	else
+        ui->generationLineEdit->setText("");
+}
+
+void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
+{
+    // fullUpdate is used to suppress some expensive updating to every third update
+	if (!fullUpdate)
+	{
+		if (++partialUpdateCount_ >= 3)
+		{
+			partialUpdateCount_ = 0;
+			fullUpdate = true;
+		}
+	}
+	
+	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
+	checkForSimulationTermination();
+	
+	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
+	//bool invalid = invalidSimulation();
+	
+	if (fullUpdate)
+	{
+		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
+		updateOutputTextView();
+		
+		// Reloading the subpop tableview is tricky, because we need to preserve the selection across the reload, while also noting that the selection is forced
+		// to change when a subpop goes extinct.  The current selection is noted in the gui_selected_ ivar of each subpop.  So what we do here is reload the tableview
+		// while suppressing our usual update of our selection state, and then we try to re-impose our selection state on the new tableview content.  If a subpop
+		// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
+//		reloadingSubpopTableview = true;
+//		[subpopTableView reloadData];
+		
+//		if (invalid || !sim)
+//		{
+//			[subpopTableView deselectAll:nil];
+//		}
+//		else
+//		{
+//			Population &population = sim->population_;
+//			int subpopCount = (int)population.subpops_.size();
+//			auto popIter = population.subpops_.begin();
+//			NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
+			
+//			for (int i = 0; i < subpopCount; ++i)
+//			{
+//				if (popIter->second->gui_selected_)
+//					[indicesToSelect addIndex:i];
+				
+//				popIter++;
+//			}
+			
+//			[subpopTableView selectRowIndexes:indicesToSelect byExtendingSelection:NO];
+//		}
+		
+//		reloadingSubpopTableview = false;
+//		[subpopTableView setNeedsDisplay];
+	}
+	
+	// Now update our other UI, some of which depends upon the state of subpopTableView 
+//	[populationView setNeedsDisplay:YES];
+//	[chromosomeZoomed setNeedsDisplayInInterior];
+	
+//	[self updatePopulationViewHiding];
+	
+	if (fullUpdate)
+		updateGenerationCounter();
+	
+	// Update stuff that only needs updating when the script is re-parsed, not after every tick
+//	if (invalid || sim->mutation_types_changed_)
+//	{
+//		[mutTypeTableView reloadData];
+//		[mutTypeTableView setNeedsDisplay];
+		
+//		if (sim)
+//			sim->mutation_types_changed_ = false;
+//	}
+	
+//	if (invalid || sim->genomic_element_types_changed_)
+//	{
+//		[genomicElementTypeTableView reloadData];
+//		[genomicElementTypeTableView setNeedsDisplay];
+		
+//		if (sim)
+//			sim->genomic_element_types_changed_ = false;
+//	}
+	
+//	if (invalid || sim->interaction_types_changed_)
+//	{
+//		[interactionTypeTableView reloadData];
+//		[interactionTypeTableView setNeedsDisplay];
+		
+//		if (sim)
+//			sim->interaction_types_changed_ = false;
+//	}
+	
+//	if (invalid || sim->scripts_changed_)
+//	{
+//		[scriptBlocksTableView reloadData];
+//		[scriptBlocksTableView setNeedsDisplay];
+		
+//		if (sim)
+//			sim->scripts_changed_ = false;
+//	}
+	
+//	if (invalid || sim->chromosome_changed_)
+//	{
+//		[chromosomeOverview restoreLastSelection];
+//		[chromosomeOverview setNeedsDisplay:YES];
+		
+//		if (sim)
+//			sim->chromosome_changed_ = false;
+//	}
+	
+	// Update graph windows as well; this will usually trigger a setNeedsDisplay:YES but may do other updating work as well
+//	if (fullUpdate)
+//		[self sendAllLinkedViewsSelector:@selector(updateAfterTick)];
+}
+
+void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
+{
+    if (slimChangeCount)
+        ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_GH.png" : ":/buttons/recycle_G.png"));
+    else
+        ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_H.png" : ":/buttons/recycle.png"));
+}
+
 
 //
 //  simulation play mechanics
@@ -481,14 +593,55 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 
 
 //
+//  change tracking and the recycle button
+//
+
+// Do our own tracking of the change count.  We do this so that we know whether the script is in
+// the same state it was in when we last recycled, or has been changed.  If it has been changed,
+// we add a highlight under the recycle button to suggest to the user that they might want to
+// recycle to bring their changes into force.
+void QtSLiMWindow::updateChangeCount(void) //:(NSDocumentChangeType)change
+{
+	//[super updateChangeCount:change];
+	
+	// Mask off flags in the high bits.  Apple is not explicit about this, but NSChangeDiscardable
+	// is 256, and acts as a flag bit, so it seems reasonable to assume this for future compatibility.
+//	NSDocumentChangeType maskedChange = (NSDocumentChangeType)(change & 0x00FF);
+	
+//	if ((maskedChange == NSChangeDone) || (maskedChange == NSChangeRedone))
+		slimChangeCount++;
+//	else if (maskedChange == NSChangeUndone)
+//		slimChangeCount--;
+	
+	updateRecycleButtonIcon(false);
+}
+
+bool QtSLiMWindow::changedSinceRecycle(void)
+{
+	return !(slimChangeCount == 0);
+}
+
+void QtSLiMWindow::resetSLiMChangeCount(void)
+{
+    slimChangeCount = 0;
+	
+	updateRecycleButtonIcon(false);
+}
+
+// slot receiving the signal QTextEdit::textChanged() from the script textedit
+void QtSLiMWindow::scriptTexteditChanged(void)
+{
+    updateChangeCount();
+}
+
+
+//
 //  public slots
 //
 
 void QtSLiMWindow::playOneStepClicked(void)
 {
-    qDebug() << "playOneStepClicked";
-
-    if (!invalidSimulation)
+    if (!invalidSimulation())
     {
         //[_consoleController invalidateSymbolTableAndFunctionMap];
         setReachedSimulationEnd(!runSimOneGeneration());
@@ -513,7 +666,22 @@ void QtSLiMWindow::profileClicked(void)
 
 void QtSLiMWindow::recycleClicked(void)
 {
-    qDebug() << "recycleClicked";
+    // Converting a QString to a std::string is surprisingly tricky: https://stackoverflow.com/a/4644922/2752221
+    std::string utf8_script_string = ui->scriptTextEdit->toPlainText().toUtf8().constData();
+    
+    //[_consoleController invalidateSymbolTableAndFunctionMap];
+	clearOutputClicked();
+    setScriptStringAndInitializeSimulation(utf8_script_string);
+	//[_consoleController validateSymbolTableAndFunctionMap];
+	updateAfterTickFull(true);
+	
+	// A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
+	// at the moment that we recycled.  Then we reset a change counter that we use to know if we have changed relative to
+	// the recycle point, so we can highlight the recycle button to show that the executing script is out of date.
+	//[scriptTextView breakUndoCoalescing];
+	resetSLiMChangeCount();
+
+	//[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
 }
 
 void QtSLiMWindow::showMutationsToggled(void)
@@ -575,7 +743,7 @@ void QtSLiMWindow::showBrowserClicked(void)
 
 void QtSLiMWindow::clearOutputClicked(void)
 {
-    qDebug() << "clearOutputClicked";
+    ui->outputTextEdit->setText("");
 }
 
 void QtSLiMWindow::dumpPopulationClicked(void)
@@ -594,148 +762,6 @@ void QtSLiMWindow::changeDirectoryClicked(void)
 }
 
 
-//
-//  private slots
-//
-
-void QtSLiMWindow::playOneStepPressed(void)
-{
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step_H.png"));
-}
-void QtSLiMWindow::playOneStepReleased(void)
-{
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step.png"));
-}
-void QtSLiMWindow::playPressed(void)
-{
-    ui->playButton->setIcon(QIcon(ui->playButton->isChecked() ? ":/buttons/play.png" : ":/buttons/play_H.png"));
-}
-void QtSLiMWindow::playReleased(void)
-{
-    ui->playButton->setIcon(QIcon(ui->playButton->isChecked() ? ":/buttons/play_H.png" : ":/buttons/play.png"));
-}
-void QtSLiMWindow::profilePressed(void)
-{
-    ui->profileButton->setIcon(QIcon(ui->profileButton->isChecked() ? ":/buttons/profile.png" : ":/buttons/profile_H.png"));
-}
-void QtSLiMWindow::profileReleased(void)
-{
-    ui->profileButton->setIcon(QIcon(ui->profileButton->isChecked() ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
-}
-void QtSLiMWindow::recyclePressed(void)
-{
-    ui->recycleButton->setIcon(QIcon(":/buttons/recycle_H.png"));
-}
-void QtSLiMWindow::recycleReleased(void)
-{
-    ui->recycleButton->setIcon(QIcon(":/buttons/recycle.png"));
-}
-void QtSLiMWindow::showMutationsPressed(void)
-{
-    ui->showMutationsButton->setIcon(QIcon(ui->showMutationsButton->isChecked() ? ":/buttons/show_mutations.png" : ":/buttons/show_mutations_H.png"));
-}
-void QtSLiMWindow::showMutationsReleased(void)
-{
-    ui->showMutationsButton->setIcon(QIcon(ui->showMutationsButton->isChecked() ? ":/buttons/show_mutations_H.png" : ":/buttons/show_mutations.png"));
-}
-void QtSLiMWindow::showFixedSubstitutionsPressed(void)
-{
-    ui->showFixedSubstitutionsButton->setIcon(QIcon(ui->showFixedSubstitutionsButton->isChecked() ? ":/buttons/show_fixed.png" : ":/buttons/show_fixed_H.png"));
-}
-void QtSLiMWindow::showFixedSubstitutionsReleased(void)
-{
-    ui->showFixedSubstitutionsButton->setIcon(QIcon(ui->showFixedSubstitutionsButton->isChecked() ? ":/buttons/show_fixed_H.png" : ":/buttons/show_fixed.png"));
-}
-void QtSLiMWindow::showChromosomeMapsPressed(void)
-{
-    ui->showChromosomeMapsButton->setIcon(QIcon(ui->showChromosomeMapsButton->isChecked() ? ":/buttons/show_recombination.png" : ":/buttons/show_recombination_H.png"));
-}
-void QtSLiMWindow::showChromosomeMapsReleased(void)
-{
-    ui->showChromosomeMapsButton->setIcon(QIcon(ui->showChromosomeMapsButton->isChecked() ? ":/buttons/show_recombination_H.png" : ":/buttons/show_recombination.png"));
-}
-void QtSLiMWindow::showGenomicElementsPressed(void)
-{
-    ui->showGenomicElementsButton->setIcon(QIcon(ui->showGenomicElementsButton->isChecked() ? ":/buttons/show_genomicelements.png" : ":/buttons/show_genomicelements_H.png"));
-}
-void QtSLiMWindow::showGenomicElementsReleased(void)
-{
-    ui->showGenomicElementsButton->setIcon(QIcon(ui->showGenomicElementsButton->isChecked() ? ":/buttons/show_genomicelements_H.png" : ":/buttons/show_genomicelements.png"));
-}
-void QtSLiMWindow::checkScriptPressed(void)
-{
-    ui->checkScriptButton->setIcon(QIcon(":/buttons/check_H.png"));
-}
-void QtSLiMWindow::checkScriptReleased(void)
-{
-    ui->checkScriptButton->setIcon(QIcon(":/buttons/check.png"));
-}
-void QtSLiMWindow::prettyprintPressed(void)
-{
-    ui->prettyprintButton->setIcon(QIcon(":/buttons/prettyprint_H.png"));
-}
-void QtSLiMWindow::prettyprintReleased(void)
-{
-    ui->prettyprintButton->setIcon(QIcon(":/buttons/prettyprint.png"));
-}
-void QtSLiMWindow::scriptHelpPressed(void)
-{
-    ui->scriptHelpButton->setIcon(QIcon(":/buttons/syntax_help_H.png"));
-}
-void QtSLiMWindow::scriptHelpReleased(void)
-{
-    ui->scriptHelpButton->setIcon(QIcon(":/buttons/syntax_help.png"));
-}
-void QtSLiMWindow::showConsolePressed(void)
-{
-    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console.png" : ":/buttons/show_console_H.png"));
-    ui->consoleButton->setIcon(QIcon(":/buttons/show_console_H.png"));
-}
-void QtSLiMWindow::showConsoleReleased(void)
-{
-    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
-    ui->consoleButton->setIcon(QIcon(":/buttons/show_console.png"));
-}
-void QtSLiMWindow::showBrowserPressed(void)
-{
-    ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser.png" : ":/buttons/show_browser_H.png"));
-}
-void QtSLiMWindow::showBrowserReleased(void)
-{
-    ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser_H.png" : ":/buttons/show_browser.png"));
-}
-void QtSLiMWindow::clearOutputPressed(void)
-{
-    ui->clearOutputButton->setIcon(QIcon(":/buttons/delete_H.png"));
-}
-void QtSLiMWindow::clearOutputReleased(void)
-{
-    ui->clearOutputButton->setIcon(QIcon(":/buttons/delete.png"));
-}
-void QtSLiMWindow::dumpPopulationPressed(void)
-{
-    ui->dumpPopulationButton->setIcon(QIcon(":/buttons/dump_output_H.png"));
-}
-void QtSLiMWindow::dumpPopulationReleased(void)
-{
-    ui->dumpPopulationButton->setIcon(QIcon(":/buttons/dump_output.png"));
-}
-void QtSLiMWindow::graphPopupButtonPressed(void)
-{
-    ui->graphPopupButton->setIcon(QIcon(":/buttons/graph_submenu_H.png"));
-}
-void QtSLiMWindow::graphPopupButtonReleased(void)
-{
-    ui->graphPopupButton->setIcon(QIcon(":/buttons/graph_submenu.png"));
-}
-void QtSLiMWindow::changeDirectoryPressed(void)
-{
-    ui->changeDirectoryButton->setIcon(QIcon(":/buttons/change_folder_H.png"));
-}
-void QtSLiMWindow::changeDirectoryReleased(void)
-{
-    ui->changeDirectoryButton->setIcon(QIcon(":/buttons/change_folder.png"));
-}
 
 
 

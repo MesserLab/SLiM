@@ -21,11 +21,9 @@ class QtSLiMWindow : public QMainWindow
 {
     Q_OBJECT    
 
-public:
-    std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
-    SLiMSim *sim;				// the simulation instance for this window
-    //SLiMgui *slimgui;			// the SLiMgui Eidos class instance for this window
-
+private:
+    int slimChangeCount;                    // private change count governing the recycle button's highlight
+    
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
     Eidos_RNG_State sim_RNG;
     slim_pedigreeid_t sim_next_pedigree_id;
@@ -36,11 +34,12 @@ public:
 
     // play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
     // and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib
-    bool invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, generationPlayOn, reachedSimulationEnd, hasImported;
-    slim_generation_t targetGeneration;
-    QElapsedTimer continuousPlayTimer;
-    uint64_t continuousPlayGenerationsCompleted;
-    int partialUpdateCount;
+    bool invalidSimulation_, continuousPlayOn_, profilePlayOn_, nonProfilePlayOn_;
+    bool generationPlayOn_, reachedSimulationEnd_, hasImported_;
+    slim_generation_t targetGeneration_;
+    QElapsedTimer continuousPlayTimer_;
+    uint64_t continuousPlayGenerationsCompleted_;
+    int partialUpdateCount_;
     //SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
 
     // profiling-related variables
@@ -48,6 +47,11 @@ public:
     //clock_t profileElapsedCPUClock;
     //eidos_profile_t profileElapsedWallClock;
     //slim_generation_t profileStartGeneration;
+    
+public:
+    std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
+    SLiMSim *sim;				// the simulation instance for this window
+    //SLiMgui *slimgui;			// the SLiMgui Eidos class instance for this window
 
     // display-related variables
     //double fitnessColorScale, selectionColorScale;
@@ -69,15 +73,27 @@ public:
     static std::string defaultNonWFScriptString(void);
 
     void setInvalidSimulation(bool p_invalid);
+    bool invalidSimulation(void) { return invalidSimulation_; }
+    
     void setReachedSimulationEnd(bool p_reachedEnd);
     void checkForSimulationTermination(void);
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);
+    
+    void updateOutputTextView(void);
+    void updateGenerationCounter(void);
     void updateAfterTickFull(bool p_fullUpdate);
+    void updateRecycleButtonIcon(bool pressed);
 
     void willExecuteScript(void);
     void didExecuteScript(void);
     bool runSimOneGeneration(void);
+    
+    void updateChangeCount(void);
+    bool changedSinceRecycle(void);
+    void resetSLiMChangeCount(void);
+    void scriptTexteditChanged(void);
+    
 
 public slots:
     void playOneStepClicked(void);
@@ -101,6 +117,10 @@ public slots:
     void graphPopupButtonClicked(void);
     void changeDirectoryClicked(void);
 
+    //
+    //  UI glue, defined in QtSLiMWindow_glue.cpp
+    //
+    
 private slots:
     void playOneStepPressed(void);
     void playOneStepReleased(void);
@@ -141,7 +161,29 @@ private slots:
     void changeDirectoryReleased(void);
 
 private:
+    void glueUI(void);
     Ui::QtSLiMWindow *ui;
 };
 
 #endif // QTSLIMWINDOW_H
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
