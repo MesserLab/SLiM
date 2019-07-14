@@ -20,7 +20,7 @@
 // get the tableview columns configured correctly
 // make the chromosome view
 // make the population view
-// syntax coloring in the script and output textedits
+// syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
 // implement continuous play
 
@@ -28,12 +28,6 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::QtSLiMWindow)
 {
-    // set default viewing state; this might come from user defaults on a per-script basis eventually...
-    zoomedChromosomeShowsRateMaps = false;
-    zoomedChromosomeShowsGenomicElements = false;
-    zoomedChromosomeShowsMutations = true;
-    zoomedChromosomeShowsFixedSubstitutions = false;
-
     // create the window UI
     ui->setupUi(this);
     initializeUI();
@@ -563,21 +557,23 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 
     willExecuteScript();
 
-//	if (profilePlayOn)
-//	{
-//		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
-//		// as profile report percentages are fractions of the total elapsed wall clock time.
-//		clock_t startCPUClock = clock();
-//		SLIM_PROFILE_BLOCK_START();
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+	if (profilePlayOn)
+	{
+		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
+		// as profile report percentages are fractions of the total elapsed wall clock time.
+		clock_t startCPUClock = clock();
+		SLIM_PROFILE_BLOCK_START();
 
-//		stillRunning = sim->RunOneGeneration();
+		stillRunning = sim->RunOneGeneration();
 
-//		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
-//		clock_t endCPUClock = clock();
+		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
+		clock_t endCPUClock = clock();
 
-//		profileElapsedCPUClock += (endCPUClock - startCPUClock);
-//	}
-//	else
+		profileElapsedCPUClock += (endCPUClock - startCPUClock);
+	}
+    else
+#endif
     {
         stillRunning = sim->RunOneGeneration();
     }
