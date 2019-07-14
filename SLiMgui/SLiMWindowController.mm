@@ -242,8 +242,10 @@
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = nil;
 	
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 	[profileEndDate release];
 	profileEndDate = nil;
+#endif
 	
 	[genomicElementColorRegistry release];
 	genomicElementColorRegistry = nil;
@@ -2317,6 +2319,7 @@
 	
 	[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
 	
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 	if (profilePlayOn)
 	{
 		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
@@ -2332,6 +2335,7 @@
 		profileElapsedCPUClock += (endCPUClock - startCPUClock);
 	}
 	else
+#endif
 	{
 		stillRunning = sim->RunOneGeneration();
 	}
