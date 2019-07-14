@@ -18,6 +18,7 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 # SLiMgui and QtSLiM get to see private stuff in SLiM
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
+DEFINES += SLIMPROFILING=0
 
 CONFIG += c++11
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1

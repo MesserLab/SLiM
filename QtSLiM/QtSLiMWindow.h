@@ -2,6 +2,7 @@
 #define QTSLIMWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
 #include <QElapsedTimer>
 
 #include <string>
@@ -37,7 +38,8 @@ private:
     bool invalidSimulation_ = false, continuousPlayOn_ = false, profilePlayOn_ = false, nonProfilePlayOn_ = false;
     bool generationPlayOn_ = false, reachedSimulationEnd_ = false, hasImported_ = false;
     slim_generation_t targetGeneration_ = 0;
-    QElapsedTimer continuousPlayTimer_;
+    QElapsedTimer continuousPlayElapsedTimer_;
+    QTimer continuousPlayInvocationTimer_;
     uint64_t continuousPlayGenerationsCompleted_ = 0;
     int partialUpdateCount_ = 0;
     //SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
@@ -75,9 +77,10 @@ public:
     static std::string defaultNonWFScriptString(void);
 
     void setInvalidSimulation(bool p_invalid);
-    bool invalidSimulation(void) { return invalidSimulation_; }
-    
     void setReachedSimulationEnd(bool p_reachedEnd);
+    void setContinuousPlayOn(bool p_flag);
+    void setNonProfilePlayOn(bool p_flag);
+    
     void checkForSimulationTermination(void);
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);
@@ -85,11 +88,15 @@ public:
     void updateOutputTextView(void);
     void updateGenerationCounter(void);
     void updateAfterTickFull(bool p_fullUpdate);
+    void updatePlayButtonIcon(bool pressed);
+    void updateProfileButtonIcon(bool pressed);
     void updateRecycleButtonIcon(bool pressed);
 
     void willExecuteScript(void);
     void didExecuteScript(void);
     bool runSimOneGeneration(void);
+    void _continuousPlay(void);
+    void playOrProfile(bool isPlayAction);
     
     void updateChangeCount(void);
     bool changedSinceRecycle(void);

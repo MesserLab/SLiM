@@ -14,6 +14,7 @@
 
 // TO DO:
 //
+// add menus, figure out macOS vs. Linux menu bar stuff
 // custom layout for play/profile buttons: https://doc.qt.io/qt-5/layout.html
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
@@ -22,7 +23,15 @@
 // make the population view
 // syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
-// implement continuous play
+// multiple windows, document model, open/save/revert, etc.
+// add access to recipes through the File menu
+// add a preferences panel: font/size, syntax coloring pref, etc.
+// code editing: code completion, shift left/right, comment/uncomment
+// implement the Eidos console, help window, status bar
+// decide whether to implement profiling or not
+// decide whether to implement the drawer or not
+// decide whether to implement the variable browser or not
+
 
 QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -31,7 +40,10 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     // create the window UI
     ui->setupUi(this);
     initializeUI();
-
+    
+    // wire up our continuous play timer
+    connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
+    
     // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
     sim_working_dir = Eidos_ResolvedPath("~/Desktop");
@@ -221,6 +233,16 @@ void QtSLiMWindow::setReachedSimulationEnd(bool p_reachedEnd)
     reachedSimulationEnd_ = p_reachedEnd;
 }
 
+void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
+{
+    continuousPlayOn_ = p_flag;
+}
+
+void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
+{
+    nonProfilePlayOn_ = p_flag;
+}
+
 void QtSLiMWindow::checkForSimulationTermination(void)
 {
     std::string &&terminationMessage = gEidosTermination.str();
@@ -357,7 +379,7 @@ void QtSLiMWindow::updateOutputTextView(void)
 
 void QtSLiMWindow::updateGenerationCounter(void)
 {
-    if (!invalidSimulation())
+    if (!invalidSimulation_)
 	{
 		if (sim->generation_ == 0)
             ui->generationLineEdit->setText("initialize()");
@@ -484,6 +506,20 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 //		[self sendAllLinkedViewsSelector:@selector(updateAfterTick)];
 }
 
+void QtSLiMWindow::updatePlayButtonIcon(bool pressed)
+{
+    bool highlighted = ui->playButton->isChecked() ^ pressed;
+    
+    ui->playButton->setIcon(QIcon(highlighted ? ":/buttons/play_H.png" : ":/buttons/play.png"));
+}
+
+void QtSLiMWindow::updateProfileButtonIcon(bool pressed)
+{
+    bool highlighted = ui->profileButton->isChecked() ^ pressed;
+    
+    ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
+}
+
 void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
 {
     if (slimChangeCount)
@@ -587,6 +623,163 @@ bool QtSLiMWindow::runSimOneGeneration(void)
     return stillRunning;
 }
 
+void QtSLiMWindow::_continuousPlay(void)
+{
+    // NOTE this code is parallel to the code in _continuousProfile:
+	if (!invalidSimulation_)
+	{
+        QElapsedTimer startTimer;
+        startTimer.start();
+        
+		double speedSliderValue = 1.0; //[playSpeedSlider doubleValue];
+		double intervalSinceStarting = continuousPlayElapsedTimer_.nsecsElapsed() / 1000000000.0;
+		
+		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
+		double maxGenerationsPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
+		
+		if (speedSliderValue < 0.99999)
+			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+		
+		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %f", speedSliderValue, maxGenerationsPerSecond);
+		
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
+		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
+		bool reachedEnd = reachedSimulationEnd_;
+		
+		do
+		{
+			if (continuousPlayGenerationsCompleted_ / intervalSinceStarting >= maxGenerationsPerSecond)
+				break;
+			
+            reachedEnd = !runSimOneGeneration();
+			
+			continuousPlayGenerationsCompleted_++;
+		}
+		while (!reachedEnd && (startTimer.nsecsElapsed() / 1000000000.0) < 0.02);
+		
+		setReachedSimulationEnd(reachedEnd);
+		
+		if (!reachedSimulationEnd_)
+		{
+            updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
+			continuousPlayInvocationTimer_.start(0);
+		}
+		else
+		{
+			// stop playing
+			updateAfterTickFull(true);
+			//[playButton setState:NSOffState];
+			playClicked();
+			
+			// bounce our icon; if we are not the active app, to signal that the run is done
+			//[NSApp requestUserAttention:NSInformationalRequest];
+		}
+	}
+}
+
+void QtSLiMWindow::playOrProfile(bool isPlayAction)
+{
+    bool isProfileAction = !isPlayAction;	// to avoid having to think in negatives
+    
+#if (SLIMPROFILING == 0)
+    if (isProfileAction)
+    {
+        // profiling is currently disabled in QtSLiM; the UI is not even visible
+        return;
+    }
+#endif
+    
+    if (!continuousPlayOn_)
+	{
+		// keep the button on; this works for the button itself automatically, but when the menu item is chosen this is needed
+		if (isProfileAction)
+		{
+			//[profileButton setState:NSOnState];
+			//[profileButton slimSetTintColor:[NSColor colorWithCalibratedHue:0.0 saturation:0.5 brightness:1.0 alpha:1.0]];
+		}
+		else
+		{
+            ui->playButton->setChecked(true);
+            updatePlayButtonIcon(false);
+			//[self placeSubview:playButton aboveSubview:profileButton];
+		}
+		
+		// log information needed to track our play speed
+        continuousPlayElapsedTimer_.restart();
+		continuousPlayGenerationsCompleted_ = 0;
+        
+		setContinuousPlayOn(true);
+		//if (isProfileAction)
+        //    [self setProfilePlayOn:YES];
+        //else
+            setNonProfilePlayOn(true);
+		
+		// invalidate the console symbols, and don't validate them until we are done
+		//[_consoleController invalidateSymbolTableAndFunctionMap];
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// prepare profiling information if necessary
+		if (isProfileAction)
+		{
+			gEidosProfilingClientCount++;
+			[self startProfiling];
+		}
+#endif
+		
+		// start playing/profiling
+		if (isPlayAction)
+            continuousPlayInvocationTimer_.start(0);
+		//else
+		//	[self performSelector:@selector(_continuousProfile:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+	}
+	else
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// close out profiling information if necessary
+		if (isProfileAction && sim && !invalidSimulation)
+		{
+			[self endProfiling];
+			gEidosProfilingClientCount--;
+		}
+#endif
+		
+		// keep the button off; this works for the button itself automatically, but when the menu item is chosen this is needed
+		if (isProfileAction)
+		{
+			//[profileButton setState:NSOffState];
+			//[profileButton slimSetTintColor:nil];
+		}
+		else
+		{
+            ui->playButton->setChecked(false);
+            updatePlayButtonIcon(false);
+			//[self placeSubview:profileButton aboveSubview:playButton];
+		}
+		
+		// stop our recurring perform request
+		if (isPlayAction)
+            continuousPlayInvocationTimer_.stop();
+		//else
+		//	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_continuousProfile:) object:nil];
+		
+        setContinuousPlayOn(false);
+        //if (isProfileAction)
+        //    [self setProfilePlayOn:NO];
+        //else
+            setNonProfilePlayOn(false);
+		
+		//[_consoleController validateSymbolTableAndFunctionMap];
+		updateAfterTickFull(true);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// If we just finished profiling, display a report
+		if (isProfileAction && sim && !invalidSimulation)
+			[self displayProfileResults];
+#endif
+	}
+}
+
 
 //
 //  change tracking and the recycle button
@@ -637,7 +830,7 @@ void QtSLiMWindow::scriptTexteditChanged(void)
 
 void QtSLiMWindow::playOneStepClicked(void)
 {
-    if (!invalidSimulation())
+    if (!invalidSimulation_)
     {
         //[_consoleController invalidateSymbolTableAndFunctionMap];
         setReachedSimulationEnd(!runSimOneGeneration());
@@ -648,16 +841,12 @@ void QtSLiMWindow::playOneStepClicked(void)
 
 void QtSLiMWindow::playClicked(void)
 {
-    ui->playButton->setIcon(QIcon(ui->playButton->isChecked() ? ":/buttons/play_H.png" : ":/buttons/play.png"));
-
-    qDebug() << "playClicked: isChecked() == " << ui->playButton->isChecked();
+    playOrProfile(true);
 }
 
 void QtSLiMWindow::profileClicked(void)
 {
-    ui->profileButton->setIcon(QIcon(ui->profileButton->isChecked() ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
-
-    qDebug() << "profileClicked: isChecked() == " << ui->profileButton->isChecked();
+    playOrProfile(false);
 }
 
 void QtSLiMWindow::recycleClicked(void)

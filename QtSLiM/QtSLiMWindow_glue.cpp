@@ -78,19 +78,19 @@ void QtSLiMWindow::playOneStepReleased(void)
 }
 void QtSLiMWindow::playPressed(void)
 {
-    ui->playButton->setIcon(QIcon(ui->playButton->isChecked() ? ":/buttons/play.png" : ":/buttons/play_H.png"));
+    updatePlayButtonIcon(true);
 }
 void QtSLiMWindow::playReleased(void)
 {
-    ui->playButton->setIcon(QIcon(ui->playButton->isChecked() ? ":/buttons/play_H.png" : ":/buttons/play.png"));
+    updatePlayButtonIcon(false);
 }
 void QtSLiMWindow::profilePressed(void)
 {
-    ui->profileButton->setIcon(QIcon(ui->profileButton->isChecked() ? ":/buttons/profile.png" : ":/buttons/profile_H.png"));
+    updateProfileButtonIcon(true);
 }
 void QtSLiMWindow::profileReleased(void)
 {
-    ui->profileButton->setIcon(QIcon(ui->profileButton->isChecked() ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
+    updateProfileButtonIcon(false);
 }
 void QtSLiMWindow::recyclePressed(void)
 {
@@ -159,12 +159,10 @@ void QtSLiMWindow::scriptHelpReleased(void)
 void QtSLiMWindow::showConsolePressed(void)
 {
     ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console.png" : ":/buttons/show_console_H.png"));
-    ui->consoleButton->setIcon(QIcon(":/buttons/show_console_H.png"));
 }
 void QtSLiMWindow::showConsoleReleased(void)
 {
     ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
-    ui->consoleButton->setIcon(QIcon(":/buttons/show_console.png"));
 }
 void QtSLiMWindow::showBrowserPressed(void)
 {
