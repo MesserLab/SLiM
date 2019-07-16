@@ -68,6 +68,9 @@
                 <height>60</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;step one generation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -107,6 +110,9 @@ QPushButton:checked {
                 <width>60</width>
                 <height>60</height>
                </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;play simulation continuously&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
@@ -151,6 +157,9 @@ QPushButton:checked {
                 <height>30</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;profile simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -194,6 +203,9 @@ QPushButton:checked {
                 <height>60</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;recycle simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
               <property name="styleSheet">
                <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -229,6 +241,9 @@ QPushButton:checked {
               <width>60</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;simulation playing speed&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QSlider::groove:horizontal {
@@ -332,6 +347,9 @@ QSlider::handle:horizontal {
                 <height>16777215</height>
                </size>
               </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;the generation that is about to execute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
               <property name="text">
                <string>initialize()</string>
               </property>
@@ -402,6 +420,9 @@ QSlider::handle:horizontal {
               <height>30</height>
              </size>
             </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle rate map visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -444,6 +465,9 @@ QPushButton:checked {
               <width>30</width>
               <height>30</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle genomic element visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -488,6 +512,9 @@ QPushButton:checked {
               <height>30</height>
              </size>
             </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle fixed substitution visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -530,6 +557,9 @@ QPushButton:checked {
               <width>30</width>
               <height>30</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle mutation visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -596,6 +626,9 @@ QPushButton:checked {
               <height>20</height>
              </size>
             </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;check script syntax&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -635,6 +668,9 @@ QPushButton:checked {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -676,6 +712,9 @@ QPushButton:checked {
               <height>20</height>
              </size>
             </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;scripting help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -715,6 +754,9 @@ QPushButton:checked {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos console&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -758,6 +800,9 @@ QPushButton:checked {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -820,6 +865,9 @@ QPushButton:checked {
               <height>20</height>
              </size>
             </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear output log&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
@@ -859,6 +907,9 @@ QPushButton:checked {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;dump population state&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -906,6 +957,9 @@ QPushButton:checked {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show a graph&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -959,6 +1013,9 @@ QPushButton:checked {
               <width>20</width>
               <height>20</height>
              </size>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;change working directory&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
