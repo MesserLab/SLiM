@@ -33,11 +33,13 @@
 #include <limits>
 #include <random>
 
+#if 0
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 // includes for the timing code in RunEidosTests(), which is normally #if 0
 #include "sys/time.h"	// for gettimeofday()
 #include <chrono>
 #include <mach/mach_time.h>
+#endif
 #endif
 
 

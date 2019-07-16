@@ -19,6 +19,7 @@
 
 
 #import <Cocoa/Cocoa.h>
+#include <string>
 
 class EidosCallSignature;
 class EidosPropertySignature;
@@ -95,6 +96,8 @@ class EidosPropertySignature;
 
 @end
 
+
+extern std::string Eidos_Beep_MACOS(std::string p_sound_name);
 
 
 

@@ -25,6 +25,7 @@
 #import "EidosConsoleWindowControllerDelegate.h"
 #import "EidosHelpController.h"
 #import "EidosCocoaExtra.h"
+#import "eidos_beep.h"
 
 #include "eidos_globals.h"
 #include "eidos_test.h"
@@ -62,6 +63,9 @@
     if ([NSApp respondsToSelector:@selector(setAppearance:)])
         [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
     
+	// Install our custom beep handler
+	Eidos_Beep = &Eidos_Beep_MACOS;
+	
 	// Warm up our back end before anything else happens
 #ifdef EIDOS_SLIM_OPEN_MP
 	// Right now EidosScribe is set to be single-threaded; multithreading in the GUI doesn't seem to work well, because the threads

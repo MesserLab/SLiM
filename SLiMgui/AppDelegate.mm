@@ -25,6 +25,7 @@
 #import "EidosHelpController.h"
 #import "CocoaExtra.h"
 #import "EidosCocoaExtra.h"
+#import "eidos_beep.h"
 #import "TipsWindowController.h"
 #import <WebKit/WebKit.h>
 
@@ -206,6 +207,9 @@ typedef enum SLiMLaunchAction
     if ([NSApp respondsToSelector:@selector(setAppearance:)])
         [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
     
+	// Install our custom beep handler
+	Eidos_Beep = &Eidos_Beep_MACOS;
+	
 	// Warm up our back ends before anything else happens
 #ifdef EIDOS_SLIM_OPEN_MP
 	// Right now SLiMgui is set to be single-threaded; multithreading in the GUI doesn't seem to work well, because the threads
