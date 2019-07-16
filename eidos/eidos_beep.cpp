@@ -18,16 +18,19 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
-// 
-#ifndef EIDOS_GUI
-
-
 #include "eidos_beep.h"
 
 #include <stdio.h>
 #include <sys/stat.h> 
 #include <fcntl.h>
 #include <unistd.h>
+
+
+// The base implementation, defined below
+static std::string Eidos_Beep_BASE(std::string p_sound_name);
+
+// The function pointer that delivers whatever platform-specific implementation we want to use
+std::string (*Eidos_Beep)(std::string p_sound_name) = &Eidos_Beep_BASE;
 
 
 // This code is derived from the code of the beep utility, by Johnathan Nightingale, found at https://github.com/johnath/beep
@@ -46,7 +49,7 @@
  *
  */
 
-std::string Eidos_Beep(std::string p_sound_name)
+std::string Eidos_Beep_BASE(std::string p_sound_name)
 {
 #pragma unused (p_sound_name)
 	// Find a device to output to.  The beep utility uses /dev/tty0 or /dev/vc/0, but those do not seem to work on OS X;
@@ -69,7 +72,7 @@ std::string Eidos_Beep(std::string p_sound_name)
 			return "";
 		
 		been_here = true;
-		return "#WARNING (Eidos_Beep): function beep() could not open /dev/tty0 or /dev/vc/0 for writing; output stream may contain control characters to produce beeps.";
+		return "#WARNING (Eidos_Beep_BASE): function beep() could not open /dev/tty0 or /dev/vc/0 for writing; output stream may contain control characters to produce beeps.";
 	}
 	
 	// Output a '\a', which rings the bell.  All the other stuff in the beep utility seems to be Linux-specific...
@@ -82,7 +85,6 @@ std::string Eidos_Beep(std::string p_sound_name)
 }
 
 
-#endif /* ifndef EIDOS_GUI */
 
 
 
