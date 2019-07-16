@@ -81,6 +81,7 @@ public:
     void setContinuousPlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
     
+    void selectErrorRange(void);
     void checkForSimulationTermination(void);
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);
@@ -104,8 +105,12 @@ public:
     void resetSLiMChangeCount(void);
     void scriptTexteditChanged(void);
     
-
+signals:
+    void terminationWithMessage(QString message);
+    
 public slots:
+    void showTerminationMessage(QString terminationMessage);
+    
     void playOneStepClicked(void);
     void playClicked(void);
     void profileClicked(void);

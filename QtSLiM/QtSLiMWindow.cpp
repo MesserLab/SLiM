@@ -6,6 +6,10 @@
 #include <QFontDatabase>
 #include <QFontMetrics>
 #include <QtDebug>
+#include <QMessageBox>
+#include <QTextEdit>
+#include <QCursor>
+#include <QPalette>
 
 #include <unistd.h>
 
@@ -31,7 +35,6 @@
 // decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
-// handle invalid simulation state, reporting of errors
 
 
 QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
@@ -44,6 +47,15 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     
     // wire up our continuous play timer
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
+    
+    // wire up deferred display of script errors and termination messages
+    connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
+    
+    // clear the custom error background color whenever the selection changes
+    QTextEdit *te = this->ui->scriptTextEdit;
+    connect(te, &QTextEdit::selectionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
+    //connect(te, &QTextEdit::cursorPositionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
+    // FIXME: what's the difference?  see https://stackoverflow.com/questions/57063268/what-is-the-difference-between-the-selection-and-the-cursor-in-qtextedit
     
     // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
@@ -248,21 +260,80 @@ void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
     updateUIEnabling();
 }
 
+void QtSLiMWindow::selectErrorRange(void)
+{
+	// If there is error-tracking information set, and the error is not attributed to a runtime script
+	// such as a lambda or a callback, then we can highlight the error range
+	if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfErrorUTF16 >= 0) && (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16))
+	{
+        QTextEdit *te = ui->scriptTextEdit;
+        QTextCursor cursor(te->document());
+        
+        cursor.setPosition(gEidosCharacterStartOfErrorUTF16);
+        cursor.setPosition(gEidosCharacterEndOfErrorUTF16 + 1, QTextCursor::KeepAnchor);
+        te->setTextCursor(cursor);
+        
+        QPalette p = te->palette();
+        p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
+        p.setColor(QPalette::HighlightedText, QColor(Qt::black));
+        te->setPalette(p);
+        
+        // note that this custom selection color is cleared by a connection to QTextEdit::selectionChanged()
+	}
+	
+	// In any case, since we are the ultimate consumer of the error information, we should clear out
+	// the error state to avoid misattribution of future errors
+	gEidosCharacterStartOfError = -1;
+	gEidosCharacterEndOfError = -1;
+	gEidosCharacterStartOfErrorUTF16 = -1;
+	gEidosCharacterEndOfErrorUTF16 = -1;
+	gEidosCurrentScript = nullptr;
+	gEidosExecutingRuntimeScript = false;
+}
+
+void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
+{
+    //qDebug() << terminationMessage;
+    
+    // Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
+	if (!changedSinceRecycle())
+		selectErrorRange();
+    
+    // Show an error sheet/panel
+    terminationMessage.append("\nThis error has invalidated the simulation; it cannot be run further.  Once the script is fixed, you can recycle the simulation and try again.");
+    
+    QMessageBox messageBox(this);
+    messageBox.setText("Simulation Runtime Error");
+    messageBox.setInformativeText(terminationMessage);
+    messageBox.setIcon(QMessageBox::Warning);
+    messageBox.setWindowModality(Qt::WindowModal);
+    messageBox.setFixedWidth(700);      // seems to be ignored
+    messageBox.exec();
+    
+#if 0
+	// Show the error in the status bar also
+	NSString *trimmedError = [terminationMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+	NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor] size:11.0];
+	NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
+	
+	[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
+	[scriptStatusTextField setAttributedStringValue:errorAttrString];
+#endif
+}
+
 void QtSLiMWindow::checkForSimulationTermination(void)
 {
     std::string &&terminationMessage = gEidosTermination.str();
 
     if (!terminationMessage.empty())
     {
-        const char *cstr = terminationMessage.c_str();
-        //std::string str(cstr);
+        QString message = QString::fromStdString(terminationMessage);
 
         gEidosTermination.clear();
         gEidosTermination.str("");
 
-        qDebug() << cstr;
-        //[self performSelector:@selector(showTerminationMessage:) withObject:[str retain] afterDelay:0.0];	// showTerminationMessage: will release the string
-
+        emit terminationWithMessage(message);
+        
         // Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
         // of the old simulation object; who knows what state it is in, touching it might crash.
         sim = nullptr;
