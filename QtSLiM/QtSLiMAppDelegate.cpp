@@ -2,13 +2,20 @@
 #include <QApplication>
 
 #include "eidos_globals.h"
+#include "eidos_beep.h"
 #include "slim_globals.h"
+
+
+static std::string Eidos_Beep_QT(std::string p_sound_name);
 
 
 QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
 
 QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
 {
+    // Install our custom beep handler
+    Eidos_Beep = &Eidos_Beep_QT;
+    
     // Warm up our back ends before anything else happens
     Eidos_WarmUp();
     SLiM_WarmUp();
@@ -57,7 +64,16 @@ void QtSLiMAppDelegate::showHelp(void)
 }
 
 
-
+// This is declared in eidos_beep.h, but in QtSLiM it is actually defined here,
+// so that we can produce the beep sound with Qt
+std::string Eidos_Beep_QT(std::string __attribute__((__unused__)) p_sound_name)
+{
+    std::string return_string;
+    
+    qApp->beep();
+    
+    return return_string;
+}
 
 
 

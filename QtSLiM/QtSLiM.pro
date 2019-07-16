@@ -15,7 +15,7 @@ TEMPLATE = app
 DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-# SLiMgui and QtSLiM get to see private stuff in SLiM
+# Set up to build QtSLiM; note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
 DEFINES += SLIMPROFILING=0
