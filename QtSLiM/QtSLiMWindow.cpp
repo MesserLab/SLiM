@@ -57,6 +57,9 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     //connect(te, &QTextEdit::cursorPositionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
     // FIXME: what's the difference?  see https://stackoverflow.com/questions/57063268/what-is-the-difference-between-the-selection-and-the-cursor-in-qtextedit
     
+    // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
+    connect(te, &QTextEdit::selectionChanged, [this]() { this->statusBar()->clearMessage(); });
+    
     // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
     sim_working_dir = Eidos_ResolvedPath("~/Desktop");
@@ -300,25 +303,21 @@ void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
 		selectErrorRange();
     
     // Show an error sheet/panel
-    terminationMessage.append("\nThis error has invalidated the simulation; it cannot be run further.  Once the script is fixed, you can recycle the simulation and try again.");
+    QString fullMessage(terminationMessage);
+    
+    fullMessage.append("\nThis error has invalidated the simulation; it cannot be run further.  Once the script is fixed, you can recycle the simulation and try again.");
     
     QMessageBox messageBox(this);
     messageBox.setText("Simulation Runtime Error");
-    messageBox.setInformativeText(terminationMessage);
+    messageBox.setInformativeText(fullMessage);
     messageBox.setIcon(QMessageBox::Warning);
     messageBox.setWindowModality(Qt::WindowModal);
     messageBox.setFixedWidth(700);      // seems to be ignored
     messageBox.exec();
     
-#if 0
-	// Show the error in the status bar also
-	NSString *trimmedError = [terminationMessage stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-	NSDictionary *errorAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor redColor] size:11.0];
-	NSMutableAttributedString *errorAttrString = [[[NSMutableAttributedString alloc] initWithString:trimmedError attributes:errorAttrs] autorelease];
-	
-	[errorAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [errorAttrString length])];
-	[scriptStatusTextField setAttributedStringValue:errorAttrString];
-#endif
+    // Show the error in the status bar also
+    this->statusBar()->setStyleSheet("color: #cc0000; font-size: 11px;");
+    this->statusBar()->showMessage(terminationMessage.trimmed());
 }
 
 void QtSLiMWindow::checkForSimulationTermination(void)
