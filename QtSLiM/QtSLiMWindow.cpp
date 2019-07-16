@@ -561,6 +561,9 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     ui->scriptTextEdit->setReadOnly(continuousPlayOn_ || generationPlayOn_);
     ui->outputTextEdit->setReadOnly(true);
+    
+    ui->generationLabel->setEnabled(!invalidSimulation_);
+    ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
 }
 
 
