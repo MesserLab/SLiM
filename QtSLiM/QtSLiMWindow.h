@@ -91,6 +91,7 @@ public:
     void updatePlayButtonIcon(bool pressed);
     void updateProfileButtonIcon(bool pressed);
     void updateRecycleButtonIcon(bool pressed);
+    void updateUIEnabling(void);
 
     void willExecuteScript(void);
     void didExecuteScript(void);

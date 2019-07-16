@@ -31,6 +31,7 @@
 // decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
+// handle invalid simulation state, reporting of errors
 
 
 QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
@@ -226,21 +227,25 @@ std::string QtSLiMWindow::defaultNonWFScriptString(void)
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
     invalidSimulation_ = p_invalid;
+    updateUIEnabling();
 }
 
 void QtSLiMWindow::setReachedSimulationEnd(bool p_reachedEnd)
 {
     reachedSimulationEnd_ = p_reachedEnd;
+    updateUIEnabling();
 }
 
 void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
 {
     continuousPlayOn_ = p_flag;
+    updateUIEnabling();
 }
 
 void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
 {
     nonProfilePlayOn_ = p_flag;
+    updateUIEnabling();
 }
 
 void QtSLiMWindow::checkForSimulationTermination(void)
@@ -526,6 +531,36 @@ void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
         ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_GH.png" : ":/buttons/recycle_G.png"));
     else
         ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_H.png" : ":/buttons/recycle.png"));
+}
+
+void QtSLiMWindow::updateUIEnabling(void)
+{
+    ui->playOneStepButton->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
+    ui->playButton->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_ && !generationPlayOn_);
+    //ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
+    ui->recycleButton->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    
+    ui->playSpeedSlider->setEnabled(!generationPlayOn_ && !invalidSimulation_);
+    ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
+
+    ui->showMutationsButton->setEnabled(!invalidSimulation_);
+    ui->showChromosomeMapsButton->setEnabled(!invalidSimulation_);
+    ui->showGenomicElementsButton->setEnabled(!invalidSimulation_);
+    ui->showFixedSubstitutionsButton->setEnabled(!invalidSimulation_);
+    
+    ui->checkScriptButton->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->prettyprintButton->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->scriptHelpButton->setEnabled(true);
+    ui->consoleButton->setEnabled(true);
+    ui->browserButton->setEnabled(true);
+    
+    ui->clearOutputButton->setEnabled(!invalidSimulation_);
+    ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
+    ui->graphPopupButton->setEnabled(!invalidSimulation_);
+    ui->changeDirectoryButton->setEnabled(!invalidSimulation_);
+    
+    ui->scriptTextEdit->setReadOnly(continuousPlayOn_ || generationPlayOn_);
+    ui->outputTextEdit->setReadOnly(true);
 }
 
 

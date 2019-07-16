@@ -989,7 +989,11 @@ QPushButton:checked {
          </layout>
         </item>
         <item>
-         <widget class="QTextEdit" name="outputTextEdit"/>
+         <widget class="QTextEdit" name="outputTextEdit">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
