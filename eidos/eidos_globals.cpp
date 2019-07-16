@@ -75,7 +75,7 @@ EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 #pragma mark Profiling support
 #pragma mark -
 
-#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 // PROFILING
 
 int gEidosProfilingClientCount = 0;
@@ -157,7 +157,7 @@ void Eidos_PrepareForProfiling(void)
 	//std::cout << "Profile lag internal to block: " << gEidos_ProfileLag_double << " ticks, " << gEidos_ProfileLagSeconds << " seconds" << std::endl;
 }
 
-#endif
+#endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
 
 
 #pragma mark -

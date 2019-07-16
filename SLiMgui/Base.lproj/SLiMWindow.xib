@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14460.31"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -1196,6 +1196,20 @@
                                                         </buttonCell>
                                                         <connections>
                                                             <action selector="prettyprintScript:" target="-2" id="uUv-Zd-UNT"/>
+                                                            <binding destination="-2" name="enabled2" keyPath="generationPlayOn" previousBinding="sYs-sI-hg6" id="7TK-eN-bpf">
+                                                                <dictionary key="options">
+                                                                    <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                                    <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                                    <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                                    <integer key="NSNullPlaceholder" value="-1"/>
+                                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                                </dictionary>
+                                                            </binding>
+                                                            <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="sYs-sI-hg6">
+                                                                <dictionary key="options">
+                                                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                                </dictionary>
+                                                            </binding>
                                                         </connections>
                                                     </button>
                                                 </subviews>
@@ -1975,6 +1989,7 @@
             </items>
             <point key="canvasLocation" x="639.5" y="1055.5"/>
         </menu>
+        <userDefaultsController representsSharedInstance="YES" id="DGe-bX-uu6"/>
     </objects>
     <resources>
         <image name="add_subpop" width="72" height="72"/>

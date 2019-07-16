@@ -993,7 +993,9 @@ int RunEidosTests(void)
 		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
-#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+	// Note that at present this code is in eidos_test.cpp but runs only when running in SLiMgui,
+	// which never happens; this is for historical reasons, and the code can be moved if needed
 	
 	// mach_absolute_time()
 	{

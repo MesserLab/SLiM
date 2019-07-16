@@ -31,8 +31,8 @@
 #include <numeric>
 #include <algorithm>
 
-#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
-#include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui and the Eidos GUI (the latter for the timing test code)
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui when profiling is enabled
 #endif
 
 class EidosScript;
@@ -150,7 +150,7 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 #pragma mark Profiling support
 #pragma mark -
 
-#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 // PROFILING
 
 extern int gEidosProfilingClientCount;	// if non-zero, profiling is happening in some context
@@ -234,7 +234,7 @@ void Eidos_PrepareForProfiling(void);
 		(slim__accumulator) += slim__corrected_ticks;																														\
 	}
 
-#endif
+#endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
 
 
 // *******************************************************************************************************************
