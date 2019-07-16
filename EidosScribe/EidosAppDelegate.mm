@@ -25,6 +25,7 @@
 #import "EidosConsoleWindowControllerDelegate.h"
 #import "EidosHelpController.h"
 #import "EidosCocoaExtra.h"
+#import "eidos_beep.h"
 
 #include "eidos_globals.h"
 #include "eidos_test.h"
@@ -62,6 +63,9 @@
     if ([NSApp respondsToSelector:@selector(setAppearance:)])
         [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
     
+	// Install our custom beep handler
+	Eidos_Beep = &Eidos_Beep_MACOS;
+	
 	// Warm up our back end before anything else happens
 	Eidos_WarmUp();
 	Eidos_FinishWarmUp();
