@@ -3,10 +3,11 @@
 #
 #   cd build
 #   cmake ../SLiM
-#   make
+#   make -j10
 #
 # This will make a Release build, with optimization and without debugging symbols, by default.
 # The built executables will be placed in the build directory upon successful completion.
+
 # 
 # You can also explicitly make a Release build; this is typically done in a directory named "Release"
 # instead of "build":
@@ -23,6 +24,14 @@
 #   cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
 #   make
 #
+
+# To build the Qt GUI, make sure you have the Qt5 Widgets, Core, and Gui libraries installed, then 
+# configure with:
+#   cd build
+#   cmake -D BUILD_QTSLIM=ON ../SLiM
+#   make -j10
+
+
 # In all cases the concept is the same: make a build directory of some name, cd into it, run cmake
 # to set up the build (with a CMAKE_BUILD_TYPE flag if desired, otherwise Release will be used by
 # default), then run make to actually do the build.  This setup (1) keeps all build products out of
@@ -41,13 +50,17 @@
 # file has changed.
 
 
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 
 
 # Make a Release build by default
 if(NOT CMAKE_BUILD_TYPE) 
     set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
+
+# User-defined CMAKE command-line options
+option(BUILD_QTSLIM "Build the Qt5 GUI for SLiM (on Linux only)" OFF)
+
 
 # Use the flags below for [all / Debug / Release] builds; these flags are built in to cmake
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
@@ -102,15 +115,38 @@ set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
 add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
-target_link_libraries(${TARGET_NAME} PUBLIC gsl)
-target_link_libraries(${TARGET_NAME} PUBLIC tables)
-target_link_libraries(${TARGET_NAME} PUBLIC)
+target_link_libraries(${TARGET_NAME} PUBLIC gsl tables)
 
 set(TARGET_NAME eidos)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
-target_link_libraries(${TARGET_NAME} PUBLIC gsl)
-target_link_libraries(${TARGET_NAME} PUBLIC tables)
+target_link_libraries(${TARGET_NAME} PUBLIC gsl tables)
+
+set(TARGET_NAME eidoslib)
+file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
+add_library(${TARGET_NAME} ${EIDOS_SOURCES})
+target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 
 install(TARGETS slim eidos DESTINATION bin)
+
+# QtSLiM -- this can be enabled with the -DBUILD_QTSLIM=ON option to cmake
+if(BUILD_QTSLIM)
+set(TARGET_NAME qtslim)
+find_package(Qt5 REQUIRED
+    Core
+    Gui
+    Widgets
+)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+list(REMOVE_ITEM SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/main.cpp)
+file(GLOB_RECURSE QTSLIM_SOURCES ${PROJECT_SOURCE_DIR}/QtSLiM/*.cpp ${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMWindow.ui ${PROJECT_SOURCE_DIR}/QtSLiM/buttons.qrc ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
+add_executable(${TARGET_NAME} "${QTSLIM_SOURCES}" "${SLIM_SOURCES}")
+set_target_properties( ${TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+target_compile_definitions( ${TARGET_NAME} PRIVATE SLIMGUI=1 )
+target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
+target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui gsl tables )
+install(TARGETS ${TARGET_NAME} DESTINATION bin)
+endif(BUILD_QTSLIM)
