@@ -54,8 +54,6 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     // clear the custom error background color whenever the selection changes
     QTextEdit *te = this->ui->scriptTextEdit;
     connect(te, &QTextEdit::selectionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
-    //connect(te, &QTextEdit::cursorPositionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
-    // FIXME: what's the difference?  see https://stackoverflow.com/questions/57063268/what-is-the-difference-between-the-selection-and-the-cursor-in-qtextedit
     
     // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
     connect(te, &QTextEdit::selectionChanged, [this]() { this->statusBar()->clearMessage(); });
