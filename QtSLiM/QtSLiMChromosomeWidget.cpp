@@ -30,11 +30,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	glEnableClientState(GL_COLOR_ARRAY);						\
 	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
 
-#define SLIM_GL_DEFCOORDS(rect)									\
-	float left = (float)rect.origin.x;							\
-	float top = (float)rect.origin.y;							\
-	float right = left + (float)rect.size.width;				\
-	float bottom = top + (float)rect.size.height;
+#define SLIM_GL_DEFCOORDS(rect)                                 \
+	float left = static_cast<float>(rect.left());               \
+	float top = static_cast<float>(rect.top());                 \
+	float right = left + static_cast<float>(rect.width());      \
+	float bottom = top + static_cast<float>(rect.height());
 
 #define SLIM_GL_PUSHRECT()										\
 	*(vertices++) = left;										\
@@ -88,10 +88,35 @@ QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *parent, Qt::WindowFlags 
         tickFont = new QFont();
         tickFont->setPointSize(9);
     }
+    
+    //[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
+    
+    if (!glArrayVertices)
+        glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, kMaxVertices vertices
+    
+    if (!glArrayColors)
+        glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, kMaxVertices colors
 }
 
 QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
 {
+    setReferenceChromosomeView(nullptr);
+	
+	//[self unbind:@"enabled"];
+	
+	//[self removeSelectionMarkers];
+	
+	if (glArrayVertices)
+	{
+		free(glArrayVertices);
+		glArrayVertices = nullptr;
+	}
+	
+	if (!glArrayColors)
+	{
+		free(glArrayColors);
+		glArrayColors = nullptr;
+	}
 }
 
 void QtSLiMChromosomeWidget::initializeGL()
@@ -259,8 +284,8 @@ void QtSLiMChromosomeWidget::paintGL()
 	
     if (ready)
     {
-        // erase the content area itself
-        painter.fillRect(interiorRect, Qt::black);
+        // erase the content area itself; done in glDrawRect() now
+        //painter.fillRect(interiorRect, Qt::black);
 		
 		QtSLiMRange displayedRange = getDisplayedRange();
 		
@@ -358,9 +383,360 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 
 void QtSLiMChromosomeWidget::glDrawRect(void)
 {
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+    bool ready = isEnabled() && !controller->invalidSimulation();
+	QRect interiorRect = getInteriorRect();
     
+    // if the simulation is at generation 0, it is not ready
+	if (ready)
+		if (controller->sim->generation_ == 0)
+			ready = false;
+	
+    if (ready)
+    {
+        // erase the content area itself
+        glColor3f(0.0f, 0.0f, 0.0f);
+		glRecti(interiorRect.left(), interiorRect.top(), interiorRect.left() + interiorRect.width(), interiorRect.top() + interiorRect.height());
+		QtSLiMRange displayedRange = getDisplayedRange();
+		
+		bool splitHeight = (shouldDrawRateMaps_ && shouldDrawGenomicElements_);
+		QRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		int halfHeight = static_cast<int>(ceil(interiorRect.height() / 2.0));
+		int remainingHeight = interiorRect.height() - halfHeight;
+		
+        topInteriorRect.setHeight(halfHeight);
+        topInteriorRect.setBottom(topInteriorRect.bottom() + remainingHeight);
+		bottomInteriorRect.setHeight(remainingHeight);
+        
+//        // draw recombination intervals in interior
+//		if (shouldDrawRateMaps)
+//			[self glDrawRateMapsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+		
+//		// draw genomic elements in interior
+//		if (shouldDrawGenomicElements)
+//			[self glDrawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+		
+		// figure out which mutation types we're displaying
+		if (shouldDrawFixedSubstitutions_ || shouldDrawMutations_)
+			updateDisplayedMutationTypes();
+		
+		// draw fixed substitutions in interior
+//		if (shouldDrawFixedSubstitutions)
+//			[self glDrawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		
+		// draw mutations in interior
+		if (shouldDrawMutations_)
+		{
+//			if (display_haplotypes_)
+//			{
+//				// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
+//				// kSLiMHaplotypeClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
+//				int interiorHeight = (int)ceil(interiorRect.size.height);	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
+//				SLiMHaplotypeManager *haplotypeManager = [[SLiMHaplotypeManager alloc] initWithClusteringMethod:kSLiMHaplotypeClusterNearestNeighbor optimizationMethod:kSLiMHaplotypeClusterNoOptimization sourceController:controller sampleSize:interiorHeight clusterInBackground:NO];
+				
+//				[haplotypeManager glDrawHaplotypesInRect:interiorRect displayBlackAndWhite:NO showSubpopStrips:NO eraseBackground:NO];
+				
+//				// it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
+//				// time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
+//				[haplotypeManager release];
+//			}
+//			else
+//			{
+				// display mutations as a frequency plot; this is the standard display mode
+                glDrawMutations(interiorRect, controller, displayedRange);
+//			}
+		}
+    }
+    else
+    {
+        // erase the content area itself
+		glColor3f(0.88f, 0.88f, 0.88f);
+        glRecti(0, 0, interiorRect.width(), interiorRect.height());
+    }
 }
 
+void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(void)
+{
+	// We use a flag in MutationType to indicate whether we're drawing that type or not; we update those flags here,
+	// before every drawing of mutations, from the vector of mutation type IDs that we keep internally
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	
+	if (controller)
+	{
+		SLiMSim *sim = controller->sim;
+		
+		if (sim)
+		{
+			std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+			
+			for (auto muttype_iter : muttypes)
+			{
+				MutationType *muttype = muttype_iter.second;
+				
+				if (display_muttypes_.size())
+				{
+					slim_objectid_t muttype_id = muttype->mutation_type_id_;
+					
+					muttype->mutation_type_displayed_ = (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end());
+				}
+				else
+				{
+					muttype->mutation_type_displayed_ = true;
+				}
+			}
+		}
+	}
+}
+
+void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+{
+	double scalingFactor = 0.8; // controller->selectionColorScale;
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
+	MutationRun &mutationRegistry = pop.mutation_registry_;
+	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
+	int mutationCount = static_cast<int>(mutationRegistry.end_pointer_const() - mutations);
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	// Set up to draw rects
+	float colorRed = 0.0f, colorGreen = 0.0f, colorBlue = 0.0f, colorAlpha = 1.0;
+	
+	SLIM_GL_PREPARE();
+	
+//	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.size.width))
+	{
+		// This is the simple version of the display code, avoiding the memory allocations and such
+		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		{
+			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+			const MutationType *mutType = mutation->mutation_type_ptr_;
+			
+			if (mutType->mutation_type_displayed_)
+			{
+				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+				slim_position_t mutationPosition = mutation->position_;
+				QRect mutationTickRect = rectEncompassingBaseToBase(mutationPosition, mutationPosition, interiorRect, displayedRange);
+				
+				if (!mutType->color_.empty())
+				{
+					colorRed = mutType->color_red_;
+					colorGreen = mutType->color_green_;
+					colorBlue = mutType->color_blue_;
+				}
+				else
+				{
+					RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				}
+				
+                int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
+                mutationTickRect.setTop(mutationTickRect.top() + height_adjust);
+                
+				SLIM_GL_DEFCOORDS(mutationTickRect);
+				SLIM_GL_PUSHRECT();
+				SLIM_GL_PUSHRECT_COLORS();
+				SLIM_GL_CHECKBUFFERS();
+			}
+		}
+	}
+//	else
+//	{
+//		// We have a lot of mutations, so let's try to be smarter.  It's hard to be smarter.  The overhead from allocating the NSColors and such
+//		// is pretty negligible; practially all the time is spent in NSRectFill().  Unfortunately, NSRectFillListWithColors() provides basically
+//		// no speedup; Apple doesn't appear to have optimized it.  So, here's what I came up with.  For each mutation type that uses a fixed DFE,
+//		// and thus a fixed color, we can do a radix sort of mutations into bins corresponding to each pixel in our displayed image.  Then we
+//		// can draw each bin just once, making one bar for the highest bar in that bin.  Mutations from non-fixed DFEs, and mutations which have
+//		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
+//		int displayPixelWidth = (int)interiorRect.size.width;
+//		int16_t *heightBuffer = (int16_t *)malloc(displayPixelWidth * sizeof(int16_t));
+//		bool *mutationsPlotted = (bool *)calloc(mutationCount, sizeof(bool));	// faster than using gui_scratch_reference_count_ because of cache locality
+//		int64_t remainingMutations = mutationCount;
+		
+//		// First zero out the scratch refcount, which we use to track which mutations we have drawn already
+//		//for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+//		//	mutations[mutIndex]->gui_scratch_reference_count_ = 0;
+		
+//		// Then loop through the declared mutation types
+//		std::map<slim_objectid_t,MutationType*> &mut_types = controller->sim->mutation_types_;
+//		bool draw_muttypes_sequentially = (mut_types.size() <= 20);	// with a lot of mutation types, the algorithm below becomes very inefficient
+		
+//		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
+//		{
+//			MutationType *mut_type = mutationTypeIter->second;
+			
+//			if (mut_type->mutation_type_displayed_)
+//			{
+//				if (draw_muttypes_sequentially)
+//				{
+//					bool mut_type_fixed_color = !mut_type->color_.empty();
+					
+//					// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
+//					if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+//					{
+//						slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_selcoeff_t)mut_type->dfe_parameters_[0]);
+						
+//						EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
+						
+//						// Scan through the mutation list for mutations of this type with the right selcoeff
+//						for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+//						{
+//							const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+							
+//							if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
+//							{
+//								slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+//								slim_position_t mutationPosition = mutation->position_;
+//								//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+//								//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+//								int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+//								int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+								
+//								if ((xPos >= 0) && (xPos < displayPixelWidth))
+//									if (height > heightBuffer[xPos])
+//										heightBuffer[xPos] = height;
+								
+//								// tally this mutation as handled
+//								//mutation->gui_scratch_reference_count_ = 1;
+//								mutationsPlotted[mutIndex] = true;
+//								--remainingMutations;
+//							}
+//						}
+						
+//						// Now draw all of the mutations we found, by looping through our radix bins
+//						if (mut_type_fixed_color)
+//						{
+//							colorRed = mut_type->color_red_;
+//							colorGreen = mut_type->color_green_;
+//							colorBlue = mut_type->color_blue_;
+//						}
+//						else
+//						{
+//							RGBForSelectionCoeff(mut_type_selcoeff, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+//						}
+						
+//						for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+//						{
+//							int height = heightBuffer[binIndex];
+							
+//							if (height)
+//							{
+//								NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+								
+//								SLIM_GL_DEFCOORDS(mutationTickRect);
+//								SLIM_GL_PUSHRECT();
+//								SLIM_GL_PUSHRECT_COLORS();
+//								SLIM_GL_CHECKBUFFERS();
+//							}
+//						}
+//					}
+//				}
+//			}
+//			else
+//			{
+//				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
+//				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+//				{
+//					const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+					
+//					if (mutation->mutation_type_ptr_ == mut_type)
+//					{
+//						// tally this mutation as handled
+//						//mutation->gui_scratch_reference_count_ = 1;
+//						mutationsPlotted[mutIndex] = true;
+//						--remainingMutations;
+//					}
+//				}
+//			}
+//		}
+		
+//		// Draw any undrawn mutations on top; these are guaranteed not to use a fixed color set by the user, since those are all handled above
+//		if (remainingMutations)
+//		{
+//			if (remainingMutations < 1000)
+//			{
+//				// Plot the remainder by brute force, since there are not that many
+//				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+//				{
+//					//if (mutation->gui_scratch_reference_count_ == 0)
+//					if (!mutationsPlotted[mutIndex])
+//					{
+//						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+//						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+//						slim_position_t mutationPosition = mutation->position_;
+//						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+						
+//						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+//						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						
+//						SLIM_GL_DEFCOORDS(mutationTickRect);
+//						SLIM_GL_PUSHRECT();
+//						SLIM_GL_PUSHRECT_COLORS();
+//						SLIM_GL_CHECKBUFFERS();
+//					}
+//				}
+//			}
+//			else
+//			{
+//				// OK, we have a lot of mutations left to draw.  Here we will again use the radix sort trick, to keep track of only the tallest bar in each column
+//				MutationIndex *mutationBuffer = (MutationIndex *)calloc(displayPixelWidth,  sizeof(MutationIndex));
+				
+//				EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
+				
+//				// Find the tallest bar in each column
+//				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+//				{
+//					//if (mutation->gui_scratch_reference_count_ == 0)
+//					if (!mutationsPlotted[mutIndex])
+//					{
+//						MutationIndex mutationBlockIndex = mutations[mutIndex];
+//						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
+//						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+//						slim_position_t mutationPosition = mutation->position_;
+//						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+//						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+//						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+//						int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						
+//						if ((xPos >= 0) && (xPos < displayPixelWidth))
+//						{
+//							if (height > heightBuffer[xPos])
+//							{
+//								heightBuffer[xPos] = height;
+//								mutationBuffer[xPos] = mutationBlockIndex;
+//							}
+//						}
+//					}
+//				}
+				
+//				// Now plot the bars
+//				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+//				{
+//					int height = heightBuffer[binIndex];
+					
+//					if (height)
+//					{
+//						NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x + binIndex, interiorRect.origin.y, 1, height);
+//						const Mutation *mutation = mut_block_ptr + mutationBuffer[binIndex];
+						
+//						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						
+//						SLIM_GL_DEFCOORDS(mutationTickRect);
+//						SLIM_GL_PUSHRECT();
+//						SLIM_GL_PUSHRECT_COLORS();
+//						SLIM_GL_CHECKBUFFERS();
+//					}
+//				}
+				
+//				free(mutationBuffer);
+//			}
+//		}
+		
+//		free(heightBuffer);
+//		free(mutationsPlotted);
+//	}
+	
+	SLIM_GL_FINISH();
+}
 
 
 

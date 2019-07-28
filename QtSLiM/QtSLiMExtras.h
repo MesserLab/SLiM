@@ -13,6 +13,8 @@ void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_pai
 QColor QtSLiMColorWithWhite(double p_white, double p_alpha);
 QColor QtSLiMColorWithRGB(double p_white, double p_alpha);
 
+void RGBForFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
+void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 
 
 

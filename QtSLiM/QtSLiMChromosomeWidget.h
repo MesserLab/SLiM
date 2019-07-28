@@ -22,25 +22,29 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT    
     
-    bool selectable_;
-    QtSLiMChromosomeWidget *referenceChromosomeView_;
+    bool selectable_ = false;
+    QtSLiMChromosomeWidget *referenceChromosomeView_ = nullptr;
     
-    bool shouldDrawGenomicElements_;
-    bool shouldDrawRateMaps_;
-    bool shouldDrawMutations_;
-    bool shouldDrawFixedSubstitutions_;
+    bool shouldDrawGenomicElements_ = false;
+    bool shouldDrawRateMaps_ = false;
+    bool shouldDrawMutations_ = false;
+    bool shouldDrawFixedSubstitutions_ = false;
     
     // Selection
-	bool hasSelection_;
-	slim_position_t selectionFirstBase_, selectionLastBase_;
+	bool hasSelection_ = false;
+	slim_position_t selectionFirstBase_ = 0, selectionLastBase_ = 0;
 	
 	// Selection memory – saved and restored across events like recycles
-	bool savedHasSelection_;
-	slim_position_t savedSelectionFirstBase_, savedSelectionLastBase_;
+	bool savedHasSelection_ = false;
+	slim_position_t savedSelectionFirstBase_ = 0, savedSelectionLastBase_ = 0;
 	
     // OpenGL buffers
-	float *glArrayVertices;
-	float *glArrayColors;
+	float *glArrayVertices = nullptr;
+	float *glArrayColors = nullptr;
+    
+    // Display options
+	bool display_haplotypes_ = false;                   // if false, displaying frequencies; if true, displaying haplotypes
+	std::vector<slim_objectid_t> display_muttypes_;     // if empty, display all mutation types; otherwise, display only the muttypes chosen
     
 public:
     explicit QtSLiMChromosomeWidget(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
@@ -71,6 +75,9 @@ protected:
     
     void drawTicksInContentRect(QRect contentRect, QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter);
     void glDrawRect(void);
+    
+    void updateDisplayedMutationTypes(void);
+    void glDrawMutations(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
 };
 
 #endif // QTSLIMCHROMOSOMEWIDGET_H
