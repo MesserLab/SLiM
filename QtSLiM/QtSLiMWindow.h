@@ -76,7 +76,9 @@ public:
     static std::string defaultWFScriptString(void);
     static std::string defaultNonWFScriptString(void);
 
+    inline bool invalidSimulation(void) { return invalidSimulation_; }
     void setInvalidSimulation(bool p_invalid);
+    inline bool reachedSimulationEnd(void) { return reachedSimulationEnd_; }
     void setReachedSimulationEnd(bool p_reachedEnd);
     void setContinuousPlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);

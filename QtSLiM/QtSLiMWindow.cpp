@@ -37,9 +37,7 @@
 // decide whether to implement the variable browser or not
 
 
-QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::QtSLiMWindow)
+QtSLiMWindow::QtSLiMWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::QtSLiMWindow)
 {
     // create the window UI
     ui->setupUi(this);
@@ -52,7 +50,7 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
     
     // clear the custom error background color whenever the selection changes
-    QTextEdit *te = this->ui->scriptTextEdit;
+    QTextEdit *te = ui->scriptTextEdit;
     connect(te, &QTextEdit::selectionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
     
     // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
@@ -62,6 +60,21 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) :
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
     sim_working_dir = Eidos_ResolvedPath("~/Desktop");
     sim_requested_working_dir = sim_working_dir;	// return to Desktop on recycle unless the user overrides it
+    
+    // Set up our chromosome views to show the proper stuff
+	ui->chromosomeOverview->setReferenceChromosomeView(nullptr);
+	ui->chromosomeOverview->setSelectable(true);
+	ui->chromosomeOverview->setShouldDrawGenomicElements(true);
+	ui->chromosomeOverview->setShouldDrawMutations(false);
+	ui->chromosomeOverview->setShouldDrawFixedSubstitutions(false);
+	ui->chromosomeOverview->setShouldDrawRateMaps(false);
+	
+	ui->chromosomeZoomed->setReferenceChromosomeView(ui->chromosomeOverview);
+	ui->chromosomeZoomed->setSelectable(false);
+	ui->chromosomeZoomed->setShouldDrawGenomicElements(ui->showGenomicElementsButton->isChecked());
+	ui->chromosomeZoomed->setShouldDrawMutations(ui->showMutationsButton->isChecked());
+	ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(ui->showFixedSubstitutionsButton->isChecked());
+	ui->chromosomeZoomed->setShouldDrawRateMaps(ui->showChromosomeMapsButton->isChecked());
 }
 
 QtSLiMWindow::~QtSLiMWindow()
@@ -479,7 +492,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	checkForSimulationTermination();
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
-	//bool invalid = invalidSimulation();
+	bool invalid = invalidSimulation();
 	
 	if (fullUpdate)
 	{
@@ -521,7 +534,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	
 	// Now update our other UI, some of which depends upon the state of subpopTableView 
 //	[populationView setNeedsDisplay:YES];
-//	[chromosomeZoomed setNeedsDisplayInInterior];
+    ui->chromosomeZoomed->update();
 	
 //	[self updatePopulationViewHiding];
 	
@@ -565,14 +578,14 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 //			sim->scripts_changed_ = false;
 //	}
 	
-//	if (invalid || sim->chromosome_changed_)
-//	{
-//		[chromosomeOverview restoreLastSelection];
-//		[chromosomeOverview setNeedsDisplay:YES];
+	if (invalid || sim->chromosome_changed_)
+	{
+		ui->chromosomeOverview->restoreLastSelection();
+		ui->chromosomeOverview->update();
 		
-//		if (sim)
-//			sim->chromosome_changed_ = false;
-//	}
+		if (sim)
+			sim->chromosome_changed_ = false;
+	}
 	
 	// Update graph windows as well; this will usually trigger a setNeedsDisplay:YES but may do other updating work as well
 //	if (fullUpdate)
@@ -977,30 +990,58 @@ void QtSLiMWindow::recycleClicked(void)
 
 void QtSLiMWindow::showMutationsToggled(void)
 {
-    ui->showMutationsButton->setIcon(QIcon(ui->showMutationsButton->isChecked() ? ":/buttons/show_mutations_H.png" : ":/buttons/show_mutations.png"));
+    bool newValue = ui->showMutationsButton->isChecked();
+    
+    ui->showMutationsButton->setIcon(QIcon(newValue ? ":/buttons/show_mutations_H.png" : ":/buttons/show_mutations.png"));
 
-    qDebug() << "showMutationsToggled: isChecked() == " << ui->showMutationsButton->isChecked();
+    if (newValue != zoomedChromosomeShowsMutations)
+	{
+		zoomedChromosomeShowsMutations = newValue;
+		ui->chromosomeZoomed->setShouldDrawMutations(newValue);
+        ui->chromosomeZoomed->update();
+	}
 }
 
 void QtSLiMWindow::showFixedSubstitutionsToggled(void)
 {
-    ui->showFixedSubstitutionsButton->setIcon(QIcon(ui->showFixedSubstitutionsButton->isChecked() ? ":/buttons/show_fixed_H.png" : ":/buttons/show_fixed.png"));
+    bool newValue = ui->showFixedSubstitutionsButton->isChecked();
+    
+    ui->showFixedSubstitutionsButton->setIcon(QIcon(newValue ? ":/buttons/show_fixed_H.png" : ":/buttons/show_fixed.png"));
 
-    qDebug() << "showFixedSubstitutionsToggled: isChecked() == " << ui->showFixedSubstitutionsButton->isChecked();
+    if (newValue != zoomedChromosomeShowsFixedSubstitutions)
+	{
+		zoomedChromosomeShowsFixedSubstitutions = newValue;
+        ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(newValue);
+        ui->chromosomeZoomed->update();
+    }
 }
 
 void QtSLiMWindow::showChromosomeMapsToggled(void)
 {
-    ui->showChromosomeMapsButton->setIcon(QIcon(ui->showChromosomeMapsButton->isChecked() ? ":/buttons/show_recombination_H.png" : ":/buttons/show_recombination.png"));
+    bool newValue = ui->showChromosomeMapsButton->isChecked();
+    
+    ui->showChromosomeMapsButton->setIcon(QIcon(newValue ? ":/buttons/show_recombination_H.png" : ":/buttons/show_recombination.png"));
 
-    qDebug() << "showRecombinationIntervalsToggled: isChecked() == " << ui->showChromosomeMapsButton->isChecked();
+    if (newValue != zoomedChromosomeShowsRateMaps)
+	{
+		zoomedChromosomeShowsRateMaps = newValue;
+		ui->chromosomeZoomed->setShouldDrawRateMaps(newValue);
+        ui->chromosomeZoomed->update();
+	}
 }
 
 void QtSLiMWindow::showGenomicElementsToggled(void)
 {
-    ui->showGenomicElementsButton->setIcon(QIcon(ui->showGenomicElementsButton->isChecked() ? ":/buttons/show_genomicelements_H.png" : ":/buttons/show_genomicelements.png"));
+    bool newValue = ui->showGenomicElementsButton->isChecked();
+    
+    ui->showGenomicElementsButton->setIcon(QIcon(newValue ? ":/buttons/show_genomicelements_H.png" : ":/buttons/show_genomicelements.png"));
 
-    qDebug() << "showGenomicElementsToggled: isChecked() == " << ui->showGenomicElementsButton->isChecked();
+    if (newValue != zoomedChromosomeShowsGenomicElements)
+	{
+		zoomedChromosomeShowsGenomicElements = newValue;
+		ui->chromosomeZoomed->setShouldDrawGenomicElements(newValue);
+        ui->chromosomeZoomed->update();
+	}
 }
 
 void QtSLiMWindow::checkScriptClicked(void)

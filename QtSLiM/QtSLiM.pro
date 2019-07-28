@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui opengl
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -61,11 +61,15 @@ SOURCES += \
     main.cpp \
     QtSLiMWindow.cpp \
     QtSLiMAppDelegate.cpp \
-    QtSLiMWindow_glue.cpp
+    QtSLiMWindow_glue.cpp \
+    QtSLiMChromosomeWidget.cpp \
+    QtSLiMExtras.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
-    QtSLiMAppDelegate.h
+    QtSLiMAppDelegate.h \
+    QtSLiMChromosomeWidget.h \
+    QtSLiMExtras.h
 
 FORMS += \
     QtSLiMWindow.ui

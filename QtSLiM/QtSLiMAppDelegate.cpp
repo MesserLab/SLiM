@@ -1,5 +1,7 @@
 #include "QtSLiMAppDelegate.h"
 #include <QApplication>
+#include <QOpenGLWidget>
+#include <QSurfaceFormat>
 
 #include "eidos_globals.h"
 #include "eidos_beep.h"
@@ -26,6 +28,15 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     // Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
     app_cwd_ = Eidos_CurrentDirectory();
 
+    // Set up the format for OpenGL buffers globally, so that it applies to all windows and contexts
+    // This defaults to OpenGL 2.0, which is what we want, so right now we don't customize
+    QSurfaceFormat format;
+    //format.setDepthBufferSize(24);
+    //format.setStencilBufferSize(8);
+    //format.setVersion(3, 2);
+    //format.setProfile(QSurfaceFormat::CompatibilityProfile);
+    QSurfaceFormat::setDefaultFormat(format);
+    
     // FIXME create recipes submenu once we have a document model
     // Create the Open Recipes menu
     //[self setUpRecipesMenu];

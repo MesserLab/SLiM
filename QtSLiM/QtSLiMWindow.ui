@@ -397,94 +397,92 @@ QSlider::handle:horizontal:disabled {
       <item>
        <layout class="QHBoxLayout" name="chromosomeLayout">
         <item>
-         <widget class="QTableView" name="tableView_2">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>64</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>64</height>
-           </size>
-          </property>
-         </widget>
+         <layout class="QVBoxLayout" name="chromosomeWidgetLayout">
+          <item>
+           <widget class="QtSLiMChromosomeWidget" name="chromosomeOverview">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>30</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QtSLiMChromosomeWidget" name="chromosomeZoomed">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>65</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>65</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
-         <layout class="QGridLayout" name="chromosomeButtonsLayout">
-          <item row="0" column="0">
-           <widget class="QPushButton" name="showChromosomeMapsButton">
-            <property name="minimumSize">
+         <layout class="QVBoxLayout" name="chromosomeButtonsLayout">
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
              <size>
-              <width>30</width>
-              <height>30</height>
+              <width>20</width>
+              <height>38</height>
              </size>
             </property>
-            <property name="maximumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle rate map visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/show_recombination.png</normaloff>
-              <normalon>:/buttons/show_recombination_H.png</normalon>:/buttons/show_recombination.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
+           </spacer>
           </item>
-          <item row="0" column="2">
-           <widget class="QPushButton" name="showGenomicElementsButton">
-            <property name="minimumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle genomic element visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
+          <item>
+           <layout class="QGridLayout" name="chromosomeButtonsGrid">
+            <item row="0" column="0">
+             <widget class="QPushButton" name="showChromosomeMapsButton">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle rate map visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
 	border: 0px;
 }
@@ -492,45 +490,45 @@ QPushButton:checked {
 	background-color: #00000000;
 	border: 0px;
 }</string>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/show_genomicelements.png</normaloff>
-              <normalon>:/buttons/show_genomicelements_H.png</normalon>:/buttons/show_genomicelements.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="2">
-           <widget class="QPushButton" name="showFixedSubstitutionsButton">
-            <property name="minimumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle fixed substitution visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/show_recombination.png</normaloff>
+                <normalon>:/buttons/show_recombination_H.png</normalon>:/buttons/show_recombination.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QPushButton" name="showGenomicElementsButton">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle genomic element visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
 	border: 0px;
 }
@@ -538,45 +536,45 @@ QPushButton:checked {
 	background-color: #00000000;
 	border: 0px;
 }</string>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/show_fixed.png</normaloff>
-              <normalon>:/buttons/show_fixed_H.png</normalon>:/buttons/show_fixed.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QPushButton" name="showMutationsButton">
-            <property name="minimumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle mutation visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/show_genomicelements.png</normaloff>
+                <normalon>:/buttons/show_genomicelements_H.png</normalon>:/buttons/show_genomicelements.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QPushButton" name="showFixedSubstitutionsButton">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle fixed substitution visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
 	background-color: #00000000;
 	border: 0px;
 }
@@ -584,28 +582,76 @@ QPushButton:checked {
 	background-color: #00000000;
 	border: 0px;
 }</string>
-            </property>
-            <property name="icon">
-             <iconset resource="buttons.qrc">
-              <normaloff>:/buttons/show_mutations.png</normaloff>
-              <normalon>:/buttons/show_mutations_H.png</normalon>:/buttons/show_mutations.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>30</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/show_fixed.png</normaloff>
+                <normalon>:/buttons/show_fixed_H.png</normalon>:/buttons/show_fixed.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QPushButton" name="showMutationsButton">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle mutation visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+              </property>
+              <property name="icon">
+               <iconset resource="buttons.qrc">
+                <normaloff>:/buttons/show_mutations.png</normaloff>
+                <normalon>:/buttons/show_mutations_H.png</normalon>:/buttons/show_mutations.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
@@ -1085,6 +1131,13 @@ QPushButton:checked {
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QtSLiMChromosomeWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>QtSLiMChromosomeWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="buttons.qrc"/>
  </resources>
