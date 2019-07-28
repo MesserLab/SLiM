@@ -110,9 +110,6 @@ void QtSLiMWindow::initializeUI(void)
     ui->outputHeaderLayout->setMargin(0);
     ui->outputHeaderLabel->setContentsMargins(8, 0, 15, 0);
 
-    ui->chromosomeButtonsLayout->setSpacing(4);
-    ui->chromosomeButtonsLayout->setMargin(0);
-
     ui->playControlsLayout->setSpacing(4);
     ui->playControlsLayout->setMargin(0);
 
