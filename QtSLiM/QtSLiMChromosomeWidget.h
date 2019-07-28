@@ -76,7 +76,9 @@ protected:
     void drawTicksInContentRect(QRect contentRect, QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter);
     void glDrawRect(void);
     
+    void glDrawGenomicElements(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     void updateDisplayedMutationTypes(void);
+    void glDrawFixedSubstitutions(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     void glDrawMutations(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
 };
 

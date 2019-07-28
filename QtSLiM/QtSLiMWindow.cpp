@@ -247,6 +247,57 @@ std::string QtSLiMWindow::defaultNonWFScriptString(void)
                 "2000 late() { sim.outputFixedMutations(); }\n");
 }
 
+const QColor &QtSLiMWindow::blackContrastingColorForIndex(int index)
+{
+    static std::vector<QColor> colorArray;
+	
+	if (colorArray.size() == 0)
+	{
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.65, 0.65, 1.00, 1.0));
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.55, 1.00, 1.00, 1.0));
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.40, 1.00, 0.90, 1.0));
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.16, 1.00, 1.00, 1.0));
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.08, 0.65, 1.00, 1.0));
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.00, 0.65, 1.00, 1.0));
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.80, 0.65, 1.00, 1.0));
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.00, 0.00, 0.80, 1.0));
+	}
+	
+	return ((index >= 0) && (index <= 6)) ? colorArray[static_cast<size_t>(index)] : colorArray[7];
+}
+
+void QtSLiMWindow::colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha)
+{
+	if (elementType && !elementType->color_.empty())
+	{
+        *p_red = elementType->color_red_;
+        *p_green = elementType->color_green_;
+        *p_blue = elementType->color_blue_;
+        *p_alpha = 1.0f;
+	}
+	else
+	{
+        auto elementColorIter = genomicElementColorRegistry.find(elementTypeID);
+		const QColor *elementColor = nullptr;
+        
+		if (elementColorIter == genomicElementColorRegistry.end())
+		{
+			elementColor = &QtSLiMWindow::blackContrastingColorForIndex(static_cast<int>(genomicElementColorRegistry.size()));
+            
+            genomicElementColorRegistry.insert(std::pair<slim_objectid_t, QColor>(elementTypeID, *elementColor));
+		}
+        else
+        {
+            elementColor = &elementColorIter->second;
+        }
+		
+        *p_red = static_cast<float>(elementColor->redF());
+        *p_green = static_cast<float>(elementColor->greenF());
+        *p_blue = static_cast<float>(elementColor->blueF());
+        *p_alpha = static_cast<float>(elementColor->alphaF());
+	}
+}
+
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
     invalidSimulation_ = p_invalid;

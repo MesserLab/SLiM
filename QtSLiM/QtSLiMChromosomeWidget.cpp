@@ -92,10 +92,10 @@ QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *parent, Qt::WindowFlags 
     //[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
     
     if (!glArrayVertices)
-        glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, kMaxVertices vertices
+        glArrayVertices = static_cast<float *>(malloc(kMaxVertices * 2 * sizeof(float)));		// 2 floats per vertex, kMaxVertices vertices
     
     if (!glArrayColors)
-        glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, kMaxVertices colors
+        glArrayColors = static_cast<float *>(malloc(kMaxVertices * 4 * sizeof(float)));		// 4 floats per color, kMaxVertices colors
 }
 
 QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
@@ -412,17 +412,17 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 //		if (shouldDrawRateMaps)
 //			[self glDrawRateMapsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
 		
-//		// draw genomic elements in interior
-//		if (shouldDrawGenomicElements)
-//			[self glDrawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+		// draw genomic elements in interior
+		if (shouldDrawGenomicElements_)
+			glDrawGenomicElements(splitHeight ? bottomInteriorRect : interiorRect, controller, displayedRange);
 		
 		// figure out which mutation types we're displaying
 		if (shouldDrawFixedSubstitutions_ || shouldDrawMutations_)
 			updateDisplayedMutationTypes();
 		
 		// draw fixed substitutions in interior
-//		if (shouldDrawFixedSubstitutions)
-//			[self glDrawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		if (shouldDrawFixedSubstitutions_)
+			glDrawFixedSubstitutions(interiorRect, controller, displayedRange);
 		
 		// draw mutations in interior
 		if (shouldDrawMutations_)
@@ -453,6 +453,63 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 		glColor3f(0.88f, 0.88f, 0.88f);
         glRecti(0, 0, interiorRect.width(), interiorRect.height());
     }
+}
+
+void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+{
+    Chromosome &chromosome = controller->sim->chromosome_;
+	int previousIntervalLeftEdge = -10000;
+	
+	SLIM_GL_PREPARE();
+	
+	for (GenomicElement *genomicElement : chromosome.GenomicElements())
+	{
+		slim_position_t startPosition = genomicElement->start_position_;
+		slim_position_t endPosition = genomicElement->end_position_;
+		QRect elementRect = rectEncompassingBaseToBase(startPosition, endPosition, interiorRect, displayedRange);
+		bool widthOne = (elementRect.width() == 1);
+		
+		// We want to avoid overdrawing width-one intervals, which are important but small, so if the previous interval was width-one,
+		// and we are not, and we are about to overdraw it, then we scoot our left edge over one pixel to leave it alone.
+		if (!widthOne && (elementRect.left() == previousIntervalLeftEdge))
+            elementRect.adjust(1, 0, 0, 0);
+		
+		// draw only the visible part, if any
+        elementRect = elementRect.intersected(interiorRect);
+		
+		if (!elementRect.isEmpty())
+		{
+			GenomicElementType *geType = genomicElement->genomic_element_type_ptr_;
+			float colorRed, colorGreen, colorBlue, colorAlpha;
+			
+			if (!geType->color_.empty())
+			{
+				colorRed = geType->color_red_;
+				colorGreen = geType->color_green_;
+				colorBlue = geType->color_blue_;
+				colorAlpha = 1.0;
+			}
+			else
+			{
+				slim_objectid_t elementTypeID = geType->genomic_element_type_id_;
+                
+				controller->colorForGenomicElementType(geType, elementTypeID, &colorRed, &colorGreen, &colorBlue, &colorAlpha);
+			}
+			
+			SLIM_GL_DEFCOORDS(elementRect);
+			SLIM_GL_PUSHRECT();
+			SLIM_GL_PUSHRECT_COLORS();
+			SLIM_GL_CHECKBUFFERS();
+			
+			// if this interval is just one pixel wide, we want to try to make it visible, by avoiding overdrawing it; so we remember its location
+			if (widthOne)
+				previousIntervalLeftEdge = elementRect.left();
+			else
+				previousIntervalLeftEdge = -10000;
+		}
+	}
+	
+	SLIM_GL_FINISH();
 }
 
 void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(void)
@@ -737,6 +794,149 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 	
 	SLIM_GL_FINISH();
 }
+
+void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+{
+    double scalingFactor = 0.8; // controller->selectionColorScale;
+	SLiMSim *sim = controller->sim;
+	Population &pop = sim->population_;
+    Chromosome &chromosome = sim->chromosome_;
+	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
+	std::vector<Substitution*> &substitutions = pop.substitutions_;
+	
+	// Set up to draw rects
+	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f, colorAlpha = 1.0;
+	
+	if (chromosomeHasDefaultColor)
+	{
+		colorRed = chromosome.color_sub_red_;
+		colorGreen = chromosome.color_sub_green_;
+		colorBlue = chromosome.color_sub_blue_;
+	}
+	
+	SLIM_GL_PREPARE();
+	
+//	if ((substitutions.size() < 1000) || (displayedRange.length < interiorRect.size.width))
+	{
+		// This is the simple version of the display code, avoiding the memory allocations and such
+		for (const Substitution *substitution : substitutions)
+		{
+			if (substitution->mutation_type_ptr_->mutation_type_displayed_)
+			{
+				slim_position_t substitutionPosition = substitution->position_;
+				QRect substitutionTickRect = rectEncompassingBaseToBase(substitutionPosition, substitutionPosition, interiorRect, displayedRange);
+				
+				if (!shouldDrawMutations_ || !chromosomeHasDefaultColor)
+				{
+					// If we're drawing mutations as well, then substitutions just get colored blue (set above), to contrast
+					// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+					const MutationType *mutType = substitution->mutation_type_ptr_;
+					
+					if (!mutType->color_sub_.empty())
+					{
+						colorRed = mutType->color_sub_red_;
+						colorGreen = mutType->color_sub_green_;
+						colorBlue = mutType->color_sub_blue_;
+					}
+					else
+					{
+						RGBForSelectionCoeff(static_cast<double>(substitution->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					}
+				}
+				
+				SLIM_GL_DEFCOORDS(substitutionTickRect);
+				SLIM_GL_PUSHRECT();
+				SLIM_GL_PUSHRECT_COLORS();
+				SLIM_GL_CHECKBUFFERS();
+			}
+		}
+	}
+//	else
+//	{
+//		// We have a lot of substitutions, so do a radix sort, as we do in drawMutationsInInteriorRect: below.
+//		int displayPixelWidth = (int)interiorRect.size.width;
+//		const Substitution **subBuffer = (const Substitution **)calloc(displayPixelWidth, sizeof(Substitution *));
+		
+//		for (const Substitution *substitution : substitutions)
+//		{
+//			if (substitution->mutation_type_ptr_->mutation_type_displayed_)
+//			{
+//				slim_position_t substitutionPosition = substitution->position_;
+//				double startFraction = (substitutionPosition - (slim_position_t)displayedRange.location) / (double)(displayedRange.length);
+//				int xPos = (int)floor(startFraction * interiorRect.size.width);
+				
+//				if ((xPos >= 0) && (xPos < displayPixelWidth))
+//					subBuffer[xPos] = substitution;
+//			}
+//		}
+		
+//		if (shouldDrawMutations && chromosomeHasDefaultColor)
+//		{
+//			// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
+//			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
+			
+//			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+//			{
+//				const Substitution *substitution = subBuffer[binIndex];
+				
+//				if (substitution)
+//				{
+//					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
+//					mutationTickRect.size.width = 1;
+					
+//					// consolidate adjacent lines together, since they are all the same color
+//					while ((binIndex + 1 < displayPixelWidth) && subBuffer[binIndex + 1])
+//					{
+//						mutationTickRect.size.width++;
+//						binIndex++;
+//					}
+					
+//					SLIM_GL_DEFCOORDS(mutationTickRect);
+//					SLIM_GL_PUSHRECT();
+//					SLIM_GL_PUSHRECT_COLORS();
+//					SLIM_GL_CHECKBUFFERS();
+//				}
+//			}
+//		}
+//		else
+//		{
+//			// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
+//			NSRect mutationTickRect = NSMakeRect(interiorRect.origin.x, interiorRect.origin.y, 1, interiorRect.size.height);
+			
+//			for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
+//			{
+//				const Substitution *substitution = subBuffer[binIndex];
+				
+//				if (substitution)
+//				{
+//					const MutationType *mutType = substitution->mutation_type_ptr_;
+					
+//					if (!mutType->color_sub_.empty())
+//					{
+//						colorRed = mutType->color_sub_red_;
+//						colorGreen = mutType->color_sub_green_;
+//						colorBlue = mutType->color_sub_blue_;
+//					}
+//					else
+//					{
+//						RGBForSelectionCoeff(substitution->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+//					}
+					
+//					mutationTickRect.origin.x = interiorRect.origin.x + binIndex;
+//					SLIM_GL_DEFCOORDS(mutationTickRect);
+//					SLIM_GL_PUSHRECT();
+//					SLIM_GL_PUSHRECT_COLORS();
+//					SLIM_GL_CHECKBUFFERS();
+//				}
+//			}
+//		}
+		
+//		free(subBuffer);
+//	}
+	
+	SLIM_GL_FINISH();
+}
+
 
 
 

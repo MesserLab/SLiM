@@ -4,8 +4,10 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QColor>
 
 #include <string>
+#include <unordered_map>
 
 #include "eidos_globals.h"
 #include "slim_globals.h"
@@ -59,7 +61,6 @@ public:
 
     // display-related variables
     //double fitnessColorScale, selectionColorScale;
-    //NSMutableDictionary *genomicElementColorRegistry;
     bool zoomedChromosomeShowsRateMaps = false;
     bool zoomedChromosomeShowsGenomicElements = false;
     bool zoomedChromosomeShowsMutations = true;

@@ -13,20 +13,23 @@ void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_pai
 
 QColor QtSLiMColorWithWhite(double p_white, double p_alpha)
 {
-    int white_value = static_cast<int>(std::round(p_white * 255.0));
-    int alpha_value = static_cast<int>(std::round(p_alpha * 255.0));
-    
-    return QColor(white_value, white_value, white_value, alpha_value);
+    QColor color;
+    color.setRgbF(p_white, p_white, p_white, p_alpha);
+    return color;
 }
 
 QColor QtSLiMColorWithRGB(double p_red, double p_green, double p_blue, double p_alpha)
 {
-    int red_value = static_cast<int>(std::round(p_red * 255.0));
-    int green_value = static_cast<int>(std::round(p_green * 255.0));
-    int blue_value = static_cast<int>(std::round(p_blue * 255.0));
-    int alpha_value = static_cast<int>(std::round(p_alpha * 255.0));
-    
-    return QColor(red_value, green_value, blue_value, alpha_value);
+    QColor color;
+    color.setRgbF(p_red, p_green, p_blue, p_alpha);
+    return color;
+}
+
+QColor QtSLiMColorWithHSV(double p_hue, double p_saturation, double p_value, double p_alpha)
+{
+    QColor color;
+    color.setHsvF(p_hue, p_saturation, p_value, p_alpha);
+    return color;
 }
 
 const float greenBrightness = 0.8f;
