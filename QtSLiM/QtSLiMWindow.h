@@ -14,6 +14,7 @@
 #include "eidos_rng.h"
 #include "slim_sim.h"
 //#include "slim_gui.h"
+#include "QtSLiMExtras.h"
 
 
 namespace Ui {
@@ -61,6 +62,7 @@ public:
 
     // display-related variables
     //double fitnessColorScale, selectionColorScale;
+    std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
     bool zoomedChromosomeShowsRateMaps = false;
     bool zoomedChromosomeShowsGenomicElements = false;
     bool zoomedChromosomeShowsMutations = true;
@@ -77,6 +79,9 @@ public:
     static std::string defaultWFScriptString(void);
     static std::string defaultNonWFScriptString(void);
 
+    static const QColor &blackContrastingColorForIndex(int index);
+    void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
+    
     inline bool invalidSimulation(void) { return invalidSimulation_; }
     void setInvalidSimulation(bool p_invalid);
     inline bool reachedSimulationEnd(void) { return reachedSimulationEnd_; }
