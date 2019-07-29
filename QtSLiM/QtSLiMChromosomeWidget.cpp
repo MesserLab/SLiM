@@ -4,17 +4,6 @@
 #include <QtDebug>
 #include <QPainter>
 
-// The Qt doc says we shouldn't need to do this, but we do seem to need to...
-#if defined(__APPLE__)
-# include <OpenGL/gl.h>
-# include <OpenGL/glu.h>
-# include <GLKit/GLKMatrix4.h>
-#else
-# include <GL/gl.h>
-# include <GL/glu.h>
-# include <GL/glext.h>
-#endif
-
 
 // OpenGL constants
 static const int kMaxGLRects = 4000;				// 4000 rects
@@ -131,8 +120,7 @@ void QtSLiMChromosomeWidget::resizeGL(int w, int h)
     
 	// Update the projection
 	glMatrixMode(GL_PROJECTION);
-	GLKMatrix4 orthoMat = GLKMatrix4MakeOrtho(0.0, w, 0.0, h, -1.0f, 1.0f);
-	glLoadMatrixf(orthoMat.m);
+    glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
 }
 
@@ -353,7 +341,7 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
         if (tickBase >= 1e10)
             tickLabel = QString::asprintf("%.6e", static_cast<double>(tickBase));
         else
-            tickLabel = QString::asprintf("%lld", static_cast<int64_t>(tickBase));
+            QTextStream(&tickLabel) << static_cast<int64_t>(tickBase);
         
         if ((tickIndex == lastTickIndex) && !forceCenteredLabel)
         {
