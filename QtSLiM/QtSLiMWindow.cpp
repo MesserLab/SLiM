@@ -23,7 +23,8 @@
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
 // get the tableview columns configured correctly
-// make the chromosome view
+// implement selection of a subrange in the chromosome view
+// enable the more efficient code paths in the chromosome view
 // make the population view
 // syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button

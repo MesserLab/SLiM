@@ -288,15 +288,6 @@ void QtSLiMChromosomeWidget::paintGL()
         //painter.fillRect(interiorRect, Qt::black);
 		
 		QtSLiMRange displayedRange = getDisplayedRange();
-		
-		bool splitHeight = (shouldDrawRateMaps_ && shouldDrawGenomicElements_);
-		QRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
-		int halfHeight = static_cast<int>(ceil(interiorRect.height() / 2.0));
-		int remainingHeight = interiorRect.height() - halfHeight;
-		
-        topInteriorRect.setHeight(halfHeight);
-        topInteriorRect.setBottom(topInteriorRect.bottom() + remainingHeight);
-		bottomInteriorRect.setHeight(remainingHeight);
         
 		// draw ticks at bottom of content rect
         drawTicksInContentRect(contentRect, controller, displayedRange, painter);
@@ -405,12 +396,12 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 		int remainingHeight = interiorRect.height() - halfHeight;
 		
         topInteriorRect.setHeight(halfHeight);
-        topInteriorRect.setBottom(topInteriorRect.bottom() + remainingHeight);
-		bottomInteriorRect.setHeight(remainingHeight);
+        bottomInteriorRect.setHeight(remainingHeight);
+        bottomInteriorRect.translate(0, halfHeight);
         
-//        // draw recombination intervals in interior
-//		if (shouldDrawRateMaps)
-//			[self glDrawRateMapsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
+        // draw recombination intervals in interior
+		if (shouldDrawRateMaps_)
+			glDrawRateMaps(splitHeight ? topInteriorRect : interiorRect, controller, displayedRange);
 		
 		// draw genomic elements in interior
 		if (shouldDrawGenomicElements_)
@@ -936,6 +927,169 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, QtSLi
 	
 	SLIM_GL_FINISH();
 }
+
+void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attribute__((__unused__)) QtSLiMWindow *controller, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue)
+{
+	size_t recombinationIntervalCount = ends.size();
+	slim_position_t intervalStartPosition = 0;
+	int previousIntervalLeftEdge = -10000;
+	
+	SLIM_GL_PREPARE();
+	
+	for (size_t interval = 0; interval < recombinationIntervalCount; ++interval)
+	{
+		slim_position_t intervalEndPosition = ends[interval];
+		double intervalRate = rates[interval];
+		QRect intervalRect = rectEncompassingBaseToBase(intervalStartPosition, intervalEndPosition, interiorRect, displayedRange);
+		bool widthOne = (intervalRect.width() == 1);
+		
+		// We want to avoid overdrawing width-one intervals, which are important but small, so if the previous interval was width-one,
+		// and we are not, and we are about to overdraw it, then we scoot our left edge over one pixel to leave it alone.
+		if (!widthOne && (intervalRect.left() == previousIntervalLeftEdge))
+            intervalRect.adjust(1, 0, 0, 0);
+		
+		// draw only the visible part, if any
+        intervalRect = intervalRect.intersected(interiorRect);
+		
+        if (!intervalRect.isEmpty())
+		{
+			// color according to how "hot" the region is
+			double r, g, b, a;
+			
+			if (intervalRate == 0.0)
+			{
+				// a recombination or mutation rate of 0.0 comes out as black, whereas the lowest brightness below is 0.5; we want to distinguish this
+				r = g = b = 0.0;
+				a = 1.0;
+			}
+			else
+			{
+				// the formula below scales 1e-6 to 1.0 and 1e-9 to 0.0; values outside that range clip, but we want there to be
+				// reasonable contrast within the range of values commonly used, so we don't want to make the range too wide
+				double lightness, brightness = 1.0, saturation = 1.0;
+				
+				lightness = (log10(intervalRate) + 9.0) / 3.0;
+				lightness = std::max(lightness, 0.0);
+				lightness = std::min(lightness, 1.0);
+				
+				if (lightness >= 0.5)	saturation = 1.0 - ((lightness - 0.5) * 2.0);	// goes from 1.0 at lightness 0.5 to 0.0 at lightness 1.0
+				else					brightness = 0.5 + lightness;					// goes from 1.0 at lightness 0.5 to 0.5 at lightness 0.0
+				
+                QColor intervalColor = QtSLiMColorWithHSV(hue, saturation, brightness, 1.0);
+				intervalColor.getRgbF(&r, &g, &b, &a);
+			}
+			
+			float colorRed = static_cast<float>(r), colorGreen = static_cast<float>(g), colorBlue = static_cast<float>(b), colorAlpha = static_cast<float>(a);
+			
+			SLIM_GL_DEFCOORDS(intervalRect);
+			SLIM_GL_PUSHRECT();
+			SLIM_GL_PUSHRECT_COLORS();
+			SLIM_GL_CHECKBUFFERS();
+			
+			// if this interval is just one pixel wide, we want to try to make it visible, by avoiding overdrawing it; so we remember its location
+			if (widthOne)
+				previousIntervalLeftEdge = intervalRect.left();
+			else
+				previousIntervalLeftEdge = -10000;
+		}
+		
+		// the next interval starts at the next base after this one ended
+		intervalStartPosition = intervalEndPosition + 1;
+	}
+	
+	SLIM_GL_FINISH();
+}
+
+void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	
+	if (chromosome.single_recombination_map_)
+	{
+		_glDrawRateMapIntervals(interiorRect, controller, displayedRange, chromosome.recombination_end_positions_H_, chromosome.recombination_rates_H_, 0.65);
+	}
+	else
+	{
+		QRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		int halfHeight = static_cast<int>(ceil(interiorRect.height() / 2.0));
+		int remainingHeight = interiorRect.height() - halfHeight;
+		
+        topInteriorRect.setHeight(halfHeight);
+        bottomInteriorRect.setHeight(remainingHeight);
+        bottomInteriorRect.translate(0, halfHeight);
+		
+		_glDrawRateMapIntervals(topInteriorRect, controller, displayedRange, chromosome.recombination_end_positions_M_, chromosome.recombination_rates_M_, 0.65);
+		_glDrawRateMapIntervals(bottomInteriorRect, controller, displayedRange, chromosome.recombination_end_positions_F_, chromosome.recombination_rates_F_, 0.65);
+	}
+}
+
+void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	
+	if (chromosome.single_mutation_map_)
+	{
+		_glDrawRateMapIntervals(interiorRect, controller, displayedRange, chromosome.mutation_end_positions_H_, chromosome.mutation_rates_H_, 0.75);
+	}
+	else
+	{
+		QRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		int halfHeight = static_cast<int>(ceil(interiorRect.height() / 2.0));
+		int remainingHeight = interiorRect.height() - halfHeight;
+		
+        topInteriorRect.setHeight(halfHeight);
+        bottomInteriorRect.setHeight(remainingHeight);
+        bottomInteriorRect.translate(0, halfHeight);
+		
+		_glDrawRateMapIntervals(topInteriorRect, controller, displayedRange, chromosome.mutation_end_positions_M_, chromosome.mutation_rates_M_, 0.75);
+		_glDrawRateMapIntervals(bottomInteriorRect, controller, displayedRange, chromosome.mutation_end_positions_F_, chromosome.mutation_rates_F_, 0.75);
+	}
+}
+
+void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+{
+	Chromosome &chromosome = controller->sim->chromosome_;
+	bool recombinationWorthShowing = false;
+	bool mutationWorthShowing = false;
+	
+	if (chromosome.single_mutation_map_)
+		mutationWorthShowing = (chromosome.mutation_end_positions_H_.size() > 1);
+	else
+		mutationWorthShowing = ((chromosome.mutation_end_positions_M_.size() > 1) || (chromosome.mutation_end_positions_F_.size() > 1));
+	
+	if (chromosome.single_recombination_map_)
+		recombinationWorthShowing = (chromosome.recombination_end_positions_H_.size() > 1);
+	else
+		recombinationWorthShowing = ((chromosome.recombination_end_positions_M_.size() > 1) || (chromosome.recombination_end_positions_F_.size() > 1));
+	
+	// If neither map is worth showing, we show just the recombination map, to mirror the behavior of 2.4 and earlier
+	if ((!mutationWorthShowing && !recombinationWorthShowing) || (!mutationWorthShowing && recombinationWorthShowing))
+	{
+		glDrawRecombinationIntervals(interiorRect, controller, displayedRange);
+	}
+	else if (mutationWorthShowing && !recombinationWorthShowing)
+	{
+		glDrawMutationIntervals(interiorRect, controller, displayedRange);
+	}
+	else	// mutationWorthShowing && recombinationWorthShowing
+	{
+		QRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
+		int halfHeight = static_cast<int>(ceil(interiorRect.height() / 2.0));
+		int remainingHeight = interiorRect.height() - halfHeight;
+		
+        topInteriorRect.setHeight(halfHeight);
+        bottomInteriorRect.setHeight(remainingHeight);
+        bottomInteriorRect.translate(0, halfHeight);
+        
+		glDrawRecombinationIntervals(topInteriorRect, controller, displayedRange);
+		glDrawMutationIntervals(bottomInteriorRect, controller, displayedRange);
+	}
+}
+
+
+
+
+
 
 
 
