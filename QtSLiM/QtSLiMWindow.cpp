@@ -146,6 +146,7 @@ void QtSLiMWindow::initializeUI(void)
     // Set up the population table view
     populationTableModel_ = new QtSLiMPopulationTableModel(this);
     ui->subpopTableView->setModel(populationTableModel_);
+    ui->subpopTableView->setHorizontalHeader(new QtSLiMPopulationTableHeaderView(Qt::Orientation::Horizontal, this));
     
     QHeaderView *popTableHHeader = ui->subpopTableView->horizontalHeader();
     QHeaderView *popTableVHeader = ui->subpopTableView->verticalHeader();
@@ -171,8 +172,8 @@ void QtSLiMWindow::initializeUI(void)
     QFont headerFont = popTableHHeader->font();
     QFont cellFont = ui->subpopTableView->font();
 #ifdef __APPLE__
-    headerFont.setPointSize(9);
-    cellFont.setPointSize(9);
+    headerFont.setPointSize(11);
+    cellFont.setPointSize(11);
 #else
     headerFont.setPointSize(8);
     cellFont.setPointSize(8);

@@ -2,6 +2,8 @@
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 
+#include <QDebug>
+
 
 QtSLiMPopulationTableModel::QtSLiMPopulationTableModel(QObject *parent) : QAbstractTableModel(parent)
 {
@@ -149,6 +151,7 @@ QVariant QtSLiMPopulationTableModel::headerData(int section,
         //case 3: return QVariant("clF");
         //case 4: return QVariant("clM");
         //case 5: return QVariant("SR");
+        default: return QVariant("");
         }
     }
     else if (role == Qt::ToolTipRole)
@@ -163,16 +166,16 @@ QVariant QtSLiMPopulationTableModel::headerData(int section,
         case 5: return QVariant("the sex ratio of the subpopulation, M:(M+F)");
         }
     }
-    else if (role == Qt::DecorationRole)
-    {
-        switch (section)
-        {
-        case 2: return QVariant::fromValue(QIcon(":/buttons/play_H.png"));
-        case 3: return QVariant::fromValue(QIcon(":/buttons/play_H.png"));
-        case 4: return QVariant::fromValue(QIcon(":/buttons/play_H.png"));
-        case 5: return QVariant::fromValue(QIcon(":/buttons/play_H.png"));
-        }
-    }
+//    else if (role == Qt::DecorationRole)
+//    {
+//        switch (section)
+//        {
+//        case 2: return QVariant::fromValue(QIcon(":/buttons/Qt_selfing_rate.png"));
+//        case 3: return QVariant::fromValue(QIcon(":/buttons/Qt_female_symbol.png"));
+//        case 4: return QVariant::fromValue(QIcon(":/buttons/Qt_male_symbol.png"));
+//        case 5: return QVariant::fromValue(QIcon(":/buttons/Qt_sex_ratio.png"));
+//        }
+//    }
     return QVariant();
 }
 
@@ -182,6 +185,84 @@ void QtSLiMPopulationTableModel::reloadTable(void)
     endResetModel();
 }
 
+QtSLiMPopulationTableHeaderView::QtSLiMPopulationTableHeaderView(Qt::Orientation orientation, QWidget *parent) : QHeaderView(orientation, parent)
+{
+    icon_cloning_rate = new QIcon(":/buttons/Qt_cloning_rate.png");
+    icon_selfing_rate = new QIcon(":/buttons/Qt_selfing_rate.png");
+    icon_sex_ratio = new QIcon(":/buttons/Qt_sex_ratio.png");
+    icon_female_symbol = new QIcon(":/buttons/Qt_female_symbol.png");
+    icon_male_symbol = new QIcon(":/buttons/Qt_male_symbol.png");    
+}
+
+QtSLiMPopulationTableHeaderView::~QtSLiMPopulationTableHeaderView()
+{
+    if (icon_cloning_rate)
+    {
+        delete icon_cloning_rate;
+        icon_cloning_rate = nullptr;
+    }
+    if (icon_selfing_rate)
+    {
+        delete icon_selfing_rate;
+        icon_selfing_rate = nullptr;
+    }
+    if (icon_sex_ratio)
+    {
+        delete icon_sex_ratio;
+        icon_sex_ratio = nullptr;
+    }
+    if (icon_female_symbol)
+    {
+        delete icon_female_symbol;
+        icon_female_symbol = nullptr;
+    }
+    if (icon_male_symbol)
+    {
+        delete icon_male_symbol;
+        icon_male_symbol = nullptr;
+    }
+}
+
+void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const
+{
+    painter->save();
+    QHeaderView::paintSection(painter, rect, logicalIndex);
+    painter->restore();
+    
+    switch (logicalIndex)
+    {
+    case 2:
+    case 5:
+    {
+        QIcon *icon = (logicalIndex == 2 ? icon_selfing_rate : icon_sex_ratio);
+        QPoint center = rect.center();
+        
+        icon->paint(painter, center.x() - 5, center.y() - 6, 12, 12);
+        break;
+    }
+    case 3:
+    {
+        QIcon *icon1 = icon_cloning_rate;
+        QIcon *icon2 = icon_female_symbol;
+        QPoint center = rect.center();
+        
+        icon1->paint(painter, center.x() - 11, center.y() - 6, 12, 12);
+        icon2->paint(painter, center.x() + 1, center.y() - 6, 12, 12);
+        break;
+    }
+    case 4:
+    {
+        QIcon *icon1 = icon_cloning_rate;
+        QIcon *icon2 = icon_male_symbol;
+        QPoint center = rect.center();
+        
+        icon1->paint(painter, center.x() - 13, center.y() - 6, 12, 12);
+        icon2->paint(painter, center.x() + 1, center.y() - 6, 12, 12);
+        break;
+    }
+    default: break;
+    }
+}
 
 
 

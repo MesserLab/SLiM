@@ -51,5 +51,10 @@
         <file>buttons/open_type_drawer.png</file>
         <file>buttons/recycle_G.png</file>
         <file>buttons/recycle_GH.png</file>
+        <file>buttons/Qt_sex_ratio.png</file>
+        <file>buttons/Qt_cloning_rate.png</file>
+        <file>buttons/Qt_female_symbol.png</file>
+        <file>buttons/Qt_male_symbol.png</file>
+        <file>buttons/Qt_selfing_rate.png</file>
     </qresource>
 </RCC>
