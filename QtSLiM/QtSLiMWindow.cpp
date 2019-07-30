@@ -22,7 +22,7 @@
 // custom layout for play/profile buttons: https://doc.qt.io/qt-5/layout.html
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
-// get the tableview columns configured correctly
+// make the tableview rows selectable
 // implement selection of a subrange in the chromosome view
 // enable the more efficient code paths in the chromosome view
 // make the population view
@@ -143,6 +143,35 @@ void QtSLiMWindow::initializeUI(void)
     
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
 
+    // Set up the population table view
+    populationTableModel_ = new QtSLiMPopulationTableModel(this);
+    ui->subpopTableView->setModel(populationTableModel_);
+    
+    QHeaderView *popTableHeader = ui->subpopTableView->horizontalHeader();
+    popTableHeader->resizeSection(0, 35);
+    //popTableHeader->resizeSection(1, 60);
+    popTableHeader->resizeSection(2, 40);
+    popTableHeader->resizeSection(3, 40);
+    popTableHeader->resizeSection(4, 40);
+    popTableHeader->resizeSection(5, 40);
+    popTableHeader->setSectionsClickable(false);
+    popTableHeader->setSectionsMovable(false);
+    popTableHeader->setSectionResizeMode(0, QHeaderView::Fixed);
+    popTableHeader->setSectionResizeMode(1, QHeaderView::Stretch);
+    popTableHeader->setSectionResizeMode(2, QHeaderView::Fixed);
+    popTableHeader->setSectionResizeMode(3, QHeaderView::Fixed);
+    popTableHeader->setSectionResizeMode(4, QHeaderView::Fixed);
+    popTableHeader->setSectionResizeMode(5, QHeaderView::Fixed);
+    
+    QFont headerFont = popTableHeader->font();
+    QFont cellFont = ui->subpopTableView->font();
+    cellFont.setPointSizeF(headerFont.pointSizeF());
+    ui->subpopTableView->setFont(cellFont);
+    
+    QHeaderView *popTableVHeader = ui->subpopTableView->verticalHeader();
+    popTableVHeader->setSectionResizeMode(QHeaderView::Fixed);
+    popTableVHeader->setDefaultSectionSize(18);
+    
     // Update all our UI to reflect the current state of the simulation
     updateAfterTickFull(true);
 }
@@ -553,7 +582,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		// while suppressing our usual update of our selection state, and then we try to re-impose our selection state on the new tableview content.  If a subpop
 		// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
 //		reloadingSubpopTableview = true;
-//		[subpopTableView reloadData];
+        populationTableModel_->reloadTable();
 		
 //		if (invalid || !sim)
 //		{

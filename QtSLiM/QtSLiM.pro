@@ -63,13 +63,15 @@ SOURCES += \
     QtSLiMAppDelegate.cpp \
     QtSLiMWindow_glue.cpp \
     QtSLiMChromosomeWidget.cpp \
-    QtSLiMExtras.cpp
+    QtSLiMExtras.cpp \
+    QtSLiMPopulationTable.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
     QtSLiMAppDelegate.h \
     QtSLiMChromosomeWidget.h \
-    QtSLiMExtras.h
+    QtSLiMExtras.h \
+    QtSLiMPopulationTable.h
 
 FORMS += \
     QtSLiMWindow.ui

@@ -15,6 +15,7 @@
 #include "slim_sim.h"
 //#include "slim_gui.h"
 #include "QtSLiMExtras.h"
+#include "QtSLiMPopulationTable.h"
 
 
 namespace Ui {
@@ -54,6 +55,8 @@ private:
     //eidos_profile_t profileElapsedWallClock = 0;
     //slim_generation_t profileStartGeneration = 0;
 #endif
+    
+    QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
     
 public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
