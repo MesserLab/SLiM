@@ -75,7 +75,11 @@ QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *parent, Qt::WindowFlags 
     if (!tickFont)
     {
         tickFont = new QFont();
+#ifdef __APPLE__
         tickFont->setPointSize(9);
+#else
+        tickFont->setPointSize(7);
+#endif
     }
     
     //[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];

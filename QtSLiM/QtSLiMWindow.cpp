@@ -147,28 +147,39 @@ void QtSLiMWindow::initializeUI(void)
     populationTableModel_ = new QtSLiMPopulationTableModel(this);
     ui->subpopTableView->setModel(populationTableModel_);
     
-    QHeaderView *popTableHeader = ui->subpopTableView->horizontalHeader();
-    popTableHeader->resizeSection(0, 35);
-    //popTableHeader->resizeSection(1, 60);
-    popTableHeader->resizeSection(2, 40);
-    popTableHeader->resizeSection(3, 40);
-    popTableHeader->resizeSection(4, 40);
-    popTableHeader->resizeSection(5, 40);
-    popTableHeader->setSectionsClickable(false);
-    popTableHeader->setSectionsMovable(false);
-    popTableHeader->setSectionResizeMode(0, QHeaderView::Fixed);
-    popTableHeader->setSectionResizeMode(1, QHeaderView::Stretch);
-    popTableHeader->setSectionResizeMode(2, QHeaderView::Fixed);
-    popTableHeader->setSectionResizeMode(3, QHeaderView::Fixed);
-    popTableHeader->setSectionResizeMode(4, QHeaderView::Fixed);
-    popTableHeader->setSectionResizeMode(5, QHeaderView::Fixed);
+    QHeaderView *popTableHHeader = ui->subpopTableView->horizontalHeader();
+    QHeaderView *popTableVHeader = ui->subpopTableView->verticalHeader();
     
-    QFont headerFont = popTableHeader->font();
+    popTableHHeader->setMinimumSectionSize(1);
+    popTableVHeader->setMinimumSectionSize(1);
+    
+    popTableHHeader->resizeSection(0, 35);
+    //popTableHHeader->resizeSection(1, 60);
+    popTableHHeader->resizeSection(2, 40);
+    popTableHHeader->resizeSection(3, 40);
+    popTableHHeader->resizeSection(4, 40);
+    popTableHHeader->resizeSection(5, 40);
+    popTableHHeader->setSectionsClickable(false);
+    popTableHHeader->setSectionsMovable(false);
+    popTableHHeader->setSectionResizeMode(0, QHeaderView::Fixed);
+    popTableHHeader->setSectionResizeMode(1, QHeaderView::Stretch);
+    popTableHHeader->setSectionResizeMode(2, QHeaderView::Fixed);
+    popTableHHeader->setSectionResizeMode(3, QHeaderView::Fixed);
+    popTableHHeader->setSectionResizeMode(4, QHeaderView::Fixed);
+    popTableHHeader->setSectionResizeMode(5, QHeaderView::Fixed);
+    
+    QFont headerFont = popTableHHeader->font();
     QFont cellFont = ui->subpopTableView->font();
-    cellFont.setPointSizeF(headerFont.pointSizeF());
+#ifdef __APPLE__
+    headerFont.setPointSize(9);
+    cellFont.setPointSize(9);
+#else
+    headerFont.setPointSize(8);
+    cellFont.setPointSize(8);
+#endif
+    popTableHHeader->setFont(headerFont);
     ui->subpopTableView->setFont(cellFont);
     
-    QHeaderView *popTableVHeader = ui->subpopTableView->verticalHeader();
     popTableVHeader->setSectionResizeMode(QHeaderView::Fixed);
     popTableVHeader->setDefaultSectionSize(18);
     
