@@ -132,7 +132,6 @@ if(BUILD_QTSLIM)
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 set(TARGET_NAME qtslim)
 find_package(OpenGL REQUIRED)
-find_package(GLUT REQUIRED)
 find_package(Qt5 REQUIRED
     Core
     Gui
@@ -147,6 +146,6 @@ add_executable(${TARGET_NAME} "${QTSLIM_SOURCES}" "${SLIM_SOURCES}")
 set_target_properties( ${TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_definitions( ${TARGET_NAME} PRIVATE EIDOSGUI=1 SLIMGUI=1 SLIMPROFILING=0)
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
-target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL OpenGL::GLU gsl tables )
+target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables )
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_QTSLIM)
