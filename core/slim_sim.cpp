@@ -4730,33 +4730,48 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	std::vector<tsk_id_t> samples;
 	
-	// the remembered_genomes_ come first in the list of samples
-	for (tsk_id_t sid : remembered_genomes_) 
-		samples.push_back(sid);
-	
-	// and then come all the genomes of the extant individuals
-	tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_genomes_.size();
-	
-	for (auto it = population_.subpops_.begin(); it != population_.subpops_.end(); it++)
+	// BCH 7/27/2019: We now build a std::unordered_map containing all of the entries of remembered_genomes_,
+	// so that the find() operations in the loop below can be done in constant time instead of O(N) time.
+	// We need to be able to find out the index of an entry, in remembered_genomes_, once we have found it;
+	// that is what the mapped value provides, whereas the key value is the tsk_id_t we need to find below.
+	// We do all this inside a block so the map gets deallocated as soon as possible, to minimize footprint.
 	{
-		std::vector<Genome *> &subpopulationGenomes = it->second->parent_genomes_;
+		std::unordered_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
 		
-		for (Genome *genome : subpopulationGenomes)
+		// the remembered_genomes_ come first in the list of samples
+		uint32_t index = 0;
+		
+		for (tsk_id_t sid : remembered_genomes_)
 		{
-			tsk_id_t M = genome->tsk_node_id_;
+			samples.push_back(sid);
+			remembered_genomes_lookup.emplace(std::pair<tsk_id_t, uint32_t>(sid, index));
+			index++;
+		}
+		
+		// and then come all the genomes of the extant individuals
+		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_genomes_.size();
+		
+		for (auto it = population_.subpops_.begin(); it != population_.subpops_.end(); it++)
+		{
+			std::vector<Genome *> &subpopulationGenomes = it->second->parent_genomes_;
 			
-			// check if this sample is already being remembered, and assign the correct tsk_node_id_
-			// if not remembered, it is currently alive, so we need to mark it as a sample so it persists through simplify()
-			auto iter = std::find(remembered_genomes_.begin(), remembered_genomes_.end(), M);
-			
-			if (iter == remembered_genomes_.end())
+			for (Genome *genome : subpopulationGenomes)
 			{
-				samples.push_back(M);
-				genome->tsk_node_id_ = newValueInNodeTable++;
-			}
-			else
-			{
-				genome->tsk_node_id_ = (tsk_id_t)(iter - remembered_genomes_.begin());
+				tsk_id_t M = genome->tsk_node_id_;
+				
+				// check if this sample is already being remembered, and assign the correct tsk_node_id_
+				// if not remembered, it is currently alive, so we need to mark it as a sample so it persists through simplify()
+				auto iter = remembered_genomes_lookup.find(M);
+				
+				if (iter == remembered_genomes_lookup.end())
+				{
+					samples.push_back(M);
+					genome->tsk_node_id_ = newValueInNodeTable++;
+				}
+				else
+				{
+					genome->tsk_node_id_ = (tsk_id_t)(iter->second);
+				}
 			}
 		}
 	}

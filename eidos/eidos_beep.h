@@ -27,7 +27,7 @@
 
 // This function is defined in eidos_beep.cpp in the command-line case, and in EidosCocoaExtra.mm in the GUI case, since
 // we want a completely different implementation in the two cases.
-std::string Eidos_Beep(std::string p_sound_name);
+extern std::string (*Eidos_Beep)(std::string p_sound_name);
 
 
 #endif /* __Eidos__eidos_beep__ */
