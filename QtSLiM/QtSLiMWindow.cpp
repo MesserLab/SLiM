@@ -25,7 +25,7 @@
 // make the tableview rows selectable
 // implement selection of a subrange in the chromosome view
 // enable the more efficient code paths in the chromosome view
-// make the population view
+// enable the other display types in the individuals view
 // syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
 // multiple windows, document model, open/save/revert, etc.
@@ -339,6 +339,30 @@ void QtSLiMWindow::colorForGenomicElementType(GenomicElementType *elementType, s
         *p_alpha = static_cast<float>(elementColor->alphaF());
 	}
 }
+            
+std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
+{
+    std::vector<Subpopulation*> selectedSubpops;
+	
+	if (!invalidSimulation() && sim)
+	{
+		Population &population = sim->population_;
+		int subpopCount = static_cast<int>(population.subpops_.size());
+		auto popIter = population.subpops_.begin();
+		
+		for (int i = 0; i < subpopCount; ++i)
+		{
+			Subpopulation *subpop = popIter->second;
+			
+			if (subpop->gui_selected_)
+				selectedSubpops.emplace_back(subpop);
+			
+			popIter++;
+		}
+	}
+	
+	return selectedSubpops;
+}         
 
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
@@ -622,11 +646,11 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 //		[subpopTableView setNeedsDisplay];
 	}
 	
-	// Now update our other UI, some of which depends upon the state of subpopTableView 
-//	[populationView setNeedsDisplay:YES];
+	// Now update our other UI, some of which depends upon the state of subpopTableView
+    std::vector<Subpopulation*> selectedSubpops = selectedSubpopulations();
+    ui->individualsWidget->tileSubpopulations(selectedSubpops);
+    ui->individualsWidget->update();
     ui->chromosomeZoomed->update();
-	
-//	[self updatePopulationViewHiding];
 	
 	if (fullUpdate)
 		updateGenerationCounter();

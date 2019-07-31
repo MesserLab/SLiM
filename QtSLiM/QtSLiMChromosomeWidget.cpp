@@ -105,7 +105,7 @@ QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
 		glArrayVertices = nullptr;
 	}
 	
-	if (!glArrayColors)
+	if (glArrayColors)
 	{
 		free(glArrayColors);
 		glArrayColors = nullptr;

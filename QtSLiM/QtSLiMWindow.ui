@@ -40,6 +40,9 @@
       </property>
       <item>
        <layout class="QHBoxLayout" name="topLayout">
+        <property name="spacing">
+         <number>10</number>
+        </property>
         <item>
          <widget class="QTableView" name="subpopTableView">
           <property name="sizePolicy">
@@ -93,7 +96,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QOpenGLWidget" name="openGLWidget">
+         <widget class="QtSLiMIndividualsWidget" name="individualsWidget">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -1251,6 +1254,11 @@ QPushButton:checked {
    <class>QtSLiMChromosomeWidget</class>
    <extends>QOpenGLWidget</extends>
    <header>QtSLiMChromosomeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMIndividualsWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>QtSLiMIndividualsWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources>

@@ -7,6 +7,7 @@
 #include <QColor>
 
 #include <string>
+#include <vector>
 #include <unordered_map>
 
 #include "eidos_globals.h"
@@ -16,6 +17,8 @@
 //#include "slim_gui.h"
 #include "QtSLiMExtras.h"
 #include "QtSLiMPopulationTable.h"
+
+class Subpopulation;
 
 
 namespace Ui {
@@ -84,6 +87,8 @@ public:
 
     static const QColor &blackContrastingColorForIndex(int index);
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
+    
+    std::vector<Subpopulation*> selectedSubpopulations(void);
     
     inline bool invalidSimulation(void) { return invalidSimulation_; }
     void setInvalidSimulation(bool p_invalid);
