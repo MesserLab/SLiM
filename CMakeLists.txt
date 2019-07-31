@@ -6,7 +6,9 @@
 #   make -j10
 #
 # This will make a Release build, with optimization and without debugging symbols, by default.
-# The built executables will be placed in the build directory upon successful completion.
+# The built executables will be placed in the build directory upon successful completion. The optional
+# -j argument specifies the number of threads to use for the build, which should be a value related 
+# to the number of cores available on your machine. Typically this value does not exceed the number of cores.
 
 # 
 # You can also explicitly make a Release build; this is typically done in a directory named "Release"
@@ -15,14 +17,14 @@
 #   mkdir Release
 #   cd Release
 #   cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
-#   make
+#   make 
 #
 # Or you can make a Debug build (without optimization, with debugging symbols):
 #
 #   mkdir Debug
 #   cd Debug
 #   cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
-#   make
+#   make 
 #
 
 # To build the Qt GUI, make sure you have the Qt5 Widgets, Core, and Gui libraries installed, then 
@@ -50,7 +52,7 @@
 # file has changed.
 
 
-cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
+cmake_minimum_required (VERSION 2.8 FATAL_ERROR)
 
 
 # Make a Release build by default
@@ -123,16 +125,14 @@ add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl tables)
 
-set(TARGET_NAME eidoslib)
-file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
-add_library(${TARGET_NAME} ${EIDOS_SOURCES})
-target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
-
 install(TARGETS slim eidos DESTINATION bin)
 
 # QtSLiM -- this can be enabled with the -DBUILD_QTSLIM=ON option to cmake
 if(BUILD_QTSLIM)
+cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 set(TARGET_NAME qtslim)
+find_package(OpenGL REQUIRED)
+find_package(GLUT REQUIRED)
 find_package(Qt5 REQUIRED
     Core
     Gui
@@ -145,8 +145,8 @@ list(REMOVE_ITEM SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/main.cpp)
 file(GLOB_RECURSE QTSLIM_SOURCES ${PROJECT_SOURCE_DIR}/QtSLiM/*.cpp ${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMWindow.ui ${PROJECT_SOURCE_DIR}/QtSLiM/buttons.qrc ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
 add_executable(${TARGET_NAME} "${QTSLIM_SOURCES}" "${SLIM_SOURCES}")
 set_target_properties( ${TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_definitions( ${TARGET_NAME} PRIVATE SLIMGUI=1 )
+target_compile_definitions( ${TARGET_NAME} PRIVATE EIDOSGUI=1 SLIMGUI=1 SLIMPROFILING=0)
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
-target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui gsl tables )
+target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL OpenGL::GLU gsl tables )
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_QTSLIM)
