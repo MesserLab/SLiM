@@ -10,6 +10,7 @@
 #include <QTextEdit>
 #include <QCursor>
 #include <QPalette>
+#include <QFileDialog>
 
 #include <unistd.h>
 
@@ -19,6 +20,7 @@
 // TO DO:
 //
 // add menus, figure out macOS vs. Linux menu bar stuff
+//      add access to recipes through the File menu
 // custom layout for play/profile buttons: https://doc.qt.io/qt-5/layout.html
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
@@ -29,7 +31,6 @@
 // syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
 // multiple windows, document model, open/save/revert, etc.
-// add access to recipes through the File menu
 // add a preferences panel: font/size, syntax coloring pref, etc.
 // code editing: code completion, shift left/right, comment/uncomment
 // implement the Eidos console, help window, status bar
@@ -1194,7 +1195,29 @@ void QtSLiMWindow::clearOutputClicked(void)
 
 void QtSLiMWindow::dumpPopulationClicked(void)
 {
-    qDebug() << "dumpPopulationClicked";
+    try
+	{
+		// dump the population
+		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
+		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false);	// output spatial positions and ages if available, but not ancestral sequence
+		
+		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
+		SLIM_OUTSTREAM << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
+		SLIM_OUTSTREAM << "Mutations:" << std::endl;
+		
+		for (unsigned int i = 0; i < sim->population_.substitutions_.size(); i++)
+		{
+			SLIM_OUTSTREAM << i << " ";
+			sim->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+		}
+		
+		// now send SLIM_OUTSTREAM to the output textview
+		updateOutputTextView();
+	}
+	catch (...)
+	{
+	}
 }
 
 void QtSLiMWindow::graphPopupButtonClicked(void)
@@ -1204,7 +1227,23 @@ void QtSLiMWindow::graphPopupButtonClicked(void)
 
 void QtSLiMWindow::changeDirectoryClicked(void)
 {
-    qDebug() << "changeDirectoryClicked";
+    QFileDialog dialog(this);
+    dialog.setAcceptMode(QFileDialog::AcceptOpen);
+    dialog.setFileMode(QFileDialog::Directory);
+    dialog.setViewMode(QFileDialog::List);
+    dialog.setDirectory(QString::fromUtf8(sim_working_dir.c_str()));
+    
+    // FIXME could use QFileDialog::open() to get a sheet instead of an app-model panel...
+    if (dialog.exec())
+    {
+        QStringList fileNames = dialog.selectedFiles();
+        
+        if (fileNames.size() == 1)
+        {
+            sim_working_dir = fileNames[0].toUtf8().constData();;
+            sim_requested_working_dir = sim_working_dir;
+        }
+    }
 }
 
 
