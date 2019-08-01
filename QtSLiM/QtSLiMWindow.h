@@ -19,6 +19,7 @@
 #include "QtSLiMPopulationTable.h"
 
 class Subpopulation;
+class QCloseEvent;
 
 
 namespace Ui {
@@ -121,6 +122,8 @@ public:
     void resetSLiMChangeCount(void);
     void scriptTexteditChanged(void);
     
+    bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);    
+    
 signals:
     void terminationWithMessage(QString message);
     
@@ -191,6 +194,9 @@ private slots:
     void changeDirectoryPressed(void);
     void changeDirectoryReleased(void);
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
+    
 private:
     void glueUI(void);
     Ui::QtSLiMWindow *ui;

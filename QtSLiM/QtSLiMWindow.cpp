@@ -11,6 +11,9 @@
 #include <QCursor>
 #include <QPalette>
 #include <QFileDialog>
+#include <QSettings>
+#include <QCheckBox>
+#include <QCloseEvent>
 
 #include <unistd.h>
 
@@ -77,6 +80,14 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Qt
 	ui->chromosomeZoomed->setShouldDrawMutations(ui->showMutationsButton->isChecked());
 	ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(ui->showFixedSubstitutionsButton->isChecked());
 	ui->chromosomeZoomed->setShouldDrawRateMaps(ui->showChromosomeMapsButton->isChecked());
+    
+    // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
+    QSettings settings;
+    
+    settings.beginGroup("MainWindow");
+    resize(settings.value("size", QSize(950, 700)).toSize());
+    move(settings.value("pos", QPoint(100, 100)).toPoint());
+    settings.endGroup();
 }
 
 QtSLiMWindow::~QtSLiMWindow()
@@ -1062,6 +1073,26 @@ void QtSLiMWindow::scriptTexteditChanged(void)
 //  public slots
 //
 
+void QtSLiMWindow::closeEvent(QCloseEvent *event)
+{
+    if (true) // FIXME: userReallyWantsToQuit())
+    {
+        // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
+        QSettings settings;
+        
+        settings.beginGroup("MainWindow");
+        settings.setValue("size", size());
+        settings.setValue("pos", pos());
+        settings.endGroup();
+        
+        event->accept();
+    }
+    else
+    {
+        event->ignore();
+    }
+}
+
 void QtSLiMWindow::playOneStepClicked(void)
 {
     if (!invalidSimulation_)
@@ -1159,9 +1190,83 @@ void QtSLiMWindow::showGenomicElementsToggled(void)
 	}
 }
 
+bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessResponse)
+{
+	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
+	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
+	QString currentScriptString = ui->scriptTextEdit->toPlainText();
+	const char *cstr = currentScriptString.toUtf8().constData();
+	std::string errorDiagnostic;
+	
+	if (!cstr)
+	{
+		errorDiagnostic = "The script string could not be read, possibly due to an encoding problem.";
+	}
+	else
+	{
+		SLiMEidosScript script(cstr);
+		
+		try {
+			script.Tokenize();
+			script.ParseSLiMFileToAST();
+		}
+		catch (...)
+		{
+			errorDiagnostic = Eidos_GetTrimmedRaiseMessage();
+		}
+	}
+	
+	bool checkDidSucceed = !(errorDiagnostic.length());
+	
+	if (!checkDidSucceed || !suppressSuccessResponse)
+	{
+		// use our ConsoleWindowController delegate method to play the appropriate sound; FIXME
+		//[self eidosConsoleWindowController:_consoleController checkScriptDidSucceed:checkDidSucceed];
+		
+		if (!checkDidSucceed)
+		{
+			// On failure, we show an alert describing the error, and highlight the relevant script line
+            selectErrorRange();
+            
+            QString q_errorDiagnostic = QString::fromStdString(errorDiagnostic);
+            QMessageBox messageBox(this);
+            messageBox.setText("Script error");
+            messageBox.setInformativeText(q_errorDiagnostic);
+            messageBox.setIcon(QMessageBox::Warning);
+            messageBox.setWindowModality(Qt::WindowModal);
+            messageBox.setFixedWidth(700);      // seems to be ignored
+            messageBox.exec();
+            
+			// Show the error in the status bar also
+            this->statusBar()->setStyleSheet("color: #cc0000; font-size: 11px;");
+            this->statusBar()->showMessage(q_errorDiagnostic.trimmed());
+		}
+		else
+		{
+            QSettings settings;
+            
+            if (!settings.value("SuppressScriptCheckSuccessPanel", false).toBool())
+			{
+                QMessageBox messageBox(this);
+                messageBox.setText("No script errors");
+                messageBox.setInformativeText("No errors found.");
+                messageBox.setIcon(QMessageBox::Information);
+                messageBox.setWindowModality(Qt::WindowModal);
+                messageBox.setCheckBox(new QCheckBox("Do not show this message again", nullptr));
+                messageBox.exec();
+                
+                if (messageBox.checkBox()->isChecked())
+                    settings.setValue("SuppressScriptCheckSuccessPanel", true);
+            }
+		}
+	}
+	
+	return checkDidSucceed;
+}
+
 void QtSLiMWindow::checkScriptClicked(void)
 {
-    qDebug() << "checkScriptClicked";
+    checkScriptSuppressSuccessResponse(false);
 }
 
 void QtSLiMWindow::prettyprintClicked(void)

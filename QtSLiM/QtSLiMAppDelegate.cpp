@@ -18,6 +18,11 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     // Install our custom beep handler
     Eidos_Beep = &Eidos_Beep_QT;
     
+    // Let Qt know who we are, for QSettings configuration
+    QCoreApplication::setOrganizationName("MesserLab");
+    QCoreApplication::setOrganizationDomain("edu.MesserLab");
+    QCoreApplication::setApplicationName("QtSLiM");
+    
     // Warm up our back ends before anything else happens
     Eidos_WarmUp();
     SLiM_WarmUp();
