@@ -1,6 +1,7 @@
 #include "QtSLiMWindow.h"
 #include "ui_QtSLiMWindow.h"
 #include "QtSLiMAppDelegate.h"
+#include "QtSLiMEidosPrettyprinter.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -150,7 +151,7 @@ void QtSLiMWindow::initializeUI(void)
 
     // set up the initial script
     scriptString = QtSLiMWindow::defaultWFScriptString();
-    ui->scriptTextEdit->setText(QString::fromStdString(scriptString));
+    ui->scriptTextEdit->setPlainText(QString::fromStdString(scriptString));
     setScriptStringAndInitializeSimulation(scriptString);
     
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
@@ -1220,12 +1221,10 @@ bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessRespon
 	
 	if (!checkDidSucceed || !suppressSuccessResponse)
 	{
-		// use our ConsoleWindowController delegate method to play the appropriate sound; FIXME
-		//[self eidosConsoleWindowController:_consoleController checkScriptDidSucceed:checkDidSucceed];
-		
 		if (!checkDidSucceed)
 		{
 			// On failure, we show an alert describing the error, and highlight the relevant script line
+            qApp->beep();
             selectErrorRange();
             
             QString q_errorDiagnostic = QString::fromStdString(errorDiagnostic);
@@ -1247,6 +1246,8 @@ bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessRespon
             
             if (!settings.value("SuppressScriptCheckSuccessPanel", false).toBool())
 			{
+                // In SLiMgui we play a "success" sound too, but doing anything besides beeping is apparently difficult with Qt...
+                
                 QMessageBox messageBox(this);
                 messageBox.setText("No script errors");
                 messageBox.setInformativeText("No errors found.");
@@ -1271,7 +1272,31 @@ void QtSLiMWindow::checkScriptClicked(void)
 
 void QtSLiMWindow::prettyprintClicked(void)
 {
-    qDebug() << "prettyprintClicked";
+    if (ui->scriptTextEdit->isEnabled())
+	{
+		if (checkScriptSuppressSuccessResponse(true))
+		{
+			// We know the script is syntactically correct, so we can tokenize and parse it without worries
+            QString currentScriptString = ui->scriptTextEdit->toPlainText();
+            const char *cstr = currentScriptString.toUtf8().constData();
+			EidosScript script(cstr);
+			
+			script.Tokenize(false, true);	// get whitespace and comment tokens
+			
+			// Then generate a new script string that is prettyprinted
+			const std::vector<EidosToken> &tokens = script.Tokens();
+			std::string pretty;
+			
+            if (Eidos_prettyprintTokensFromScript(tokens, script, pretty))
+                ui->scriptTextEdit->setPlainText(QString::fromStdString(pretty));
+			else
+                qApp->beep();
+		}
+	}
+	else
+	{
+        qApp->beep();
+	}
 }
 
 void QtSLiMWindow::scriptHelpClicked(void)
@@ -1295,7 +1320,7 @@ void QtSLiMWindow::showBrowserClicked(void)
 
 void QtSLiMWindow::clearOutputClicked(void)
 {
-    ui->outputTextEdit->setText("");
+    ui->outputTextEdit->setPlainText("");
 }
 
 void QtSLiMWindow::dumpPopulationClicked(void)

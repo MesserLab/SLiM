@@ -65,7 +65,8 @@ SOURCES += \
     QtSLiMChromosomeWidget.cpp \
     QtSLiMExtras.cpp \
     QtSLiMPopulationTable.cpp \
-    QtSLiMIndividualsWidget.cpp
+    QtSLiMIndividualsWidget.cpp \
+    QtSLiMEidosPrettyprinter.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -73,7 +74,8 @@ HEADERS += \
     QtSLiMChromosomeWidget.h \
     QtSLiMExtras.h \
     QtSLiMPopulationTable.h \
-    QtSLiMIndividualsWidget.h
+    QtSLiMIndividualsWidget.h \
+    QtSLiMEidosPrettyprinter.h
 
 FORMS += \
     QtSLiMWindow.ui
