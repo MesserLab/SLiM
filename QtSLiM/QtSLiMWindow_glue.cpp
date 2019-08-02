@@ -67,7 +67,14 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->changeDirectoryButton, &QPushButton::released, this, &QtSLiMWindow::changeDirectoryReleased);
     
     // connect all menu items with existing slots
-    connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QCoreApplication::quit, Qt::QueuedConnection);
+    connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QApplication::closeAllWindows, Qt::QueuedConnection);
+    connect(ui->actionNew, &QAction::triggered, this, &QtSLiMWindow::newFile_WF);
+    connect(ui->actionNew_nonWF, &QAction::triggered, this, &QtSLiMWindow::newFile_nonWF);
+    connect(ui->actionOpen, &QAction::triggered, this, &QtSLiMWindow::open);
+    connect(ui->actionClose, &QAction::triggered, this, &QtSLiMWindow::close);      // FIXME this closes the main window, even if an auxiliary window is frontmost!  but how to get the front window??
+    connect(ui->actionSave, &QAction::triggered, this, &QtSLiMWindow::save);
+    connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
+    connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
     connect(ui->actionStep, &QAction::triggered, this, &QtSLiMWindow::playOneStepClicked);
     connect(ui->actionPlay, &QAction::triggered, this, &QtSLiMWindow::playClicked);
     connect(ui->actionProfile, &QAction::triggered, this, &QtSLiMWindow::profileClicked);

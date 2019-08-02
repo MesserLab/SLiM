@@ -67,21 +67,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 static const int numberOfTicksPlusOne = 4;
 static const int tickLength = 5;
 static const int heightForTicks = 16;
-static QFont *tickFont = nullptr;
 
 
 QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *parent, Qt::WindowFlags f) : QOpenGLWidget(parent, f)
 {
-    if (!tickFont)
-    {
-        tickFont = new QFont();
-#ifdef __APPLE__
-        tickFont->setPointSize(9);
-#else
-        tickFont->setPointSize(7);
-#endif
-    }
-    
     //[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
     
     if (!glArrayVertices)
@@ -316,6 +305,17 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 	
 	double tickIndexDivisor = ((lastTickIndex == 0) ? 1.0 : static_cast<double>(lastTickIndex));		// avoid a divide by zero when we are displaying a single site
 	
+    static QFont *tickFont = nullptr;
+    
+    if (!tickFont)
+    {
+        tickFont = new QFont();
+#ifdef __APPLE__
+    tickFont->setPointSize(9);
+#else
+    tickFont->setPointSize(7);
+#endif
+    }
     painter.setFont(*tickFont);
     
 	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)

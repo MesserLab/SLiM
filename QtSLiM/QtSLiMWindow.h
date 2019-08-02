@@ -32,6 +32,18 @@ class QtSLiMWindow : public QMainWindow
     Q_OBJECT    
 
 private:
+    // basic file i/o and change count management
+    void init(void);
+    bool maybeSave(void);
+    void openFile(const QString &fileName);
+    void loadFile(const QString &fileName);
+    bool saveFile(const QString &fileName);
+    void setCurrentFile(const QString &fileName);
+    static QString strippedName(const QString &fullFileName);
+    QtSLiMWindow *findMainWindow(const QString &fileName) const;
+    
+    QString curFile;
+    bool isUntitled = false;
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
     
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
@@ -44,7 +56,7 @@ private:
 
     // play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
     // and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib
-    bool invalidSimulation_ = false, continuousPlayOn_ = false, profilePlayOn_ = false, nonProfilePlayOn_ = false;
+    bool invalidSimulation_ = true, continuousPlayOn_ = false, profilePlayOn_ = false, nonProfilePlayOn_ = false;
     bool generationPlayOn_ = false, reachedSimulationEnd_ = false, hasImported_ = false;
     slim_generation_t targetGeneration_ = 0;
     QElapsedTimer continuousPlayElapsedTimer_;
@@ -78,11 +90,18 @@ public:
     //bool reloadingSubpopTableview = false;
 
 public:
-    explicit QtSLiMWindow(QWidget *parent = nullptr);
-    ~QtSLiMWindow();
-
+    typedef enum {
+        WF = 0,
+        nonWF
+    } ModelType;
+    
+    QtSLiMWindow(QtSLiMWindow::ModelType modelType);    // untitled window
+    explicit QtSLiMWindow(const QString &fileName);     // window from a file
+    virtual ~QtSLiMWindow() override;
+    
     void initializeUI(void);
-
+    void tile(const QMainWindow *previous);
+    
     static QFont &defaultScriptFont(int *p_tabWidth);
     static std::string defaultWFScriptString(void);
     static std::string defaultNonWFScriptString(void);
@@ -161,6 +180,14 @@ public slots:
     //
     
 private slots:
+    void newFile_WF();
+    void newFile_nonWF();
+    void open();
+    bool save();
+    bool saveAs();
+    void revert();
+    void documentWasModified();
+    
     void playOneStepPressed(void);
     void playOneStepReleased(void);
     void playPressed(void);
@@ -198,7 +225,7 @@ private slots:
     void graphPopupButtonReleased(void);
     void changeDirectoryPressed(void);
     void changeDirectoryReleased(void);
-
+    
 protected:
     void closeEvent(QCloseEvent *event) override;
     QStringList linesForRoundedSelection(QTextCursor &cursor, bool &movedBack);

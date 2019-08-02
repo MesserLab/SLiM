@@ -22,6 +22,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     QCoreApplication::setOrganizationName("MesserLab");
     QCoreApplication::setOrganizationDomain("edu.MesserLab");
     QCoreApplication::setApplicationName("QtSLiM");
+    QCoreApplication::setApplicationVersion(SLIM_VERSION_STRING);
     
     // Warm up our back ends before anything else happens
     Eidos_WarmUp();
