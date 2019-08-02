@@ -54,9 +54,9 @@ before_script:
 # builds can take more than 10 minutes so we use travis_wait
 script:
   - cd Release
-  - travis_wait make -j qtslim
+  - travis_wait make VERBOSE=1 -j qtslim
   - cd ../Debug
-  - travis_wait make -j qtslim
+  - travis_wait make VERBOSE=1 -j qtslim
 
 # test only the master branch for now; add other branches as needed
 branches:
