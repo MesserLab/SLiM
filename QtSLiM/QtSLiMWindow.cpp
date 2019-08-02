@@ -1195,7 +1195,8 @@ bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessRespon
 	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
 	QString currentScriptString = ui->scriptTextEdit->toPlainText();
-	const char *cstr = currentScriptString.toUtf8().constData();
+    QByteArray utf8bytes = currentScriptString.toUtf8();
+	const char *cstr = utf8bytes.constData();
 	std::string errorDiagnostic;
 	
 	if (!cstr)
@@ -1277,9 +1278,10 @@ void QtSLiMWindow::prettyprintClicked(void)
 		{
 			// We know the script is syntactically correct, so we can tokenize and parse it without worries
             QString currentScriptString = ui->scriptTextEdit->toPlainText();
-            const char *cstr = currentScriptString.toUtf8().constData();
+            QByteArray utf8bytes = currentScriptString.toUtf8();
+            const char *cstr = utf8bytes.constData();
 			EidosScript script(cstr);
-			
+            
 			script.Tokenize(false, true);	// get whitespace and comment tokens
 			
 			// Then generate a new script string that is prettyprinted
@@ -1369,7 +1371,7 @@ void QtSLiMWindow::changeDirectoryClicked(void)
         
         if (fileNames.size() == 1)
         {
-            sim_working_dir = fileNames[0].toUtf8().constData();;
+            sim_working_dir = fileNames[0].toUtf8().constData();
             sim_requested_working_dir = sim_working_dir;
         }
     }
