@@ -20,6 +20,7 @@
 
 class Subpopulation;
 class QCloseEvent;
+class QTextCursor;
 
 
 namespace Ui {
@@ -150,6 +151,10 @@ public slots:
     void dumpPopulationClicked(void);
     void graphPopupButtonClicked(void);
     void changeDirectoryClicked(void);
+    
+    void shiftSelectionLeft(void);
+    void shiftSelectionRight(void);
+    void commentUncommentSelection(void);
 
     //
     //  UI glue, defined in QtSLiMWindow_glue.cpp
@@ -196,6 +201,7 @@ private slots:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    QStringList linesForRoundedSelection(QTextCursor &cursor, bool &movedBack);
     
 private:
     void glueUI(void);

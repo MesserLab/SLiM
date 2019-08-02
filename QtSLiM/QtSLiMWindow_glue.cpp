@@ -1,6 +1,10 @@
 #include "QtSLiMWindow.h"
 #include "ui_QtSLiMWindow.h"
 
+#include <QCoreApplication>
+#include <QKeyEvent>
+#include <QDesktopServices>
+
 
 void QtSLiMWindow::glueUI(void)
 {
@@ -61,6 +65,150 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->graphPopupButton, &QPushButton::released, this, &QtSLiMWindow::graphPopupButtonReleased);
     connect(ui->changeDirectoryButton, &QPushButton::pressed, this, &QtSLiMWindow::changeDirectoryPressed);
     connect(ui->changeDirectoryButton, &QPushButton::released, this, &QtSLiMWindow::changeDirectoryReleased);
+    
+    // connect all menu items with existing slots
+    connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QCoreApplication::quit, Qt::QueuedConnection);
+    connect(ui->actionStep, &QAction::triggered, this, &QtSLiMWindow::playOneStepClicked);
+    connect(ui->actionPlay, &QAction::triggered, this, &QtSLiMWindow::playClicked);
+    connect(ui->actionProfile, &QAction::triggered, this, &QtSLiMWindow::profileClicked);
+    connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
+    connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
+    connect(ui->actionDumpPopulationState, &QAction::triggered, this, &QtSLiMWindow::dumpPopulationClicked);
+    connect(ui->actionCheckScript, &QAction::triggered, this, &QtSLiMWindow::checkScriptClicked);
+    connect(ui->actionPrettyprintScript, &QAction::triggered, this, &QtSLiMWindow::prettyprintClicked);
+    connect(ui->actionShowScriptHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
+    connect(ui->actionQtSLiMHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
+    connect(ui->actionShowEidosConsole, &QAction::triggered, this, &QtSLiMWindow::showConsoleClicked);
+    connect(ui->actionShowVariableBrowser, &QAction::triggered, this, &QtSLiMWindow::showBrowserClicked);
+    connect(ui->actionClearOutput, &QAction::triggered, this, &QtSLiMWindow::clearOutputClicked);
+    
+    // connect menu items that open a URL
+    connect(ui->actionSendFeedback, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("mailto:bhaller@mac.com?subject=SLiM%20Feedback", QUrl::TolerantMode));
+    });
+    connect(ui->actionMailingList_slimdiscuss, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("https://groups.google.com/d/forum/slim-discuss", QUrl::TolerantMode));
+    });
+    connect(ui->actionMailingList_slimannounce, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("https://groups.google.com/d/forum/slim-announce", QUrl::TolerantMode));
+    });
+    connect(ui->actionSLiMHomePage, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("http://messerlab.org/slim/", QUrl::TolerantMode));
+    });
+    connect(ui->actionSLiMExtras, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("https://github.com/MesserLab/SLiM-Extras", QUrl::TolerantMode));
+    });
+    connect(ui->actionAboutMesserLab, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("http://messerlab.org/", QUrl::TolerantMode));
+    });
+    connect(ui->actionAboutBenHaller, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("http://www.benhaller.com/", QUrl::TolerantMode));
+    });
+    connect(ui->actionAboutStickSoftware, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("http://www.sticksoftware.com/", QUrl::TolerantMode));
+    });
+    
+    // connect custom menu items
+    connect(ui->actionShiftLeft, &QAction::triggered, this, &QtSLiMWindow::shiftSelectionLeft);
+    connect(ui->actionShiftRight, &QAction::triggered, this, &QtSLiMWindow::shiftSelectionRight);
+    connect(ui->actionCommentUncomment, &QAction::triggered, this, &QtSLiMWindow::commentUncommentSelection);
+    
+    // standard actions that need to be dispatched (I haven't found a better way to do this;
+    // this is basically implementing the first responder / event dispatch mechanism)
+    // FIXME should enable/disable the menu items using copyAvailable(), undoAvailable(), etc.
+    connect(ui->actionUndo, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+            lineEdit->undo();
+        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+            textEdit->undo();
+    });
+    connect(ui->actionRedo, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+            lineEdit->redo();
+        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+            textEdit->redo();
+    });
+    connect(ui->actionCut, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+            lineEdit->cut();
+        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+            textEdit->cut();
+    });
+    connect(ui->actionCopy, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+        if (lineEdit && lineEdit->isEnabled())
+            lineEdit->copy();
+        else if (textEdit && textEdit->isEnabled())
+            textEdit->copy();
+    });
+    connect(ui->actionPaste, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+            lineEdit->paste();
+        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+            textEdit->paste();
+    });
+    connect(ui->actionDelete, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+            lineEdit->insert("");
+        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+            textEdit->insertPlainText("");
+    });
+    connect(ui->actionSelectAll, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+        if (lineEdit && lineEdit->isEnabled())
+            lineEdit->selectAll();
+        else if (textEdit && textEdit->isEnabled())
+            textEdit->selectAll();
+    });
+    /*
+    currently unimplemented:
+    
+    QAction *actionNew;
+    QAction *actionNew_nonWF;
+    QAction *actionOpen;
+    QAction *actionClose;
+    QAction *actionSave;
+    QAction *actionSave_As;
+    QAction *actionRevert_to_Saved;
+    
+    QAction *actionExecute_Selection;
+    QAction *actionExecute_All;
+    QAction *actionAbout_QtSLiM;
+    QAction *actionFindRecipe;
+    QAction *actionPreferences;
+    QAction *actionFind_2;
+    QAction *actionFind_and_Replace;
+    QAction *actionFind_Next;
+    QAction *actionFind_Previous;
+    QAction *actionUse_Selection_for_Find;
+    QAction *actionJump_to_Selection;
+    */
 }
 
 

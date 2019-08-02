@@ -1245,8 +1245,488 @@ QPushButton:checked {
      <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <widget class="QMenu" name="menuOpen_Recipe">
+     <property name="title">
+      <string>Open Recipe...</string>
+     </property>
+     <addaction name="actionFindRecipe"/>
+     <addaction name="separator"/>
+    </widget>
+    <addaction name="actionAboutQtSLiM"/>
+    <addaction name="actionPreferences"/>
+    <addaction name="separator"/>
+    <addaction name="actionNew"/>
+    <addaction name="actionNew_nonWF"/>
+    <addaction name="actionOpen"/>
+    <addaction name="menuOpen_Recipe"/>
+    <addaction name="separator"/>
+    <addaction name="actionClose"/>
+    <addaction name="actionSave"/>
+    <addaction name="actionSaveAs"/>
+    <addaction name="actionRevertToSaved"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuitQtSLiM"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <widget class="QMenu" name="menuFind">
+     <property name="title">
+      <string>Find</string>
+     </property>
+     <addaction name="actionFindShow"/>
+     <addaction name="actionFindAndReplace"/>
+     <addaction name="actionFindNext"/>
+     <addaction name="actionFindPrevious"/>
+     <addaction name="actionUseSelectionForFind"/>
+     <addaction name="actionJumpToSelection"/>
+    </widget>
+    <addaction name="actionUndo"/>
+    <addaction name="actionRedo"/>
+    <addaction name="separator"/>
+    <addaction name="actionCut"/>
+    <addaction name="actionCopy"/>
+    <addaction name="actionPaste"/>
+    <addaction name="actionDelete"/>
+    <addaction name="actionSelectAll"/>
+    <addaction name="separator"/>
+    <addaction name="menuFind"/>
+    <addaction name="separator"/>
+    <addaction name="actionShiftLeft"/>
+    <addaction name="actionShiftRight"/>
+    <addaction name="actionCommentUncomment"/>
+   </widget>
+   <widget class="QMenu" name="menuSimulation">
+    <property name="title">
+     <string>Simulation</string>
+    </property>
+    <addaction name="actionStep"/>
+    <addaction name="actionPlay"/>
+    <addaction name="actionProfile"/>
+    <addaction name="actionRecycle"/>
+    <addaction name="separator"/>
+    <addaction name="actionChangeWorkingDirectory"/>
+    <addaction name="separator"/>
+    <addaction name="actionDumpPopulationState"/>
+   </widget>
+   <widget class="QMenu" name="menuScript">
+    <property name="title">
+     <string>Script</string>
+    </property>
+    <addaction name="actionCheckScript"/>
+    <addaction name="actionPrettyprintScript"/>
+    <addaction name="actionShowScriptHelp"/>
+    <addaction name="separator"/>
+    <addaction name="actionShowVariableBrowser"/>
+    <addaction name="actionShowEidosConsole"/>
+    <addaction name="separator"/>
+    <addaction name="actionClearOutput"/>
+    <addaction name="separator"/>
+    <addaction name="actionExecuteSelection"/>
+    <addaction name="actionExecuteAll"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionQtSLiMHelp"/>
+    <addaction name="separator"/>
+    <addaction name="actionSendFeedback"/>
+    <addaction name="actionMailingList_slimannounce"/>
+    <addaction name="actionMailingList_slimdiscuss"/>
+    <addaction name="separator"/>
+    <addaction name="actionSLiMHomePage"/>
+    <addaction name="actionSLiMExtras"/>
+    <addaction name="separator"/>
+    <addaction name="actionAboutMesserLab"/>
+    <addaction name="actionAboutBenHaller"/>
+    <addaction name="actionAboutStickSoftware"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuSimulation"/>
+   <addaction name="menuScript"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionNew">
+   <property name="text">
+    <string>New</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="actionNew_nonWF">
+   <property name="text">
+    <string>New (nonWF)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+N</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>Save</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionSaveAs">
+   <property name="text">
+    <string>Save As...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionCut">
+   <property name="text">
+    <string>Cut</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+X</string>
+   </property>
+  </action>
+  <action name="actionCopy">
+   <property name="text">
+    <string>Copy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
+   </property>
+  </action>
+  <action name="actionPaste">
+   <property name="text">
+    <string>Paste</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+V</string>
+   </property>
+  </action>
+  <action name="actionUndo">
+   <property name="text">
+    <string>Undo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="actionRedo">
+   <property name="text">
+    <string>Redo</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Z</string>
+   </property>
+  </action>
+  <action name="actionDelete">
+   <property name="text">
+    <string>Delete</string>
+   </property>
+  </action>
+  <action name="actionSelectAll">
+   <property name="text">
+    <string>Select All</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="actionShiftLeft">
+   <property name="text">
+    <string>Shift Left</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+[</string>
+   </property>
+  </action>
+  <action name="actionShiftRight">
+   <property name="text">
+    <string>Shift Right</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+]</string>
+   </property>
+  </action>
+  <action name="actionCommentUncomment">
+   <property name="text">
+    <string>Comment / Uncomment</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+/</string>
+   </property>
+  </action>
+  <action name="actionStep">
+   <property name="text">
+    <string>Step</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Num+Right</string>
+   </property>
+  </action>
+  <action name="actionPlay">
+   <property name="text">
+    <string>Play</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Right</string>
+   </property>
+  </action>
+  <action name="actionProfile">
+   <property name="text">
+    <string>Profile</string>
+   </property>
+  </action>
+  <action name="actionRecycle">
+   <property name="text">
+    <string>Recycle</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Up</string>
+   </property>
+  </action>
+  <action name="actionChangeWorkingDirectory">
+   <property name="text">
+    <string>Change Working Directory...</string>
+   </property>
+  </action>
+  <action name="actionDumpPopulationState">
+   <property name="text">
+    <string>Dump Population State</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Down</string>
+   </property>
+  </action>
+  <action name="actionCheckScript">
+   <property name="text">
+    <string>Check Script</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+=</string>
+   </property>
+  </action>
+  <action name="actionPrettyprintScript">
+   <property name="text">
+    <string>Prettyprint Script</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+=</string>
+   </property>
+  </action>
+  <action name="actionShowScriptHelp">
+   <property name="text">
+    <string>Show Script Help</string>
+   </property>
+  </action>
+  <action name="actionShowVariableBrowser">
+   <property name="text">
+    <string>Show Variable Browser</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+B</string>
+   </property>
+  </action>
+  <action name="actionShowEidosConsole">
+   <property name="text">
+    <string>Show Eidos Console</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+E</string>
+   </property>
+  </action>
+  <action name="actionClearOutput">
+   <property name="text">
+    <string>Clear Output</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+K</string>
+   </property>
+  </action>
+  <action name="actionExecuteSelection">
+   <property name="text">
+    <string>Execute Selection</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Return</string>
+   </property>
+  </action>
+  <action name="actionExecuteAll">
+   <property name="text">
+    <string>Execute All</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Return</string>
+   </property>
+  </action>
+  <action name="actionQtSLiMHelp">
+   <property name="text">
+    <string>QtSLiM Help</string>
+   </property>
+  </action>
+  <action name="actionSendFeedback">
+   <property name="text">
+    <string>Send Feedback on SLiM</string>
+   </property>
+  </action>
+  <action name="actionMailingList_slimannounce">
+   <property name="text">
+    <string>Mailing List: slim-announce</string>
+   </property>
+  </action>
+  <action name="actionMailingList_slimdiscuss">
+   <property name="text">
+    <string>Mailing List: slim-discuss</string>
+   </property>
+  </action>
+  <action name="actionSLiMHomePage">
+   <property name="text">
+    <string>SLiM Home Page</string>
+   </property>
+  </action>
+  <action name="actionSLiMExtras">
+   <property name="text">
+    <string>SLiM-Extras on GitHub</string>
+   </property>
+  </action>
+  <action name="actionAboutMesserLab">
+   <property name="text">
+    <string>About the Messer Lab</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionAboutBenHaller">
+   <property name="text">
+    <string>About Ben Haller</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionAboutStickSoftware">
+   <property name="text">
+    <string>About Stick Software</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionAboutQtSLiM">
+   <property name="text">
+    <string>About QtSLiM</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionQuitQtSLiM">
+   <property name="text">
+    <string>Quit QtSLiM</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionFindRecipe">
+   <property name="text">
+    <string>Find Recipe...</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+,</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::PreferencesRole</enum>
+   </property>
+  </action>
+  <action name="actionFindShow">
+   <property name="text">
+    <string>Find...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionFindAndReplace">
+   <property name="text">
+    <string>Find and Replace...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+F</string>
+   </property>
+  </action>
+  <action name="actionFindNext">
+   <property name="text">
+    <string>Find Next</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
+   </property>
+  </action>
+  <action name="actionFindPrevious">
+   <property name="text">
+    <string>Find Previous</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+G</string>
+   </property>
+  </action>
+  <action name="actionUseSelectionForFind">
+   <property name="text">
+    <string>Use Selection for Find</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="actionJumpToSelection">
+   <property name="text">
+    <string>Jump to Selection</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+J</string>
+   </property>
+  </action>
+  <action name="actionRevertToSaved">
+   <property name="text">
+    <string>Revert to Saved</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
