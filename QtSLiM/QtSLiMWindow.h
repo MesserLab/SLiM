@@ -180,6 +180,7 @@ public slots:
     //
     
 private slots:
+    void aboutQtSLiM();
     void newFile_WF();
     void newFile_nonWF();
     void open();

@@ -2,6 +2,7 @@
 #include "ui_QtSLiMWindow.h"
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMEidosPrettyprinter.h"
+#include "QtSLiMAbout.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -396,6 +397,18 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
     {
         event->ignore();
     }
+}
+
+void QtSLiMWindow::aboutQtSLiM()
+{
+    static QtSLiMAbout *aboutWindow = nullptr;
+    
+    if (!aboutWindow)
+        aboutWindow = new QtSLiMAbout(nullptr);     // shared instance with no parent, never freed
+    
+    aboutWindow->show();
+    aboutWindow->raise();
+    aboutWindow->activateWindow();
 }
 
 void QtSLiMWindow::newFile_WF()

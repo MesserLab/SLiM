@@ -66,7 +66,8 @@ SOURCES += \
     QtSLiMExtras.cpp \
     QtSLiMPopulationTable.cpp \
     QtSLiMIndividualsWidget.cpp \
-    QtSLiMEidosPrettyprinter.cpp
+    QtSLiMEidosPrettyprinter.cpp \
+    QtSLiMAbout.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -75,10 +76,12 @@ HEADERS += \
     QtSLiMExtras.h \
     QtSLiMPopulationTable.h \
     QtSLiMIndividualsWidget.h \
-    QtSLiMEidosPrettyprinter.h
+    QtSLiMEidosPrettyprinter.h \
+    QtSLiMAbout.h
 
 FORMS += \
-    QtSLiMWindow.ui
+    QtSLiMWindow.ui \
+    QtSLiMAbout.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -86,4 +89,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
-    buttons.qrc
+    buttons.qrc \
+    icons.qrc
