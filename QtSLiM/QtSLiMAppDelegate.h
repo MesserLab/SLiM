@@ -4,6 +4,10 @@
 #include <QObject>
 #include <string>
 
+class QMenu;
+class QAction;
+
+
 class QtSLiMAppDelegate : public QObject
 {
     Q_OBJECT
@@ -14,14 +18,15 @@ public:
     explicit QtSLiMAppDelegate(QObject *parent);
 
     std::string &QtSLiMCurrentWorkingDirectory(void) { return app_cwd_; }
+    
+    void setUpRecipesMenu(QMenu *openRecipesSubmenu, QAction *findRecipeAction);
 
 public slots:
     void lastWindowClosed(void);
     void aboutToQuit(void);
-
-    void showAboutWindow(void);
-    void showHelp(void);
-    // FIXME pull in other actions from AppDelegate
+    
+    void findRecipe(void);
+    void openRecipe(void);
 };
 
 extern QtSLiMAppDelegate *qtSLiMAppDelegate;    // global instance

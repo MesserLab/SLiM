@@ -90,4 +90,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     buttons.qrc \
-    icons.qrc
+    icons.qrc \
+    recipes.qrc

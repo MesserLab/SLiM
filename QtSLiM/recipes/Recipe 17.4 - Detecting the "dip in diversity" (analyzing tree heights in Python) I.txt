@@ -1,0 +1,26 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
+initialize() {
+	defineConstant("N", 10000);  // pop size
+	defineConstant("L", 1e8);    // total chromosome length
+	defineConstant("L0", 200e3); // between genes
+	defineConstant("L1", 1e3);   // gene length
+	initializeTreeSeq();
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8, L-1);
+	initializeMutationType("m2", 0.5, "g", -(5/N), 1.0);
+	initializeGenomicElementType("g2", m2, 1.0);
+	
+	for (start in seq(from=L0, to=L-(L0+L1), by=(L0+L1)))
+		initializeGenomicElement(g2, start, (start+L1)-1);
+}
+1 {
+	sim.addSubpop("p1", N);
+	sim.rescheduleScriptBlock(s1, 10*N, 10*N);
+}
+s1 10 late() {
+	sim.treeSeqOutput("./recipe_17.4.trees");
+}
+
+// Part II of this recipe, which is a Python script, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/

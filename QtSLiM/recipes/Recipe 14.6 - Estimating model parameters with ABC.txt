@@ -1,0 +1,11 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(mu);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 999999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 100); }
+1000 late() { cat(sim.mutations.size() + "\n"); }

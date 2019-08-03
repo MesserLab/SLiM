@@ -1,0 +1,22 @@
+// Keywords: migration, dispersal
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.01);
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+	p1.setMigrationRates(p2, 0.01);
+	p2.setMigrationRates(p1, 0.01);
+}
+10000 late() {
+	allIndividuals = sim.subpopulations.individuals;
+	w = asFloat(allIndividuals.countOfMutationsOfType(m2) + 1);
+	sampledIndividuals = sample(allIndividuals, 10, weights=w);
+	sampledIndividuals.genomes.output();
+}

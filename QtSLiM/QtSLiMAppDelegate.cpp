@@ -1,7 +1,14 @@
 #include "QtSLiMAppDelegate.h"
+#include "QtSLiMWindow.h"
+
 #include <QApplication>
 #include <QOpenGLWidget>
 #include <QSurfaceFormat>
+#include <QMenu>
+#include <QAction>
+#include <QDebug>
+#include <QDir>
+#include <QCollator>
 
 #include "eidos_globals.h"
 #include "eidos_beep.h"
@@ -20,7 +27,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     
     // Let Qt know who we are, for QSettings configuration
     QCoreApplication::setOrganizationName("MesserLab");
-    QCoreApplication::setOrganizationDomain("edu.MesserLab");
+    QCoreApplication::setOrganizationDomain("MesserLab.edu");   // Qt expects the domain in the standard order, and reverses it to form "edu.messerlab.QtSLiM.plist" as per Apple's usage
     QCoreApplication::setApplicationName("QtSLiM");
     QCoreApplication::setApplicationVersion(SLIM_VERSION_STRING);
     
@@ -43,10 +50,6 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     //format.setProfile(QSurfaceFormat::CompatibilityProfile);
     QSurfaceFormat::setDefaultFormat(format);
     
-    // FIXME create recipes submenu once we have a document model
-    // Create the Open Recipes menu
-    //[self setUpRecipesMenu];
-
     // Connect to the app to find out when we're terminating
     QApplication *app = qApp;
 
@@ -57,6 +60,95 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     qtSLiMAppDelegate = this;
 }
 
+void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRecipeAction)
+{
+    // This is called by QtSLiMWindow::initializeUI().  We are to take control of the
+    // recipes submenu, filling it in and implementing the Find Recipe panel.
+    connect(findRecipeAction, &QAction::triggered, this, &QtSLiMAppDelegate::findRecipe);
+    
+    // Find recipes in our resources and sort by numeric order
+    QDir recipesDir(":/recipes/", "Recipe *.*", QDir::NoSort, QDir::Files | QDir::NoSymLinks);
+    QStringList entryList = recipesDir.entryList(QStringList("Recipe *.*"));   // the previous name filter seems to be ignored
+    QCollator collator;
+    
+    collator.setNumericMode(true);
+    std::sort(entryList.begin(), entryList.end(), collator);
+    //qDebug() << entryList;
+    
+    // Append an action for each, organized into submenus
+    QString previousItemChapter;
+    QMenu *chapterSubmenu = nullptr;
+    
+    for (QString &entryName : entryList)
+    {
+        QString recipeName;
+        
+        // Determine the menu item text for the recipe, removing "Recipe " and ".txt", and adding pythons
+        if (entryName.endsWith(".txt"))
+            recipeName = entryName.mid(7, entryName.length() - 11);
+        else if (entryName.endsWith(".py"))
+            recipeName = entryName.mid(7, entryName.length() - 7) + QString(" 🐍");
+        
+        int firstDotIndex = recipeName.indexOf('.');
+        
+        if (firstDotIndex != -1)
+        {
+            QString recipeChapter = recipeName.left(firstDotIndex);
+            
+            // Create a submenu for each chapter
+            if (recipeChapter != previousItemChapter)
+            {
+                int recipeChapterValue = recipeChapter.toInt();
+                QString chapterName;
+                
+                switch (recipeChapterValue)
+                {
+                    case 4: chapterName = "Getting started: Neutral evolution in a panmictic population";		break;
+                    case 5: chapterName = "Demography and population structure";								break;
+                    case 6: chapterName = "Sexual reproduction";												break;
+                    case 7: chapterName = "Mutation types, genomic elements, and chromosome structure";         break;
+                    case 8: chapterName = "SLiMgui visualizations for polymorphism patterns";					break;
+                    case 9:	chapterName = "Selective sweeps";													break;
+                    case 10:chapterName = "Context-dependent selection using fitness() callbacks";				break;
+                    case 11:chapterName = "Complex mating schemes using mateChoice() callbacks";				break;
+                    case 12:chapterName = "Direct child modifications using modifyChild() callbacks";			break;
+                    case 13:chapterName = "Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
+                    case 14:chapterName = "Advanced models";													break;
+                    case 15:chapterName = "Continuous-space models and interactions";							break;
+                    case 16:chapterName = "Going beyond Wright-Fisher models: nonWF model recipes";             break;
+                    case 17:chapterName = "Tree-sequence recording: tracking population history";				break;
+                    case 18:chapterName = "Modeling explicit nucleotides";										break;
+                    default: break;
+                }
+                
+                if (chapterName.length())
+                {
+                    QString fullChapterName = QString("%1 – %2").arg(QString::number(recipeChapterValue), chapterName);
+                    QAction *mainItem = openRecipesMenu->addAction(fullChapterName);
+                    
+                    chapterSubmenu = new QMenu(fullChapterName);
+                    mainItem->setMenu(chapterSubmenu);
+                }
+                else
+                {
+                    qDebug() << "unrecognized chapter value " << recipeChapterValue;
+                    qApp->beep();
+                    break;
+                }
+            }
+            
+            // Move on to the current chapter
+            previousItemChapter = recipeChapter;
+            
+            // And now add the menu item for the recipe
+            QAction *menuItem = chapterSubmenu->addAction(recipeName);
+            
+            connect(menuItem, &QAction::triggered, this, &QtSLiMAppDelegate::openRecipe);
+            menuItem->setData(QVariant(entryName));
+        }
+    }
+}
+
 
 //
 //  public slots
@@ -64,20 +156,74 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
 
 void QtSLiMAppDelegate::lastWindowClosed(void)
 {
+    //qDebug() << "QtSLiMAppDelegate::lastWindowClosed";
 }
 
 void QtSLiMAppDelegate::aboutToQuit(void)
 {
+    //qDebug() << "QtSLiMAppDelegate::aboutToQuit";
 }
 
-void QtSLiMAppDelegate::showAboutWindow(void)
+void QtSLiMAppDelegate::findRecipe(void)
 {
-    // FIXME implement
+    qDebug() << "QtSLiMAppDelegate::findRecipe";
 }
 
-void QtSLiMAppDelegate::showHelp(void)
+void QtSLiMAppDelegate::openRecipe(void)
 {
-    // FIXME implement
+    QAction *action = qobject_cast<QAction *>(sender());
+    
+    if (action)
+    {
+        const QVariant &data = action->data();
+        QString resourceName = data.toString();
+        
+        if (resourceName.length())
+        {
+            QString resourcePath = ":/recipes/" + resourceName;
+            QFile recipeFile(resourcePath);
+            
+            if (recipeFile.open(QFile::ReadOnly | QFile::Text))
+            {
+                QTextStream recipeTextStream(&recipeFile);
+                QString recipeScript = recipeTextStream.readAll();
+                
+                // We delegate the opening itself to the active window, so that it can tile
+                // and so forth; finding the active window is a bit of a pain though
+                QWidget *activeWindow = qApp->activeWindow();
+                QtSLiMWindow *activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(activeWindow);
+                
+                if (!activeQtSLiMWindow)
+                {
+                    const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
+                    
+                    for (QWidget *widget : topLevelWidgets)
+                    {
+                        if (!widget->isHidden())
+                        {
+                            activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(widget);
+                            if (activeQtSLiMWindow) break;
+                        }
+                    }
+                }
+                
+                if (activeQtSLiMWindow)
+                {
+                    QString trimmedName = resourceName;
+                    
+                    if (trimmedName.endsWith(".txt"))
+                        trimmedName.chop(4);
+                    
+                    activeQtSLiMWindow->openRecipe(trimmedName, recipeScript);
+                }
+                else
+                {
+                    // beep if there is no QtSLiMWindow to handle the action, but this should never happen
+                    qApp->beep();
+                }
+            }
+        }
+     }
 }
 
 

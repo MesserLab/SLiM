@@ -1,0 +1,60 @@
+// Keywords: nonWF, non-Wright-Fisher
+
+function (i)readIntTable(s$ path)
+{
+	if (!fileExists(path))
+		stop("readIntTable(): File not found at path " + path);
+	l = readFile(path);
+	m = sapply(l, "asInteger(strsplit(applyValue));", simplify="matrix");
+	return t(m);
+}
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 10);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+	
+	// read in the pedigree log files
+	defineConstant("M", readIntTable("~/Desktop/mating.txt"));
+	defineConstant("D", readIntTable("~/Desktop/death.txt"));
+	
+	// extract the generations for quick lookup
+	defineConstant("Mg", drop(M[,0]));
+	defineConstant("Dg", drop(D[,0]));
+}
+reproduction() {
+	// generate all offspring for the generation
+	m = M[Mg == sim.generation,];
+	
+	for (index in seqLen(nrow(m))) {
+		row = m[index,];
+		ind = subpop.subsetIndividuals(tag=row[,1]);
+		mate = subpop.subsetIndividuals(tag=row[,2]);
+		child = subpop.addCrossed(ind, mate);
+		child.tag = row[,3];
+	}
+	
+	self.active = 0;
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+	
+	// provide initial tags matching the original model
+	p1.individuals.tag = 1:10;
+}
+early() {
+	// execute the predetermined mortality
+	inds = p1.individuals;
+	inds.fitnessScaling = 1.0;
+	
+	d = drop(D[Dg == sim.generation, 1]);
+	indices = match(d, inds.tag);
+	inds[indices].fitnessScaling = 0.0;
+}
+100 late() { sim.simulationFinished(); }

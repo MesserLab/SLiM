@@ -1,0 +1,13 @@
+// Keywords: sexual, sex ratio
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	initializeSex("A");
+}
+1 { sim.addSubpop("p1", 500); }
+1: { p1.setSexRatio(runif(1, 0.3, 0.7)); }
+10000 { sim.simulationFinished(); }

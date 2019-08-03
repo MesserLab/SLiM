@@ -1,0 +1,40 @@
+// Keywords: tree-sequence recording, tree sequence recording, migration, dispersal
+
+initialize() {
+	defineConstant("L", 1e8);
+	initializeTreeSeq();
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.1);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+	
+	p1.genomes.addNewDrawnMutation(m1, asInteger(L * 0.2));
+	p2.genomes.addNewDrawnMutation(m1, asInteger(L * 0.8));
+	
+	sim.addSubpop("p3", 1000);
+	p3.setMigrationRates(c(p1, p2), c(0.5, 0.5));
+}
+2 late() {
+	p3.setMigrationRates(c(p1, p2), c(0.0, 0.0));
+	p1.setSubpopulationSize(0);
+	p2.setSubpopulationSize(0);
+}
+2: late() {
+	if (sim.mutationsOfType(m1).size() == 0)
+	{
+		sim.treeSeqOutput("./recipe_17.5.trees");
+		sim.simulationFinished();
+	}
+}
+10000 late() {
+	stop("Did not reach fixation of beneficial alleles.");
+}
+
+// Part II of this recipe, which is a Python script, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/

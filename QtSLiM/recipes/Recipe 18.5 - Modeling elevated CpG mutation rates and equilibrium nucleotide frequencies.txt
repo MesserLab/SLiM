@@ -1,0 +1,31 @@
+// Keywords: nucleotide-based, sequence-based mutation rate
+
+initialize() {
+	defineConstant("L", 1e5);
+	defineConstant("mu", 7.5e-6);
+	
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	
+	mm = mm16To256(mmJukesCantor(mu / 3));
+	xcg = c("ACG", "CCG", "GCG", "TCG");
+	xcg_codons = nucleotidesToCodons(paste0(xcg));
+	mm[xcg_codons,3] = mm[xcg_codons,3] * 20;  // rates to T
+	cgx = c("CGA", "CGC", "CGG", "CGT");
+	cgx_codons = nucleotidesToCodons(paste0(cgx));
+	mm[cgx_codons,0] = mm[cgx_codons,0] * 20;  // rates to A
+	
+	initializeGenomicElementType("g1", m1, 1.0, mutationMatrix=mm);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 10);
+}
+1:10000000 {
+	if (sim.generation % 10000 == 1) {
+		cat(sim.generation + ": ");
+		print(nucleotideFrequencies(sim.chromosome.ancestralNucleotides()));
+	}
+}

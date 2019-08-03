@@ -1,0 +1,18 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "e", -0.01);
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", c(m1,m2), c(1,1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 100); }
+{
+	meanFitness = mean(p1.cachedFitness(NULL));
+	newSize = asInteger(100 * meanFitness);
+	p1.setSubpopulationSize(newSize);
+}
+10000 late() { sim.outputFull(); }

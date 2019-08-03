@@ -26,7 +26,6 @@
 
 // TO DO:
 //
-// add access to recipes through the File menu
 // custom layout for play/profile buttons: https://doc.qt.io/qt-5/layout.html
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
@@ -36,7 +35,6 @@
 // enable the other display types in the individuals view
 // syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
-// multiple windows, document model, open/save/revert, etc.
 // add a preferences panel: font/size, syntax coloring pref, etc.
 // code editing: code completion
 // implement the Eidos console, help window, status bar
@@ -68,10 +66,28 @@ QtSLiMWindow::QtSLiMWindow(const QString &fileName) : QMainWindow(nullptr), ui(n
     loadFile(fileName);
 }
 
+QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScript) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
+{
+    init();
+    setCurrentFile(QString());
+    setWindowFilePath(recipeName);
+    isRecipe = true;
+    
+    // set up the initial script
+    ui->scriptTextEdit->setPlainText(recipeScript);
+    setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
+    
+    // Update all our UI to reflect the current state of the simulation
+    updateAfterTickFull(true);
+    resetSLiMChangeCount();     // no recycle change count; the current model is correct
+    setWindowModified(false);    // untitled windows consider themselves unmodified
+}
+
 void QtSLiMWindow::init(void)
 {
     setAttribute(Qt::WA_DeleteOnClose);
     isUntitled = true;
+    isRecipe = false;
     
     // create the window UI
     ui->setupUi(this);
@@ -197,10 +213,13 @@ void QtSLiMWindow::initializeUI(void)
     // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
     
-    settings.beginGroup("MainWindow");
+    settings.beginGroup("QtSLiMMainWindow");
     resize(settings.value("size", QSize(950, 700)).toSize());
     move(settings.value("pos", QPoint(100, 100)).toPoint());
     settings.endGroup();
+    
+    // Ask the app delegate to handle the recipes menu for us
+    qtSLiMAppDelegate->setUpRecipesMenu(ui->menuOpen_Recipe, ui->actionFindRecipe);
 }
 
 QtSLiMWindow::~QtSLiMWindow()
@@ -386,7 +405,7 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
         // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
         QSettings settings;
         
-        settings.beginGroup("MainWindow");
+        settings.beginGroup("QtSLiMMainWindow");
         settings.setValue("size", size());
         settings.setValue("pos", pos());
         settings.endGroup();
@@ -428,12 +447,12 @@ void QtSLiMWindow::newFile_nonWF()
 void QtSLiMWindow::open()
 {
     QSettings settings;
-    QString directory = settings.value("DefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
+    QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
     
     const QString fileName = QFileDialog::getOpenFileName(this, QString(), directory, "SLiM models (*.slim);;Text files (*.txt)");  // add PDF files eventually
     if (!fileName.isEmpty())
     {
-        settings.setValue("DefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
+        settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
         openFile(fileName);
     }
 }
@@ -448,13 +467,42 @@ void QtSLiMWindow::openFile(const QString &fileName)
         return;
     }
 
-    if (isUntitled && (slimChangeCount == 0) && !isWindowModified()) {
+    if (isUntitled && !isRecipe && (slimChangeCount == 0) && !isWindowModified()) {
         loadFile(fileName);
         return;
     }
 
     QtSLiMWindow *other = new QtSLiMWindow(fileName);
     if (other->isUntitled) {
+        delete other;
+        return;
+    }
+    other->tile(this);
+    other->show();
+}
+
+void QtSLiMWindow::openRecipe(const QString &recipeName, const QString &recipeScript)
+{
+    if (isUntitled && !isRecipe && (slimChangeCount == 0) && !isWindowModified())
+    {
+        //[_consoleController invalidateSymbolTableAndFunctionMap];
+        clearOutputClicked();
+        ui->scriptTextEdit->setPlainText(recipeScript);
+        setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
+        //[_consoleController validateSymbolTableAndFunctionMap];
+        
+        setWindowFilePath(recipeName);
+        isRecipe = true;
+        
+        // Update all our UI to reflect the current state of the simulation
+        updateAfterTickFull(true);
+        resetSLiMChangeCount();     // no recycle change count; the current model is correct
+        setWindowModified(false);   // loaded windows start unmodified
+        return;
+    }
+
+    QtSLiMWindow *other = new QtSLiMWindow(recipeName, recipeScript);
+    if (!other->isRecipe) {
         delete other;
         return;
     }
@@ -474,14 +522,15 @@ bool QtSLiMWindow::saveAs()
     if (isUntitled)
     {
         QSettings settings;
-        QString directory = settings.value("DefaultSaveDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
+        QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+        QString directory = settings.value("QtSLiMDefaultSaveDirectory", QVariant(desktopPath)).toString();
         QFileInfo fileInfo(QDir(directory), "Untitled.slim");
         QString path = fileInfo.absoluteFilePath();
         
         fileName = QFileDialog::getSaveFileName(this, "Save As", path);
         
-        if (fileName.isEmpty())
-            settings.setValue("DefaultSaveDirectory", QVariant(QFileInfo(fileName).path()));
+        if (!fileName.isEmpty())
+            settings.setValue("QtSLiMDefaultSaveDirectory", QVariant(QFileInfo(fileName).path()));
     }
     else
     {
@@ -1519,7 +1568,7 @@ bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessRespon
 		{
             QSettings settings;
             
-            if (!settings.value("SuppressScriptCheckSuccessPanel", false).toBool())
+            if (!settings.value("QtSLiMSuppressScriptCheckSuccessPanel", false).toBool())
 			{
                 // In SLiMgui we play a "success" sound too, but doing anything besides beeping is apparently difficult with Qt...
                 
@@ -1532,7 +1581,7 @@ bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessRespon
                 messageBox.exec();
                 
                 if (messageBox.checkBox()->isChecked())
-                    settings.setValue("SuppressScriptCheckSuccessPanel", true);
+                    settings.setValue("QtSLiMSuppressScriptCheckSuccessPanel", true);
             }
 		}
 	}

@@ -43,7 +43,7 @@ private:
     QtSLiMWindow *findMainWindow(const QString &fileName) const;
     
     QString curFile;
-    bool isUntitled = false;
+    bool isUntitled = false, isRecipe = false;
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
     
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
@@ -95,12 +95,14 @@ public:
         nonWF
     } ModelType;
     
-    QtSLiMWindow(QtSLiMWindow::ModelType modelType);    // untitled window
-    explicit QtSLiMWindow(const QString &fileName);     // window from a file
+    QtSLiMWindow(QtSLiMWindow::ModelType modelType);                        // untitled window
+    explicit QtSLiMWindow(const QString &fileName);                         // window from a file
+    QtSLiMWindow(const QString &recipeName, const QString &recipeScript);   // window from a recipe
     virtual ~QtSLiMWindow() override;
     
     void initializeUI(void);
     void tile(const QMainWindow *previous);
+    void openRecipe(const QString &recipeName, const QString &recipeScript);   // called by QtSLiMAppDelegate to open a new recipe window
     
     static QFont &defaultScriptFont(int *p_tabWidth);
     static std::string defaultWFScriptString(void);

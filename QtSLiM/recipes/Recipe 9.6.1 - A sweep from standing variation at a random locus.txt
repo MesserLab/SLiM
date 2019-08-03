@@ -1,0 +1,36 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 1.0, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+1000 late() {
+	muts = sim.mutations;
+	muts = muts[sim.mutationFrequencies(p1, muts) > 0.1];
+	
+	if (size(muts))
+	{
+		mut = sample(muts, 1);
+		mut.setSelectionCoeff(0.5);
+	}
+	else
+	{
+		cat("No contender of sufficient frequency found.\n");
+	}
+}
+1000:10000 late() {
+	if (sum(sim.mutations.selectionCoeff) == 0.0)
+	{
+		if (sum(sim.substitutions.selectionCoeff) == 0.0)
+			cat("Sweep mutation lost in gen. " + sim.generation + "\n");
+		else
+			cat("Sweep mutation reached fixation.\n");
+		sim.simulationFinished();
+	}
+}

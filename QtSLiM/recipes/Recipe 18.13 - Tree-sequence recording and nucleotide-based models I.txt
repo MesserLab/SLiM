@@ -1,0 +1,14 @@
+// Keywords: nucleotide-based, nucleotide sequence, sequence-based mutation rate
+
+initialize() {
+	defineConstant("L", 1e5);
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeTreeSeq();
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(1e-6));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-6);
+}
+1 { sim.addSubpop("p1", 1000); }
+1000 { sim.treeSeqOutput("recipe_nucleotides.trees"); }

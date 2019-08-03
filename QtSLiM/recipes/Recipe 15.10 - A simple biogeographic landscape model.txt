@@ -1,0 +1,61 @@
+// Keywords: continuous space, continuous spatial landscape, spatial map, reprising boundaries
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	// spatial competition
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=30.0);
+	i1.setInteractionFunction("n", 5.0, 10.0);
+	
+	// spatial mate choice
+	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=30.0);
+	i2.setInteractionFunction("n", 1.0, 10.0);
+}
+1 late() {
+	sim.addSubpop("p1", 1000);
+	
+	p1.setSpatialBounds(c(0.0, 0.0, 540.0, 217.0));
+	
+	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
+	mapLines = rev(readFile("~/Desktop/world_map_540x217.txt"));
+	mapLines = sapply(mapLines, "strsplit(applyValue, '') == '#';");
+	mapValues = asFloat(mapLines);
+	
+	p1.defineSpatialMap("world", "xy", c(540, 217), mapValues,
+		valueRange=c(0.0, 1.0), colors=c("#0000CC", "#55FF22"));
+	
+	// start near a specific map location
+	for (ind in p1.individuals) {
+		ind.x = rnorm(1, 300.0, 1.0);
+		ind.y = rnorm(1, 100.0, 1.0);
+	}
+}
+1: late() {
+	i1.evaluate();
+	inds = sim.subpopulations.individuals;
+	competition = i1.totalOfNeighborStrengths(inds) / size(inds);
+	competition = pmin(competition, 0.99);
+	inds.fitnessScaling = 1.0 - competition;
+	
+	i2.evaluate();
+}
+1: mateChoice() {
+	return i2.strength(individual);
+}
+modifyChild() {
+	do pos = parent1.spatialPosition + rnorm(2, 0, 2.0);
+	while (!p1.pointInBounds(pos));
+	
+	// prevent dispersal into water
+	if (p1.spatialMapValue("world", pos) == 0.0)
+		return F;
+	
+	child.setSpatialPosition(pos);
+	return T;
+}
+2000 late() { sim.outputFixedMutations(); }

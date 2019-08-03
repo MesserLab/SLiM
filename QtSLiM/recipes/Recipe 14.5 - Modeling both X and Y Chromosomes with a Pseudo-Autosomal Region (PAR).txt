@@ -1,0 +1,79 @@
+// Keywords: sexual, MS format, pseudo-autosomal region
+
+initialize()
+{
+	initializeMutationRate(1.5e-8);
+	initializeMutationType("m1", 0.5, "f", 0.0);     // PAR
+	initializeMutationType("m2", 0.5, "f", 0.0);     // non-PAR
+	initializeMutationType("m3", 1.0, "f", 0.0);     // Y marker
+	
+	// 6 Mb chromosome; the PAR is 2.7 Mb at the start
+	initializeGenomicElementType("g1", m1, 1.0);     // PAR: m1 only
+	initializeGenomicElementType("g2", m2, 1.0);     // non-PAR: m2 only
+	initializeGenomicElement(g1, 0, 2699999);        // PAR
+	initializeGenomicElement(g2, 2700000, 5999999);  // non-PAR
+	
+	// turn on sex and model as an autosome
+	initializeSex("A");
+	
+	// no recombination in males outside PAR
+	initializeRecombinationRate(c(1e-8, 0), c(2699999, 5999999), sex="M");
+	initializeRecombinationRate(1e-8, sex="F");
+}
+
+1 late() {
+	// initialize the pop, with a Y marker for each male
+	sim.addSubpop("p1", 1000);
+	i = p1.individuals;
+	i[i.sex == "M"].genome2.addNewMutation(m3, 0.0, 5999999);
+}
+
+modifyChild() {
+	// females should not have a Y, males should have a Y
+	if (child.sex == "F")
+		return !childGenome2.containsMarkerMutation(m3, 5999999);
+	else
+		return childGenome2.containsMarkerMutation(m3, 5999999);
+}
+
+1:10000 late() {
+	// periodically remove m2 (non-PAR) mutations that are fixed in X or Y
+	// m1 (PAR) mutations will be automatically removed when fixed
+	if (sim.generation % 1000 == 0) {
+		numY = sum(p1.individuals.sex == "M");
+		numX = 2 * size(p1.individuals) - numY;
+		
+		// look at the mutations in a single Y chromosome
+		// to find mutations that are fixed in all Y's
+		firstMale = p1.individuals[p1.individuals.sex == "M"][0];
+		fMG = firstMale.genomes;
+		
+		if (fMG[0].containsMarkerMutation(m3, 5999999)) {
+			firstY = fMG[0];
+			firstX = fMG[1];
+		} else if (fMG[1].containsMarkerMutation(m3, 5999999)) {
+			firstY = fMG[1];
+			firstX = fMG[0];
+		} else
+			stop("### ERROR: no Ys in first male");
+		
+		ymuts = firstY.mutationsOfType(m2);
+		ycounts = sim.mutationCounts(NULL, ymuts);
+		removeY = ymuts[ycounts == numY];
+		
+		// now do the same for the X
+		xmuts = firstX.mutationsOfType(m2);
+		xcounts = sim.mutationCounts(NULL, xmuts);
+		removeX = xmuts[xcounts == numX];
+		
+		cat("Gen. " + sim.generation + ": Removing ");
+		cat(removeX.size() + "/" + removeY.size() + " on X/Y\n");
+		
+		removes = c(removeY, removeX);
+		sim.subpopulations.genomes.removeMutations(removes, T);
+	}
+}
+
+10000 late() {
+	p1.outputMSSample(10, replace=F, requestedSex="F");
+}

@@ -1248,7 +1248,7 @@ QPushButton:checked {
     </property>
     <widget class="QMenu" name="menuOpen_Recipe">
      <property name="title">
-      <string>Open Recipe...</string>
+      <string>Open Recipe</string>
      </property>
      <addaction name="actionFindRecipe"/>
      <addaction name="separator"/>
@@ -1655,6 +1655,9 @@ QPushButton:checked {
   <action name="actionFindRecipe">
    <property name="text">
     <string>Find Recipe...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
    </property>
   </action>
   <action name="actionPreferences">
