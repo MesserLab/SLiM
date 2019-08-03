@@ -1481,7 +1481,7 @@ QPushButton:checked {
     <string>Step</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+Num+Right</string>
+    <string>Ctrl+Shift+P</string>
    </property>
   </action>
   <action name="actionPlay">
@@ -1489,7 +1489,7 @@ QPushButton:checked {
     <string>Play</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Right</string>
+    <string>Ctrl+P</string>
    </property>
   </action>
   <action name="actionProfile">
@@ -1502,7 +1502,7 @@ QPushButton:checked {
     <string>Recycle</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Up</string>
+    <string>Ctrl+R</string>
    </property>
   </action>
   <action name="actionChangeWorkingDirectory">
@@ -1513,9 +1513,6 @@ QPushButton:checked {
   <action name="actionDumpPopulationState">
    <property name="text">
     <string>Dump Population State</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Down</string>
    </property>
   </action>
   <action name="actionCheckScript">
@@ -1722,9 +1719,6 @@ QPushButton:checked {
   <action name="actionRevertToSaved">
    <property name="text">
     <string>Revert to Saved</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+R</string>
    </property>
   </action>
  </widget>
