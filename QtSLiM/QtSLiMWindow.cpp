@@ -219,7 +219,22 @@ void QtSLiMWindow::initializeUI(void)
     settings.endGroup();
     
     // Ask the app delegate to handle the recipes menu for us
-    qtSLiMAppDelegate->setUpRecipesMenu(ui->menuOpen_Recipe, ui->actionFindRecipe);
+    qtSLiMAppDelegate->setUpRecipesMenu(ui->menuOpenRecipe, ui->actionFindRecipe);
+    
+    // Set up the recent documents submenu
+    QMenu *recentMenu = new QMenu("Open Recent");
+    ui->actionOpenRecent->setMenu(recentMenu);
+    connect(recentMenu, &QMenu::aboutToShow, this, &QtSLiMWindow::updateRecentFileActions);
+    
+    for (int i = 0; i < MaxRecentFiles; ++i) {
+        recentFileActs[i] = recentMenu->addAction(QString(), this, &QtSLiMWindow::openRecentFile);
+        recentFileActs[i]->setVisible(false);
+    }
+    
+    recentMenu->addSeparator();
+    recentMenu->addAction("Clear Menu", this, &QtSLiMWindow::clearRecentFiles);
+    
+    setRecentFilesVisible(QtSLiMWindow::hasRecentFiles());
 }
 
 QtSLiMWindow::~QtSLiMWindow()
@@ -644,12 +659,11 @@ void QtSLiMWindow::setCurrentFile(const QString &fileName)
 
     ui->scriptTextEdit->document()->setModified(false);
     setWindowModified(false);
+    
+    if (!isUntitled)
+        QtSLiMWindow::prependToRecentFiles(curFile);
+    
     setWindowFilePath(curFile);
-}
-
-QString QtSLiMWindow::strippedName(const QString &fullFileName)
-{
-    return QFileInfo(fullFileName).fileName();
 }
 
 QtSLiMWindow *QtSLiMWindow::findMainWindow(const QString &fileName) const
@@ -685,6 +699,97 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
     const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
     if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + pos))
         move(pos);
+}
+
+
+//
+//  Recent documents
+//
+
+void QtSLiMWindow::setRecentFilesVisible(bool visible)
+{
+    ui->actionOpenRecent->setVisible(visible);
+}
+
+static inline QString recentFilesKey() { return QStringLiteral("QtSLiMRecentFilesList"); }
+static inline QString fileKey() { return QStringLiteral("file"); }
+
+static QStringList readRecentFiles(QSettings &settings)
+{
+    QStringList result;
+    const int count = settings.beginReadArray(recentFilesKey());
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        result.append(settings.value(fileKey()).toString());
+    }
+    settings.endArray();
+    return result;
+}
+
+static void writeRecentFiles(const QStringList &files, QSettings &settings)
+{
+    const int count = files.size();
+    settings.beginWriteArray(recentFilesKey());
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        settings.setValue(fileKey(), files.at(i));
+    }
+    settings.endArray();
+}
+
+bool QtSLiMWindow::hasRecentFiles()
+{
+    QSettings settings;
+    const int count = settings.beginReadArray(recentFilesKey());
+    settings.endArray();
+    return count > 0;
+}
+
+void QtSLiMWindow::prependToRecentFiles(const QString &fileName)
+{
+    QSettings settings;
+
+    const QStringList oldRecentFiles = readRecentFiles(settings);
+    QStringList recentFiles = oldRecentFiles;
+    recentFiles.removeAll(fileName);
+    recentFiles.prepend(fileName);
+    if (oldRecentFiles != recentFiles)
+        writeRecentFiles(recentFiles, settings);
+
+    setRecentFilesVisible(!recentFiles.isEmpty());
+}
+
+void QtSLiMWindow::updateRecentFileActions()
+{
+    QSettings settings;
+
+    const QStringList recentFiles = readRecentFiles(settings);
+    const int count = qMin(int(MaxRecentFiles), recentFiles.size());
+    int i = 0;
+    for ( ; i < count; ++i) {
+        const QString fileName = QFileInfo(recentFiles.at(i)).fileName();
+        recentFileActs[i]->setText(fileName);
+        recentFileActs[i]->setData(recentFiles.at(i));
+        recentFileActs[i]->setVisible(true);
+    }
+    for ( ; i < MaxRecentFiles; ++i)
+        recentFileActs[i]->setVisible(false);
+}
+
+void QtSLiMWindow::openRecentFile()
+{
+    const QAction *action = qobject_cast<const QAction *>(sender());
+    
+    if (action)
+        openFile(action->data().toString());
+}
+
+void QtSLiMWindow::clearRecentFiles()
+{
+    QSettings settings;
+    QStringList emptyRecentFiles;
+    writeRecentFiles(emptyRecentFiles, settings);
+    setRecentFilesVisible(false);
 }
 
 

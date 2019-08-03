@@ -39,12 +39,19 @@ private:
     void loadFile(const QString &fileName);
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
-    static QString strippedName(const QString &fullFileName);
     QtSLiMWindow *findMainWindow(const QString &fileName) const;
     
     QString curFile;
     bool isUntitled = false, isRecipe = false;
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
+    
+    // recent files
+    enum { MaxRecentFiles = 10 };
+    QAction *recentFileActs[MaxRecentFiles];
+    
+    static bool hasRecentFiles();
+    void prependToRecentFiles(const QString &fileName);
+    void setRecentFilesVisible(bool visible);
     
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
     Eidos_RNG_State sim_RNG = {};
@@ -189,6 +196,9 @@ private slots:
     bool save();
     bool saveAs();
     void revert();
+    void updateRecentFileActions();
+    void openRecentFile();
+    void clearRecentFiles();
     void documentWasModified();
     
     void playOneStepPressed(void);

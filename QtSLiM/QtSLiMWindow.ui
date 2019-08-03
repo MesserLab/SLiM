@@ -1246,7 +1246,7 @@ QPushButton:checked {
     <property name="title">
      <string>File</string>
     </property>
-    <widget class="QMenu" name="menuOpen_Recipe">
+    <widget class="QMenu" name="menuOpenRecipe">
      <property name="title">
       <string>Open Recipe</string>
      </property>
@@ -1259,7 +1259,8 @@ QPushButton:checked {
     <addaction name="actionNew"/>
     <addaction name="actionNew_nonWF"/>
     <addaction name="actionOpen"/>
-    <addaction name="menuOpen_Recipe"/>
+    <addaction name="actionOpenRecent"/>
+    <addaction name="menuOpenRecipe"/>
     <addaction name="separator"/>
     <addaction name="actionClose"/>
     <addaction name="actionSave"/>
@@ -1719,6 +1720,11 @@ QPushButton:checked {
   <action name="actionRevertToSaved">
    <property name="text">
     <string>Revert to Saved</string>
+   </property>
+  </action>
+  <action name="actionOpenRecent">
+   <property name="text">
+    <string>Open Recent</string>
    </property>
   </action>
  </widget>
