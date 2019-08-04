@@ -19,6 +19,7 @@
 #include <QCloseEvent>
 #include <QDesktopWidget>
 #include <QStandardPaths>
+#include <QToolTip>
 
 #include <unistd.h>
 
@@ -1329,7 +1330,7 @@ void QtSLiMWindow::_continuousPlay(void)
         QElapsedTimer startTimer;
         startTimer.start();
         
-		double speedSliderValue = 1.0; //[playSpeedSlider doubleValue];
+		double speedSliderValue = ui->playSpeedSlider->value() / 100.0;     // scale is 0 to 100, since only integer values are allowed by QSlider
 		double intervalSinceStarting = continuousPlayElapsedTimer_.nsecsElapsed() / 1000000000.0;
 		
 		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
@@ -1338,7 +1339,7 @@ void QtSLiMWindow::_continuousPlay(void)
 		if (speedSliderValue < 0.99999)
 			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 		
-		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %f", speedSliderValue, maxGenerationsPerSecond);
+		//qDebug() << "speedSliderValue == " << speedSliderValue << ", maxGenerationsPerSecond == " << maxGenerationsPerSecond;
 		
 		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
@@ -1367,7 +1368,6 @@ void QtSLiMWindow::_continuousPlay(void)
 		{
 			// stop playing
 			updateAfterTickFull(true);
-			//[playButton setState:NSOffState];
 			playClicked();
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
@@ -1676,6 +1676,43 @@ void QtSLiMWindow::recycleClicked(void)
 	resetSLiMChangeCount();
 
 	//[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
+}
+
+void QtSLiMWindow::playSpeedChanged(void)
+{
+	// We want our speed to be from the point when the slider changed, not from when play started
+    continuousPlayElapsedTimer_.restart();
+	continuousPlayGenerationsCompleted_ = 1;		// this prevents a new generation from executing every time the slider moves a pixel
+	
+	// This method is called whenever playSpeedSlider changes, continuously; we want to show the chosen speed in a tooltip-ish window
+    double speedSliderValue = ui->playSpeedSlider->value() / 100.0;     // scale is 0 to 100, since only integer values are allowed by QSlider
+	
+	// Calculate frames per second; this equation must match the equation in _continuousPlay:
+	double maxGenerationsPerSecond = static_cast<double>(INFINITY);
+	
+	if (speedSliderValue < 0.99999)
+		maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+	
+	// Make a tooltip label string
+	QString fpsString("∞ fps");
+	
+	if (!isinf(maxGenerationsPerSecond))
+	{
+		if (maxGenerationsPerSecond < 1.0)
+			fpsString = QString::asprintf("%.2f fps", maxGenerationsPerSecond);
+		else if (maxGenerationsPerSecond < 10.0)
+			fpsString = QString::asprintf("%.1f fps", maxGenerationsPerSecond);
+		else
+			fpsString = QString::asprintf("%.0f fps", maxGenerationsPerSecond);
+		
+		//qDebug() << "fps string: " << fpsString;
+	}
+    
+    // Show the tooltip; wow, that was easy...
+    QPoint widgetOrigin = ui->playSpeedSlider->mapToGlobal(QPoint());
+    QPoint cursorPosition = QCursor::pos();
+    QPoint tooltipPosition = QPoint(cursorPosition.x() - 2, widgetOrigin.y() - ui->playSpeedSlider->rect().height() - 8);
+    QToolTip::showText(tooltipPosition, fpsString, ui->playSpeedSlider, QRect(), 1000000);  // 1000 seconds; taken down on mouseup automatically
 }
 
 void QtSLiMWindow::showMutationsToggled(void)

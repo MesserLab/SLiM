@@ -166,6 +166,7 @@ public slots:
     void profileClicked(void);
     void generationChanged(void);
     void recycleClicked(void);
+    void playSpeedChanged(void);
 
     void showMutationsToggled(void);
     void showFixedSubstitutionsToggled(void);
