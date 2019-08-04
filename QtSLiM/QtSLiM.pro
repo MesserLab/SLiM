@@ -68,7 +68,8 @@ SOURCES += \
     QtSLiMIndividualsWidget.cpp \
     QtSLiMEidosPrettyprinter.cpp \
     QtSLiMAbout.cpp \
-    QtSLiMPreferences.cpp
+    QtSLiMPreferences.cpp \
+    QtSLiMSyntaxHighlighting.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -79,7 +80,8 @@ HEADERS += \
     QtSLiMIndividualsWidget.h \
     QtSLiMEidosPrettyprinter.h \
     QtSLiMAbout.h \
-    QtSLiMPreferences.h
+    QtSLiMPreferences.h \
+    QtSLiMSyntaxHighlighting.h
 
 FORMS += \
     QtSLiMWindow.ui \

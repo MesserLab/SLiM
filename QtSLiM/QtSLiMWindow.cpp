@@ -4,6 +4,7 @@
 #include "QtSLiMEidosPrettyprinter.h"
 #include "QtSLiMAbout.h"
 #include "QtSLiMPreferences.h"
+#include "QtSLiMSyntaxHighlighting.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -45,6 +46,7 @@
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 // implement graph windows
 // implement Find Recipe...
+// implement the "When QtSLiM starts" pref
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
@@ -123,6 +125,8 @@ void QtSLiMWindow::init(void)
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
     
     connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMWindow::displayFontPrefChanged);
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::scriptSyntaxHighlightPrefChanged, this, &QtSLiMWindow::scriptSyntaxHighlightPrefChanged);
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::outputSyntaxHighlightPrefChanged, this, &QtSLiMWindow::outputSyntaxHighlightPrefChanged);
     
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
@@ -155,7 +159,10 @@ void QtSLiMWindow::initializeUI(void)
 
     ui->outputTextEdit->setFont(scriptFont);
     ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
-
+    
+    scriptSyntaxHighlightPrefChanged();     // create a highlighter if needed
+    outputSyntaxHighlightPrefChanged();     // create a highlighter if needed
+    
     // remove the profile button, for the time being
     QPushButton *profileButton = ui->profileButton;
 
@@ -1225,6 +1232,42 @@ void QtSLiMWindow::displayFontPrefChanged()
     
     ui->outputTextEdit->setFont(displayFont);
     ui->outputTextEdit->setTabStopWidth(tabWidth);
+}
+
+void QtSLiMWindow::scriptSyntaxHighlightPrefChanged()
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    bool highlightPref = prefs.scriptSyntaxHighlightPref();
+    
+    if (highlightPref && !scriptHighlighter)
+    {
+        scriptHighlighter = new QtSLiMScriptHighlighter(ui->scriptTextEdit->document());
+    }
+    else if (!highlightPref && scriptHighlighter)
+    {
+        scriptHighlighter->setDocument(nullptr);
+        scriptHighlighter->setParent(nullptr);
+        delete scriptHighlighter;
+        scriptHighlighter = nullptr;
+    }
+}
+
+void QtSLiMWindow::outputSyntaxHighlightPrefChanged()
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    bool highlightPref = prefs.outputSyntaxHighlightPref();
+    
+    if (highlightPref && !outputHighlighter)
+    {
+        outputHighlighter = new QtSLiMOutputHighlighter(ui->outputTextEdit->document());
+    }
+    else if (!highlightPref && outputHighlighter)
+    {
+        outputHighlighter->setDocument(nullptr);
+        outputHighlighter->setParent(nullptr);
+        delete outputHighlighter;
+        outputHighlighter = nullptr;
+    }
 }
 
 

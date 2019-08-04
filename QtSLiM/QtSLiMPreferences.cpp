@@ -74,6 +74,8 @@ QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth)
     int fontSize = settings.value(QtSLiMDisplayFontSize, QVariant(defaultSize)).toInt();
     QFont font(fontFamily, fontSize);
     
+    font.setFixedPitch(true);    // I think this is a hint to help QFont match to similar fonts?
+    
     if (tabWidth)
     {
         QFontMetrics fm(font);

@@ -21,6 +21,8 @@
 class Subpopulation;
 class QCloseEvent;
 class QTextCursor;
+class QtSLiMOutputHighlighter;
+class QtSLiMScriptHighlighter;
 
 
 namespace Ui {
@@ -82,6 +84,9 @@ private:
 #endif
     
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
+    
+    QtSLiMOutputHighlighter *outputHighlighter = nullptr;
+    QtSLiMScriptHighlighter *scriptHighlighter = nullptr;
     
 public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
@@ -194,6 +199,9 @@ public slots:
     
 private slots:
     void displayFontPrefChanged();
+    void scriptSyntaxHighlightPrefChanged();
+    void outputSyntaxHighlightPrefChanged();
+    
     void aboutQtSLiM();
     void showPreferences();
     
