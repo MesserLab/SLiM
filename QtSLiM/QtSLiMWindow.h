@@ -69,6 +69,7 @@ private:
     QElapsedTimer continuousPlayElapsedTimer_;
     QTimer continuousPlayInvocationTimer_;
     uint64_t continuousPlayGenerationsCompleted_ = 0;
+    QTimer generationPlayInvocationTimer_;
     int partialUpdateCount_ = 0;
     //SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
 
@@ -124,6 +125,7 @@ public:
     inline bool reachedSimulationEnd(void) { return reachedSimulationEnd_; }
     void setReachedSimulationEnd(bool p_reachedEnd);
     void setContinuousPlayOn(bool p_flag);
+    void setGenerationPlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
     
     void selectErrorRange(void);
@@ -144,6 +146,7 @@ public:
     bool runSimOneGeneration(void);
     void _continuousPlay(void);
     void playOrProfile(bool isPlayAction);
+    void _generationPlay(void);
     
     void updateChangeCount(void);
     bool changedSinceRecycle(void);
@@ -161,6 +164,7 @@ public slots:
     void playOneStepClicked(void);
     void playClicked(void);
     void profileClicked(void);
+    void generationChanged(void);
     void recycleClicked(void);
 
     void showMutationsToggled(void);

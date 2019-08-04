@@ -42,7 +42,6 @@
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
-// implement generation play, play speed slider
 // implement graph windows
 // implement Find Recipe...
 
@@ -96,8 +95,9 @@ void QtSLiMWindow::init(void)
     ui->setupUi(this);
     initializeUI();
     
-    // wire up our continuous play timer
+    // wire up our continuous play and generation play timers
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
+    connect(&generationPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_generationPlay);
     
     // wire up deferred display of script errors and termination messages
     connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
@@ -122,6 +122,10 @@ void QtSLiMWindow::init(void)
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
     
     connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMWindow::displayFontPrefChanged);
+    
+    // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
+    ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+    QTimer::singleShot(0, [this]() { ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
 }
 
 void QtSLiMWindow::initializeUI(void)
@@ -822,6 +826,12 @@ void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
     updateUIEnabling();
 }
 
+void QtSLiMWindow::setGenerationPlayOn(bool p_flag)
+{
+    generationPlayOn_ = p_flag;
+    updateUIEnabling();
+}
+
 void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
 {
     nonProfilePlayOn_ = p_flag;
@@ -1199,6 +1209,8 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     ui->generationLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
+    
+    // [_consoleController setInterfaceEnabled:!(continuousPlayOn || generationPlayOn)];
 }
 
 void QtSLiMWindow::displayFontPrefChanged()
@@ -1525,6 +1537,7 @@ void QtSLiMWindow::playOneStepClicked(void)
         //[_consoleController invalidateSymbolTableAndFunctionMap];
         setReachedSimulationEnd(!runSimOneGeneration());
         //[_consoleController validateSymbolTableAndFunctionMap];
+        ui->generationLineEdit->clearFocus();
         updateAfterTickFull(true);
     }
 }
@@ -1539,6 +1552,111 @@ void QtSLiMWindow::profileClicked(void)
     playOrProfile(false);
 }
 
+void QtSLiMWindow::_generationPlay(void)
+{
+	// FIXME would be nice to have a way to stop this prematurely, if an inccorect generation is entered or whatever... BCH 2 Nov. 2017
+	if (!invalidSimulation_)
+	{
+        QElapsedTimer startTimer;
+        startTimer.start();
+		
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
+		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
+        bool reachedEnd = reachedSimulationEnd_;
+		
+		do
+		{
+			if (sim->generation_ >= targetGeneration_)
+				break;
+			
+            reachedEnd = !runSimOneGeneration();
+		}
+        while (!reachedEnd && (startTimer.nsecsElapsed() / 1000000000.0) < 0.02);
+		
+        setReachedSimulationEnd(reachedEnd);
+		
+		if (!reachedSimulationEnd_ && !(sim->generation_ >= targetGeneration_))
+		{
+            updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
+            generationPlayInvocationTimer_.start(0);
+		}
+		else
+		{
+			// stop playing
+            updateAfterTickFull(true);
+            generationChanged();
+			
+			// bounce our icon; if we are not the active app, to signal that the run is done
+			//[NSApp requestUserAttention:NSInformationalRequest];
+		}
+	}
+}
+
+void QtSLiMWindow::generationChanged(void)
+{
+	if (!generationPlayOn_)
+	{
+		QString generationString = ui->generationLineEdit->text();
+		
+		// Special-case initialize(); we can never advance to it, since it is first, so we just validate it
+		if (generationString == "initialize()")
+		{
+			if (sim->generation_ != 0)
+			{
+				qApp->beep();
+				updateGenerationCounter();
+                ui->generationLineEdit->selectAll();
+			}
+			
+			return;
+		}
+		
+		// Get the integer value from the textfield, since it is not "initialize()"
+		targetGeneration_ = SLiMClampToGenerationType(static_cast<int64_t>(generationString.toLongLong()));
+		
+		// make sure the requested generation is in range
+		if (sim->generation_ >= targetGeneration_)
+		{
+			if (sim->generation_ > targetGeneration_)
+            {
+                qApp->beep();
+                updateGenerationCounter();
+                ui->generationLineEdit->selectAll();
+			}
+            
+			return;
+		}
+		
+		// update UI
+		//[generationProgressIndicator startAnimation:nil];
+		setGenerationPlayOn(true);
+		
+		// invalidate the console symbols, and don't validate them until we are done
+		//[_consoleController invalidateSymbolTableAndFunctionMap];
+		
+		// get the first responder out of the generation textfield
+        ui->generationLineEdit->clearFocus();
+		
+		// start playing
+        generationPlayInvocationTimer_.start(0);
+	}
+	else
+	{
+		// stop our recurring perform request
+        generationPlayInvocationTimer_.stop();
+		
+		setGenerationPlayOn(false);
+		//[generationProgressIndicator stopAnimation:nil];
+		
+		//[_consoleController validateSymbolTableAndFunctionMap];
+		
+		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
+		//if (reachedSimulationEnd_)
+		//	forceImmediateMenuUpdate();
+	}
+}
+
 void QtSLiMWindow::recycleClicked(void)
 {
     // Converting a QString to a std::string is surprisingly tricky: https://stackoverflow.com/a/4644922/2752221
@@ -1548,6 +1666,7 @@ void QtSLiMWindow::recycleClicked(void)
 	clearOutputClicked();
     setScriptStringAndInitializeSimulation(utf8_script_string);
 	//[_consoleController validateSymbolTableAndFunctionMap];
+    ui->generationLineEdit->clearFocus();
 	updateAfterTickFull(true);
 	
 	// A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop

@@ -415,7 +415,7 @@ QSlider::handle:horizontal:disabled {
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="generationLineEdit">
+             <widget class="QtSLiMGenerationLineEdit" name="generationLineEdit">
               <property name="maximumSize">
                <size>
                 <width>100</width>
@@ -1739,6 +1739,11 @@ QPushButton:checked {
    <class>QtSLiMIndividualsWidget</class>
    <extends>QOpenGLWidget</extends>
    <header>QtSLiMIndividualsWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMGenerationLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>QtSLiMExtras.h</header>
   </customwidget>
  </customwidgets>
  <resources>

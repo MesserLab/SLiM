@@ -12,6 +12,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);
     connect(ui->playButton, &QPushButton::clicked, this, &QtSLiMWindow::playClicked);
     connect(ui->profileButton, &QPushButton::clicked, this, &QtSLiMWindow::profileClicked);
+    connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
 
     connect(ui->showMutationsButton, &QPushButton::clicked, this, &QtSLiMWindow::showMutationsToggled);
