@@ -31,12 +31,12 @@ static QFont &defaultDisplayFont(void)
             defaultFont = new QFont("Courier New", 13);
         else if (families.filter("Menlo").size() > 0)               // good on Mac
             defaultFont = new QFont("Menlo", 12);
-        else if (families.filter("DejaVu Sans Mono").size() > 0)
+        else if (families.filter("Ubuntu Mono").size() > 0)         // good on Ubuntu
+            defaultFont = new QFont("Ubuntu Mono", 11);
+        else if (families.filter("DejaVu Sans Mono").size() > 0)    // good on Ubuntu
             defaultFont = new QFont("DejaVu Sans Mono", 9);
-        else if (families.filter("Source Code Pro").size() > 0)
-            defaultFont = new QFont("Source Code Pro", 9);
         else
-            defaultFont = new QFont("Courier", 9);
+            defaultFont = new QFont("Courier", 10);                 // a reasonable default that should be omnipresent
     }
     
     return *defaultFont;
