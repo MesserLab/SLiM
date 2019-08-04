@@ -111,7 +111,6 @@ public:
     void tile(const QMainWindow *previous);
     void openRecipe(const QString &recipeName, const QString &recipeScript);   // called by QtSLiMAppDelegate to open a new recipe window
     
-    static QFont &defaultScriptFont(int *p_tabWidth);
     static std::string defaultWFScriptString(void);
     static std::string defaultNonWFScriptString(void);
 
@@ -189,7 +188,10 @@ public slots:
     //
     
 private slots:
+    void displayFontPrefChanged();
     void aboutQtSLiM();
+    void showPreferences();
+    
     void newFile_WF();
     void newFile_nonWF();
     void open();

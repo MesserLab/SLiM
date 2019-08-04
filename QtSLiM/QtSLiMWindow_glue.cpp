@@ -69,6 +69,7 @@ void QtSLiMWindow::glueUI(void)
     // connect all menu items with existing slots
     connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QApplication::closeAllWindows, Qt::QueuedConnection);
     connect(ui->actionAboutQtSLiM, &QAction::triggered, this, &QtSLiMWindow::aboutQtSLiM);
+    connect(ui->actionPreferences, &QAction::triggered, this, &QtSLiMWindow::showPreferences);
     connect(ui->actionNew, &QAction::triggered, this, &QtSLiMWindow::newFile_WF);
     connect(ui->actionNew_nonWF, &QAction::triggered, this, &QtSLiMWindow::newFile_nonWF);
     connect(ui->actionOpen, &QAction::triggered, this, &QtSLiMWindow::open);

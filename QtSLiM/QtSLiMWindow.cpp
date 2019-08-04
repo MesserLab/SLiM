@@ -3,6 +3,7 @@
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMEidosPrettyprinter.h"
 #include "QtSLiMAbout.h"
+#include "QtSLiMPreferences.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -35,13 +36,15 @@
 // enable the other display types in the individuals view
 // syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
-// add a preferences panel: font/size, syntax coloring pref, etc.
 // code editing: code completion
 // implement the Eidos console, help window, status bar
 // decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
+// implement generation play, play speed slider
+// implement graph windows
+// implement Find Recipe...
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
@@ -114,6 +117,11 @@ void QtSLiMWindow::init(void)
     // Wire up things that set the window to be modified.
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
+    
+    // Wire up to change the font when the display font pref changes
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMWindow::displayFontPrefChanged);
 }
 
 void QtSLiMWindow::initializeUI(void)
@@ -133,8 +141,9 @@ void QtSLiMWindow::initializeUI(void)
     ui->playControlsLayout->setMargin(0);
 
     // set up the script and output textedits
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
     int tabWidth = 0;
-    QFont &scriptFont = QtSLiMWindow::defaultScriptFont(&tabWidth);
+    QFont scriptFont = prefs.displayFontPref(&tabWidth);
 
     ui->scriptTextEdit->setFont(scriptFont);
     ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
@@ -255,41 +264,6 @@ QtSLiMWindow::~QtSLiMWindow()
     Eidos_FreeRNG(sim_RNG);
 
     setInvalidSimulation(true);
-}
-
-QFont &QtSLiMWindow::defaultScriptFont(int *p_tabWidth)
-{
-    static QFont *scriptFont = nullptr;
-    static int tabWidth = 0;
-    
-    if (!scriptFont)
-    {
-        QFontDatabase fontdb;
-        QStringList families = fontdb.families();
-        
-        //qDebug() << families;
-        
-        // Use filter() to look for matches, since the foundry can be appended after the name (why isn't this easier??)
-        // FIXME should have preferences UI for choosing the font and size
-        if (families.filter("DejaVu Sans Mono").size() > 0)
-            scriptFont = new QFont("DejaVu Sans Mono", 9);
-        else if (families.filter("Source Code Pro").size() > 0)
-            scriptFont = new QFont("Source Code Pro", 9);
-        else if (families.filter("Menlo").size() > 0)
-            scriptFont = new QFont("Menlo", 11);
-        else
-            scriptFont = new QFont("Courier", 9);
-        
-        //qDebug() << "Chosen font: " << scriptFont->family();
-        
-        QFontMetrics fm(*scriptFont);
-        
-        //tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
-        tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
-    }
-    
-    *p_tabWidth = tabWidth;
-    return *scriptFont;
 }
 
 std::string QtSLiMWindow::defaultWFScriptString(void)
@@ -443,6 +417,15 @@ void QtSLiMWindow::aboutQtSLiM()
     aboutWindow->show();
     aboutWindow->raise();
     aboutWindow->activateWindow();
+}
+
+void QtSLiMWindow::showPreferences()
+{
+    QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
+    
+    prefsWindow.show();
+    prefsWindow.raise();
+    prefsWindow.activateWindow();
 }
 
 void QtSLiMWindow::newFile_WF()
@@ -1216,6 +1199,19 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     ui->generationLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
+}
+
+void QtSLiMWindow::displayFontPrefChanged()
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    int tabWidth = 0;
+    QFont displayFont = prefs.displayFontPref(&tabWidth);
+    
+    ui->scriptTextEdit->setFont(displayFont);
+    ui->scriptTextEdit->setTabStopWidth(tabWidth);
+    
+    ui->outputTextEdit->setFont(displayFont);
+    ui->outputTextEdit->setTabStopWidth(tabWidth);
 }
 
 

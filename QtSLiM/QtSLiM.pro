@@ -67,7 +67,8 @@ SOURCES += \
     QtSLiMPopulationTable.cpp \
     QtSLiMIndividualsWidget.cpp \
     QtSLiMEidosPrettyprinter.cpp \
-    QtSLiMAbout.cpp
+    QtSLiMAbout.cpp \
+    QtSLiMPreferences.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -77,11 +78,13 @@ HEADERS += \
     QtSLiMPopulationTable.h \
     QtSLiMIndividualsWidget.h \
     QtSLiMEidosPrettyprinter.h \
-    QtSLiMAbout.h
+    QtSLiMAbout.h \
+    QtSLiMPreferences.h
 
 FORMS += \
     QtSLiMWindow.ui \
-    QtSLiMAbout.ui
+    QtSLiMAbout.ui \
+    QtSLiMPreferences.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
