@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+export HOME_DIR=`echo ~`
+
+export TBB_INCLUDE="/home/users/ssriniv2/tbb-2019_U8/include"
+export TBB_DEBUG="/home/users/ssriniv2/tbb-2019_U8/build/linux_intel64_gcc_cc7.4.0_libc2.27_kernel4.15.0_debug"
+
+export TBB_RELEASE="/home/users/ssriniv2/tbb-2019_U8/build/linux_intel64_gcc_cc7.4.0_libc2.27_kernel4.15.0_release"
+
+export COMPILER="/packages/intel/compilers_and_libraries_2019.5.281/linux/bin/intel64"
+
+export GCC="/usr/bin/gcc"
+export GXX="/usr/bin/g++"
+# Substitute proper path for built TBB
+cmake -DTBB_INCLUDE_DIR=${TBB_INCLUDE} \
+      -DTBB_LIBRARY_DEBUG=${TBB_DEBUG}/libtbb_debug.so \
+      -DTBB_LIBRARY_RELEASE=${TBB_RELEASE}/libtbb.so \
+      -D CMAKE_C_COMPILER=${GCC}\
+      -D CMAKE_CXX_COMPILER=${GXX}\
+      -D CMAKE_BUILD_TYPE=Debug \
+      -DParallel=ON ..\\

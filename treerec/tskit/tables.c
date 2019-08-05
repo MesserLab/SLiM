@@ -30,7 +30,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <float.h>
-
+#include <omp.h>
 #include <tskit/tables.h>
 
 /* This is a flag for tsk_table_collection_init used by tsk_table_collection_load to
@@ -3399,14 +3399,7 @@ tsk_provenance_table_load(tsk_provenance_table_t *self, kastore_t *store)
 /*************************
  * sort_tables
  *************************/
-
-typedef struct {
-    double left;
-    double right;
-    tsk_id_t parent;
-    tsk_id_t child;
-    double time;
-} edge_sort_t;
+//Moved Struct edge_sort_t to tables.h(Sudharshan)
 
 typedef struct {
     /* Input tables. */
@@ -3419,57 +3412,57 @@ typedef struct {
     tsk_id_t *site_id_map;
 } table_sorter_t;
 
-static int
-cmp_site(const void *a, const void *b) {
-    const tsk_site_t *ia = (const tsk_site_t *) a;
-    const tsk_site_t *ib = (const tsk_site_t *) b;
-    /* Compare sites by position */
-    int ret = (ia->position > ib->position) - (ia->position < ib->position);
-    if (ret == 0) {
-        /* Within a particular position sort by ID.  This ensures that relative ordering
-         * of multiple sites at the same position is maintained; the redundant sites
-         * will get compacted down by clean_tables(), but in the meantime if the order
-         * of the redundant sites changes it will cause the sort order of mutations to
-         * be corrupted, as the mutations will follow their sites. */
-        ret = (ia->id > ib->id) - (ia->id < ib->id);
-    }
-    return ret;
-}
-
-static int
-cmp_mutation(const void *a, const void *b) {
-    const tsk_mutation_t *ia = (const tsk_mutation_t *) a;
-    const tsk_mutation_t *ib = (const tsk_mutation_t *) b;
-    /* Compare mutations by site */
-    int ret = (ia->site > ib->site) - (ia->site < ib->site);
-    if (ret == 0) {
-        /* Within a particular site sort by ID. This ensures that relative ordering
-         * within a site is maintained */
-        ret = (ia->id > ib->id) - (ia->id < ib->id);
-    }
-    return ret;
-}
-
-static int
-cmp_edge(const void *a, const void *b) {
-    const edge_sort_t *ca = (const edge_sort_t *) a;
-    const edge_sort_t *cb = (const edge_sort_t *) b;
-
-    int ret = (ca->time > cb->time) - (ca->time < cb->time);
-    /* If time values are equal, sort by the parent node */
-    if (ret == 0) {
-        ret = (ca->parent > cb->parent) - (ca->parent < cb->parent);
-        /* If the parent nodes are equal, sort by the child ID. */
-        if (ret == 0) {
-            ret = (ca->child > cb->child) - (ca->child < cb->child);
-            /* If the child nodes are equal, sort by the left coordinate. */
-            if (ret == 0) {
-                ret = (ca->left > cb->left) - (ca->left < cb->left);
-            }
-        }
-    }
-    return ret;
-}
+//The following 3 comparator functions are replaced by new bool based  ones in parallel_sort.cpp
+//static int
+//cmp_site(const void *a, const void *b) {
+//    const tsk_site_t *ia = (const tsk_site_t *) a;
+//    const tsk_site_t *ib = (const tsk_site_t *) b;
+//    /* Compare sites by position */
+//    int ret = (ia->position > ib->position) - (ia->position < ib->position);
+//    if (ret == 0) {
+//        /* Within a particular position sort by ID.  This ensures that relative ordering
+//         * of multiple sites at the same position is maintained; the redundant sites
+//         * will get compacted down by clean_tables(), but in the meantime if the order
+//         * of the redundant sites changes it will cause the sort order of mutations to
+//         * be corrupted, as the mutations will follow their sites. */
+//        ret = (ia->id > ib->id) - (ia->id < ib->id);
+//    }
+//    return ret;
+//}
+//static int
+//cmp_mutation(const void *a, const void *b) {
+//    const tsk_mutation_t *ia = (const tsk_mutation_t *) a;
+//    const tsk_mutation_t *ib = (const tsk_mutation_t *) b;
+//    /* Compare mutations by site */
+//    int ret = (ia->site > ib->site) - (ia->site < ib->site);
+//    if (ret == 0) {
+//        /* Within a particular site sort by ID. This ensures that relative ordering
+//         * within a site is maintained */
+//        ret = (ia->id > ib->id) - (ia->id < ib->id);
+//    }
+//    return ret;
+//}
+//
+//static int
+//cmp_edge(const void *a, const void *b) {
+//    const edge_sort_t *ca = (const edge_sort_t *) a;
+//    const edge_sort_t *cb = (const edge_sort_t *) b;
+//
+//    int ret = (ca->time > cb->time) - (ca->time < cb->time);
+//    /* If time values are equal, sort by the parent node */
+//    if (ret == 0) {
+//        ret = (ca->parent > cb->parent) - (ca->parent < cb->parent);
+//        /* If the parent nodes are equal, sort by the child ID. */
+//        if (ret == 0) {
+//            ret = (ca->child > cb->child) - (ca->child < cb->child);
+//            /* If the child nodes are equal, sort by the left coordinate. */
+//            if (ret == 0) {
+//                ret = (ca->left > cb->left) - (ca->left < cb->left);
+//            }
+//        }
+//    }
+//    return ret;
+//}
 
 static int
 table_sorter_init(table_sorter_t *self, tsk_table_collection_t *tables,
@@ -3523,7 +3516,10 @@ table_sorter_sort_edges(table_sorter_t *self, tsk_size_t start)
         e->child = self->edges->child[k];
         e->time = self->nodes->time[e->parent];
     }
-    qsort(sorted_edges, n, sizeof(edge_sort_t), cmp_edge);
+    
+    //Commented out quick sort(serial) for now. Will add switch for serial execution once Ben verifies this part 
+    //qsort(sorted_edges, n, sizeof(edge_sort_t), cmp_edge);
+    psort_edges(sorted_edges, n); //wrapper for parallel sort defined in parallel_sort.cpp
     /* Copy the edges back into the table. */
     for (j = 0; j < n; j++) {
         e = sorted_edges + j;
@@ -3563,8 +3559,9 @@ table_sorter_sort_sites(table_sorter_t *self)
     }
 
     /* Sort the sites by position */
-    qsort(sorted_sites, self->sites->num_rows, sizeof(*sorted_sites), cmp_site);
+   // qsort(sorted_sites, self->sites->num_rows, sizeof(*sorted_sites), cmp_site);
 
+    psort_sites(sorted_sites, num_sites);
     /* Build the mapping from old site IDs to new site IDs and copy back into the table */
     tsk_site_table_clear(self->sites);
     for (j = 0; j < num_sites; j++) {
@@ -3615,8 +3612,11 @@ table_sorter_sort_mutations(table_sorter_t *self)
         goto out;
     }
 
-    qsort(sorted_mutations, num_mutations, sizeof(*sorted_mutations), cmp_mutation);
-
+   // qsort(sorted_mutations, num_mutations, sizeof(*sorted_mutations), cmp_mutation);
+    //double start_time = omp_get_wtime();
+    psort_mutations(sorted_mutations, num_mutations);
+    //double time = omp_get_wtime() - start_time;
+    //printf("Time to sort mutations is %f",time);    
     /* Make a first pass through the sorted mutations to build the ID map. */
     for (j = 0; j < num_mutations; j++) {
         mutation_id_map[sorted_mutations[j].id] = (tsk_id_t) j;

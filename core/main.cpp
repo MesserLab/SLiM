@@ -156,6 +156,8 @@ static void test_exit(int test_result)
 
 int main(int argc, char *argv[])
 {
+    //std::cout<<"started main \n";
+    // double start_time = omp_get_wtime();                   //Start timer
 	// parse command-line arguments
 	unsigned long int override_seed = 0;					// this is the type used for seeds in the GSL
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
@@ -557,6 +559,9 @@ int main(int argc, char *argv[])
 		free(mem_record);
 	}
 	
+     //double end_time = omp_get_wtime();
+
+     //std::cout<<"Overall time "<<end_time - start_time;
 	return EXIT_SUCCESS;
 }
 

@@ -24,11 +24,14 @@
 #include "slim_eidos_block.h"
 #include "subpopulation.h"
 #include "slim_sim.h"
-
+#include <omp.h>
 #include <utility>
 #include <algorithm>
 
+#include <ctime>
+#include <chrono>
 
+using namespace std::chrono;
 // stream output for enumerations
 std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 {
@@ -519,22 +522,38 @@ void InteractionType::CalculateAllDistances(Subpopulation *p_subpop)
 			
 			if (exerter_sex_ == IndividualSex::kUnspecified)
 			{
+
 				// Without a specified exerter sex, we can add each exerter with no sex test
+                //double start_time = omp_get_wtime();
+
 				switch (spatiality_)
 				{
 					case 1:
 						for (row = start_row; row < after_end_row; row++)
+                        {
 							BuildSA_1(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_);
+                        }
 						break;
 					case 2:
-						for (row = start_row; row < after_end_row; row++)
+                    //ANNOTATE_SITE_BEGIN(s7)
+#ifdef Parallel
+				    #pragma omp parallel for schedule(static)                  
+#endif
+                    for (row = start_row; row < after_end_row; row++)
+                        {
+                      //      ANNOTATE_ITERATION_TASK();
 							BuildSA_2(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
+                        }
+                    //ANNOTATE_SITE_END();    
 						break;
 					case 3:
 						for (row = start_row; row < after_end_row; row++)
 							BuildSA_3(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
 						break;
 				}
+                //double end_time = omp_get_wtime();    
+                //std::cout << "It took me " << end_time - start_time << " seconds.";
+                //std::cout << std::endl;   
 			}
 			else
 			{
@@ -1788,8 +1807,8 @@ void InteractionType::BuildSA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 }
 
 // add neighbors to the sparse array in 2D
-#if 0
 // recursive algorithm, perhaps a bit slow but the compiler seems to do a good job with it actually
+//Reverted back to recursive algorithm as it avoids explicitly maintaining a recursive stack that is concurrently written to by different threads
 void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
 {
 	double d = dist_sq2(root, nd);
@@ -1801,7 +1820,7 @@ void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+		p_sparse_array->AddDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
 	
 	if (++p_phase >= 2) p_phase = 0;
 	
@@ -1826,12 +1845,13 @@ void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 			BuildSA_2(root->left, nd, p_focal_individual_index, p_sparse_array, p_phase);
 	}
 }
-#else
+
 // non-recursive algorithm: barely a speed improvement as it turns out, and unsafe right now since it doesn't check for blowing out its stack.
 // for a test with 100,000 individuals, the recursive algorithm takes 55.61s, this takes 51.51s (only one replicate run).
 // I guess I'll use this version; I've made the stack plenty deep so it shouldn't ever run out.  So why not, it's faster.
 // But for now, I don't think I will do the same for the (less common) 1D and 3D cases, to keep the code base simple.
 // I'm a bit surprised by how slow this is – more than 50% of total runtime for that test model.  Maybe Boyana will have ideas.
+#if 0
 static SLiM_kdNode *(recurse_root[1000]);
 static int (recurse_phase[1000]);
 
@@ -1846,10 +1866,12 @@ recurse_SA_2:
 	double d = (root_x_0 - local_nd_0)*(root_x_0 - local_nd_0) + (root_x_1 - local_nd_1)*(root_x_1 - local_nd_1);
 	double dx = (p_phase == 0) ? (root_x_0 - local_nd_0) : (root_x_1 - local_nd_1);
 	double dx2 = dx * dx;
-	
+
 	if ((d <= local_max_distance_sq) && (root->individual_index_ != p_focal_individual_index))
-		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
-	
+    {
+		p_sparse_array->testing(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
+	}
+
 	if (++p_phase >= 2) p_phase = 0;
 	
 	if (dx > 0)

@@ -37,7 +37,6 @@
 #include <unistd.h>
 #include <algorithm>
 #include "string.h"
-#include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <memory>
@@ -1995,14 +1994,14 @@ std::string EidosStringForFloat(double p_value)
 	}
 }
 
-unsigned int Eidos_PhysicalCoreCount()
-{
-	size_t len;
-	unsigned int ncpu;
-	len = sizeof(ncpu);
-	sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
-	return ncpu;
-}
+//unsigned int Eidos_PhysicalCoreCount()
+//{
+//	size_t len;
+//	unsigned int ncpu;
+//	len = sizeof(ncpu);
+//	sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
+//	return ncpu;
+//}
 
 
 #pragma mark -

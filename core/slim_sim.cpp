@@ -44,6 +44,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <float.h>
+#include <parallel/algorithm>
 
 //TREE SEQUENCE
 #include <stdio.h>
@@ -4722,18 +4723,19 @@ void SLiMSim::ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vect
 	}
 }
 
+
 void SLiMSim::SimplifyTreeSequence(void)
 {
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::SimplifyTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
-	
+
 	if (tables_.nodes.num_rows == 0)
 		return;
-	
+
 	std::vector<tsk_id_t> samples;
-	
+
 	// BCH 7/27/2019: We now build a std::unordered_map containing all of the entries of remembered_genomes_,
 	// so that the find() operations in the loop below can be done in constant time instead of O(N) time.
 	// We need to be able to find out the index of an entry, in remembered_genomes_, once we have found it;
@@ -4741,32 +4743,32 @@ void SLiMSim::SimplifyTreeSequence(void)
 	// We do all this inside a block so the map gets deallocated as soon as possible, to minimize footprint.
 	{
 		std::unordered_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
-		
+
 		// the remembered_genomes_ come first in the list of samples
 		uint32_t index = 0;
-		
+
 		for (tsk_id_t sid : remembered_genomes_)
 		{
 			samples.push_back(sid);
 			remembered_genomes_lookup.emplace(std::pair<tsk_id_t, uint32_t>(sid, index));
 			index++;
 		}
-		
+
 		// and then come all the genomes of the extant individuals
 		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_genomes_.size();
-		
+
 		for (auto it = population_.subpops_.begin(); it != population_.subpops_.end(); it++)
 		{
 			std::vector<Genome *> &subpopulationGenomes = it->second->parent_genomes_;
-			
+
 			for (Genome *genome : subpopulationGenomes)
 			{
 				tsk_id_t M = genome->tsk_node_id_;
-				
+
 				// check if this sample is already being remembered, and assign the correct tsk_node_id_
 				// if not remembered, it is currently alive, so we need to mark it as a sample so it persists through simplify()
 				auto iter = remembered_genomes_lookup.find(M);
-				
+
 				if (iter == remembered_genomes_lookup.end())
 				{
 					samples.push_back(M);
@@ -4779,35 +4781,38 @@ void SLiMSim::SimplifyTreeSequence(void)
 			}
 		}
 	}
-	
+
 	// the tables need to have a population table to be able to sort it
 	WritePopulationTable(&tables_);
-	
+
 	// sort the table collection
 	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ 0, /* flags */ 0);
 	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
-	
+
 	// remove redundant sites we added
 	ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
 	if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
-	
+
 	// simplify
 	ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS, NULL);
 	if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
-	
+
 	// update map of remembered_genomes_, which are now the first n entries in the node table
 	for (tsk_id_t i = 0; i < (tsk_id_t)remembered_genomes_.size(); i++)
 		remembered_genomes_[i] = i;
-	
+
 	// reset current position, used to rewind individuals that are rejected by modifyChild()
 	RecordTablePosition();
-	
+
 	// and reset our elapsed time since last simplification, for auto-simplification
 	simplify_elapsed_ = 0;
-	
+
 	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
 	if (running_coalescence_checks_)
 		CheckCoalescenceAfterSimplification();
+    
+    
+
 }
 
 void SLiMSim::CheckCoalescenceAfterSimplification(void)

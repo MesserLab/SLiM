@@ -22,7 +22,7 @@
 
 
 #include "slim_globals.h"
-
+#include <omp.h>
 #include <vector>
 
 
@@ -57,12 +57,21 @@ private:
 	
 	uint32_t nrows_, ncols_;		// the number of rows and columns; determined at construction time
 	uint32_t nrows_set_;			// the number of rows that have been configured (at least partially, during building)
-	uint32_t nnz_;					// the number of non-zero entries in the sparse array (also at row_offsets[nrows_set])
 	uint32_t nnz_capacity_;			// the number of non-zero entries allocated for at present
 	
 	bool finished_;					// if true, Finished() has been called and the sparse array is ready to use
+
+
+	uint32_t nnz_;					// the number of non-zero entries in the sparse array (also at row_offsets[nrows_set])
 	
-	void _ResizeToFitNNZ(void);
+    //Stuff for multithreading
+    uint32_t initial_width;
+    uint32_t **columns;
+    sa_distance_t **distances;
+    uint32_t *nnz;
+    uint32_t *nnz_capacity;
+
+    void _ResizeToFitNNZ(void);
 	inline __attribute__((always_inline)) void ResizeToFitNNZ(void) { if (nnz_ > nnz_capacity_) _ResizeToFitNNZ(); };
 	
 public:
@@ -123,7 +132,26 @@ public:
 		columns_[offset] = p_column;
 		distances_[offset] = p_distance;
 	}
-	void AddEntryInteraction(uint32_t p_row, const uint32_t p_column, sa_distance_t p_distance, sa_strength_t p_strength);
+   
+    //Added by Sudharshan    
+    void Resize(uint32_t p_row);
+
+   inline void AddDistance(uint32_t p_row, const uint32_t p_column, sa_distance_t p_distance)
+    {
+        //Resize if needed
+        if(*(nnz + p_row) >= *(nnz_capacity + p_row))
+            Resize(p_row);
+
+
+        //insert new entries
+        *(*(columns + p_row) + *(nnz + p_row)) = p_column;
+        *(*(distances + p_row) + *(nnz + p_row)) = p_distance;
+
+        nnz[p_row]++;  //increment nnz for specified row
+    }    
+    
+    
+    void AddEntryInteraction(uint32_t p_row, const uint32_t p_column, sa_distance_t p_distance, sa_strength_t p_strength);
 	
 	void Finished(void);
 	inline __attribute__((always_inline)) bool IsFinished() const { return finished_; };

@@ -33,7 +33,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -102,6 +101,16 @@ typedef struct {
     tsk_id_t *nodes;
     tsk_size_t nodes_length;
 } tsk_individual_t;
+
+//Moved from tables.c(sudharshan)
+typedef struct {
+    double left;
+    double right;
+    tsk_id_t parent;
+    tsk_id_t child;
+    double time;
+} edge_sort_t;
+
 
 /**
 @brief A single node defined by a row in the node table.

@@ -46,6 +46,25 @@ SparseArray::SparseArray(unsigned int p_nrows, unsigned int p_ncols)
 	
 	row_offsets_[nrows_set_] = 0;
 	finished_ = false;
+
+    //Allocate space for 2-D vectors
+    //Columns and Distances are now ragged 2-D vectors with each row corresponding to one focal individual. This negates the need for row offsets.
+
+    initial_width=100;       //Some random initial width for each row. Can be changed later.
+    columns = (uint32_t **)malloc((nrows_) * sizeof(uint32_t *));
+    distances = (sa_distance_t **)malloc((nrows_) * sizeof(sa_distance_t *));
+    nnz = (uint32_t *)malloc((nrows_) * sizeof(uint32_t));
+    nnz_capacity = (uint32_t *)malloc((nrows_) * sizeof(uint32_t));
+
+    for(int i=0;i<nrows_;i++)
+    {   
+        columns[i] = nullptr;
+        distances[i]= nullptr;
+    
+    //initial nnz and its capacity
+        nnz[i]=0;
+        nnz_capacity[i]=0;
+    }
 }
 
 SparseArray::~SparseArray(void)
@@ -56,6 +75,7 @@ SparseArray::~SparseArray(void)
 	nnz_ = 0;
 	nnz_capacity_ = 0;
 	finished_ = false;
+    initial_width=0;
 	
 	free(row_offsets_);
 	row_offsets_ = nullptr;
@@ -68,6 +88,31 @@ SparseArray::~SparseArray(void)
 	
 	free(strengths_);
 	strengths_ = nullptr;
+
+    //Deallocating all multithreading parts 
+    for(int i=0;i<nrows_;i++)
+    {
+
+        free(columns[i]);
+        columns[i] = nullptr;
+
+        free(distances[i]);
+        distances[i] = nullptr;
+
+    }
+
+    free(columns);
+    columns = nullptr;
+
+    free(distances);
+    distances = nullptr;
+
+    free(nnz);
+    nnz=nullptr;
+
+    free(nnz_capacity);
+    nnz_capacity=nullptr;
+
 }
 
 void SparseArray::Reset(void)
@@ -95,6 +140,18 @@ void SparseArray::Reset(unsigned int p_nrows, unsigned int p_ncols)
 	finished_ = false;
 }
 
+void SparseArray::Resize(uint32_t p_row)
+{
+    //vectors are reallocated by 1000 entries at a time. It can be wasteful but probably better than making a function call for each new entry. Will defer the final decision to Ben. 
+
+    *(nnz_capacity + p_row)= (*(nnz_capacity + p_row)==0) ? initial_width : *(nnz_capacity + p_row) * 2; //Initialize or double the capacity 
+
+    *(columns + p_row)=(uint32_t *)realloc(*(columns + p_row), *(nnz_capacity + p_row) * sizeof(uint32_t));  
+    *(distances + p_row)=(sa_distance_t *)realloc(*(distances + p_row), *(nnz_capacity + p_row) * sizeof(sa_distance_t));
+
+}
+
+    
 void SparseArray::_ResizeToFitNNZ(void)
 {
 	if (nnz_ > nnz_capacity_)	// guaranteed if we're called by ResizeToFitNNZ(), but might as well be safe...
@@ -105,7 +162,7 @@ void SparseArray::_ResizeToFitNNZ(void)
 		
 		columns_ = (uint32_t *)realloc(columns_, nnz_capacity_ * sizeof(uint32_t));
 		distances_ = (sa_distance_t *)realloc(distances_, nnz_capacity_ * sizeof(sa_distance_t));
-		strengths_ = (sa_strength_t *)realloc(strengths_, nnz_capacity_ * sizeof(sa_strength_t));
+        strengths_ = (sa_strength_t *)realloc(strengths_, nnz_capacity_ * sizeof(sa_strength_t));
 	}
 }
 
