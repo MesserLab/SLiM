@@ -46,7 +46,6 @@
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 // implement graph windows
 // implement Find Recipe...
-// implement the "When QtSLiM starts" pref
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
@@ -452,6 +451,28 @@ void QtSLiMWindow::newFile_nonWF()
     QtSLiMWindow *other = new QtSLiMWindow(QtSLiMWindow::ModelType::nonWF);
     other->tile(this);
     other->show();
+}
+
+QtSLiMWindow *QtSLiMWindow::runInitialOpenPanel(void)
+{
+    // This is like open(), but as a static method that makes no reference to an existing window
+    QSettings settings;
+    QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
+    
+    const QString fileName = QFileDialog::getOpenFileName(nullptr, QString(), directory, "SLiM models (*.slim);;Text files (*.txt)");  // add PDF files eventually
+    if (!fileName.isEmpty())
+    {
+        settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
+        
+        QtSLiMWindow *other = new QtSLiMWindow(fileName);
+        if (other->isUntitled) {
+            delete other;
+            return nullptr;
+        }
+        return other;
+    }
+    
+    return nullptr;
 }
 
 void QtSLiMWindow::open()

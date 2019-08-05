@@ -1,8 +1,10 @@
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMWindow.h"
+#include "QtSLiMPreferences.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QDebug>
 
 
 int main(int argc, char *argv[])
@@ -33,8 +35,27 @@ int main(int argc, char *argv[])
     }
     
     if (!mainWin)
-        mainWin = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
-    mainWin->show();
+    {
+        QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+        
+        if (prefs.appStartupPref() == 1)
+        {
+            // create a new window
+            mainWin = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
+        }
+        else if (prefs.appStartupPref() == 2)
+        {
+            // run an open panel, which will return a window to show, or nullptr
+            mainWin = QtSLiMWindow::runInitialOpenPanel();
+            
+            // if no file was opened, create a new window after all
+            if (!mainWin)
+                mainWin = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
+        }
+    }
+    
+    if (mainWin)
+        mainWin->show();
     
     // Run the event loop
     return app.exec();

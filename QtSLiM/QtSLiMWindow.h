@@ -113,6 +113,8 @@ public:
     QtSLiMWindow(const QString &recipeName, const QString &recipeScript);   // window from a recipe
     virtual ~QtSLiMWindow() override;
     
+    static QtSLiMWindow *runInitialOpenPanel(void);
+    
     void initializeUI(void);
     void tile(const QMainWindow *previous);
     void openRecipe(const QString &recipeName, const QString &recipeScript);   // called by QtSLiMAppDelegate to open a new recipe window
