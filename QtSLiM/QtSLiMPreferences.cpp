@@ -2,6 +2,7 @@
 #include "ui_QtSLiMPreferences.h"
 
 #include <QSettings>
+#include <QDebug>
 
 
 //
@@ -108,9 +109,9 @@ void QtSLiMPreferencesNotifier::startupRadioChanged()
     QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
     QSettings settings;
     
-    if (prefsUI.ui->startupRadioOpenFile->isChecked())
+    if (prefsUI.ui->startupRadioCreateNew->isChecked())
         settings.setValue(QtSLiMAppStartupAction, QVariant(1));
-    else if (prefsUI.ui->startupRadioCreateNew->isChecked())
+    else if (prefsUI.ui->startupRadioOpenFile->isChecked())
         settings.setValue(QtSLiMAppStartupAction, QVariant(2));
     
     emit appStartupPrefChanged();
