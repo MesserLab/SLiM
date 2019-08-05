@@ -1739,7 +1739,7 @@ void QtSLiMWindow::playSpeedChanged(void)
 	// Make a tooltip label string
 	QString fpsString("∞ fps");
 	
-	if (!isinf(maxGenerationsPerSecond))
+	if (!std::isinf(maxGenerationsPerSecond))
 	{
 		if (maxGenerationsPerSecond < 1.0)
 			fpsString = QString::asprintf("%.2f fps", maxGenerationsPerSecond);
