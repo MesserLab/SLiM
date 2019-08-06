@@ -36,7 +36,6 @@
 // implement selection of a subrange in the chromosome view
 // enable the more efficient code paths in the chromosome view
 // enable the other display types in the individuals view
-// syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
 // code editing: code completion
 // implement the Eidos console, help window, status bar
@@ -45,7 +44,6 @@
 // decide whether to implement the variable browser or not
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 // implement graph windows
-// implement Find Recipe...
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)

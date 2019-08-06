@@ -1,5 +1,6 @@
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMWindow.h"
+#include "QtSLiMFindRecipe.h"
 
 #include <QApplication>
 #include <QOpenGLWidget>
@@ -164,9 +165,56 @@ void QtSLiMAppDelegate::aboutToQuit(void)
     //qDebug() << "QtSLiMAppDelegate::aboutToQuit";
 }
 
+QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
+{
+    QWidget *activeWindow = qApp->activeWindow();
+    QtSLiMWindow *activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(activeWindow);
+    
+    if (!activeQtSLiMWindow)
+    {
+        const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
+        
+        for (QWidget *widget : topLevelWidgets)
+        {
+            if (!widget->isHidden())
+            {
+                activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(widget);
+                if (activeQtSLiMWindow) break;
+            }
+        }
+    }
+    
+    return activeQtSLiMWindow;
+}
+
 void QtSLiMAppDelegate::findRecipe(void)
 {
-    qDebug() << "QtSLiMAppDelegate::findRecipe";
+    // We delegate the opening itself to the active window, so that it can tile
+    QtSLiMWindow *activeWindow = activeQtSLiMWindow();
+    
+    if (activeWindow)
+    {
+        QtSLiMFindRecipe findRecipePanel(nullptr);
+        
+        int result = findRecipePanel.exec();
+        
+        if (result == QDialog::Accepted)
+        {
+            QString resourceName = findRecipePanel.selectedRecipeFilename();
+            QString recipeScript = findRecipePanel.selectedRecipeScript();
+            QString trimmedName = resourceName;
+            
+            if (trimmedName.endsWith(".txt"))
+                trimmedName.chop(4);
+            
+            activeWindow->openRecipe(trimmedName, recipeScript);
+        }
+    }
+    else
+    {
+        // beep if there is no QtSLiMWindow to handle the action, but this should never happen
+        qApp->beep();
+    }
 }
 
 void QtSLiMAppDelegate::openRecipe(void)
@@ -189,32 +237,16 @@ void QtSLiMAppDelegate::openRecipe(void)
                 QString recipeScript = recipeTextStream.readAll();
                 
                 // We delegate the opening itself to the active window, so that it can tile
-                // and so forth; finding the active window is a bit of a pain though
-                QWidget *activeWindow = qApp->activeWindow();
-                QtSLiMWindow *activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(activeWindow);
+                QtSLiMWindow *activeWindow = activeQtSLiMWindow();
                 
-                if (!activeQtSLiMWindow)
-                {
-                    const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
-                    
-                    for (QWidget *widget : topLevelWidgets)
-                    {
-                        if (!widget->isHidden())
-                        {
-                            activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(widget);
-                            if (activeQtSLiMWindow) break;
-                        }
-                    }
-                }
-                
-                if (activeQtSLiMWindow)
+                if (activeWindow)
                 {
                     QString trimmedName = resourceName;
                     
                     if (trimmedName.endsWith(".txt"))
                         trimmedName.chop(4);
                     
-                    activeQtSLiMWindow->openRecipe(trimmedName, recipeScript);
+                    activeWindow->openRecipe(trimmedName, recipeScript);
                 }
                 else
                 {

@@ -69,7 +69,8 @@ SOURCES += \
     QtSLiMEidosPrettyprinter.cpp \
     QtSLiMAbout.cpp \
     QtSLiMPreferences.cpp \
-    QtSLiMSyntaxHighlighting.cpp
+    QtSLiMSyntaxHighlighting.cpp \
+    QtSLiMFindRecipe.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -81,12 +82,14 @@ HEADERS += \
     QtSLiMEidosPrettyprinter.h \
     QtSLiMAbout.h \
     QtSLiMPreferences.h \
-    QtSLiMSyntaxHighlighting.h
+    QtSLiMSyntaxHighlighting.h \
+    QtSLiMFindRecipe.h
 
 FORMS += \
     QtSLiMWindow.ui \
     QtSLiMAbout.ui \
-    QtSLiMPreferences.ui
+    QtSLiMPreferences.ui \
+    QtSLiMFindRecipe.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -6,6 +6,7 @@
 
 class QMenu;
 class QAction;
+class QtSLiMWindow;
 
 
 class QtSLiMAppDelegate : public QObject
@@ -27,6 +28,9 @@ public slots:
     
     void findRecipe(void);
     void openRecipe(void);
+    
+private:
+    QtSLiMWindow *activeQtSLiMWindow(void);    
 };
 
 extern QtSLiMAppDelegate *qtSLiMAppDelegate;    // global instance
