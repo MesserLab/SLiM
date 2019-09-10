@@ -4006,6 +4006,15 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				// sense anyway – either the copying enzyme makes a mistake or it doesn't).  But I'm not going to make that fix right now, as it
 				// is complicated, risky, and has potential impact of performance.  It is an extreme edge case anyway, for realistic mutation
 				// rates.  BCH 5/14/2019
+				
+				// if there are no mutations, the child genome is just a copy of the parental genome
+				// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
+				if (mutations_to_add.size() == 0)
+				{
+					MutationRun::FreeMutationRun(&mutations_to_add);
+					p_child_genome.copy_from_genome(p_parent_genome);
+					return;
+				}
 			}
 			else
 			{
