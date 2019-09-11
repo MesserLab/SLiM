@@ -2980,7 +2980,8 @@ bool SLiMSim::_RunOneGeneration(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		CollectSLiMguiMemoryUsageProfileInfo();
+		if (gEidosProfilingClientCount)
+			CollectSLiMguiMemoryUsageProfileInfo();
 #endif
 		
 		return true;
@@ -3437,7 +3438,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		CollectSLiMguiMemoryUsageProfileInfo();
+		if (gEidosProfilingClientCount)
+			CollectSLiMguiMemoryUsageProfileInfo();
 #endif
 		
 		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
@@ -3868,7 +3870,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		CollectSLiMguiMemoryUsageProfileInfo();
+		if (gEidosProfilingClientCount)
+			CollectSLiMguiMemoryUsageProfileInfo();
 #endif
 		
 		// Decide whether the simulation is over.  We need to call EstimatedLastGeneration() every time; we can't
