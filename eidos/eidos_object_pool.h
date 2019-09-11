@@ -52,6 +52,9 @@ private:
 			if (capacity < 1)
 				throw std::invalid_argument("capacity must be at least 1.");
 			
+			if (itemSize * capacity > 4294967296UL)
+				std::cout << "foo";
+			
 			_memory = malloc(itemSize * capacity);
 			if (_memory == NULL)
 				throw std::bad_alloc();
@@ -112,7 +115,10 @@ public:
 	EidosObjectPool(const EidosObjectPool &) = delete;					// no copy-construct
 	EidosObjectPool &operator=(const EidosObjectPool &) = delete;		// no copying
 	
-	explicit EidosObjectPool(size_t itemSize, size_t initialCapacity=1024, size_t maxBlockLength=1000000) : _itemSize(itemSize), _firstDeleted(nullptr), _countInNode(0), _nodeCapacity(initialCapacity), _firstNode(initialCapacity, itemSize), _maxBlockLength(maxBlockLength)
+	// BCH 11 Sept. 2019: changing the default maxBlockLength to a power of two, and more importantly,
+	// enforcing maxBlockLength even on _firstNode to avoid bad allocs on systems where the max malloc
+	// size is restricted (such as Debian, apparently); see GitHub issue #54.
+	explicit EidosObjectPool(size_t itemSize, size_t initialCapacity=1024, size_t maxBlockLength=1048576) : _itemSize(itemSize), _firstDeleted(nullptr), _countInNode(0), _nodeCapacity(initialCapacity > maxBlockLength ? maxBlockLength : initialCapacity), _firstNode(_nodeCapacity, itemSize), _maxBlockLength(maxBlockLength)
 	{
 		if (maxBlockLength < 1)
 			throw std::invalid_argument("maxBlockLength must be at least 1.");

@@ -20,6 +20,7 @@ development head:
 	fix a crash with clonal nucleotide-based models using a custom mutation matrix
 	shift temporary files used by -eidosTest and -slimTest into a randomly named subfolder, where necessary to prevent conflicts with other users
 	change recipes that set a new seed to use 2^62 rather than 2^32, to avoid repeated sequences
+	fix memory allocation issue with more than 2^26 individuals
 
 
 version 3.3 (build 2062; Eidos version 2.3):
