@@ -52,9 +52,6 @@ private:
 			if (capacity < 1)
 				throw std::invalid_argument("capacity must be at least 1.");
 			
-			if (itemSize * capacity > 4294967296UL)
-				std::cout << "foo";
-			
 			_memory = malloc(itemSize * capacity);
 			if (_memory == NULL)
 				throw std::bad_alloc();
