@@ -4892,7 +4892,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the migrations that occurred
-		for (auto int_type = sim.interaction_types_.begin(); int_type != sim.interaction_types_.end(); ++int_type)
+		auto &interactionTypes = sim.InteractionTypes();
+		
+		for (auto int_type = interactionTypes.begin(); int_type != interactionTypes.end(); ++int_type)
 			int_type->second->Invalidate();
 	}
 	
