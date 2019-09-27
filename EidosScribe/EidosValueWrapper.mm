@@ -169,6 +169,11 @@
 				try {
 					symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
 				} catch (...) {
+					//std::cout << "caught inaccessible property " << symbolName << std::endl;
+					
+					// throw away the raise message so it doesn't confuse us
+					gEidosTermination.clear();
+					gEidosTermination.str(gEidosStr_empty_string);
 				}
 				
 				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:self value:std::move(symbolValue)];
