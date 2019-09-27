@@ -22,6 +22,7 @@ development head:
 	change recipes that set a new seed to use 2^62 rather than 2^32, to avoid repeated sequences
 	fix memory allocation issue with more than 2^26 individuals
 	fix crash when trying to use an InteractionType after takeMigrants() has made its cached data invalid
+	fix crash when a call to takeMigrants() tries to migrate the same individual twice (i.e., the migrants vector is not uniqued)
 
 
 version 3.3 (build 2062; Eidos version 2.3):

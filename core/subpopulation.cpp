@@ -4574,7 +4574,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			Genome *genome2 = migrant->genome2_;
 			
 			if (source_subpop_index < 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not move an individual that is not visible in a subpopulation." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not move an individual that is not visible in a subpopulation.  This error may also occur if you try to migrate the same individual more than once in a single takeMigrants() call (i.e., if the migrants vector is not uniqued)." << EidosTerminate();
 			
 			// remove the originals from source_subpop's vectors
 			if (migrant->sex_ == IndividualSex::kFemale)
@@ -4628,6 +4628,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				source_subpop->parent_individuals_.resize(source_subpop_size);
 				source_subpop->parent_genomes_.resize(source_subpop_size * 2);
 			}
+			
+			// mark the migrant as invisible in its original subpopulation; this prevents us from trying to migrate the same individual twice
+			migrant->index_ = -1;
 			
 			// make the transmogrified individual and genomes, from our own pools
 			// passing p_is_null==true to NewSubpopGenome() is correct here; we transfer mutruns from the old genomes, so
