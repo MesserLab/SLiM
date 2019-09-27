@@ -4527,7 +4527,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskVOID))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
@@ -4536,7 +4536,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskVOID))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
@@ -4545,7 +4545,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskVOID))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
@@ -4554,7 +4554,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskVOID))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
@@ -4563,7 +4563,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskVOID))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
@@ -4572,7 +4572,7 @@
 			static EidosCallSignature *callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskVOID))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = (new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
 			
 			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
 		}
