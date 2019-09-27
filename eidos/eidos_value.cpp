@@ -3336,6 +3336,9 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 		const std::string &property_name = property_sig->property_name_;
 		EidosGlobalStringID property_id = property_sig->property_id_;
 		EidosValue_SP property_value;
+		bool oldSuppressWarnings = gEidosSuppressWarnings;
+		
+		gEidosSuppressWarnings = true;		// prevent warnings from questionable property accesses from producing warnings in the user's output pane
 		
 		try {
 			property_value = GetProperty(property_id);
@@ -3344,6 +3347,8 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 			gEidosTermination.clear();
 			gEidosTermination.str(gEidosStr_empty_string);
 		}
+		
+		gEidosSuppressWarnings = oldSuppressWarnings;
 		
 		if (property_value)
 		{
