@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+version 3.3.1 (build 2116; Eidos version 2.3.1):
 	fix SLiMgui crashing bug involving (a) a type "s" mutation type with (b) a fixed color set for it
 	protect against a non-existent or non-writeable /tmp directory, which apparently some systems have
 	fix crash in SLiMgui due to inaccessible properties
@@ -25,7 +28,6 @@ development head:
 	fix crash when a call to takeMigrants() tries to migrate the same individual twice (i.e., the migrants vector is not uniqued)
 	fix signatures shown in SLiMgui for callbacks that have return values
 	fix problems with the variable browser caused by inaccessible properties
-
 
 version 3.3 (build 2062; Eidos version 2.3):
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
