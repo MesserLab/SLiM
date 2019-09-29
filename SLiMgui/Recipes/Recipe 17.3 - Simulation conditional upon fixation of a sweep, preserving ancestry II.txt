@@ -28,7 +28,7 @@ initialize() {
 			cat(simID + ": LOST - RESTARTING\n");
 			
 			sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
-			setSeed(rdunif(1, 0, asInteger(2^32) - 1));
+			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
 		}
 	}
 }

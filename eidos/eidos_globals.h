@@ -39,8 +39,8 @@ class EidosScript;
 class EidosToken;
 
 
-#define EIDOS_VERSION_STRING	("2.3")
-#define EIDOS_VERSION_FLOAT		(2.3)
+#define EIDOS_VERSION_STRING	("2.3.1")
+#define EIDOS_VERSION_FLOAT		(2.31)
 
 
 // This should be called once at startup to give Eidos an opportunity to initialize static state
@@ -320,6 +320,7 @@ bool Eidos_SlashTmpExists(void);
 
 // Create a temporary file based upon a template filename; note that pattern is modified!
 int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
+int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len);
 
 // Welch's t-test functions; sample means are returned in mean1 and mean2, which may be nullptr
 double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const double *p_set2, int p_count2, double *p_mean1, double *p_mean2);

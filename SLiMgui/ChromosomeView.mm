@@ -175,7 +175,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		glArrayVertices = NULL;
 	}
 	
-	if (!glArrayColors)
+	if (glArrayColors)
 	{
 		free(glArrayColors);
 		glArrayColors = NULL;
