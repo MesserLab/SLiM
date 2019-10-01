@@ -1,6 +1,9 @@
 #include "QtSLiMAbout.h"
 #include "ui_QtSLiMAbout.h"
 
+#include "slim_globals.h"
+
+
 QtSLiMAbout::QtSLiMAbout(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMAbout)
 {
     ui->setupUi(this);
@@ -11,6 +14,9 @@ QtSLiMAbout::QtSLiMAbout(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMAb
     // disable resizing
     layout()->setSizeConstraint(QLayout::SetFixedSize);
     setSizeGripEnabled(false);
+    
+    // fix version number; FIXME would be nice to figure out a way to get the build number on Linux...
+    ui->versionLabel->setText("version " + QString(SLIM_VERSION_STRING));
 }
 
 QtSLiMAbout::~QtSLiMAbout()
