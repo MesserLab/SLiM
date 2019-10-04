@@ -8781,7 +8781,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 		if (ratesSize > 1)
 			output_stream << "c(";
 		for (int interval_index = 0; interval_index < ratesSize; ++interval_index)
+		{
+			if (interval_index >= 50)
+			{
+				output_stream << ", ...";
+				break;
+			}
+			
 			output_stream << (interval_index == 0 ? "" : ", ") << rates[interval_index];
+		}
 		if (ratesSize > 1)
 			output_stream << ")";
 		
@@ -8792,7 +8800,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 			if (endsSize > 1)
 				output_stream << "c(";
 			for (int interval_index = 0; interval_index < endsSize; ++interval_index)
+			{
+				if (interval_index >= 50)
+				{
+					output_stream << ", ...";
+					break;
+				}
+				
 				output_stream << (interval_index == 0 ? "" : ", ") << positions[interval_index];
+			}
 			if (endsSize > 1)
 				output_stream << ")";
 		}
@@ -8960,7 +8976,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeHotspotMap(const std::st
 		if (multipliersSize > 1)
 			output_stream << "c(";
 		for (int interval_index = 0; interval_index < multipliersSize; ++interval_index)
+		{
+			if (interval_index >= 50)
+			{
+				output_stream << ", ...";
+				break;
+			}
+			
 			output_stream << (interval_index == 0 ? "" : ", ") << multipliers[interval_index];
+		}
 		if (multipliersSize > 1)
 			output_stream << ")";
 		
@@ -8971,7 +8995,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeHotspotMap(const std::st
 			if (endsSize > 1)
 				output_stream << "c(";
 			for (int interval_index = 0; interval_index < endsSize; ++interval_index)
+			{
+				if (interval_index >= 50)
+				{
+					output_stream << ", ...";
+					break;
+				}
+				
 				output_stream << (interval_index == 0 ? "" : ", ") << positions[interval_index];
+			}
 			if (endsSize > 1)
 				output_stream << ")";
 		}
@@ -9095,7 +9127,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 		if (ratesSize > 1)
 			output_stream << "c(";
 		for (int interval_index = 0; interval_index < ratesSize; ++interval_index)
+		{
+			if (interval_index >= 50)
+			{
+				output_stream << ", ...";
+				break;
+			}
+			
 			output_stream << (interval_index == 0 ? "" : ", ") << rates[interval_index];
+		}
 		if (ratesSize > 1)
 			output_stream << ")";
 		
@@ -9106,7 +9146,15 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 			if (endsSize > 1)
 				output_stream << "c(";
 			for (int interval_index = 0; interval_index < endsSize; ++interval_index)
+			{
+				if (interval_index >= 50)
+				{
+					output_stream << ", ...";
+					break;
+				}
+				
 				output_stream << (interval_index == 0 ? "" : ", ") << positions[interval_index];
+			}
 			if (endsSize > 1)
 				output_stream << ")";
 		}
