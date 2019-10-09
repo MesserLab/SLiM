@@ -156,6 +156,9 @@
 			const EidosObjectClass *object_class = wrapped_object->Class();
 			const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
 			int propertyCount = (int)properties->size();
+			bool oldSuppressWarnings = gEidosSuppressWarnings, inaccessibleCaught = false;
+			
+			gEidosSuppressWarnings = true;		// prevent warnings from questionable property accesses from producing warnings in the user's output pane
 			
 			for (int index = 0; index < propertyCount; ++index)
 			{
@@ -169,11 +172,22 @@
 				try {
 					symbolValue = wrapped_object->GetPropertyOfElements(symbolID);
 				} catch (...) {
+					//std::cout << "caught inaccessible property " << symbolName << std::endl;
+					inaccessibleCaught = true;
 				}
 				
 				EidosValueWrapper *childWrapper = [EidosValueWrapper wrapperForName:symbolObjcName parent:self value:std::move(symbolValue)];
 				
 				[childWrappers addObject:childWrapper];
+			}
+			
+			gEidosSuppressWarnings = oldSuppressWarnings;
+			
+			if (inaccessibleCaught)
+			{
+				// throw away the raise message(s) so they don't confuse us
+				gEidosTermination.clear();
+				gEidosTermination.str(gEidosStr_empty_string);
 			}
 		}
 	}

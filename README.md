@@ -35,7 +35,7 @@ To compile the development version from this repository, do:
 	git clone https://github.com/MesserLab/SLiM.git
 	mkdir SLiM_build
 	cd SLiM_build
-	cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
+	cmake -DCMAKE_BUILD_TYPE=Release ../SLiM
 	make
 
 The resulting binaries (`slim` and `eidos`) will be located in the `SLiM_build` directory.
@@ -44,21 +44,21 @@ Running `make install` will then attempt to install these to the default system 
 but this will probably fail unless you run it with root permissions (e.g., by doing `sudo make install`). 
 To explicitly tell cmake where to install the binaries, run:
 
-	cmake -D CMAKE_BUILD_TYPE=Release -D -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install ../SLiM
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/path/to/install ../SLiM
 	make
-    make install
+	make install
 
 where `/path/to/install` is the path where you want `slim` and `eidos` installed below 
 (they would be put in `/path/to/install/bin` in this example, analogous to the `--user` flag).
 
 To update the build, in the `SLiM_build` directory run:
 
-	cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
+	cmake -DCMAKE_BUILD_TYPE=Release ../SLiM
 	make
 
 To build the code with debug flags turned on (i.e., optimization turned off, debugging symbols turned on, and extra runtime checking enabled), run instead:
 
-	cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
+	cmake -DCMAKE_BUILD_TYPE=Debug ../SLiM
 	make
 
 This could be done in a separate directory to retain both versions of the build.

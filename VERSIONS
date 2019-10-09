@@ -7,17 +7,6 @@ Note that not every commit will be logged here; that is what the Github commit h
 The build numbers given here are visible in SLiMgui's about panel.  They are not visible in any way on non-OSX platforms, unfortunately, because they are maintained by a "Run Script" build phase in the Xcode project that places the current git commit count into a field in the Info.plist file of SLiMgui (and EidosScribe).  This mechanism works only on OSX, so the build number is not available on Linux and other platforms.
 
 
-development head:
-	fix SLiMgui crashing bug involving (a) a type "s" mutation type with (b) a fixed color set for it
-	protect against a non-existent or non-writeable /tmp directory, which apparently some systems have
-	fix crash in SLiMgui due to inaccessible properties
-	fix bug involving (a) genomic elements specified out of sorted order, AND (b) a non-uniform mutation rate map; some genomic elements can end up not generating any mutations at all (present since SLiM 2.5)
-	add an option to clock() to select the clock type ("cpu" or "monotonic", for now); add the same option to executeLambda()
-	fix a VCF output bug: blank lines in nucleotide-based output when a back-mutation is suppressed by simplifyNucleotides=T
-	add a wait=T optional parameter to system(), allowing wait=F (or a & at the end of the command line) to execute a system command in the background
-	enable access to pedigree IDs whenever they are valid (i.e., when tree-sequence recording is enabled, as well as when pedigree tracking is enabled), and add them to VCF output when available
-	add an "individual" property to Genome that provides the individual to which a given genome belongs
-
 OpenMP additions:
 	made a separate project, SLiM_OpenMP.xcodeproj, with custom build settings:
 		user needs to run "sudo port install clang-8.0" to install a clang version that supports OpenMP
@@ -36,6 +25,28 @@ OpenMP additions:
 	set default values for OMP_WAIT_POLICY (active) and OMP_PROC_BIND (false) and OMP_DYNAMIC (false) for slim and eidos
 	set SLiMgui and EidosScribe to run with a single OpenMP thread; active threads peg the CPU, passive threads are slower than single-threaded
 
+
+development head:
+
+
+version 3.3.1 (build 2116; Eidos version 2.3.1):
+	fix SLiMgui crashing bug involving (a) a type "s" mutation type with (b) a fixed color set for it
+	protect against a non-existent or non-writeable /tmp directory, which apparently some systems have
+	fix crash in SLiMgui due to inaccessible properties
+	fix bug involving (a) genomic elements specified out of sorted order, AND (b) a non-uniform mutation rate map; some genomic elements can end up not generating any mutations at all (present since SLiM 2.5)
+	add an option to clock() to select the clock type ("cpu" or "monotonic", for now); add the same option to executeLambda()
+	fix a VCF output bug: blank lines in nucleotide-based output when a back-mutation is suppressed by simplifyNucleotides=T
+	add a wait=T optional parameter to system(), allowing wait=F (or a & at the end of the command line) to execute a system command in the background
+	enable access to pedigree IDs whenever they are valid (i.e., when tree-sequence recording is enabled, as well as when pedigree tracking is enabled), and add them to VCF output when available
+	add an "individual" property to Genome that provides the individual to which a given genome belongs
+	fix a crash with clonal nucleotide-based models using a custom mutation matrix
+	shift temporary files used by -eidosTest and -slimTest into a randomly named subfolder, where necessary to prevent conflicts with other users
+	change recipes that set a new seed to use 2^62 rather than 2^32, to avoid repeated sequences
+	fix memory allocation issue with more than 2^26 individuals
+	fix crash when trying to use an InteractionType after takeMigrants() has made its cached data invalid
+	fix crash when a call to takeMigrants() tries to migrate the same individual twice (i.e., the migrants vector is not uniqued)
+	fix signatures shown in SLiMgui for callbacks that have return values
+	fix problems with the variable browser caused by inaccessible properties
 
 version 3.3 (build 2062; Eidos version 2.3):
 	fix bug resulting in incorrect sex ratio (all males!) in sexual nonWF models when saved to a population file (either binary or text)
