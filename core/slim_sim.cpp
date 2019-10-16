@@ -7906,9 +7906,26 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	population_.TallyMutationReferences(nullptr, true);
 	
 	// Do a crosscheck to ensure data integrity
+	// BCH 10/16/2019: this crosscheck can take a significant amount of time; for a single load that is not a big deal,
+	// but for models that reload many times (e.g., conditional on fixation), this overhead can add up to a substantial
+	// fraction of total runtime.  That's crazy, especially since I've never seen this crosscheck fail except when
+	// actively working on the tree-seq code.  So let's run it only the first load, and then assume loads are valid,
+	// if we're running a Release build.  With a Debug build we still check on every load.
+#if DEBUG
 	CrosscheckTreeSeqIntegrity();
+#else
+	{
+		static bool been_here = false;
+		
+		if (!been_here) {
+			been_here = true;
+			CrosscheckTreeSeqIntegrity();
+		}
+	}
+#endif
 	
-	// Simplification has just been done, in effect
+	// Simplification has just been done, in effect (assuming the tree sequence we loaded is simplified; we assume that
+	// here, but if that is not true, no harm done really except that it might be a while before we simplify again)
 	simplify_elapsed_ = 0;
 	
 	// Reset our last coalescence state; we don't know whether we're coalesced now or not
