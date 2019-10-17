@@ -8,6 +8,8 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	add recipe 5.2.4 (joining subpopulations)
+	extend recipe 5.4 (the Gravel model) to show output from a vector of genomes sampled from multiple subpops
 
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):
