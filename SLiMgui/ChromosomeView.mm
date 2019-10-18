@@ -181,6 +181,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		glArrayColors = NULL;
 	}
 	
+	if (haplotype_previous_bincounts)
+	{
+		free(haplotype_previous_bincounts);
+		haplotype_previous_bincounts = NULL;
+	}
+	
 	[super dealloc];
 }
 
@@ -1814,7 +1820,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				int interiorHeight = (int)ceil(interiorRect.size.height);	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
 				SLiMHaplotypeManager *haplotypeManager = [[SLiMHaplotypeManager alloc] initWithClusteringMethod:kSLiMHaplotypeClusterNearestNeighbor optimizationMethod:kSLiMHaplotypeClusterNoOptimization sourceController:controller sampleSize:interiorHeight clusterInBackground:NO];
 				
-				[haplotypeManager glDrawHaplotypesInRect:interiorRect displayBlackAndWhite:NO showSubpopStrips:NO eraseBackground:NO];
+				[haplotypeManager glDrawHaplotypesInRect:interiorRect displayBlackAndWhite:NO showSubpopStrips:NO eraseBackground:NO previousFirstBincounts:&haplotype_previous_bincounts];
 				
 				// it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
 				// time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
