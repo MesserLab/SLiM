@@ -12,6 +12,8 @@ development head:
 	extend recipe 5.4 (the Gravel model) to show output from a vector of genomes sampled from multiple subpops
 	fix a bug in recipe 13.4 (introduced in SLiM 3.3) that caused the environmental noise not to be included in the phenotypic values used for fitness calculations
 	add an optional <level> argument for the command-line option -l/-long, to provide the level of verbosity desired (default level is 2; defaults to 1 if -l/-long is not used)
+	add recipe 16.17 (meiotic drive)
+
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):
 	fix SLiMgui crashing bug involving (a) a type "s" mutation type with (b) a fixed color set for it
