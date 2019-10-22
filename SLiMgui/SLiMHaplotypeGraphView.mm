@@ -148,7 +148,7 @@
 	glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
 	
 	// Draw haplotypes by delegating to our haplotype manager
-	[haplotypeManager glDrawHaplotypesInRect:interior displayBlackAndWhite:[self displayBlackAndWhite] showSubpopStrips:[self showSubpopulationStrips] eraseBackground:YES];
+	[haplotypeManager glDrawHaplotypesInRect:interior displayBlackAndWhite:[self displayBlackAndWhite] showSubpopStrips:[self showSubpopulationStrips] eraseBackground:YES previousFirstBincounts:NULL];
 	
 	// Flush
 	[[self openGLContext] flushBuffer];

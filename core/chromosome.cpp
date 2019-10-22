@@ -321,7 +321,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 		mutrun_count_ = p_preferred_count;
 		mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
 		
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 			SLIM_OUTSTREAM << std::endl << "// Override mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
 	}
 	else
@@ -336,7 +336,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 		// actually it needs to just be an even multiple of SLIM_MUTRUN_MAXIMUM_COUNT, not an exact power of two.
 		mutrun_length_ = (slim_position_t)round(ceil(mutrun_length_ / (double)SLIM_MUTRUN_MAXIMUM_COUNT) * SLIM_MUTRUN_MAXIMUM_COUNT);
 		
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 			SLIM_OUTSTREAM << std::endl << "// Initial mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
 	}
 	

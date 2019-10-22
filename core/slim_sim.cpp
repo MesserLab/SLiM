@@ -162,7 +162,7 @@ void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 	Eidos_InitializeRNG();
 	Eidos_SetRNGSeed(rng_seed);
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 		SLIM_OUTSTREAM << "// Initial random seed:\n" << rng_seed << "\n" << std::endl;
 	
 	// remember the original seed for .trees provenance
@@ -2180,7 +2180,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	num_ancseq_declarations_ = 0;
 	num_hotspot_maps_ = 0;
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
 	
 	// execute user-defined function blocks first; no need to profile this, it's just the definitions not the executions
@@ -2363,7 +2363,8 @@ void SLiMSim::RunInitializeCallbacks(void)
 		AllocateTreeSequenceTables();
 	
 	// emit our start log
-	SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
+	if (SLiM_verbosity_level >= 1)
+		SLIM_OUTSTREAM << "\n// Starting run at generation <start>:\n" << time_start_ << " " << "\n" << std::endl;
 }
 
 void SLiMSim::InitiateMutationRunExperiments(void)
@@ -2373,7 +2374,7 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 		// If the user supplied a count, go with that and don't run experiments
 		x_experiments_enabled_ = false;
 		
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 		{
 			SLIM_OUTSTREAM << std::endl;
 			SLIM_OUTSTREAM << "// Mutation run experiments disabled since a mutation run count was supplied" << std::endl;
@@ -2388,7 +2389,7 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 		// least one mutation in length, so the code doesn't break down
 		x_experiments_enabled_ = false;
 		
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 		{
 			SLIM_OUTSTREAM << std::endl;
 			SLIM_OUTSTREAM << "// Mutation run experiments disabled since the chromosome is very short" << std::endl;
@@ -2414,7 +2415,7 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 	x_prev1_stasis_mutcount_ = 0;		// we have never reached stasis before, so we have no memory of it
 	x_prev2_stasis_mutcount_ = 0;		// we have never reached stasis before, so we have no memory of it
 	
-	if (SLiM_verbose_output)
+	if (SLiM_verbosity_level >= 2)
 	{
 		SLIM_OUTSTREAM << std::endl;
 		SLIM_OUTSTREAM << "// Mutation run experiments started" << std::endl;
@@ -3957,7 +3958,7 @@ void SLiMSim::SimulationFinished(void)
 	
 	// If verbose output is enabled and we've been running mutation run experiments,
 	// figure out the modal mutation run count and print that, for the user's benefit.
-	if (SLiM_verbose_output && x_experiments_enabled_)
+	if ((SLiM_verbosity_level >= 2) && x_experiments_enabled_)
 	{
 		int modal_index, modal_tally;
 		int power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
@@ -7906,9 +7907,26 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	population_.TallyMutationReferences(nullptr, true);
 	
 	// Do a crosscheck to ensure data integrity
+	// BCH 10/16/2019: this crosscheck can take a significant amount of time; for a single load that is not a big deal,
+	// but for models that reload many times (e.g., conditional on fixation), this overhead can add up to a substantial
+	// fraction of total runtime.  That's crazy, especially since I've never seen this crosscheck fail except when
+	// actively working on the tree-seq code.  So let's run it only the first load, and then assume loads are valid,
+	// if we're running a Release build.  With a Debug build we still check on every load.
+#if DEBUG
 	CrosscheckTreeSeqIntegrity();
+#else
+	{
+		static bool been_here = false;
+		
+		if (!been_here) {
+			been_here = true;
+			CrosscheckTreeSeqIntegrity();
+		}
+	}
+#endif
 	
-	// Simplification has just been done, in effect
+	// Simplification has just been done, in effect (assuming the tree sequence we loaded is simplified; we assume that
+	// here, but if that is not true, no harm done really except that it might be a while before we simplify again)
 	simplify_elapsed_ = 0;
 	
 	// Reset our last coalescence state; we don't know whether we're coalesced now or not
@@ -8290,7 +8308,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 	// debugging
 	//std::cout << "ancestral sequence set: " << *chromosome_.ancestral_seq_buffer_ << std::endl;
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeAncestralNucleotides(\"";
 		
@@ -8369,7 +8387,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		num_genomic_elements_++;
 	}
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_elements_ > 20) && (num_genomic_elements_ != element_count))
 		{
@@ -8463,7 +8481,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_element_types_ > 99))
 		{
@@ -8574,7 +8592,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeInteractionType(" << map_identifier << ", \"" << spatiality_string << "\"";
 		
@@ -8643,7 +8661,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		if (ABBREVIATE_DEBUG_INPUT && (num_mutation_types_ > 99))
 		{
@@ -8771,7 +8789,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	
 	chromosome_changed_ = true;
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		int ratesSize = (int)rates.size();
 		int endsSize = (int)positions.size();
@@ -8858,7 +8876,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 	chromosome_.simple_conversion_fraction_ = simple_conversion_fraction;
 	chromosome_.mismatch_repair_bias_ = bias;
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 		output_stream << "initializeGeneConversion(" << non_crossover_fraction << ", " << gene_conversion_avg_length << ", " << simple_conversion_fraction << ", " << bias << ");" << std::endl;
 	
 	num_gene_conversions_++;
@@ -8966,7 +8984,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeHotspotMap(const std::st
 	
 	chromosome_changed_ = true;
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		int multipliersSize = (int)multipliers.size();
 		int endsSize = (int)positions.size();
@@ -9117,7 +9135,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	
 	chromosome_changed_ = true;
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		int ratesSize = (int)rates.size();
 		int endsSize = (int)positions.size();
@@ -9198,7 +9216,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << EidosTerminate();
 	}
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeSex(\"" << chromosome_type << "\"";
 		
@@ -9334,7 +9352,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		nucleotide_based_ = nucleotide_based;
 	}
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeSLiMOptions(";
 		
@@ -9476,7 +9494,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	pedigrees_enabled_ = true;
 	pedigrees_enabled_by_tree_seq_ = true;
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeTreeSeq(";
 		
@@ -9553,7 +9571,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMModelType(const std:
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMModelType): in initializeSLiMModelType(), legal values for parameter modelType are only 'WF' or 'nonWF'." << EidosTerminate();
 	}
 	
-	if (DEBUG_INPUT)
+	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeSLiMModelType(";
 		
