@@ -560,7 +560,25 @@ static float *glArrayColors = nil;
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-- (void)drawDisplayListInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW
+- (void)tallyBincounts:(int64_t *)bincounts fromGenomeList:(std::vector<MutationIndex> &)genomeList
+{
+	EIDOS_BZERO(bincounts, 1024 * sizeof(int64_t));
+	
+	for (MutationIndex mut_index : genomeList)
+		bincounts[mutationInfo[mut_index].position_ % 1024]++;
+}
+
+- (int64_t)distanceForBincounts:(int64_t *)bincounts1 fromBincounts:(int64_t *)bincounts2
+{
+	int64_t distance = 0;
+	
+	for (int i = 0; i < 1024; ++i)
+		distance += abs(bincounts1[i] - bincounts2[i]);
+	
+	return distance;
+}
+
+- (void)drawDisplayListInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW previousFirstBincounts:(int64_t **)previousFirstBincounts
 {
 	int displayListIndex;
 	float *vertices = NULL, *colors = NULL;
@@ -576,17 +594,56 @@ static float *glArrayColors = nil;
 	glEnableClientState(GL_COLOR_ARRAY);
 	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
 	
+	// decide whether to plot in ascending order or descending order; we do this based on a calculated
+	// similarity to the previously displayed first genome, so that we maximize visual continuity
+	int genome_count = (int)displayList->size();
+	bool ascending = true;
+	
+	if (previousFirstBincounts && (genome_count > 1))
+	{
+		std::vector<MutationIndex> &first_genome_list = (*displayList)[0];
+		std::vector<MutationIndex> &last_genome_list = (*displayList)[genome_count - 1];
+		static int64_t *first_genome_bincounts = nullptr;
+		static int64_t *last_genome_bincounts = nullptr;
+		
+		if (!first_genome_bincounts)	first_genome_bincounts = (int64_t *)malloc(1024 * sizeof(int64_t));
+		if (!last_genome_bincounts)		last_genome_bincounts = (int64_t *)malloc(1024 * sizeof(int64_t));
+		
+		[self tallyBincounts:first_genome_bincounts fromGenomeList:first_genome_list];
+		[self tallyBincounts:last_genome_bincounts fromGenomeList:last_genome_list];
+		
+		if (*previousFirstBincounts)
+		{
+			int64_t first_genome_distance = [self distanceForBincounts:first_genome_bincounts fromBincounts:*previousFirstBincounts];
+			int64_t last_genome_distance = [self distanceForBincounts:last_genome_bincounts fromBincounts:*previousFirstBincounts];
+			
+			if (first_genome_distance > last_genome_distance)
+				ascending = false;
+			
+			free(*previousFirstBincounts);
+		}
+		
+		// take over one of our buffers, to avoid having to copy values
+		if (ascending) {
+			*previousFirstBincounts = first_genome_bincounts;
+			first_genome_bincounts = nullptr;
+		} else {
+			*previousFirstBincounts = last_genome_bincounts;
+			last_genome_bincounts = nullptr;
+		}
+	}
+	
 	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
 	for (int pass_count = 0; pass_count <= 1; ++pass_count)
 	{
 		BOOL plotting_neutral = (pass_count == 0);
-		int genome_index = 0, genome_count = (int)displayList->size();
 		double height_divisor = genome_count;
 		double width_subtractor = (usingSubrange ? subrangeFirstBase : 0);
 		double width_divisor = (usingSubrange ? (subrangeLastBase - subrangeFirstBase + 1) : (mutationLastPosition + 1));
 		
-		for (std::vector<MutationIndex> &genome_list : *displayList)
+		for (int genome_index = 0; genome_index < genome_count; ++genome_index)
 		{
+			std::vector<MutationIndex> &genome_list = (ascending ? (*displayList)[genome_index] : (*displayList)[(genome_count - 1) - genome_index]);
 			float top = (float)(interior.origin.y + (genome_index / height_divisor) * interior.size.height);
 			float bottom = (float)(interior.origin.y + ((genome_index + 1) / height_divisor) * interior.size.height);
 			
@@ -658,8 +715,6 @@ static float *glArrayColors = nil;
 					}
 				}
 			}
-			
-			genome_index++;
 		}
 	}
 	
@@ -671,7 +726,7 @@ static float *glArrayColors = nil;
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-- (void)glDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground
+- (void)glDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground previousFirstBincounts:(int64_t **)previousFirstBincounts
 {
 	// Erase the background to either black or white, depending on displayBW
 	if (eraseBackground)
@@ -702,7 +757,7 @@ static float *glArrayColors = nil;
 	}
 	
 	// Draw the haplotypes in the remaining portion of the interior
-	[self drawDisplayListInRect:interior displayBlackAndWhite:displayBW];
+	[self drawDisplayListInRect:interior displayBlackAndWhite:displayBW previousFirstBincounts:previousFirstBincounts];
 }
 
 // NSOpenGLView doesn't cache properly, perhaps unsurprisingly; so we need to redraw the contents using non-GL calls.
