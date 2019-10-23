@@ -40,8 +40,8 @@ class Subpopulation;
 class SLiMEidosBlock;
 
 
-#define SLIM_VERSION_STRING	("3.3")
-#define SLIM_VERSION_FLOAT	(3.3)
+#define SLIM_VERSION_STRING	("3.3.1")
+#define SLIM_VERSION_FLOAT	(3.31)
 
 
 // This should be called once at startup to give SLiM an opportunity to initialize static state
@@ -269,7 +269,6 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
 #define DEBUG_MUTATION_ZOMBIES		0		// avoid destroying Mutation objects; keep them as zombies
 #define SLIM_DEBUG_MUTATION_RUNS	0		// turn on to get logging about mutation run uniquing and usage
-#define DEBUG_INPUT					1		// additional output for debugging of input file parsing; 1 in standard SLiM builds
 #define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
 
 
@@ -290,8 +289,8 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 // experiments performed by SLiMSim.
 #define MUTRUN_EXPERIMENT_OUTPUT	0
 
-// Verbosity, from the command-line option -l[ong]
-extern bool SLiM_verbose_output;
+// Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
+extern long SLiM_verbosity_level;
 
 
 // *******************************************************************************************************************

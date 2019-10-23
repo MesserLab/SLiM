@@ -488,8 +488,8 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #pragma mark Shared SLiM types and enumerations
 #pragma mark -
 
-// Verbosity, from the command-line option -l[ong]
-bool SLiM_verbose_output = false;
+// Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
+long SLiM_verbosity_level = 1;
 
 
 // stream output for enumerations

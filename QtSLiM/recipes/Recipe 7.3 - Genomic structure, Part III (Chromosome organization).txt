@@ -1,0 +1,51 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);         // non-coding
+	initializeMutationType("m2", 0.5, "f", 0.0);         // synonymous
+	initializeMutationType("m3", 0.1, "g", -0.03, 0.2);  // deleterious
+	initializeMutationType("m4", 0.8, "e", 0.1);         // beneficial
+	
+	initializeGenomicElementType("g1", c(m2,m3,m4), c(2,8,0.1));  // exon
+	initializeGenomicElementType("g2", c(m1,m3), c(9,1));       // intron
+	initializeGenomicElementType("g3", c(m1), 1);           // non-coding
+	
+	// Generate random genes along an approximately 100000-base chromosome
+	base = 0;
+	
+	while (base < 100000) {
+		// make a non-coding region
+		nc_length = rdunif(1, 100, 5000);
+		initializeGenomicElement(g3, base, base + nc_length - 1);
+		base = base + nc_length;
+		
+		// make first exon
+		ex_length = asInteger(rlnorm(1, log(50), log(2))) + 1;
+		initializeGenomicElement(g1, base, base + ex_length - 1);
+		base = base + ex_length;
+		
+		// make additional intron-exon pairs
+		do
+		{
+			in_length = asInteger(rlnorm(1, log(100), log(1.5))) + 10;
+			initializeGenomicElement(g2, base, base + in_length - 1);
+			base = base + in_length;
+			
+			ex_length = asInteger(rlnorm(1, log(50), log(2))) + 1;
+			initializeGenomicElement(g1, base, base + ex_length - 1);
+			base = base + ex_length;
+		}
+		while (runif(1) < 0.8);  // 20% probability of stopping
+	}
+	
+	// final non-coding region
+	nc_length = rdunif(1, 100, 5000);
+	initializeGenomicElement(g3, base, base + nc_length - 1);
+	
+	// single recombination rate
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 5000); }
+10000 { sim.simulationFinished(); }

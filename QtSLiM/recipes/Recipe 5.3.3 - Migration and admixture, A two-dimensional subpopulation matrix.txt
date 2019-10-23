@@ -1,0 +1,32 @@
+// Keywords: migration, dispersal
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	metapopSide = 3;	// number of subpops along one side of the grid
+	metapopSize = metapopSide * metapopSide;
+	for (i in 1:metapopSize)
+		sim.addSubpop(i, 500);
+	
+	subpops = sim.subpopulations;
+	for (x in 1:metapopSide)
+		for (y in 1:metapopSide)
+		{
+			destID = (x - 1) + (y - 1) * metapopSide + 1;
+			destSubpop = subpops[destID - 1];
+			if (x > 1)   // left to right
+				destSubpop.setMigrationRates(destID - 1, 0.05);
+			if (x < metapopSide)   // right to left
+				destSubpop.setMigrationRates(destID + 1, 0.05);
+			if (y > 1)   // top to bottom
+				destSubpop.setMigrationRates(destID - metapopSide, 0.05);
+			if (y < metapopSide)   // bottom to top
+				destSubpop.setMigrationRates(destID + metapopSide, 0.05);
+		}
+}
+10000 late() { sim.outputFull(); }

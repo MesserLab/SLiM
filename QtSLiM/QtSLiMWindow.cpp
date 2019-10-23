@@ -2,6 +2,9 @@
 #include "ui_QtSLiMWindow.h"
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMEidosPrettyprinter.h"
+#include "QtSLiMAbout.h"
+#include "QtSLiMPreferences.h"
+#include "QtSLiMSyntaxHighlighting.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -15,6 +18,9 @@
 #include <QSettings>
 #include <QCheckBox>
 #include <QCloseEvent>
+#include <QDesktopWidget>
+#include <QStandardPaths>
+#include <QToolTip>
 
 #include <unistd.h>
 
@@ -23,7 +29,6 @@
 
 // TO DO:
 //
-// add access to recipes through the File menu
 // custom layout for play/profile buttons: https://doc.qt.io/qt-5/layout.html
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
@@ -31,25 +36,68 @@
 // implement selection of a subrange in the chromosome view
 // enable the more efficient code paths in the chromosome view
 // enable the other display types in the individuals view
-// syntax coloring in the script and output textedits: https://doc.qt.io/qt-5/qtwidgets-richtext-syntaxhighlighter-example.html
 // implement pop-up menu for graph pop-up button
-// multiple windows, document model, open/save/revert, etc.
-// add a preferences panel: font/size, syntax coloring pref, etc.
 // code editing: code completion
 // implement the Eidos console, help window, status bar
 // decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
+// associate .slim with QtSLiM; how is this done in Linux, or in Qt?
+// implement graph windows
 
 
-QtSLiMWindow::QtSLiMWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::QtSLiMWindow)
+QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
 {
+    init();
+    setCurrentFile(QString());
+    
+    // set up the initial script
+    std::string untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? QtSLiMWindow::defaultWFScriptString() : QtSLiMWindow::defaultNonWFScriptString();
+    ui->scriptTextEdit->setPlainText(QString::fromStdString(untitledScriptString));
+    setScriptStringAndInitializeSimulation(untitledScriptString);
+    
+    // Update all our UI to reflect the current state of the simulation
+    updateAfterTickFull(true);
+    resetSLiMChangeCount();     // no recycle change count; the current model is correct
+    setWindowModified(false);    // untitled windows consider themselves unmodified
+}
+
+QtSLiMWindow::QtSLiMWindow(const QString &fileName) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
+{
+    init();
+    loadFile(fileName);
+}
+
+QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScript) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
+{
+    init();
+    setCurrentFile(QString());
+    setWindowFilePath(recipeName);
+    isRecipe = true;
+    
+    // set up the initial script
+    ui->scriptTextEdit->setPlainText(recipeScript);
+    setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
+    
+    // Update all our UI to reflect the current state of the simulation
+    updateAfterTickFull(true);
+    resetSLiMChangeCount();     // no recycle change count; the current model is correct
+    setWindowModified(false);    // untitled windows consider themselves unmodified
+}
+
+void QtSLiMWindow::init(void)
+{
+    setAttribute(Qt::WA_DeleteOnClose);
+    isUntitled = true;
+    isRecipe = false;
+    
     // create the window UI
     ui->setupUi(this);
     initializeUI();
     
-    // wire up our continuous play timer
+    // wire up our continuous play and generation play timers
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
+    connect(&generationPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_generationPlay);
     
     // wire up deferred display of script errors and termination messages
     connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
@@ -66,48 +114,20 @@ QtSLiMWindow::QtSLiMWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::Qt
     sim_working_dir = Eidos_ResolvedPath("~/Desktop");
     sim_requested_working_dir = sim_working_dir;	// return to Desktop on recycle unless the user overrides it
     
-    // Set up our chromosome views to show the proper stuff
-	ui->chromosomeOverview->setReferenceChromosomeView(nullptr);
-	ui->chromosomeOverview->setSelectable(true);
-	ui->chromosomeOverview->setShouldDrawGenomicElements(true);
-	ui->chromosomeOverview->setShouldDrawMutations(false);
-	ui->chromosomeOverview->setShouldDrawFixedSubstitutions(false);
-	ui->chromosomeOverview->setShouldDrawRateMaps(false);
-	
-	ui->chromosomeZoomed->setReferenceChromosomeView(ui->chromosomeOverview);
-	ui->chromosomeZoomed->setSelectable(false);
-	ui->chromosomeZoomed->setShouldDrawGenomicElements(ui->showGenomicElementsButton->isChecked());
-	ui->chromosomeZoomed->setShouldDrawMutations(ui->showMutationsButton->isChecked());
-	ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(ui->showFixedSubstitutionsButton->isChecked());
-	ui->chromosomeZoomed->setShouldDrawRateMaps(ui->showChromosomeMapsButton->isChecked());
+    // Wire up things that set the window to be modified.
+    connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
+    connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
     
-    // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
-    QSettings settings;
+    // Wire up to change the font when the display font pref changes
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
     
-    settings.beginGroup("MainWindow");
-    resize(settings.value("size", QSize(950, 700)).toSize());
-    move(settings.value("pos", QPoint(100, 100)).toPoint());
-    settings.endGroup();
-}
-
-QtSLiMWindow::~QtSLiMWindow()
-{
-    delete ui;
-
-    if (sim)
-    {
-        delete sim;
-        sim = nullptr;
-    }
-//    if (slimgui)
-//	{
-//		delete slimgui;
-//		slimgui = nullptr;
-//	}
-
-    Eidos_FreeRNG(sim_RNG);
-
-    setInvalidSimulation(true);
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMWindow::displayFontPrefChanged);
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::scriptSyntaxHighlightPrefChanged, this, &QtSLiMWindow::scriptSyntaxHighlightPrefChanged);
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::outputSyntaxHighlightPrefChanged, this, &QtSLiMWindow::outputSyntaxHighlightPrefChanged);
+    
+    // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
+    ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+    QTimer::singleShot(0, [this]() { ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
 }
 
 void QtSLiMWindow::initializeUI(void)
@@ -127,15 +147,19 @@ void QtSLiMWindow::initializeUI(void)
     ui->playControlsLayout->setMargin(0);
 
     // set up the script and output textedits
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
     int tabWidth = 0;
-    QFont &scriptFont = QtSLiMWindow::defaultScriptFont(&tabWidth);
+    QFont scriptFont = prefs.displayFontPref(&tabWidth);
 
     ui->scriptTextEdit->setFont(scriptFont);
     ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
 
     ui->outputTextEdit->setFont(scriptFont);
     ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
-
+    
+    scriptSyntaxHighlightPrefChanged();     // create a highlighter if needed
+    outputSyntaxHighlightPrefChanged();     // create a highlighter if needed
+    
     // remove the profile button, for the time being
     QPushButton *profileButton = ui->profileButton;
 
@@ -147,13 +171,6 @@ void QtSLiMWindow::initializeUI(void)
     ui->showGenomicElementsButton->setChecked(zoomedChromosomeShowsGenomicElements);
     ui->showMutationsButton->setChecked(zoomedChromosomeShowsMutations);
     ui->showFixedSubstitutionsButton->setChecked(zoomedChromosomeShowsFixedSubstitutions);
-
-    // set up the initial script
-    scriptString = QtSLiMWindow::defaultWFScriptString();
-    ui->scriptTextEdit->setPlainText(QString::fromStdString(scriptString));
-    setScriptStringAndInitializeSimulation(scriptString);
-    
-    connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
 
     // Set up the population table view
     populationTableModel_ = new QtSLiMPopulationTableModel(this);
@@ -196,43 +213,66 @@ void QtSLiMWindow::initializeUI(void)
     popTableVHeader->setSectionResizeMode(QHeaderView::Fixed);
     popTableVHeader->setDefaultSectionSize(18);
     
-    // Update all our UI to reflect the current state of the simulation
-    updateAfterTickFull(true);
-}
-
-QFont &QtSLiMWindow::defaultScriptFont(int *p_tabWidth)
-{
-    static QFont *scriptFont = nullptr;
-    static int tabWidth = 0;
+    // Set up our chromosome views to show the proper stuff
+	ui->chromosomeOverview->setReferenceChromosomeView(nullptr);
+	ui->chromosomeOverview->setSelectable(true);
+	ui->chromosomeOverview->setShouldDrawGenomicElements(true);
+	ui->chromosomeOverview->setShouldDrawMutations(false);
+	ui->chromosomeOverview->setShouldDrawFixedSubstitutions(false);
+	ui->chromosomeOverview->setShouldDrawRateMaps(false);
+	
+	ui->chromosomeZoomed->setReferenceChromosomeView(ui->chromosomeOverview);
+	ui->chromosomeZoomed->setSelectable(false);
+	ui->chromosomeZoomed->setShouldDrawGenomicElements(ui->showGenomicElementsButton->isChecked());
+	ui->chromosomeZoomed->setShouldDrawMutations(ui->showMutationsButton->isChecked());
+	ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(ui->showFixedSubstitutionsButton->isChecked());
+	ui->chromosomeZoomed->setShouldDrawRateMaps(ui->showChromosomeMapsButton->isChecked());
     
-    if (!scriptFont)
-    {
-        QFontDatabase fontdb;
-        QStringList families = fontdb.families();
-        
-        //qDebug() << families;
-        
-        // Use filter() to look for matches, since the foundry can be appended after the name (why isn't this easier??)
-        // FIXME should have preferences UI for choosing the font and size
-        if (families.filter("DejaVu Sans Mono").size() > 0)
-            scriptFont = new QFont("DejaVu Sans Mono", 9);
-        else if (families.filter("Source Code Pro").size() > 0)
-            scriptFont = new QFont("Source Code Pro", 9);
-        else if (families.filter("Menlo").size() > 0)
-            scriptFont = new QFont("Menlo", 11);
-        else
-            scriptFont = new QFont("Courier", 9);
-        
-        //qDebug() << "Chosen font: " << scriptFont->family();
-        
-        QFontMetrics fm(*scriptFont);
-        
-        //tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
-        tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
+    // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
+    QSettings settings;
+    
+    settings.beginGroup("QtSLiMMainWindow");
+    resize(settings.value("size", QSize(950, 700)).toSize());
+    move(settings.value("pos", QPoint(100, 100)).toPoint());
+    settings.endGroup();
+    
+    // Ask the app delegate to handle the recipes menu for us
+    qtSLiMAppDelegate->setUpRecipesMenu(ui->menuOpenRecipe, ui->actionFindRecipe);
+    
+    // Set up the recent documents submenu
+    QMenu *recentMenu = new QMenu("Open Recent");
+    ui->actionOpenRecent->setMenu(recentMenu);
+    connect(recentMenu, &QMenu::aboutToShow, this, &QtSLiMWindow::updateRecentFileActions);
+    
+    for (int i = 0; i < MaxRecentFiles; ++i) {
+        recentFileActs[i] = recentMenu->addAction(QString(), this, &QtSLiMWindow::openRecentFile);
+        recentFileActs[i]->setVisible(false);
     }
     
-    *p_tabWidth = tabWidth;
-    return *scriptFont;
+    recentMenu->addSeparator();
+    recentMenu->addAction("Clear Menu", this, &QtSLiMWindow::clearRecentFiles);
+    
+    setRecentFilesVisible(QtSLiMWindow::hasRecentFiles());
+}
+
+QtSLiMWindow::~QtSLiMWindow()
+{
+    delete ui;
+
+    if (sim)
+    {
+        delete sim;
+        sim = nullptr;
+    }
+//    if (slimgui)
+//	{
+//		delete slimgui;
+//		slimgui = nullptr;
+//	}
+
+    Eidos_FreeRNG(sim_RNG);
+
+    setInvalidSimulation(true);
 }
 
 std::string QtSLiMWindow::defaultWFScriptString(void)
@@ -351,7 +391,426 @@ void QtSLiMWindow::colorForGenomicElementType(GenomicElementType *elementType, s
         *p_alpha = static_cast<float>(elementColor->alphaF());
 	}
 }
-            
+
+//
+//  Document support
+//
+
+void QtSLiMWindow::closeEvent(QCloseEvent *event)
+{
+    if (maybeSave())
+    {
+        // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
+        QSettings settings;
+        
+        settings.beginGroup("QtSLiMMainWindow");
+        settings.setValue("size", size());
+        settings.setValue("pos", pos());
+        settings.endGroup();
+        
+        event->accept();
+    }
+    else
+    {
+        event->ignore();
+    }
+}
+
+void QtSLiMWindow::aboutQtSLiM()
+{
+    static QtSLiMAbout *aboutWindow = nullptr;
+    
+    if (!aboutWindow)
+        aboutWindow = new QtSLiMAbout(nullptr);     // shared instance with no parent, never freed
+    
+    aboutWindow->show();
+    aboutWindow->raise();
+    aboutWindow->activateWindow();
+}
+
+void QtSLiMWindow::showPreferences()
+{
+    QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
+    
+    prefsWindow.show();
+    prefsWindow.raise();
+    prefsWindow.activateWindow();
+}
+
+void QtSLiMWindow::newFile_WF()
+{
+    QtSLiMWindow *other = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
+    other->tile(this);
+    other->show();
+}
+
+void QtSLiMWindow::newFile_nonWF()
+{
+    QtSLiMWindow *other = new QtSLiMWindow(QtSLiMWindow::ModelType::nonWF);
+    other->tile(this);
+    other->show();
+}
+
+QtSLiMWindow *QtSLiMWindow::runInitialOpenPanel(void)
+{
+    // This is like open(), but as a static method that makes no reference to an existing window
+    QSettings settings;
+    QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
+    
+    const QString fileName = QFileDialog::getOpenFileName(nullptr, QString(), directory, "SLiM models (*.slim);;Text files (*.txt)");  // add PDF files eventually
+    if (!fileName.isEmpty())
+    {
+        settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
+        
+        QtSLiMWindow *other = new QtSLiMWindow(fileName);
+        if (other->isUntitled) {
+            delete other;
+            return nullptr;
+        }
+        return other;
+    }
+    
+    return nullptr;
+}
+
+void QtSLiMWindow::open()
+{
+    QSettings settings;
+    QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
+    
+    const QString fileName = QFileDialog::getOpenFileName(this, QString(), directory, "SLiM models (*.slim);;Text files (*.txt)");  // add PDF files eventually
+    if (!fileName.isEmpty())
+    {
+        settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
+        openFile(fileName);
+    }
+}
+
+void QtSLiMWindow::openFile(const QString &fileName)
+{
+    QtSLiMWindow *existing = findMainWindow(fileName);
+    if (existing) {
+        existing->show();
+        existing->raise();
+        existing->activateWindow();
+        return;
+    }
+
+    if (isUntitled && !isRecipe && (slimChangeCount == 0) && !isWindowModified()) {
+        loadFile(fileName);
+        return;
+    }
+
+    QtSLiMWindow *other = new QtSLiMWindow(fileName);
+    if (other->isUntitled) {
+        delete other;
+        return;
+    }
+    other->tile(this);
+    other->show();
+}
+
+void QtSLiMWindow::openRecipe(const QString &recipeName, const QString &recipeScript)
+{
+    if (isUntitled && !isRecipe && (slimChangeCount == 0) && !isWindowModified())
+    {
+        //[_consoleController invalidateSymbolTableAndFunctionMap];
+        clearOutputClicked();
+        ui->scriptTextEdit->setPlainText(recipeScript);
+        setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
+        //[_consoleController validateSymbolTableAndFunctionMap];
+        
+        setWindowFilePath(recipeName);
+        isRecipe = true;
+        
+        // Update all our UI to reflect the current state of the simulation
+        updateAfterTickFull(true);
+        resetSLiMChangeCount();     // no recycle change count; the current model is correct
+        setWindowModified(false);   // loaded windows start unmodified
+        return;
+    }
+
+    QtSLiMWindow *other = new QtSLiMWindow(recipeName, recipeScript);
+    if (!other->isRecipe) {
+        delete other;
+        return;
+    }
+    other->tile(this);
+    other->show();
+}
+
+bool QtSLiMWindow::save()
+{
+    return isUntitled ? saveAs() : saveFile(curFile);
+}
+
+bool QtSLiMWindow::saveAs()
+{
+    QString fileName;
+    
+    if (isUntitled)
+    {
+        QSettings settings;
+        QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+        QString directory = settings.value("QtSLiMDefaultSaveDirectory", QVariant(desktopPath)).toString();
+        QFileInfo fileInfo(QDir(directory), "Untitled.slim");
+        QString path = fileInfo.absoluteFilePath();
+        
+        fileName = QFileDialog::getSaveFileName(this, "Save As", path);
+        
+        if (!fileName.isEmpty())
+            settings.setValue("QtSLiMDefaultSaveDirectory", QVariant(QFileInfo(fileName).path()));
+    }
+    else
+    {
+        // propose saving to the existing filename in the existing directory
+        fileName = QFileDialog::getSaveFileName(this, "Save As", curFile);
+    }
+    
+    if (fileName.isEmpty())
+        return false;
+
+    return saveFile(fileName);
+}
+
+void QtSLiMWindow::revert()
+{
+    if (isUntitled)
+    {
+        qApp->beep();
+    }
+    else
+    {
+        const QMessageBox::StandardButton ret = QMessageBox::warning(this, "QtSLiM", "Are you sure you want to revert?  All changes will be lost.", QMessageBox::Yes | QMessageBox::Cancel);
+        
+        switch (ret) {
+        case QMessageBox::Yes:
+            loadFile(curFile);
+            break;
+        case QMessageBox::Cancel:
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+bool QtSLiMWindow::maybeSave()
+{
+    // the recycle button change state is irrelevant; the document change state is what matters
+    if (!isWindowModified())
+        return true;
+    
+    const QMessageBox::StandardButton ret = QMessageBox::warning(this, "QtSLiM", "The document has been modified.\nDo you want to save your changes?", QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+    
+    switch (ret) {
+    case QMessageBox::Save:
+        return save();
+    case QMessageBox::Cancel:
+        return false;
+    default:
+        break;
+    }
+    return true;
+}
+
+void QtSLiMWindow::loadFile(const QString &fileName)
+{
+    QFile file(fileName);
+    
+    if (!file.open(QFile::ReadOnly | QFile::Text)) {
+        QMessageBox::warning(this, "QtSLiM", QString("Cannot read file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
+        return;
+    }
+
+    QTextStream in(&file);
+    QString contents = in.readAll();
+    ui->scriptTextEdit->setPlainText(contents);
+    
+    //[_consoleController invalidateSymbolTableAndFunctionMap];
+	clearOutputClicked();
+    setScriptStringAndInitializeSimulation(contents.toUtf8().constData());
+	//[_consoleController validateSymbolTableAndFunctionMap];
+    
+    setCurrentFile(fileName);
+    
+    // Update all our UI to reflect the current state of the simulation
+    updateAfterTickFull(true);
+    resetSLiMChangeCount();     // no recycle change count; the current model is correct
+    setWindowModified(false);   // loaded windows start unmodified
+}
+
+bool QtSLiMWindow::saveFile(const QString &fileName)
+{
+    QFile file(fileName);
+    if (!file.open(QFile::WriteOnly | QFile::Text)) {
+        QMessageBox::warning(this, "QtSLiM", QString("Cannot write file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
+        return false;
+    }
+
+    QTextStream out(&file);
+    out << ui->scriptTextEdit->toPlainText();
+
+    setCurrentFile(fileName);
+    return true;
+}
+
+void QtSLiMWindow::setCurrentFile(const QString &fileName)
+{
+    static int sequenceNumber = 1;
+
+    isUntitled = fileName.isEmpty();
+    
+    if (isUntitled) {
+        if (sequenceNumber == 1)
+            curFile = QString("Untitled");
+        else
+            curFile = QString("Untitled %1").arg(sequenceNumber);
+        sequenceNumber++;
+    } else {
+        curFile = QFileInfo(fileName).canonicalFilePath();
+    }
+
+    ui->scriptTextEdit->document()->setModified(false);
+    setWindowModified(false);
+    
+    if (!isUntitled)
+        QtSLiMWindow::prependToRecentFiles(curFile);
+    
+    setWindowFilePath(curFile);
+}
+
+QtSLiMWindow *QtSLiMWindow::findMainWindow(const QString &fileName) const
+{
+    QString canonicalFilePath = QFileInfo(fileName).canonicalFilePath();
+
+    const QList<QWidget *> topLevelWidgets = QApplication::topLevelWidgets();
+    for (QWidget *widget : topLevelWidgets) {
+        QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
+        if (mainWin && mainWin->curFile == canonicalFilePath)
+            return mainWin;
+    }
+
+    return nullptr;
+}
+
+void QtSLiMWindow::documentWasModified()
+{
+    // This method should be called whenever anything happens that makes us want to mark a window as "dirty" – confirm before closing.
+    // This is not quite the same as scriptTexteditChanged(), which is called whenever anything happens that makes the recycle
+    // button go green; recycling resets the recycle button to gray, whereas saving resets the document state to unmodified.
+    // We could be called for things that are saveable but do not trigger a need for recycling.
+    setWindowModified(true);
+}
+
+void QtSLiMWindow::tile(const QMainWindow *previous)
+{
+    if (!previous)
+        return;
+    int topFrameWidth = previous->geometry().top() - previous->pos().y();
+    if (!topFrameWidth)
+        topFrameWidth = 40;
+    const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
+    if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + pos))
+        move(pos);
+}
+
+
+//
+//  Recent documents
+//
+
+void QtSLiMWindow::setRecentFilesVisible(bool visible)
+{
+    ui->actionOpenRecent->setVisible(visible);
+}
+
+static inline QString recentFilesKey() { return QStringLiteral("QtSLiMRecentFilesList"); }
+static inline QString fileKey() { return QStringLiteral("file"); }
+
+static QStringList readRecentFiles(QSettings &settings)
+{
+    QStringList result;
+    const int count = settings.beginReadArray(recentFilesKey());
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        result.append(settings.value(fileKey()).toString());
+    }
+    settings.endArray();
+    return result;
+}
+
+static void writeRecentFiles(const QStringList &files, QSettings &settings)
+{
+    const int count = files.size();
+    settings.beginWriteArray(recentFilesKey());
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        settings.setValue(fileKey(), files.at(i));
+    }
+    settings.endArray();
+}
+
+bool QtSLiMWindow::hasRecentFiles()
+{
+    QSettings settings;
+    const int count = settings.beginReadArray(recentFilesKey());
+    settings.endArray();
+    return count > 0;
+}
+
+void QtSLiMWindow::prependToRecentFiles(const QString &fileName)
+{
+    QSettings settings;
+
+    const QStringList oldRecentFiles = readRecentFiles(settings);
+    QStringList recentFiles = oldRecentFiles;
+    recentFiles.removeAll(fileName);
+    recentFiles.prepend(fileName);
+    if (oldRecentFiles != recentFiles)
+        writeRecentFiles(recentFiles, settings);
+
+    setRecentFilesVisible(!recentFiles.isEmpty());
+}
+
+void QtSLiMWindow::updateRecentFileActions()
+{
+    QSettings settings;
+
+    const QStringList recentFiles = readRecentFiles(settings);
+    const int count = qMin(int(MaxRecentFiles), recentFiles.size());
+    int i = 0;
+    for ( ; i < count; ++i) {
+        const QString fileName = QFileInfo(recentFiles.at(i)).fileName();
+        recentFileActs[i]->setText(fileName);
+        recentFileActs[i]->setData(recentFiles.at(i));
+        recentFileActs[i]->setVisible(true);
+    }
+    for ( ; i < MaxRecentFiles; ++i)
+        recentFileActs[i]->setVisible(false);
+}
+
+void QtSLiMWindow::openRecentFile()
+{
+    const QAction *action = qobject_cast<const QAction *>(sender());
+    
+    if (action)
+        openFile(action->data().toString());
+}
+
+void QtSLiMWindow::clearRecentFiles()
+{
+    QSettings settings;
+    QStringList emptyRecentFiles;
+    writeRecentFiles(emptyRecentFiles, settings);
+    setRecentFilesVisible(false);
+}
+
+
+//
+//  Simulation state
+//
+
 std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 {
     std::vector<Subpopulation*> selectedSubpops;
@@ -391,6 +850,12 @@ void QtSLiMWindow::setReachedSimulationEnd(bool p_reachedEnd)
 void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
 {
     continuousPlayOn_ = p_flag;
+    updateUIEnabling();
+}
+
+void QtSLiMWindow::setGenerationPlayOn(bool p_flag)
+{
+    generationPlayOn_ = p_flag;
     updateUIEnabling();
 }
 
@@ -771,6 +1236,57 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     ui->generationLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
+    
+    // [_consoleController setInterfaceEnabled:!(continuousPlayOn || generationPlayOn)];
+}
+
+void QtSLiMWindow::displayFontPrefChanged()
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    int tabWidth = 0;
+    QFont displayFont = prefs.displayFontPref(&tabWidth);
+    
+    ui->scriptTextEdit->setFont(displayFont);
+    ui->scriptTextEdit->setTabStopWidth(tabWidth);
+    
+    ui->outputTextEdit->setFont(displayFont);
+    ui->outputTextEdit->setTabStopWidth(tabWidth);
+}
+
+void QtSLiMWindow::scriptSyntaxHighlightPrefChanged()
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    bool highlightPref = prefs.scriptSyntaxHighlightPref();
+    
+    if (highlightPref && !scriptHighlighter)
+    {
+        scriptHighlighter = new QtSLiMScriptHighlighter(ui->scriptTextEdit->document());
+    }
+    else if (!highlightPref && scriptHighlighter)
+    {
+        scriptHighlighter->setDocument(nullptr);
+        scriptHighlighter->setParent(nullptr);
+        delete scriptHighlighter;
+        scriptHighlighter = nullptr;
+    }
+}
+
+void QtSLiMWindow::outputSyntaxHighlightPrefChanged()
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    bool highlightPref = prefs.outputSyntaxHighlightPref();
+    
+    if (highlightPref && !outputHighlighter)
+    {
+        outputHighlighter = new QtSLiMOutputHighlighter(ui->outputTextEdit->document());
+    }
+    else if (!highlightPref && outputHighlighter)
+    {
+        outputHighlighter->setDocument(nullptr);
+        outputHighlighter->setParent(nullptr);
+        delete outputHighlighter;
+        outputHighlighter = nullptr;
+    }
 }
 
 
@@ -876,7 +1392,7 @@ void QtSLiMWindow::_continuousPlay(void)
         QElapsedTimer startTimer;
         startTimer.start();
         
-		double speedSliderValue = 1.0; //[playSpeedSlider doubleValue];
+		double speedSliderValue = ui->playSpeedSlider->value() / 100.0;     // scale is 0 to 100, since only integer values are allowed by QSlider
 		double intervalSinceStarting = continuousPlayElapsedTimer_.nsecsElapsed() / 1000000000.0;
 		
 		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
@@ -885,7 +1401,7 @@ void QtSLiMWindow::_continuousPlay(void)
 		if (speedSliderValue < 0.99999)
 			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 		
-		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %f", speedSliderValue, maxGenerationsPerSecond);
+		//qDebug() << "speedSliderValue == " << speedSliderValue << ", maxGenerationsPerSecond == " << maxGenerationsPerSecond;
 		
 		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
@@ -914,7 +1430,6 @@ void QtSLiMWindow::_continuousPlay(void)
 		{
 			// stop playing
 			updateAfterTickFull(true);
-			//[playButton setState:NSOffState];
 			playClicked();
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
@@ -1065,6 +1580,10 @@ void QtSLiMWindow::resetSLiMChangeCount(void)
 // slot receiving the signal QTextEdit::textChanged() from the script textedit
 void QtSLiMWindow::scriptTexteditChanged(void)
 {
+    // Poke the change count.  In SLiMgui we get separate notification types for changes vs. undo/redo,
+    // allowing us to know when the document has returned to a checkpoint state due to undo/redo, but
+    // there seems to be no way to do that with Qt, so once we register a change, only recycling will
+    // bring us back to the unchanged state.
     updateChangeCount();
 }
 
@@ -1073,26 +1592,6 @@ void QtSLiMWindow::scriptTexteditChanged(void)
 //  public slots
 //
 
-void QtSLiMWindow::closeEvent(QCloseEvent *event)
-{
-    if (true) // FIXME: userReallyWantsToQuit())
-    {
-        // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
-        QSettings settings;
-        
-        settings.beginGroup("MainWindow");
-        settings.setValue("size", size());
-        settings.setValue("pos", pos());
-        settings.endGroup();
-        
-        event->accept();
-    }
-    else
-    {
-        event->ignore();
-    }
-}
-
 void QtSLiMWindow::playOneStepClicked(void)
 {
     if (!invalidSimulation_)
@@ -1100,6 +1599,7 @@ void QtSLiMWindow::playOneStepClicked(void)
         //[_consoleController invalidateSymbolTableAndFunctionMap];
         setReachedSimulationEnd(!runSimOneGeneration());
         //[_consoleController validateSymbolTableAndFunctionMap];
+        ui->generationLineEdit->clearFocus();
         updateAfterTickFull(true);
     }
 }
@@ -1114,6 +1614,111 @@ void QtSLiMWindow::profileClicked(void)
     playOrProfile(false);
 }
 
+void QtSLiMWindow::_generationPlay(void)
+{
+	// FIXME would be nice to have a way to stop this prematurely, if an inccorect generation is entered or whatever... BCH 2 Nov. 2017
+	if (!invalidSimulation_)
+	{
+        QElapsedTimer startTimer;
+        startTimer.start();
+		
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
+		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
+        bool reachedEnd = reachedSimulationEnd_;
+		
+		do
+		{
+			if (sim->generation_ >= targetGeneration_)
+				break;
+			
+            reachedEnd = !runSimOneGeneration();
+		}
+        while (!reachedEnd && (startTimer.nsecsElapsed() / 1000000000.0) < 0.02);
+		
+        setReachedSimulationEnd(reachedEnd);
+		
+		if (!reachedSimulationEnd_ && !(sim->generation_ >= targetGeneration_))
+		{
+            updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
+            generationPlayInvocationTimer_.start(0);
+		}
+		else
+		{
+			// stop playing
+            updateAfterTickFull(true);
+            generationChanged();
+			
+			// bounce our icon; if we are not the active app, to signal that the run is done
+			//[NSApp requestUserAttention:NSInformationalRequest];
+		}
+	}
+}
+
+void QtSLiMWindow::generationChanged(void)
+{
+	if (!generationPlayOn_)
+	{
+		QString generationString = ui->generationLineEdit->text();
+		
+		// Special-case initialize(); we can never advance to it, since it is first, so we just validate it
+		if (generationString == "initialize()")
+		{
+			if (sim->generation_ != 0)
+			{
+				qApp->beep();
+				updateGenerationCounter();
+                ui->generationLineEdit->selectAll();
+			}
+			
+			return;
+		}
+		
+		// Get the integer value from the textfield, since it is not "initialize()"
+		targetGeneration_ = SLiMClampToGenerationType(static_cast<int64_t>(generationString.toLongLong()));
+		
+		// make sure the requested generation is in range
+		if (sim->generation_ >= targetGeneration_)
+		{
+			if (sim->generation_ > targetGeneration_)
+            {
+                qApp->beep();
+                updateGenerationCounter();
+                ui->generationLineEdit->selectAll();
+			}
+            
+			return;
+		}
+		
+		// update UI
+		//[generationProgressIndicator startAnimation:nil];
+		setGenerationPlayOn(true);
+		
+		// invalidate the console symbols, and don't validate them until we are done
+		//[_consoleController invalidateSymbolTableAndFunctionMap];
+		
+		// get the first responder out of the generation textfield
+        ui->generationLineEdit->clearFocus();
+		
+		// start playing
+        generationPlayInvocationTimer_.start(0);
+	}
+	else
+	{
+		// stop our recurring perform request
+        generationPlayInvocationTimer_.stop();
+		
+		setGenerationPlayOn(false);
+		//[generationProgressIndicator stopAnimation:nil];
+		
+		//[_consoleController validateSymbolTableAndFunctionMap];
+		
+		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
+		//if (reachedSimulationEnd_)
+		//	forceImmediateMenuUpdate();
+	}
+}
+
 void QtSLiMWindow::recycleClicked(void)
 {
     // Converting a QString to a std::string is surprisingly tricky: https://stackoverflow.com/a/4644922/2752221
@@ -1123,6 +1728,7 @@ void QtSLiMWindow::recycleClicked(void)
 	clearOutputClicked();
     setScriptStringAndInitializeSimulation(utf8_script_string);
 	//[_consoleController validateSymbolTableAndFunctionMap];
+    ui->generationLineEdit->clearFocus();
 	updateAfterTickFull(true);
 	
 	// A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
@@ -1132,6 +1738,43 @@ void QtSLiMWindow::recycleClicked(void)
 	resetSLiMChangeCount();
 
 	//[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
+}
+
+void QtSLiMWindow::playSpeedChanged(void)
+{
+	// We want our speed to be from the point when the slider changed, not from when play started
+    continuousPlayElapsedTimer_.restart();
+	continuousPlayGenerationsCompleted_ = 1;		// this prevents a new generation from executing every time the slider moves a pixel
+	
+	// This method is called whenever playSpeedSlider changes, continuously; we want to show the chosen speed in a tooltip-ish window
+    double speedSliderValue = ui->playSpeedSlider->value() / 100.0;     // scale is 0 to 100, since only integer values are allowed by QSlider
+	
+	// Calculate frames per second; this equation must match the equation in _continuousPlay:
+	double maxGenerationsPerSecond = static_cast<double>(INFINITY);
+	
+	if (speedSliderValue < 0.99999)
+		maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+	
+	// Make a tooltip label string
+	QString fpsString("∞ fps");
+	
+	if (!std::isinf(maxGenerationsPerSecond))
+	{
+		if (maxGenerationsPerSecond < 1.0)
+			fpsString = QString::asprintf("%.2f fps", maxGenerationsPerSecond);
+		else if (maxGenerationsPerSecond < 10.0)
+			fpsString = QString::asprintf("%.1f fps", maxGenerationsPerSecond);
+		else
+			fpsString = QString::asprintf("%.0f fps", maxGenerationsPerSecond);
+		
+		//qDebug() << "fps string: " << fpsString;
+	}
+    
+    // Show the tooltip; wow, that was easy...
+    QPoint widgetOrigin = ui->playSpeedSlider->mapToGlobal(QPoint());
+    QPoint cursorPosition = QCursor::pos();
+    QPoint tooltipPosition = QPoint(cursorPosition.x() - 2, widgetOrigin.y() - ui->playSpeedSlider->rect().height() - 8);
+    QToolTip::showText(tooltipPosition, fpsString, ui->playSpeedSlider, QRect(), 1000000);  // 1000 seconds; taken down on mouseup automatically
 }
 
 void QtSLiMWindow::showMutationsToggled(void)
@@ -1244,7 +1887,7 @@ bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessRespon
 		{
             QSettings settings;
             
-            if (!settings.value("SuppressScriptCheckSuccessPanel", false).toBool())
+            if (!settings.value("QtSLiMSuppressScriptCheckSuccessPanel", false).toBool())
 			{
                 // In SLiMgui we play a "success" sound too, but doing anything besides beeping is apparently difficult with Qt...
                 
@@ -1257,7 +1900,7 @@ bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessRespon
                 messageBox.exec();
                 
                 if (messageBox.checkBox()->isChecked())
-                    settings.setValue("SuppressScriptCheckSuccessPanel", true);
+                    settings.setValue("QtSLiMSuppressScriptCheckSuccessPanel", true);
             }
 		}
 	}

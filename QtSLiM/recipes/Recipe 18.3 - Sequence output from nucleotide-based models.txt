@@ -1,0 +1,46 @@
+// Keywords: nucleotide-based, nucleotide sequence
+
+initialize() {
+	defineConstant("L", 10);
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(2.5e-5));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	c = sim.chromosome;
+	catn("Ancestral: " + c.ancestralNucleotides());
+	catn("Ancestral: " + paste(c.ancestralNucleotides(format="char")));
+	catn("Ancestral: " + paste(c.ancestralNucleotides(format="integer")));
+	catn("positions: " + paste(0:(L-1)));
+	catn();
+	
+	sim.addSubpop("p1", 500);
+}
+5000 late() {
+	catn("Fixed:     " + paste(sim.substitutions.nucleotide));
+	catn("Fixed:     " + paste(sim.substitutions.nucleotideValue));
+	catn("positions: " + paste(sim.substitutions.position));
+	catn();
+	
+	c = sim.chromosome;
+	catn("Ancestral: " + c.ancestralNucleotides());
+	catn("Ancestral: " + paste(c.ancestralNucleotides(format="char")));
+	catn("Ancestral: " + paste(c.ancestralNucleotides(format="integer")));
+	catn("positions: " + paste(0:(L-1)));
+	catn();
+	
+	g = p1.genomes[0];
+	
+	catn("SNPs:      " + paste(g.mutations.nucleotide));
+	catn("SNPs:      " + paste(g.mutations.nucleotideValue));
+	catn("positions: " + paste(g.mutations.position));
+	catn();
+	
+	catn("Derived:   " + g.nucleotides());
+	catn("Derived:   " + paste(g.nucleotides(format="char")));
+	catn("Derived:   " + paste(g.nucleotides(format="integer")));
+	catn("positions: " + paste(0:(L-1)));
+}

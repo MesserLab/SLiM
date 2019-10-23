@@ -12,7 +12,9 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);
     connect(ui->playButton, &QPushButton::clicked, this, &QtSLiMWindow::playClicked);
     connect(ui->profileButton, &QPushButton::clicked, this, &QtSLiMWindow::profileClicked);
+    connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
+    connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
 
     connect(ui->showMutationsButton, &QPushButton::clicked, this, &QtSLiMWindow::showMutationsToggled);
     connect(ui->showFixedSubstitutionsButton, &QPushButton::clicked, this, &QtSLiMWindow::showFixedSubstitutionsToggled);
@@ -67,7 +69,16 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->changeDirectoryButton, &QPushButton::released, this, &QtSLiMWindow::changeDirectoryReleased);
     
     // connect all menu items with existing slots
-    connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QCoreApplication::quit, Qt::QueuedConnection);
+    connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QApplication::closeAllWindows, Qt::QueuedConnection);
+    connect(ui->actionAboutQtSLiM, &QAction::triggered, this, &QtSLiMWindow::aboutQtSLiM);
+    connect(ui->actionPreferences, &QAction::triggered, this, &QtSLiMWindow::showPreferences);
+    connect(ui->actionNew, &QAction::triggered, this, &QtSLiMWindow::newFile_WF);
+    connect(ui->actionNew_nonWF, &QAction::triggered, this, &QtSLiMWindow::newFile_nonWF);
+    connect(ui->actionOpen, &QAction::triggered, this, &QtSLiMWindow::open);
+    connect(ui->actionClose, &QAction::triggered, this, &QtSLiMWindow::close);      // FIXME this closes the main window, even if an auxiliary window is frontmost!  but how to get the front window??
+    connect(ui->actionSave, &QAction::triggered, this, &QtSLiMWindow::save);
+    connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
+    connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
     connect(ui->actionStep, &QAction::triggered, this, &QtSLiMWindow::playOneStepClicked);
     connect(ui->actionPlay, &QAction::triggered, this, &QtSLiMWindow::playClicked);
     connect(ui->actionProfile, &QAction::triggered, this, &QtSLiMWindow::profileClicked);
@@ -189,17 +200,8 @@ void QtSLiMWindow::glueUI(void)
     /*
     currently unimplemented:
     
-    QAction *actionNew;
-    QAction *actionNew_nonWF;
-    QAction *actionOpen;
-    QAction *actionClose;
-    QAction *actionSave;
-    QAction *actionSave_As;
-    QAction *actionRevert_to_Saved;
-    
     QAction *actionExecute_Selection;
     QAction *actionExecute_All;
-    QAction *actionAbout_QtSLiM;
     QAction *actionFindRecipe;
     QAction *actionPreferences;
     QAction *actionFind_2;

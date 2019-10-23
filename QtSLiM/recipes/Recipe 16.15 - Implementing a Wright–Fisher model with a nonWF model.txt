@@ -1,0 +1,31 @@
+// Keywords: nonWF, non-Wright-Fisher, Wright-Fisher, non-overlapping generations, discrete generations, random mating
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	K = sim.getValue("K");
+	for (i in seqLen(K))
+	{
+		firstParent = p1.sampleIndividuals(1);
+		secondParent = p1.sampleIndividuals(1);
+		p1.addCrossed(firstParent, secondParent);
+	}
+	self.active = 0;
+}
+1 early() {
+	sim.setValue("K", 500);
+	sim.addSubpop("p1", sim.getValue("K"));
+}
+early()
+{
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+}
+10000 late() { sim.outputFixedMutations(); }

@@ -1,0 +1,39 @@
+// Keywords: nucleotide-based
+
+initialize() {
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(3e5));
+	
+	mm = mmJukesCantor(2.5e-8);
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);         // neutral
+	initializeMutationTypeNuc("m2", 0.1, "g", -0.03, 0.2);  // deleterious
+	initializeGenomicElementType("g1", c(m1,m2), c(3,3), mm);  // pos 1/2
+	initializeGenomicElementType("g2", c(m1,m2), c(5,1), mm);  // pos 3
+	initializeRecombinationRate(1e-8);
+	
+	types = rep(c(g1,g2), 1e5);
+	starts = repEach(seqLen(1e5) * 3, 2) + rep(c(0,2), 1e5);
+	ends = starts + rep(c(1,0), 1e5);
+	initializeGenomicElement(types, starts, ends);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+1e6 late() {
+	sub = sim.substitutions;
+	pos3 = (sub.position % 3 == 2);
+	pos12 = !pos3;
+	
+	catn(size(sub) + " substitutions occurred.");
+	catn(mean(sub.mutationType == m1)*100 + "% are neutral.");
+	catn(mean(sub.mutationType == m2)*100 + "% are non-neutral.");
+	catn();
+	catn(size(sub[pos12]) + " substitutions are at position 1 or 2.");
+	catn(mean(sub[pos12].mutationType == m1)*100 + "% are neutral.");
+	catn(mean(sub[pos12].mutationType == m2)*100 + "% are non-neutral.");
+	catn();
+	catn(size(sub[pos3]) + " substitutions are at position 3.");
+	catn(mean(sub[pos3].mutationType == m1)*100 + "% are neutral.");
+	catn(mean(sub[pos3].mutationType == m2)*100 + "% are non-neutral.");
+	catn();
+}

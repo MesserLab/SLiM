@@ -16,9 +16,6 @@
     <height>500</height>
    </size>
   </property>
-  <property name="windowTitle">
-   <string>QtSLiM</string>
-  </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="leftMargin">
@@ -418,7 +415,7 @@ QSlider::handle:horizontal:disabled {
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="generationLineEdit">
+             <widget class="QtSLiMGenerationLineEdit" name="generationLineEdit">
               <property name="maximumSize">
                <size>
                 <width>100</width>
@@ -1249,9 +1246,9 @@ QPushButton:checked {
     <property name="title">
      <string>File</string>
     </property>
-    <widget class="QMenu" name="menuOpen_Recipe">
+    <widget class="QMenu" name="menuOpenRecipe">
      <property name="title">
-      <string>Open Recipe...</string>
+      <string>Open Recipe</string>
      </property>
      <addaction name="actionFindRecipe"/>
      <addaction name="separator"/>
@@ -1262,7 +1259,8 @@ QPushButton:checked {
     <addaction name="actionNew"/>
     <addaction name="actionNew_nonWF"/>
     <addaction name="actionOpen"/>
-    <addaction name="menuOpen_Recipe"/>
+    <addaction name="actionOpenRecent"/>
+    <addaction name="menuOpenRecipe"/>
     <addaction name="separator"/>
     <addaction name="actionClose"/>
     <addaction name="actionSave"/>
@@ -1484,7 +1482,7 @@ QPushButton:checked {
     <string>Step</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+Num+Right</string>
+    <string>Ctrl+Shift+P</string>
    </property>
   </action>
   <action name="actionPlay">
@@ -1492,7 +1490,7 @@ QPushButton:checked {
     <string>Play</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Right</string>
+    <string>Ctrl+P</string>
    </property>
   </action>
   <action name="actionProfile">
@@ -1505,7 +1503,7 @@ QPushButton:checked {
     <string>Recycle</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Up</string>
+    <string>Ctrl+R</string>
    </property>
   </action>
   <action name="actionChangeWorkingDirectory">
@@ -1516,9 +1514,6 @@ QPushButton:checked {
   <action name="actionDumpPopulationState">
    <property name="text">
     <string>Dump Population State</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Down</string>
    </property>
   </action>
   <action name="actionCheckScript">
@@ -1659,6 +1654,9 @@ QPushButton:checked {
    <property name="text">
     <string>Find Recipe...</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
+   </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
@@ -1723,8 +1721,10 @@ QPushButton:checked {
    <property name="text">
     <string>Revert to Saved</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+R</string>
+  </action>
+  <action name="actionOpenRecent">
+   <property name="text">
+    <string>Open Recent</string>
    </property>
   </action>
  </widget>
@@ -1739,6 +1739,11 @@ QPushButton:checked {
    <class>QtSLiMIndividualsWidget</class>
    <extends>QOpenGLWidget</extends>
    <header>QtSLiMIndividualsWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMGenerationLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>QtSLiMExtras.h</header>
   </customwidget>
  </customwidgets>
  <resources>

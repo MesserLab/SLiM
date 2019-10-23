@@ -1,0 +1,23 @@
+// Keywords: nucleotide-based, gene conversion, GC-bias, GC biased gene conversion, GC content
+
+initialize() {
+	defineConstant("L", 1e5);
+	defineConstant("alpha", 2.5e-6);
+	
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(alpha));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-5);
+	initializeGeneConversion(0.7, 1500, 0.80, 0.10);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+1:500001 {
+	if (sim.generation % 1000 == 1) {
+		cat(sim.generation + ": ");
+		print(nucleotideFrequencies(sim.chromosome.ancestralNucleotides()));
+	}
+}

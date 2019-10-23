@@ -92,7 +92,7 @@ typedef enum
 							  sampleSize:(int)sampleSize
 					 clusterInBackground:(BOOL)clusterInBackground;
 
-- (void)glDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground;
+- (void)glDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground previousFirstBincounts:(int64_t **)previousFirstBincounts;
 - (NSBitmapImageRep *)bitmapImageRepForPlotInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips;
 
 @end

@@ -21,14 +21,15 @@ initialize() {
 	inds = sim.subpopulations.individuals;
 	additive = inds.sumOfMutationsOfType(m2);
 	
-	// add in environmental variance, according to the target heritability
+	// model environmental variance, according to the target heritability
 	V_A = sd(additive)^2;
 	V_E = (V_A - h2 * V_A) / h2;    // from h2 == V_A / (V_A + V_E)
 	env = rnorm(size(inds), 0.0, sqrt(V_E));
 	
 	// set fitness effects and remember phenotypes
-	inds.fitnessScaling = 1.0 + dnorm(10.0 - additive, 0.0, 5.0);
-	inds.tagF = additive + env;
+	phenotypes = additive + env;
+	inds.fitnessScaling = 1.0 + dnorm(10.0 - phenotypes, 0.0, 5.0);
+	inds.tagF = phenotypes;
 }
 fitness(m2) {
 	return 1.0;   // QTLs are neutral; fitness effects are handled below

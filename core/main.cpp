@@ -97,7 +97,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	}
 	
 	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |" << std::endl;
-	SLIM_OUTSTREAM << "   [-l[ong]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
+	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
 	SLIM_OUTSTREAM << "   [-d[efine] <def>] [<script file>]" << std::endl;
 	
 	if (p_print_full_usage)
@@ -108,7 +108,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -testEidos | -te : run built-in self-diagnostic tests of Eidos" << std::endl;
 		SLIM_OUTSTREAM << "   -testSLiM | -ts  : run built-in self-diagnostic tests of SLiM" << std::endl;
 		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "   -l[ong]          : long (i.e.) verbose output (format may change)" << std::endl;
+		SLIM_OUTSTREAM << "   -l[ong] [<l>]    : long (i.e., verbose) output of level <l> (default 2)" << std::endl;
 		SLIM_OUTSTREAM << "   -s[eed] <seed>   : supply an initial random number seed for SLiM" << std::endl;
 		SLIM_OUTSTREAM << "   -t[ime]          : print SLiM's total execution time (in user clock time)" << std::endl;
 		SLIM_OUTSTREAM << "   -m[em]           : print SLiM's peak memory usage" << std::endl;
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 	unsigned long int override_seed = 0;					// this is the type used for seeds in the GSL
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
-	bool verbose_output = false, keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false;
+	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false;
 	std::vector<std::string> defined_constants;
 	
 	// command-line SLiM generally terminates rather than throwing
@@ -169,11 +169,59 @@ int main(int argc, char *argv[])
 	{
 		const char *arg = argv[arg_index];
 		
-		// -long or -l: switches to long (i.e. verbose) output
+		// -long or -l [<l>]: switches to long (i.e. verbose) output, with an optional integer level specifier
 		if (strcmp(arg, "-long") == 0 || strcmp(arg, "-l") == 0)
 		{
-			verbose_output = true;
-			SLiM_verbose_output = true;
+			if (arg_index + 1 == argc)
+			{
+				// -l[ong] is the last command-line argument, so there is no level; default to 2
+				SLiM_verbosity_level = 2;
+			}
+			else
+			{
+				// there is another argument following; if it is an integer, we eat it
+				const char *s = argv[arg_index + 1];
+				bool is_digits = true;
+				
+				while (*s) {
+					if (isdigit(*s++) == 0)
+					{
+						is_digits = false;
+						break;
+					}
+				}
+				
+				if (!is_digits)
+				{
+					// the argument contains non-digit characters, so assume it is not intended for us
+					SLiM_verbosity_level = 2;
+				}
+				else
+				{
+					errno = 0;
+					long verbosity = strtol(argv[arg_index + 1], NULL, 10);
+					
+					if (errno)
+					{
+						// the argument did not parse as an integer, so assume it is not intended for us
+						SLiM_verbosity_level = 2;
+					}
+					else
+					{
+						// the argument parsed as an integer, so it is used to set the verbosity level
+						if ((verbosity < 0) || (verbosity > 2))
+						{
+							SLIM_ERRSTREAM << "Verbosity level supplied to -l[ong] must be 0, 1, or 2." << std::endl;
+							exit(0);
+						}
+						
+						SLiM_verbosity_level = verbosity;
+						arg_index++;
+					}
+				}
+			}
+			
+			// SLIM_OUTSTREAM << "// ********** Verbosity level set to " << SLiM_verbosity_level << std::endl << std::endl;
 			
 			continue;
 		}
@@ -280,7 +328,11 @@ int main(int argc, char *argv[])
 		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
+		{
+			SLIM_ERRSTREAM << "Unrecognized command-line argument: " << arg << std::endl << std::endl;
+			
 			PrintUsageAndDie(false, true);
+		}
 		
 		input_file = argv[arg_index];
 	}
@@ -293,13 +345,13 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
-	if (verbose_output)
-		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output" << std::endl << std::endl;
+	if (SLiM_verbosity_level >= 2)
+		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output (level " << SLiM_verbosity_level << ")" << std::endl << std::endl;
 	if (skip_checks)
 		SLIM_ERRSTREAM << "// ********** The -x command-line option has disabled some runtime checks" << std::endl << std::endl;
 	
 	// emit defined constants in verbose mode
-	if (defined_constants.size() && SLiM_verbose_output)
+	if (defined_constants.size() && (SLiM_verbosity_level >= 2))
 	{
 		for (std::string &constant : defined_constants)
 			std::cout << "-d[efine]: " << constant << std::endl;

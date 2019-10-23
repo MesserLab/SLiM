@@ -1,0 +1,61 @@
+// Keywords: nonWF, non-Wright-Fisher, clonal, haploid
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 1e5);                      // carrying capacity
+	defineConstant("L", 1e5);                      // chromosome length
+	defineConstant("H", 0.001);                    // HGT probability
+	initializeMutationType("m1", 1.0, "f", 0.0);   // neutral (unused)
+	initializeMutationType("m2", 1.0, "f", 0.1);   // beneficial
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeMutationRate(0);                     // no mutations
+	initializeRecombinationRate(0);                // no recombination
+}
+reproduction() {
+	if (runif(1) < H)
+	{
+		// horizontal gene transfer from a randomly chosen individual
+		HGTsource = p1.sampleIndividuals(1, exclude=individual).genome1;
+		
+		// draw two distinct locations; redraw if we get a duplicate
+		do breaks = rdunif(2, max=L-1);
+		while (breaks[0] == breaks[1]);
+		
+		// HGT from breaks[0] forward to breaks[1] on a circular chromosome
+		if (breaks[0] > breaks[1])
+			breaks = c(0, breaks[1], breaks[0]);
+		
+		subpop.addRecombinant(genome1, HGTsource, breaks, NULL, NULL, NULL);
+	}
+	else
+	{
+		// no horizontal gene transfer; clonal replication
+		subpop.addRecombinant(genome1, NULL, NULL, NULL, NULL, NULL);
+	}
+}
+1 early() {
+	// start from two bacteria with different beneficial mutations
+	sim.addSubpop("p1", 2);
+	
+	// add beneficial mutations to each bacterium, but at different loci
+	g = p1.individuals.genome1;
+	g[0].addNewDrawnMutation(m2, asInteger(L * 0.25));
+	g[1].addNewDrawnMutation(m2, asInteger(L * 0.75));
+}
+early() {
+	// density-dependent population regulation
+	p1.fitnessScaling = K / p1.individualCount;
+}
+late() {
+	// detect fixation/loss of the beneficial mutations
+	muts = sim.mutations;
+	freqs = sim.mutationFrequencies(NULL, muts);
+	
+	if (all(freqs == 0.5))
+	{
+		catn(sim.generation + ": " + sum(freqs == 0.5) + " fixed.");
+		sim.simulationFinished();
+	}
+}
+1e6 late() { catn(sim.generation + ": no result."); }

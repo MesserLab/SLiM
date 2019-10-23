@@ -1,0 +1,15 @@
+// Keywords: recombination rate map, recombination map
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	
+	// 1000 random recombination regions
+	ends = c(sort(sample(0:99998, 999)), 99999);
+	rates = runif(1000, 1e-9, 1e-7);
+	initializeRecombinationRate(rates, ends);
+}
+1 { sim.addSubpop("p1", 500); }
+10000 { sim.simulationFinished(); }

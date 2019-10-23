@@ -1,0 +1,15 @@
+// Keywords: multiple chromosomes, independent assortment, free recombination
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.1);
+	initializeGenomicElementType("g1", c(m1,m2), c(10000,1));
+	initializeGenomicElement(g1, 0, 2999999);
+	
+	rates = c(1e-9, 0.5, 1e-9, 0.5, 1e-9);
+	ends = c(999999, 1000000, 1999999, 2000000, 2999999);
+	initializeRecombinationRate(rates, ends);
+}
+1 { sim.addSubpop("p1", 500); }
+10000 late() { sim.outputFixedMutations(); }

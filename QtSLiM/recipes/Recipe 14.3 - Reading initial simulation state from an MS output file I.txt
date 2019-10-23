@@ -1,0 +1,15 @@
+// Keywords: MS format
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 1000);
+}
+20000 late() {
+	p1.outputMSSample(2000, replace=F, filePath="~/Desktop/ms.txt");
+}

@@ -1,0 +1,26 @@
+// Keywords: clonal, haploid
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 1.0, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(0);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	p1.setCloningRate(1.0);
+}
+late() {
+	// remove any new mutations added to the disabled diploid genomes
+	sim.subpopulations.individuals.genome2.removeMutations();
+	
+	// remove mutations in the haploid genomes that have fixed
+	muts = sim.mutationsOfType(m1);
+	freqs = sim.mutationFrequencies(NULL, muts);
+	if (any(freqs == 0.5))
+		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
+}
+200000 late() {
+	sim.outputFixedMutations();
+}

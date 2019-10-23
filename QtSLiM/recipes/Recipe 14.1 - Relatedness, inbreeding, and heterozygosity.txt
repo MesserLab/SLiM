@@ -1,0 +1,42 @@
+// Keywords: 
+
+initialize() {
+	initializeSLiMOptions(keepPedigrees = T);
+	initializeMutationRate(1e-5);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-7);
+}
+1 {
+	sim.addSubpop("p1", 100);
+}
+mateChoice() {
+	// Prefer relatives as mates
+	return weights * (individual.relatedness(sourceSubpop.individuals) + 0.01);
+}
+1000 late() {
+	// Calculate and print mean nucleotide heterozygosity across the population
+	total = 0.0;
+	
+	for (ind in p1.individuals)
+	{
+		// Calculate the nucleotide heterozygosity of this individual
+		muts0 = ind.genomes[0].mutations;
+		muts1 = ind.genomes[1].mutations;
+		
+		// Count the shared mutations
+		shared_count = sum(match(muts0, muts1) >= 0);
+		
+		// All remaining mutations in the genomes are unshared (i.e. heterozygous)
+		unshared_count = muts0.size() + muts1.size() - 2 * shared_count;
+		
+		// pi is the mean heterozygosity across the chromosome
+		pi_ind = unshared_count / (sim.chromosome.lastPosition + 1);
+		total = total + pi_ind;
+	}
+	
+	pi = total / p1.individuals.size();
+	
+	cat("Mean nucleotide heterozygosity = " + pi + "\n");
+}

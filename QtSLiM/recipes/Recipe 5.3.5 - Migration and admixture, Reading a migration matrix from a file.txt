@@ -1,0 +1,34 @@
+// Keywords: migration, dispersal
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	for (i in 1:3)
+		sim.addSubpop(i, 1000);
+	subpops = sim.subpopulations;
+	
+	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
+	lines = readFile("~/Desktop/migration.csv");
+	lines = lines[substr(lines, 0, 1) != "//"];
+	
+	for (line in lines)
+	{
+		fields = strsplit(line, ",");
+		i = asInteger(fields[0]);
+		j = asInteger(fields[1]);
+		m = asFloat(fields[2]);
+		
+		if (i != j)
+		{
+			p_i = subpops[subpops.id == i];
+			p_j = subpops[subpops.id == j];
+			p_j.setMigrationRates(p_i, m);
+		}
+	}
+}
+10000 late() { sim.outputFull(); }
