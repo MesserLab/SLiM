@@ -1,4 +1,4 @@
-// Keywords: QTL, quantitative trait loci, phenotypic competition
+// Keywords: QTL, quantitative trait loci, phenotypic competition, fitness(), interaction()
 
 initialize() {
 	defineConstant("optimum", 5.0);

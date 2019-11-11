@@ -1,4 +1,4 @@
-// Keywords: nonWF, non-Wright-Fisher, migration, dispersal
+// Keywords: nonWF, non-Wright-Fisher, migration, dispersal, fitness()
 
 initialize() {
 	initializeSLiMModelType("nonWF");

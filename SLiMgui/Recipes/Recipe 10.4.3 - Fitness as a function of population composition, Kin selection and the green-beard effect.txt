@@ -1,4 +1,4 @@
-// Keywords: kin selection, inclusive fitness, selfish gene, greenbeard effect
+// Keywords: kin selection, inclusive fitness, selfish gene, greenbeard effect, fitness()
 
 initialize() {
 	initializeMutationRate(1e-7);

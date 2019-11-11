@@ -1,4 +1,4 @@
-// Keywords: mutation types, tracking, true local ancestry, admixture, introgression
+// Keywords: mutation types, tracking, true local ancestry, admixture, introgression, mutation()
 
 initialize() {
 	initializeMutationRate(1e-8);
