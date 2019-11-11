@@ -1,7 +1,6 @@
 // Keywords: quantitative trait, fitness()
 
 initialize() {
-	setSeed(2275822510858);
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);       // neutral
 	initializeMutationType("m2", 0.5, "n", 0.0, 0.15);  // QTLs
