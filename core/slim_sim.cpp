@@ -5883,16 +5883,31 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	
 	// construct the map of currently remembered individuals first; these are not really just those
 	// that are "remembered", but all individuals that are currently in the tables
-    std::vector<slim_pedigreeid_t> remembered_individuals;
+	// BCH 16 Nov. 2019: Making this into an unordered_map for faster lookup; this can end up
+	// being accessed for a large number of individuals, making for an O(N*M) bottleneck.
+	// The key is the pedigree ID, so we can look up remembered individuals quickly; the value
+	// is the index of that pedigree ID in the list of remembered individuals, so we can
+	// look up the metadata for the remembered individual and patch it with new information.
+	// Also making it so we don't use this map at all if we're adding first-gen individuals,
+	// since we know they are not already remembered.
+	slim_pedigreeid_t last_added_id = -1;
+	slim_popsize_t added_count = 0;
+	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;
 	
     for (tsk_id_t nid : remembered_genomes_) 
     {
         tsk_id_t tsk_individual = p_tables->nodes.individual[nid];
         assert((tsk_individual >= 0) && ((tsk_size_t)tsk_individual < p_tables->individuals.num_rows));
         IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
-        
-		if ((remembered_individuals.size() == 0) || (metadata_rec->pedigree_id_ != remembered_individuals.back()))
-			remembered_individuals.push_back(metadata_rec->pedigree_id_);
+		slim_pedigreeid_t metadata_id = metadata_rec->pedigree_id_;
+		
+		// remembered_genomes_ has two entries per individual; we want to work with individuals, so we filter
+		if (metadata_id != last_added_id)
+		{
+			remembered_individuals_lookup.emplace(std::pair<slim_pedigreeid_t, slim_popsize_t>(metadata_id, added_count));
+			last_added_id = metadata_id;
+			added_count++;
+		}
     }
 	
 	// loop over individuals and add entries to the individual table; if they are already
@@ -5909,9 +5924,9 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
         
         IndividualMetadataRec metadata_rec;
         MetadataForIndividual(ind, &metadata_rec);
-        auto ind_pos = std::find(remembered_individuals.begin(), remembered_individuals.end(), ped_id);
+		auto ind_pos = (p_flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN) ? remembered_individuals_lookup.end() : remembered_individuals_lookup.find(ped_id);
         
-        if (ind_pos == remembered_individuals.end()) {
+        if (ind_pos == remembered_individuals_lookup.end()) {
             // This individual is not already in the tables.
             tsk_id_t tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
                     p_flags, location.data(), (uint32_t)location.size(), 
@@ -5932,7 +5947,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             }
         } else {
             // This individual is already there; we need to update the information.
-            size_t tsk_individual = std::distance(remembered_individuals.begin(), ind_pos);
+            size_t tsk_individual = ind_pos->second;
             assert((tsk_individual < p_tables->individuals.num_rows)
                    && (location.size()
                        == (p_tables->individuals.location_offset[tsk_individual + 1]
@@ -5976,9 +5991,7 @@ void SLiMSim::AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables
 	// through simplify and can be revived when loading saved state
 	for (auto subpop_iter : population_.subpops_)
 	{
-        AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(),
-                              subpop_iter.second->parent_individuals_.size(), 
-							  p_tables, SLIM_TSK_INDIVIDUAL_ALIVE);
+        AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(), subpop_iter.second->parent_individuals_.size(), p_tables, SLIM_TSK_INDIVIDUAL_ALIVE);
 	}
 }
 
