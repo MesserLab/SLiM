@@ -1,4 +1,4 @@
-// Keywords: quantitative trait, polygenic selection, fitness(NULL), global fitness callback
+// Keywords: quantitative trait, polygenic selection, fitness(), global fitness callback
 
 initialize() {
 	initializeMutationRate(1e-7);

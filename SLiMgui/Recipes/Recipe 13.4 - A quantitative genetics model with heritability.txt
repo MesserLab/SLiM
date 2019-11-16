@@ -1,4 +1,4 @@
-// Keywords: QTLs, quantitative trait loci, heritability, environmental variance, breeding values, additive genetic variance
+// Keywords: QTLs, quantitative trait loci, heritability, environmental variance, breeding values, additive genetic variance, fitness()
 
 initialize() {
 	defineConstant("h2", 0.1);     // target heritability

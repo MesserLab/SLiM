@@ -1,4 +1,4 @@
-// Keywords: continuous space, continuous spatial landscape, absorbing boundaries
+// Keywords: continuous space, continuous spatial landscape, absorbing boundaries, fitness()
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");

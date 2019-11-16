@@ -1,4 +1,4 @@
-// Keywords: QTL, quantitative trait loci, pleiotropy, M-matrix, live plotting
+// Keywords: QTL, quantitative trait loci, pleiotropy, M-matrix, live plotting, mutation()
 
 initialize() {
 	initializeMutationRate(1e-7);

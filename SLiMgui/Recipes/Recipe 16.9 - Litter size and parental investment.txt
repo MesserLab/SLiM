@@ -1,4 +1,4 @@
-// Keywords: nonWF, non-Wright-Fisher, sexual, QTL, quantitative trait loci
+// Keywords: nonWF, non-Wright-Fisher, sexual, QTL, quantitative trait loci, reproduction(), fitness()
 
 initialize() {
 	initializeSLiMModelType("nonWF");
