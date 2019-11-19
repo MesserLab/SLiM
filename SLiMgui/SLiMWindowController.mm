@@ -3695,7 +3695,7 @@
 		
 		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
 		auto unique_end_iter = std::unique(propertySignatures->begin(), propertySignatures->end());
-		propertySignatures->resize(std::distance(propertySignatures->begin(), unique_end_iter));
+		propertySignatures->resize(static_cast<size_t>(std::distance(propertySignatures->begin(), unique_end_iter)));
 		
 		// print out any signatures that are identical by name
 		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
@@ -3743,7 +3743,7 @@
 		
 		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
 		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
-		methodSignatures->resize(std::distance(methodSignatures->begin(), unique_end_iter));
+		methodSignatures->resize(static_cast<size_t>(std::distance(methodSignatures->begin(), unique_end_iter)));
 		
 		// print out any signatures that are identical by name
 		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
