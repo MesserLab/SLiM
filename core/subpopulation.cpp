@@ -732,8 +732,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	}
 	if (recording_tree_sequence)
 	{
-		sim.AddIndividualsToTable(parent_individuals_.data(), parent_individuals_.size(), nullptr,
-				SLIM_TSK_INDIVIDUAL_FIRST_GEN);
+		sim.AddIndividualsToTable(parent_individuals_.data(), parent_individuals_.size(), nullptr, SLIM_TSK_INDIVIDUAL_FIRST_GEN);
 	}
 }
 

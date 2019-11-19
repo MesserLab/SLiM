@@ -1,4 +1,4 @@
-// Keywords: nucleotide-based
+// Keywords: nucleotide-based, fitness()
 
 initialize() {
 	defineConstant("L", 1e4);

@@ -1,4 +1,4 @@
-// Keywords: quantitative trait
+// Keywords: quantitative trait, fitness()
 
 initialize() {
 	initializeMutationRate(1e-7);
