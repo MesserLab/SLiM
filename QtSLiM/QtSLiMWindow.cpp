@@ -4,6 +4,7 @@
 #include "QtSLiMEidosPrettyprinter.h"
 #include "QtSLiMAbout.h"
 #include "QtSLiMPreferences.h"
+#include "QtSLiMHelpWindow.h"
 #include "QtSLiMSyntaxHighlighting.h"
 
 #include <QCoreApplication>
@@ -1945,7 +1946,11 @@ void QtSLiMWindow::prettyprintClicked(void)
 
 void QtSLiMWindow::scriptHelpClicked(void)
 {
-    qDebug() << "showHelpClicked";
+    QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
+    
+    helpWindow.show();
+    helpWindow.raise();
+    helpWindow.activateWindow();
 }
 
 void QtSLiMWindow::showConsoleClicked(void)

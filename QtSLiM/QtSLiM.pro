@@ -70,7 +70,8 @@ SOURCES += \
     QtSLiMAbout.cpp \
     QtSLiMPreferences.cpp \
     QtSLiMSyntaxHighlighting.cpp \
-    QtSLiMFindRecipe.cpp
+    QtSLiMFindRecipe.cpp \
+    QtSLiMHelpWindow.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -83,13 +84,15 @@ HEADERS += \
     QtSLiMAbout.h \
     QtSLiMPreferences.h \
     QtSLiMSyntaxHighlighting.h \
-    QtSLiMFindRecipe.h
+    QtSLiMFindRecipe.h \
+    QtSLiMHelpWindow.h
 
 FORMS += \
     QtSLiMWindow.ui \
     QtSLiMAbout.ui \
     QtSLiMPreferences.ui \
-    QtSLiMFindRecipe.ui
+    QtSLiMFindRecipe.ui \
+    QtSLiMHelpWindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -99,4 +102,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     buttons.qrc \
     icons.qrc \
-    recipes.qrc
+    recipes.qrc \
+    help.qrc
