@@ -27,6 +27,8 @@
 
 #include <vector>
 #include <algorithm>
+#include <string>
+#include <cctype>
 
 
 // BCH 4/7/2016: So we can build against the OS X 10.9 SDK
@@ -76,9 +78,35 @@
 #pragma mark -
 #pragma mark EidosHelpController
 
+// This is a tree data structure class to hold the documentation in a hierarchical form
+// Each node has a set of children that are key-value pairs, kept in a std::map
+// The value for a given key can be either a pointer to a child tree node, or an attributed string
+// A child is only a leaf, with displayable text, if the attributed string pointer is non-null
+// The value struct also contains a unique object that is used in the outline view; on macOS this is an NSString *
+// This design used to be much simpler: an NSDictionary using NSStrings as both keys and outline view items.  But
+// supporting QtSLiM as well required getting rid of the NSDictionary and separating the key function from the
+// outline view function, since those are entirely different things in the Qt world.  Thus the current mess.
+// The declaration here is a bit tricky to get right; see https://stackoverflow.com/a/58957891/2752221
+struct HelpTreeValue;
+
+using HelpTreeNode = std::map<std::string, HelpTreeValue>;
+typedef std::pair<std::string, HelpTreeValue> HelpTreeKVPair;
+typedef NSString HelpTreeOutlineItem;
+
+struct HelpTreeValue
+{
+	HelpTreeOutlineItem *outline_item = nil;		// In SLiMgui, an NSString
+	NSAttributedString *doc_attr_string = nullptr;
+	HelpTreeNode *child = nullptr;
+	
+	HelpTreeValue(HelpTreeOutlineItem *p_outline_item, NSAttributedString *p_doc_attr_string, HelpTreeNode *p_child)
+		: outline_item(p_outline_item), doc_attr_string(p_doc_attr_string), child(p_child)
+	{};
+};
+
 @interface EidosHelpController () <NSOutlineViewDataSource, NSOutlineViewDelegate>
 {
-	NSMutableDictionary *topicRoot;
+	HelpTreeValue *topicRoot;
 	
 	int searchType;		// 0 == Title, 1 == Content; equal to the tags on the search type menu items
 }
@@ -111,22 +139,18 @@
 {
 	if (self = [super init])
 	{
-		topicRoot = [NSMutableDictionary new];
+		topicRoot = new HelpTreeValue(nil, nil, new HelpTreeNode);
 		
 		// Add Eidos topics; the only methods defined by Eidos come from EidosObjectClass
-		[self addTopicsFromRTFFile:@"EidosHelpFunctions" underHeading:@"1. Eidos Functions" functions:&EidosInterpreter::BuiltInFunctions() methods:nullptr properties:nullptr];
-		[self addTopicsFromRTFFile:@"EidosHelpMethods" underHeading:@"2. Eidos Methods" functions:nullptr methods:gEidos_UndefinedClassObject->Methods() properties:nullptr];
-		[self addTopicsFromRTFFile:@"EidosHelpOperators" underHeading:@"3. Eidos Operators" functions:nullptr methods:nullptr properties:nullptr];
-		[self addTopicsFromRTFFile:@"EidosHelpStatements" underHeading:@"4. Eidos Statements" functions:nullptr methods:nullptr properties:nullptr];
-		[self addTopicsFromRTFFile:@"EidosHelpTypes" underHeading:@"5. Eidos Types" functions:nullptr methods:nullptr properties:nullptr];
-		
-		//NSLog(@"topicRoot == %@", topicRoot);
+		[self addTopicsFromRTFFile:@"EidosHelpFunctions" underHeading:"1. Eidos Functions" functions:&EidosInterpreter::BuiltInFunctions() methods:nullptr properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpMethods" underHeading:"2. Eidos Methods" functions:nullptr methods:gEidos_UndefinedClassObject->Methods() properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpOperators" underHeading:"3. Eidos Operators" functions:nullptr methods:nullptr properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpStatements" underHeading:"4. Eidos Statements" functions:nullptr methods:nullptr properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpTypes" underHeading:"5. Eidos Types" functions:nullptr methods:nullptr properties:nullptr];
 		
 		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
 		[self checkDocumentationOfFunctions:&EidosInterpreter::BuiltInFunctions()];
-		
 		[self checkDocumentationOfClass:gEidos_UndefinedClassObject];
-		
 		[self checkDocumentationForDuplicatePointers];
 	}
 	
@@ -162,6 +186,11 @@
 {
 	//return oldString;		// can be used to test the efficacy of checkDocumentationForDuplicatePointers; in OS X 10.12.6 we're good
 	return [EidosNSString stringWithString:oldString];
+}
+
+- (HelpTreeOutlineItem *)outlineItemForString:(const std::string &)string
+{
+	return [[self guardAgainstNSTaggedPointerString:[NSString stringWithUTF8String:string.c_str()]] retain];
 }
 
 // The attributed strings straight out of the RTF file need a little reformatting, since they have paragraph indents and small font sizes appropriate for print/PDF.
@@ -216,10 +245,10 @@
 
 // This is a helper method for addTopicsFromRTFFile:... that finds the right parent dictionary to insert a given section index under.
 // This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
-- (NSMutableDictionary *)parentDictForSection:(NSString *)sectionString currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
+- (HelpTreeNode *)parentDictForSection:(const std::string &)sectionString currentTopicDicts:(std::unordered_map<std::string, HelpTreeNode *> &)topics topDict:(HelpTreeNode *)topLevelDict
 {
-	NSArray *sectionComponents = [sectionString componentsSeparatedByString:@"."];
-	NSUInteger sectionCount = [sectionComponents count];
+	std::vector<std::string> sectionComponents = Eidos_string_split(sectionString, ".");
+	size_t sectionCount = sectionComponents.size();
 	
 	if (sectionCount <= 1)
 	{
@@ -229,14 +258,15 @@
 	else
 	{
 		// We have a section string like "3.1" or "3.1.2"; we want to look for a parent to add it to – like "3" or "3.1", respectively
-		NSArray *parentSectionComponents = [sectionComponents subarrayWithRange:NSMakeRange(0, [sectionComponents count] - 1)];
-		NSString *parentSectionString = [parentSectionComponents componentsJoinedByString:@"."];
-		NSMutableDictionary *parentTopicDict = [topics objectForKey:parentSectionString];
+		sectionComponents.pop_back();
 		
-		if (parentTopicDict)
+		std::string parentSectionString = Eidos_string_join(sectionComponents, ".");
+		auto parentTopicDictIter = topics.find(parentSectionString);
+		
+		if (parentTopicDictIter != topics.end())
 		{
 			// Found a parent to add to
-			return parentTopicDict;
+			return parentTopicDictIter->second;
 		}
 		else
 		{
@@ -248,58 +278,46 @@
 
 // This is a helper method for addTopicsFromRTFFile:... that creates a new "topic dictionary" under which items will be placed, and finds the right parent
 // dictionary to insert it under.  This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
-- (NSMutableDictionary *)topicDictForSection:(NSString *)sectionString title:(NSString *)title currentTopicDicts:(NSMutableDictionary *)topics topDict:(NSMutableDictionary *)topLevelDict
+- (HelpTreeNode *)topicDictForSection:(const std::string &)sectionString title:(std::string &)title currentTopicDicts:(std::unordered_map<std::string, HelpTreeNode *> &)topics topDict:(HelpTreeNode *)topLevelDict
 {
-	NSArray *sectionComponents = [sectionString componentsSeparatedByString:@"."];
-	NSMutableDictionary *newTopicDict = [NSMutableDictionary dictionary];
+	std::vector<std::string> sectionComponents = Eidos_string_split(sectionString, ".");
+	HelpTreeNode *newTopicDict = new HelpTreeNode();
 	
-	if ([title hasSuffix:@" functions"])
-		title = [title substringToIndex:[title length] - [@" functions" length]];
+	static const std::string functions(" functions");
 	
-	NSString *numberedTitle = [NSString stringWithFormat:@"%@. %@", [sectionComponents lastObject], title];
-	NSMutableDictionary *parentTopicDict = [self parentDictForSection:sectionString currentTopicDicts:topics topDict:topLevelDict];
+	if (Eidos_string_hasSuffix(title, functions))
+		title.erase(title.length() - functions.length(), std::string::npos);
 	
-	[parentTopicDict setObject:newTopicDict forKey:[self guardAgainstNSTaggedPointerString:numberedTitle]];
-	[topics setObject:newTopicDict forKey:[self guardAgainstNSTaggedPointerString:sectionString]];
+	std::string numberedTitle = sectionComponents.back().append(". ").append(title);
+	HelpTreeNode *parentTopicDict = [self parentDictForSection:sectionString currentTopicDicts:topics topDict:topLevelDict];
+	HelpTreeOutlineItem *topic_outlineItem = [self outlineItemForString:numberedTitle];
+	
+	parentTopicDict->emplace(HelpTreeKVPair(numberedTitle, HelpTreeValue(topic_outlineItem, nil, newTopicDict)));
+	topics.emplace(std::pair<std::string, HelpTreeNode *>(sectionString, newTopicDict));
 	
 	return newTopicDict;
-}
-
-- (NSMutableDictionary *)effectiveTopicRoot
-{
-	NSMutableDictionary *effectiveTopicRoot = topicRoot;
-	
-	// If the topic root contains only a single key, collapse that top level and consider the object for that key to be the searchDict
-	if ([effectiveTopicRoot count] == 1)
-	{
-		id topValue = [[effectiveTopicRoot allValues] objectAtIndex:0];
-		
-		if ([topValue isKindOfClass:[NSDictionary class]])
-			effectiveTopicRoot = topValue;
-	}
-	
-	return effectiveTopicRoot;
 }
 
 // This is the main RTF doc file reading method; it finds an RTF file of a given name in the main bundle, reads it into an attributed string, and then scans
 // that string for topic headings, function/method/property signature lines, etc., and creates a hierarchy of help topics from the results.  This process
 // assumes that the RTF doc file is laid out in a standard way that fits the regex patterns used here; it is designed to work directly with content copied
 // and pasted out of our Word documentation files into RTF in TextEdit.
-- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<EidosFunctionSignature_SP> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList
+- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(const std::string &)topLevelHeading functions:(const std::vector<EidosFunctionSignature_SP> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList
 {
 	NSString *topicFilePath = [[NSBundle mainBundle] pathForResource:rtfFile ofType:@"rtf"];
 	NSData *topicFileData = [NSData dataWithContentsOfFile:topicFilePath];
 	NSAttributedString *topicFileAttrString = [[[NSAttributedString alloc] initWithRTF:topicFileData documentAttributes:NULL] autorelease];
 	
 	// Set up the top-level dictionary that we will place items under
-	NSMutableDictionary *topLevelDict = [NSMutableDictionary dictionary];
-	NSMutableDictionary *topics = [NSMutableDictionary dictionary];			// keys are strings like 3.1 or 3.1.2 or whatever
-	NSMutableDictionary *currentTopicDict = topLevelDict;					// start out putting new topics in the top level dict
+	HelpTreeNode *topLevelDict = new HelpTreeNode();
+	std::unordered_map<std::string, HelpTreeNode *> topics;				// keys are strings like 3.1 or 3.1.2 or whatever
+	HelpTreeNode *currentTopicDict = topLevelDict;					// start out putting new topics in the top level dict
+	HelpTreeOutlineItem *top_outlineItem = [self outlineItemForString:topLevelHeading];
 	
-	[topicRoot setObject:topLevelDict forKey:[self guardAgainstNSTaggedPointerString:topLevelHeading]];
+	topicRoot->child->emplace(HelpTreeKVPair(topLevelHeading, HelpTreeValue(top_outlineItem, nil, topLevelDict)));
 	
 	// Set up the current topic item that we are appending content into
-	NSString *topicItemKey = nil;
+	std::string topicItemKey;
 	NSMutableAttributedString *topicItemAttrString = nil;
 	
 	// Make regular expressions that we will use below
@@ -359,7 +377,7 @@
 				}
 				else
 				{
-					NSLog(@"orphan line while reading for top level heading %@", topLevelHeading);
+					NSLog(@"orphan line while reading for top level heading %s", topLevelHeading.c_str());
 				}
 			}
 		}
@@ -367,12 +385,14 @@
 		if ((matchCount == 1) || ((matchCount == 0) && (lineIndex == lineCount - 1)))
 		{
 			// This line starts a new header or item or ends the file, so we need to terminate the current item
-			if (topicItemAttrString && topicItemKey)
+			if (topicItemAttrString && topicItemKey.length())
 			{
-				[currentTopicDict setObject:topicItemAttrString forKey:[self guardAgainstNSTaggedPointerString:topicItemKey]];
+				HelpTreeOutlineItem *topic_outlineItem = [self outlineItemForString:topicItemKey];
 				
-				topicItemAttrString= nil;
-				topicItemKey = nil;
+				currentTopicDict->emplace(HelpTreeKVPair(topicItemKey, HelpTreeValue(topic_outlineItem, [topicItemAttrString retain], nullptr)));
+				
+				topicItemAttrString = nil;
+				topicItemKey.clear();
 			}
 		}
 		
@@ -381,9 +401,9 @@
 			// We have hit a new topic header.  This might be a subtopic of the current topic, or a sibling, or a sibling of one of our ancestors
 			NSTextCheckingResult *match = [topicHeaderRegex firstMatchInString:line options:(NSMatchingOptions)0 range:lineRange];
 			NSRange sectionRange = [match rangeAtIndex:1];
-			NSString *sectionString = [line substringWithRange:sectionRange];
+			std::string sectionString([[line substringWithRange:sectionRange] UTF8String]);
 			NSRange titleRange = [match rangeAtIndex:2];
-			NSString *titleString = [line substringWithRange:titleRange];
+			std::string titleString([[line substringWithRange:titleRange] UTF8String]);
 			
 			//NSLog(@"topic header section %@, title %@, line: %@", sectionString, titleString, line);
 			
@@ -401,7 +421,7 @@
 				NSRange itemNameRange = [itemMatch rangeAtIndex:3];
 				NSString *itemName = [line substringWithRange:itemNameRange];
 				
-				topicItemKey = [itemOrder stringByAppendingString:itemName];
+				topicItemKey = std::string([[itemOrder stringByAppendingString:itemName] UTF8String]);
 				topicItemAttrString = [[[lineAttrString attributedSubstringFromRange:itemNameRange] mutableCopy] autorelease];
 				
 				//NSLog(@"   parsed topic header item with currentTopicDict %p, itemName %@, itemNameRange %@", currentTopicDict, itemName, NSStringFromRange(itemNameRange));
@@ -458,7 +478,7 @@
 				}
 			}
 			
-			topicItemKey = [callName stringByAppendingString:@"()"];
+			topicItemKey = std::string([[callName stringByAppendingString:@"()"] UTF8String]);
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
 		}
 		else if (isTopicMethodLine)
@@ -509,7 +529,7 @@
 				}
 			}
 			
-			topicItemKey = [NSString stringWithFormat:@"%@ %@()", classMethodString, callName];
+			topicItemKey = std::string([[NSString stringWithFormat:@"%@ %@()", classMethodString, callName] UTF8String]);
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
 		}
 		else if (isTopicPropertyLine)
@@ -560,7 +580,7 @@
 				}
 			}
 			
-			topicItemKey = [NSString stringWithFormat:@"%@ %@", callName, readOnlyName];
+			topicItemKey = std::string([[NSString stringWithFormat:@"%@ %@", callName, readOnlyName] UTF8String]);
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
 		}
 	}
@@ -570,17 +590,16 @@
 {
 	for (EidosFunctionSignature_SP functionSignature : *functions)
 	{
-		NSString *functionNameString = [NSString stringWithUTF8String:functionSignature->call_name_.c_str()];
+		const std::string &functionNameString = functionSignature->call_name_;
 		
-		if (![functionNameString hasPrefix:@"_"])
+		if (!Eidos_string_hasPrefix(functionNameString, "_"))
 		{
-			NSString *functionString = [NSString stringWithFormat:@"%@()", functionNameString];
-			id functionDocumentation = [self findObjectForKeyEqualTo:functionString withinDictionary:[self effectiveTopicRoot]];
+			std::string functionString = std::string(functionNameString).append("()");
+			
+			HelpTreeValue *functionDocumentation = [self findObjectForKeyEqualTo:functionString withinDictionary:topicRoot->child];
 			
 			if (!functionDocumentation)
-			{
-				NSLog(@"*** no documentation found for function %@", functionString);
-			}
+				std::cerr << "*** no documentation found for function " << functionString << std::endl;
 		}
 	}
 }
@@ -589,56 +608,63 @@
 {
 	bool classIsUndefinedClass = (classObject == gEidos_UndefinedClassObject);
 	const std::string &className = classObject->ElementType();
-	NSString *classString = [NSString stringWithUTF8String:className.c_str()];
-	NSString *classKey = (classIsUndefinedClass ? @"Eidos Methods" : [NSString stringWithFormat:@"Class %@", classString]);
-	id classDocumentation = [self findObjectWithKeySuffix:classKey withinDictionary:[self effectiveTopicRoot]];
+	const std::string classKey = (classIsUndefinedClass ? "Eidos Methods" : std::string("Class ").append(className));
+	HelpTreeValue *classDocumentation = [self findObjectWithKeySuffix:classKey withinDictionary:topicRoot->child];
 	
-	if ([classDocumentation isKindOfClass:[NSDictionary class]])
+	if (classDocumentation->doc_attr_string == nullptr)
 	{
-		NSDictionary *classDocDict = (NSDictionary *)classDocumentation;
-		NSArray *keys = [classDocDict allKeys];
-		NSString *propertiesKey = [NSString stringWithFormat:@"1. %@ properties", classString];
-		NSString *methodsKey = [NSString stringWithFormat:@"2. %@ methods", classString];
+		HelpTreeNode *classDocDict = classDocumentation->child;
+		std::string propertiesKey = std::string("1. ").append(className).append(" properties");
+		std::string methodsKey = std::string("2. ").append(className).append(" methods");
 		
-		if (classIsUndefinedClass || (([classDocDict count] == 2) && [keys containsObject:propertiesKey] && [keys containsObject:methodsKey]))
+		if (classIsUndefinedClass ||
+			((classDocDict->size() == 2) && (classDocDict->find(propertiesKey) != classDocDict->end()) && (classDocDict->find(methodsKey) != classDocDict->end())))
 		{
 			// Check for complete documentation of all properties defined by the class
 			if (!classIsUndefinedClass)
 			{
-				NSDictionary *propertyDict = [classDocDict objectForKey:propertiesKey];
-				NSMutableArray *docProperties = [[propertyDict allKeys] mutableCopy];
+				HelpTreeNode *propertyDict = classDocDict->find(propertiesKey)->second.child;
 				const std::vector<const EidosPropertySignature *> *classProperties = classObject->Properties();
+				std::vector<std::string> docProperties;
+				
+				for (auto& kv_iter : *propertyDict)
+					docProperties.push_back(kv_iter.first);
 				
 				for (const EidosPropertySignature *propertySignature : *classProperties)
 				{
-					std::string &&connector_string = propertySignature->PropertySymbol();
-					NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
-					NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
-					NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
-					NSUInteger docIndex = [docProperties indexOfObject:propertyString];
+					const std::string &&connector_string = propertySignature->PropertySymbol();
+					const std::string &property_name_string = propertySignature->property_name_;
+					std::string property_string = std::string(property_name_string).append(" ").append(connector_string);
+					auto docIter = std::find(docProperties.begin(), docProperties.end(), property_string);
 					
-					if (docIndex != NSNotFound)
+					if (docIter != docProperties.end())
 					{
-						[docProperties removeObjectAtIndex:docIndex];
+						docProperties.erase(docIter);
 					}
 					else
 					{
-						NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+						std::cerr << "*** no documentation found for class " << className << " property " << property_string << std::endl;
 					}
 				}
 				
-				if ([docProperties count])
-					NSLog(@"*** excess documentation found for class %@ properties %@", classString, docProperties);
-				
-				[docProperties release];
+				if (docProperties.size())
+				{
+					std::cerr << "*** excess documentation found for class " << className << " properties ";
+					for (auto& v_iter : docProperties)
+						std::cerr << v_iter << " ";
+					std::cerr << std::endl;
+				}
 			}
 			
 			// Check for complete documentation of all methods defined by the class
 			{
-				NSDictionary *methodDict = (classIsUndefinedClass ? classDocDict : [classDocDict objectForKey:methodsKey]);
-				NSMutableArray *docMethods = [[methodDict allKeys] mutableCopy];
+				HelpTreeNode *methodDict = (classIsUndefinedClass ? classDocDict : classDocDict->find(methodsKey)->second.child);
 				const std::vector<const EidosMethodSignature *> *classMethods = classObject->Methods();
 				const std::vector<const EidosMethodSignature *> *baseMethods = gEidos_UndefinedClassObject->Methods();
+				std::vector<std::string> docMethods;
+				
+				for (auto& kv_iter : *methodDict)
+					docMethods.push_back(kv_iter.first);
 				
 				for (const EidosMethodSignature *methodSignature : *classMethods)
 				{
@@ -646,48 +672,52 @@
 					
 					if (!isBaseMethod || classIsUndefinedClass)
 					{
-						std::string &&prefix_string = methodSignature->CallPrefix();
-						NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "
-						NSString *methodNameString = [NSString stringWithUTF8String:methodSignature->call_name_.c_str()];
-						NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
-						NSUInteger docIndex = [docMethods indexOfObject:methodString];
+						const std::string &&prefix_string = methodSignature->CallPrefix();
+						const std::string &method_name_string = methodSignature->call_name_;
+						std::string method_string = std::string(prefix_string).append(method_name_string).append("()");
+						auto docIter = std::find(docMethods.begin(), docMethods.end(), method_string);
 						
-						if (docIndex != NSNotFound)
+						if (docIter != docMethods.end())
 						{
-							[docMethods removeObjectAtIndex:docIndex];
+							docMethods.erase(docIter);
 						}
 						else
 						{
-							NSLog(@"*** no documentation found for class %@ method %@", classString, methodString);
+							std::cerr << "*** no documentation found for class " << className << " method " << method_string << std::endl;
 						}
 					}
 				}
 				
-				if ([docMethods count])
-					NSLog(@"*** excess documentation found for class %@ methods %@", classString, docMethods);
-				
-				[docMethods release];
+				if (docMethods.size())
+				{
+					std::cerr << "*** excess documentation found for class " << className << " methods ";
+					for (auto& v_iter : docMethods)
+						std::cerr << v_iter << " ";
+					std::cerr << std::endl;
+				}
 			}
 		}
 		else
 		{
-			NSLog(@"*** documentation for class %@ in unexpected format", classString);
+			std::cerr << "*** documentation for class " << className << " in unexpected format" << std::endl;
 		}
 	}
 	else
 	{
-		NSLog(@"*** no documentation found for class %@", classString);
+		std::cerr << "*** no documentation found for class " << className << std::endl;
 	}
 }
 
-- (void)_gatherKeysWithinDictionary:(NSDictionary *)searchDict intoVector:(std::vector<pointer_t> &)vec
+- (void)_gatherKeysWithinDictionary:(HelpTreeNode *)searchDict intoVector:(std::vector<pointer_t> &)vec
 {
-	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-		vec.push_back((pointer_t)key);
+	for (auto& kv_iter : *searchDict) {
+		HelpTreeValue &node_value = kv_iter.second;
 		
-		if ([obj isKindOfClass:[NSDictionary class]])
-			[self _gatherKeysWithinDictionary:obj intoVector:vec];
-	}];
+		vec.push_back((pointer_t)node_value.outline_item);
+		
+		if (node_value.child)
+			[self _gatherKeysWithinDictionary:node_value.child intoVector:vec];
+	}
 }
 
 - (void)checkDocumentationForDuplicatePointers
@@ -699,7 +729,7 @@
 	// an NSTaggedPointerString back to us.
 	std::vector<pointer_t> topic_keys;
 	
-	[self _gatherKeysWithinDictionary:[self effectiveTopicRoot] intoVector:topic_keys];
+	[self _gatherKeysWithinDictionary:topicRoot->child intoVector:topic_keys];
 	
 	// Now that we've got all the keys, sort, and then find and print duplicates
 	std::sort(topic_keys.begin(), topic_keys.end());
@@ -713,7 +743,11 @@
 		if (topic_iter == topic_keys.end())
 			break;
 		
+#if 1
 		NSLog(@"*** duplicate topic keys in help tree: %@ (%@)", (NSString *)*topic_iter, [(id)(*topic_iter) class]);
+#else
+		std::cerr << "*** duplicate topic keys in help tree: " << *(std::string *)*topic_iter;
+#endif
 		++topic_iter;
 	}
 }
@@ -776,51 +810,52 @@
 	}
 }
 
-- (BOOL)findItemsUnderRoot:(NSDictionary *)root withKey:(NSString *)rootKey matchingSearchString:(NSString *)searchString titlesOnly:(BOOL)titlesOnly addingToMatchKeys:(NSMutableArray *)matchKeys andItemsToExpand:(NSMutableArray *)expandItems
+- (bool)findItemsUnderRoot:(HelpTreeNode *)root withKey:(HelpTreeOutlineItem *)rootKey matchingSearchString:(const std::string &)searchString titlesOnly:(bool)titlesOnly addingToMatchKeys:(std::vector<HelpTreeOutlineItem *> &)matchKeys andItemsToExpand:(std::vector<HelpTreeOutlineItem *> &)expandItems
 {
-	__block BOOL anyChildMatches = NO;
+	bool anyChildMatches = false;
 	
-	[root enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-		if ([obj isKindOfClass:[NSDictionary class]])
+	for (auto& kv_iter : *root)
+	{
+		const std::string &key = kv_iter.first;
+		HelpTreeOutlineItem *outlineItem = kv_iter.second.outline_item;
+		
+		if (kv_iter.second.child)
 		{
 			// If the object for the key is a dictionary, the child is an expandable item, so we need to recurse
-			BOOL result = [self findItemsUnderRoot:obj withKey:key matchingSearchString:searchString titlesOnly:titlesOnly addingToMatchKeys:matchKeys andItemsToExpand:expandItems];
+			HelpTreeNode *obj = kv_iter.second.child;
+			
+			bool result = [self findItemsUnderRoot:obj withKey:outlineItem matchingSearchString:searchString titlesOnly:titlesOnly addingToMatchKeys:matchKeys andItemsToExpand:expandItems];
 			
 			if (result)
-				anyChildMatches = YES;
+				anyChildMatches = true;
 		}
 		else
 		{
 			// If the item is not a dictionary, then the child is a leaf, so we need to test for a match
-			BOOL isMatch = NO;
+			bool isMatch = false;
 			
-			if ([key rangeOfString:searchString options:NSCaseInsensitiveSearch].location != NSNotFound)
-				isMatch = YES;
+			if (Eidos_string_containsCaseInsensitive(key, searchString))
+				isMatch = true;
 			
 			if (!titlesOnly)
 			{
-				if ([obj isKindOfClass:[NSString class]])
-				{
-					if ([obj rangeOfString:searchString options:NSCaseInsensitiveSearch].location != NSNotFound)
-						isMatch = YES;
-				}
-				else if ([obj isKindOfClass:[NSAttributedString class]])
-				{
-					if ([[obj string] rangeOfString:searchString options:NSCaseInsensitiveSearch].location != NSNotFound)
-						isMatch = YES;
-				}
+				NSAttributedString *obj = kv_iter.second.doc_attr_string;
+				std::string obj_string([[obj string] UTF8String]);
+				
+				if (Eidos_string_containsCaseInsensitive(obj_string, searchString))
+					isMatch = true;
 			}
 			
 			if (isMatch)
 			{
-				[matchKeys addObject:key];
-				anyChildMatches = YES;
+				matchKeys.push_back(outlineItem);
+				anyChildMatches = true;
 			}
 		}
-	}];
+	}
 	
 	if (anyChildMatches && rootKey)
-		[expandItems addObject:rootKey];
+		expandItems.push_back(rootKey);
 	
 	return anyChildMatches;
 }
@@ -828,27 +863,26 @@
 - (IBAction)searchFieldChanged:(id)sender
 {
 	NSString *searchString = [_searchField stringValue];
+	std::string search_string([searchString UTF8String]);
 	
 	// Do a depth-first search under the topic root that matches the search pattern, and gather tasks to perform
-	NSMutableArray *matchKeys = [NSMutableArray array];
-	NSMutableArray *expandItems = [NSMutableArray array];
+	std::vector<HelpTreeOutlineItem *> matchKeys;
+	std::vector<HelpTreeOutlineItem *> expandItems;
 	
-	[self findItemsUnderRoot:[self effectiveTopicRoot] withKey:nil matchingSearchString:searchString titlesOnly:(searchType == 0) addingToMatchKeys:matchKeys andItemsToExpand:expandItems];
+	[self findItemsUnderRoot:topicRoot->child withKey:nil matchingSearchString:search_string titlesOnly:(searchType == 0) addingToMatchKeys:matchKeys andItemsToExpand:expandItems];
 	
-	if ([matchKeys count])
+	if (matchKeys.size())
 	{
 		// First collapse everything, as an initial state
 		[_topicOutlineView collapseItem:nil collapseChildren:YES];
 		
 		// Expand all nodes that have a search hit; reverse order so parents expand before their children
-		[expandItems enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-			[_topicOutlineView expandItem:obj];
-		}];
+		for (auto iter = expandItems.rbegin(); iter != expandItems.rend(); ++iter)
+			[_topicOutlineView expandItem:*iter];
 		
 		// Select all of the items that matched; rowForItem: only returns the first hit, so we have a custom method that gets all hits
-		[matchKeys enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-			[_topicOutlineView selectRowIndexes:[(EidosHelpOutlineView *)_topicOutlineView eidosRowIndicesForItem:obj] byExtendingSelection:YES];
-		}];
+		for (auto item : matchKeys)
+			[_topicOutlineView selectRowIndexes:[(EidosHelpOutlineView *)_topicOutlineView eidosRowIndicesForItem:item] byExtendingSelection:YES];
 		
 		// The outline view occasionally seems to mis-update; I think it is an AppKit bug but it's hard to be sure.
 		// In any case, telling it to completely redraw here seems to fix the problem.
@@ -890,88 +924,85 @@
 	return YES;	// no super
 }
 
-- (id)findObjectWithKeySuffix:(NSString *)searchKeySuffix withinDictionary:(NSDictionary *)searchDict
+- (HelpTreeValue *)findObjectWithKeySuffix:(const std::string &)searchKeySuffix withinDictionary:(HelpTreeNode *)searchDict
 {
-	__block id value = nullptr;
+	HelpTreeValue *value = nullptr;
 	
-	if (value)
-		return value;
-	
-	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+	for (auto& keyval_iter : *searchDict)
+	{
 		// Search by substring matching; we have to be careful to use this method to search only for unique keys
-		if ([key hasSuffix:searchKeySuffix])
-			value = obj;
-		else if ([obj isKindOfClass:[NSDictionary class]])
-			value = [self findObjectWithKeySuffix:searchKeySuffix withinDictionary:obj];
+		const std::string &key = keyval_iter.first;
+		
+		if (Eidos_string_hasSuffix(key, searchKeySuffix))
+			value = &keyval_iter.second;
+		else if (keyval_iter.second.child)
+			value = [self findObjectWithKeySuffix:searchKeySuffix withinDictionary:keyval_iter.second.child];
 		
 		if (value)
-			*stop = YES;
-	}];
+			break;
+	}
 	
 	return value;
 }
 
-- (id)findObjectForKeyEqualTo:(NSString *)searchKey withinDictionary:(NSDictionary *)searchDict
+- (HelpTreeValue *)findObjectForKeyEqualTo:(const std::string &)searchKey withinDictionary:(HelpTreeNode *)searchDict
 {
-	__block id value = nullptr;
+	HelpTreeValue *value = nullptr;
 	
-	if (value)
-		return value;
-	
-	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+	for (auto& keyval_iter : *searchDict)
+	{
 		// Search using isEqualToString:; we have to be careful to use this method to search only for unique keys
-		if ([key isEqualToString:searchKey])
-			value = obj;
-		else if ([obj isKindOfClass:[NSDictionary class]])
-			value = [self findObjectForKeyEqualTo:searchKey withinDictionary:obj];
+		const std::string &key = keyval_iter.first;
+		
+		if (key == searchKey)
+			value = &keyval_iter.second;
+		else if (keyval_iter.second.child)
+			value = [self findObjectForKeyEqualTo:searchKey withinDictionary:keyval_iter.second.child];
 		
 		if (value)
-			*stop = YES;
-	}];
+			break;
+	}
 	
 	return value;
 }
 
-- (id)findObjectForKey:(NSString *)searchKey withinDictionary:(NSDictionary *)searchDict
+- (HelpTreeValue *)findObjectForOutlineItem:(HelpTreeOutlineItem *)searchOutlineItem withinDictionary:(HelpTreeNode *)searchDict
 {
-	__block id value = nullptr;
+	HelpTreeValue *value = nullptr;
 	
-	if (value)
-		return value;
-	
-	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+	for (auto& keyval_iter : *searchDict)
+	{
 		// Search by pointer equality, not by hash/isEqual:, so that items with identical (but not pointer-equal) keys
 		// can refer to different values in our topic tree; the "subpopID" property, for example, has the same name
 		// in both Mutation and Substitution, but has different descriptions.
-		if (key == searchKey)
-			value = obj;
-		else if ([obj isKindOfClass:[NSDictionary class]])
-			value = [self findObjectForKey:searchKey withinDictionary:obj];
+		HelpTreeOutlineItem *outlineItem = keyval_iter.second.outline_item;
+		
+		if (outlineItem == searchOutlineItem)
+			value = &keyval_iter.second;
+		else if (keyval_iter.second.child)
+			value = [self findObjectForOutlineItem:searchOutlineItem withinDictionary:keyval_iter.second.child];
 		
 		if (value)
-			*stop = YES;
-	}];
+			break;
+	}
 	
 	return value;
 }
 
-- (id)findObjectForKey:(NSString *)searchKey
+- (HelpTreeValue *)findObjectForOutlineItem:(HelpTreeOutlineItem *)searchOutlineItem
 {
 	// The datasource methods below deal in keys; the child returned at a given index is an NSString key.  We often need
 	// to find the corresponding value for a given key, but this is not simple since we don't have a reference to the
 	// dictionary that it is a key within.  So we do a depth-first search through our topic tree to find it.  This is
 	// going to be a bit slow, but the topic tree should be small so it shouldn't matter.  The alternative would be to
-	// develop a better data structure for storing our topics, rather than using NSDictionary.
+	// develop a better data structure for storing our topics.
 	
-	// Start at the topic root
-	NSDictionary *searchDict = [self effectiveTopicRoot];
+	// If the search key is nil, return topicRoot; this makes topicRoot correspond to the root object of the outline view
+	if (!searchOutlineItem)
+		return topicRoot;
 	
-	// If the search key is nil, return the searchDict; this makes the searchDict correspond to the root object of the outline view
-		if (!searchKey)
-			return searchDict;
-	
-	// Otherwise, search within the searchDict
-	return [self findObjectForKey:searchKey withinDictionary:searchDict];
+	// Otherwise, search within topicRoot's children
+	return [self findObjectForOutlineItem:searchOutlineItem withinDictionary:topicRoot->child];
 }
 
 
@@ -983,10 +1014,12 @@
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
 {
 	// According to our design, outline items are always NSStrings, and we have to look up their values in our topic tree
-	id itemValue = [self findObjectForKey:item];
+	HelpTreeOutlineItem *help_item = (HelpTreeOutlineItem *)item;
 	
-	if ([itemValue isKindOfClass:[NSDictionary class]])
-		return [itemValue count];
+	HelpTreeValue *itemValue = [self findObjectForOutlineItem:help_item];
+	
+	if (itemValue->child)
+		return itemValue->child->size();
 	
 	return 0;
 }
@@ -994,10 +1027,19 @@
 - (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item
 {
 	// According to our design, outline items are always NSStrings, and we have to look up their values in our topic tree
-	id itemValue = [self findObjectForKey:item];
+	HelpTreeOutlineItem *help_item = (HelpTreeOutlineItem *)item;
 	
-	if ([itemValue isKindOfClass:[NSDictionary class]])
-		return [[[itemValue allKeys] sortedArrayUsingSelector:@selector(localizedStandardCompare:)] objectAtIndex:index];
+	HelpTreeValue *itemValue = [self findObjectForOutlineItem:help_item];
+	
+	if (itemValue->child)
+	{
+		std::vector<HelpTreeOutlineItem *> keys;
+		
+		for (auto kv_iter : *itemValue->child)
+			keys.push_back(kv_iter.second.outline_item);
+		
+		return keys[index];
+	}
 	
 	return (id _Nonnull)nil;	// get rid of the static analyzer warning
 }
@@ -1005,9 +1047,11 @@
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
 {
 	// According to our design, outline items are always NSStrings, and we have to look up their values in our topic tree
-	id itemValue = [self findObjectForKey:item];
+	HelpTreeOutlineItem *help_item = (HelpTreeOutlineItem *)item;
 	
-	if ([itemValue isKindOfClass:[NSDictionary class]])
+	HelpTreeValue *itemValue = [self findObjectForOutlineItem:help_item];
+	
+	if (itemValue->child)
 		return YES;
 	
 	return NO;
@@ -1017,9 +1061,9 @@
 {
 	if (item)
 	{
+		HelpTreeOutlineItem *help_item = (HelpTreeOutlineItem *)item;
 		static NSRegularExpression *sortOrderStripRegex = nullptr;
-		BOOL isString = [item isKindOfClass:[NSString class]];
-		NSString *itemString = isString ? item : [item string];
+		NSString *itemString = item;
 		
 		if (!sortOrderStripRegex)
 			sortOrderStripRegex = [[NSRegularExpression regularExpressionWithPattern:@"^(?:[0-9]+\\. )(.+)$" options:NSRegularExpressionCaseInsensitive error:NULL] retain];
@@ -1031,13 +1075,10 @@
 			// If the item starts with a sort-order prefix, strip it off for display
 			NSRange captureRange = [match rangeAtIndex:1];
 			
-			if (isString)
-				return [item substringWithRange:captureRange];
-			else
-				return [item attributedSubstringFromRange:captureRange];
+			return [help_item substringWithRange:captureRange];
 		}
 		
-		return item;
+		return help_item;
 	}
 	
 	return @"";
@@ -1046,8 +1087,11 @@
 - (BOOL)outlineView:(NSOutlineView *)outlineView isGroupItem:(id)item
 {
 	// We want items under the true topic root to look like groups; if we have collapsed the top level, we have no group items
-	if ([topicRoot objectForKey:item])
-		return YES;
+	HelpTreeOutlineItem *help_item = (HelpTreeOutlineItem *)item;
+	
+	for (auto& keyval_iter : *topicRoot->child)
+		if (keyval_iter.second.outline_item == help_item)
+			return YES;
 	
 	return NO;
 }
@@ -1111,17 +1155,11 @@
 		else if (indexCount == 1)
 		{
 			// Single-topic selection, so show the topic's description
-			NSString *selectedKey = [_topicOutlineView itemAtRow:[selectedIndices firstIndex]];
-			id selectedValue = [self findObjectForKey:selectedKey];
+			HelpTreeOutlineItem *selectedKey = [_topicOutlineView itemAtRow:[selectedIndices firstIndex]];
+			HelpTreeValue *selectedValue = [self findObjectForOutlineItem:selectedKey];
 			
-			if ([selectedValue isKindOfClass:[NSString class]])
-			{
-				[_descriptionTextView setString:selectedValue];
-			}
-			else if ([selectedValue isKindOfClass:[NSAttributedString class]])
-			{
-				[self setDescription:(NSAttributedString *)selectedValue];
-			}
+			if (selectedValue->doc_attr_string)
+				[self setDescription:selectedValue->doc_attr_string];
 		}
 		else
 		{
@@ -1130,10 +1168,10 @@
 			__block BOOL firstIndex = YES;
 			
 			[selectedIndices enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL *stop) {
-				NSString *selectedKey = [_topicOutlineView itemAtRow:idx];
-				id selectedValue = [self findObjectForKey:selectedKey];
+				HelpTreeOutlineItem *selectedKey = [_topicOutlineView itemAtRow:idx];
+				HelpTreeValue *selectedValue = [self findObjectForOutlineItem:selectedKey];
 				
-				if ([selectedValue isKindOfClass:[NSAttributedString class]])
+				if (selectedValue->doc_attr_string)
 				{
 					if (!firstIndex)
 					{
@@ -1151,7 +1189,7 @@
 					
 					firstIndex = NO;
 					
-					[conglomerate replaceCharactersInRange:NSMakeRange([conglomerate length], 0) withAttributedString:selectedValue];
+					[conglomerate replaceCharactersInRange:NSMakeRange([conglomerate length], 0) withAttributedString:selectedValue->doc_attr_string];
 				}
 			}];
 			
