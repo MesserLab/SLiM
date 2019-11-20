@@ -1899,6 +1899,52 @@ std::vector<std::string> Eidos_string_split(const std::string &p_str, const std:
 	return tokens;
 }
 
+std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::string &p_delim)
+{
+	std::string result;
+	size_t vec_size = p_vec.size();
+	
+	for (size_t i = 0; i < vec_size; ++i)
+	{
+		if (i > 0)
+			result.append(p_delim);
+		result.append(p_vec[i]);
+	}
+	
+	return result;
+}
+
+// thanks to https://stackoverflow.com/a/874160/2752221
+bool Eidos_string_hasPrefix(std::string const &fullString, std::string const &prefix)
+{
+	if (fullString.length() >= prefix.length()) {
+		return (0 == fullString.compare(0, prefix.length(), prefix));
+	} else {
+		return false;
+	}
+}
+
+// thanks to https://stackoverflow.com/a/874160/2752221
+bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &suffix)
+{
+	if (fullString.length() >= suffix.length()) {
+		return (0 == fullString.compare(fullString.length() - suffix.length(), suffix.length(), suffix));
+	} else {
+		return false;
+	}
+}
+
+// case-insensitive string find; see https://stackoverflow.com/a/19839371/2752221
+bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle)
+{
+	auto it = std::search(
+						  strHaystack.begin(), strHaystack.end(),
+						  strNeedle.begin(),   strNeedle.end(),
+						  [](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); }
+						  );
+	return (it != strHaystack.end() );
+}
+
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
 /*std::string Eidos_Exec(const char *p_cmd)
 {
