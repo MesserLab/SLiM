@@ -14,6 +14,8 @@ development head:
 	add an optional <level> argument for the command-line option -l/-long, to provide the level of verbosity desired (default level is 2; defaults to 1 if -l/-long is not used)
 	add recipe 16.17 (meiotic drive)
 	add recipes for section 13.6 (a variety of fitness functions)
+	speed up AddIndividualsToTable(), eliminating a bottleneck for large models with multiple subpopulations
+	speed up outputMutations(), which was very slow if a large number of mutations were requested for output
 
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):
