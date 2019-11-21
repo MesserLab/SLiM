@@ -7689,7 +7689,7 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const EidosValue_SP *const p_argume
 	if (separator.length() == 0)
 	{
 		// special-case a zero-length separator
-		for (char &ch : joined_string)
+		for (const char &ch : joined_string)
 			string_result->PushString(std::string(&ch, 1));
 	}
 	else

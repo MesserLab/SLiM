@@ -1809,21 +1809,36 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 	return hi;
 }
 
-// Thanks to user Sviatoslav at https://stackoverflow.com/a/37454181/2752221 for this code
-std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim)
+std::vector<std::string> Eidos_string_split(const std::string &joined_string, const std::string &separator)
 {
 	std::vector<std::string> tokens;
-	size_t prev = 0, pos = 0;
+	std::string::size_type start_idx = 0, sep_idx;
 	
-	do
+	if (separator.length() == 0)
 	{
-		pos = p_str.find(p_delim, prev);
-		if (pos == std::string::npos) pos = p_str.length();
-		std::string token = p_str.substr(prev, pos-prev);
-		if (!token.empty()) tokens.emplace_back(token);
-		prev = pos + p_delim.length();
+		// special-case a zero-length separator
+		for (const char &ch : joined_string)
+			tokens.emplace_back(std::string(&ch, 1));
 	}
-	while (pos < p_str.length() && prev < p_str.length());
+	else
+	{
+		// non-zero-length separator
+		while (true)
+		{
+			sep_idx = joined_string.find(separator, start_idx);
+			
+			if (sep_idx == std::string::npos)
+			{
+				tokens.emplace_back(joined_string.substr(start_idx));
+				break;
+			}
+			else
+			{
+				tokens.emplace_back(joined_string.substr(start_idx, sep_idx - start_idx));
+				start_idx = sep_idx + separator.size();
+			}
+		}
+	}
 	
 	return tokens;
 }
