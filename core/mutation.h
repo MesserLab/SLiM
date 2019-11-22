@@ -69,7 +69,8 @@ public:
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_generation_t origin_generation_;			// generation in which mutation arose
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
-	// NOTE THERE ARE 3 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
+	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
+	// NOTE THERE ARE 2 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
 	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	

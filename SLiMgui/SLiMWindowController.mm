@@ -3695,7 +3695,7 @@
 		
 		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
 		auto unique_end_iter = std::unique(propertySignatures->begin(), propertySignatures->end());
-		propertySignatures->resize(std::distance(propertySignatures->begin(), unique_end_iter));
+		propertySignatures->resize(static_cast<size_t>(std::distance(propertySignatures->begin(), unique_end_iter)));
 		
 		// print out any signatures that are identical by name
 		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
@@ -3743,7 +3743,7 @@
 		
 		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
 		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
-		methodSignatures->resize(std::distance(methodSignatures->begin(), unique_end_iter));
+		methodSignatures->resize(static_cast<size_t>(std::distance(methodSignatures->begin(), unique_end_iter)));
 		
 		// print out any signatures that are identical by name
 		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
@@ -3821,9 +3821,9 @@
 		all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());
 		all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
 		
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:&all_slim_functions methods:nullptr properties:nullptr];
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:[self slimguiAllMethodSignatures] properties:[self slimguiAllPropertySignatures]];
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:"6. SLiM Functions" functions:&all_slim_functions methods:nullptr properties:nullptr];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:"7. SLiM Classes" functions:nullptr methods:[self slimguiAllMethodSignatures] properties:[self slimguiAllPropertySignatures]];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
 		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
 		[sharedHelp checkDocumentationOfFunctions:&all_slim_functions];
