@@ -30,6 +30,7 @@
 #include "subpopulation.h"
 
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 #include <fstream>
 #include <stdexcept>
@@ -4783,6 +4784,22 @@ void SLiMSim::SimplifyTreeSequence(void)
 	// the tables need to have a population table to be able to sort it
 	WritePopulationTable(&tables_);
 	
+    std::size_t debug_edge_index = 0;
+    for( ; debug_edge_index < tables_.edges.num_rows ; ++debug_edge_index)
+    {
+        if(tables_.edges.parent[debug_edge_index] >= tables_.nodes.num_rows)
+        {
+            std::ostringstream o;
+            o << "parent index out of range: " << tables_.edges.parent[debug_edge_index] << ", " << tables_.nodes.num_rows;
+            throw std::runtime_error(o.str());
+        }
+        if(tables_.edges.child[debug_edge_index] >= tables_.nodes.num_rows)
+        {
+            std::ostringstream o;
+            o << "child index out of range: " << tables_.edges.child[debug_edge_index] << ", " << tables_.nodes.num_rows;
+            throw std::runtime_error(o.str());
+        }
+    }
 	// sort the table collection
 	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ 0, /* flags */ 0);
 	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
