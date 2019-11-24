@@ -6,6 +6,12 @@
 #include <QDebug>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
+#include <QTextDocument>
+#include <QTextDocumentFragment>
+#include <QRegularExpression>
+#include <QTextCursor>
 
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
@@ -17,11 +23,149 @@
 #include "genomic_element_type.h"
 #include "individual.h"
 #include "subpopulation.h"
+#include "QtSLiMExtras.h"
 
 #include <vector>
 #include <algorithm>
 
 
+//
+// This is our custom outline item class, which can hold a QTextDocumentFragment
+//
+QtSLiMHelpItem::~QtSLiMHelpItem()
+{
+}
+
+
+//
+// This subclass of QStyledItemDelegate provides custom drawing for the outline view.
+//
+QtSLiMHelpOutlineDelegate::~QtSLiMHelpOutlineDelegate(void)
+{
+}
+
+void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    bool topLevel = !index.parent().isValid();
+    QRect fullRect = option.rect;
+    fullRect.setLeft(0);             // we are not clipped; we will draw outside our rect to occupy the full width of the view
+    
+    // if we're a top-level item, wash a background color over our row; we use alpha so the disclosure triangle remains visible
+    if (topLevel)
+    {
+        bool isEidos = index.data().toString().startsWith("Eidos ");
+        
+        if (isEidos)
+            painter->fillRect(fullRect, QBrush(QtSLiMColorWithRGB(0.0, 1.0, 0.0, 0.04)));       // pale green background for Eidos docs
+        else
+            painter->fillRect(fullRect, QBrush(QtSLiMColorWithRGB(0.0, 0.0, 1.0, 0.04)));       // pale blue background for SLiM docs
+    }
+    
+    // then let super draw
+    QStyledItemDelegate::paint(painter, option, index);
+    
+    // custom overdraw
+    if (topLevel)
+    {
+        // if an item is top-level, we want to frame it to look heavier, like a "group item" on macOS
+        painter->fillRect(QRect(fullRect.left(), fullRect.top(), fullRect.width(), 1), QtSLiMColorWithWhite(0.85, 1.0));        // top edge in light gray
+        painter->fillRect(QRect(fullRect.left(), fullRect.bottom(), fullRect.width(), 1), QtSLiMColorWithWhite(0.65, 1.0));     // bottom edge in medium gray
+    }
+    else
+    {
+        // otherwise, add a color box on the right for the items that need them
+        QString itemString = index.data().toString();
+        static QStringList *stringsWF = nullptr;
+        static QStringList *stringsNonWF = nullptr;
+        static QStringList *stringsNucmut = nullptr;
+        
+        if (!stringsWF)
+            stringsWF = new QStringList({"– addSubpopSplit()",
+                                         "– registerMateChoiceCallback()",
+                                         "cloningRate =>",
+                                         "immigrantSubpopFractions =>",
+                                         "immigrantSubpopIDs =>",
+                                         "selfingRate =>",
+                                         "sexRatio =>",
+                                         "– setCloningRate()",
+                                         "– setMigrationRates()",
+                                         "– setSelfingRate()",
+                                         "– setSexRatio()",
+                                         "– setSubpopulationSize()",
+                                         "4. mateChoice() callbacks"
+                                        });
+        
+        if (!stringsNonWF)
+            stringsNonWF = new QStringList({"initializeSLiMModelType()",
+                              "age =>",
+                              "modelType =>",
+                              "– registerReproductionCallback()",
+                              "– addCloned()",
+                              "– addCrossed()",
+                              "– addEmpty()",
+                              "– addRecombinant()",
+                              "– addSelfed()",
+                              "– removeSubpopulation()",
+                              "– takeMigrants()",
+                              "8. reproduction() callbacks"
+                              });
+        
+        if (!stringsNucmut)
+            stringsNucmut = new QStringList({"initializeAncestralNucleotides()",
+                               "initializeMutationTypeNuc()",
+                               "initializeHotspotMap()",
+                               "codonsToAminoAcids()",
+                               "randomNucleotides()",
+                               "mm16To256()",
+                               "mmJukesCantor()",
+                               "mmKimura()",
+                               "nucleotideCounts()",
+                               "nucleotideFrequencies()",
+                               "nucleotidesToCodons()",
+                               "codonsToNucleotides()",
+                               "nucleotideBased =>",
+                               "nucleotide <–>",
+                               "nucleotideValue <–>",
+                               "mutationMatrix =>",
+                               "– setMutationMatrix()",
+                               "– ancestralNucleotides()",
+                               "– setAncestralNucleotides()",
+                               "– nucleotides()",
+                               "hotspotEndPositions =>",
+                               "hotspotEndPositionsF =>",
+                               "hotspotEndPositionsM =>",
+                               "hotspotMultipliers =>",
+                               "hotspotMultipliersF =>",
+                               "hotspotMultipliersM =>",
+                               "– setHotspotMap()"
+                               });
+        
+        bool draw_WF_box = stringsWF->contains(itemString);
+        bool draw_nonWF_box = stringsNonWF->contains(itemString);
+        bool draw_nucmut_box = stringsNucmut->contains(itemString);
+        
+        if (draw_WF_box || draw_nonWF_box || draw_nucmut_box)
+        {
+            QRect boxRect = QRect(fullRect.right() - 13, fullRect.top() + 4, 8, 8);
+            QColor boxColor;
+            
+            if (draw_WF_box)
+                boxColor = QtSLiMColorWithRGB(66/255.0, 255/255.0, 53/255.0, 1.0);      // WF-only color (green)
+            else if (draw_nonWF_box)
+                boxColor = QtSLiMColorWithRGB(88/255.0, 148/255.0, 255/255.0, 1.0);     // nonWF-only color (blue)
+            else //if (draw_nucmut_box)
+                boxColor = QtSLiMColorWithRGB(228/255.0, 118/255.0, 255/255.0, 1.0);	// nucmut color (purple)
+            
+            painter->fillRect(boxRect, boxColor);
+            QtSLiMFrameRect(boxRect, Qt::black, *painter);
+        }
+    }
+}
+
+
+//
+// This is the QDialog subclass for the help window, which does the heavy lifting of building the doc outline from HTML files
+//
 QtSLiMHelpWindow &QtSLiMHelpWindow::instance(void)
 {
     static QtSLiMHelpWindow inst(nullptr);
@@ -41,8 +185,17 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     ui->searchField->addAction(searchAction, QLineEdit::LeadingPosition);
     ui->searchField->setPlaceholderText("Search...");
     
-    connect(ui->searchField, &QLineEdit::returnPressed, this, &QtSLiMHelpWindow::searchChanged);
-    connect(searchAction, &QAction::triggered, this, &QtSLiMHelpWindow::searchChanged);
+    connect(ui->searchField, &QLineEdit::returnPressed, this, &QtSLiMHelpWindow::searchFieldChanged);
+    connect(searchAction, &QAction::triggered, this, &QtSLiMHelpWindow::searchFieldChanged);
+    
+    // Configure the outline view to behave as we wish
+    connect(ui->topicOutlineView, &QTreeWidget::itemSelectionChanged, this, &QtSLiMHelpWindow::outlineSelectionChanged);
+    connect(ui->topicOutlineView, &QTreeWidget::itemClicked, this, &QtSLiMHelpWindow::itemClicked);
+    connect(ui->topicOutlineView, &QTreeWidget::itemCollapsed, this, &QtSLiMHelpWindow::itemCollapsed);
+    connect(ui->topicOutlineView, &QTreeWidget::itemExpanded, this, &QtSLiMHelpWindow::itemExpanded);
+    
+    QAbstractItemDelegate *outlineDelegate = new QtSLiMHelpOutlineDelegate();
+    ui->topicOutlineView->setItemDelegate(outlineDelegate);
     
     // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
@@ -53,16 +206,15 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     settings.endGroup();
     
     // Add Eidos topics
-    addTopicsFromRTFFile("EidosHelpFunctions", "1. Eidos Functions", &EidosInterpreter::BuiltInFunctions(), nullptr, nullptr);
-    addTopicsFromRTFFile("EidosHelpMethods", "2. Eidos Methods", nullptr, gEidos_UndefinedClassObject->Methods(), nullptr);
-    addTopicsFromRTFFile("EidosHelpOperators", "3. Eidos Operators", nullptr, nullptr, nullptr);
-    addTopicsFromRTFFile("EidosHelpStatements", "4. Eidos Statements", nullptr, nullptr, nullptr);
-    addTopicsFromRTFFile("EidosHelpTypes", "5. Eidos Types", nullptr, nullptr, nullptr);
+    addTopicsFromRTFFile("EidosHelpFunctions", "Eidos Functions", &EidosInterpreter::BuiltInFunctions(), nullptr, nullptr);
+    addTopicsFromRTFFile("EidosHelpMethods", "Eidos Methods", nullptr, gEidos_UndefinedClassObject->Methods(), nullptr);
+    addTopicsFromRTFFile("EidosHelpOperators", "Eidos Operators", nullptr, nullptr, nullptr);
+    addTopicsFromRTFFile("EidosHelpStatements", "Eidos Statements", nullptr, nullptr, nullptr);
+    addTopicsFromRTFFile("EidosHelpTypes", "Eidos Types", nullptr, nullptr, nullptr);
     
     // Check for completeness of the Eidos documentation
     checkDocumentationOfFunctions(&EidosInterpreter::BuiltInFunctions());
     checkDocumentationOfClass(gEidos_UndefinedClassObject);
-    checkDocumentationForDuplicatePointers();
     
     // Add SLiM topics
     const std::vector<EidosFunctionSignature_SP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
@@ -72,9 +224,9 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());
     all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
     
-    addTopicsFromRTFFile("SLiMHelpFunctions", "6. SLiM Functions", &all_slim_functions, nullptr, nullptr);
-    addTopicsFromRTFFile("SLiMHelpClasses", "7. SLiM Classes", nullptr, slimguiAllMethodSignatures(), slimguiAllPropertySignatures());
-    addTopicsFromRTFFile("SLiMHelpCallbacks", "8. SLiM Events and Callbacks", nullptr, nullptr, nullptr);
+    addTopicsFromRTFFile("SLiMHelpFunctions", "SLiM Functions", &all_slim_functions, nullptr, nullptr);
+    addTopicsFromRTFFile("SLiMHelpClasses", "SLiM Classes", nullptr, slimguiAllMethodSignatures(), slimguiAllPropertySignatures());
+    addTopicsFromRTFFile("SLiMHelpCallbacks", "SLiM Events and Callbacks", nullptr, nullptr, nullptr);
     
     // Check for completeness of the SLiM documentation
     checkDocumentationOfFunctions(&all_slim_functions);
@@ -92,8 +244,6 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     checkDocumentationOfClass(gSLiM_Subpopulation_Class);
     checkDocumentationOfClass(gSLiM_Substitution_Class);
     //checkDocumentationOfClass(gSLiM_SLiMgui_Class);
-    
-    checkDocumentationForDuplicatePointers();
 }
 
 QtSLiMHelpWindow::~QtSLiMHelpWindow()
@@ -101,13 +251,122 @@ QtSLiMHelpWindow::~QtSLiMHelpWindow()
     delete ui;
 }
 
-void QtSLiMHelpWindow::searchChanged(void)
+bool QtSLiMHelpWindow::findItemsMatchingSearchString(QTreeWidgetItem *root, const QString searchString, bool titlesOnly, std::vector<QTreeWidgetItem *> &matchKeys, std::vector<QTreeWidgetItem *> &expandItems)
+{
+	bool anyChildMatches = false;
+	
+    for (int child_index = 0; child_index < root->childCount(); ++child_index)
+	{
+        QTreeWidgetItem *childItem = root->child(child_index);
+        
+		if (childItem->childCount() > 0)
+		{
+			// Recurse through the child's children
+			bool result = findItemsMatchingSearchString(childItem, searchString, titlesOnly, matchKeys, expandItems);
+			
+			if (result)
+				anyChildMatches = true;
+		}
+		else if (childItem->childIndicatorPolicy() == QTreeWidgetItem::DontShowIndicatorWhenChildless)
+		{
+			// If the item has no children, and is not showing an indicator, it is a leaf and should be searched
+			bool isMatch = false;
+            const QString itemText = childItem->text(0);
+            
+            if (itemText.contains(searchString, Qt::CaseInsensitive))
+				isMatch = true;
+			
+			if (!titlesOnly)
+			{
+                QtSLiMHelpItem *helpItem = dynamic_cast<QtSLiMHelpItem *>(childItem);
+                
+                if (helpItem)
+                {
+                    QTextDocumentFragment *helpFragment = helpItem->doc_fragment;
+                    
+                    if (helpFragment)
+                    {
+                        const QString helpText = helpFragment->toPlainText();
+                        
+                        if (helpText.contains(searchString, Qt::CaseInsensitive))
+                            isMatch = true;
+                    }
+                }
+			}
+			
+			if (isMatch)
+			{
+				matchKeys.push_back(childItem);
+				anyChildMatches = true;
+			}
+		}
+	}
+	
+	if (anyChildMatches)
+		expandItems.push_back(root);
+	
+	return anyChildMatches;
+}
+
+void QtSLiMHelpWindow::searchFieldChanged(void)
 {
     QString searchString = ui->searchField->text();
     
     ui->searchField->selectAll();
     
-    // search for searchString, open the outline view to the right hits, display the results
+    if (searchString.length())
+    {
+        // Do a depth-first search under the topic root that matches the search pattern, and gather tasks to perform
+        std::vector<QTreeWidgetItem *> matchKeys;
+        std::vector<QTreeWidgetItem *> expandItems;
+        
+        findItemsMatchingSearchString(ui->topicOutlineView->invisibleRootItem(), searchString, (searchType == 0), matchKeys, expandItems);
+        
+        if (matchKeys.size())
+        {
+            // Coalesce the selection change to avoid obsessively re-generating the documentation textedit
+            doingProgrammaticSelection = true;
+            doingProgrammaticCollapseExpand = true;
+            
+            // Deselect and collapse everything, as an initial state
+            ui->topicOutlineView->setCurrentItem(nullptr, 0, QItemSelectionModel::Clear);
+            recursiveCollapse(ui->topicOutlineView->invisibleRootItem());   // collapseAll() only collapses items that are visible!
+            
+            // Expand all nodes that have a search hit; reverse order so parents expand before their children
+            for (auto iter = expandItems.rbegin(); iter != expandItems.rend(); ++iter)
+                ui->topicOutlineView->expandItem(*iter);
+            
+            // Select all of the items that matched
+            for (auto item : matchKeys)
+                ui->topicOutlineView->setCurrentItem(item, 0, QItemSelectionModel::Select);
+            
+            // Finish coalescing selection changes
+            doingProgrammaticCollapseExpand = false;
+            doingProgrammaticSelection = false;
+            outlineSelectionChanged();
+        }
+        else
+        {
+            qApp->beep();
+        }
+    }
+}
+
+void QtSLiMHelpWindow::enterSearchForString(QString searchString, bool titlesOnly)
+{
+	// Show our window and bring it front
+    show();
+    raise();
+    activateWindow();
+	
+	// Set the search string per the request
+    ui->searchField->setText(searchString);
+	
+	// Set the search type per the request
+	searchType = titlesOnly ? 0 : 1;
+	
+	// Then execute the search by firing the search field's action
+    searchFieldChanged();
 }
 
 void QtSLiMHelpWindow::closeEvent(QCloseEvent *event)
@@ -124,13 +383,377 @@ void QtSLiMHelpWindow::closeEvent(QCloseEvent *event)
     QDialog::closeEvent(event);
 }
 
-void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &rtfFile,
+// This is a helper method for addTopicsFromRTFFile:... that finds the right parent item to insert a given section index under.
+// This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
+QTreeWidgetItem *QtSLiMHelpWindow::parentItemForSection(const QString &sectionString, QtSLiMTopicMap &topics, QtSLiMHelpItem *topItem)
+{
+    QStringList sectionComponents = sectionString.split('.');
+	int sectionCount = sectionComponents.size();
+	
+	if (sectionCount <= 1)
+	{
+        // With an empty section string, or a whole-number section like "3", the parent is the top item
+		return topItem;
+	}
+	else
+	{
+		// We have a section string like "3.1" or "3.1.2"; we want to look for a parent to add it to – like "3" or "3.1", respectively
+		sectionComponents.pop_back();
+		
+		QString parentSectionString = sectionComponents.join('.');
+		auto parentTopicDictIter = topics.find(parentSectionString);
+		
+		if (parentTopicDictIter != topics.end())
+			return parentTopicDictIter.value();     // Found a parent to add to
+		else
+			return topItem;                         // Couldn't find a parent to add to, so the parent is the top item
+	}
+}
+
+// This is a helper method for addTopicsFromRTFFile:... that creates a new QTreeWidgetItem under which items will be placed, and finds the right parent
+// item to insert it under.  This method makes a lot of assumptions about the layout of the RTF file, such as that section number proceeds in sorted order.
+QtSLiMHelpItem *QtSLiMHelpWindow::createItemForSection(const QString &sectionString, QString title, QtSLiMTopicMap &topics, QtSLiMHelpItem *topItem)
+{
+	static const QString functions(" functions");
+	
+    if (title.endsWith(functions))
+        title.chop(functions.length());
+	
+    QStringList sectionComponents = sectionString.split('.');
+	QString numberedTitle = sectionComponents.back().append(". ").append(title);
+	QTreeWidgetItem *parentItem = parentItemForSection(sectionString, topics, topItem);
+    QtSLiMHelpItem *newItem = new QtSLiMHelpItem(parentItem);
+	
+    newItem->setText(0, title);
+    newItem->setFlags(Qt::ItemIsEnabled);
+    newItem->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
+    
+    topics.insert(sectionString, newItem);
+	
+	return newItem;
+}
+
+// This is the main RTF doc file reading method; it finds an RTF file of a given name in the main bundle, reads it into an attributed string, and then scans
+// that string for topic headings, function/method/property signature lines, etc., and creates a hierarchy of help topics from the results.  This process
+// assumes that the RTF doc file is laid out in a standard way that fits the regex patterns used here; it is designed to work directly with content copied
+// and pasted out of our Word documentation files into RTF in TextEdit.
+void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
                                             const QString &topLevelHeading,
                                             const std::vector<EidosFunctionSignature_SP> *functionList,
                                             const std::vector<const EidosMethodSignature*> *methodList,
                                             const std::vector<const EidosPropertySignature*> *propertyList)
 {
+    QString topicFilePath = QString(":/help/") + htmlFile + QString(".html");
+    QTextDocument topicFileTextDocument;
     
+    // Read the HTML resource in and create a QTextDocument
+    {
+        QFile topicFile(topicFilePath);
+        QString topicFileData;
+        
+        if (!topicFile.open(QIODevice::ReadOnly)) {
+            qDebug() << "QtSLiMHelpWindow::addTopicsFromRTFFile(): could not find HTML file " << htmlFile;
+            return;
+        }
+        
+        topicFileData = topicFile.readAll();
+        topicFile.close();
+        topicFileTextDocument.setHtml(topicFileData);
+    }
+    
+    // Create the topic map for the section being parsed; this keeps track of numbered sections so we can find where children go
+    QtSLiMTopicMap topics;				// keys are strings like 3.1 or 3.1.2 or whatever
+    
+    // Create the top-level item for the section we're parsing; note that QtSLiMHelpOutlineDelegate does additional display customization
+    QtSLiMHelpItem *topItem = new QtSLiMHelpItem(ui->topicOutlineView);
+    topItem->setText(0, topLevelHeading);
+    topItem->setFlags(Qt::ItemIsEnabled);
+    topItem->setForeground(0, QBrush(QtSLiMColorWithWhite(0.4, 1.0)));
+    topItem->setSizeHint(0, QSize(20.0, 20.0));
+    topItem->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
+    QFont font = QFont(topItem->font(0));
+    font.setPointSize(12);
+    font.setBold(true);
+    topItem->setFont(0, font);
+    
+    // Set up the current topic item that we are appending content into
+    QtSLiMHelpItem *currentTopicItem = topItem;
+	QString topicItemKey;
+	QTextCursor *topicItemCursor = nullptr;
+    
+    // Make regular expressions that we will use below
+    QRegularExpression topicHeaderRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] (.+)$", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpression topicGenericItemRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] ITEM: ((?:[0-9]+\\.? )?)(.+)$", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpression topicFunctionRegex("^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpression topicMethodRegex("^([-–+])[\u00A0 ]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpression topicPropertyRegex("^([a-zA-Z_0-9]+)[\u00A0 ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$", QRegularExpression::CaseInsensitiveOption);
+	
+    if (!topicHeaderRegex.isValid() || !topicGenericItemRegex.isValid() || !topicFunctionRegex.isValid() || !topicMethodRegex.isValid() || !topicPropertyRegex.isValid())
+        qDebug() << "QtSLiMHelpWindow::addTopicsFromRTFFile(): invalid regex";
+    
+    // Scan through the file one line at a time, parsing out topic headers
+	QString topicFileString = topicFileTextDocument.toRawText();
+	QStringList topicFileLineArray = topicFileString.split(QChar::ParagraphSeparator);  // this is what Qt's HTML rendering uses between blocks
+	int lineCount = topicFileLineArray.size();
+	int lineStartIndex = 0;		// the character index of the current line in topicFileAttrString
+	
+	for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
+	{
+		const QString &line = topicFileLineArray.at(lineIndex);
+		int lineLength = line.length();
+        QTextCursor lineCursor(&topicFileTextDocument);
+        
+        lineCursor.setPosition(lineStartIndex);
+        lineCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, lineLength);
+        
+        // regex debug
+        /*if (lineIndex == 0)
+        {
+            QRegularExpression          testRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] (.+)$", QRegularExpression::CaseInsensitiveOption);
+            if (!testRegex.isValid())
+                qDebug() << "invalid";
+            QRegularExpressionMatch match_testRegex = testRegex.match(line);
+            if (!match_testRegex.hasMatch())
+                qDebug() << "no match";
+            else
+                qDebug() << "matched!";
+        }*/
+        
+        // figure out what kind of line we have and handle it
+        QRegularExpressionMatch match_topicHeaderRegex = topicHeaderRegex.match(line);
+        QRegularExpressionMatch match_topicGenericItemRegex = topicGenericItemRegex.match(line);
+        QRegularExpressionMatch match_topicFunctionRegex = topicFunctionRegex.match(line);
+        QRegularExpressionMatch match_topicMethodRegex = topicMethodRegex.match(line);
+        QRegularExpressionMatch match_topicPropertyRegex = topicPropertyRegex.match(line);
+		int isTopicHeaderLine = match_topicHeaderRegex.hasMatch();
+		int isTopicGenericItemLine = match_topicGenericItemRegex.hasMatch();
+		int isTopicFunctionLine = match_topicFunctionRegex.hasMatch();
+		int isTopicMethodLine = match_topicMethodRegex.hasMatch();
+		int isTopicPropertyLine = match_topicPropertyRegex.hasMatch();
+		int matchCount = isTopicHeaderLine + isTopicFunctionLine + isTopicMethodLine + isTopicPropertyLine;	// excludes isTopicGenericItemLine, which is a subtype of isTopicHeaderLine
+		
+		if (matchCount > 1)
+		{
+			qDebug() << "*** line matched more than one regex type: %@" << line;
+			return;
+		}
+        
+        if (matchCount == 0)
+        {
+            if (lineLength)
+            {
+                // If we have a topic, this is a content line, to be appended to the current topic item's content
+                if (topicItemCursor)
+                    topicItemCursor->movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, lineLength + 1);     // 1 for the QChar::ParagraphSeparator
+                else if (line.trimmed().length())
+                    qDebug() << "orphan line while reading for top level heading " << topLevelHeading << ": " << line;
+            }
+        }
+        
+        if ((matchCount == 1) || ((matchCount == 0) && (lineIndex == lineCount - 1)))
+		{
+			// This line starts a new header or item or ends the file, so we need to terminate the current item
+			if (topicItemCursor && topicItemKey.length())
+			{
+                if (!currentTopicItem)
+                {
+                    qDebug() << "no current topic item for text to be placed into";
+                    return;
+                }
+                
+                QtSLiMHelpItem *childItem = new QtSLiMHelpItem(currentTopicItem);
+                QTextDocumentFragment *topicFragment = new QTextDocumentFragment(topicItemCursor->selection());
+                
+                childItem->setText(0, topicItemKey);
+                childItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+                childItem->doc_fragment = topicFragment;
+                
+                delete topicItemCursor;
+                topicItemCursor = nullptr;
+                topicItemKey.clear();
+			}
+		}
+        
+        if (isTopicHeaderLine)
+		{
+			// We have hit a new topic header.  This might be a subtopic of the current topic, or a sibling, or a sibling of one of our ancestors
+            QString sectionString = match_topicHeaderRegex.captured(1);
+            QString titleString = match_topicHeaderRegex.captured(2);
+			
+			//qDebug() << "topic header section " << sectionString << ", title " << titleString << ", line: " << line;
+			
+			if (isTopicGenericItemLine)
+			{
+				// This line plays two roles: it is both a header (with a period-separated section index at the beginning) and a
+				// topic item starter like function/method/property lines, with item content following it immediately.  First we
+				// use the header-line section string to find the right parent section to place it.
+				currentTopicItem = dynamic_cast<QtSLiMHelpItem *>(parentItemForSection(sectionString, topics, topItem));
+				
+				// Then we extract the item name and create a new item under the parent dict.
+                //QString itemOrder = match_topicGenericItemRegex.captured(2);
+                QString itemName = match_topicGenericItemRegex.captured(3);
+                int itemName_pos = match_topicGenericItemRegex.capturedStart(3);
+                int itemName_len = match_topicGenericItemRegex.capturedLength(3);
+                
+                topicItemCursor = new QTextCursor(&topicFileTextDocument);
+                
+                topicItemCursor->setPosition(lineStartIndex + itemName_pos);
+                topicItemCursor->movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, itemName_len);
+                
+				topicItemKey = itemName;
+			}
+            else
+            {
+                // This header line is not also an item line, so we want to create a new expandable category and await items
+                currentTopicItem = createItemForSection(sectionString, titleString, topics, topItem);
+            }
+        }
+        else if (isTopicFunctionLine)
+		{
+            // This topic item is a function declaration
+            QString callName = match_topicFunctionRegex.captured(1);
+			
+			//qDebug() << "topic function name: " << callName << ", line: " << line;
+			
+			// check for a built-in function signature that matches and substitute it in
+/*			if (functionList)
+			{
+				std::string function_name = callName.toStdString();
+				const EidosFunctionSignature *function_signature = nullptr;
+				
+				for (auto signature_iter = functionList->begin(); signature_iter != functionList->end(); signature_iter++)
+					if ((*signature_iter)->call_name_.compare(function_name) == 0)
+					{
+						function_signature = signature_iter->get();
+						break;
+					}
+				
+				if (function_signature)
+				{
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:function_signature size:11.0];
+					NSString *oldSignatureString = [lineAttrString string];
+					NSString *newSignatureString = [attrSig string];
+					
+					if ([oldSignatureString isEqualToString:newSignatureString])
+					{
+						//NSLog(@"signature match for function %@", callName);
+						
+						// Replace the signature line from the RTF file with the syntax-colored version
+						lineAttrString = attrSig;
+					}
+					else
+					{
+						NSLog(@"*** function signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+					}
+				}
+				else
+				{
+					NSLog(@"*** no function signature found for function name %@", callName);
+				}
+			}*/
+			
+			topicItemKey = callName + "()";
+            topicItemCursor = new QTextCursor(lineCursor);
+        }
+        else if (isTopicMethodLine)
+		{
+            // This topic item is a method declaration
+            QString classMethodString = match_topicMethodRegex.captured(1);
+            QString callName = match_topicMethodRegex.captured(2);
+			
+			//qDebug() << "topic method name: " << callName << ", line: " << line;
+			
+/*			// check for a built-in method signature that matches and substitute it in
+			if (methodList)
+			{
+				std::string method_name([callName UTF8String]);
+				const EidosMethodSignature *method_signature = nullptr;
+				
+				for (auto signature_iter = methodList->begin(); signature_iter != methodList->end(); signature_iter++)
+					if ((*signature_iter)->call_name_.compare(method_name) == 0)
+					{
+						method_signature = *signature_iter;
+						break;
+					}
+				
+				if (method_signature)
+				{
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:method_signature size:11.0];
+					NSString *oldSignatureString = [lineAttrString string];
+					NSString *newSignatureString = [attrSig string];
+					
+					if ([oldSignatureString isEqualToString:newSignatureString])
+					{
+						//NSLog(@"signature match for method %@", callName);
+						
+						// Replace the signature line from the RTF file with the syntax-colored version
+						lineAttrString = attrSig;
+					}
+					else
+					{
+						NSLog(@"*** method signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+					}
+				}
+				else
+				{
+					NSLog(@"*** no method signature found for method name %@", callName);
+				}
+			}*/
+			
+            topicItemKey = classMethodString + "\u00A0" + callName + "()";
+            topicItemCursor = new QTextCursor(lineCursor);
+        }
+        else if (isTopicPropertyLine)
+		{
+            // This topic item is a method declaration
+            QString callName = match_topicPropertyRegex.captured(1);
+            QString readOnlyName = match_topicPropertyRegex.captured(2);
+			
+            //qDebug() << "topic property name: " << callName << ", line: " << line;
+            
+			// check for a built-in property signature that matches and substitute it in
+			/*if (propertyList)
+			{
+				std::string property_name([callName UTF8String]);
+				const EidosPropertySignature *property_signature = nullptr;
+				
+				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
+					if ((*signature_iter)->property_name_.compare(property_name) == 0)
+					{
+						property_signature = *signature_iter;
+						break;
+					}
+				
+				if (property_signature)
+				{
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature size:11.0];
+					NSString *oldSignatureString = [lineAttrString string];
+					NSString *newSignatureString = [attrSig string];
+					
+					if ([oldSignatureString isEqualToString:newSignatureString])
+					{
+						//NSLog(@"signature match for method %@", callName);
+						
+						// Replace the signature line from the RTF file with the syntax-colored version
+						lineAttrString = attrSig;
+					}
+					else
+					{
+						NSLog(@"*** property signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+					}
+				}
+				else
+				{
+					NSLog(@"*** no property signature found for property name %@", callName);
+				}
+			}*/
+			
+			topicItemKey = callName + "\u00A0" + readOnlyName;
+            topicItemCursor = new QTextCursor(lineCursor);
+        }
+        
+        lineStartIndex += (lineLength + 1);		// +1 to jump over the newline
+    }
 }
 
 const std::vector<const EidosPropertySignature*> *QtSLiMHelpWindow::slimguiAllPropertySignatures(void)
@@ -242,14 +865,277 @@ const std::vector<const EidosMethodSignature*> *QtSLiMHelpWindow::slimguiAllMeth
 
 void QtSLiMHelpWindow::checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_SP> *functions)
 {
+    for (EidosFunctionSignature_SP functionSignature : *functions)
+	{
+		QString functionNameString = QString::fromStdString(functionSignature->call_name_);
+		
+		if (!functionNameString.startsWith("_"))
+			if (!findObjectForKeyEqualTo(functionNameString + "()", ui->topicOutlineView->invisibleRootItem()))
+				qDebug() << "*** no documentation found for function " << functionNameString << "()";
+	}
 }
 
 void QtSLiMHelpWindow::checkDocumentationOfClass(EidosObjectClass *classObject)
 {
+    bool classIsUndefinedClass = (classObject == gEidos_UndefinedClassObject);
+    const QString className = QString::fromStdString(classObject->ElementType());
+	const QString classKey = (classIsUndefinedClass ? "Eidos Methods" : "Class " + className);
+	QtSLiMHelpItem *classDocumentation = findObjectWithKeySuffix(classKey, ui->topicOutlineView->invisibleRootItem());
+	
+	if (classDocumentation && (classDocumentation->doc_fragment == nullptr) && (classDocumentation->childCount() > 0))
+	{
+		QString propertiesKey = /*QString("1. ") +*/ className + QString(" properties");
+		QString methodsKey = /*QString("2. ") +*/ className + QString(" methods");
+        QtSLiMHelpItem *classPropertyItem = findObjectForKeyEqualTo(propertiesKey, classDocumentation);
+        QtSLiMHelpItem *classMethodsItem = findObjectForKeyEqualTo(methodsKey, classDocumentation);
+        
+        if (classIsUndefinedClass && !classMethodsItem)
+            classMethodsItem = classDocumentation;
+        
+		if (classIsUndefinedClass ||
+			((classDocumentation->childCount() == 2) && classPropertyItem && classMethodsItem))
+		{
+			// Check for complete documentation of all properties defined by the class
+			if (!classIsUndefinedClass)
+			{
+				const std::vector<const EidosPropertySignature *> *classProperties = classObject->Properties();
+				QStringList docProperties;
+				
+                for (int child_index = 0; child_index < classPropertyItem->childCount(); ++child_index)
+                    docProperties.push_back(classPropertyItem->child(child_index)->text(0));
+				
+				for (const EidosPropertySignature *propertySignature : *classProperties)
+				{
+					const std::string &&connector_string = propertySignature->PropertySymbol();
+					const std::string &property_name_string = propertySignature->property_name_;
+					QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
+                    int docIndex = docProperties.indexOf(property_string);
+					
+					if (docIndex != -1)
+						docProperties.removeAt(docIndex);
+					else
+						qDebug() << "*** no documentation found for class " << className << " property " << property_string;
+				}
+				
+				if (docProperties.size())
+					qDebug() << "*** excess documentation found for class " << className << " properties " << docProperties;
+			}
+			
+			// Check for complete documentation of all methods defined by the class
+			{
+				const std::vector<const EidosMethodSignature *> *classMethods = classObject->Methods();
+				const std::vector<const EidosMethodSignature *> *baseMethods = gEidos_UndefinedClassObject->Methods();
+				QStringList docMethods;
+				
+                for (int child_index = 0; child_index < classMethodsItem->childCount(); ++child_index)
+                    docMethods.push_back(classMethodsItem->child(child_index)->text(0));
+				
+				for (const EidosMethodSignature *methodSignature : *classMethods)
+				{
+					bool isBaseMethod = (std::find(baseMethods->begin(), baseMethods->end(), methodSignature) != baseMethods->end());
+					
+					if (!isBaseMethod || classIsUndefinedClass)
+					{
+						const std::string &&prefix_string = methodSignature->CallPrefix();
+						const std::string &method_name_string = methodSignature->call_name_;
+						QString method_string = QString::fromStdString(prefix_string) + QString::fromStdString(method_name_string) + QString("()");
+                        int docIndex = docMethods.indexOf(method_string);
+						
+						if (docIndex != -1)
+							docMethods.removeAt(docIndex);
+						else
+							qDebug() << "*** no documentation found for class " << className << " method " << method_string;
+					}
+				}
+				
+				if (docMethods.size())
+					qDebug() << "*** excess documentation found for class " << className << " methods " << docMethods;
+			}
+		}
+		else
+		{
+			qDebug() << "*** documentation for class " << className << " in unexpected format";
+		}
+	}
+	else
+	{
+		qDebug() << "*** no documentation found for class " << className;
+	}
 }
 
-void QtSLiMHelpWindow::checkDocumentationForDuplicatePointers(void)
+void QtSLiMHelpWindow::outlineSelectionChanged(void)
 {
+    if (!doingProgrammaticSelection)
+    {
+        QList<QTreeWidgetItem *> &&selection = ui->topicOutlineView->selectedItems();
+        QTextEdit *textedit = ui->descriptionTextEdit;
+        QTextDocument *textdoc = textedit->document();
+        bool firstItem = true;
+        
+        textedit->clear();
+        
+        QTextCursor insertion(textdoc);
+        insertion.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+        
+        QTextBlockFormat defaultBlockFormat;
+        QTextBlockFormat hrBlockFormat;
+        hrBlockFormat.setTopMargin(10.0);
+        hrBlockFormat.setBottomMargin(10.0);
+        hrBlockFormat.setAlignment(Qt::AlignHCenter);
+        
+        for (QTreeWidgetItem *selwidget : selection)
+        {
+            if (!firstItem)
+            {
+                insertion.insertBlock(hrBlockFormat);
+                //            insertion.insertHtml("<HR>");
+                insertion.insertText("––––––––––––––––––––");
+                insertion.insertBlock(defaultBlockFormat);
+            }
+            firstItem = false;
+            
+            QtSLiMHelpItem *helpItem = dynamic_cast<QtSLiMHelpItem *>(selwidget);
+            
+            if (helpItem && helpItem->doc_fragment)
+                insertion.insertFragment(*helpItem->doc_fragment);
+        }
+        
+        //qDebug() << textdoc->toHtml();
+    }
+}
+
+void QtSLiMHelpWindow::recursiveExpand(QTreeWidgetItem *item)
+{
+    // Expand pre-order; I don't think this matters, but it seems safer
+    if (!ui->topicOutlineView->isItemExpanded(item))
+        ui->topicOutlineView->expandItem(item);
+    
+    for (int child_index = 0; child_index < item->childCount(); child_index++)
+        recursiveExpand(item->child(child_index));
+}
+
+void QtSLiMHelpWindow::recursiveCollapse(QTreeWidgetItem *item)
+{
+    // Collapse post-order; I don't think this matters, but it seems safer
+    for (int child_index = 0; child_index < item->childCount(); child_index++)
+        recursiveCollapse(item->child(child_index));
+    
+    if (ui->topicOutlineView->isItemExpanded(item))
+        ui->topicOutlineView->collapseItem(item);
+}
+
+void QtSLiMHelpWindow::itemClicked(QTreeWidgetItem *item, int __attribute__((__unused__)) column)
+{
+    bool optionPressed = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier);
+    
+    doingProgrammaticCollapseExpand = true;
+    
+    if (optionPressed)
+    {
+        // recursively expand/collapse items below this item
+        if (ui->topicOutlineView->isItemExpanded(item))
+            recursiveCollapse(item);
+        else
+            recursiveExpand(item);
+    }
+    else
+    {
+        // expand/collapse just this item
+        if (ui->topicOutlineView->isItemExpanded(item))
+            ui->topicOutlineView->collapseItem(item);
+        else
+            ui->topicOutlineView->expandItem(item);
+    }
+    
+    doingProgrammaticCollapseExpand = false;
+}
+
+void QtSLiMHelpWindow::itemCollapsed(QTreeWidgetItem *item)
+{
+    // If the user has collapsed an item by clicking, we want to implement option-clicking on top of that
+    if (!doingProgrammaticCollapseExpand)
+    {
+        bool optionPressed = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier);
+        
+        if (optionPressed)
+        {
+            doingProgrammaticCollapseExpand = true;
+            recursiveCollapse(item);
+            doingProgrammaticCollapseExpand = false;
+        }
+    }
+}
+
+void QtSLiMHelpWindow::itemExpanded(QTreeWidgetItem *item)
+{
+    // If the user has expanded an item by clicking, we want to implement option-clicking on top of that
+    if (!doingProgrammaticCollapseExpand)
+    {
+        bool optionPressed = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier);
+        
+        if (optionPressed)
+        {
+            doingProgrammaticCollapseExpand = true;
+            recursiveExpand(item);
+            doingProgrammaticCollapseExpand = false;
+        }
+    }
+}
+
+QtSLiMHelpItem *QtSLiMHelpWindow::findObjectWithKeySuffix(const QString searchKeySuffix, QTreeWidgetItem *searchItem)
+{
+	QtSLiMHelpItem *value = nullptr;
+    int childCount = searchItem->childCount();
+	
+    for (int childIndex = 0; childIndex < childCount; ++childIndex)
+	{
+        QTreeWidgetItem *child = searchItem->child(childIndex);
+        QtSLiMHelpItem *our_child = dynamic_cast<QtSLiMHelpItem *>(child);
+        
+        if (our_child)
+        {
+            QString childTitle = child->text(0);
+            
+            // Search by substring matching; we have to be careful to use this method to search only for unique keys
+            if (childTitle.endsWith(searchKeySuffix))
+                value = our_child;
+            else if (our_child->childCount())
+                value = findObjectWithKeySuffix(searchKeySuffix, our_child);
+            
+            if (value)
+                break;
+        }
+	}
+	
+	return value;
+}
+
+QtSLiMHelpItem *QtSLiMHelpWindow::findObjectForKeyEqualTo(const QString searchKey, QTreeWidgetItem *searchItem)
+{
+	QtSLiMHelpItem *value = nullptr;
+	int childCount = searchItem->childCount();
+    
+	for (int childIndex = 0; childIndex < childCount; ++childIndex)
+	{
+        QTreeWidgetItem *child = searchItem->child(childIndex);
+        QtSLiMHelpItem *our_child = dynamic_cast<QtSLiMHelpItem *>(child);
+        
+        if (our_child)
+        {
+            QString childTitle = child->text(0);
+            
+            // Search using string equality; we have to be careful to use this method to search only for unique keys
+            if (childTitle == searchKey)
+                value = our_child;
+            else if (our_child->childCount())
+                value = findObjectForKeyEqualTo(searchKey, our_child);
+            
+            if (value)
+                break;
+        }
+	}
+	
+	return value;
 }
 
 

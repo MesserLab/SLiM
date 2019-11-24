@@ -71,7 +71,8 @@ SOURCES += \
     QtSLiMPreferences.cpp \
     QtSLiMSyntaxHighlighting.cpp \
     QtSLiMFindRecipe.cpp \
-    QtSLiMHelpWindow.cpp
+    QtSLiMHelpWindow.cpp \
+    QtSLiMScriptTextEdit.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -85,7 +86,8 @@ HEADERS += \
     QtSLiMPreferences.h \
     QtSLiMSyntaxHighlighting.h \
     QtSLiMFindRecipe.h \
-    QtSLiMHelpWindow.h
+    QtSLiMHelpWindow.h \
+    QtSLiMScriptTextEdit.h
 
 FORMS += \
     QtSLiMWindow.ui \

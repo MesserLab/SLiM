@@ -6,6 +6,7 @@
 #include "QtSLiMPreferences.h"
 #include "QtSLiMHelpWindow.h"
 #include "QtSLiMSyntaxHighlighting.h"
+#include "QtSLiMScriptTextEdit.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -104,11 +105,14 @@ void QtSLiMWindow::init(void)
     connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
     
     // clear the custom error background color whenever the selection changes
-    QTextEdit *te = ui->scriptTextEdit;
+    QtSLiMScriptTextEdit *te = ui->scriptTextEdit;
     connect(te, &QTextEdit::selectionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
     
     // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
     connect(te, &QTextEdit::selectionChanged, [this]() { this->statusBar()->clearMessage(); });
+    
+    // forward option-clicks in the script view to the help window
+    connect(te, &QtSLiMScriptTextEdit::optionClickOnSymbol, this, &QtSLiMWindow::scriptHelpOptionClick);
     
     // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
@@ -129,6 +133,9 @@ void QtSLiMWindow::init(void)
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
     QTimer::singleShot(0, [this]() { ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
+    
+    // Instantiate the help panel up front so that it responds instantly; slows down our launch, but it seems better to me...
+    QtSLiMHelpWindow::instance();
 }
 
 void QtSLiMWindow::initializeUI(void)
@@ -1951,6 +1958,60 @@ void QtSLiMWindow::scriptHelpClicked(void)
     helpWindow.show();
     helpWindow.raise();
     helpWindow.activateWindow();
+}
+
+void QtSLiMWindow::scriptHelpOptionClick(QString searchString)
+{
+    QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
+    
+    // A few Eidos substitutions to improve the search
+    if (searchString == ":")                    searchString = "operator :";
+    else if (searchString == "(")               searchString = "operator ()";
+    else if (searchString == ")")               searchString = "operator ()";
+    else if (searchString == ",")               searchString = "calls: operator ()";
+    else if (searchString == "[")               searchString = "operator []";
+    else if (searchString == "]")               searchString = "operator []";
+    else if (searchString == "{")               searchString = "compound statements";
+    else if (searchString == "}")               searchString = "compound statements";
+    else if (searchString == ".")               searchString = "operator .";
+    else if (searchString == "=")               searchString = "operator =";
+    else if (searchString == "+")               searchString = "Arithmetic operators";
+    else if (searchString == "-")               searchString = "Arithmetic operators";
+    else if (searchString == "*")               searchString = "Arithmetic operators";
+    else if (searchString == "/")               searchString = "Arithmetic operators";
+    else if (searchString == "%")               searchString = "Arithmetic operators";
+    else if (searchString == "^")               searchString = "Arithmetic operators";
+    else if (searchString == "|")               searchString = "Logical operators";
+    else if (searchString == "&")               searchString = "Logical operators";
+    else if (searchString == "!")               searchString = "Logical operators";
+    else if (searchString == "==")              searchString = "Comparative operators";
+    else if (searchString == "!=")              searchString = "Comparative operators";
+    else if (searchString == "<=")              searchString = "Comparative operators";
+    else if (searchString == ">=")              searchString = "Comparative operators";
+    else if (searchString == "<")               searchString = "Comparative operators";
+    else if (searchString == ">")               searchString = "Comparative operators";
+    else if (searchString == "'")               searchString = "type string";
+    else if (searchString == "\"")              searchString = "type string";
+    else if (searchString == ";")               searchString = "null statements";
+    else if (searchString == "//")              searchString = "comments";
+    else if (searchString == "if")              searchString = "if and if–else statements";
+    else if (searchString == "else")            searchString = "if and if–else statements";
+    else if (searchString == "for")             searchString = "for statements";
+    else if (searchString == "in")              searchString = "for statements";
+    else if (searchString == "function")        searchString = "user-defined functions";
+    // and SLiM substitutions; "initialize" is deliberately omitted here so that the initialize...() methods also come up
+    else if (searchString == "early")			searchString = "Eidos events";
+	else if (searchString == "late")			searchString = "Eidos events";
+	else if (searchString == "fitness")         searchString = "fitness() callbacks";
+	else if (searchString == "interaction")     searchString = "interaction() callbacks";
+	else if (searchString == "mateChoice")      searchString = "mateChoice() callbacks";
+	else if (searchString == "modifyChild")     searchString = "modifyChild() callbacks";
+	else if (searchString == "recombination")	searchString = "recombination() callbacks";
+	else if (searchString == "mutation")		searchString = "mutation() callbacks";
+	else if (searchString == "reproduction")	searchString = "reproduction() callbacks";
+    
+    // now send the search string on to the help window
+    helpWindow.enterSearchForString(searchString, true);
 }
 
 void QtSLiMWindow::showConsoleClicked(void)

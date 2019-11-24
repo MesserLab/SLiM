@@ -183,6 +183,7 @@ public slots:
     void checkScriptClicked(void);
     void prettyprintClicked(void);
     void scriptHelpClicked(void);
+    void scriptHelpOptionClick(QString searchString);   // from QtSLiMScriptTextEdit
     void showConsoleClicked(void);
     void showBrowserClicked(void);
 
