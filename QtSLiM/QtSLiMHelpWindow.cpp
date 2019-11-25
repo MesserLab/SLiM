@@ -61,8 +61,14 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
             painter->fillRect(fullRect, QBrush(QtSLiMColorWithRGB(0.0, 0.0, 1.0, 0.04)));       // pale blue background for SLiM docs
     }
     
+    // On Ubuntu, items get shown as having "focus" even when they're not selectable, which I dislike; this disables that appearance
+    // See https://stackoverflow.com/a/2061871/2752221
+    QStyleOptionViewItem modifiedOption(option);
+    if (modifiedOption.state & QStyle::State_HasFocus)
+        modifiedOption.state = modifiedOption.state ^ QStyle::State_HasFocus;
+    
     // then let super draw
-    QStyledItemDelegate::paint(painter, option, index);
+    QStyledItemDelegate::paint(painter, modifiedOption, index);
     
     // custom overdraw
     if (topLevel)
@@ -192,6 +198,20 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     
     QAbstractItemDelegate *outlineDelegate = new QtSLiMHelpOutlineDelegate();
     ui->topicOutlineView->setItemDelegate(outlineDelegate);
+    
+    // tweak appearance on Linux; the form is adjusted for macOS
+#if !defined(__APPLE__)
+    {
+        // use a smaller font for the outline
+        QFont outlineFont(ui->topicOutlineView->font());
+        outlineFont.setPointSizeF(outlineFont.pointSizeF() - 1);
+        ui->topicOutlineView->setFont(outlineFont);
+        
+        // the headers/content button needs somewhat different metrics
+        ui->searchScopeButton->setMinimumWidth(75);
+        ui->searchScopeButton->setMaximumWidth(75);
+    }
+#endif
     
     // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
@@ -481,8 +501,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
     topItem->setForeground(0, QBrush(QtSLiMColorWithWhite(0.4, 1.0)));
     topItem->setSizeHint(0, QSize(20.0, 20.0));
     topItem->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
-    QFont font = QFont(topItem->font(0));
-    font.setPointSize(12);
+    QFont font(topItem->font(0));
     font.setBold(true);
     topItem->setFont(0, font);
     
