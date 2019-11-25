@@ -178,15 +178,11 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     ui->setupUi(this);
     
     // Configure the search field to look like a search field
-    const QIcon searchIcon(":/help/search.png");
-    QAction *searchAction = new QAction(searchIcon, "&Search...", this);
-    
     ui->searchField->setClearButtonEnabled(true);
-    ui->searchField->addAction(searchAction, QLineEdit::LeadingPosition);
     ui->searchField->setPlaceholderText("Search...");
     
     connect(ui->searchField, &QLineEdit::returnPressed, this, &QtSLiMHelpWindow::searchFieldChanged);
-    connect(searchAction, &QAction::triggered, this, &QtSLiMHelpWindow::searchFieldChanged);
+    connect(ui->searchScopeButton, &QPushButton::clicked, this, &QtSLiMHelpWindow::searchScopeToggled);
     
     // Configure the outline view to behave as we wish
     connect(ui->topicOutlineView, &QTreeWidget::itemSelectionChanged, this, &QtSLiMHelpWindow::outlineSelectionChanged);
@@ -352,6 +348,18 @@ void QtSLiMHelpWindow::searchFieldChanged(void)
     }
 }
 
+void QtSLiMHelpWindow::searchScopeToggled(void)
+{
+    searchType = 1 - searchType;
+    
+    if (searchType == 0)
+        ui->searchScopeButton->setText("🔍  headers");
+    else if (searchType == 1)
+        ui->searchScopeButton->setText("🔍  content");
+    
+    searchFieldChanged();
+}
+
 void QtSLiMHelpWindow::enterSearchForString(QString searchString, bool titlesOnly)
 {
 	// Show our window and bring it front
@@ -363,10 +371,12 @@ void QtSLiMHelpWindow::enterSearchForString(QString searchString, bool titlesOnl
     ui->searchField->setText(searchString);
 	
 	// Set the search type per the request
-	searchType = titlesOnly ? 0 : 1;
+    int desiredSearchType = titlesOnly ? 0 : 1;
 	
-	// Then execute the search by firing the search field's action
-    searchFieldChanged();
+    if (searchType != desiredSearchType)
+        searchScopeToggled();   // re-runs the search as a side effect
+	else
+        searchFieldChanged();   // re-run explicitly
 }
 
 void QtSLiMHelpWindow::closeEvent(QCloseEvent *event)
@@ -505,19 +515,6 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
         
         lineCursor.setPosition(lineStartIndex);
         lineCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, lineLength);
-        
-        // regex debug
-        /*if (lineIndex == 0)
-        {
-            QRegularExpression          testRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] (.+)$", QRegularExpression::CaseInsensitiveOption);
-            if (!testRegex.isValid())
-                qDebug() << "invalid";
-            QRegularExpressionMatch match_testRegex = testRegex.match(line);
-            if (!match_testRegex.hasMatch())
-                qDebug() << "no match";
-            else
-                qDebug() << "matched!";
-        }*/
         
         // figure out what kind of line we have and handle it
         QRegularExpressionMatch match_topicHeaderRegex = topicHeaderRegex.match(line);

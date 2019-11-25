@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>QtSLiMHelpWindow</class>
  <widget class="QDialog" name="QtSLiMHelpWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>550</width>
+    <height>235</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>Scripting Help</string>
   </property>
@@ -22,7 +30,60 @@
     <number>4</number>
    </property>
    <item>
-    <widget class="QLineEdit" name="searchField"/>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="spacing">
+      <number>4</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="searchScopeButton">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>60</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>60</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+border: 1px solid #888;
+border-radius: 20px;
+border-style: outset;
+margin: 0px;
+padding: 2px;
+background: rgb(245, 245, 245);
+}
+QPushButton:pressed {
+background: rgb(195, 195, 195);
+}</string>
+       </property>
+       <property name="text">
+        <string>🔍  headers</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="searchField"/>
+     </item>
+    </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">

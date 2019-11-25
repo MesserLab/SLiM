@@ -88,6 +88,7 @@ private:
     // Searching
     bool findItemsMatchingSearchString(QTreeWidgetItem *root, const QString searchString, bool titlesOnly, std::vector<QTreeWidgetItem *> &matchKeys, std::vector<QTreeWidgetItem *> &expandItems);
     void searchFieldChanged(void);
+    void searchScopeToggled(void);
     
     // Smart expand/contract, with the option key making it apply to all children as well
     void recursiveExpand(QTreeWidgetItem *item);
