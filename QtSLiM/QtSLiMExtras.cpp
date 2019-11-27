@@ -1,7 +1,11 @@
 #include "QtSLiMExtras.h"
 
 #include <QTimer>
+#include <QTextCharFormat>
+#include <QDebug>
 #include <cmath>
+
+#include "QtSLiMPreferences.h"
 
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter)
@@ -145,8 +149,214 @@ void QtSLiMGenerationLineEdit::focusInEvent(QFocusEvent *event)
     QTimer::singleShot(0, this, &QLineEdit::selectAll);
 }
 
+void ColorizePropertySignature(const EidosPropertySignature *property_signature, double pointSize, QTextCursor lineCursor)
+{
+    //
+    //	Note this logic is paralleled in the function operator<<(ostream &, const EidosPropertySignature &).
+    //	These two should be kept in synch so the user-visible format of signatures is consistent.
+    //
+    QString docSigString = lineCursor.selectedText();
+    std::ostringstream ss;
+    ss << *property_signature;
+    QString propertySigString = QString::fromStdString(ss.str());
+    
+    if (docSigString != propertySigString)
+    {
+        qDebug() << "*** property signature mismatch:\nold: " << docSigString << "\nnew: " << propertySigString;
+        return;
+    }
+    
+    // the signature conforms to expectations, so we can colorize it
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    QTextCharFormat ttFormat;
+    QFont displayFont(prefs.displayFontPref());
+    displayFont.setPointSizeF(pointSize);
+    ttFormat.setFont(displayFont);
+    lineCursor.setCharFormat(ttFormat);
+    
+    QTextCharFormat functionAttrs(ttFormat), typeAttrs(ttFormat);
+    functionAttrs.setForeground(QBrush(QtSLiMColorWithRGB(28/255.0, 0/255.0, 207/255.0, 1.0)));
+    typeAttrs.setForeground(QBrush(QtSLiMColorWithRGB(0/255.0, 116/255.0, 0/255.0, 1.0)));
+    
+    QTextCursor propertyNameCursor(lineCursor);
+    propertyNameCursor.setPosition(lineCursor.anchor(), QTextCursor::MoveAnchor);
+    propertyNameCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, static_cast<int>(property_signature->property_name_.length()));
+    propertyNameCursor.setCharFormat(functionAttrs);
+    
+    int nameLength = QString::fromStdString(property_signature->property_name_).length();
+    int connectorLength = QString::fromStdString(property_signature->PropertySymbol()).length();
+    int typeLength = docSigString.length() - (nameLength + 4 + connectorLength);
+    QTextCursor typeCursor(lineCursor);
+    typeCursor.setPosition(lineCursor.position(), QTextCursor::MoveAnchor);
+    typeCursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 1);
+    typeCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, typeLength);
+    typeCursor.setCharFormat(typeAttrs);
+}
 
-
+void ColorizeCallSignature(const EidosCallSignature *call_signature, double pointSize, QTextCursor lineCursor)
+{
+    //
+    //	Note this logic is paralleled in the function operator<<(ostream &, const EidosCallSignature &).
+    //	These two should be kept in synch so the user-visible format of signatures is consistent.
+    //
+    QString docSigString = lineCursor.selectedText();
+    std::ostringstream ss;
+    ss << *call_signature;
+    QString callSigString = QString::fromStdString(ss.str());
+    
+    if (callSigString.endsWith(" <SLiM>"))
+        callSigString.chop(7);
+    
+    if (docSigString != callSigString)
+    {
+        qDebug() << "*** " << ((call_signature->CallPrefix().length() > 0) ? "method" : "function") << " signature mismatch:\nold: " << docSigString << "\nnew: " << callSigString;
+        return;
+    }
+    
+    // the signature conforms to expectations, so we can colorize it
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    QTextCharFormat ttFormat;
+    QFont displayFont(prefs.displayFontPref());
+    displayFont.setPointSizeF(pointSize);
+    ttFormat.setFont(displayFont);
+    lineCursor.setCharFormat(ttFormat);
+    
+    QTextCharFormat typeAttrs(ttFormat), functionAttrs(ttFormat), paramAttrs(ttFormat);
+    typeAttrs.setForeground(QBrush(QtSLiMColorWithRGB(28/255.0, 0/255.0, 207/255.0, 1.0)));
+    functionAttrs.setForeground(QBrush(QtSLiMColorWithRGB(0/255.0, 116/255.0, 0/255.0, 1.0)));
+    paramAttrs.setForeground(QBrush(QtSLiMColorWithRGB(170/255.0, 13/255.0, 145/255.0, 1.0)));
+    
+    int prefix_string_len = QString::fromStdString(call_signature->CallPrefix()).length();
+    int return_type_string_len = QString::fromStdString(StringForEidosValueMask(call_signature->return_mask_, call_signature->return_class_, "", nullptr)).length();
+    int function_name_string_len = QString::fromStdString(call_signature->call_name_).length();
+    
+    // colorize return type
+    QTextCursor scanCursor(lineCursor);
+    scanCursor.setPosition(lineCursor.anchor() + prefix_string_len + 1, QTextCursor::MoveAnchor);
+    scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, return_type_string_len);
+    scanCursor.setCharFormat(typeAttrs);
+    
+    // colorize call name
+    scanCursor.setPosition(scanCursor.position() + 1, QTextCursor::MoveAnchor);
+    scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, function_name_string_len);
+    scanCursor.setCharFormat(functionAttrs);
+    
+    scanCursor.setPosition(scanCursor.position() + 1, QTextCursor::MoveAnchor);
+    
+    // colorize arguments
+    size_t arg_mask_count = call_signature->arg_masks_.size();
+    
+    if (arg_mask_count == 0)
+    {
+        if (!call_signature->has_ellipsis_)
+        {
+            // colorize "void"
+            scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
+            scanCursor.setCharFormat(typeAttrs);
+        }
+    }
+    else
+    {
+        for (size_t arg_index = 0; arg_index < arg_mask_count; ++arg_index)
+        {
+            EidosValueMask type_mask = call_signature->arg_masks_[arg_index];
+            const std::string &arg_name = call_signature->arg_names_[arg_index];
+            const EidosObjectClass *arg_obj_class = call_signature->arg_classes_[arg_index];
+            EidosValue_SP arg_default = call_signature->arg_defaults_[arg_index];
+            
+            // skip private arguments
+            if ((arg_name.length() >= 1) && (arg_name[0] == '_'))
+                continue;
+            
+            scanCursor.setPosition(scanCursor.position() + ((arg_index > 0) ? 2 : 0), QTextCursor::MoveAnchor);     // ", "
+            
+            //
+            //	Note this logic is paralleled in the function StringForEidosValueMask().
+            //	These two should be kept in synch so the user-visible format of signatures is consistent.
+            //
+            bool is_optional = !!(type_mask & kEidosValueMaskOptional);
+            bool requires_singleton = !!(type_mask & kEidosValueMaskSingleton);
+            EidosValueMask stripped_mask = type_mask & kEidosValueMaskFlagStrip;
+            int typeLength = 0;
+            
+            if (is_optional)
+                scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 1);     // "["
+            
+            if (stripped_mask == kEidosValueMaskNone)               typeLength = 1;     // "?"
+            else if (stripped_mask == kEidosValueMaskAny)           typeLength = 1;     // "*"
+            else if (stripped_mask == kEidosValueMaskAnyBase)       typeLength = 1;     // "+"
+            else if (stripped_mask == kEidosValueMaskVOID)          typeLength = 4;     // "void"
+            else if (stripped_mask == kEidosValueMaskNULL)          typeLength = 4;     // "NULL"
+            else if (stripped_mask == kEidosValueMaskLogical)       typeLength = 7;     // "logical"
+            else if (stripped_mask == kEidosValueMaskString)        typeLength = 6;     // "string"
+            else if (stripped_mask == kEidosValueMaskInt)           typeLength = 7;     // "integer"
+            else if (stripped_mask == kEidosValueMaskFloat)         typeLength = 5;     // "float"
+            else if (stripped_mask == kEidosValueMaskObject)        typeLength = 6;     // "object"
+            else if (stripped_mask == kEidosValueMaskNumeric)       typeLength = 7;     // "numeric"
+            else
+            {
+                if (stripped_mask & kEidosValueMaskVOID)            typeLength++;     // "v"
+                if (stripped_mask & kEidosValueMaskNULL)            typeLength++;     // "N"
+                if (stripped_mask & kEidosValueMaskLogical)         typeLength++;     // "l"
+                if (stripped_mask & kEidosValueMaskInt)             typeLength++;     // "i"
+                if (stripped_mask & kEidosValueMaskFloat)           typeLength++;     // "f"
+                if (stripped_mask & kEidosValueMaskString)          typeLength++;     // "s"
+                if (stripped_mask & kEidosValueMaskObject)          typeLength++;     // "o"
+            }
+            
+            if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
+            {
+                int obj_type_name_len = QString::fromStdString(arg_obj_class->ElementType()).length();
+                
+                typeLength += (obj_type_name_len + 2);  // "<" obj_type_name ">"
+            }
+            
+            if (requires_singleton)
+                typeLength++;     // "$"
+            
+            scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, typeLength);
+            scanCursor.setCharFormat(typeAttrs);
+            scanCursor.setPosition(scanCursor.position(), QTextCursor::MoveAnchor);
+            
+            if (arg_name.length() > 0)
+            {
+                scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 1);    // " "
+                scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, QString::fromStdString(arg_name).length());
+                scanCursor.setCharFormat(paramAttrs);
+                scanCursor.setPosition(scanCursor.position(), QTextCursor::MoveAnchor);
+            }
+            
+            if (is_optional)
+            {
+                if (arg_default && (arg_default != gStaticEidosValueNULLInvisible.get()))
+                {
+                    scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 3);    // " = "
+                    
+                    std::ostringstream default_string_stream;
+                    
+                    arg_default->Print(default_string_stream);
+                    
+                    int default_string_len = QString::fromStdString(default_string_stream.str()).length();
+                    
+                    scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, default_string_len);
+                }
+                
+                scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 1);    // "]"
+            }
+        }
+    }
+    
+    if (call_signature->has_ellipsis_)
+    {
+        scanCursor.setPosition(scanCursor.position(), QTextCursor::MoveAnchor);
+        
+        if (arg_mask_count > 0)
+            scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 2);    // ", "
+        
+        scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 3);
+        scanCursor.setCharFormat(typeAttrs);
+    }
+}
 
 
 

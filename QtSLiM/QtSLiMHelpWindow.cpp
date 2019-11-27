@@ -632,7 +632,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 			//qDebug() << "topic function name: " << callName << ", line: " << line;
 			
 			// check for a built-in function signature that matches and substitute it in
-/*			if (functionList)
+			if (functionList)
 			{
 				std::string function_name = callName.toStdString();
 				const EidosFunctionSignature *function_signature = nullptr;
@@ -645,28 +645,10 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 					}
 				
 				if (function_signature)
-				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:function_signature size:11.0];
-					NSString *oldSignatureString = [lineAttrString string];
-					NSString *newSignatureString = [attrSig string];
-					
-					if ([oldSignatureString isEqualToString:newSignatureString])
-					{
-						//NSLog(@"signature match for function %@", callName);
-						
-						// Replace the signature line from the RTF file with the syntax-colored version
-						lineAttrString = attrSig;
-					}
-					else
-					{
-						NSLog(@"*** function signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
-					}
-				}
+                    ColorizeCallSignature(function_signature, 11.0, lineCursor);
 				else
-				{
-					NSLog(@"*** no function signature found for function name %@", callName);
-				}
-			}*/
+					qDebug() << "*** no function signature found for function name " << callName;
+			}
 			
 			topicItemKey = callName + "()";
             topicItemCursor = new QTextCursor(lineCursor);
@@ -679,10 +661,10 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 			
 			//qDebug() << "topic method name: " << callName << ", line: " << line;
 			
-/*			// check for a built-in method signature that matches and substitute it in
+			// check for a built-in method signature that matches and substitute it in
 			if (methodList)
 			{
-				std::string method_name([callName UTF8String]);
+				std::string method_name(callName.toStdString());
 				const EidosMethodSignature *method_signature = nullptr;
 				
 				for (auto signature_iter = methodList->begin(); signature_iter != methodList->end(); signature_iter++)
@@ -693,28 +675,10 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 					}
 				
 				if (method_signature)
-				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:method_signature size:11.0];
-					NSString *oldSignatureString = [lineAttrString string];
-					NSString *newSignatureString = [attrSig string];
-					
-					if ([oldSignatureString isEqualToString:newSignatureString])
-					{
-						//NSLog(@"signature match for method %@", callName);
-						
-						// Replace the signature line from the RTF file with the syntax-colored version
-						lineAttrString = attrSig;
-					}
-					else
-					{
-						NSLog(@"*** method signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
-					}
-				}
+                    ColorizeCallSignature(method_signature, 11.0, lineCursor);
 				else
-				{
-					NSLog(@"*** no method signature found for method name %@", callName);
-				}
-			}*/
+					qDebug() << "*** no method signature found for method name " << callName;
+			}
 			
             topicItemKey = classMethodString + "\u00A0" + callName + "()";
             topicItemCursor = new QTextCursor(lineCursor);
@@ -728,9 +692,9 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
             //qDebug() << "topic property name: " << callName << ", line: " << line;
             
 			// check for a built-in property signature that matches and substitute it in
-			/*if (propertyList)
+			if (propertyList)
 			{
-				std::string property_name([callName UTF8String]);
+				std::string property_name(callName.toStdString());
 				const EidosPropertySignature *property_signature = nullptr;
 				
 				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
@@ -741,28 +705,10 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 					}
 				
 				if (property_signature)
-				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature size:11.0];
-					NSString *oldSignatureString = [lineAttrString string];
-					NSString *newSignatureString = [attrSig string];
-					
-					if ([oldSignatureString isEqualToString:newSignatureString])
-					{
-						//NSLog(@"signature match for method %@", callName);
-						
-						// Replace the signature line from the RTF file with the syntax-colored version
-						lineAttrString = attrSig;
-					}
-					else
-					{
-						NSLog(@"*** property signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
-					}
-				}
+                    ColorizePropertySignature(property_signature, 11.0, lineCursor);
 				else
-				{
-					NSLog(@"*** no property signature found for property name %@", callName);
-				}
-			}*/
+					qDebug() << "*** no property signature found for property name " << callName;
+			}
 			
 			topicItemKey = callName + "\u00A0" + readOnlyName;
             topicItemCursor = new QTextCursor(lineCursor);

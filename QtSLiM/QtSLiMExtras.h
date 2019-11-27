@@ -7,6 +7,10 @@
 #include <QRect>
 #include <QPainter>
 #include <QLineEdit>
+#include <QTextCursor>
+
+#include "eidos_property_signature.h"
+#include "eidos_call_signature.h"
 
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter);
@@ -36,7 +40,10 @@ private:
     QtSLiMGenerationLineEdit(const QtSLiMGenerationLineEdit&) = delete;
     QtSLiMGenerationLineEdit& operator=(const QtSLiMGenerationLineEdit&) = delete;
 };
-        
+
+void ColorizePropertySignature(const EidosPropertySignature *property_signature, double pointSize, QTextCursor lineCursor);
+void ColorizeCallSignature(const EidosCallSignature *call_signature, double pointSize, QTextCursor lineCursor);
+
 
 #endif // QTSLIMEXTRAS_H
 
