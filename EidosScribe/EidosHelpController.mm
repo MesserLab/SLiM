@@ -158,6 +158,10 @@
 // now substitutes an EidosNSString for the original NSString.  That EidosNSString responds to copyWithZone: by making a copy
 // of itself, preventing NSTaggedPointerString from getting in.  This seems to work, and I think it ought to be fairly safe
 // and airtight.  We shall see.  BCH 2/26/2018
+// BCH 11/27/2019: Note that the Qt version of this class now has a much nicer design, in which a proper tree class is used
+// to represent the hierarchy instead of using NSDictionary.  There it is based on QTreeWidgetItem, but we could do the same
+// here with a custom NSObject subclass that just had a list of children, a display string, and an NSAttributedString for the doc.
+// This rearchitecture would let us get rid of this hack, and a bunch of other confusing cruft as well.
 - (NSString *)guardAgainstNSTaggedPointerString:(NSString *)oldString
 {
 	//return oldString;		// can be used to test the efficacy of checkDocumentationForDuplicatePointers; in OS X 10.12.6 we're good

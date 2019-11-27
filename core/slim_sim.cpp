@@ -10785,19 +10785,33 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
 	
-	// Extract all of the Mutation objects in mutations; would be nice if there was a simpler way to do this
-	EidosValue_Object *mutations_object = (EidosValue_Object *)mutations_value;
-	int mutations_count = mutations_object->Count();
-	std::vector<Mutation *> mutations;
-	
-	for (int mutation_index = 0; mutation_index < mutations_count; mutation_index++)
-		mutations.emplace_back((Mutation *)(mutations_object->ObjectElementAtIndex(mutation_index, nullptr)));
-	
-	// find all polymorphisms of the mutations that are to be tracked
+	int mutations_count = mutations_value->Count();
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	if (mutations_count > 0)
 	{
+		// as we scan through genomes building the polymorphism map, we want to process only mutations that are
+		// in the user-supplied mutations vector; to do that filtering efficiently, we use Mutation::scratch_
+		// first zero out scratch_ in all mutations in the registry...
+		MutationRun &mutation_registry = population_.mutation_registry_;
+		int registry_count = mutation_registry.size();
+		
+		for (int mut_index = 0; mut_index < registry_count; ++mut_index)
+		{
+			Mutation *mut = mut_block_ptr + mutation_registry[mut_index];
+			mut->scratch_ = 0;
+		}
+		
+		// ...then set scratch_ = 1 for all mutations that have been requested for output
+		EidosValue_Object *mutations_object = (EidosValue_Object *)mutations_value;
+		
+		for (int mut_index = 0; mut_index < mutations_count; mut_index++)
+		{
+			Mutation *mut = (Mutation *)(mutations_object->ObjectElementAtIndex(mut_index, nullptr));
+			mut->scratch_ = 1;
+		}
+		
+		// find all polymorphisms of the mutations that are to be tracked
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
@@ -10818,8 +10832,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 					{
 						Mutation *scan_mutation = mut_block_ptr + mut_ptr[mut_index];
 						
-						// do a linear search for each mutation, ouch; but this is output code, so it doesn't need to be fast, probably.
-						if (std::find(mutations.begin(), mutations.end(), scan_mutation) != mutations.end())
+						// use scratch_ to check whether the mutation is one we are outputting
+						if (scan_mutation->scratch_)
 							AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
 					}
 				}

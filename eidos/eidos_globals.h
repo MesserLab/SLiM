@@ -334,6 +334,10 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
 // Split a std::string into a vector of substrings separated by a given delimiter
 std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim);
+std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::string &p_delim);
+bool Eidos_string_hasPrefix(std::string const &fullString, std::string const &prefix);
+bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &suffix);
+bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle);
 
 // Run a Unix command
 // BCH 13 December 2017: no longer used, commenting this out

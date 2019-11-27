@@ -1880,23 +1880,84 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 	return hi;
 }
 
-// Thanks to user Sviatoslav at https://stackoverflow.com/a/37454181/2752221 for this code
-std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim)
+std::vector<std::string> Eidos_string_split(const std::string &joined_string, const std::string &separator)
 {
 	std::vector<std::string> tokens;
-	size_t prev = 0, pos = 0;
+	std::string::size_type start_idx = 0, sep_idx;
 	
-	do
+	if (separator.length() == 0)
 	{
-		pos = p_str.find(p_delim, prev);
-		if (pos == std::string::npos) pos = p_str.length();
-		std::string token = p_str.substr(prev, pos-prev);
-		if (!token.empty()) tokens.emplace_back(token);
-		prev = pos + p_delim.length();
+		// special-case a zero-length separator
+		for (const char &ch : joined_string)
+			tokens.emplace_back(std::string(&ch, 1));
 	}
-	while (pos < p_str.length() && prev < p_str.length());
+	else
+	{
+		// non-zero-length separator
+		while (true)
+		{
+			sep_idx = joined_string.find(separator, start_idx);
+			
+			if (sep_idx == std::string::npos)
+			{
+				tokens.emplace_back(joined_string.substr(start_idx));
+				break;
+			}
+			else
+			{
+				tokens.emplace_back(joined_string.substr(start_idx, sep_idx - start_idx));
+				start_idx = sep_idx + separator.size();
+			}
+		}
+	}
 	
 	return tokens;
+}
+
+std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::string &p_delim)
+{
+	std::string result;
+	size_t vec_size = p_vec.size();
+	
+	for (size_t i = 0; i < vec_size; ++i)
+	{
+		if (i > 0)
+			result.append(p_delim);
+		result.append(p_vec[i]);
+	}
+	
+	return result;
+}
+
+// thanks to https://stackoverflow.com/a/874160/2752221
+bool Eidos_string_hasPrefix(std::string const &fullString, std::string const &prefix)
+{
+	if (fullString.length() >= prefix.length()) {
+		return (0 == fullString.compare(0, prefix.length(), prefix));
+	} else {
+		return false;
+	}
+}
+
+// thanks to https://stackoverflow.com/a/874160/2752221
+bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &suffix)
+{
+	if (fullString.length() >= suffix.length()) {
+		return (0 == fullString.compare(fullString.length() - suffix.length(), suffix.length(), suffix));
+	} else {
+		return false;
+	}
+}
+
+// case-insensitive string find; see https://stackoverflow.com/a/19839371/2752221
+bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle)
+{
+	auto it = std::search(
+						  strHaystack.begin(), strHaystack.end(),
+						  strNeedle.begin(),   strNeedle.end(),
+						  [](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); }
+						  );
+	return (it != strHaystack.end() );
 }
 
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
