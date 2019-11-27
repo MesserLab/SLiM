@@ -43,7 +43,7 @@ class EidosObjectClass;
 // Add topics and items drawn from a specially formatted RTF file, under a designated top-level heading.
 // The signatures found for functions, methods, and prototypes will be checked against the supplied lists,
 // if they are not NULL, and if matches are found, colorized versions will be substituted.
-- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(const std::string &)topLevelHeading functions:(const std::vector<EidosFunctionSignature_SP> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList;
+- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<EidosFunctionSignature_SP> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList;
 
 // Check for complete documentation
 - (void)checkDocumentationOfFunctions:(const std::vector<EidosFunctionSignature_SP> *)functions;

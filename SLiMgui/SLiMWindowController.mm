@@ -3821,9 +3821,9 @@
 		all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());
 		all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
 		
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:"6. SLiM Functions" functions:&all_slim_functions methods:nullptr properties:nullptr];
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:"7. SLiM Classes" functions:nullptr methods:[self slimguiAllMethodSignatures] properties:[self slimguiAllPropertySignatures]];
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:&all_slim_functions methods:nullptr properties:nullptr];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:[self slimguiAllMethodSignatures] properties:[self slimguiAllPropertySignatures]];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
 		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
 		[sharedHelp checkDocumentationOfFunctions:&all_slim_functions];
