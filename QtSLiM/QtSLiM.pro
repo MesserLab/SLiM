@@ -72,7 +72,10 @@ SOURCES += \
     QtSLiMSyntaxHighlighting.cpp \
     QtSLiMFindRecipe.cpp \
     QtSLiMHelpWindow.cpp \
-    QtSLiMScriptTextEdit.cpp
+    QtSLiMScriptTextEdit.cpp \
+    QtSLiMEidosConsole.cpp \
+    QtSLiMEidosConsole_glue.cpp \
+    QtSLiMConsoleTextEdit.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -87,14 +90,17 @@ HEADERS += \
     QtSLiMSyntaxHighlighting.h \
     QtSLiMFindRecipe.h \
     QtSLiMHelpWindow.h \
-    QtSLiMScriptTextEdit.h
+    QtSLiMScriptTextEdit.h \
+    QtSLiMEidosConsole.h \
+    QtSLiMConsoleTextEdit.h
 
 FORMS += \
     QtSLiMWindow.ui \
     QtSLiMAbout.ui \
     QtSLiMPreferences.ui \
     QtSLiMFindRecipe.ui \
-    QtSLiMHelpWindow.ui
+    QtSLiMHelpWindow.ui \
+    QtSLiMEidosConsole.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

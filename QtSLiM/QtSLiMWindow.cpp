@@ -5,6 +5,7 @@
 #include "QtSLiMAbout.h"
 #include "QtSLiMPreferences.h"
 #include "QtSLiMHelpWindow.h"
+#include "QtSLiMEidosConsole.h"
 #include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMScriptTextEdit.h"
 
@@ -38,14 +39,13 @@
 // implement selection of a subrange in the chromosome view
 // enable the more efficient code paths in the chromosome view
 // enable the other display types in the individuals view
-// implement pop-up menu for graph pop-up button
+// implement pop-up menu for graph pop-up button, graph windows
 // code editing: code completion
-// implement the Eidos console, help window, status bar
+// implement the status bar
 // decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
-// implement graph windows
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
@@ -267,6 +267,11 @@ QtSLiMWindow::~QtSLiMWindow()
 {
     delete ui;
 
+    // Disconnect delegate relationships
+    if (consoleController)
+        consoleController->parentSLiMWindow = nullptr;
+    
+    // Free resources
     if (sim)
     {
         delete sim;
@@ -281,6 +286,15 @@ QtSLiMWindow::~QtSLiMWindow()
     Eidos_FreeRNG(sim_RNG);
 
     setInvalidSimulation(true);
+    
+    // The console is owned by us, and it owns the variable browser.  Since the parent
+    // relationships are set up, they should be released by Qt automatically.
+    if (consoleController)
+    {
+        //if (consoleController->browserController)
+        //  consoleController->browserController->hide();
+        consoleController->hide();
+    }
 }
 
 std::string QtSLiMWindow::defaultWFScriptString(void)
@@ -522,11 +536,15 @@ void QtSLiMWindow::openRecipe(const QString &recipeName, const QString &recipeSc
 {
     if (isUntitled && !isRecipe && (slimChangeCount == 0) && !isWindowModified())
     {
-        //[_consoleController invalidateSymbolTableAndFunctionMap];
+        if (consoleController)
+            consoleController->invalidateSymbolTableAndFunctionMap();
+        
         clearOutputClicked();
         ui->scriptTextEdit->setPlainText(recipeScript);
         setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
-        //[_consoleController validateSymbolTableAndFunctionMap];
+        
+        if (consoleController)
+            consoleController->validateSymbolTableAndFunctionMap();
         
         setWindowFilePath(recipeName);
         isRecipe = true;
@@ -635,10 +653,14 @@ void QtSLiMWindow::loadFile(const QString &fileName)
     QString contents = in.readAll();
     ui->scriptTextEdit->setPlainText(contents);
     
-    //[_consoleController invalidateSymbolTableAndFunctionMap];
+    if (consoleController)
+        consoleController->invalidateSymbolTableAndFunctionMap();
+    
 	clearOutputClicked();
     setScriptStringAndInitializeSimulation(contents.toUtf8().constData());
-	//[_consoleController validateSymbolTableAndFunctionMap];
+	
+    if (consoleController)
+        consoleController->validateSymbolTableAndFunctionMap();
     
     setCurrentFile(fileName);
     
@@ -1245,7 +1267,8 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->generationLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
     
-    // [_consoleController setInterfaceEnabled:!(continuousPlayOn || generationPlayOn)];
+    if (consoleController)
+        consoleController->setInterfaceEnabled(!(continuousPlayOn_ || generationPlayOn_));
 }
 
 void QtSLiMWindow::displayFontPrefChanged()
@@ -1484,7 +1507,8 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
             setNonProfilePlayOn(true);
 		
 		// invalidate the console symbols, and don't validate them until we are done
-		//[_consoleController invalidateSymbolTableAndFunctionMap];
+		if (consoleController)
+            consoleController->invalidateSymbolTableAndFunctionMap();
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// prepare profiling information if necessary
@@ -1537,7 +1561,9 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
         //else
             setNonProfilePlayOn(false);
 		
-		//[_consoleController validateSymbolTableAndFunctionMap];
+		if (consoleController)
+            consoleController->validateSymbolTableAndFunctionMap();
+        
 		updateAfterTickFull(true);
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -1604,9 +1630,14 @@ void QtSLiMWindow::playOneStepClicked(void)
 {
     if (!invalidSimulation_)
     {
-        //[_consoleController invalidateSymbolTableAndFunctionMap];
+        if (consoleController)
+            consoleController->invalidateSymbolTableAndFunctionMap();
+        
         setReachedSimulationEnd(!runSimOneGeneration());
-        //[_consoleController validateSymbolTableAndFunctionMap];
+        
+        if (consoleController)
+            consoleController->validateSymbolTableAndFunctionMap();
+        
         ui->generationLineEdit->clearFocus();
         updateAfterTickFull(true);
     }
@@ -1703,7 +1734,8 @@ void QtSLiMWindow::generationChanged(void)
 		setGenerationPlayOn(true);
 		
 		// invalidate the console symbols, and don't validate them until we are done
-		//[_consoleController invalidateSymbolTableAndFunctionMap];
+		if (consoleController)
+            consoleController->invalidateSymbolTableAndFunctionMap();
 		
 		// get the first responder out of the generation textfield
         ui->generationLineEdit->clearFocus();
@@ -1719,7 +1751,8 @@ void QtSLiMWindow::generationChanged(void)
 		setGenerationPlayOn(false);
 		//[generationProgressIndicator stopAnimation:nil];
 		
-		//[_consoleController validateSymbolTableAndFunctionMap];
+		if (consoleController)
+            consoleController->validateSymbolTableAndFunctionMap();
 		
 		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
 		//if (reachedSimulationEnd_)
@@ -1732,10 +1765,15 @@ void QtSLiMWindow::recycleClicked(void)
     // Converting a QString to a std::string is surprisingly tricky: https://stackoverflow.com/a/4644922/2752221
     std::string utf8_script_string = ui->scriptTextEdit->toPlainText().toUtf8().constData();
     
-    //[_consoleController invalidateSymbolTableAndFunctionMap];
+    if (consoleController)
+        consoleController->invalidateSymbolTableAndFunctionMap();
+    
 	clearOutputClicked();
     setScriptStringAndInitializeSimulation(utf8_script_string);
-	//[_consoleController validateSymbolTableAndFunctionMap];
+	
+    if (consoleController)
+        consoleController->validateSymbolTableAndFunctionMap();
+    
     ui->generationLineEdit->clearFocus();
 	updateAfterTickFull(true);
 	
@@ -2018,7 +2056,24 @@ void QtSLiMWindow::showConsoleClicked(void)
 {
     ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
 
-    qDebug() << "showConsoleClicked: isChecked() == " << ui->consoleButton->isChecked();
+    if (!consoleController)
+        consoleController = new QtSLiMEidosConsole(this);
+    if (!consoleController)
+    {
+        qApp->beep();
+        return;
+    }
+    
+    if (ui->consoleButton->isChecked())
+    {
+        consoleController->show();
+        consoleController->raise();
+        consoleController->activateWindow();
+    }
+    else
+    {
+        consoleController->hide();
+    }
 }
 
 void QtSLiMWindow::showBrowserClicked(void)
@@ -2086,150 +2141,6 @@ void QtSLiMWindow::changeDirectoryClicked(void)
     }
 }
 
-QStringList QtSLiMWindow::linesForRoundedSelection(QTextCursor &cursor, bool &movedBack)
-{
-    // find the start and end of the blocks we're operating on
-    int anchor = cursor.anchor(), pos = cursor.position();
-    if (anchor > pos)
-        std::swap(anchor, pos);
-    movedBack = false;
-    
-    QTextCursor startBlockCursor(cursor);
-    startBlockCursor.setPosition(anchor, QTextCursor::MoveAnchor);
-    startBlockCursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
-    QTextCursor endBlockCursor(cursor);
-    endBlockCursor.setPosition(pos, QTextCursor::MoveAnchor);
-    if (endBlockCursor.atBlockStart() && (pos > anchor))
-    {
-        // the selection includes the newline at the end of the last line; we need to move backward to avoid swallowing the following line
-        endBlockCursor.movePosition(QTextCursor::PreviousBlock, QTextCursor::MoveAnchor);
-        movedBack = true;
-    }
-    endBlockCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::MoveAnchor);
-    
-    // select the whole lines we're operating on
-    cursor.beginEditBlock();
-    cursor.setPosition(startBlockCursor.position(), QTextCursor::MoveAnchor);
-    cursor.setPosition(endBlockCursor.position(), QTextCursor::KeepAnchor);
-    
-    // separate the lines, remove a tab at the start of each, and rejoin them
-    QString selectedString = cursor.selectedText();
-    QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
-    
-    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);
-}
-
-void QtSLiMWindow::shiftSelectionLeft(void)
-{
-    QTextEdit &scriptTE = *ui->scriptTextEdit;
-    
-    if (scriptTE.isEnabled() && !scriptTE.isReadOnly())
-	{
-        QTextCursor &&cursor = scriptTE.textCursor();
-        bool movedBack;
-        QStringList lines = linesForRoundedSelection(cursor, movedBack);
-        
-        for (QString &line : lines)
-            if (line[0] == '\t')
-                line.remove(0, 1);
-        
-        QString replacementString = lines.join(QChar::ParagraphSeparator);
-		
-        // end the editing block, producing one undo-able operation
-        cursor.insertText(replacementString);
-        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
-        if (movedBack)
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-		cursor.endEditBlock();
-        scriptTE.setTextCursor(cursor);
-	}
-	else
-	{
-		qApp->beep();
-	}
-}
-
-void QtSLiMWindow::shiftSelectionRight(void)
-{
-    QTextEdit &scriptTE = *ui->scriptTextEdit;
-    
-    if (scriptTE.isEnabled() && !scriptTE.isReadOnly())
-	{
-        QTextCursor &&cursor = scriptTE.textCursor();
-        bool movedBack;
-        QStringList lines = linesForRoundedSelection(cursor, movedBack);
-        
-        for (QString &line : lines)
-            line.insert(0, '\t');
-        
-        QString replacementString = lines.join(QChar::ParagraphSeparator);
-		
-        // end the editing block, producing one undo-able operation
-        cursor.insertText(replacementString);
-        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
-        if (movedBack)
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-		cursor.endEditBlock();
-        scriptTE.setTextCursor(cursor);
-	}
-	else
-	{
-		qApp->beep();
-	}
-}
-
-void QtSLiMWindow::commentUncommentSelection(void)
-{
-    QTextEdit &scriptTE = *ui->scriptTextEdit;
-    
-    if (scriptTE.isEnabled() && !scriptTE.isReadOnly())
-	{
-        QTextCursor &&cursor = scriptTE.textCursor();
-        bool movedBack;
-        QStringList lines = linesForRoundedSelection(cursor, movedBack);
-        
-        // decide whether we are commenting or uncommenting; we are only uncommenting if every line spanned by the selection starts with "//"
-		bool uncommenting = true;
-        
-        for (QString &line : lines)
-        {
-            if (!line.startsWith("//"))
-            {
-                uncommenting = false;
-                break;
-            }
-        }
-        
-        // now do the comment / uncomment
-        if (uncommenting)
-        {
-            for (QString &line : lines)
-                line.remove(0, 2);
-        }
-        else
-        {
-            for (QString &line : lines)
-                line.insert(0, "//");
-        }
-        
-        QString replacementString = lines.join(QChar::ParagraphSeparator);
-		
-        // end the editing block, producing one undo-able operation
-        cursor.insertText(replacementString);
-        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
-        if (movedBack)
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-		cursor.endEditBlock();
-        scriptTE.setTextCursor(cursor);
-	}
-	else
-	{
-		qApp->beep();
-	}
-}
 
 
 

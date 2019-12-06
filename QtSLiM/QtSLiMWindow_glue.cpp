@@ -5,6 +5,10 @@
 #include <QKeyEvent>
 #include <QDesktopServices>
 
+#include "QtSLiMScriptTextEdit.h"
+#include "QtSLiMEidosConsole.h"
+#include "QtSLiMAppDelegate.h"
+
 
 void QtSLiMWindow::glueUI(void)
 {
@@ -68,6 +72,29 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->changeDirectoryButton, &QPushButton::pressed, this, &QtSLiMWindow::changeDirectoryPressed);
     connect(ui->changeDirectoryButton, &QPushButton::released, this, &QtSLiMWindow::changeDirectoryReleased);
     
+    // fix application-level actions to know they are application-level; not sure whether/how this matters
+    ui->actionNew->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionNew_nonWF->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionOpen->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionQtSLiMHelp->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionSendFeedback->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionMailingList_slimannounce->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionMailingList_slimdiscuss->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionSLiMHomePage->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionSLiMExtras->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionAboutMesserLab->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionAboutBenHaller->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionAboutStickSoftware->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionQuitQtSLiM->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionFindRecipe->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionPreferences->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionOpenRecent->setShortcutContext(Qt::ApplicationShortcut);
+    
+    // this action seems to need to be added to the main window in order to function reliably;
+    // I'm not sure why, maybe it is because it is connected to an object that is not a widget?
+    // adding it as an action here seems to have no visible effect except that the shortcut now works
+    addAction(ui->actionFindRecipe);
+    
     // connect all menu items with existing slots
     connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QApplication::closeAllWindows, Qt::QueuedConnection);
     connect(ui->actionAboutQtSLiM, &QAction::triggered, this, &QtSLiMWindow::aboutQtSLiM);
@@ -75,7 +102,14 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionNew, &QAction::triggered, this, &QtSLiMWindow::newFile_WF);
     connect(ui->actionNew_nonWF, &QAction::triggered, this, &QtSLiMWindow::newFile_nonWF);
     connect(ui->actionOpen, &QAction::triggered, this, &QtSLiMWindow::open);
-    connect(ui->actionClose, &QAction::triggered, this, &QtSLiMWindow::close);      // FIXME this closes the main window, even if an auxiliary window is frontmost!  but how to get the front window??
+    connect(ui->actionClose, &QAction::triggered, []() {
+        // We close the "active" window, which is a bit different from the front window
+        // It can be nullptr; in that case it's hard to know what to do
+        QWidget *activeWindow = QApplication::activeWindow();
+        
+        if (activeWindow)
+            activeWindow->close();
+    });
     connect(ui->actionSave, &QAction::triggered, this, &QtSLiMWindow::save);
     connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
     connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
@@ -120,9 +154,41 @@ void QtSLiMWindow::glueUI(void)
     });
     
     // connect custom menu items
-    connect(ui->actionShiftLeft, &QAction::triggered, this, &QtSLiMWindow::shiftSelectionLeft);
-    connect(ui->actionShiftRight, &QAction::triggered, this, &QtSLiMWindow::shiftSelectionRight);
-    connect(ui->actionCommentUncomment, &QAction::triggered, this, &QtSLiMWindow::commentUncommentSelection);
+    connect(ui->actionShiftLeft, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+        
+        if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+            scriptEdit->shiftSelectionLeft();
+    });
+    connect(ui->actionShiftRight, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+        
+        if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+            scriptEdit->shiftSelectionRight();
+    });
+    connect(ui->actionCommentUncomment, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+        
+        if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+            scriptEdit->commentUncommentSelection();
+    });
+    connect(ui->actionExecuteSelection, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (eidosConsole)
+            eidosConsole->executeSelectionClicked();
+    });
+    connect(ui->actionExecuteAll, &QAction::triggered, []() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (eidosConsole)
+            eidosConsole->executeAllClicked();
+    });
     
     // standard actions that need to be dispatched (I haven't found a better way to do this;
     // this is basically implementing the first responder / event dispatch mechanism)
@@ -200,10 +266,6 @@ void QtSLiMWindow::glueUI(void)
     /*
     currently unimplemented:
     
-    QAction *actionExecute_Selection;
-    QAction *actionExecute_All;
-    QAction *actionFindRecipe;
-    QAction *actionPreferences;
     QAction *actionFind_2;
     QAction *actionFind_and_Replace;
     QAction *actionFind_Next;

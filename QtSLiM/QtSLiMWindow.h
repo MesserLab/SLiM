@@ -23,6 +23,7 @@ class QCloseEvent;
 class QTextCursor;
 class QtSLiMOutputHighlighter;
 class QtSLiMScriptHighlighter;
+class QtSLiMEidosConsole;
 
 
 namespace Ui {
@@ -87,6 +88,8 @@ private:
     
     QtSLiMOutputHighlighter *outputHighlighter = nullptr;
     QtSLiMScriptHighlighter *scriptHighlighter = nullptr;
+    
+    QtSLiMEidosConsole *consoleController = nullptr;
     
 public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
@@ -191,10 +194,6 @@ public slots:
     void dumpPopulationClicked(void);
     void graphPopupButtonClicked(void);
     void changeDirectoryClicked(void);
-    
-    void shiftSelectionLeft(void);
-    void shiftSelectionRight(void);
-    void commentUncommentSelection(void);
 
     //
     //  UI glue, defined in QtSLiMWindow_glue.cpp
@@ -259,7 +258,6 @@ private slots:
     
 protected:
     void closeEvent(QCloseEvent *event) override;
-    QStringList linesForRoundedSelection(QTextCursor &cursor, bool &movedBack);
     
 private:
     void glueUI(void);

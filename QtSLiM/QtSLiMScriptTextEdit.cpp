@@ -1,17 +1,24 @@
 #include "QtSLiMScriptTextEdit.h"
 
+#include <QApplication>
 #include <QGuiApplication>
 #include <QTextCursor>
 #include <QMouseEvent>
+#include <QRegularExpression>
 #include <QDebug>
 #include <QAbstractTextDocumentLayout>
 
 
-QtSLiMScriptTextEdit::~QtSLiMScriptTextEdit()
+//
+//  QtSLiMTextEdit
+//
+
+QtSLiMTextEdit::~QtSLiMTextEdit()
 {
 }
 
-void QtSLiMScriptTextEdit::mousePressEvent(QMouseEvent *event)
+
+void QtSLiMTextEdit::mousePressEvent(QMouseEvent *event)
 {
     bool optionPressed = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier);
     
@@ -95,14 +102,14 @@ void QtSLiMScriptTextEdit::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void QtSLiMScriptTextEdit::mouseMoveEvent(QMouseEvent *event)
+void QtSLiMTextEdit::mouseMoveEvent(QMouseEvent *event)
 {
     // forward to super, as long as we did not intercept this mouse event
     if (!optionClickIntercepted)
         QTextEdit::mouseMoveEvent(event);
 }
 
-void QtSLiMScriptTextEdit::mouseReleaseEvent(QMouseEvent *event)
+void QtSLiMTextEdit::mouseReleaseEvent(QMouseEvent *event)
 {
     // forward to super, as long as we did not intercept this mouse event
     if (!optionClickIntercepted)
@@ -110,6 +117,189 @@ void QtSLiMScriptTextEdit::mouseReleaseEvent(QMouseEvent *event)
     
     optionClickIntercepted = false;
 }
+
+void QtSLiMTextEdit::fixMouseCursor(void)
+{
+    // we want a pointing hand cursor when option is pressed; if the cursor is wrong, fix it
+    // note the cursor for QTextEdit is apparently controlled by its viewport
+    bool optionPressed = QGuiApplication::queryKeyboardModifiers().testFlag(Qt::AltModifier);
+    QWidget *vp = viewport();
+    
+    if (optionPressed && (vp->cursor().shape() != Qt::PointingHandCursor))
+        vp->setCursor(Qt::PointingHandCursor);
+    else if (!optionPressed && (vp->cursor().shape() != Qt::IBeamCursor))
+        vp->setCursor(Qt::IBeamCursor);
+}
+
+void QtSLiMTextEdit::enterEvent(QEvent *event)
+{
+    // forward to super
+    QTextEdit::enterEvent(event);
+    fixMouseCursor();
+}
+
+void QtSLiMTextEdit::keyPressEvent(QKeyEvent *event)
+{
+    // forward to super
+    QTextEdit::keyPressEvent(event);
+    fixMouseCursor();
+}
+
+void QtSLiMTextEdit::keyReleaseEvent(QKeyEvent *event)
+{
+    // forward to super
+    QTextEdit::keyReleaseEvent(event);
+    fixMouseCursor();
+}
+
+
+//
+//  QtSLiMScriptTextEdit
+//
+
+QtSLiMScriptTextEdit::~QtSLiMScriptTextEdit()
+{
+}
+
+QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &cursor, bool &movedBack)
+{
+    // find the start and end of the blocks we're operating on
+    int anchor = cursor.anchor(), pos = cursor.position();
+    if (anchor > pos)
+        std::swap(anchor, pos);
+    movedBack = false;
+    
+    QTextCursor startBlockCursor(cursor);
+    startBlockCursor.setPosition(anchor, QTextCursor::MoveAnchor);
+    startBlockCursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
+    QTextCursor endBlockCursor(cursor);
+    endBlockCursor.setPosition(pos, QTextCursor::MoveAnchor);
+    if (endBlockCursor.atBlockStart() && (pos > anchor))
+    {
+        // the selection includes the newline at the end of the last line; we need to move backward to avoid swallowing the following line
+        endBlockCursor.movePosition(QTextCursor::PreviousBlock, QTextCursor::MoveAnchor);
+        movedBack = true;
+    }
+    endBlockCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::MoveAnchor);
+    
+    // select the whole lines we're operating on
+    cursor.beginEditBlock();
+    cursor.setPosition(startBlockCursor.position(), QTextCursor::MoveAnchor);
+    cursor.setPosition(endBlockCursor.position(), QTextCursor::KeepAnchor);
+    
+    // separate the lines, remove a tab at the start of each, and rejoin them
+    QString selectedString = cursor.selectedText();
+    QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
+    
+    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);
+}
+
+void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
+{
+     if (isEnabled() && !isReadOnly())
+	{
+        QTextCursor &&cursor = textCursor();
+        bool movedBack;
+        QStringList lines = linesForRoundedSelection(cursor, movedBack);
+        
+        for (QString &line : lines)
+            if (line[0] == '\t')
+                line.remove(0, 1);
+        
+        QString replacementString = lines.join(QChar::ParagraphSeparator);
+		
+        // end the editing block, producing one undo-able operation
+        cursor.insertText(replacementString);
+        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
+        if (movedBack)
+            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+		cursor.endEditBlock();
+        setTextCursor(cursor);
+	}
+	else
+	{
+		qApp->beep();
+	}
+}
+
+void QtSLiMScriptTextEdit::shiftSelectionRight(void)
+{
+    if (isEnabled() && !isReadOnly())
+	{
+        QTextCursor &&cursor = textCursor();
+        bool movedBack;
+        QStringList lines = linesForRoundedSelection(cursor, movedBack);
+        
+        for (QString &line : lines)
+            line.insert(0, '\t');
+        
+        QString replacementString = lines.join(QChar::ParagraphSeparator);
+		
+        // end the editing block, producing one undo-able operation
+        cursor.insertText(replacementString);
+        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
+        if (movedBack)
+            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+		cursor.endEditBlock();
+        setTextCursor(cursor);
+	}
+	else
+	{
+		qApp->beep();
+	}
+}
+
+void QtSLiMScriptTextEdit::commentUncommentSelection(void)
+{
+    if (isEnabled() && !isReadOnly())
+	{
+        QTextCursor &&cursor = textCursor();
+        bool movedBack;
+        QStringList lines = linesForRoundedSelection(cursor, movedBack);
+        
+        // decide whether we are commenting or uncommenting; we are only uncommenting if every line spanned by the selection starts with "//"
+		bool uncommenting = true;
+        
+        for (QString &line : lines)
+        {
+            if (!line.startsWith("//"))
+            {
+                uncommenting = false;
+                break;
+            }
+        }
+        
+        // now do the comment / uncomment
+        if (uncommenting)
+        {
+            for (QString &line : lines)
+                line.remove(0, 2);
+        }
+        else
+        {
+            for (QString &line : lines)
+                line.insert(0, "//");
+        }
+        
+        QString replacementString = lines.join(QChar::ParagraphSeparator);
+		
+        // end the editing block, producing one undo-able operation
+        cursor.insertText(replacementString);
+        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
+        if (movedBack)
+            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+		cursor.endEditBlock();
+        setTextCursor(cursor);
+	}
+	else
+	{
+		qApp->beep();
+	}
+}
+
 
 
 
