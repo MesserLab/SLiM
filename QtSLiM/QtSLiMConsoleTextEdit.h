@@ -14,8 +14,8 @@ class QtSLiMConsoleTextEdit : public QtSLiMTextEdit
     Q_OBJECT
     
 public:
-    QtSLiMConsoleTextEdit(const QString &text, QWidget *parent = nullptr) : QtSLiMTextEdit(text, parent) {}
-    QtSLiMConsoleTextEdit(QWidget *parent = nullptr) : QtSLiMTextEdit(parent) {}
+    QtSLiMConsoleTextEdit(const QString &text, QWidget *parent = nullptr);
+    QtSLiMConsoleTextEdit(QWidget *parent = nullptr);
     ~QtSLiMConsoleTextEdit() override;
     
     static QTextCharFormat textFormatForColor(QColor color);
@@ -45,6 +45,7 @@ signals:
     void executeScript(QString script);
     
 protected:
+    void selfInit(void);
     void keyPressEvent(QKeyEvent *event) override;
     
     // handling input prompts and continuation
@@ -59,6 +60,18 @@ protected:
     QStringList history;
     int historyIndex = 0;
     bool lastHistoryItemIsProvisional = false;	// got added to the history by a moveUp: event but is not an executed command
+    
+    // handling the selection and editability
+    bool insideMouseTracking = false, sawSelectionChange = false;
+    
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void handleSelectionChanged(void);
+    void adjustSelection(void);
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    
+signals:
+    void selectionWasChangedDuringLastEvent(void);
 };
 
 

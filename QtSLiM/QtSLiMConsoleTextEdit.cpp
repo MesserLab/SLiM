@@ -22,6 +22,24 @@ static const QString NEWLINE("\n");
 static const double BLOCK_MARGIN = 3.0;
 
 
+QtSLiMConsoleTextEdit::QtSLiMConsoleTextEdit(const QString &text, QWidget *parent) : QtSLiMTextEdit(text, parent)
+{
+    selfInit();
+}
+
+QtSLiMConsoleTextEdit::QtSLiMConsoleTextEdit(QWidget *parent) : QtSLiMTextEdit(parent)
+{
+    selfInit();
+}
+
+void QtSLiMConsoleTextEdit::selfInit(void)
+{
+    // set up to react to selection changes; see these methods for comments
+    connect(this, &QTextEdit::selectionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
+    connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
+    connect(this, &QtSLiMConsoleTextEdit::selectionWasChangedDuringLastEvent, this, &QtSLiMConsoleTextEdit::adjustSelection, Qt::QueuedConnection);
+}
+
 QtSLiMConsoleTextEdit::~QtSLiMConsoleTextEdit()
 {
 }
@@ -83,6 +101,9 @@ void QtSLiMConsoleTextEdit::showPrompt(QChar promptChar)
     // We remember the prompt range for various purposes such as uneditability of old content
     lastPromptCursor = promptCursor;
     lastPromptCursor.setKeepPositionOnInsert(true);
+    
+    // When a new prompt appears, one can no longer undo/redo previous changes
+    document()->clearUndoRedoStacks();
 }
 
 void QtSLiMConsoleTextEdit::showPrompt(void)
@@ -190,6 +211,9 @@ void QtSLiMConsoleTextEdit::clearToPrompt(void)
         deleteCursor.movePosition(QTextCursor::Start, QTextCursor::KeepAnchor);
         deleteCursor.insertText("");
     }
+    
+    // Clearing the console is not undoable, and it clears the undo/redo history
+    document()->clearUndoRedoStacks();
 }
 
 void QtSLiMConsoleTextEdit::appendSpacer(void)
@@ -399,21 +423,104 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
     {
         // up-arrow pressed; cycle through the command history
         previousHistory();
+        event->accept();
     }
     else if (event->matches(QKeySequence::MoveToNextLine))
     {
         // down-arrow pressed; cycle through the command history
         nextHistory();
+        event->accept();
     }
     else if (event->matches(QKeySequence::InsertLineSeparator) || event->matches(QKeySequence::InsertParagraphSeparator))
     {
         // return/enter pressed; execute the statement(s) entered
         executeCurrentPrompt();
+        event->accept();
     }
     else if (event->key() == Qt::Key_Escape)
     {
         // escape pressed; code completion
         qDebug() << "escape!";
+        event->accept();
+    }
+    else if (event->matches(QKeySequence::MoveToEndOfBlock) ||
+             event->matches(QKeySequence::MoveToEndOfDocument) ||
+             event->matches(QKeySequence::MoveToEndOfLine) ||
+             event->matches(QKeySequence::MoveToNextChar) ||
+             event->matches(QKeySequence::MoveToNextLine) ||
+             event->matches(QKeySequence::MoveToNextPage) ||
+             event->matches(QKeySequence::MoveToNextWord) ||
+             event->matches(QKeySequence::MoveToPreviousChar) ||
+             event->matches(QKeySequence::MoveToPreviousLine) ||
+             event->matches(QKeySequence::MoveToPreviousPage) ||
+             event->matches(QKeySequence::MoveToPreviousWord) ||
+             event->matches(QKeySequence::MoveToStartOfBlock) ||
+             event->matches(QKeySequence::MoveToStartOfDocument) ||
+             event->matches(QKeySequence::MoveToStartOfLine) ||
+             event->matches(QKeySequence::SelectAll) ||
+             event->matches(QKeySequence::SelectEndOfBlock) ||
+             event->matches(QKeySequence::SelectEndOfDocument) ||
+             event->matches(QKeySequence::SelectEndOfLine) ||
+             event->matches(QKeySequence::SelectNextChar) ||
+             event->matches(QKeySequence::SelectNextLine) ||
+             event->matches(QKeySequence::SelectNextPage) ||
+             event->matches(QKeySequence::SelectNextWord) ||
+             event->matches(QKeySequence::SelectPreviousChar) ||
+             event->matches(QKeySequence::SelectPreviousLine) ||
+             event->matches(QKeySequence::SelectPreviousPage) ||
+             event->matches(QKeySequence::SelectPreviousWord) ||
+             event->matches(QKeySequence::SelectStartOfBlock) ||
+             event->matches(QKeySequence::SelectStartOfDocument) ||
+             event->matches(QKeySequence::SelectStartOfLine))
+    {
+        if (isReadOnly())
+        {
+            // being read-only interferes with keyboard selection changes, for some odd reason,
+            // so we change ourselves to editable around the call to super
+            setReadOnly(false);
+            QTextEdit::keyPressEvent(event);
+            setReadOnly(true);
+        }
+        else if (event->matches(QKeySequence::SelectAll))
+        {
+            // in the non-read-only case, we want Select All to select everything in the console, rather
+            // than follow the selection-clipping convention below, I think...
+            QTextEdit::keyPressEvent(event);
+        }
+        else
+        {
+            // in the non-read-only case, the cursor is inside the command area, and we want to clip movement and
+            // selection to stay within the command area; the user can select other content if they want to, but
+            // by default we assume their intention is to work within the command line (except select all, above)
+            QTextEdit::keyPressEvent(event);
+            
+            QTextCursor selection(textCursor());
+            int anchor = std::max(selection.anchor(), lastPromptCursor.position());
+            int pos = std::max(selection.position(), lastPromptCursor.position());
+            
+            selection.setPosition(anchor, QTextCursor::MoveAnchor);
+            selection.setPosition(pos, QTextCursor::KeepAnchor);
+            setTextCursor(selection);
+        }
+    }
+    else if (event->matches(QKeySequence::Backspace) || event->matches(QKeySequence::DeleteStartOfWord) || (event->key() == Qt::Key_Backspace))
+    {
+        // suppress backspace if it would backspace into the prompt; note QKeySequence::Backspace doesn't seem to work!
+        QTextCursor cursor(textCursor());
+        
+        if ((cursor.position() == cursor.anchor()) && (cursor.position() == lastPromptCursor.position()))
+        {
+            event->accept();
+            return;
+        }
+        
+        QTextEdit::keyPressEvent(event);
+    }
+    else if (event->matches(QKeySequence::DeleteCompleteLine))
+    {
+        // I'm not sure how to produce this on a keyboard, but let's make sure it doesn't delete the prompt
+        setCommandAtPrompt("");
+        event->accept();
     }
     else
     {
@@ -422,9 +529,105 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
     }
 }
 
+void QtSLiMConsoleTextEdit::mousePressEvent(QMouseEvent *event)
+{
+    // keep track of when we are inside a mouse tracking loop
+    insideMouseTracking = true;
+    sawSelectionChange = false;
+    
+    QTextEdit::mousePressEvent(event);
+}
 
+void QtSLiMConsoleTextEdit::mouseReleaseEvent(QMouseEvent *event)
+{
+    QTextEdit::mouseReleaseEvent(event);
+    
+    // we're done with the mouse tracking loop; if it changed the selection, we now adjust
+    insideMouseTracking = false;
+    if (sawSelectionChange)
+        adjustSelection();
+}
 
+void QtSLiMConsoleTextEdit::handleSelectionChanged(void)
+{
+    // This is a handler for both selectionChanged and cursorPositionChanged signals,
+    // because neither one is emitted consistently enough to be usable in general,
+    // unfortunately.  So for a given change, we may be called just once (through one
+    // of those signals) or twice.  We want to defer our reaction until the end of
+    // the event being handled, because sometimes Qt will change one aspect of the
+    // selection (the anchor, say), send one signal, then change another aspect of
+    // the selection (the position, say), and send another signal; if we react to
+    // the first change before the second change has also been made we will misjudge
+    // what needs to be done.
+    
+    //qDebug() << "handleSelectionChanged";
+    
+    if (insideMouseTracking)
+    {
+        // when mouse-tracking, selection changes get deferred until tracking is complete
+        // adjustSelection() will be called by QtSLiMConsoleTextEdit::mouseReleaseEvent()
+        sawSelectionChange = true;
+    }
+    else
+    {
+        // when not mouse-tracking, selection changes get adjusted at the end of
+        // this event loop callout so we are sure all changes have been made
+        // adjustSelection() will be called by a queued connection set up in selfInit()
+        emit selectionWasChangedDuringLastEvent();
+    }
+}
 
+void QtSLiMConsoleTextEdit::adjustSelection(void)
+{
+    //qDebug() << "adjustSelection";
+    
+    QTextCursor selection(textCursor());
+    
+    if (selection.position() == selection.anchor())
+    {
+        // a zero-length selection has been requested; if it falls before the end of the prompt, we adjust it
+        // to fall at the end of the console instead; note we will get a re-entrant call back from this
+        // a special case: if the new position is just to the left of the prompt end, move to the prompt end
+        if (selection.position() == lastPromptCursor.position() - 1)
+            moveCursor(QTextCursor::Right);
+        else if (selection.position() < lastPromptCursor.position())
+            moveCursor(QTextCursor::End);
+        
+        setReadOnly(false);
+    }
+    else
+    {
+        // a non-zero-length selection has been requested; we allow any such selection, but if it encompasses
+        // characters before the end of the current prompt, we make ourselves non-editable to prevent changes
+        int start = selection.selectionStart();
+        
+        if (start < lastPromptCursor.position())
+            setReadOnly(true);
+        else
+            setReadOnly(false);
+    }
+}
+
+// prevent drops outside of the prompt area
+// thanks to https://github.com/uglide/QtConsole/blob/master/src/qconsole.cpp
+void QtSLiMConsoleTextEdit::dragMoveEvent(QDragMoveEvent *event)
+{
+    // Figure out where the drop would go
+    QTextCursor dropCursor = cursorForPosition(event->pos());
+    
+    //qDebug() << "dragMoveEvent: " << dropCursor.position();
+    
+    if (dropCursor.position() < lastPromptCursor.position())
+    {
+        // Ignore the event if the drop would be outside the command area
+        event->ignore(cursorRect(dropCursor));
+    }
+    else
+    {
+        // Accept the event if the drop is inside the command area
+        event->accept(cursorRect(dropCursor));
+    }
+}
 
 
 
