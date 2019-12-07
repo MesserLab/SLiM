@@ -66,14 +66,20 @@ void QtSLiMEidosConsole::closeEvent(QCloseEvent *event)
     settings.setValue("pos", pos());
     settings.endGroup();
     
+    // send our close signal
+    emit willClose();
+    
     // use super's default behavior
     QDialog::closeEvent(event);
 }
 
 // enable/disable the user interface as the simulation's state changes
-void QtSLiMEidosConsole::setInterfaceEnabled(bool enabled)
+void QtSLiMEidosConsole::setInterfaceEnabled(bool __attribute__((unused)) enabled)
 {
-    qDebug() << "setInterfaceEnabled:" << enabled;
+    //qDebug() << "setInterfaceEnabled:" << enabled;
+    
+    // SLiMgui disables some buttons, but actually it is not clear that anything needs to be disabled!
+    // FIXME remove this whole method if it is really not needed
 }
 
 // Throw away the current symbol table

@@ -48,6 +48,9 @@ public slots:
     void executeAllClicked(void);
     void executeSelectionClicked(void);
     
+signals:
+    void willClose(void);
+    
     //
     //  UI glue, defined in QtSLiMWindow_glue.cpp
     //

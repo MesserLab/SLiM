@@ -37,7 +37,7 @@ void QtSLiMConsoleTextEdit::selfInit(void)
     // set up to react to selection changes; see these methods for comments
     connect(this, &QTextEdit::selectionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
     connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
-    connect(this, &QtSLiMConsoleTextEdit::selectionWasChangedDuringLastEvent, this, &QtSLiMConsoleTextEdit::adjustSelection, Qt::QueuedConnection);
+    connect(this, &QtSLiMConsoleTextEdit::selectionWasChangedDuringLastEvent, this, &QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly, Qt::QueuedConnection);
 }
 
 QtSLiMConsoleTextEdit::~QtSLiMConsoleTextEdit()
@@ -545,7 +545,7 @@ void QtSLiMConsoleTextEdit::mouseReleaseEvent(QMouseEvent *event)
     // we're done with the mouse tracking loop; if it changed the selection, we now adjust
     insideMouseTracking = false;
     if (sawSelectionChange)
-        adjustSelection();
+        adjustSelectionAndReadOnly();
 }
 
 void QtSLiMConsoleTextEdit::handleSelectionChanged(void)
@@ -565,21 +565,21 @@ void QtSLiMConsoleTextEdit::handleSelectionChanged(void)
     if (insideMouseTracking)
     {
         // when mouse-tracking, selection changes get deferred until tracking is complete
-        // adjustSelection() will be called by QtSLiMConsoleTextEdit::mouseReleaseEvent()
+        // adjustSelectionAndReadOnly() will be called by QtSLiMConsoleTextEdit::mouseReleaseEvent()
         sawSelectionChange = true;
     }
     else
     {
         // when not mouse-tracking, selection changes get adjusted at the end of
         // this event loop callout so we are sure all changes have been made
-        // adjustSelection() will be called by a queued connection set up in selfInit()
+        // adjustSelectionAndReadOnly() will be called by a queued connection set up in selfInit()
         emit selectionWasChangedDuringLastEvent();
     }
 }
 
-void QtSLiMConsoleTextEdit::adjustSelection(void)
+void QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly(void)
 {
-    //qDebug() << "adjustSelection";
+    //qDebug() << "adjustSelectionAndReadOnly";
     
     QTextCursor selection(textCursor());
     

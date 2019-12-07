@@ -2057,11 +2057,19 @@ void QtSLiMWindow::showConsoleClicked(void)
     ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
 
     if (!consoleController)
-        consoleController = new QtSLiMEidosConsole(this);
-    if (!consoleController)
     {
-        qApp->beep();
-        return;
+        consoleController = new QtSLiMEidosConsole(this);
+        if (!consoleController)
+        {
+            qApp->beep();
+            return;
+        }
+        
+        // wire ourselves up to monitor the console for closing, to fix our button state
+        connect(consoleController, &QtSLiMEidosConsole::willClose, [this]() {
+            ui->consoleButton->setChecked(false);
+            showConsoleReleased();
+        });
     }
     
     if (ui->consoleButton->isChecked())

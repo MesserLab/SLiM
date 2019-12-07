@@ -36,6 +36,9 @@ public:
     void setCommandAtPrompt(QString newCommand);
     void registerNewHistoryItem(QString newItem);
     
+    // Fix the selection to be legal, and adjust the read-only setting accordingly
+    void adjustSelectionAndReadOnly(void);
+    
 public slots:
     void previousHistory(void);
     void nextHistory(void);
@@ -67,7 +70,6 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void handleSelectionChanged(void);
-    void adjustSelection(void);
     void dragMoveEvent(QDragMoveEvent *event) override;
     
 signals:
