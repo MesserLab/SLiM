@@ -21,8 +21,6 @@
 class Subpopulation;
 class QCloseEvent;
 class QTextCursor;
-class QtSLiMOutputHighlighter;
-class QtSLiMScriptHighlighter;
 class QtSLiMEidosConsole;
 
 
@@ -85,10 +83,6 @@ private:
 #endif
     
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
-    
-    QtSLiMOutputHighlighter *outputHighlighter = nullptr;
-    QtSLiMScriptHighlighter *scriptHighlighter = nullptr;
-    
     QtSLiMEidosConsole *consoleController = nullptr;
     
 public:
@@ -172,8 +166,6 @@ public slots:
     void showTerminationMessage(QString terminationMessage);
     
     void playOneStepClicked(void);
-    void playClicked(void);
-    void profileClicked(void);
     void generationChanged(void);
     void recycleClicked(void);
     void playSpeedChanged(void);
@@ -183,10 +175,7 @@ public slots:
     void showChromosomeMapsToggled(void);
     void showGenomicElementsToggled(void);
 
-    void checkScriptClicked(void);
-    void prettyprintClicked(void);
     void scriptHelpClicked(void);
-    void scriptHelpOptionClick(QString searchString);   // from QtSLiMScriptTextEdit
     void showConsoleClicked(void);
     void showBrowserClicked(void);
 
@@ -200,10 +189,6 @@ public slots:
     //
     
 private slots:
-    void displayFontPrefChanged();
-    void scriptSyntaxHighlightPrefChanged();
-    void outputSyntaxHighlightPrefChanged();
-    
     void aboutQtSLiM();
     void showPreferences();
     

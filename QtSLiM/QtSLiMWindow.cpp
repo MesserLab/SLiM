@@ -104,15 +104,9 @@ void QtSLiMWindow::init(void)
     // wire up deferred display of script errors and termination messages
     connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
     
-    // clear the custom error background color whenever the selection changes
-    QtSLiMScriptTextEdit *te = ui->scriptTextEdit;
-    connect(te, &QTextEdit::selectionChanged, [te]() { te->setPalette(te->style()->standardPalette()); });
-    
-    // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
-    connect(te, &QTextEdit::selectionChanged, [this]() { this->statusBar()->clearMessage(); });
-    
-    // forward option-clicks in the script view to the help window
-    connect(te, &QtSLiMScriptTextEdit::optionClickOnSymbol, this, &QtSLiMWindow::scriptHelpOptionClick);
+    // forward option-clicks in our views to the help window
+    ui->scriptTextEdit->setOptionClickEnabled(true);
+    ui->outputTextEdit->setOptionClickEnabled(false);
     
     // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
@@ -122,13 +116,6 @@ void QtSLiMWindow::init(void)
     // Wire up things that set the window to be modified.
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
-    
-    // Wire up to change the font when the display font pref changes
-    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
-    
-    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMWindow::displayFontPrefChanged);
-    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::scriptSyntaxHighlightPrefChanged, this, &QtSLiMWindow::scriptSyntaxHighlightPrefChanged);
-    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::outputSyntaxHighlightPrefChanged, this, &QtSLiMWindow::outputSyntaxHighlightPrefChanged);
     
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
@@ -154,19 +141,12 @@ void QtSLiMWindow::initializeUI(void)
     ui->playControlsLayout->setSpacing(4);
     ui->playControlsLayout->setMargin(0);
 
-    // set up the script and output textedits
-    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
-    QFont scriptFont = prefs.displayFontPref(&tabWidth);
-
-    ui->scriptTextEdit->setFont(scriptFont);
-    ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
-
-    ui->outputTextEdit->setFont(scriptFont);
-    ui->scriptTextEdit->setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
+    // set the script types and syntax highlighting appropriately
+    ui->scriptTextEdit->setScriptType(QtSLiMTextEdit::SLiMScriptType);
+    ui->scriptTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::ScriptHighlighting);
     
-    scriptSyntaxHighlightPrefChanged();     // create a highlighter if needed
-    outputSyntaxHighlightPrefChanged();     // create a highlighter if needed
+    ui->outputTextEdit->setScriptType(QtSLiMTextEdit::NoScriptType);
+    ui->outputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
     
     // remove the profile button, for the time being
     QPushButton *profileButton = ui->profileButton;
@@ -895,44 +875,13 @@ void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
     updateUIEnabling();
 }
 
-void QtSLiMWindow::selectErrorRange(void)
-{
-	// If there is error-tracking information set, and the error is not attributed to a runtime script
-	// such as a lambda or a callback, then we can highlight the error range
-	if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfErrorUTF16 >= 0) && (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16))
-	{
-        QTextEdit *te = ui->scriptTextEdit;
-        QTextCursor cursor(te->document());
-        
-        cursor.setPosition(gEidosCharacterStartOfErrorUTF16);
-        cursor.setPosition(gEidosCharacterEndOfErrorUTF16 + 1, QTextCursor::KeepAnchor);
-        te->setTextCursor(cursor);
-        
-        QPalette p = te->palette();
-        p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
-        p.setColor(QPalette::HighlightedText, QColor(Qt::black));
-        te->setPalette(p);
-        
-        // note that this custom selection color is cleared by a connection to QTextEdit::selectionChanged()
-	}
-	
-	// In any case, since we are the ultimate consumer of the error information, we should clear out
-	// the error state to avoid misattribution of future errors
-	gEidosCharacterStartOfError = -1;
-	gEidosCharacterEndOfError = -1;
-	gEidosCharacterStartOfErrorUTF16 = -1;
-	gEidosCharacterEndOfErrorUTF16 = -1;
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
-}
-
 void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
 {
     //qDebug() << terminationMessage;
     
     // Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
 	if (!changedSinceRecycle())
-		selectErrorRange();
+		ui->scriptTextEdit->selectErrorRange();
     
     // Show an error sheet/panel
     QString fullMessage(terminationMessage);
@@ -948,8 +897,8 @@ void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
     messageBox.exec();
     
     // Show the error in the status bar also
-    this->statusBar()->setStyleSheet("color: #cc0000; font-size: 11px;");
-    this->statusBar()->showMessage(terminationMessage.trimmed());
+    statusBar()->setStyleSheet("color: #cc0000; font-size: 11px;");
+    statusBar()->showMessage(terminationMessage.trimmed());
 }
 
 void QtSLiMWindow::checkForSimulationTermination(void)
@@ -1271,55 +1220,6 @@ void QtSLiMWindow::updateUIEnabling(void)
         consoleController->setInterfaceEnabled(!(continuousPlayOn_ || generationPlayOn_));
 }
 
-void QtSLiMWindow::displayFontPrefChanged()
-{
-    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
-    QFont displayFont = prefs.displayFontPref(&tabWidth);
-    
-    ui->scriptTextEdit->setFont(displayFont);
-    ui->scriptTextEdit->setTabStopWidth(tabWidth);
-    
-    ui->outputTextEdit->setFont(displayFont);
-    ui->outputTextEdit->setTabStopWidth(tabWidth);
-}
-
-void QtSLiMWindow::scriptSyntaxHighlightPrefChanged()
-{
-    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    bool highlightPref = prefs.scriptSyntaxHighlightPref();
-    
-    if (highlightPref && !scriptHighlighter)
-    {
-        scriptHighlighter = new QtSLiMScriptHighlighter(ui->scriptTextEdit->document());
-    }
-    else if (!highlightPref && scriptHighlighter)
-    {
-        scriptHighlighter->setDocument(nullptr);
-        scriptHighlighter->setParent(nullptr);
-        delete scriptHighlighter;
-        scriptHighlighter = nullptr;
-    }
-}
-
-void QtSLiMWindow::outputSyntaxHighlightPrefChanged()
-{
-    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    bool highlightPref = prefs.outputSyntaxHighlightPref();
-    
-    if (highlightPref && !outputHighlighter)
-    {
-        outputHighlighter = new QtSLiMOutputHighlighter(ui->outputTextEdit->document());
-    }
-    else if (!highlightPref && outputHighlighter)
-    {
-        outputHighlighter->setDocument(nullptr);
-        outputHighlighter->setParent(nullptr);
-        delete outputHighlighter;
-        outputHighlighter = nullptr;
-    }
-}
-
 
 //
 //  simulation play mechanics
@@ -1461,7 +1361,7 @@ void QtSLiMWindow::_continuousPlay(void)
 		{
 			// stop playing
 			updateAfterTickFull(true);
-			playClicked();
+			playOrProfile(true);    // click the Play button
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
 			//[NSApp requestUserAttention:NSInformationalRequest];
@@ -1641,16 +1541,6 @@ void QtSLiMWindow::playOneStepClicked(void)
         ui->generationLineEdit->clearFocus();
         updateAfterTickFull(true);
     }
-}
-
-void QtSLiMWindow::playClicked(void)
-{
-    playOrProfile(true);
-}
-
-void QtSLiMWindow::profileClicked(void)
-{
-    playOrProfile(false);
 }
 
 void QtSLiMWindow::_generationPlay(void)
@@ -1879,116 +1769,6 @@ void QtSLiMWindow::showGenomicElementsToggled(void)
 	}
 }
 
-bool QtSLiMWindow::checkScriptSuppressSuccessResponse(bool suppressSuccessResponse)
-{
-	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
-	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
-	QString currentScriptString = ui->scriptTextEdit->toPlainText();
-    QByteArray utf8bytes = currentScriptString.toUtf8();
-	const char *cstr = utf8bytes.constData();
-	std::string errorDiagnostic;
-	
-	if (!cstr)
-	{
-		errorDiagnostic = "The script string could not be read, possibly due to an encoding problem.";
-	}
-	else
-	{
-		SLiMEidosScript script(cstr);
-		
-		try {
-			script.Tokenize();
-			script.ParseSLiMFileToAST();
-		}
-		catch (...)
-		{
-			errorDiagnostic = Eidos_GetTrimmedRaiseMessage();
-		}
-	}
-	
-	bool checkDidSucceed = !(errorDiagnostic.length());
-	
-	if (!checkDidSucceed || !suppressSuccessResponse)
-	{
-		if (!checkDidSucceed)
-		{
-			// On failure, we show an alert describing the error, and highlight the relevant script line
-            qApp->beep();
-            selectErrorRange();
-            
-            QString q_errorDiagnostic = QString::fromStdString(errorDiagnostic);
-            QMessageBox messageBox(this);
-            messageBox.setText("Script error");
-            messageBox.setInformativeText(q_errorDiagnostic);
-            messageBox.setIcon(QMessageBox::Warning);
-            messageBox.setWindowModality(Qt::WindowModal);
-            messageBox.setFixedWidth(700);      // seems to be ignored
-            messageBox.exec();
-            
-			// Show the error in the status bar also
-            this->statusBar()->setStyleSheet("color: #cc0000; font-size: 11px;");
-            this->statusBar()->showMessage(q_errorDiagnostic.trimmed());
-		}
-		else
-		{
-            QSettings settings;
-            
-            if (!settings.value("QtSLiMSuppressScriptCheckSuccessPanel", false).toBool())
-			{
-                // In SLiMgui we play a "success" sound too, but doing anything besides beeping is apparently difficult with Qt...
-                
-                QMessageBox messageBox(this);
-                messageBox.setText("No script errors");
-                messageBox.setInformativeText("No errors found.");
-                messageBox.setIcon(QMessageBox::Information);
-                messageBox.setWindowModality(Qt::WindowModal);
-                messageBox.setCheckBox(new QCheckBox("Do not show this message again", nullptr));
-                messageBox.exec();
-                
-                if (messageBox.checkBox()->isChecked())
-                    settings.setValue("QtSLiMSuppressScriptCheckSuccessPanel", true);
-            }
-		}
-	}
-	
-	return checkDidSucceed;
-}
-
-void QtSLiMWindow::checkScriptClicked(void)
-{
-    checkScriptSuppressSuccessResponse(false);
-}
-
-void QtSLiMWindow::prettyprintClicked(void)
-{
-    if (ui->scriptTextEdit->isEnabled())
-	{
-		if (checkScriptSuppressSuccessResponse(true))
-		{
-			// We know the script is syntactically correct, so we can tokenize and parse it without worries
-            QString currentScriptString = ui->scriptTextEdit->toPlainText();
-            QByteArray utf8bytes = currentScriptString.toUtf8();
-            const char *cstr = utf8bytes.constData();
-			EidosScript script(cstr);
-            
-			script.Tokenize(false, true);	// get whitespace and comment tokens
-			
-			// Then generate a new script string that is prettyprinted
-			const std::vector<EidosToken> &tokens = script.Tokens();
-			std::string pretty;
-			
-            if (Eidos_prettyprintTokensFromScript(tokens, script, pretty))
-                ui->scriptTextEdit->setPlainText(QString::fromStdString(pretty));
-			else
-                qApp->beep();
-		}
-	}
-	else
-	{
-        qApp->beep();
-	}
-}
-
 void QtSLiMWindow::scriptHelpClicked(void)
 {
     QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
@@ -1996,60 +1776,6 @@ void QtSLiMWindow::scriptHelpClicked(void)
     helpWindow.show();
     helpWindow.raise();
     helpWindow.activateWindow();
-}
-
-void QtSLiMWindow::scriptHelpOptionClick(QString searchString)
-{
-    QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
-    
-    // A few Eidos substitutions to improve the search
-    if (searchString == ":")                    searchString = "operator :";
-    else if (searchString == "(")               searchString = "operator ()";
-    else if (searchString == ")")               searchString = "operator ()";
-    else if (searchString == ",")               searchString = "calls: operator ()";
-    else if (searchString == "[")               searchString = "operator []";
-    else if (searchString == "]")               searchString = "operator []";
-    else if (searchString == "{")               searchString = "compound statements";
-    else if (searchString == "}")               searchString = "compound statements";
-    else if (searchString == ".")               searchString = "operator .";
-    else if (searchString == "=")               searchString = "operator =";
-    else if (searchString == "+")               searchString = "Arithmetic operators";
-    else if (searchString == "-")               searchString = "Arithmetic operators";
-    else if (searchString == "*")               searchString = "Arithmetic operators";
-    else if (searchString == "/")               searchString = "Arithmetic operators";
-    else if (searchString == "%")               searchString = "Arithmetic operators";
-    else if (searchString == "^")               searchString = "Arithmetic operators";
-    else if (searchString == "|")               searchString = "Logical operators";
-    else if (searchString == "&")               searchString = "Logical operators";
-    else if (searchString == "!")               searchString = "Logical operators";
-    else if (searchString == "==")              searchString = "Comparative operators";
-    else if (searchString == "!=")              searchString = "Comparative operators";
-    else if (searchString == "<=")              searchString = "Comparative operators";
-    else if (searchString == ">=")              searchString = "Comparative operators";
-    else if (searchString == "<")               searchString = "Comparative operators";
-    else if (searchString == ">")               searchString = "Comparative operators";
-    else if (searchString == "'")               searchString = "type string";
-    else if (searchString == "\"")              searchString = "type string";
-    else if (searchString == ";")               searchString = "null statements";
-    else if (searchString == "//")              searchString = "comments";
-    else if (searchString == "if")              searchString = "if and if–else statements";
-    else if (searchString == "else")            searchString = "if and if–else statements";
-    else if (searchString == "for")             searchString = "for statements";
-    else if (searchString == "in")              searchString = "for statements";
-    else if (searchString == "function")        searchString = "user-defined functions";
-    // and SLiM substitutions; "initialize" is deliberately omitted here so that the initialize...() methods also come up
-    else if (searchString == "early")			searchString = "Eidos events";
-	else if (searchString == "late")			searchString = "Eidos events";
-	else if (searchString == "fitness")         searchString = "fitness() callbacks";
-	else if (searchString == "interaction")     searchString = "interaction() callbacks";
-	else if (searchString == "mateChoice")      searchString = "mateChoice() callbacks";
-	else if (searchString == "modifyChild")     searchString = "modifyChild() callbacks";
-	else if (searchString == "recombination")	searchString = "recombination() callbacks";
-	else if (searchString == "mutation")		searchString = "mutation() callbacks";
-	else if (searchString == "reproduction")	searchString = "reproduction() callbacks";
-    
-    // now send the search string on to the help window
-    helpWindow.enterSearchForString(searchString, true);
 }
 
 void QtSLiMWindow::showConsoleClicked(void)

@@ -1221,7 +1221,7 @@ QPushButton:checked {
          </layout>
         </item>
         <item>
-         <widget class="QTextEdit" name="outputTextEdit">
+         <widget class="QtSLiMTextEdit" name="outputTextEdit">
           <property name="readOnly">
            <bool>true</bool>
           </property>
@@ -1747,6 +1747,11 @@ QPushButton:checked {
   </customwidget>
   <customwidget>
    <class>QtSLiMScriptTextEdit</class>
+   <extends>QTextEdit</extends>
+   <header>QtSLiMScriptTextEdit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMTextEdit</class>
    <extends>QTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
   </customwidget>

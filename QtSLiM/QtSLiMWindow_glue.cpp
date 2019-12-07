@@ -14,8 +14,8 @@ void QtSLiMWindow::glueUI(void)
 {
     // connect all QtSLiMWindow slots
     connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);
-    connect(ui->playButton, &QPushButton::clicked, this, &QtSLiMWindow::playClicked);
-    connect(ui->profileButton, &QPushButton::clicked, this, &QtSLiMWindow::profileClicked);
+    connect(ui->playButton, &QPushButton::clicked, [this]() { playOrProfile(true); });
+    connect(ui->profileButton, &QPushButton::clicked, [this]() { playOrProfile(false); });
     connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
@@ -25,8 +25,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->showChromosomeMapsButton, &QPushButton::clicked, this, &QtSLiMWindow::showChromosomeMapsToggled);
     connect(ui->showGenomicElementsButton, &QPushButton::clicked, this, &QtSLiMWindow::showGenomicElementsToggled);
 
-    connect(ui->checkScriptButton, &QPushButton::clicked, this, &QtSLiMWindow::checkScriptClicked);
-    connect(ui->prettyprintButton, &QPushButton::clicked, this, &QtSLiMWindow::prettyprintClicked);
+    connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
+    connect(ui->prettyprintButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
     connect(ui->scriptHelpButton, &QPushButton::clicked, this, &QtSLiMWindow::scriptHelpClicked);
     connect(ui->consoleButton, &QPushButton::clicked, this, &QtSLiMWindow::showConsoleClicked);
     connect(ui->browserButton, &QPushButton::clicked, this, &QtSLiMWindow::showBrowserClicked);
@@ -114,13 +114,13 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
     connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
     connect(ui->actionStep, &QAction::triggered, this, &QtSLiMWindow::playOneStepClicked);
-    connect(ui->actionPlay, &QAction::triggered, this, &QtSLiMWindow::playClicked);
-    connect(ui->actionProfile, &QAction::triggered, this, &QtSLiMWindow::profileClicked);
+    connect(ui->actionPlay, &QAction::triggered, [this]() { playOrProfile(true); });
+    connect(ui->actionProfile, &QAction::triggered, [this]() { playOrProfile(false); });
     connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
     connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
     connect(ui->actionDumpPopulationState, &QAction::triggered, this, &QtSLiMWindow::dumpPopulationClicked);
-    connect(ui->actionCheckScript, &QAction::triggered, this, &QtSLiMWindow::checkScriptClicked);
-    connect(ui->actionPrettyprintScript, &QAction::triggered, this, &QtSLiMWindow::prettyprintClicked);
+    connect(ui->actionCheckScript, &QAction::triggered, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
+    connect(ui->actionPrettyprintScript, &QAction::triggered, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
     connect(ui->actionShowScriptHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
     connect(ui->actionQtSLiMHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
     connect(ui->actionShowEidosConsole, &QAction::triggered, this, &QtSLiMWindow::showConsoleClicked);

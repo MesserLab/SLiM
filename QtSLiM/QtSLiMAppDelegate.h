@@ -7,7 +7,10 @@
 class QMenu;
 class QAction;
 class QtSLiMWindow;
+class QtSLiMAppDelegate;
+ 
 
+extern QtSLiMAppDelegate *qtSLiMAppDelegate;    // global instance
 
 class QtSLiMAppDelegate : public QObject
 {
@@ -29,11 +32,15 @@ public slots:
     void findRecipe(void);
     void openRecipe(void);
     
+signals:
+    void modifiersChanged(Qt::KeyboardModifiers newModifiers);
+    
 private:
-    QtSLiMWindow *activeQtSLiMWindow(void);    
+    QtSLiMWindow *activeQtSLiMWindow(void);  
+    
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };
 
-extern QtSLiMAppDelegate *qtSLiMAppDelegate;    // global instance
 
 #endif // QTSLIMAPPDELEGATE_H
 

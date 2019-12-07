@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QCollator>
+#include <QKeyEvent>
 
 #include "eidos_globals.h"
 #include "eidos_beep.h"
@@ -57,6 +58,9 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     connect(app, &QApplication::lastWindowClosed, this, &QtSLiMAppDelegate::lastWindowClosed);
     connect(app, &QApplication::aboutToQuit, this, &QtSLiMAppDelegate::aboutToQuit);
 
+    // Install our event filter to detect modifier key changes
+    app->installEventFilter(this);
+    
     // We assume we are the global instance; FIXME singleton pattern would be good
     qtSLiMAppDelegate = this;
 }
@@ -148,6 +152,34 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
             menuItem->setData(QVariant(entryName));
         }
     }
+}
+
+bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
+{
+    QEvent::Type type = event->type();
+    
+    if ((type == QEvent::KeyPress) || (type == QEvent::KeyRelease))
+    {
+        QKeyEvent *keyEvent = dynamic_cast<QKeyEvent *>(event);
+        
+        if (keyEvent)
+        {
+            Qt::Key key = static_cast<Qt::Key>(keyEvent->key());     // why does this return int?
+            
+            if ((key == Qt::Key_Shift) ||
+                    (key == Qt::Key_Control) ||
+                    (key == Qt::Key_Meta) ||
+                    (key == Qt::Key_Alt) ||
+                    (key == Qt::Key_AltGr) ||
+                    (key == Qt::Key_CapsLock) ||
+                    (key == Qt::Key_NumLock) ||
+                    (key == Qt::Key_ScrollLock))
+                emit modifiersChanged(keyEvent->modifiers());
+        }
+    }
+    
+    // standard event processing
+    return QObject::eventFilter(obj, event);
 }
 
 

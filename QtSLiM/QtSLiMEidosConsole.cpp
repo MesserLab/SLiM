@@ -19,8 +19,16 @@ QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
     
     // add a status bar at the bottom; there is a layout in Designer for it already
     // thanks to https://stackoverflow.com/a/6143818/2752221
-    QStatusBar *bar = new QStatusBar(this);
-    ui->statusBarLayout->addWidget(bar);
+    statusBar_ = new QStatusBar(this);
+    ui->statusBarLayout->addWidget(statusBar_);
+    
+    // set up the script view to syntax highlight
+    ui->scriptTextEdit->setScriptType(QtSLiMTextEdit::EidosScriptType);
+    ui->scriptTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::ScriptHighlighting);
+    
+    // enable option-click in both textedits
+    ui->scriptTextEdit->setOptionClickEnabled(true);
+    ui->consoleTextEdit->setOptionClickEnabled(true);
     
     // set initial text in console and show the initial prompt
     QtSLiMConsoleTextEdit *console = ui->consoleTextEdit;
@@ -71,6 +79,11 @@ void QtSLiMEidosConsole::closeEvent(QCloseEvent *event)
     
     // use super's default behavior
     QDialog::closeEvent(event);
+}
+
+QStatusBar *QtSLiMEidosConsole::statusBar(void)
+{
+    return statusBar_;
 }
 
 // enable/disable the user interface as the simulation's state changes
@@ -298,21 +311,6 @@ void QtSLiMEidosConsole::executeScriptString(QString scriptString, bool semicolo
 //
 //  public slots
 //
-
-void QtSLiMEidosConsole::checkScriptClicked(void)
-{
-    
-}
-
-void QtSLiMEidosConsole::prettyprintClicked(void)
-{
-    
-}
-
-void QtSLiMEidosConsole::clearOutputClicked(void)
-{
-    ui->consoleTextEdit->clearToPrompt();
-}
 
 void QtSLiMEidosConsole::executeAllClicked(void)
 {

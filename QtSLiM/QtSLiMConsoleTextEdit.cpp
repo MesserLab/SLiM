@@ -478,21 +478,21 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
             // being read-only interferes with keyboard selection changes, for some odd reason,
             // so we change ourselves to editable around the call to super
             setReadOnly(false);
-            QTextEdit::keyPressEvent(event);
+            QtSLiMTextEdit::keyPressEvent(event);
             setReadOnly(true);
         }
         else if (event->matches(QKeySequence::SelectAll))
         {
             // in the non-read-only case, we want Select All to select everything in the console, rather
             // than follow the selection-clipping convention below, I think...
-            QTextEdit::keyPressEvent(event);
+            QtSLiMTextEdit::keyPressEvent(event);
         }
         else
         {
             // in the non-read-only case, the cursor is inside the command area, and we want to clip movement and
             // selection to stay within the command area; the user can select other content if they want to, but
             // by default we assume their intention is to work within the command line (except select all, above)
-            QTextEdit::keyPressEvent(event);
+            QtSLiMTextEdit::keyPressEvent(event);
             
             QTextCursor selection(textCursor());
             int anchor = std::max(selection.anchor(), lastPromptCursor.position());
@@ -514,7 +514,7 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
             return;
         }
         
-        QTextEdit::keyPressEvent(event);
+        QtSLiMTextEdit::keyPressEvent(event);
     }
     else if (event->matches(QKeySequence::DeleteCompleteLine))
     {
@@ -525,7 +525,7 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
     else
     {
         // if the key was not handled above, pass the event to super
-        QTextEdit::keyPressEvent(event);
+        QtSLiMTextEdit::keyPressEvent(event);
     }
 }
 
@@ -535,12 +535,12 @@ void QtSLiMConsoleTextEdit::mousePressEvent(QMouseEvent *event)
     insideMouseTracking = true;
     sawSelectionChange = false;
     
-    QTextEdit::mousePressEvent(event);
+    QtSLiMTextEdit::mousePressEvent(event);
 }
 
 void QtSLiMConsoleTextEdit::mouseReleaseEvent(QMouseEvent *event)
 {
-    QTextEdit::mouseReleaseEvent(event);
+    QtSLiMTextEdit::mouseReleaseEvent(event);
     
     // we're done with the mouse tracking loop; if it changed the selection, we now adjust
     insideMouseTracking = false;

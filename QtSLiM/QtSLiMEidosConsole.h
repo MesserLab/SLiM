@@ -7,6 +7,7 @@
 
 class QCloseEvent;
 class QtSLiMWindow;
+class QStatusBar;
 
 #include "eidos_script.h"
 #include "eidos_globals.h"
@@ -41,10 +42,10 @@ public:
     // Execute the given script string, with the terminating semicolon being optional if requested
     void executeScriptString(QString scriptString, bool semicolonOptional);
     
+    // Access to the status bar
+    QStatusBar *statusBar(void);
+    
 public slots:
-    void checkScriptClicked(void);
-    void prettyprintClicked(void);
-    void clearOutputClicked(void);
     void executeAllClicked(void);
     void executeSelectionClicked(void);
     
@@ -78,6 +79,7 @@ private slots:
     
 private:
     Ui::QtSLiMEidosConsole *ui;
+    QStatusBar *statusBar_;
     void glueUI(void);
     
     bool interfaceEnabled = false;              // set to false when the simulation is running or invalid

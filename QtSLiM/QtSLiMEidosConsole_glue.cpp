@@ -12,20 +12,16 @@ void QtSLiMEidosConsole::glueUI(void)
 {
     connect(ui->consoleTextEdit, &QtSLiMConsoleTextEdit::executeScript, this, &QtSLiMEidosConsole::executePromptScript);
     
-    // connect option-click to open the help window
-    connect(ui->scriptTextEdit, &QtSLiMTextEdit::optionClickOnSymbol, parentSLiMWindow, &QtSLiMWindow::scriptHelpOptionClick);
-    connect(ui->consoleTextEdit, &QtSLiMTextEdit::optionClickOnSymbol, parentSLiMWindow, &QtSLiMWindow::scriptHelpOptionClick);
-    
     // connect all QtSLiMEidosConsole slots
-    connect(ui->checkScriptButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::checkScriptClicked);
-    connect(ui->prettyprintButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::prettyprintClicked);
+    connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
+    connect(ui->prettyprintButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
     connect(ui->scriptHelpButton, &QPushButton::clicked, parentSLiMWindow, &QtSLiMWindow::scriptHelpClicked);
     connect(ui->browserButton, &QPushButton::clicked, parentSLiMWindow, &QtSLiMWindow::showBrowserClicked);
     
     connect(ui->executeSelectionButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::executeSelectionClicked);
     connect(ui->executeAllButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::executeAllClicked);
 
-    connect(ui->clearOutputButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::clearOutputClicked);
+    connect(ui->clearOutputButton, &QPushButton::clicked, ui->consoleTextEdit, &QtSLiMConsoleTextEdit::clearToPrompt);
     
     // set up all icon-based QPushButtons to change their icon as they track
     connect(ui->checkScriptButton, &QPushButton::pressed, this, &QtSLiMEidosConsole::checkScriptPressed);
