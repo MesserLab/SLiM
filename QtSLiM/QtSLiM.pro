@@ -75,7 +75,8 @@ SOURCES += \
     QtSLiMScriptTextEdit.cpp \
     QtSLiMEidosConsole.cpp \
     QtSLiMEidosConsole_glue.cpp \
-    QtSLiMConsoleTextEdit.cpp
+    QtSLiMConsoleTextEdit.cpp \
+    QtSLiM_SLiMgui.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -92,7 +93,8 @@ HEADERS += \
     QtSLiMHelpWindow.h \
     QtSLiMScriptTextEdit.h \
     QtSLiMEidosConsole.h \
-    QtSLiMConsoleTextEdit.h
+    QtSLiMConsoleTextEdit.h \
+    QtSLiM_SLiMgui.h
 
 FORMS += \
     QtSLiMWindow.ui \

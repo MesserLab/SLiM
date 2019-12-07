@@ -21,6 +21,7 @@
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMWindow.h"
 #include "QtSLiMFindRecipe.h"
+#include "QtSLiM_SLiMgui.h"
 
 #include <QApplication>
 #include <QOpenGLWidget>
@@ -56,8 +57,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     // Warm up our back ends before anything else happens
     Eidos_WarmUp();
     SLiM_WarmUp();
-    // FIXME probably want to enable the SLiMgui class at some point
-    //gEidosContextClasses.push_back(gSLiM_SLiMgui_Class);			// available only in SLiMgui
+    gEidosContextClasses.push_back(gSLiM_SLiMgui_Class);			// available only in SLiMgui
     Eidos_FinishWarmUp();
 
     // Remember our current working directory, to return to whenever we are not inside SLiM/Eidos

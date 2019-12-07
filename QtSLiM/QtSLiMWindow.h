@@ -33,7 +33,6 @@
 #include "slim_globals.h"
 #include "eidos_rng.h"
 #include "slim_sim.h"
-//#include "slim_gui.h"
 #include "QtSLiMExtras.h"
 #include "QtSLiMPopulationTable.h"
 
@@ -41,6 +40,7 @@ class Subpopulation;
 class QCloseEvent;
 class QTextCursor;
 class QtSLiMEidosConsole;
+class SLiMgui;
 
 
 namespace Ui {
@@ -91,7 +91,6 @@ private:
     uint64_t continuousPlayGenerationsCompleted_ = 0;
     QTimer generationPlayInvocationTimer_;
     int partialUpdateCount_ = 0;
-    //SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
     // profiling-related variables
@@ -107,7 +106,7 @@ private:
 public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
     SLiMSim *sim = nullptr;		// the simulation instance for this window
-    //SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
+    SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
 
     // display-related variables
     //double fitnessColorScale, selectionColorScale;
@@ -177,6 +176,10 @@ public:
     void scriptTexteditChanged(void);
     
     bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);    
+    
+    //	Eidos SLiMgui method forwards
+    void eidos_openDocument(QString path);
+    void eidos_pauseExecution(void);
     
 signals:
     void terminationWithMessage(QString message);
@@ -259,6 +262,8 @@ private slots:
     void graphPopupButtonReleased(void);
     void changeDirectoryPressed(void);
     void changeDirectoryReleased(void);
+    
+    void finish_eidos_pauseExecution(void);
     
 protected:
     void closeEvent(QCloseEvent *event) override;

@@ -28,6 +28,7 @@
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMScriptTextEdit.h"
+#include "QtSLiM_SLiMgui.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -277,11 +278,11 @@ QtSLiMWindow::~QtSLiMWindow()
         delete sim;
         sim = nullptr;
     }
-//    if (slimgui)
-//	{
-//		delete slimgui;
-//		slimgui = nullptr;
-//	}
+    if (slimgui)
+	{
+		delete slimgui;
+		slimgui = nullptr;
+	}
 
     Eidos_FreeRNG(sim_RNG);
 
@@ -937,7 +938,7 @@ void QtSLiMWindow::checkForSimulationTermination(void)
         // Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
         // of the old simulation object; who knows what state it is in, touching it might crash.
         sim = nullptr;
-        //slimgui = nullptr;
+        slimgui = nullptr;
 
         Eidos_FreeRNG(sim_RNG);
 
@@ -953,11 +954,11 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
         delete sim;
         sim = nullptr;
     }
-//    if (slimgui)
-//    {
-//        delete slimgui;
-//        slimgui = nullptr;
-//    }
+    if (slimgui)
+    {
+        delete slimgui;
+        slimgui = nullptr;
+    }
 
     // Free the old simulation RNG and let SLiM make one for us
     Eidos_FreeRNG(sim_RNG);
@@ -1000,10 +1001,10 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
     if (sim)
     {
         // make a new SLiMgui instance to represent SLiMgui in Eidos
-        //slimgui = new SLiMgui(*sim, self);
+        slimgui = new SLiMgui(*sim, this);
 
         // set up the "slimgui" symbol for it immediately
-        //sim->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
+        sim->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
     }
 }
 
@@ -1491,6 +1492,41 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		if (isProfileAction && sim && !invalidSimulation)
 			[self displayProfileResults];
 #endif
+	}
+}
+
+//
+//	Eidos SLiMgui method forwards
+//
+
+void QtSLiMWindow::finish_eidos_pauseExecution(void)
+{
+	// this gets called by performSelectorOnMainThread: after _continuousPlay: has broken out of its loop
+	// if the simulation has already ended, or is invalid, or is not in continuous play, it does nothing
+	if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !generationPlayOn_)
+	{
+		playOrProfile(true);	// this will simulate a press of the play button to stop continuous play
+		
+		// bounce our icon; if we are not the active app, to signal that the run is done
+		//[NSApp requestUserAttention:NSInformationalRequest];
+	}
+}
+
+void QtSLiMWindow::eidos_openDocument(QString __attribute__((unused)) path)
+{
+    // FIXME needs to be ported, including PDF display...
+    //NSURL *pathURL = [NSURL fileURLWithPath:path];
+	
+	//[[NSDocumentController sharedDocumentController] openDocumentWithContentsOfURL:pathURL display:YES completionHandler:(^ void (NSDocument *typelessDoc, BOOL already_open, NSError *error) { })];
+}
+
+void QtSLiMWindow::eidos_pauseExecution(void)
+{
+    if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !generationPlayOn_)
+	{
+		continuousPlayGenerationsCompleted_ = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this generation
+        
+        QMetaObject::invokeMethod(this, "finish_eidos_pauseExecution", Qt::QueuedConnection);   // this will actually stop continuous play
 	}
 }
 

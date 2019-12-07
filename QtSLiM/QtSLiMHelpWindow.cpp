@@ -43,6 +43,7 @@
 #include "individual.h"
 #include "subpopulation.h"
 #include "QtSLiMExtras.h"
+#include "QtSLiM_SLiMgui.h"
 
 #include <vector>
 #include <algorithm>
@@ -278,7 +279,7 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     checkDocumentationOfClass(gSLiM_SLiMSim_Class);
     checkDocumentationOfClass(gSLiM_Subpopulation_Class);
     checkDocumentationOfClass(gSLiM_Substitution_Class);
-    //checkDocumentationOfClass(gSLiM_SLiMgui_Class);
+    checkDocumentationOfClass(gSLiM_SLiMgui_Class);
 }
 
 QtSLiMHelpWindow::~QtSLiMHelpWindow()
@@ -745,11 +746,11 @@ const std::vector<const EidosPropertySignature*> *QtSLiMHelpWindow::slimguiAllPr
 	if (!propertySignatures)
 	{
 		auto slimProperties =					SLiMSim::AllPropertySignatures();
-		//auto propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
+		auto propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
 		
 		propertySignatures = new std::vector<const EidosPropertySignature*>(*slimProperties);
 		
-		//propertySignatures->insert(propertySignatures->end(), propertiesSLiMgui->begin(), propertiesSLiMgui->end());
+		propertySignatures->insert(propertySignatures->end(), propertiesSLiMgui->begin(), propertiesSLiMgui->end());
 		
 		// *** From here downward this is taken verbatim from SLiMSim::AllPropertySignatures()
 		// FIXME should be split into a separate method
@@ -793,11 +794,11 @@ const std::vector<const EidosMethodSignature*> *QtSLiMHelpWindow::slimguiAllMeth
 	if (!methodSignatures)
 	{
 		auto slimMethods =					SLiMSim::AllMethodSignatures();
-		//auto methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
+		auto methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
 		
 		methodSignatures = new std::vector<const EidosMethodSignature*>(*slimMethods);
 		
-		//methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
+		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
 		
 		// *** From here downward this is taken verbatim from SLiMSim::AllMethodSignatures()
 		// FIXME should be split into a separate method
