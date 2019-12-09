@@ -3405,7 +3405,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			if (subpop1 != &(exerter->subpopulation_))
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
-			uint32_t exerter_index_in_subpop = (uint32_t)exerter->index_;
+			slim_popsize_t exerter_index_in_subpop = exerter->index_;
 			
 			if (exerter_index_in_subpop < 0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
@@ -3413,7 +3413,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			double distance = INFINITY;
 			
 			for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
-				if (row_columns[col_index] == exerter_index_in_subpop)
+				if ((slim_popsize_t)row_columns[col_index] == exerter_index_in_subpop)
 				{
 					distance = distances[col_index];
 					break;
@@ -3800,7 +3800,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				if (subpop1 != &(exerter->subpopulation_))
 					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 				
-				uint32_t exerter_index_in_subpop = (uint32_t)exerter->index_;
+				slim_popsize_t exerter_index_in_subpop = (uint32_t)exerter->index_;
 				
 				if (exerter_index_in_subpop < 0)
 					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
@@ -3808,7 +3808,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				double strength = 0;
 				
 				for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
-					if (row_columns[col_index] == exerter_index_in_subpop)
+					if ((slim_popsize_t)row_columns[col_index] == exerter_index_in_subpop)
 					{
 						strength = strengths[col_index];
 						break;
