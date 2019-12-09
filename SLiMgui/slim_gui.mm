@@ -25,6 +25,8 @@
 
 #import "SLiMWindowController.h"
 
+#include <unistd.h>
+
 
 #pragma mark -
 #pragma mark SLiMGUI
