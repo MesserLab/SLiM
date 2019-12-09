@@ -658,50 +658,50 @@ const EidosCallSignature *QtSLiMTextEdit::signatureForMethodName(QString callNam
 
 EidosFunctionMap *QtSLiMTextEdit::functionMapForTokenizedScript(EidosScript &script)
 {
-	// This lower-level function takes a tokenized script object and works from there, allowing reuse of work
-	// in the case of attributedSignatureForScriptString:...
+    // This lower-level function takes a tokenized script object and works from there, allowing reuse of work
+    // in the case of attributedSignatureForScriptString:...
     QtSLiMWindow *windowSLiMController = slimControllerForWindow();
     SLiMSim *sim = (windowSLiMController ? windowSLiMController->sim : nullptr);
     bool invalidSimulation = (windowSLiMController ? windowSLiMController->invalidSimulation() : true);
     
     // start with all the functions that are available in the current simulation context
     EidosFunctionMap *functionMapPtr = nullptr;
-	
+    
     if (sim && !invalidSimulation)
         functionMapPtr = new EidosFunctionMap(sim->FunctionMap());
-	else
-		functionMapPtr = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
-	
-	// functionMapForEidosTextView: returns the function map for the current interpreter state, and the type-interpreter
-	// stuff we do below gives the delegate no chance to intervene (note that SLiMTypeInterpreter does not get in here,
-	// unlike in the code completion machinery!).  But sometimes we want SLiM's zero-gen functions to be added to the map
-	// in all cases; it would be even better to be smart the way code completion is, but that's more work than it's worth.
-	if (!basedOnLiveSimulation)
+    else
+        functionMapPtr = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
+    
+    // functionMapForEidosTextView: returns the function map for the current interpreter state, and the type-interpreter
+    // stuff we do below gives the delegate no chance to intervene (note that SLiMTypeInterpreter does not get in here,
+    // unlike in the code completion machinery!).  But sometimes we want SLiM's zero-gen functions to be added to the map
+    // in all cases; it would be even better to be smart the way code completion is, but that's more work than it's worth.
+    if (!basedOnLiveSimulation)
     {
         // add SLiM functions that are context-dependent
         SLiMSim::AddZeroGenerationFunctionsToMap(*functionMapPtr);
         SLiMSim::AddSLiMFunctionsToMap(*functionMapPtr);
-	}
+    }
     
-	// OK, now we have a starting point.  We now want to use the type-interpreter to add any functions that are declared
-	// in the full script, so that such declarations are known to us even before they have actually been executed.
-	EidosTypeTable typeTable;
-	EidosCallTypeTable callTypeTable;
-	EidosSymbolTable *symbols = gEidosConstantsSymbolTable;
-	
+    // OK, now we have a starting point.  We now want to use the type-interpreter to add any functions that are declared
+    // in the full script, so that such declarations are known to us even before they have actually been executed.
+    EidosTypeTable typeTable;
+    EidosCallTypeTable callTypeTable;
+    EidosSymbolTable *symbols = gEidosConstantsSymbolTable;
+    
     if (sim && !invalidSimulation)
         symbols = sim->SymbolsFromBaseSymbols(symbols);
     
-	if (symbols)
-		symbols->AddSymbolsToTypeTable(&typeTable);
-	
-	script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
-	
-	EidosTypeInterpreter typeInterpreter(script, typeTable, *functionMapPtr, callTypeTable);
-	
-	typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
-	
-	return functionMapPtr;
+    if (symbols)
+        symbols->AddSymbolsToTypeTable(&typeTable);
+    
+    script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+    
+    EidosTypeInterpreter typeInterpreter(script, typeTable, *functionMapPtr, callTypeTable);
+    
+    typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+    
+    return functionMapPtr;
 }
 
 void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len)

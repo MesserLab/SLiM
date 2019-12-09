@@ -81,11 +81,11 @@ QtSLiMEidosConsole::~QtSLiMEidosConsole()
     delete ui;
     
     delete global_symbols;
-	global_symbols = nullptr;
-	
+    global_symbols = nullptr;
+    
     if (global_function_map_owned)
         delete global_function_map;
-	global_function_map = nullptr;
+    global_function_map = nullptr;
 }
 
 void QtSLiMEidosConsole::closeEvent(QCloseEvent *event)

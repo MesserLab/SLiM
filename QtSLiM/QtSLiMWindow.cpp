@@ -649,7 +649,7 @@ void QtSLiMWindow::loadFile(const QString &fileName)
         QMessageBox::warning(this, "QtSLiM", QString("Cannot read file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
         return;
     }
-
+    
     QTextStream in(&file);
     QString contents = in.readAll();
     ui->scriptTextEdit->setPlainText(contents);
@@ -657,9 +657,9 @@ void QtSLiMWindow::loadFile(const QString &fileName)
     if (consoleController)
         consoleController->invalidateSymbolTableAndFunctionMap();
     
-	clearOutputClicked();
+    clearOutputClicked();
     setScriptStringAndInitializeSimulation(contents.toUtf8().constData());
-	
+    
     if (consoleController)
         consoleController->validateSymbolTableAndFunctionMap();
     
@@ -1714,22 +1714,22 @@ void QtSLiMWindow::recycleClicked(void)
     if (consoleController)
         consoleController->invalidateSymbolTableAndFunctionMap();
     
-	clearOutputClicked();
+    clearOutputClicked();
     setScriptStringAndInitializeSimulation(utf8_script_string);
-	
+    
     if (consoleController)
         consoleController->validateSymbolTableAndFunctionMap();
     
     ui->generationLineEdit->clearFocus();
-	updateAfterTickFull(true);
-	
-	// A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
-	// at the moment that we recycled.  Then we reset a change counter that we use to know if we have changed relative to
-	// the recycle point, so we can highlight the recycle button to show that the executing script is out of date.
-	//[scriptTextView breakUndoCoalescing];
-	resetSLiMChangeCount();
-
-	//[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
+    updateAfterTickFull(true);
+    
+    // A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
+    // at the moment that we recycled.  Then we reset a change counter that we use to know if we have changed relative to
+    // the recycle point, so we can highlight the recycle button to show that the executing script is out of date.
+    //[scriptTextView breakUndoCoalescing];
+    resetSLiMChangeCount();
+    
+    //[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
 }
 
 void QtSLiMWindow::playSpeedChanged(void)
