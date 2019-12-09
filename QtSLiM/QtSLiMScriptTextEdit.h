@@ -22,9 +22,13 @@
 
 #include <QTextEdit>
 
+#include "eidos_interpreter.h"
+
 class QtSLiMOutputHighlighter;
 class QtSLiMScriptHighlighter;
 class QStatusBar;
+class EidosCallSignature;
+class QtSLiMWindow;
 
 
 // A QTextEdit subclass that provides a signal for an option-click on a script symbol
@@ -66,6 +70,7 @@ public slots:
 signals:
     
 protected:
+    bool basedOnLiveSimulation = false;
     ScriptType scriptType = ScriptType::NoScriptType;
     ScriptHighlightingType syntaxHighlightingType = QtSLiMTextEdit::NoHighlighting;
     QtSLiMOutputHighlighter *outputHighlighter = nullptr;
@@ -73,6 +78,7 @@ protected:
     
     void selfInit(void);
     QStatusBar *statusBarForWindow(void);
+    QtSLiMWindow *slimControllerForWindow(void);
     
     // used to track that we are intercepting a mouse event
     bool optionClickEnabled = false;
@@ -86,12 +92,26 @@ protected:
     void fixMouseCursor(void);
     void enterEvent(QEvent *event) override;
     
+    // status bar signatures
+    const EidosCallSignature *signatureForFunctionName(QString callName, EidosFunctionMap *functionMapPtr);
+    const std::vector<const EidosMethodSignature*> *slimguiAllMethodSignatures(void);
+    const EidosCallSignature *signatureForMethodName(QString callName);
+    EidosFunctionMap *functionMapForTokenizedScript(EidosScript &script);
+    QString signatureStringForScriptSelection(QString &callName);
+    
+    // virtual function for accessing the script portion of the contents; for normal
+    // script textedits this is the whole content and te text cursor, but for the
+    // console view it is just the snippet of script following the prompt
+    virtual void scriptStringAndSelection(QString &scriptString, int &pos, int &len);
+    
 protected slots:
     void displayFontPrefChanged();
     void scriptSyntaxHighlightPrefChanged();
     void outputSyntaxHighlightPrefChanged();
     bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);
+    
+    void updateStatusFieldFromSelection(void);
 };
 
 // A QtSLiMTextEdit subclass that provides various smarts for editing Eidos script

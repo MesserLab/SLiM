@@ -46,6 +46,10 @@ QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
     ui->scriptTextEdit->setScriptType(QtSLiMTextEdit::EidosScriptType);
     ui->scriptTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::ScriptHighlighting);
     
+    // set up the console view to be Eidos script, but without highlighting
+    ui->consoleTextEdit->setScriptType(QtSLiMTextEdit::EidosScriptType);
+    ui->consoleTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::NoHighlighting);
+    
     // enable option-click in both textedits
     ui->scriptTextEdit->setOptionClickEnabled(true);
     ui->consoleTextEdit->setOptionClickEnabled(true);

@@ -40,9 +40,13 @@
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMHelpWindow.h"
 #include "QtSLiMAppDelegate.h"
+#include "QtSLiMWindow.h"
+#include "QtSLiM_SLiMgui.h"
+
 #include "eidos_script.h"
 #include "eidos_token.h"
 #include "slim_eidos_block.h"
+#include "subpopulation.h"
 
 
 //
@@ -66,8 +70,8 @@ void QtSLiMTextEdit::selfInit(void)
     connect(this, &QTextEdit::cursorPositionChanged, [this]() { setPalette(style()->standardPalette()); });
     
     // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
-    connect(this, &QTextEdit::selectionChanged, [this]() { statusBarForWindow()->clearMessage(); });
-    connect(this, &QTextEdit::cursorPositionChanged, [this]() { statusBarForWindow()->clearMessage(); });
+    connect(this, &QTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
+    connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
     
     // Wire up to change the font when the display font pref changes
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
@@ -76,7 +80,7 @@ void QtSLiMTextEdit::selfInit(void)
     connect(&prefsNotifier, &QtSLiMPreferencesNotifier::scriptSyntaxHighlightPrefChanged, this, &QtSLiMTextEdit::scriptSyntaxHighlightPrefChanged);
     connect(&prefsNotifier, &QtSLiMPreferencesNotifier::outputSyntaxHighlightPrefChanged, this, &QtSLiMTextEdit::outputSyntaxHighlightPrefChanged);
     
-    // Get notified of modifier key changes, so we can change out cursor
+    // Get notified of modifier key changes, so we can change our cursor
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::modifiersChanged, this, &QtSLiMTextEdit::modifiersChanged);
     
     // set up the script and output textedits
@@ -212,6 +216,21 @@ QStatusBar *QtSLiMTextEdit::statusBarForWindow(void)
         statusBar = consoleWindow->statusBar();
     
     return statusBar;
+}
+
+QtSLiMWindow *QtSLiMTextEdit::slimControllerForWindow(void)
+{
+    QtSLiMWindow *windowSLiMController = dynamic_cast<QtSLiMWindow *>(window());
+    
+    if (windowSLiMController)
+        return windowSLiMController;
+    
+    QtSLiMEidosConsole *windowEidosConsole = dynamic_cast<QtSLiMEidosConsole *>(window());
+    
+    if (windowEidosConsole)
+        return windowEidosConsole->parentSLiMWindow;
+    
+    return nullptr;
 }
 
 bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResponse)
@@ -535,6 +554,384 @@ void QtSLiMTextEdit::modifiersChanged(Qt::KeyboardModifiers __attribute__((unuse
     // keyPressEvent() and keyReleaseEvent() are sent to us only when we have the focus, but
     // we want to change our cursor even when we don't have focus, so we use an event filter
     fixMouseCursor();
+}
+
+const EidosCallSignature *QtSLiMTextEdit::signatureForFunctionName(QString callName, EidosFunctionMap *functionMapPtr)
+{
+	std::string call_name = callName.toStdString();
+	
+	// Look for a matching function signature for the call name.
+	for (const auto& function_iter : *functionMapPtr)
+	{
+		const EidosFunctionSignature *sig = function_iter.second.get();
+		const std::string &sig_call_name = sig->call_name_;
+		
+		if (sig_call_name.compare(call_name) == 0)
+			return sig;
+	}
+	
+	return nullptr;
+}
+
+const std::vector<const EidosMethodSignature*> *QtSLiMTextEdit::slimguiAllMethodSignatures(void)
+{
+	// This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
+	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
+	
+	if (!methodSignatures)
+	{
+		auto slimMethods =					SLiMSim::AllMethodSignatures();
+		auto methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
+		
+		methodSignatures = new std::vector<const EidosMethodSignature*>(*slimMethods);
+		
+		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
+		
+		// *** From here downward this is taken verbatim from SLiMSim::AllMethodSignatures()
+		// FIXME should be split into a separate method
+		
+		// sort by pointer; we want pointer-identical signatures to end up adjacent
+		std::sort(methodSignatures->begin(), methodSignatures->end());
+		
+		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
+		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
+		methodSignatures->resize(static_cast<size_t>(std::distance(methodSignatures->begin(), unique_end_iter)));
+		
+		// print out any signatures that are identical by name
+		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
+		
+		const EidosMethodSignature *previous_sig = nullptr;
+		
+		for (const EidosMethodSignature *sig : *methodSignatures)
+		{
+			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
+			{
+				// We have a name collision.  That is OK as long as the method signatures are identical.
+				if ((typeid(*sig) != typeid(*previous_sig)) ||
+					(sig->is_class_method != previous_sig->is_class_method) ||
+					(sig->call_name_ != previous_sig->call_name_) ||
+					(sig->return_mask_ != previous_sig->return_mask_) ||
+					(sig->return_class_ != previous_sig->return_class_) ||
+					(sig->arg_masks_ != previous_sig->arg_masks_) ||
+					(sig->arg_names_ != previous_sig->arg_names_) ||
+					(sig->arg_classes_ != previous_sig->arg_classes_) ||
+					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
+					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
+				std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
+			}
+			
+			previous_sig = sig;
+		}
+		
+		// log a full list
+		//std::cout << "----------------" << std::endl;
+		//for (const EidosMethodSignature *sig : *methodSignatures)
+		//	std::cout << sig->call_name_ << " (" << sig << ")" << std::endl;
+	}
+	
+	return methodSignatures;
+}
+
+const EidosCallSignature *QtSLiMTextEdit::signatureForMethodName(QString callName)
+{
+	std::string call_name = callName.toStdString();
+	
+	// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos.
+	// This case is much simpler than the function case, because the user can't declare their own methods.
+	const std::vector<const EidosMethodSignature *> *methodSignatures = nullptr;
+	
+    methodSignatures = slimguiAllMethodSignatures();
+    
+	if (!methodSignatures)
+		methodSignatures = gEidos_UndefinedClassObject->Methods();
+	
+	for (const EidosMethodSignature *sig : *methodSignatures)
+	{
+		const std::string &sig_call_name = sig->call_name_;
+		
+		if (sig_call_name.compare(call_name) == 0)
+			return sig;
+	}
+	
+	return nullptr;
+}
+
+EidosFunctionMap *QtSLiMTextEdit::functionMapForTokenizedScript(EidosScript &script)
+{
+	// This lower-level function takes a tokenized script object and works from there, allowing reuse of work
+	// in the case of attributedSignatureForScriptString:...
+    QtSLiMWindow *windowSLiMController = slimControllerForWindow();
+    SLiMSim *sim = (windowSLiMController ? windowSLiMController->sim : nullptr);
+    bool invalidSimulation = (windowSLiMController ? windowSLiMController->invalidSimulation() : true);
+    
+    // start with all the functions that are available in the current simulation context
+    EidosFunctionMap *functionMapPtr = nullptr;
+	
+    if (sim && !invalidSimulation)
+        functionMapPtr = new EidosFunctionMap(sim->FunctionMap());
+	else
+		functionMapPtr = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
+	
+	// functionMapForEidosTextView: returns the function map for the current interpreter state, and the type-interpreter
+	// stuff we do below gives the delegate no chance to intervene (note that SLiMTypeInterpreter does not get in here,
+	// unlike in the code completion machinery!).  But sometimes we want SLiM's zero-gen functions to be added to the map
+	// in all cases; it would be even better to be smart the way code completion is, but that's more work than it's worth.
+	if (!basedOnLiveSimulation)
+    {
+        // add SLiM functions that are context-dependent
+        SLiMSim::AddZeroGenerationFunctionsToMap(*functionMapPtr);
+        SLiMSim::AddSLiMFunctionsToMap(*functionMapPtr);
+	}
+    
+	// OK, now we have a starting point.  We now want to use the type-interpreter to add any functions that are declared
+	// in the full script, so that such declarations are known to us even before they have actually been executed.
+	EidosTypeTable typeTable;
+	EidosCallTypeTable callTypeTable;
+	EidosSymbolTable *symbols = gEidosConstantsSymbolTable;
+	
+    if (sim && !invalidSimulation)
+        symbols = sim->SymbolsFromBaseSymbols(symbols);
+    
+	if (symbols)
+		symbols->AddSymbolsToTypeTable(&typeTable);
+	
+	script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
+	
+	EidosTypeInterpreter typeInterpreter(script, typeTable, *functionMapPtr, callTypeTable);
+	
+	typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+	
+	return functionMapPtr;
+}
+
+void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len)
+{
+    // by default, the entire contents of the textedit are considered "script"
+    scriptString = toPlainText();
+    
+    QTextCursor selection(textCursor());
+    pos = selection.selectionStart();
+    len = selection.selectionEnd() - pos;
+}
+
+QString QtSLiMTextEdit::signatureStringForScriptSelection(QString &callName)
+{
+    // Note we return a copy of the signature, owned by the caller
+    QString scriptString;
+    int selectionStart, selectionEnd;
+    
+    scriptStringAndSelection(scriptString, selectionStart, selectionEnd);
+    
+    QString signatureString;
+    
+    if (scriptString.length())
+	{
+		std::string script_string = scriptString.toStdString();
+		EidosScript script(script_string);
+		
+		// Tokenize
+		script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
+		
+		const std::vector<EidosToken> &tokens = script.Tokens();
+		size_t tokenCount = tokens.size();
+		
+		// Search forward to find the token position of the start of the selection
+		size_t tokenIndex;
+		
+		for (tokenIndex = 0; tokenIndex < tokenCount; ++tokenIndex)
+			if (tokens[tokenIndex].token_UTF16_start_ >= selectionStart)
+				break;
+		
+		// tokenIndex now has the index of the first token *after* the selection start; it can be equal to tokenCount
+		// Now we want to scan backward from there, balancing parentheses and looking for the pattern "identifier("
+		int backscanIndex = static_cast<int>(tokenIndex) - 1;
+		int parenCount = 0, lowestParenCountSeen = 0;
+		
+		while (backscanIndex > 0)	// last examined position is 1, since we can't look for an identifier at 0 - 1 == -1
+		{
+			const EidosToken &token = tokens[static_cast<size_t>(backscanIndex)];
+			EidosTokenType tokenType = token.token_type_;
+			
+			if (tokenType == EidosTokenType::kTokenLParen)
+			{
+				--parenCount;
+				
+				if (parenCount < lowestParenCountSeen)
+				{
+					const EidosToken &previousToken = tokens[static_cast<size_t>(backscanIndex) - 1];
+					EidosTokenType previousTokenType = previousToken.token_type_;
+					
+					if (previousTokenType == EidosTokenType::kTokenIdentifier)
+					{
+						// OK, we found the pattern "identifier("; extract the name of the function/method
+						// We also figure out here whether it is a method call (tokens like ".identifier(") or not
+                        callName = QString::fromStdString(previousToken.token_string_);
+                        
+						if ((backscanIndex > 1) && (tokens[static_cast<size_t>(backscanIndex) - 2].token_type_ == EidosTokenType::kTokenDot))
+						{
+							// This is a method call, so look up its signature that way
+							const EidosCallSignature *callSignature = signatureForMethodName(callName);
+                            
+                            if (callSignature)
+                                signatureString = QString::fromStdString(callSignature->SignatureString());
+                        }
+						else
+						{
+							// If this is a function declaration like "function(...)identifier(" then show no signature; it's not a function call
+							// Determining this requires a fairly complex backscan, because we also have things like "if (...) identifier(" which
+							// are function calls.  This is the price we pay for working at the token level rather than the AST level for this;
+							// so it goes.  Note that this backscan is separate from the one done outside this block.  BCH 1 March 2018.
+							if ((backscanIndex > 1) && (tokens[static_cast<size_t>(backscanIndex) - 2].token_type_ == EidosTokenType::kTokenRParen))
+							{
+								// Start a new backscan starting at the right paren preceding the identifier; we need to scan back to the balancing
+								// left paren, and then see if the next thing before that is "function" or not.
+								int funcCheckIndex = backscanIndex - 2;
+								int funcCheckParens = 0;
+								
+								while (funcCheckIndex >= 0)
+								{
+									const EidosToken &backscanToken = tokens[static_cast<size_t>(funcCheckIndex)];
+									EidosTokenType backscanTokenType = backscanToken.token_type_;
+									
+									if (backscanTokenType == EidosTokenType::kTokenRParen)
+										funcCheckParens++;
+									else if (backscanTokenType == EidosTokenType::kTokenLParen)
+										funcCheckParens--;
+									
+									--funcCheckIndex;
+									
+									if (funcCheckParens == 0)
+										break;
+								}
+								
+								if ((funcCheckParens == 0) && (funcCheckIndex >= 0) && (tokens[static_cast<size_t>(funcCheckIndex)].token_type_ == EidosTokenType::kTokenFunction))
+									break;
+							}
+							
+							// This is a function call, so look up its signature that way, using our best-guess function map
+							EidosFunctionMap *functionMapPtr = functionMapForTokenizedScript(script);
+                            const EidosCallSignature *callSignature = signatureForFunctionName(callName, functionMapPtr);
+                            
+                            if (callSignature)
+                                signatureString = QString::fromStdString(callSignature->SignatureString());
+                            
+							delete functionMapPtr;  // note callSignature becomes invalid here; we cannot return it!
+						}
+                        
+                        return signatureString;
+					}
+					
+					lowestParenCountSeen = parenCount;
+				}
+			}
+			else if (tokenType == EidosTokenType::kTokenRParen)
+			{
+				++parenCount;
+			}
+			
+			--backscanIndex;
+		}
+	}
+	
+	return signatureString;
+}
+
+void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
+{
+    if (scriptType != NoScriptType)
+    {
+        QString callName;
+        QString displayString = signatureStringForScriptSelection(callName);
+        
+        if (!displayString.length() && (scriptType == SLiMScriptType))
+        {
+            // Handle SLiM callback signatures
+            const EidosCallSignature *signature = nullptr;
+            
+            if (callName == "initialize")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("initialize", nullptr, kEidosValueMaskVOID));
+                signature = callbackSig;
+            }
+            else if (callName == "early")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("early", nullptr, kEidosValueMaskVOID));
+                signature = callbackSig;
+            }
+            else if (callName == "late")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("late", nullptr, kEidosValueMaskVOID));
+                signature = callbackSig;
+            }
+            else if (callName == "fitness")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                signature = callbackSig;
+            }
+            else if (callName == "interaction")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                signature = callbackSig;
+            }
+            else if (callName == "mateChoice")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                signature = callbackSig;
+            }
+            else if (callName == "modifyChild")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                signature = callbackSig;
+            }
+            else if (callName == "recombination")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                signature = callbackSig;
+            }
+            else if (callName == "mutation")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                signature = callbackSig;
+            }
+            else if (callName == "reproduction")
+            {
+                static EidosCallSignature *callbackSig = nullptr;
+                if (!callbackSig) callbackSig = (new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskVOID))->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OSN("sex", gStaticEidosValueNULLInvisible);
+                signature = callbackSig;
+            }
+            
+            if (signature)
+                displayString = QString::fromStdString(signature->SignatureString());
+        }
+        
+        if (!displayString.length() && callName.length())
+            displayString = callName + "() – unrecognized call";
+        
+        QStatusBar *statusBar = statusBarForWindow();
+        
+        if (displayString.length())
+        {
+            // FIXME no syntax coloring for this at the moment, because QStatusBar doesn't support rich text; subclass?
+            // If we do get around to wanting to colorize, signatureStringForScriptSelection() should change to return
+            // an EidosCallSignature*, but those will have to go under shared_ptr to make that work since user-defined
+            // functions are not given a permanent signature in the present design.
+            statusBar->setStyleSheet("font-size: 11px;");
+            statusBar->showMessage(displayString);
+        }
+        else
+        {
+            statusBar->clearMessage();
+        }
+    }
 }
 
 

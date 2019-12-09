@@ -78,6 +78,8 @@ protected:
     void elideContinuationPrompt(void);
     QString fullInputString(void);
     
+    void scriptStringAndSelection(QString &scriptString, int &pos, int &len) override;
+    
     // handling the command history
     QStringList history;
     int historyIndex = 0;

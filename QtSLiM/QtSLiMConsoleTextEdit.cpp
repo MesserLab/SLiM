@@ -58,6 +58,11 @@ void QtSLiMConsoleTextEdit::selfInit(void)
     connect(this, &QTextEdit::selectionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
     connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
     connect(this, &QtSLiMConsoleTextEdit::selectionWasChangedDuringLastEvent, this, &QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly, Qt::QueuedConnection);
+
+    // QtSLiMConsoleTextEdit, unlike other QtSLiMTextEdits, uses the live simulation for its context;
+    // this means that zero-gen functions are not available outside zero gen, completion is based on
+    // the presently existing variables and functions and methods, etc.
+    basedOnLiveSimulation = true;
 }
 
 QtSLiMConsoleTextEdit::~QtSLiMConsoleTextEdit()
@@ -66,12 +71,25 @@ QtSLiMConsoleTextEdit::~QtSLiMConsoleTextEdit()
 
 QTextCharFormat QtSLiMConsoleTextEdit::textFormatForColor(QColor color)
 {
-    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    QFont displayFont(prefs.displayFontPref());
     QTextCharFormat attrs;
-    attrs.setFont(displayFont);
     attrs.setForeground(QBrush(color));
     return attrs;
+}
+
+void QtSLiMConsoleTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len)
+{
+    // here we provide a subclass definition of what we consider "script": just what follows the prompt
+    QTextCursor commandCursor(lastPromptCursor);
+    commandCursor.setPosition(commandCursor.position(), QTextCursor::MoveAnchor);
+    commandCursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+    
+    scriptString = commandCursor.selectedText();
+    
+    QTextCursor selection = textCursor();
+    pos = selection.anchor();
+    len = selection.position() - pos;
+    
+    pos -= commandCursor.anchor();  // compensate for snipping off everything from the prompt back
 }
 
 void QtSLiMConsoleTextEdit::showWelcome(void)
@@ -195,19 +213,28 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         insertPlainText(errorString);
         appendSpacer();
         
-        /*
-        if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfErrorUTF16 >= 0) && (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16) && (scriptRange.location != NSNotFound))
+        if (!gEidosExecutingRuntimeScript &&
+                (gEidosCharacterStartOfErrorUTF16 >= 0) &&
+                (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16))
 		{
 			// An error occurred, so let's try to highlight it in the input
-			int errorTokenStart = gEidosCharacterStartOfErrorUTF16 + (int)scriptRange.location;
-			int errorTokenEnd = gEidosCharacterEndOfErrorUTF16 + (int)scriptRange.location;
+            int promptEnd = lastPromptCursor.position();
+			int errorTokenStart = gEidosCharacterStartOfErrorUTF16 + promptEnd;
+			int errorTokenEnd = gEidosCharacterEndOfErrorUTF16 + promptEnd;
 			
-			NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
-			
-			[ts addAttribute:NSBackgroundColorAttributeName value:[NSColor redColor] range:charRange];
-			[ts addAttribute:NSForegroundColorAttributeName value:[NSColor whiteColor] range:charRange];
+            QTextCursor highlightCursor(lastPromptCursor);
+            highlightCursor.setPosition(errorTokenStart, QTextCursor::MoveAnchor);
+            highlightCursor.setPosition(errorTokenEnd + 1, QTextCursor::KeepAnchor);
+            
+            QTextCharFormat highlightFormat;
+            highlightFormat.setForeground(QBrush(Qt::black));
+            highlightFormat.setBackground(QBrush(QColor(QColor(Qt::red).lighter(120))));
+            
+            highlightCursor.setCharFormat(highlightFormat);
+            
+            // note that unlike the error highlighting in the scripting views, this error
+            // highlighting is permanent, and will not be removed by later cursor changes
 		}
-        */
     }
     
     // scroll to bottom
