@@ -667,7 +667,15 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (IBAction)clearOutput:(id)sender
 {
-	[outputTextView clearOutput];
+	if (isContinuationPrompt)
+	{
+		[outputTextView clearOutputToPosition:originalPromptEnd - 2];
+		originalPromptEnd = 2;
+	}
+	else
+	{
+		[outputTextView clearOutputToPosition:outputTextView->lastPromptRange.location];
+	}
 }
 
 - (void)fixDumbSelectionBug:(id)unused

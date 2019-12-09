@@ -268,17 +268,17 @@
 	}
 }
 
-- (void)clearOutput
+- (void)clearOutputToPosition:(NSUInteger)clearPosition
 {
 	NSTextStorage *ts = [self textStorage];
 	NSRange selectedRange = [self selectedRange];
-	NSRange rangeToClear = NSMakeRange(0, lastPromptRange.location);
+	NSRange rangeToClear = NSMakeRange(0, clearPosition);
 	
 	[ts beginEditing];
 	[ts replaceCharactersInRange:rangeToClear withString:@""];
 	[ts endEditing];
 	
-	lastPromptRange = NSMakeRange(0, 2);
+	lastPromptRange.location -= clearPosition;
 	
 	if (selectedRange.location + selectedRange.length <= rangeToClear.location + rangeToClear.length)
 	{

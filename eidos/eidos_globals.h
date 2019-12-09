@@ -35,6 +35,8 @@
 #include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui when profiling is enabled
 #endif
 
+#include <time.h>
+
 class EidosScript;
 class EidosToken;
 
