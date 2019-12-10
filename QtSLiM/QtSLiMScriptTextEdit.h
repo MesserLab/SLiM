@@ -97,7 +97,7 @@ protected:
     const std::vector<EidosMethodSignature_CSP> *slimguiAllMethodSignatures(void);
     EidosMethodSignature_CSP signatureForMethodName(QString callName);
     EidosFunctionMap *functionMapForTokenizedScript(EidosScript &script);
-    QString signatureStringForScriptSelection(QString &callName);
+    EidosCallSignature_CSP signatureForScriptSelection(QString &callName);
     
     // virtual function for accessing the script portion of the contents; for normal
     // script textedits this is the whole content and te text cursor, but for the

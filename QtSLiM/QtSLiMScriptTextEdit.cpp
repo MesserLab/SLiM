@@ -712,15 +712,13 @@ void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, i
     len = selection.selectionEnd() - pos;
 }
 
-QString QtSLiMTextEdit::signatureStringForScriptSelection(QString &callName)
+EidosCallSignature_CSP QtSLiMTextEdit::signatureForScriptSelection(QString &callName)
 {
     // Note we return a copy of the signature, owned by the caller
     QString scriptString;
     int selectionStart, selectionEnd;
     
     scriptStringAndSelection(scriptString, selectionStart, selectionEnd);
-    
-    QString signatureString;
     
     if (scriptString.length())
 	{
@@ -770,8 +768,7 @@ QString QtSLiMTextEdit::signatureStringForScriptSelection(QString &callName)
 							// This is a method call, so look up its signature that way
 							EidosMethodSignature_CSP callSignature = signatureForMethodName(callName);
                             
-                            if (callSignature)
-                                signatureString = QString::fromStdString(callSignature->SignatureString());
+                            return std::move(callSignature);    // std::move() here avoids a bug in old compilers, according to a compiler warning...
                         }
 						else
 						{
@@ -810,13 +807,10 @@ QString QtSLiMTextEdit::signatureStringForScriptSelection(QString &callName)
 							EidosFunctionMap *functionMapPtr = functionMapForTokenizedScript(script);
                             EidosFunctionSignature_CSP callSignature = signatureForFunctionName(callName, functionMapPtr);
                             
-                            if (callSignature)
-                                signatureString = QString::fromStdString(callSignature->SignatureString());
+							delete functionMapPtr;              // note that callSignature survives this deletion because of shared_ptr
                             
-							delete functionMapPtr;  // note callSignature becomes invalid here; we cannot return it!
+                            return std::move(callSignature);    // std::move() here avoids a bug in old compilers, according to a compiler warning...
 						}
-                        
-                        return signatureString;
 					}
 					
 					lowestParenCountSeen = parenCount;
@@ -831,7 +825,7 @@ QString QtSLiMTextEdit::signatureStringForScriptSelection(QString &callName)
 		}
 	}
 	
-	return signatureString;
+	return nullptr;
 }
 
 void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
@@ -839,79 +833,78 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
     if (scriptType != NoScriptType)
     {
         QString callName;
-        QString displayString = signatureStringForScriptSelection(callName);
+        EidosCallSignature_CSP signature = signatureForScriptSelection(callName);
         
-        if (!displayString.length() && (scriptType == SLiMScriptType))
+        if (!signature && (scriptType == SLiMScriptType))
         {
             // Handle SLiM callback signatures
-            const EidosCallSignature *signature = nullptr;
-            
             if (callName == "initialize")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("initialize", nullptr, kEidosValueMaskVOID));
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("initialize", nullptr, kEidosValueMaskVOID)));
                 signature = callbackSig;
             }
             else if (callName == "early")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("early", nullptr, kEidosValueMaskVOID));
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("early", nullptr, kEidosValueMaskVOID)));
                 signature = callbackSig;
             }
             else if (callName == "late")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("late", nullptr, kEidosValueMaskVOID));
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("late", nullptr, kEidosValueMaskVOID)));
                 signature = callbackSig;
             }
             else if (callName == "fitness")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "interaction")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "mateChoice")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "modifyChild")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "recombination")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "mutation")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "reproduction")
             {
-                static EidosCallSignature *callbackSig = nullptr;
-                if (!callbackSig) callbackSig = (new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskVOID))->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OSN("sex", gStaticEidosValueNULLInvisible);
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskVOID))->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OSN("sex", gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
-            
-            if (signature)
-                displayString = QString::fromStdString(signature->SignatureString());
         }
         
-        if (!displayString.length() && callName.length())
+        QString displayString;
+        
+        if (signature)
+            displayString = QString::fromStdString(signature->SignatureString());
+        else if (!signature && callName.length())
             displayString = callName + "() – unrecognized call";
         
         QStatusBar *statusBar = statusBarForWindow();
@@ -919,9 +912,6 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
         if (displayString.length())
         {
             // FIXME no syntax coloring for this at the moment, because QStatusBar doesn't support rich text; subclass?
-            // If we do get around to wanting to colorize, signatureStringForScriptSelection() should change to return
-            // an EidosCallSignature*, but those will have to go under shared_ptr to make that work since user-defined
-            // functions are not given a permanent signature in the present design.
             statusBar->setStyleSheet("font-size: 11px;");
             statusBar->showMessage(displayString);
         }
