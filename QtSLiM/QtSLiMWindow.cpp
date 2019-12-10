@@ -62,7 +62,6 @@
 // enable the other display types in the individuals view
 // implement pop-up menu for graph pop-up button, graph windows
 // code editing: code completion
-// implement the status bar
 // decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not

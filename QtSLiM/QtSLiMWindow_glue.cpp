@@ -143,7 +143,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionPrettyprintScript, &QAction::triggered, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
     connect(ui->actionShowScriptHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
     connect(ui->actionQtSLiMHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
-    connect(ui->actionShowEidosConsole, &QAction::triggered, this, &QtSLiMWindow::showConsoleClicked);
+    connect(ui->actionShowEidosConsole, &QAction::triggered, [this]() { ui->consoleButton->toggle(); showConsoleClicked(); });
     connect(ui->actionShowVariableBrowser, &QAction::triggered, this, &QtSLiMWindow::showBrowserClicked);
     connect(ui->actionClearOutput, &QAction::triggered, this, &QtSLiMWindow::clearOutputClicked);
     
