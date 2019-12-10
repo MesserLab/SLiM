@@ -21,7 +21,13 @@
 #ifndef __Eidos__eidos_property_signature__
 #define __Eidos__eidos_property_signature__
 
-#include "eidos_value.h"
+#include <memory>
+
+#include "eidos_globals.h"
+
+class EidosValue;
+class EidosObjectElement;
+class EidosObjectClass;
 
 
 // This typedef is for an "accelerated property getter".  These are static member functions on a class, designed to provide a whole
@@ -79,8 +85,12 @@ public:
 	EidosPropertySignature *DeclareAcceleratedSet(Eidos_AcceleratedPropertySetter p_setter);
 };
 
+// These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.
+//typedef std::shared_ptr<EidosPropertySignature> EidosPropertySignature_SP;		// once under shared_ptr, these should always be const
+typedef std::shared_ptr<EidosPropertySignature const> EidosPropertySignature_CSP;
+
 std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature);
-bool CompareEidosPropertySignatures(const EidosPropertySignature *p_i, const EidosPropertySignature *p_j);
+bool CompareEidosPropertySignatures(const EidosPropertySignature_CSP &p_i, const EidosPropertySignature_CSP &p_j);
 
 
 #endif /* defined(__Eidos__eidos_property_signature__) */

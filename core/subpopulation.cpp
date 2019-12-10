@@ -6692,8 +6692,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 };
 
 EidosObjectClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
@@ -6704,13 +6704,13 @@ const std::string &Subpopulation_Class::ElementType(void) const
 	return gStr_Subpopulation;
 }
 
-const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));
@@ -6732,13 +6732,13 @@ const std::vector<const EidosPropertySignature *> *Subpopulation_Class::Properti
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *Subpopulation_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));

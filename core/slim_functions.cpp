@@ -27,10 +27,10 @@
 #include <vector>
 
 
-const std::vector<EidosFunctionSignature_SP> *SLiMSim::SLiMFunctionSignatures(void)
+const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(void)
 {
 	// Allocate our own EidosFunctionSignature objects
-	static std::vector<EidosFunctionSignature_SP> sim_func_signatures_;
+	static std::vector<EidosFunctionSignature_CSP> sim_func_signatures_;
 	
 	if (!sim_func_signatures_.size())
 	{

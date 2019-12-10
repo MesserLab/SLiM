@@ -19,6 +19,7 @@
 
 
 #include "eidos_property_signature.h"
+#include "eidos_value.h"
 
 #include <string>
 
@@ -268,7 +269,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature
 	return p_outstream;
 }
 
-bool CompareEidosPropertySignatures(const EidosPropertySignature *p_i, const EidosPropertySignature *p_j)
+bool CompareEidosPropertySignatures(const EidosPropertySignature_CSP &p_i, const EidosPropertySignature_CSP &p_j)
 {
 	return (p_i->property_name_ < p_j->property_name_);
 }

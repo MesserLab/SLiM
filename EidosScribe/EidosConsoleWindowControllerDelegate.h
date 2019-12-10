@@ -44,7 +44,7 @@
 @required
 
 // a message from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h
-- (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController;
+- (const std::vector<EidosMethodSignature_CSP> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController;
 
 @optional
 

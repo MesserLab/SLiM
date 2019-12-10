@@ -289,7 +289,7 @@
 // that string for topic headings, function/method/property signature lines, etc., and creates a hierarchy of help topics from the results.  This process
 // assumes that the RTF doc file is laid out in a standard way that fits the regex patterns used here; it is designed to work directly with content copied
 // and pasted out of our Word documentation files into RTF in TextEdit.
-- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<EidosFunctionSignature_SP> *)functionList methods:(const std::vector<const EidosMethodSignature*> *)methodList properties:(const std::vector<const EidosPropertySignature*> *)propertyList
+- (void)addTopicsFromRTFFile:(NSString *)rtfFile underHeading:(NSString *)topLevelHeading functions:(const std::vector<EidosFunctionSignature_CSP> *)functionList methods:(const std::vector<EidosMethodSignature_CSP> *)methodList properties:(const std::vector<EidosPropertySignature_CSP> *)propertyList
 {
 	NSString *topicFilePath = [[NSBundle mainBundle] pathForResource:rtfFile ofType:@"rtf"];
 	NSData *topicFileData = [NSData dataWithContentsOfFile:topicFilePath];
@@ -480,7 +480,7 @@
 			if (methodList)
 			{
 				std::string method_name([callName UTF8String]);
-				const EidosMethodSignature *method_signature = nullptr;
+				EidosMethodSignature_CSP method_signature = nullptr;
 				
 				for (auto signature_iter = methodList->begin(); signature_iter != methodList->end(); signature_iter++)
 					if ((*signature_iter)->call_name_.compare(method_name) == 0)
@@ -491,7 +491,7 @@
 				
 				if (method_signature)
 				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:method_signature size:11.0];
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForCallSignature:method_signature.get() size:11.0];
 					NSString *oldSignatureString = [lineAttrString string];
 					NSString *newSignatureString = [attrSig string];
 					
@@ -531,7 +531,7 @@
 			if (propertyList)
 			{
 				std::string property_name([callName UTF8String]);
-				const EidosPropertySignature *property_signature = nullptr;
+				EidosPropertySignature_CSP property_signature = nullptr;
 				
 				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
 					if ((*signature_iter)->property_name_.compare(property_name) == 0)
@@ -542,7 +542,7 @@
 				
 				if (property_signature)
 				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature size:11.0];
+					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature.get() size:11.0];
 					NSString *oldSignatureString = [lineAttrString string];
 					NSString *newSignatureString = [attrSig string];
 					
@@ -570,9 +570,9 @@
 	}
 }
 
-- (void)checkDocumentationOfFunctions:(const std::vector<EidosFunctionSignature_SP> *)functions
+- (void)checkDocumentationOfFunctions:(const std::vector<EidosFunctionSignature_CSP> *)functions
 {
-	for (EidosFunctionSignature_SP functionSignature : *functions)
+	for (const EidosFunctionSignature_CSP &functionSignature : *functions)
 	{
 		NSString *functionNameString = [NSString stringWithUTF8String:functionSignature->call_name_.c_str()];
 		
@@ -611,9 +611,9 @@
 			{
 				NSDictionary *propertyDict = [classDocDict objectForKey:propertiesKey];
 				NSMutableArray *docProperties = [[propertyDict allKeys] mutableCopy];
-				const std::vector<const EidosPropertySignature *> *classProperties = classObject->Properties();
+				const std::vector<EidosPropertySignature_CSP> *classProperties = classObject->Properties();
 				
-				for (const EidosPropertySignature *propertySignature : *classProperties)
+				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
 					std::string &&connector_string = propertySignature->PropertySymbol();
 					NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
@@ -641,10 +641,10 @@
 			{
 				NSDictionary *methodDict = (classIsUndefinedClass ? classDocDict : [classDocDict objectForKey:methodsKey]);
 				NSMutableArray *docMethods = [[methodDict allKeys] mutableCopy];
-				const std::vector<const EidosMethodSignature *> *classMethods = classObject->Methods();
-				const std::vector<const EidosMethodSignature *> *baseMethods = gEidos_UndefinedClassObject->Methods();
+				const std::vector<EidosMethodSignature_CSP> *classMethods = classObject->Methods();
+				const std::vector<EidosMethodSignature_CSP> *baseMethods = gEidos_UndefinedClassObject->Methods();
 				
-				for (const EidosMethodSignature *methodSignature : *classMethods)
+				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
 					bool isBaseMethod = (std::find(baseMethods->begin(), baseMethods->end(), methodSignature) != baseMethods->end());
 					

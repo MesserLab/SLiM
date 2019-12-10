@@ -1026,84 +1026,88 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 		// Build a signature object for this function
 		EidosTypeSpecifier &return_type = return_type_node->typespec_;
 		const std::string &function_name = function_name_node->token_->token_string_;
-		EidosFunctionSignature *sig;
-		
-		if (return_type.object_class == nullptr)
-			sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
-																		nullptr,
-																		return_type.type_mask));
-		else
-			sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
-																		nullptr,
-																		return_type.type_mask,
-																		return_type.object_class));
-		
 		const std::vector<EidosASTNode *> &param_nodes = param_list_node->children_;
 		std::vector<std::string> used_param_names;
 		
-		for (EidosASTNode *param_node : param_nodes)
 		{
-			const std::vector<EidosASTNode *> &param_children = param_node->children_;
-			int param_children_count = (int)param_children.size();
+			EidosFunctionSignature *sig;
 			
-			if ((param_children_count == 2) || (param_children_count == 3))
+			if (return_type.object_class == nullptr)
+				sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
+																			nullptr,
+																			return_type.type_mask));
+			else
+				sig = (EidosFunctionSignature *)(new EidosFunctionSignature(function_name,
+																			nullptr,
+																			return_type.type_mask,
+																			return_type.object_class));
+			
+			for (EidosASTNode *param_node : param_nodes)
 			{
-				EidosTypeSpecifier &param_type = param_children[0]->typespec_;
-				const std::string &param_name = param_children[1]->token_->token_string_;
+				const std::vector<EidosASTNode *> &param_children = param_node->children_;
+				int param_children_count = (int)param_children.size();
 				
-				// Check param_name; it needs to not be used by another parameter
-				if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
-					continue;
-				
-				if (param_children_count >= 2)
+				if ((param_children_count == 2) || (param_children_count == 3))
 				{
-					// param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
+					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+					const std::string &param_name = param_children[1]->token_->token_string_;
 					
-					// Note that we really can't easily deal with default values, because we would have to actually parse the
-					// defualt-value node to get a value, if it is an identifier, and then once we have the value we can't
-					// easily represent it symbolically any more anyway.  This means function signature previews in the
-					// status bar won't show default arguments for user-defined functions; the information to do that will
-					// not be gathered here.  Maybe this can be improved at some point.  FIXME BCH 23 October 2017
+					// Check param_name; it needs to not be used by another parameter
+					if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
+						continue;
 					
-					// we call AddArgWithDefault() so we can specify fault-tolerance; we're not allowed to raise!
-					// note this means that erroneous function prototypes will lead to faulty signatures in our function map,
-					// but that is fine, it may just mean that an incorrect signature gets previewed to the user
-					sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, EidosValue_SP(nullptr), true);	// true is fault-tolerant
+					if (param_children_count >= 2)
+					{
+						// param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
+						
+						// Note that we really can't easily deal with default values, because we would have to actually parse the
+						// defualt-value node to get a value, if it is an identifier, and then once we have the value we can't
+						// easily represent it symbolically any more anyway.  This means function signature previews in the
+						// status bar won't show default arguments for user-defined functions; the information to do that will
+						// not be gathered here.  Maybe this can be improved at some point.  FIXME BCH 23 October 2017
+						
+						// we call AddArgWithDefault() so we can specify fault-tolerance; we're not allowed to raise!
+						// note this means that erroneous function prototypes will lead to faulty signatures in our function map,
+						// but that is fine, it may just mean that an incorrect signature gets previewed to the user
+						sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, EidosValue_SP(nullptr), true);	// true is fault-tolerant
+					}
+					
+					used_param_names.push_back(param_name);
 				}
-				
-				used_param_names.push_back(param_name);
 			}
-		}
-		
-		sig->user_defined_ = true;
-		
-		//std::cout << *sig << std::endl;
-		
-		// Check that a built-in function is not already defined with this name; no replacing the built-ins.
-		auto signature_iter = function_map_.find(function_name);
-		bool can_redefine = true;
-		
-		if (signature_iter != function_map_.end())
-		{
-			const EidosFunctionSignature *prior_sig = signature_iter->second.get();
 			
-			if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
-				can_redefine = false;
-		}
-		
-		if (can_redefine)
-		{
-			// Add the user-defined function to our function map (possibly replacing a previous version)
-			auto found_iter = function_map_.find(sig->call_name_);
+			sig->user_defined_ = true;
 			
-			if (found_iter != function_map_.end())
-				function_map_.erase(found_iter);
+			//std::cout << *sig << std::endl;
 			
-			function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_SP(sig)));
-		}
-		else
-		{
-			delete sig;
+			// Check that a built-in function is not already defined with this name; no replacing the built-ins.
+			auto signature_iter = function_map_.find(function_name);
+			bool can_redefine = true;
+			
+			if (signature_iter != function_map_.end())
+			{
+				const EidosFunctionSignature *prior_sig = signature_iter->second.get();
+				
+				if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
+					can_redefine = false;
+			}
+			
+			if (can_redefine)
+			{
+				// Add the user-defined function to our function map (possibly replacing a previous version)
+				auto found_iter = function_map_.find(sig->call_name_);
+				
+				if (found_iter != function_map_.end())
+					function_map_.erase(found_iter);
+				
+				function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_CSP(sig)));
+			}
+			else
+			{
+				delete sig;
+			}
+			
+			// the signature is now under shared_ptr, or deleted, and so variable sig falls out of scope here
 		}
 		
 		// Our other job is to type-interpret inside the body node of the declared function, with the correct scoping set up so

@@ -3306,10 +3306,10 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 		default:
 		{
 			// Check whether the method call failed due to a bad subclass implementation
-			const std::vector<const EidosMethodSignature *> *methods = Class()->Methods();
+			const std::vector<EidosMethodSignature_CSP> *methods = Class()->Methods();
 			const std::string &method_name = Eidos_StringForGlobalStringID(p_method_id);
 			
-			for (auto method_sig : *methods)
+			for (const EidosMethodSignature_CSP &method_sig : *methods)
 				if (method_sig->call_name_.compare(method_name) == 0)
 					EIDOS_TERMINATION << "ERROR (EidosObjectElement::ExecuteInstanceMethod for " << Class()->ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
 			
@@ -3329,9 +3329,9 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 	
 	output_stream << Class()->ElementType() << ":" << std::endl;
 	
-	const std::vector<const EidosPropertySignature *> *properties = Class()->Properties();
+	const std::vector<EidosPropertySignature_CSP> *properties = Class()->Properties();
 	
-	for (auto property_sig : *properties)
+	for (const EidosPropertySignature_CSP &property_sig : *properties)
 	{
 		const std::string &property_name = property_sig->property_name_;
 		EidosGlobalStringID property_id = property_sig->property_id_;
@@ -3506,10 +3506,10 @@ void EidosObjectClass::CacheDispatchTables(void)
 		EIDOS_TERMINATION << "ERROR (EidosObjectClass::CacheDispatchTables): (internal error) dispatch tables already initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
 	
 	{
-		const std::vector<const EidosPropertySignature *> *properties = Properties();
+		const std::vector<EidosPropertySignature_CSP> *properties = Properties();
 		int32_t last_id = -1;
 		
-		for (const EidosPropertySignature *sig : *properties)
+		for (const EidosPropertySignature_CSP &sig : *properties)
 			last_id = std::max(last_id, (int32_t)sig->property_id_);
 		
 		property_signatures_dispatch_capacity_ = last_id + 1;
@@ -3518,17 +3518,17 @@ void EidosObjectClass::CacheDispatchTables(void)
 		if (property_signatures_dispatch_capacity_ > 512)
 			EIDOS_TERMINATION << "ERROR (EidosObjectClass::CacheDispatchTables): (internal error) property dispatch table unreasonably large for class " << ElementType() << "." << EidosTerminate(nullptr);
 		
-		property_signatures_dispatch_ = (const EidosPropertySignature **)calloc(property_signatures_dispatch_capacity_, sizeof(EidosPropertySignature *));
+		property_signatures_dispatch_ = (EidosPropertySignature_CSP *)calloc(property_signatures_dispatch_capacity_, sizeof(EidosPropertySignature_CSP));
 		
-		for (const EidosPropertySignature *sig : *properties)
+		for (const EidosPropertySignature_CSP &sig : *properties)
 			property_signatures_dispatch_[sig->property_id_] = sig;
 	}
 	
 	{
-		const std::vector<const EidosMethodSignature *> *methods = Methods();
+		const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 		int32_t last_id = -1;
 		
-		for (const EidosMethodSignature *sig : *methods)
+		for (const EidosMethodSignature_CSP &sig : *methods)
 			last_id = std::max(last_id, (int32_t)sig->call_id_);
 		
 		method_signatures_dispatch_capacity_ = last_id + 1;
@@ -3537,9 +3537,9 @@ void EidosObjectClass::CacheDispatchTables(void)
 		if (method_signatures_dispatch_capacity_ > 512)
 			EIDOS_TERMINATION << "ERROR (EidosObjectClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ElementType() << "." << EidosTerminate(nullptr);
 		
-		method_signatures_dispatch_ = (const EidosMethodSignature **)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature *));
+		method_signatures_dispatch_ = (EidosMethodSignature_CSP *)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature_CSP));
 		
-		for (const EidosMethodSignature *sig : *methods)
+		for (const EidosMethodSignature_CSP &sig : *methods)
 			method_signatures_dispatch_[sig->call_id_] = sig;
 	}
 	
@@ -3553,13 +3553,13 @@ void EidosObjectClass::RaiseForDispatchUninitialized(void) const
 	EIDOS_TERMINATION << "ERROR (EidosObjectClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
 }
 
-const std::vector<const EidosPropertySignature *> *EidosObjectClass::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *EidosObjectClass::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>;
+		properties = new std::vector<EidosPropertySignature_CSP>;
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -3567,13 +3567,13 @@ const std::vector<const EidosPropertySignature *> *EidosObjectClass::Properties(
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *EidosObjectClass::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *EidosObjectClass::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>;
+		methods = new std::vector<EidosMethodSignature_CSP>;
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_methodSignature, kEidosValueMaskVOID))->AddString_OSN("methodName", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_propertySignature, kEidosValueMaskVOID))->AddString_OSN("propertyName", gStaticEidosValueNULL));
@@ -3599,10 +3599,10 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 		default:
 		{
 			// Check whether the method call failed due to a bad subclass implementation
-			const std::vector<const EidosMethodSignature *> *methods = Methods();
+			const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 			const std::string &method_name = Eidos_StringForGlobalStringID(p_method_id);
 			
-			for (auto method_sig : *methods)
+			for (const EidosMethodSignature_CSP &method_sig : *methods)
 				if (method_sig->call_name_.compare(method_name) == 0)
 					EIDOS_TERMINATION << "ERROR (EidosObjectClass::ExecuteClassMethod for " << ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
 			
@@ -3621,10 +3621,10 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStrin
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
-	const std::vector<const EidosPropertySignature *> *properties = Properties();
+	const std::vector<EidosPropertySignature_CSP> *properties = Properties();
 	bool signature_found = false;
 	
-	for (auto property_sig : *properties)
+	for (const EidosPropertySignature_CSP &property_sig : *properties)
 	{
 		const std::string &property_name = property_sig->property_name_;
 		
@@ -3651,11 +3651,11 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringI
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
-	const std::vector<const EidosMethodSignature *> *methods = Methods();
+	const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 	bool signature_found = false;
 	
 	// Output class methods first
-	for (auto method_sig : *methods)
+	for (const EidosMethodSignature_CSP &method_sig : *methods)
 	{
 		if (!method_sig->is_class_method)
 			continue;
@@ -3670,7 +3670,7 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringI
 	}
 	
 	// Then instance methods
-	for (auto method_sig : *methods)
+	for (const EidosMethodSignature_CSP &method_sig : *methods)
 	{
 		if (method_sig->is_class_method)
 			continue;

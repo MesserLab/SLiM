@@ -55,7 +55,7 @@ public:
 	mutable EidosValue_SP cached_literal_value_;						// an optional pre-cached EidosValue for numbers, strings, and constant identifiers
 	mutable EidosValue_SP cached_range_value_;							// an optional pre-cached EidosValue for constant range-operator expressions
 	mutable EidosValue_SP cached_return_value_;							// an optional pre-cached EidosValue for constant return statements and constant-return blocks
-	mutable EidosFunctionSignature_SP cached_signature_ = nullptr;		// a cached pointer to the function signature corresponding to the token
+	mutable EidosFunctionSignature_CSP cached_signature_ = nullptr;		// a cached pointer to the function signature corresponding to the token
 	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
 	mutable EidosGlobalStringID cached_stringID_ = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
 	

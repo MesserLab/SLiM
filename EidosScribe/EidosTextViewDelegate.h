@@ -65,7 +65,7 @@ enum class EidosSyntaxHighlightType
 // multiple methods of the same name but with different signatures should be avoided).
 // This is required because without it the status bar's display of methods will not work,
 // but if you really don't wish to implement it you can return nullptr.
-- (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
+- (const std::vector<EidosMethodSignature_CSP> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
 
 @optional
 
