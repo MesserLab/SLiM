@@ -21,10 +21,12 @@
 #ifndef __Eidos__eidos_function_signature__
 #define __Eidos__eidos_function_signature__
 
-#include "eidos_value.h"
-
 #include <iostream>
 #include <memory>
+
+#include "eidos_globals.h"
+
+class EidosValue;
 
 
 // Prototype for a function handler that is internal to Eidos.
@@ -189,8 +191,12 @@ public:
 	virtual std::string CallDelegate(void) const;				// used for stream output
 };
 
+// These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.
+//typedef std::shared_ptr<EidosCallSignature> EidosCallSignature_SP;		// once under shared_ptr, these should always be const
+typedef std::shared_ptr<EidosCallSignature const> EidosCallSignature_CSP;
+
 std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_signature);
-bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSignature *p_j);
+bool CompareEidosCallSignatures(const EidosCallSignature_CSP &p_i, const EidosCallSignature_CSP &p_j);
 
 
 #pragma mark -
@@ -225,9 +231,11 @@ public:
 	virtual std::string CallDelegate(void) const;
 };
 
-// Function signatures are kept under shared_ptr since user-defined functions make their lifetime complicated
-typedef std::shared_ptr<const EidosFunctionSignature> EidosFunctionSignature_SP;
-bool CompareEidosFunctionSignature_SPs(EidosFunctionSignature_SP p_i, EidosFunctionSignature_SP p_j);
+// These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.
+//typedef std::shared_ptr<EidosFunctionSignature> EidosFunctionSignature_SP;		// once under shared_ptr, these should always be const
+typedef std::shared_ptr<EidosFunctionSignature const> EidosFunctionSignature_CSP;
+
+bool CompareEidosFunctionSignatures(const EidosFunctionSignature_CSP &p_i, const EidosFunctionSignature_CSP &p_j);
 
 
 #pragma mark -
@@ -293,6 +301,16 @@ public:
 	
 	virtual std::string CallPrefix(void) const;
 };
+
+
+// These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.
+//typedef std::shared_ptr<EidosMethodSignature> EidosMethodSignature_SP;					// once under shared_ptr, these should always be const
+//typedef std::shared_ptr<EidosInstanceMethodSignature> EidosInstanceMethodSignature_SP;	// once under shared_ptr, these should always be const
+//typedef std::shared_ptr<EidosClassMethodSignature> EidosClassMethodSignature_SP;			// once under shared_ptr, these should always be const
+
+typedef std::shared_ptr<EidosMethodSignature const> EidosMethodSignature_CSP;
+typedef std::shared_ptr<EidosInstanceMethodSignature const> EidosInstanceMethodSignature_CSP;
+typedef std::shared_ptr<EidosClassMethodSignature const> EidosClassMethodSignature_CSP;
 
 
 #endif /* defined(__Eidos__eidos_function_signature__) */

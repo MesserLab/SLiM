@@ -23,6 +23,8 @@
 #include <string>
 #include <utility>
 
+#include "eidos_value.h"
+
 
 //
 //	EidosCallSignature
@@ -533,7 +535,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_
 	return p_outstream;
 }
 
-bool CompareEidosCallSignatures(const EidosCallSignature *p_i, const EidosCallSignature *p_j)
+bool CompareEidosCallSignatures(const EidosCallSignature_CSP &p_i, const EidosCallSignature_CSP &p_j)
 {
 	return (p_i->call_name_ < p_j->call_name_);
 }
@@ -598,7 +600,7 @@ std::string EidosFunctionSignature::CallDelegate(void) const
 	return "";
 }
 
-bool CompareEidosFunctionSignature_SPs(EidosFunctionSignature_SP p_i, EidosFunctionSignature_SP p_j)
+bool CompareEidosFunctionSignatures(const EidosFunctionSignature_CSP &p_i, const EidosFunctionSignature_CSP &p_j)
 {
 	return (p_i->call_name_ < p_j->call_name_);
 }

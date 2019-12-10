@@ -34,72 +34,14 @@
 #include <string>
 #include <initializer_list>
 #include <unordered_map>
+#include <memory>
 
 #include "eidos_globals.h"
 #include "eidos_intrusive_ptr.h"
 #include "eidos_object_pool.h"
 #include "eidos_script.h"
-
-
-class EidosValue;
-class EidosValue_VOID;
-class EidosValue_NULL;
-class EidosValue_Logical;
-class EidosValue_Logical_const;
-class EidosValue_Int;
-class EidosValue_Int_singleton;
-class EidosValue_Int_vector;
-class EidosValue_Float;
-class EidosValue_Float_singleton;
-class EidosValue_Float_vector;
-class EidosValue_String;
-class EidosValue_String_singleton;
-class EidosValue_String_vector;
-class EidosValue_Object;
-class EidosValue_Object_singleton;
-class EidosValue_Object_vector;
-
-class EidosObjectPool;
-class EidosPropertySignature;
-class EidosMethodSignature;
-class EidosInstanceMethodSignature;
-class EidosInterpreter;
-class EidosToken;
-
-class EidosObjectElement;	// the value type for EidosValue_Object; defined at the bottom of this file
-class EidosObjectClass;		// the class definition object for EidosObjectElement; also defined at bottom
-
-
-// Type int64_t is used for Eidos "integer", type double is used for Eidos "float", type std::string is used
-// for Eidos "string", and EidosObjectElement* is used for Eidos "object".  The type used for Eidos "logical"
-// is a bit less clear, and so is controlled by a typedef here.  Type bool would be the obvious choice, but
-// std::vector<bool> is a special class that may not be desirable; it generally encapsulates a priority for
-// small memory usage over high speed, which is not our priority.  The measured speed difference is not large,
-// about 4% for fairly logical-intensive tests, but the memory penalty seems irrelevant, so why not.  If you
-// feel differently, switching the typedef below should cleanly switch over to bool instead of uint8_t.
-typedef uint8_t eidos_logical_t;
-//typedef bool eidos_logical_t;
-
-
-// We use Eidos_intrusive_ptr to refer to most EidosValue instances, unless they are used only in one place with
-// a single owner.  For convenience, there is a typedef for Eidos_intrusive_ptr for each EidosValue subclass.
-typedef Eidos_intrusive_ptr<EidosValue>						EidosValue_SP;
-typedef Eidos_intrusive_ptr<EidosValue_VOID>				EidosValue_VOID_SP;
-typedef Eidos_intrusive_ptr<EidosValue_NULL>				EidosValue_NULL_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Logical>				EidosValue_Logical_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Logical_const>		EidosValue_Logical_const_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Int>					EidosValue_Int_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Int_singleton>		EidosValue_Int_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Int_vector>			EidosValue_Int_vector_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Float>				EidosValue_Float_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Float_singleton>		EidosValue_Float_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Float_vector>		EidosValue_Float_vector_SP;
-typedef Eidos_intrusive_ptr<EidosValue_String>				EidosValue_String_SP;
-typedef Eidos_intrusive_ptr<EidosValue_String_singleton>	EidosValue_String_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_String_vector>		EidosValue_String_vector_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Object>				EidosValue_Object_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Object_singleton>	EidosValue_Object_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Object_vector>		EidosValue_Object_vector_SP;
+#include "eidos_property_signature.h"
+#include "eidos_call_signature.h"
 
 
 // EidosValues must be allocated out of the global pool, for speed.  See eidos_object_pool.h.  When Eidos disposes of an object,
@@ -140,59 +82,6 @@ extern EidosValue_String_SP gStaticEidosValue_StringEmpty;
 extern EidosValue_String_SP gStaticEidosValue_StringSpace;
 extern EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 extern EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
-
-
-// EidosValueType is an enum of the possible types for EidosValue objects.  Note that all of these types are vectors of the stated
-// type; all objects in Eidos are vectors.  The order of these types is in type-promotion order, from lowest to highest, except
-// that NULL never gets promoted to any other type, and nothing ever gets promoted to object type.
-enum class EidosValueType : uint8_t
-{
-	kValueVOID = 0,		// special void type; this cannot be mixed with other types or promoted to other types, cannot be passed to a function/method, cannot be assigned to a variable
-	kValueNULL,			// special NULL type; this cannot be mixed with other types or promoted to other types
-	
-	kValueLogical,		// logicals (eidos_logical_t)
-	kValueInt,			// integers (int64_t)
-	kValueFloat,		// floats (double)
-	kValueString,		// strings (std:string)
-	
-	kValueObject		// a vector of EidosObjectElement objects: these represent built-in objects with properties and methods
-};
-
-std::string StringForEidosValueType(const EidosValueType p_type);
-std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type);
-
-
-// EidosValueMask is a uint32_t used as a bit mask to identify permitted types for EidosValue objects (arguments, returns)
-// Note that these mask values must correspond to the values in EidosValueType directly; (1 << (int)type) == mask must be true.
-typedef uint32_t EidosValueMask;
-
-const EidosValueMask kEidosValueMaskNone =			0x00000000;
-const EidosValueMask kEidosValueMaskVOID =			0x00000001;
-const EidosValueMask kEidosValueMaskNULL =			0x00000002;
-const EidosValueMask kEidosValueMaskLogical =		0x00000004;
-const EidosValueMask kEidosValueMaskInt =			0x00000008;
-const EidosValueMask kEidosValueMaskFloat =			0x00000010;
-const EidosValueMask kEidosValueMaskString =		0x00000020;
-const EidosValueMask kEidosValueMaskObject =		0x00000040;
-
-const EidosValueMask kEidosValueMaskOptional =		0x80000000;
-const EidosValueMask kEidosValueMaskSingleton =		0x40000000;
-const EidosValueMask kEidosValueMaskFlagStrip =		0x3FFFFFFF;
-
-const EidosValueMask kEidosValueMaskNumeric =		(kEidosValueMaskInt | kEidosValueMaskFloat);									// integer or float
-const EidosValueMask kEidosValueMaskLogicalEquiv =	(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat);			// logical, integer, or float
-const EidosValueMask kEidosValueMaskAnyBase =		(kEidosValueMaskNULL | kEidosValueMaskLogicalEquiv | kEidosValueMaskString);	// any non-void type except object
-const EidosValueMask kEidosValueMaskAny =			(kEidosValueMaskAnyBase | kEidosValueMaskObject);								// any non-void type including object
-
-std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name, EidosValue *p_default);
-//std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
-
-
-// EidosTypeSpecifier is a struct that provides a full type specifier, including an optional object class, for a value
-typedef struct {
-	EidosValueMask type_mask;					// can specify kEidosValueMaskNone for no known type, or any combination of type masks
-	const EidosObjectClass *object_class;		// if kEidosValueMaskObject is included in type_mask, this can specify a class (or can be nullptr)
-} EidosTypeSpecifier;
 
 
 #pragma mark -
@@ -1262,10 +1151,10 @@ protected:
 	// cached dispatch tables; these are lookup tables, indexed by EidosGlobalStringID property / method ids
 	bool dispatches_cached_ = false;
 	
-	const EidosPropertySignature *(*property_signatures_dispatch_) = nullptr;
+	EidosPropertySignature_CSP(*property_signatures_dispatch_) = nullptr;
 	int32_t property_signatures_dispatch_capacity_ = 0;
 	
-	const EidosMethodSignature *(*method_signatures_dispatch_) = nullptr;
+	EidosMethodSignature_CSP(*method_signatures_dispatch_) = nullptr;
 	int32_t method_signatures_dispatch_capacity_ = 0;
 	
 public:
@@ -1292,7 +1181,7 @@ public:
 			RaiseForDispatchUninitialized();
 #endif
 		if (p_property_id < (EidosGlobalStringID)property_signatures_dispatch_capacity_)
-			return property_signatures_dispatch_[p_property_id];
+			return property_signatures_dispatch_[p_property_id].get();	// the assumption is short-term use by the caller
 		
 		return nullptr;
 	}
@@ -1304,13 +1193,13 @@ public:
 			RaiseForDispatchUninitialized();
 #endif
 		if (p_method_id < (EidosGlobalStringID)method_signatures_dispatch_capacity_)
-			return method_signatures_dispatch_[p_method_id];
+			return method_signatures_dispatch_[p_method_id].get();	// the assumption is short-term use by the caller
 		
 		return nullptr;
 	}
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;

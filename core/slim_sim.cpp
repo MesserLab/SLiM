@@ -9602,10 +9602,10 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMModelType(const std:
 	return gStaticEidosValueVOID;
 }
 
-const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSignatures(void)
+const std::vector<EidosFunctionSignature_CSP> *SLiMSim::ZeroGenerationFunctionSignatures(void)
 {
 	// Allocate our own EidosFunctionSignature objects
-	static std::vector<EidosFunctionSignature_SP> sim_0_signatures_;
+	static std::vector<EidosFunctionSignature_CSP> sim_0_signatures_;
 	
 	if (!sim_0_signatures_.size())
 	{
@@ -9644,58 +9644,58 @@ const std::vector<EidosFunctionSignature_SP> *SLiMSim::ZeroGenerationFunctionSig
 
 void SLiMSim::AddZeroGenerationFunctionsToMap(EidosFunctionMap &p_map)
 {
-	const std::vector<EidosFunctionSignature_SP> *signatures = ZeroGenerationFunctionSignatures();
+	const std::vector<EidosFunctionSignature_CSP> *signatures = ZeroGenerationFunctionSignatures();
 	
 	if (signatures)
 	{
-		for (EidosFunctionSignature_SP signature : *signatures)
+		for (const EidosFunctionSignature_CSP &signature : *signatures)
 			p_map.insert(EidosFunctionMapPair(signature->call_name_, signature));
 	}
 }
 
 void SLiMSim::RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map)
 {
-	const std::vector<EidosFunctionSignature_SP> *signatures = ZeroGenerationFunctionSignatures();
+	const std::vector<EidosFunctionSignature_CSP> *signatures = ZeroGenerationFunctionSignatures();
 	
 	if (signatures)
 	{
-		for (EidosFunctionSignature_SP signature : *signatures)
+		for (const EidosFunctionSignature_CSP &signature : *signatures)
 			p_map.erase(signature->call_name_);
 	}
 }
 
 void SLiMSim::AddSLiMFunctionsToMap(EidosFunctionMap &p_map)
 {
-	const std::vector<EidosFunctionSignature_SP> *signatures = SLiMFunctionSignatures();
+	const std::vector<EidosFunctionSignature_CSP> *signatures = SLiMFunctionSignatures();
 	
 	if (signatures)
 	{
-		for (EidosFunctionSignature_SP signature : *signatures)
+		for (const EidosFunctionSignature_CSP &signature : *signatures)
 			p_map.insert(EidosFunctionMapPair(signature->call_name_, signature));
 	}
 }
 
-const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(void)
+const std::vector<EidosMethodSignature_CSP> *SLiMSim::AllMethodSignatures(void)
 {
-	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
 	
 	if (!methodSignatures)
 	{
-		auto baseMethods =					gEidos_UndefinedClassObject->Methods();
-		auto methodsChromosome =			gSLiM_Chromosome_Class->Methods();
-		auto methodsGenome =				gSLiM_Genome_Class->Methods();
-		auto methodsGenomicElement =		gSLiM_GenomicElement_Class->Methods();
-		auto methodsGenomicElementType =	gSLiM_GenomicElementType_Class->Methods();
-		auto methodsIndividual =			gSLiM_Individual_Class->Methods();
-		auto methodsInteractionType =		gSLiM_InteractionType_Class->Methods();
-		auto methodsMutation =				gSLiM_Mutation_Class->Methods();
-		auto methodsMutationType =			gSLiM_MutationType_Class->Methods();
-		auto methodsSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Methods();
-		auto methodsSLiMSim =				gSLiM_SLiMSim_Class->Methods();
-		auto methodsSubpopulation =			gSLiM_Subpopulation_Class->Methods();
-		auto methodsSubstitution =			gSLiM_Substitution_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *baseMethods =					gEidos_UndefinedClassObject->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsChromosome =			gSLiM_Chromosome_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsGenome =				gSLiM_Genome_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsGenomicElement =		gSLiM_GenomicElement_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsGenomicElementType =	gSLiM_GenomicElementType_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsIndividual =			gSLiM_Individual_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsInteractionType =		gSLiM_InteractionType_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsMutation =				gSLiM_Mutation_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsMutationType =			gSLiM_MutationType_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsSLiMSim =				gSLiM_SLiMSim_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsSubpopulation =			gSLiM_Subpopulation_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *methodsSubstitution =			gSLiM_Substitution_Class->Methods();
 		
-		methodSignatures = new std::vector<const EidosMethodSignature*>(*baseMethods);
+		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*baseMethods);
 		
 		methodSignatures->insert(methodSignatures->end(), methodsChromosome->begin(), methodsChromosome->end());
 		methodSignatures->insert(methodSignatures->end(), methodsGenome->begin(), methodsGenome->end());
@@ -9720,9 +9720,9 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 		// print out any signatures that are identical by name
 		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
 		
-		const EidosMethodSignature *previous_sig = nullptr;
+		EidosMethodSignature_CSP previous_sig = nullptr;
 		
-		for (const EidosMethodSignature *sig : *methodSignatures)
+		for (const EidosMethodSignature_CSP &sig : *methodSignatures)
 		{
 			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
 			{
@@ -9742,37 +9742,32 @@ const std::vector<const EidosMethodSignature*> *SLiMSim::AllMethodSignatures(voi
 			
 			previous_sig = sig;
 		}
-		
-		// log a full list
-		//std::cout << "----------------" << std::endl;
-		//for (const EidosMethodSignature *sig : *methodSignatures)
-		//	std::cout << sig->call_name_ << " (" << sig << ")" << std::endl;
 	}
 	
 	return methodSignatures;
 }
 
-const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures(void)
+const std::vector<EidosPropertySignature_CSP> *SLiMSim::AllPropertySignatures(void)
 {
-	static std::vector<const EidosPropertySignature*> *propertySignatures = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *propertySignatures = nullptr;
 	
 	if (!propertySignatures)
 	{
-		auto baseProperties =					gEidos_UndefinedClassObject->Properties();
-		auto propertiesChromosome =				gSLiM_Chromosome_Class->Properties();
-		auto propertiesGenome =					gSLiM_Genome_Class->Properties();
-		auto propertiesGenomicElement =			gSLiM_GenomicElement_Class->Properties();
-		auto propertiesGenomicElementType =		gSLiM_GenomicElementType_Class->Properties();
-		auto propertiesIndividual =				gSLiM_Individual_Class->Properties();
-		auto propertiesInteractionType =		gSLiM_InteractionType_Class->Properties();
-		auto propertiesMutation =				gSLiM_Mutation_Class->Properties();
-		auto propertiesMutationType =			gSLiM_MutationType_Class->Properties();
-		auto propertiesSLiMEidosBlock =			gSLiM_SLiMEidosBlock_Class->Properties();
-		auto propertiesSLiMSim =				gSLiM_SLiMSim_Class->Properties();
-		auto propertiesSubpopulation =			gSLiM_Subpopulation_Class->Properties();
-		auto propertiesSubstitution =			gSLiM_Substitution_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *baseProperties =					gEidos_UndefinedClassObject->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesChromosome =			gSLiM_Chromosome_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesGenome =				gSLiM_Genome_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesGenomicElement =		gSLiM_GenomicElement_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesGenomicElementType =	gSLiM_GenomicElementType_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesIndividual =			gSLiM_Individual_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesInteractionType =		gSLiM_InteractionType_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesMutation =				gSLiM_Mutation_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesMutationType =			gSLiM_MutationType_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMSim =				gSLiM_SLiMSim_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesSubpopulation =		gSLiM_Subpopulation_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *propertiesSubstitution =			gSLiM_Substitution_Class->Properties();
 		
-		propertySignatures = new std::vector<const EidosPropertySignature*>(*baseProperties);
+		propertySignatures = new std::vector<EidosPropertySignature_CSP>(*baseProperties);
 		
 		propertySignatures->insert(propertySignatures->end(), propertiesChromosome->begin(), propertiesChromosome->end());
 		propertySignatures->insert(propertySignatures->end(), propertiesGenome->begin(), propertiesGenome->end());
@@ -9797,9 +9792,9 @@ const std::vector<const EidosPropertySignature*> *SLiMSim::AllPropertySignatures
 		// print out any signatures that are identical by name
 		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
 		
-		const EidosPropertySignature *previous_sig = nullptr;
+		EidosPropertySignature_CSP previous_sig = nullptr;
 		
-		for (const EidosPropertySignature *sig : *propertySignatures)
+		for (const EidosPropertySignature_CSP &sig : *propertySignatures)
 		{
 			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
 			{
@@ -11692,8 +11687,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 };
 
 EidosObjectClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
@@ -11704,13 +11699,13 @@ const std::string &SLiMSim_Class::ElementType(void) const
 	return gStr_SLiMSim;
 }
 
-const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -11737,13 +11732,13 @@ const std::vector<const EidosPropertySignature *> *SLiMSim_Class::Properties(voi
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *SLiMSim_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));

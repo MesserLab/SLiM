@@ -154,7 +154,7 @@
 		{
 			EidosValue_Object *wrapped_object = ((EidosValue_Object *)wrappedValue.get());
 			const EidosObjectClass *object_class = wrapped_object->Class();
-			const std::vector<const EidosPropertySignature *> *properties = object_class->Properties();
+			const std::vector<EidosPropertySignature_CSP> *properties = object_class->Properties();
 			int propertyCount = (int)properties->size();
 			bool oldSuppressWarnings = gEidosSuppressWarnings, inaccessibleCaught = false;
 			
@@ -162,7 +162,7 @@
 			
 			for (int index = 0; index < propertyCount; ++index)
 			{
-				const EidosPropertySignature *propertySig = (*properties)[index];
+				const EidosPropertySignature_CSP &propertySig = (*properties)[index];
 				const std::string &symbolName = propertySig->property_name_;
 				EidosGlobalStringID symbolID = propertySig->property_id_;
 				NSString *symbolObjcName = [NSString stringWithUTF8String:symbolName.c_str()];

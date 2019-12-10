@@ -88,13 +88,13 @@ std::string EidosStringFormat(const std::string& format, Args ... args)
 //
 
 // We allocate all of our function signatures once and keep them forever, for faster EidosInterpreter startup
-std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
+const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunctions(void)
 {
-	static std::vector<EidosFunctionSignature_SP> *signatures = nullptr;
+	static std::vector<EidosFunctionSignature_CSP> *signatures = nullptr;
 	
 	if (!signatures)
 	{
-		signatures = new std::vector<EidosFunctionSignature_SP>;
+		signatures = new std::vector<EidosFunctionSignature_CSP>;
 		
 		// ************************************************************************************
 		//
@@ -327,15 +327,17 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		//	built-in user-defined functions
 		//
-		EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskVOID))->AddString_S("filePath");
-		EidosScript *source_script = new EidosScript("{ _executeLambda_OUTER(paste(readFile(filePath), '\\n')); return; }");
-		
-		source_script->Tokenize();
-		source_script->ParseInterpreterBlockToAST(false);
-		
-		source_signature->body_script_ = source_script;
-		
-		signatures->emplace_back(source_signature);
+		{
+			EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskVOID))->AddString_S("filePath");
+			EidosScript *source_script = new EidosScript("{ _executeLambda_OUTER(paste(readFile(filePath), '\\n')); return; }");
+			
+			source_script->Tokenize();
+			source_script->ParseInterpreterBlockToAST(false);
+			
+			source_signature->body_script_ = source_script;
+			
+			signatures->emplace_back(source_signature);
+		}
 		
 		
 		// ************************************************************************************
@@ -347,7 +349,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
-		std::sort(signatures->begin(), signatures->end(), CompareEidosFunctionSignature_SPs);
+		std::sort(signatures->begin(), signatures->end(), CompareEidosFunctionSignatures);
 	}
 	
 	return *signatures;
@@ -361,11 +363,11 @@ void EidosInterpreter::CacheBuiltInFunctionMap(void)
 	
 	if (!s_built_in_function_map_)
 	{
-		std::vector<EidosFunctionSignature_SP> &built_in_functions = EidosInterpreter::BuiltInFunctions();
+		const std::vector<EidosFunctionSignature_CSP> &built_in_functions = EidosInterpreter::BuiltInFunctions();
 		
 		s_built_in_function_map_ = new EidosFunctionMap;
 		
-		for (auto sig : built_in_functions)
+		for (const EidosFunctionSignature_CSP &sig : built_in_functions)
 			s_built_in_function_map_->insert(EidosFunctionMapPair(sig->call_name_, sig));
 	}
 }
