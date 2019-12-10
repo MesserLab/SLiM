@@ -9727,7 +9727,10 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim::AllMethodSignatures(void)
 			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
 			{
 				// We have a name collision.  That is OK as long as the method signatures are identical.
-				if ((typeid(*sig) != typeid(*previous_sig)) ||
+				const EidosMethodSignature *sig1 = sig.get();
+				const EidosMethodSignature *sig2 = previous_sig.get();
+				
+				if ((typeid(*sig1) != typeid(*sig2)) ||
 					(sig->is_class_method != previous_sig->is_class_method) ||
 					(sig->call_name_ != previous_sig->call_name_) ||
 					(sig->return_mask_ != previous_sig->return_mask_) ||
