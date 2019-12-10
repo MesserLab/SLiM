@@ -28,9 +28,9 @@
 #include <QStyledItemDelegate>
 
 #include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
 
 class QCloseEvent;
-class EidosPropertySignature;
 class EidosObjectClass;
 
 
@@ -97,12 +97,12 @@ private:
     // if they are not NULL, and if matches are found, colorized versions will be substituted.
     void addTopicsFromRTFFile(const QString &htmlFile,
                               const QString &topLevelHeading,
-                              const std::vector<EidosFunctionSignature_SP> *functionList,
-                              const std::vector<const EidosMethodSignature*> *methodList,
-                              const std::vector<const EidosPropertySignature*> *propertyList);
+                              const std::vector<EidosFunctionSignature_CSP> *functionList,
+                              const std::vector<EidosMethodSignature_CSP> *methodList,
+                              const std::vector<EidosPropertySignature_CSP> *propertyList);
     
-    const std::vector<const EidosPropertySignature*> *slimguiAllPropertySignatures(void);
-    const std::vector<const EidosMethodSignature*> *slimguiAllMethodSignatures(void);
+    const std::vector<EidosPropertySignature_CSP> *slimguiAllPropertySignatures(void);
+    const std::vector<EidosMethodSignature_CSP> *slimguiAllMethodSignatures(void);
     
     // Searching
     bool findItemsMatchingSearchString(QTreeWidgetItem *root, const QString searchString, bool titlesOnly, std::vector<QTreeWidgetItem *> &matchKeys, std::vector<QTreeWidgetItem *> &expandItems);
@@ -119,7 +119,7 @@ private:
     // Check for complete documentation
     QtSLiMHelpItem *findObjectWithKeySuffix(const QString searchKeySuffix, QTreeWidgetItem *searchItem);
     QtSLiMHelpItem *findObjectForKeyEqualTo(const QString searchKey, QTreeWidgetItem *searchItem);
-    void checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_SP> *functions);
+    void checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_CSP> *functions);
     void checkDocumentationOfClass(EidosObjectClass *classObject);
     
     // responding to events

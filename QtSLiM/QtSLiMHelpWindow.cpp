@@ -253,9 +253,9 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
     checkDocumentationOfClass(gEidos_UndefinedClassObject);
     
     // Add SLiM topics
-    const std::vector<EidosFunctionSignature_SP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
-    const std::vector<EidosFunctionSignature_SP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
-    std::vector<EidosFunctionSignature_SP> all_slim_functions;
+    const std::vector<EidosFunctionSignature_CSP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
+    const std::vector<EidosFunctionSignature_CSP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
+    std::vector<EidosFunctionSignature_CSP> all_slim_functions;
     
     all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());
     all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
@@ -489,9 +489,9 @@ QtSLiMHelpItem *QtSLiMHelpWindow::createItemForSection(const QString &sectionStr
 // and pasted out of our Word documentation files into RTF in TextEdit.
 void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
                                             const QString &topLevelHeading,
-                                            const std::vector<EidosFunctionSignature_SP> *functionList,
-                                            const std::vector<const EidosMethodSignature*> *methodList,
-                                            const std::vector<const EidosPropertySignature*> *propertyList)
+                                            const std::vector<EidosFunctionSignature_CSP> *functionList,
+                                            const std::vector<EidosMethodSignature_CSP> *methodList,
+                                            const std::vector<EidosPropertySignature_CSP> *propertyList)
 {
     QString topicFilePath = QString(":/help/") + htmlFile + QString(".html");
     QTextDocument topicFileTextDocument;
@@ -690,7 +690,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 				for (auto signature_iter = methodList->begin(); signature_iter != methodList->end(); signature_iter++)
 					if ((*signature_iter)->call_name_.compare(method_name) == 0)
 					{
-						method_signature = *signature_iter;
+						method_signature = signature_iter->get();
 						break;
 					}
 				
@@ -720,7 +720,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
 					if ((*signature_iter)->property_name_.compare(property_name) == 0)
 					{
-						property_signature = *signature_iter;
+						property_signature = signature_iter->get();
 						break;
 					}
 				
@@ -738,17 +738,17 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
     }
 }
 
-const std::vector<const EidosPropertySignature*> *QtSLiMHelpWindow::slimguiAllPropertySignatures(void)
+const std::vector<EidosPropertySignature_CSP> *QtSLiMHelpWindow::slimguiAllPropertySignatures(void)
 {
     // This adds the properties belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<const EidosPropertySignature*> *propertySignatures = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *propertySignatures = nullptr;
 	
 	if (!propertySignatures)
 	{
-		auto slimProperties =					SLiMSim::AllPropertySignatures();
-		auto propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *slimProperties =					SLiMSim::AllPropertySignatures();
+		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
 		
-		propertySignatures = new std::vector<const EidosPropertySignature*>(*slimProperties);
+		propertySignatures = new std::vector<EidosPropertySignature_CSP>(*slimProperties);
 		
 		propertySignatures->insert(propertySignatures->end(), propertiesSLiMgui->begin(), propertiesSLiMgui->end());
 		
@@ -765,9 +765,9 @@ const std::vector<const EidosPropertySignature*> *QtSLiMHelpWindow::slimguiAllPr
 		// print out any signatures that are identical by name
 		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
 		
-		const EidosPropertySignature *previous_sig = nullptr;
+		EidosPropertySignature_CSP previous_sig = nullptr;
 		
-		for (const EidosPropertySignature *sig : *propertySignatures)
+		for (EidosPropertySignature_CSP &sig : *propertySignatures)
 		{
 			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
 			{
@@ -786,17 +786,17 @@ const std::vector<const EidosPropertySignature*> *QtSLiMHelpWindow::slimguiAllPr
 	return propertySignatures;
 }
 
-const std::vector<const EidosMethodSignature*> *QtSLiMHelpWindow::slimguiAllMethodSignatures(void)
+const std::vector<EidosMethodSignature_CSP> *QtSLiMHelpWindow::slimguiAllMethodSignatures(void)
 {
     // This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
 	
 	if (!methodSignatures)
 	{
-		auto slimMethods =					SLiMSim::AllMethodSignatures();
-		auto methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *slimMethods =					SLiMSim::AllMethodSignatures();
+		const std::vector<EidosMethodSignature_CSP> *methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
 		
-		methodSignatures = new std::vector<const EidosMethodSignature*>(*slimMethods);
+		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*slimMethods);
 		
 		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
 		
@@ -813,14 +813,17 @@ const std::vector<const EidosMethodSignature*> *QtSLiMHelpWindow::slimguiAllMeth
 		// print out any signatures that are identical by name
 		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
 		
-		const EidosMethodSignature *previous_sig = nullptr;
+		EidosMethodSignature_CSP previous_sig = nullptr;
 		
-		for (const EidosMethodSignature *sig : *methodSignatures)
+		for (EidosMethodSignature_CSP &sig : *methodSignatures)
 		{
 			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
 			{
 				// We have a name collision.  That is OK as long as the method signatures are identical.
-				if ((typeid(*sig) != typeid(*previous_sig)) ||
+                const EidosMethodSignature *sig1 = sig.get();
+				const EidosMethodSignature *sig2 = previous_sig.get();
+				
+				if ((typeid(*sig1) != typeid(*sig2)) ||
 					(sig->is_class_method != previous_sig->is_class_method) ||
 					(sig->call_name_ != previous_sig->call_name_) ||
 					(sig->return_mask_ != previous_sig->return_mask_) ||
@@ -845,9 +848,9 @@ const std::vector<const EidosMethodSignature*> *QtSLiMHelpWindow::slimguiAllMeth
 	return methodSignatures;
 }
 
-void QtSLiMHelpWindow::checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_SP> *functions)
+void QtSLiMHelpWindow::checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_CSP> *functions)
 {
-    for (EidosFunctionSignature_SP functionSignature : *functions)
+    for (const EidosFunctionSignature_CSP &functionSignature : *functions)
 	{
 		QString functionNameString = QString::fromStdString(functionSignature->call_name_);
 		
@@ -880,13 +883,13 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosObjectClass *classObject)
 			// Check for complete documentation of all properties defined by the class
 			if (!classIsUndefinedClass)
 			{
-				const std::vector<const EidosPropertySignature *> *classProperties = classObject->Properties();
+				const std::vector<EidosPropertySignature_CSP> *classProperties = classObject->Properties();
 				QStringList docProperties;
 				
                 for (int child_index = 0; child_index < classPropertyItem->childCount(); ++child_index)
                     docProperties.push_back(classPropertyItem->child(child_index)->text(0));
 				
-				for (const EidosPropertySignature *propertySignature : *classProperties)
+				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
 					const std::string &&connector_string = propertySignature->PropertySymbol();
 					const std::string &property_name_string = propertySignature->property_name_;
@@ -905,14 +908,14 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosObjectClass *classObject)
 			
 			// Check for complete documentation of all methods defined by the class
 			{
-				const std::vector<const EidosMethodSignature *> *classMethods = classObject->Methods();
-				const std::vector<const EidosMethodSignature *> *baseMethods = gEidos_UndefinedClassObject->Methods();
+				const std::vector<EidosMethodSignature_CSP> *classMethods = classObject->Methods();
+				const std::vector<EidosMethodSignature_CSP> *baseMethods = gEidos_UndefinedClassObject->Methods();
 				QStringList docMethods;
 				
                 for (int child_index = 0; child_index < classMethodsItem->childCount(); ++child_index)
                     docMethods.push_back(classMethodsItem->child(child_index)->text(0));
 				
-				for (const EidosMethodSignature *methodSignature : *classMethods)
+				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
 					bool isBaseMethod = (std::find(baseMethods->begin(), baseMethods->end(), methodSignature) != baseMethods->end());
 					

@@ -556,14 +556,14 @@ void QtSLiMTextEdit::modifiersChanged(Qt::KeyboardModifiers __attribute__((unuse
     fixMouseCursor();
 }
 
-const EidosCallSignature *QtSLiMTextEdit::signatureForFunctionName(QString callName, EidosFunctionMap *functionMapPtr)
+EidosFunctionSignature_CSP QtSLiMTextEdit::signatureForFunctionName(QString callName, EidosFunctionMap *functionMapPtr)
 {
 	std::string call_name = callName.toStdString();
 	
 	// Look for a matching function signature for the call name.
 	for (const auto& function_iter : *functionMapPtr)
 	{
-		const EidosFunctionSignature *sig = function_iter.second.get();
+		const EidosFunctionSignature_CSP &sig = function_iter.second;
 		const std::string &sig_call_name = sig->call_name_;
 		
 		if (sig_call_name.compare(call_name) == 0)
@@ -573,17 +573,17 @@ const EidosCallSignature *QtSLiMTextEdit::signatureForFunctionName(QString callN
 	return nullptr;
 }
 
-const std::vector<const EidosMethodSignature*> *QtSLiMTextEdit::slimguiAllMethodSignatures(void)
+const std::vector<EidosMethodSignature_CSP> *QtSLiMTextEdit::slimguiAllMethodSignatures(void)
 {
 	// This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
 	
 	if (!methodSignatures)
 	{
-		auto slimMethods =					SLiMSim::AllMethodSignatures();
-		auto methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *slimMethods =					SLiMSim::AllMethodSignatures();
+		const std::vector<EidosMethodSignature_CSP> *methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
 		
-		methodSignatures = new std::vector<const EidosMethodSignature*>(*slimMethods);
+		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*slimMethods);
 		
 		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
 		
@@ -600,14 +600,17 @@ const std::vector<const EidosMethodSignature*> *QtSLiMTextEdit::slimguiAllMethod
 		// print out any signatures that are identical by name
 		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
 		
-		const EidosMethodSignature *previous_sig = nullptr;
+		EidosMethodSignature_CSP previous_sig = nullptr;
 		
-		for (const EidosMethodSignature *sig : *methodSignatures)
+		for (EidosMethodSignature_CSP &sig : *methodSignatures)
 		{
 			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
 			{
 				// We have a name collision.  That is OK as long as the method signatures are identical.
-				if ((typeid(*sig) != typeid(*previous_sig)) ||
+                const EidosMethodSignature *sig1 = sig.get();
+                const EidosMethodSignature *sig2 = previous_sig.get();
+                
+				if ((typeid(*sig1) != typeid(*sig2)) ||
 					(sig->is_class_method != previous_sig->is_class_method) ||
 					(sig->call_name_ != previous_sig->call_name_) ||
 					(sig->return_mask_ != previous_sig->return_mask_) ||
@@ -622,30 +625,25 @@ const std::vector<const EidosMethodSignature*> *QtSLiMTextEdit::slimguiAllMethod
 			
 			previous_sig = sig;
 		}
-		
-		// log a full list
-		//std::cout << "----------------" << std::endl;
-		//for (const EidosMethodSignature *sig : *methodSignatures)
-		//	std::cout << sig->call_name_ << " (" << sig << ")" << std::endl;
 	}
 	
 	return methodSignatures;
 }
 
-const EidosCallSignature *QtSLiMTextEdit::signatureForMethodName(QString callName)
+EidosMethodSignature_CSP QtSLiMTextEdit::signatureForMethodName(QString callName)
 {
 	std::string call_name = callName.toStdString();
 	
 	// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos.
 	// This case is much simpler than the function case, because the user can't declare their own methods.
-	const std::vector<const EidosMethodSignature *> *methodSignatures = nullptr;
+	const std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
 	
     methodSignatures = slimguiAllMethodSignatures();
     
 	if (!methodSignatures)
 		methodSignatures = gEidos_UndefinedClassObject->Methods();
 	
-	for (const EidosMethodSignature *sig : *methodSignatures)
+	for (const EidosMethodSignature_CSP &sig : *methodSignatures)
 	{
 		const std::string &sig_call_name = sig->call_name_;
 		
@@ -770,7 +768,7 @@ QString QtSLiMTextEdit::signatureStringForScriptSelection(QString &callName)
 						if ((backscanIndex > 1) && (tokens[static_cast<size_t>(backscanIndex) - 2].token_type_ == EidosTokenType::kTokenDot))
 						{
 							// This is a method call, so look up its signature that way
-							const EidosCallSignature *callSignature = signatureForMethodName(callName);
+							EidosMethodSignature_CSP callSignature = signatureForMethodName(callName);
                             
                             if (callSignature)
                                 signatureString = QString::fromStdString(callSignature->SignatureString());
@@ -810,7 +808,7 @@ QString QtSLiMTextEdit::signatureStringForScriptSelection(QString &callName)
 							
 							// This is a function call, so look up its signature that way, using our best-guess function map
 							EidosFunctionMap *functionMapPtr = functionMapForTokenizedScript(script);
-                            const EidosCallSignature *callSignature = signatureForFunctionName(callName, functionMapPtr);
+                            EidosFunctionSignature_CSP callSignature = signatureForFunctionName(callName, functionMapPtr);
                             
                             if (callSignature)
                                 signatureString = QString::fromStdString(callSignature->SignatureString());

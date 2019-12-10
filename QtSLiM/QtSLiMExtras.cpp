@@ -27,6 +27,8 @@
 
 #include "QtSLiMPreferences.h"
 
+#include "eidos_value.h"
+
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter)
 {

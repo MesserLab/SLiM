@@ -93,9 +93,9 @@ protected:
     void enterEvent(QEvent *event) override;
     
     // status bar signatures
-    const EidosCallSignature *signatureForFunctionName(QString callName, EidosFunctionMap *functionMapPtr);
-    const std::vector<const EidosMethodSignature*> *slimguiAllMethodSignatures(void);
-    const EidosCallSignature *signatureForMethodName(QString callName);
+    EidosFunctionSignature_CSP signatureForFunctionName(QString callName, EidosFunctionMap *functionMapPtr);
+    const std::vector<EidosMethodSignature_CSP> *slimguiAllMethodSignatures(void);
+    EidosMethodSignature_CSP signatureForMethodName(QString callName);
     EidosFunctionMap *functionMapForTokenizedScript(EidosScript &script);
     QString signatureStringForScriptSelection(QString &callName);
     

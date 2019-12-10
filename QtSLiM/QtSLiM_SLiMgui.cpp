@@ -140,8 +140,8 @@ class SLiMgui_Class : public EidosObjectClass
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 };
 
 EidosObjectClass *gSLiM_SLiMgui_Class = new SLiMgui_Class();
@@ -152,13 +152,13 @@ const std::string &SLiMgui_Class::ElementType(void) const
 	return gStr_SLiMgui;
 }
 
-const std::vector<const EidosPropertySignature *> *SLiMgui_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
 		
 		properties->emplace_back(static_cast<EidosPropertySignature *>((new EidosPropertySignature(gStr_pid, true,	kEidosValueMaskInt | kEidosValueMaskSingleton))));
 		
@@ -168,13 +168,13 @@ const std::vector<const EidosPropertySignature *> *SLiMgui_Class::Properties(voi
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *SLiMgui_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
 		
 		methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath")));
 		methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID))));
