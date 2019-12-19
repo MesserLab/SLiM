@@ -17,6 +17,8 @@ development head:
 	speed up AddIndividualsToTable(), eliminating a bottleneck for large models with multiple subpopulations
 	speed up outputMutations(), which was very slow if a large number of mutations were requested for output
 	protect methods in InteractionType against being passed new juveniles that have not yet been added to the subpopulation
+	optimize the sample size 1 case in sampleIndividuals() when criteria are specified (min/max age, etc.)
+	add SLiMgui launch check for needed fonts
 
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):
