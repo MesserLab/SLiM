@@ -12,7 +12,7 @@
 #include <string.h>
 #include <string>
 
-#include "time.h"
+#include <ctime>
 
 #include "eidos_globals.h"
 #include "eidos_interpreter.h"

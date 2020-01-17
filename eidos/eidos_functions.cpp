@@ -41,7 +41,7 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 
-#include "time.h"
+#include <ctime>
 #include "string.h"
 
 #include "gsl_linalg.h"

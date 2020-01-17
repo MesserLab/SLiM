@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "time.h"
+#include <ctime>
 
 #include "slim_sim.h"
 #include "slim_globals.h"
