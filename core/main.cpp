@@ -30,7 +30,6 @@
 #include <vector>
 #include <stdio.h>
 #include <unistd.h>
-
 #include <ctime>
 
 #include "slim_sim.h"
@@ -359,7 +358,7 @@ int main(int argc, char *argv[])
 	}
 	
 	// keep time (we do this whether or not the -time flag was passed)
-	clock_t begin = clock();
+	std::clock_t begin = std::clock();
 	
 	// keep memory usage information, if asked to
 	size_t *mem_record = nullptr;
@@ -473,7 +472,7 @@ int main(int argc, char *argv[])
 	}
 	
 	// end timing and print elapsed time
-	clock_t end = clock();
+	std::clock_t end = std::clock();
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)

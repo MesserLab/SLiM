@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <limits>
 #include <random>
+#include <ctime>
 
 #if 0
 #if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
@@ -601,7 +602,7 @@ int RunEidosTests(void)
 		
 		for (int type = 0; type <= 2; ++type)
 		{
-			double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+			double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 			double total = 0.0;
 			
 			if (type == 0)
@@ -620,7 +621,7 @@ int RunEidosTests(void)
 					total += gsl_ran_poisson(EIDOS_GSL_RNG, mu);
 			}
 			
-			double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+			double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 			
 			std::cout << "mu " << mu << " T " << type << ": total = " << total << ", time == " << (end_time - start_time) << std::endl;
 		}
@@ -641,38 +642,38 @@ int RunEidosTests(void)
 	// straight GSL and C++ RNGs are much slower.  The straight GSL is not inlined; I'm not sure why the C++
 	// MT64 is so slow.
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		int64_t total = 0;
 		
 		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
 			total += gsl_rng_uniform_int(EIDOS_GSL_RNG, 500);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << std::endl << "gsl_rng_uniform_int(): time == " << (end_time - start_time) << ", total == " << total << std::endl;
 	}
 	
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		int64_t total = 0;
 		
 		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
 			total += Eidos_rng_uniform_int(EIDOS_GSL_RNG, 500);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "Eidos_rng_uniform_int(): time == " << (end_time - start_time) << ", total == " << total << std::endl;
 	}
 	
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		int64_t total = 0;
 		init_genrand64(0);
 		
 		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
 			total += Eidos_rng_uniform_int_MT64(500);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "Eidos_rng_uniform_int_MT64(): time == " << (end_time - start_time) << ", total == " << total << std::endl;
 	}
@@ -683,12 +684,12 @@ int RunEidosTests(void)
 		std::uniform_int_distribution<long long int> dist(0, 499);
 		int64_t total = 0;
 		
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 1000000000; ++iteration)
 			total += dist(e2);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "std::mt19937_64: time == " << (end_time - start_time) << ", total == " << total << std::endl;
 	}
@@ -697,23 +698,23 @@ int RunEidosTests(void)
 #if 0
 	// Speed tests of gsl_rng_uniform() versus Eidos_rng_uniform()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
 			gsl_rng_uniform(EIDOS_GSL_RNG);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << std::endl << "gsl_rng_uniform(): time == " << (end_time - start_time) << std::endl;
 	}
 	
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
 			Eidos_rng_uniform(EIDOS_GSL_RNG);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "Eidos_rng_uniform(): time == " << (end_time - start_time) << std::endl;
 	}
@@ -722,23 +723,23 @@ int RunEidosTests(void)
 #if 0
 	// Speed tests of gsl_rng_uniform_pos() versus Eidos_rng_uniform_pos()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
 			gsl_rng_uniform_pos(EIDOS_GSL_RNG);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << std::endl << "gsl_rng_uniform_pos(): time == " << (end_time - start_time) << std::endl;
 	}
 	
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		for (int64_t iteration = 0; iteration < 100000000; ++iteration)
 			Eidos_rng_uniform_pos(EIDOS_GSL_RNG);
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "Eidos_rng_uniform_pos(): time == " << (end_time - start_time) << std::endl;
 	}
@@ -803,20 +804,20 @@ int RunEidosTests(void)
 	
 	// clock()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		int64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
-			total_time += clock();
+			total_time += std::clock();
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
-		std::cout << "10000000 calls to clock(): time == " << (end_time - start_time) << ", total_time == " << (total_time / CLOCKS_PER_SEC) << std::endl;
+		std::cout << "10000000 calls to std::clock(): time == " << (end_time - start_time) << ", total_time == " << (total_time / CLOCKS_PER_SEC) << std::endl;
 	}
 	
 	// gettimeofday()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		struct timeval timer;
 		int64_t total_time = 0;
 		
@@ -827,14 +828,14 @@ int RunEidosTests(void)
 			total_time += ((int64_t)timer.tv_sec) * 1000000 + timer.tv_usec;
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to gettimeofday(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000.0) << std::endl;
 	}
 	
 	// clock_gettime(CLOCK_REALTIME, ...)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		struct timespec timer;
 		int64_t total_time = 0;
 		
@@ -845,14 +846,14 @@ int RunEidosTests(void)
 			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime(CLOCK_REALTIME, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime(CLOCK_MONOTONIC_RAW, ...)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		struct timespec timer;
 		int64_t total_time = 0;
 		
@@ -863,14 +864,14 @@ int RunEidosTests(void)
 			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime(CLOCK_MONOTONIC_RAW, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime(CLOCK_UPTIME_RAW, ...)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		struct timespec timer;
 		int64_t total_time = 0;
 		
@@ -881,14 +882,14 @@ int RunEidosTests(void)
 			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime(CLOCK_UPTIME_RAW, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ...)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		struct timespec timer;
 		int64_t total_time = 0;
 		
@@ -899,14 +900,14 @@ int RunEidosTests(void)
 			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime(CLOCK_PROCESS_CPUTIME_ID, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime(CLOCK_THREAD_CPUTIME_ID, ...)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		struct timespec timer;
 		int64_t total_time = 0;
 		
@@ -917,14 +918,14 @@ int RunEidosTests(void)
 			total_time += ((int64_t)timer.tv_sec) * 1000000000 + timer.tv_nsec;
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime(CLOCK_THREAD_CPUTIME_ID, ...): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// std::chrono::high_resolution_clock::now()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		int64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -932,14 +933,14 @@ int RunEidosTests(void)
 			__attribute__((unused)) auto timer = std::chrono::high_resolution_clock::now();
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to std::chrono::high_resolution_clock::now(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime_nsec_np(CLOCK_REALTIME)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -947,14 +948,14 @@ int RunEidosTests(void)
 			total_time += clock_gettime_nsec_np(CLOCK_REALTIME);
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_REALTIME): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -962,14 +963,14 @@ int RunEidosTests(void)
 			total_time += clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -977,14 +978,14 @@ int RunEidosTests(void)
 			total_time += clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_UPTIME_RAW): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -992,14 +993,14 @@ int RunEidosTests(void)
 			total_time += clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID);
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_PROCESS_CPUTIME_ID): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -1007,7 +1008,7 @@ int RunEidosTests(void)
 			total_time += clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID);
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
@@ -1018,7 +1019,7 @@ int RunEidosTests(void)
 	
 	// mach_absolute_time()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -1026,14 +1027,14 @@ int RunEidosTests(void)
 			total_time += mach_absolute_time();
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to mach_absolute_time(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// mach_continuous_time()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -1041,14 +1042,14 @@ int RunEidosTests(void)
 			total_time += mach_continuous_time();
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to mach_continuous_time(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
 	// Eidos_ProfileTime()
 	{
-		double start_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		uint64_t total_time = 0;
 		
 		for (int i = 0; i < 10000000; ++i)
@@ -1056,7 +1057,7 @@ int RunEidosTests(void)
 			total_time += Eidos_ProfileTime();
 		}
 		
-		double end_time = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+		double end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
 		
 		std::cout << "10000000 calls to Eidos_ProfileTime(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
@@ -1235,7 +1236,7 @@ int RunEidosTests(void)
 				pref = 1;
 			
 			{
-				clock_t begin = clock();
+				std::clock_t begin = std::clock();
 				int64_t total = 0;
 				
 				for (int64_t i = 0; i < 20000000; i++)
@@ -1247,7 +1248,7 @@ int RunEidosTests(void)
 			}
 			if (poisson_allowed)
 			{
-				clock_t begin = clock();
+				std::clock_t begin = std::clock();
 				int64_t total = 0;
 				
 				for (int64_t i = 0; i < 20000000; i++)
@@ -1259,7 +1260,7 @@ int RunEidosTests(void)
 			}
 			if (gaussian_allowed)
 			{
-				clock_t begin = clock();
+				std::clock_t begin = std::clock();
 				int64_t total = 0;
 				double sd = sqrt(n * p * (1 - p));
 				

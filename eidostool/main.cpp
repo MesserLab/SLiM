@@ -98,7 +98,7 @@ int main(int argc, const char * argv[])
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)
-	clock_t begin = clock();
+	std::clock_t begin = std::clock();
 	
 	// keep memory usage information, if asked to
 	size_t initial_mem_usage = 0;
@@ -147,7 +147,7 @@ int main(int argc, const char * argv[])
 	std::cout << output << std::endl;
 	
 	// end timing and print elapsed time
-	clock_t end = clock();
+	std::clock_t end = std::clock();
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	if (keep_time)

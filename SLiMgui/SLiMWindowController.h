@@ -64,7 +64,7 @@
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 	// profiling-related variables
 	NSDate *profileEndDate;
-	clock_t profileElapsedCPUClock;
+	std::clock_t profileElapsedCPUClock;
 	eidos_profile_t profileElapsedWallClock;
 	slim_generation_t profileStartGeneration;
 #endif

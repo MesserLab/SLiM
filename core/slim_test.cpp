@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <map>
 #include <utility>
+#include <ctime>
 
 
 // Helper functions for testing
@@ -4574,7 +4575,7 @@ void _RunSLiMTimingTests(void)
 			genome_unordered_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i])));
 		
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 100000000; i++)
@@ -4584,13 +4585,13 @@ void _RunSLiMTimingTests(void)
 				total += (int64_t)(gSLiM_Genome_Class->_SignatureForProperty(property_id));
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for Genome_Class::_SignatureForProperty() calls: " << time_spent << std::endl;
 		}
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 100000000; i++)
@@ -4605,13 +4606,13 @@ void _RunSLiMTimingTests(void)
 				}
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for genome_map calls: " << time_spent << std::endl;
 		}
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 100000000; i++)
@@ -4626,7 +4627,7 @@ void _RunSLiMTimingTests(void)
 				}
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for genome_unordered_map calls: " << time_spent << std::endl << std::endl;
@@ -4645,7 +4646,7 @@ void _RunSLiMTimingTests(void)
 			individual_unordered_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(individual_properties[i], gSLiM_Individual_Class->_SignatureForProperty(individual_properties[i])));
 		
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 100000000; i++)
@@ -4655,13 +4656,13 @@ void _RunSLiMTimingTests(void)
 				total += (int64_t)(gSLiM_Individual_Class->_SignatureForProperty(property_id));
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for Individual_Class::_SignatureForProperty() calls: " << time_spent << std::endl;
 		}
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 100000000; i++)
@@ -4676,13 +4677,13 @@ void _RunSLiMTimingTests(void)
 				}
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for individual_map calls: " << time_spent << std::endl;
 		}
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 100000000; i++)
@@ -4697,7 +4698,7 @@ void _RunSLiMTimingTests(void)
 				}
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for individual_unordered_map calls: " << time_spent << std::endl << std::endl;
@@ -4721,7 +4722,7 @@ void _RunSLiMTimingTests(void)
 		EidosSymbolTable externalTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr, true);
 		
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 1000000000; i++)
@@ -4731,13 +4732,13 @@ void _RunSLiMTimingTests(void)
 				total += (contains_symbol ? 1 : 2);
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for internalTable (F) checks: " << time_spent << std::endl;
 		}
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 1000000000; i++)
@@ -4747,14 +4748,14 @@ void _RunSLiMTimingTests(void)
 				total += (contains_symbol ? 1 : 2);
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for externalTable (F) checks: " << time_spent << std::endl << std::endl;
 		}
 		
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 1000000000; i++)
@@ -4766,13 +4767,13 @@ void _RunSLiMTimingTests(void)
 				total += (contains_symbol ? 1 : 2);
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for internalTable successful checks: " << time_spent << std::endl;
 		}
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 1000000000; i++)
@@ -4784,14 +4785,14 @@ void _RunSLiMTimingTests(void)
 				total += (contains_symbol ? 1 : 2);
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for externalTable successful checks: " << time_spent << std::endl << std::endl;
 		}
 		
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 1000000000; i++)
@@ -4801,13 +4802,13 @@ void _RunSLiMTimingTests(void)
 				total += (contains_symbol ? 1 : 2);
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for internalTable failed checks: " << time_spent << std::endl;
 		}
 		{
-			clock_t begin = clock();
+			std::clock_t begin = std::clock();
 			int64_t total = 0;
 			
 			for (int64_t i = 0; i < 1000000000; i++)
@@ -4817,7 +4818,7 @@ void _RunSLiMTimingTests(void)
 				total += (contains_symbol ? 1 : 2);
 			}
 			
-			clock_t end = clock();
+			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
 			std::cout << "Time for externalTable failed checks: " << time_spent << std::endl << std::endl;
