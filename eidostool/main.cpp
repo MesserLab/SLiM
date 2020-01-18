@@ -11,8 +11,9 @@
 #include <fstream>
 #include <string.h>
 #include <string>
-
 #include <ctime>
+#include <stdio.h>
+#include <sys/stat.h>
 
 #include "eidos_globals.h"
 #include "eidos_interpreter.h"
@@ -114,6 +115,27 @@ int main(int argc, const char * argv[])
 	Eidos_WarmUp();
 	Eidos_FinishWarmUp();
 	EidosScript::ClearErrorPosition();
+	
+	// BCH 1/18/2020: check that input_file is a valid path to a file that we can access before opening it
+	{
+		FILE *fp = fopen(input_file, "r");
+		
+		if (!fp)
+			EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
+		
+		struct stat fileInfo;
+		int retval = fstat(fileno(fp), &fileInfo);
+		
+		if (retval != 0)
+			EIDOS_TERMINATION << std::endl << "ERROR (main): could not access input file: " << input_file << "." << EidosTerminate();
+		
+		if (!S_ISREG(fileInfo.st_mode))
+		{
+			fclose(fp);
+			EIDOS_TERMINATION << std::endl << "ERROR (main): input file " << input_file << " is not a regular file (it might be a directory or other special file)." << EidosTerminate();
+		}
+		fclose(fp);
+	}
 	
 	std::ifstream infile(input_file);
 	
