@@ -1615,8 +1615,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 			if ((child_count == 2) && (child_type == EidosValueType::kValueInt) && (child_value->Count() == 1) && (child_value->DimensionCount() == 1))
 			{
 				int subset_index = (int)child_value->IntAtIndex(0, operator_token);
+				
+				result_SP = first_child_value->GetValueAtIndex(subset_index, operator_token);
+				
 				EIDOS_EXIT_EXECUTION_LOG("Evaluate_Subset()");
-				return first_child_value->GetValueAtIndex(subset_index, operator_token);
+				return result_SP;
 			}
 			
 			if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
@@ -6103,7 +6106,6 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_FunctionDecl()");
-	
 	return result_SP;
 }
 
