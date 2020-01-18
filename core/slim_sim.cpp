@@ -44,6 +44,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <float.h>
+#include <ctime>
 
 //TREE SEQUENCE
 #include <stdio.h>
@@ -2795,7 +2796,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		while (x_current_mutcount_ > chromosome_.mutrun_count_)
 		{
 #if MUTRUN_EXPERIMENT_OUTPUT
-			clock_t start_clock = clock();
+			std::clock_t start_clock = std::clock();
 #endif
 			
 			// We are splitting existing runs in two, so make a map from old mutrun index to new pair of
@@ -2808,14 +2809,14 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbose_output)
-				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << chromosome_.mutrun_count_ << " took " << ((clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
+				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << chromosome_.mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
 		
 		while (x_current_mutcount_ < chromosome_.mutrun_count_)
 		{
 #if MUTRUN_EXPERIMENT_OUTPUT
-			clock_t start_clock = clock();
+			std::clock_t start_clock = std::clock();
 #endif
 			
 			// We are joining existing runs together, so make a map from old mutrun index pairs to a new
@@ -2828,7 +2829,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbose_output)
-				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << chromosome_.mutrun_count_ << " took " << ((clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
+				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << chromosome_.mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
 		
@@ -3030,7 +3031,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 #endif
 	
 	// make a clock if we're running experiments
-	clock_t x_clock0 = (x_experiments_enabled_ ? clock() : 0);
+	std::clock_t x_clock0 = (x_experiments_enabled_ ? std::clock() : 0);
 	
 	
 	// ******************************************************************
@@ -3388,7 +3389,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		if (x_experiments_enabled_)
-			MaintainMutationRunExperiments((clock() - x_clock0) / (double)CLOCKS_PER_SEC);
+			MaintainMutationRunExperiments((std::clock() - x_clock0) / (double)CLOCKS_PER_SEC);
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -3475,7 +3476,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 #endif
 	
 	// make a clock if we're running experiments
-	clock_t x_clock0 = (x_experiments_enabled_ ? clock() : 0);
+	std::clock_t x_clock0 = (x_experiments_enabled_ ? std::clock() : 0);
 	
 	
 	// ******************************************************************
@@ -3810,7 +3811,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		if (x_experiments_enabled_)
-			MaintainMutationRunExperiments((clock() - x_clock0) / (double)CLOCKS_PER_SEC);
+			MaintainMutationRunExperiments((std::clock() - x_clock0) / (double)CLOCKS_PER_SEC);
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING

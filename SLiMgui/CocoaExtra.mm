@@ -688,7 +688,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 			Eidos_InitializeRNG();
 		Eidos_SetRNGSeed(10);		// arbitrary seed, but the same seed every time
 		
-		//clock_t start = clock();
+		//std::clock_t start = std::clock();
 		
 		try
 		{
@@ -709,7 +709,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 			draw_positive = true;
 		}
 		
-		//NSLog(@"Draws took %f seconds", (clock() - start) / (double)CLOCKS_PER_SEC);
+		//NSLog(@"Draws took %f seconds", (std::clock() - start) / (double)CLOCKS_PER_SEC);
 		
 		std::swap(local_rng, gEidos_RNG);	// swap out our local RNG; restore the standard RNG
 		

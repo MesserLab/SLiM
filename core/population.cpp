@@ -26,6 +26,7 @@
 #include <cmath>
 #include <utility>
 #include <unordered_map>
+#include <ctime>
 
 #include "slim_sim.h"
 #include "slim_globals.h"
@@ -4574,7 +4575,7 @@ void Population::ClearParentalGenomes(void)
 void Population::UniqueMutationRuns(void)
 {
 #if SLIM_DEBUG_MUTATION_RUNS
-	clock_t begin = clock();
+	std::clock_t begin = std::clock();
 #endif
 	std::multimap<int64_t, MutationRun *> runmap;
 	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
@@ -4669,7 +4670,7 @@ void Population::UniqueMutationRuns(void)
 	}
 	
 #if SLIM_DEBUG_MUTATION_RUNS
-	clock_t end = clock();
+	std::clock_t end = std::clock();
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	std::cout << "UniqueMutationRuns(): \n   " << total_mutruns << " run pointers analyzed\n   " << total_preexisting << " runs pre-existing\n   " << total_uniqued_away << " duplicate runs discovered and uniqued away\n   " << (total_mutruns - total_identical) << " final uniqued mutation runs\n   " << total_hash_collisions << " hash collisions\n   " << time_spent << " seconds elapsed" << std::endl;

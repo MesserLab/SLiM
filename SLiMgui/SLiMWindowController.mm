@@ -2324,13 +2324,13 @@
 	{
 		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
 		// as profile report percentages are fractions of the total elapsed wall clock time.
-		clock_t startCPUClock = clock();
+		std::clock_t startCPUClock = std::clock();
 		SLIM_PROFILE_BLOCK_START();
 		
 		stillRunning = sim->RunOneGeneration();
 		
 		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
-		clock_t endCPUClock = clock();
+		std::clock_t endCPUClock = std::clock();
 		
 		profileElapsedCPUClock += (endCPUClock - startCPUClock);
 	}

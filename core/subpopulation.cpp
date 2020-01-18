@@ -5897,6 +5897,40 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		}
 	}
 	
+	// BCH 12/17/2019: Adding an optimization here.  It is common to call sampleIndividuals() on a large subpopulation
+	// to draw a single mate in a reproduction() callback.  It takes a long time to build the index vector below; let's
+	// try optimizing that specific case by trying a few random individuals to see if we get lucky.  If we don't,
+	// we'll drop through to the base case code, without having lost much time.  At a guess, I'm requiring a candidate
+	// count of at least 30 since with a smaller size than that building the index vector won't hurt much anyway.
+	// I'm limiting this to 20 tries, so we don't spend too much time on it; the ideal limit will of course depend on
+	// the number of candidates versus the number of *valid* candidates, and there's no way to know.
+	if ((sample_size == 1) && (candidate_count >= 30))
+	{
+		for (int try_count = 0; try_count < 20; ++try_count)
+		{
+			int sample_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
+			
+			if ((excluded_index != -1) && (sample_index >= excluded_index))
+				sample_index++;
+			
+			Individual *candidate = parent_individuals_[sample_index];
+			
+			if (tag_specified && (candidate->tag_value_ != tag))
+				continue;
+			if (migrant_specified && (candidate->migrant_ != migrant))
+				continue;
+#ifdef SLIM_NONWF_ONLY
+			if (ageMin_specified && (candidate->age_ < ageMin))
+				continue;
+			if (ageMax_specified && (candidate->age_ > ageMax))
+				continue;
+#endif  // SLIM_NONWF_ONLY
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(parent_individuals_[sample_index], gSLiM_Individual_Class));
+		}
+	}
+	
+	// base case
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
 		std::vector<int> index_vector;
