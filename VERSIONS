@@ -19,6 +19,7 @@ development head:
 	protect methods in InteractionType against being passed new juveniles that have not yet been added to the subpopulation
 	optimize the sample size 1 case in sampleIndividuals() when criteria are specified (min/max age, etc.)
 	add SLiMgui launch check for needed fonts
+	fix a bug in AddNewDrawnMutation()/AddNewMutation() if a non-singleton vector of positions is given in unsorted order: the genome order is incorrect!
 
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):

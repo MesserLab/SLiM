@@ -2638,6 +2638,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			}
 		}
 		
+		// BCH 18 January 2020: If a vector of positions was provided, mutations_to_add might be out of sorted
+		// order, which is expected below by clear_set_and_merge(), so we sort here
+		if ((position_count != 1) && (mutations_to_add.size() > 1))
+		{
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			
+			std::sort(mutations_to_add.begin_pointer(), mutations_to_add.end_pointer(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
+		}
+		
 		// Now start the bulk operation and add mutations_to_add to every target genome
 		Genome::BulkOperationStart(operation_id, mutrun_index);
 		
