@@ -2324,13 +2324,13 @@
 	{
 		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
 		// as profile report percentages are fractions of the total elapsed wall clock time.
-		clock_t startCPUClock = clock();
+		std::clock_t startCPUClock = std::clock();
 		SLIM_PROFILE_BLOCK_START();
 		
 		stillRunning = sim->RunOneGeneration();
 		
 		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
-		clock_t endCPUClock = clock();
+		std::clock_t endCPUClock = std::clock();
 		
 		profileElapsedCPUClock += (endCPUClock - startCPUClock);
 	}
@@ -3673,17 +3673,17 @@
 #pragma mark -
 #pragma mark EidosConsoleWindowControllerDelegate
 
-- (const std::vector<const EidosPropertySignature*> *)slimguiAllPropertySignatures
+- (const std::vector<EidosPropertySignature_CSP> *)slimguiAllPropertySignatures
 {
 	// This adds the properties belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<const EidosPropertySignature*> *propertySignatures = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *propertySignatures = nullptr;
 	
 	if (!propertySignatures)
 	{
-		auto slimProperties =					SLiMSim::AllPropertySignatures();
-		auto propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
+		const std::vector<EidosPropertySignature_CSP> *slimProperties =					SLiMSim::AllPropertySignatures();
+		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
 		
-		propertySignatures = new std::vector<const EidosPropertySignature*>(*slimProperties);
+		propertySignatures = new std::vector<EidosPropertySignature_CSP>(*slimProperties);
 		
 		propertySignatures->insert(propertySignatures->end(), propertiesSLiMgui->begin(), propertiesSLiMgui->end());
 		
@@ -3700,9 +3700,9 @@
 		// print out any signatures that are identical by name
 		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
 		
-		const EidosPropertySignature *previous_sig = nullptr;
+		EidosPropertySignature_CSP previous_sig = nullptr;
 		
-		for (const EidosPropertySignature *sig : *propertySignatures)
+		for (EidosPropertySignature_CSP &sig : *propertySignatures)
 		{
 			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
 			{
@@ -3721,17 +3721,17 @@
 	return propertySignatures;
 }
 	
-- (const std::vector<const EidosMethodSignature*> *)slimguiAllMethodSignatures
+- (const std::vector<EidosMethodSignature_CSP> *)slimguiAllMethodSignatures
 {
 	// This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<const EidosMethodSignature*> *methodSignatures = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
 	
 	if (!methodSignatures)
 	{
-		auto slimMethods =					SLiMSim::AllMethodSignatures();
-		auto methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
+		const std::vector<EidosMethodSignature_CSP> *slimMethods =					SLiMSim::AllMethodSignatures();
+		const std::vector<EidosMethodSignature_CSP> *methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
 		
-		methodSignatures = new std::vector<const EidosMethodSignature*>(*slimMethods);
+		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*slimMethods);
 		
 		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
 		
@@ -3748,9 +3748,9 @@
 		// print out any signatures that are identical by name
 		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
 		
-		const EidosMethodSignature *previous_sig = nullptr;
+		EidosMethodSignature_CSP previous_sig = nullptr;
 		
-		for (const EidosMethodSignature *sig : *methodSignatures)
+		for (EidosMethodSignature_CSP &sig : *methodSignatures)
 		{
 			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
 			{
@@ -3770,11 +3770,6 @@
 			
 			previous_sig = sig;
 		}
-		
-		// log a full list
-		//std::cout << "----------------" << std::endl;
-		//for (const EidosMethodSignature *sig : *methodSignatures)
-		//	std::cout << sig->call_name_ << " (" << sig << ")" << std::endl;
 	}
 	
 	return methodSignatures;
@@ -3814,9 +3809,9 @@
 		
 		EidosHelpController *sharedHelp = [EidosHelpController sharedController];
 		
-		const std::vector<EidosFunctionSignature_SP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
-		const std::vector<EidosFunctionSignature_SP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
-		std::vector<EidosFunctionSignature_SP> all_slim_functions;
+		const std::vector<EidosFunctionSignature_CSP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
+		const std::vector<EidosFunctionSignature_CSP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
+		std::vector<EidosFunctionSignature_CSP> all_slim_functions;
 		
 		all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());
 		all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
@@ -3880,7 +3875,7 @@
 	SLiMSim::AddSLiMFunctionsToMap(*functionMap);
 }
 
-- (const std::vector<const EidosMethodSignature*> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
+- (const std::vector<EidosMethodSignature_CSP> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return [self slimguiAllMethodSignatures];
 }
@@ -4058,7 +4053,7 @@
 	[self eidosConsoleWindowController:nullptr addOptionalFunctionsToMap:functionMap];
 }
 
-- (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
+- (const std::vector<EidosMethodSignature_CSP> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
 {
 	return [self eidosConsoleWindowControllerAllMethodSignatures:nullptr];
 }
@@ -4495,96 +4490,101 @@
 	// Here we do a little quick-and-dirty patching in order to show signatures when inside callback definitions
 	if ([signatureString hasSuffix:@"unrecognized call"])
 	{
+		const EidosCallSignature *sig = nullptr;
+		
 		if ([signatureString hasPrefix:@"initialize()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("initialize", nullptr, kEidosValueMaskVOID));
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("initialize", nullptr, kEidosValueMaskVOID)));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"early()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("early", nullptr, kEidosValueMaskVOID));
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("early", nullptr, kEidosValueMaskVOID)));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"late()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("late", nullptr, kEidosValueMaskVOID));
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("late", nullptr, kEidosValueMaskVOID)));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"fitness()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"interaction()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("interaction", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("interactionType", gSLiM_InteractionType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"mateChoice()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mateChoice", nullptr, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"modifyChild()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("modifyChild", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"recombination()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"mutation()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible);
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
 		else if ([signatureString hasPrefix:@"reproduction()"])
 		{
-			static EidosCallSignature *callbackSig = nullptr;
+			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = (new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskVOID))->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OSN("sex", gStaticEidosValueNULLInvisible);
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("reproduction", nullptr, kEidosValueMaskVOID))->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddString_OSN("sex", gStaticEidosValueNULLInvisible));
 			
-			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:callbackSig size:11.0];
+			sig = callbackSig.get();
 		}
+		
+		if (sig)
+			attributedSignature = [NSAttributedString eidosAttributedStringForCallSignature:sig size:11.0];
 	}
 	
 	[scriptStatusTextField setAttributedStringValue:attributedSignature];

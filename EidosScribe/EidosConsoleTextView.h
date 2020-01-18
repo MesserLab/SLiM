@@ -77,8 +77,8 @@
 // Adds a thin spacer line to the console's output text; this provides nicer formatting for output
 - (void)appendSpacer;
 
-// Clears all output in the console
-- (void)clearOutput;
+// Clears output in the console
+- (void)clearOutputToPosition:(NSUInteger)clearPosition;
 
 // This adds a command to the console window's history; it should be called to register all commands executed
 // in the console, including commands sent to the delegate to execute by -eidosConsoleTextViewExecuteInput:,

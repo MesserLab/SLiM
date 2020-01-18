@@ -204,8 +204,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 };
 
 EidosObjectClass *gEidosTestElement_Class = new EidosTestElement_Class();
@@ -223,13 +223,13 @@ const std::string &EidosTestElement_Class::ElementType(void) const
 	return gEidosStr__TestElement;
 }
 
-const std::vector<const EidosPropertySignature *> *EidosTestElement_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(EidosTestElement::GetProperty_Accelerated__yolk)->DeclareAcceleratedSet(EidosTestElement::SetProperty_Accelerated__yolk));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__increment,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class)));
@@ -240,13 +240,13 @@ const std::vector<const EidosPropertySignature *> *EidosTestElement_Class::Prope
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *EidosTestElement_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *EidosTestElement_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedImp(EidosTestElement::ExecuteMethod_Accelerated_cubicYolk));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__squareTest, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class)));

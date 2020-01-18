@@ -662,15 +662,15 @@ public:
 	
 	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
 	
-	static const std::vector<EidosFunctionSignature_SP> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
+	static const std::vector<EidosFunctionSignature_CSP> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
 	static void AddZeroGenerationFunctionsToMap(EidosFunctionMap &p_map);
 	static void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map);
 	
-	static const std::vector<EidosFunctionSignature_SP> *SLiMFunctionSignatures(void);		// all non-zero-gen functions
+	static const std::vector<EidosFunctionSignature_CSP> *SLiMFunctionSignatures(void);		// all non-zero-gen functions
 	static void AddSLiMFunctionsToMap(EidosFunctionMap &p_map);
 	
-	static const std::vector<const EidosMethodSignature*> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
-	static const std::vector<const EidosPropertySignature*> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
+	static const std::vector<EidosMethodSignature_CSP> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
+	static const std::vector<EidosPropertySignature_CSP> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
 	
 	virtual const EidosObjectClass *Class(void) const;
 	

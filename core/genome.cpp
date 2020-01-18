@@ -2006,8 +2006,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
@@ -2026,13 +2026,13 @@ const std::string &Genome_Class::ElementType(void) const
 	return gEidosStr_Genome;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 }
 
-const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *Genome_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_genomePedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -2047,13 +2047,13 @@ const std::vector<const EidosPropertySignature *> *Genome_Class::Properties(void
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *Genome_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
@@ -2636,6 +2636,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				}
 #endif
 			}
+		}
+		
+		// BCH 18 January 2020: If a vector of positions was provided, mutations_to_add might be out of sorted
+		// order, which is expected below by clear_set_and_merge(), so we sort here
+		if ((position_count != 1) && (mutations_to_add.size() > 1))
+		{
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			
+			std::sort(mutations_to_add.begin_pointer(), mutations_to_add.end_pointer(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
 		}
 		
 		// Now start the bulk operation and add mutations_to_add to every target genome

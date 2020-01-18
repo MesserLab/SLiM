@@ -236,6 +236,35 @@ typedef enum SLiMLaunchAction
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+	// check for required fonts, to prevent problems downstream
+	NSFont *times = [NSFont fontWithName:@"Times New Roman" size:13.0];
+	NSFont *menlo = [NSFont fontWithName:@"Menlo" size:13.0];
+	NSFont *optima = [NSFont fontWithName:@"Optima" size:13.0];
+	NSFont *optima_b = [NSFont fontWithName:@"Optima-Bold" size:13.0];
+	NSFont *optima_i = [NSFont fontWithName:@"Optima-Italic" size:13.0];
+	NSString *fontName = nil;
+	
+	if (!times)				fontName = @"Times New Roman";
+	else if (!menlo)		fontName = @"Menlo";
+	else if (!optima)		fontName = @"Optima";
+	else if (!optima_b)		fontName = @"Optima-Bold";
+	else if (!optima_i)		fontName = @"Optima-Italic";
+	
+	if (fontName)
+	{
+		NSAlert *alert = [[NSAlert alloc] init];
+		
+		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setMessageText:@"Missing font"];
+		[alert setInformativeText:[NSString stringWithFormat:@"The standard system font %@ is required for SLiMgui to run, but appears to be missing.  Please check your macOS installation.\n\nSLiMgui will now exit.", fontName]];
+		[alert addButtonWithTitle:@"OK"];
+		
+		[alert runModal];
+		[[NSApplication sharedApplication] terminate:nil];
+		return;
+	}
+	
+	// perform the launch action
 	SLiMLaunchAction launchAction = (SLiMLaunchAction)[[NSUserDefaults standardUserDefaults] integerForKey:defaultsLaunchActionKey];
 	
 	switch (launchAction)

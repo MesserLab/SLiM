@@ -452,8 +452,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 };
 
 EidosObjectClass *gSLiM_GenomicElementType_Class = new GenomicElementType_Class();
@@ -464,13 +464,13 @@ const std::string &GenomicElementType_Class::ElementType(void) const
 	return gStr_GenomicElementType;
 }
 
-const std::vector<const EidosPropertySignature *> *GenomicElementType_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
@@ -485,13 +485,13 @@ const std::vector<const EidosPropertySignature *> *GenomicElementType_Class::Pro
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *GenomicElementType_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *GenomicElementType_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskVOID))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationMatrix, kEidosValueMaskVOID))->AddFloat("mutationMatrix"));

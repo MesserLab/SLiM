@@ -2842,6 +2842,10 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int ind1_index = ind1->index_;
+	
+	if (ind1_index < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distances can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+	
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
@@ -2892,6 +2896,10 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind2_index_in_subpop = ind2->index_;
+			
+			if (ind2_index_in_subpop < 0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distances can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			
 			double distance;
 			
 			if (periodicity_enabled)
@@ -2974,7 +2982,12 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 			if (subpop1 != &(ind->subpopulation_))
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
-			double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
+			slim_popsize_t ind_index_in_subpop = ind->index_;
+			
+			if (ind_index_in_subpop < 0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distances can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			
+			double *ind_position = position_data + ind_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 			
 			result_vec->set_float_no_check(CalculateDistanceWithPeriodicity(ind_position, point_data, subpop_data), ind_index);
 		}
@@ -2988,7 +3001,12 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 			if (subpop1 != &(ind->subpopulation_))
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
-			double *ind_position = position_data + ind->index_ * SLIM_MAX_DIMENSIONALITY;
+			slim_popsize_t ind_index_in_subpop = ind->index_;
+			
+			if (ind_index_in_subpop < 0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distances can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			
+			double *ind_position = position_data + ind_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 			
 			result_vec->set_float_no_check(CalculateDistance(ind_position, point_data), ind_index);
 		}
@@ -3075,6 +3093,10 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
+	
+	if (ind_index < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the focal individual is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+	
 	auto subpop_data_iter = data_.find(subpop_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
@@ -3240,6 +3262,10 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		Subpopulation *subpop = &(individual->subpopulation_);
 		slim_objectid_t subpop_id = subpop->subpopulation_id_;
 		int ind_index = individual->index_;
+		
+		if (ind_index < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+		
 		auto subpop_data_iter = data_.find(subpop_id);
 		
 		if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
@@ -3280,6 +3306,10 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 			{
 				Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(focal_ind_index, nullptr);
 				int ind_index = individual->index_;
+				
+				if (ind_index < 0)
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				
 				Subpopulation *ind_subpop = &(individual->subpopulation_);
 				
 				if (ind_subpop != subpop)
@@ -3328,6 +3358,10 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int receiver_index = receiver->index_;
+	
+	if (receiver_index < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+	
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
@@ -3371,11 +3405,15 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			if (subpop1 != &(exerter->subpopulation_))
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
-			uint32_t exerter_index_in_subpop = (uint32_t)exerter->index_;
+			slim_popsize_t exerter_index_in_subpop = exerter->index_;
+			
+			if (exerter_index_in_subpop < 0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			
 			double distance = INFINITY;
 			
 			for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
-				if (row_columns[col_index] == exerter_index_in_subpop)
+				if ((slim_popsize_t)row_columns[col_index] == exerter_index_in_subpop)
 				{
 					distance = distances[col_index];
 					break;
@@ -3405,6 +3443,10 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
+	
+	if (ind_index < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+	
 	auto subpop_data_iter = data_.find(subpop_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
@@ -3503,6 +3545,10 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
+	
+	if (ind_index < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+	
 	auto subpop_data_iter = data_.find(subpop_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
@@ -3705,6 +3751,10 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int receiver_index = receiver->index_;
+	
+	if (receiver_index < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+	
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
 	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
@@ -3748,13 +3798,17 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 				
 				if (subpop1 != &(exerter->subpopulation_))
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 				
-				uint32_t exerter_index_in_subpop = (uint32_t)exerter->index_;
+				slim_popsize_t exerter_index_in_subpop = (uint32_t)exerter->index_;
+				
+				if (exerter_index_in_subpop < 0)
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				
 				double strength = 0;
 				
 				for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
-					if (row_columns[col_index] == exerter_index_in_subpop)
+					if ((slim_popsize_t)row_columns[col_index] == exerter_index_in_subpop)
 					{
 						strength = strengths[col_index];
 						break;
@@ -3826,6 +3880,10 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 					
 					slim_popsize_t exerter_index_in_subpop = exerter->index_;
+					
+					if (exerter_index_in_subpop < 0)
+						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+					
 					double strength = 0;
 					
 					if (exerter_index_in_subpop != receiver_index)
@@ -3888,6 +3946,9 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		SparseArray &sa = *subpop_data.dist_str_;
 		slim_popsize_t ind_index_in_subpop = first_ind->index_;
 		
+		if (ind_index_in_subpop < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+		
 		// Get the sparse array data
 		uint32_t row_nnz;
 		const uint32_t *row_columns;
@@ -3917,6 +3978,9 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind_index_in_subpop = individual->index_;
+			
+			if (ind_index_in_subpop < 0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 			
 			// Get the sparse array data
 			uint32_t row_nnz;
@@ -3966,8 +4030,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 };
 
 EidosObjectClass *gSLiM_InteractionType_Class = new InteractionType_Class();
@@ -3978,13 +4042,13 @@ const std::string &InteractionType_Class::ElementType(void) const
 	return gStr_InteractionType;
 }
 
-const std::vector<const EidosPropertySignature *> *InteractionType_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
@@ -3999,13 +4063,13 @@ const std::vector<const EidosPropertySignature *> *InteractionType_Class::Proper
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *InteractionType_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));

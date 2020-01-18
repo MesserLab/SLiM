@@ -152,13 +152,13 @@ const std::string &SLiMEidosDictionary_Class::ElementType(void) const
 	return gStr_SLiMEidosDictionary;
 }
 
-const std::vector<const EidosMethodSignature *> *SLiMEidosDictionary_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *SLiMEidosDictionary_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_getValue, kEidosValueMaskAnyBase))->AddString_S("key"));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAnyBase("value"))->DeclareAcceleratedImp(SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue));

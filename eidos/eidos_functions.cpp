@@ -26,6 +26,7 @@
 #include "eidos_beep.h"
 
 #include <ctime>
+#include <chrono>
 #include <stdio.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -41,7 +42,6 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 
-#include "time.h"
 #include "string.h"
 
 #include "gsl_linalg.h"
@@ -92,13 +92,13 @@ std::string EidosStringFormat(const std::string& format, Args ... args)
 //
 
 // We allocate all of our function signatures once and keep them forever, for faster EidosInterpreter startup
-std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
+const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunctions(void)
 {
-	static std::vector<EidosFunctionSignature_SP> *signatures = nullptr;
+	static std::vector<EidosFunctionSignature_CSP> *signatures = nullptr;
 	
 	if (!signatures)
 	{
-		signatures = new std::vector<EidosFunctionSignature_SP>;
+		signatures = new std::vector<EidosFunctionSignature_CSP>;
 		
 		// ************************************************************************************
 		//
@@ -331,15 +331,17 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		//
 		//	built-in user-defined functions
 		//
-		EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskVOID))->AddString_S("filePath");
-		EidosScript *source_script = new EidosScript("{ _executeLambda_OUTER(paste(readFile(filePath), '\\n')); return; }");
-		
-		source_script->Tokenize();
-		source_script->ParseInterpreterBlockToAST(false);
-		
-		source_signature->body_script_ = source_script;
-		
-		signatures->emplace_back(source_signature);
+		{
+			EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskVOID))->AddString_S("filePath");
+			EidosScript *source_script = new EidosScript("{ _executeLambda_OUTER(paste(readFile(filePath), '\\n')); return; }");
+			
+			source_script->Tokenize();
+			source_script->ParseInterpreterBlockToAST(false);
+			
+			source_signature->body_script_ = source_script;
+			
+			signatures->emplace_back(source_signature);
+		}
 		
 		
 		// ************************************************************************************
@@ -351,7 +353,7 @@ std::vector<EidosFunctionSignature_SP> &EidosInterpreter::BuiltInFunctions(void)
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
-		std::sort(signatures->begin(), signatures->end(), CompareEidosFunctionSignature_SPs);
+		std::sort(signatures->begin(), signatures->end(), CompareEidosFunctionSignatures);
 	}
 	
 	return *signatures;
@@ -365,11 +367,11 @@ void EidosInterpreter::CacheBuiltInFunctionMap(void)
 	
 	if (!s_built_in_function_map_)
 	{
-		std::vector<EidosFunctionSignature_SP> &built_in_functions = EidosInterpreter::BuiltInFunctions();
+		const std::vector<EidosFunctionSignature_CSP> &built_in_functions = EidosInterpreter::BuiltInFunctions();
 		
 		s_built_in_function_map_ = new EidosFunctionMap;
 		
-		for (auto sig : built_in_functions)
+		for (const EidosFunctionSignature_CSP &sig : built_in_functions)
 			s_built_in_function_map_->insert(EidosFunctionMapPair(sig->call_name_, sig));
 	}
 }
@@ -10092,6 +10094,8 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const Eidos
 }
 
 //	(float$)clock([string$ type = "cpu"])
+static std::chrono::steady_clock::time_point timebase = std::chrono::steady_clock::now();	// start at launch
+
 EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -10101,7 +10105,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosVal
 	if (type_name == "cpu")
 	{
 		// elapsed CPU time; this is across all cores, so it can be larger than the elapsed wall clock time!
-		clock_t cpu_time = clock();
+		std::clock_t cpu_time = std::clock();
 		double cpu_time_d = static_cast<double>(cpu_time) / CLOCKS_PER_SEC;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cpu_time_d));
@@ -10109,31 +10113,11 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosVal
 	else if (type_name == "mono")
 	{
 		// monotonic clock time; this is best for measured user-perceived elapsed times
-		struct timespec ts;
+		std::chrono::steady_clock::time_point ts = std::chrono::steady_clock::now();
+		std::chrono::steady_clock::duration clock_duration = ts - timebase;
+		double seconds = std::chrono::duration<double>(clock_duration).count();
 		
-		if (Eidos_GetMonotonicTimer(&ts))
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_clock): clock_gettime() error encountered in function clock()." << EidosTerminate(nullptr);
-		
-		// we need to start the clock from a recent timebase, so that we don't lose precision;
-		// we set up the timebase the first time we are called, so it changes from run to run
-		static bool timebase_fetched = false;
-		static timespec timebase;
-		
-		if (!timebase_fetched)
-		{
-			timebase.tv_sec = ts.tv_sec;
-			timebase.tv_nsec = 0;	// just to be clear
-			timebase_fetched = true;
-		}
-		
-		// subtract the whole seconds of the timebase from the clock; this provides nanosecond
-		// accuracy for the first ~104 days after the first clock call, which seems good enough,
-		// according to random stuff I read on the web that is doubtless accurate :->
-		ts.tv_sec -= timebase.tv_sec;
-		
-		double mono = (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000.0;
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(mono));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(seconds));
 	}
 	else
 	{
@@ -10333,8 +10317,8 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 		}
 	}
 	
-	clock_t begin_clock = 0, end_clock = 0;
-	struct timespec begin_ts, end_ts;
+	std::clock_t begin_clock = 0, end_clock = 0;
+	std::chrono::steady_clock::time_point begin_ts, end_ts;
 	
 	gEidosCharacterStartOfError = -1;
 	gEidosCharacterEndOfError = -1;
@@ -10355,12 +10339,9 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 		if (timed)
 		{
 			if (timer_type == 0)
-				begin_clock = clock();
+				begin_clock = std::clock();
 			else
-			{
-				if (Eidos_GetMonotonicTimer(&begin_ts))
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteLambdaInternal): clock_gettime() error encountered in function executeLambda()." << EidosTerminate(nullptr);
-			}
+				begin_ts = std::chrono::steady_clock::now();
 		}
 		
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
@@ -10371,12 +10352,9 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 		if (timed)
 		{
 			if (timer_type == 0)
-				end_clock = clock();
+				end_clock = std::clock();
 			else
-			{
-				if (Eidos_GetMonotonicTimer(&end_ts))
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteLambdaInternal): clock_gettime() error encountered in function executeLambda()." << EidosTerminate(nullptr);
-			}
+				end_ts = std::chrono::steady_clock::now();
 		}
 		
 		// Assimilate output
@@ -10419,10 +10397,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 		if (timer_type == 0)
 			time_spent = static_cast<double>(end_clock - begin_clock) / CLOCKS_PER_SEC;
 		else
-		{
-			time_spent = (end_ts.tv_nsec - begin_ts.tv_nsec) / 1000000000.0;
-			time_spent += (end_ts.tv_sec - begin_ts.tv_sec);
-		}
+			time_spent = std::chrono::duration<double>(end_ts - begin_ts).count();
 		
 		p_interpreter.ExecutionOutputStream() << "// ********** executeLambda() elapsed time: " << time_spent << std::endl;
 	}

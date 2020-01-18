@@ -1138,7 +1138,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
 };
 
 EidosObjectClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
@@ -1149,13 +1149,13 @@ const std::string &SLiMEidosBlock_Class::ElementType(void) const
 	return gStr_SLiMEidosBlock;
 }
 
-const std::vector<const EidosPropertySignature *> *SLiMEidosBlock_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_start,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

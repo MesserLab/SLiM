@@ -667,7 +667,15 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 
 - (IBAction)clearOutput:(id)sender
 {
-	[outputTextView clearOutput];
+	if (isContinuationPrompt)
+	{
+		[outputTextView clearOutputToPosition:originalPromptEnd - 2];
+		originalPromptEnd = 2;
+	}
+	else
+	{
+		[outputTextView clearOutputToPosition:outputTextView->lastPromptRange.location];
+	}
 }
 
 - (void)fixDumbSelectionBug:(id)unused
@@ -938,7 +946,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		[delegate eidosConsoleWindowController:self addOptionalFunctionsToMap:functionMap];
 }
 
-- (const std::vector<const EidosMethodSignature*> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView
+- (const std::vector<EidosMethodSignature_CSP> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView
 {
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerAllMethodSignatures:)])
 		return [delegate eidosConsoleWindowControllerAllMethodSignatures:self];

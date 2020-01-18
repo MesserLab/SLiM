@@ -1402,8 +1402,8 @@ public:
 	
 	virtual const std::string &ElementType(void) const;
 	
-	virtual const std::vector<const EidosPropertySignature *> *Properties(void) const;
-	virtual const std::vector<const EidosMethodSignature *> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const;
@@ -1417,13 +1417,13 @@ const std::string &Individual_Class::ElementType(void) const
 	return gEidosStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 }
 
-const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void) const
 {
-	static std::vector<const EidosPropertySignature *> *properties = nullptr;
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		properties = new std::vector<const EidosPropertySignature *>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
@@ -1454,13 +1454,13 @@ const std::vector<const EidosPropertySignature *> *Individual_Class::Properties(
 	return properties;
 }
 
-const std::vector<const EidosMethodSignature *> *Individual_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) const
 {
-	static std::vector<const EidosMethodSignature *> *methods = nullptr;
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		methods = new std::vector<const EidosMethodSignature *>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

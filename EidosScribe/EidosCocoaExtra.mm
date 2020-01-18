@@ -22,6 +22,7 @@
 
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "eidos_value.h"
 #include "eidos_beep.h"
 
 
