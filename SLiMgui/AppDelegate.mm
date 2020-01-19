@@ -425,7 +425,7 @@ typedef enum SLiMLaunchAction
 
 - (IBAction)showSlimPublication:(id)sender
 {
-	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://dx.doi.org/10.1093/molbev/msw211"]];
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://doi.org/10.1093/molbev/msw211"]];
 }
 
 - (IBAction)showMesserLab:(id)sender
