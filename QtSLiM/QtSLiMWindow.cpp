@@ -346,7 +346,7 @@ std::string QtSLiMWindow::defaultNonWFScriptString(void)
                 "\n"
                 "// each individual reproduces itself once\n"
                 "reproduction() {\n"
-                "	subpop.addCrossed(individual, p1.sampleIndividuals(1));\n"
+                "	subpop.addCrossed(individual, subpop.sampleIndividuals(1));\n"
                 "}\n"
                 "\n"
                 "// create an initial population of 10 individuals\n"
