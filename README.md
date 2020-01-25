@@ -64,3 +64,19 @@ To build the code with debug flags turned on (i.e., optimization turned off, deb
 This could be done in a separate directory to retain both versions of the build.
 
 See the SLiM manual for more information about building and installing, including instructions on building SLiMgui under Xcode.  The manual and other SLiM stuff can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+
+Instructions for parallel implementation
+----------------------------------
+-Switch to openmp branch
+```
+cd icc_build
+source build
+make -j
+make install
+```
+- To toggle between serial and parallel builds: <br/>
+	-Remove line 21 : -DParallel=ON ..\\ in icc_build/build <br/>
+	-Change line line 20 to : -D CMAKE_BUILD_TYPE=Debug ..\\ <br/>
+	-Delete CMakeCache.txt <br/>
+	-Rebuild project<br/>
+- This is currently implemented in gcc but also works with icc(intel). To switch compilers, do so in icc_build/build
