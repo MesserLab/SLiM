@@ -3,7 +3,7 @@
 //  SLiMgui
 //
 //  Created by Ben Haller on 10/11/18.
-//  Copyright (c) 2018-2019 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2018-2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
