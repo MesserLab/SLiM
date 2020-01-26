@@ -131,7 +131,7 @@
          <item>
           <widget class="QLabel" name="label_3">
            <property name="text">
-            <string>Copyright © 2016–2019 Philipp Messer.  All rights reserved.</string>
+            <string>Copyright © 2016–2020 Philipp Messer.  All rights reserved.</string>
            </property>
           </widget>
          </item>

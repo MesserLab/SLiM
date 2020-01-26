@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/6/2019.
-//  Copyright (c) 2019 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -99,7 +99,7 @@ void QtSLiMConsoleTextEdit::showWelcome(void)
     QString welcomeMessage;
     welcomeMessage = welcomeMessage + "Eidos version " + EIDOS_VERSION_STRING + NEWLINE + NEWLINE;		// EIDOS VERSION
     welcomeMessage += "By Benjamin C. Haller (http://benhaller.com/)." + NEWLINE;
-    welcomeMessage += "Copyright (c) 2016–2019 P. Messer. All rights reserved." + NEWLINE + NEWLINE;
+    welcomeMessage += "Copyright (c) 2016–2020 P. Messer. All rights reserved." + NEWLINE + NEWLINE;
     welcomeMessage += "Eidos is free software with ABSOLUTELY NO WARRANTY." + NEWLINE;
     welcomeMessage += "Type license() for license and distribution details." + NEWLINE + NEWLINE;
     welcomeMessage += "Go to https://github.com/MesserLab/SLiM for source code," + NEWLINE;
