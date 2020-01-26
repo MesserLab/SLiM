@@ -2308,6 +2308,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	
 	// Defining a neutral mutation type when tree-recording is on (with mutation recording) and the mutation rate is non-zero is legal, but causes a warning
 	// I'm not sure this is a good idea, but maybe it will help people avoid doing dumb things; added at the suggestion of Peter Ralph...
+	// BCH 26 Jan. 2020; refining the test here so it only logs if the neutral mutation type is used by a genomic element type
 	if (recording_tree_ && recording_mutations_)
 	{
 		bool mut_rate_zero = true;
@@ -2323,14 +2324,21 @@ void SLiMSim::RunInitializeCallbacks(void)
 		
 		if (!mut_rate_zero)
 		{
-			for (auto muttype_iter : mutation_types_)
+			bool using_neutral_muttype = false;
+			
+			for (auto getype_iter : genomic_element_types_)
 			{
-				MutationType *muttype = muttype_iter.second;
+				GenomicElementType *getype = getype_iter.second;
 				
-				if ((muttype->dfe_type_ == DFEType::kFixed) && (muttype->dfe_parameters_.size() == 1) && (muttype->dfe_parameters_[0] == 0.0))
-					if (!gEidosSuppressWarnings)
-						SLIM_OUTSTREAM << "#WARNING (SLiMSim::RunInitializeCallbacks): with tree-sequence recording enabled and a non-zero mutation rate, a neutral mutation type was defined; this is legal, but usually undesirable, since neutral mutations can be overlaid later using the tree-sequence information." << std::endl;
+				for (auto muttype : getype->mutation_type_ptrs_)
+				{
+					if ((muttype->dfe_type_ == DFEType::kFixed) && (muttype->dfe_parameters_.size() == 1) && (muttype->dfe_parameters_[0] == 0.0))
+						using_neutral_muttype = true;
+				}
 			}
+			
+			if (using_neutral_muttype && !gEidosSuppressWarnings)
+				SLIM_OUTSTREAM << "#WARNING (SLiMSim::RunInitializeCallbacks): with tree-sequence recording enabled and a non-zero mutation rate, a neutral mutation type was defined and used; this is legal, but usually undesirable, since neutral mutations can be overlaid later using the tree-sequence information." << std::endl;
 		}
 	}
 	
