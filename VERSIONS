@@ -22,7 +22,8 @@ development head:
 	fix a bug in AddNewDrawnMutation()/AddNewMutation() if a non-singleton vector of positions is given in unsorted order: the genome order is incorrect!
 	tweak the default nonWF model to find a mate with "subpop.sampleIndividuals(1)" not "p1.sampleIndividuals(1)", for generality
 	tweaks to allow distribution under conda-forge
-
+	increase the precision of MS output from 7 decimal places to 10, to accommodate larger chromosomes with precise positions
+	
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):
 	fix SLiMgui crashing bug involving (a) a type "s" mutation type with (b) a fixed color set for it
