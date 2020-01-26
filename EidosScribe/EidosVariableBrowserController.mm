@@ -157,6 +157,12 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	// Then go through the outline view and save all items that are expanded
 	NSUInteger rowCount = [_browserOutline numberOfRows];
 	
+	// BCH 26 Jan. 2020: On 10.15 NSOutlineView apparently caches the number of rows, so even though we would now return 0 from
+	// outlineView:numberOfChildrenOfItem:, it gives us a non-zero count and then logs errors when we call itemAtRow:.  So now
+	// we explicitly check that we actually have a symbol table, and if not, correct the number of rows to zero.
+	if (![_delegate symbolTableForEidosVariableBrowserController:self])
+		rowCount = 0;
+	
 	if (rowCount > 0)
 	{
 		// The outline has items in it, so we will start a new set to save the expanded items
@@ -289,10 +295,13 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	if ([_delegate symbolTableForEidosVariableBrowserController:self])
 	{
 		NSArray *wrapperArray = (item ? [(EidosValueWrapper *)item childWrappers] : [self rootWrappers]);
-								 
-		return [wrapperArray count];
+		NSInteger count = [wrapperArray count];
+		
+		//NSLog(@"count == %ld", (long)count);
+		return count;
 	}
 	
+	//NSLog(@"count == 0");
 	return 0;
 }
 
@@ -301,10 +310,13 @@ NSString *EidosVariableBrowserWillShowNotification = @"EidosVariableBrowserWillS
 	if ([_delegate symbolTableForEidosVariableBrowserController:self])
 	{
 		NSArray *wrapperArray = (item ? [(EidosValueWrapper *)item childWrappers] : [self rootWrappers]);
+		id child = [wrapperArray objectAtIndex:index];
 		
-		return [wrapperArray objectAtIndex:index];
+		//NSLog(@"child at index %ld == %@", (long)index, child);
+		return child;
 	}
 	
+	//NSLog(@"child at index %ld == NULL", (long)index);
 	return (id _Nonnull)nil;	// get rid of the static analyzer warning
 }
 
