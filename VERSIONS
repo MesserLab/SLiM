@@ -39,6 +39,8 @@ development head:
 	optimize the sample size 1 case in sampleIndividuals() when criteria are specified (min/max age, etc.)
 	add SLiMgui launch check for needed fonts
 	fix a bug in AddNewDrawnMutation()/AddNewMutation() if a non-singleton vector of positions is given in unsorted order: the genome order is incorrect!
+	tweak the default nonWF model to find a mate with "subpop.sampleIndividuals(1)" not "p1.sampleIndividuals(1)", for generality
+	tweaks to allow distribution under conda-forge
 
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):

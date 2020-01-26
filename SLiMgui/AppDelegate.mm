@@ -3,7 +3,7 @@
 //  SLiMgui
 //
 //  Created by Ben Haller on 1/20/15.
-//  Copyright (c) 2015-2019 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -431,7 +431,7 @@ typedef enum SLiMLaunchAction
 
 - (IBAction)showSlimPublication:(id)sender
 {
-	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://dx.doi.org/10.1093/molbev/msw211"]];
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://doi.org/10.1093/molbev/msw211"]];
 }
 
 - (IBAction)showMesserLab:(id)sender

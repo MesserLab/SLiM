@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/31/17.
-//  Copyright (c) 2017-2019 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2017-2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -74,7 +74,7 @@
 	"\n"
 	"// each individual reproduces itself once\n"
 	"reproduction() {\n"
-	"	subpop.addCrossed(individual, p1.sampleIndividuals(1));\n"
+	"	subpop.addCrossed(individual, subpop.sampleIndividuals(1));\n"
 	"}\n"
 	"\n"
 	"// create an initial population of 10 individuals\n"

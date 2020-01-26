@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/12/14.
-//  Copyright (c) 2014-2019 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -62,7 +62,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
-		SLIM_OUTSTREAM << "Copyright 2013-2019 Philipp Messer.  All rights reserved." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "Copyright 2013-2020 Philipp Messer.  All rights reserved." << std::endl << std::endl;
 		SLIM_OUTSTREAM << "By Benjamin C. Haller, http://benhaller.com/, and Philipp Messer." << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
@@ -70,7 +70,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "To cite SLiM in publications please use:" << std::endl << std::endl;
 		SLIM_OUTSTREAM << "Haller, B.C., and Messer, P.W. (2019). SLiM 3: Forward genetic simulations" << std::endl;
 		SLIM_OUTSTREAM << "beyond the Wright–Fisher model. Molecular Biology and Evolution 36(3), 632-637." << std::endl;
-		SLIM_OUTSTREAM << "DOI: http://dx.doi.org/10.1093/molbev/msy228" << std::endl << std::endl;
+		SLIM_OUTSTREAM << "DOI: https://doi.org/10.1093/molbev/msy228" << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "For papers using tree-sequence recording, please cite:" << std::endl << std::endl;
 		SLIM_OUTSTREAM << "Haller, B.C., Galloway, J., Kelleher, J., Messer, P.W., & Ralph, P.L. (2019)." << std::endl;
