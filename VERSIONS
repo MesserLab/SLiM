@@ -10,7 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 
 
-version 3.3.2 (build 2157; Eidos version 2.3.2):
+version 3.3.2 (build 2158; Eidos version 2.3.2):
 	add recipe 5.2.4 (joining subpopulations)
 	extend recipe 5.4 (the Gravel model) to show output from a vector of genomes sampled from multiple subpops
 	fix a bug in recipe 13.4 (introduced in SLiM 3.3) that caused the environmental noise not to be included in the phenotypic values used for fitness calculations

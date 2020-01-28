@@ -5899,25 +5899,60 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	// look up the metadata for the remembered individual and patch it with new information.
 	// Also making it so we don't use this map at all if we're adding first-gen individuals,
 	// since we know they are not already remembered.
-	slim_pedigreeid_t last_added_id = -1;
-	slim_popsize_t added_count = 0;
-	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;
+	// BCH 28 Jan. 2020: My previous optimization turns out to be quite slow in one case: when
+	// p_num_individuals == 1, because the user is adding just a single remembered individual
+	// to the list.  When this is done many times (as in my #116 test case!), the overhead of
+	// building a whole std::unordered_map for a single lookup proves to be a big problem --
+	// a large percentage of total runtime, which it used to be negligible.  This seems like
+	// a case that might well arise in real-world use, so I'm optimizing it by re-introducing
+	// the old std::vector code, used only when p_num_individuals < 5 (a wild guess at a
+	// heuristic).  This makes the code a bit messy, but it's simple really: we just use one
+	// of two data structures, std::vector or std::unordered_map, to do our lookups based on
+	// how many lookups we anticipate doing.
+	bool using_std_vector = (p_num_individuals < 5);
+    std::vector<slim_pedigreeid_t> remembered_individuals;									// used when using_std_vector==true
+	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;	// used when using_std_vector==false
 	
-    for (tsk_id_t nid : remembered_genomes_) 
-    {
-        tsk_id_t tsk_individual = p_tables->nodes.individual[nid];
-        assert((tsk_individual >= 0) && ((tsk_size_t)tsk_individual < p_tables->individuals.num_rows));
-        IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
-		slim_pedigreeid_t metadata_id = metadata_rec->pedigree_id_;
+	if (using_std_vector)
+	{
+		slim_pedigreeid_t last_added_id = -1;
 		
-		// remembered_genomes_ has two entries per individual; we want to work with individuals, so we filter
-		if (metadata_id != last_added_id)
+		for (tsk_id_t nid : remembered_genomes_) 
 		{
-			remembered_individuals_lookup.emplace(std::pair<slim_pedigreeid_t, slim_popsize_t>(metadata_id, added_count));
-			last_added_id = metadata_id;
-			added_count++;
+			tsk_id_t tsk_individual = p_tables->nodes.individual[nid];
+			assert((tsk_individual >= 0) && ((tsk_size_t)tsk_individual < p_tables->individuals.num_rows));
+			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
+			slim_pedigreeid_t metadata_id = metadata_rec->pedigree_id_;
+			
+			// remembered_genomes_ has two entries per individual; we want to work with individuals, so we filter
+			if (metadata_id != last_added_id)
+			{
+				remembered_individuals.push_back(metadata_rec->pedigree_id_);
+				last_added_id = metadata_id;
+			}
 		}
-    }
+	}
+	else
+	{
+		slim_pedigreeid_t last_added_id = -1;
+		slim_popsize_t added_count = 0;
+		
+		for (tsk_id_t nid : remembered_genomes_) 
+		{
+			tsk_id_t tsk_individual = p_tables->nodes.individual[nid];
+			assert((tsk_individual >= 0) && ((tsk_size_t)tsk_individual < p_tables->individuals.num_rows));
+			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
+			slim_pedigreeid_t metadata_id = metadata_rec->pedigree_id_;
+			
+			// remembered_genomes_ has two entries per individual; we want to work with individuals, so we filter
+			if (metadata_id != last_added_id)
+			{
+				remembered_individuals_lookup.emplace(std::pair<slim_pedigreeid_t, slim_popsize_t>(metadata_id, added_count));
+				last_added_id = metadata_id;
+				added_count++;
+			}
+		}
+	}
 	
 	// loop over individuals and add entries to the individual table; if they are already
 	// there, we just need to update their metadata, location, etc.
@@ -5933,11 +5968,40 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
         
         IndividualMetadataRec metadata_rec;
         MetadataForIndividual(ind, &metadata_rec);
-		auto ind_pos = (p_flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN) ? remembered_individuals_lookup.end() : remembered_individuals_lookup.find(ped_id);
-        
-        if (ind_pos == remembered_individuals_lookup.end()) {
+		
+		tsk_id_t tsk_individual;
+		
+		if (p_flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
+		{
+			tsk_individual = TSK_NULL;	// not in the table already
+		}
+		else
+		{
+			if (using_std_vector)
+			{
+				// this case has a slow lookup (linear search), but the vector is fast to build
+				auto ind_pos = std::find(remembered_individuals.begin(), remembered_individuals.end(), ped_id);
+				
+				if (ind_pos == remembered_individuals.end())
+					tsk_individual = TSK_NULL;	// not in the table already
+				else
+					tsk_individual = (tsk_id_t)std::distance(remembered_individuals.begin(), ind_pos);
+			}
+			else
+			{
+				// this case has a fash search (hash table), but the unordered_map is slow to build
+				auto ind_pos = remembered_individuals_lookup.find(ped_id);
+				
+				if (ind_pos == remembered_individuals_lookup.end())
+					tsk_individual = TSK_NULL;	// not in the table already
+				else
+					tsk_individual = ind_pos->second;
+			}
+		}
+		
+        if (tsk_individual == TSK_NULL) {
             // This individual is not already in the tables.
-            tsk_id_t tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
+            tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
                     p_flags, location.data(), (uint32_t)location.size(), 
                     (char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
             if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
@@ -5956,8 +6020,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             }
         } else {
             // This individual is already there; we need to update the information.
-            size_t tsk_individual = ind_pos->second;
-            assert((tsk_individual < p_tables->individuals.num_rows)
+            assert(((size_t)tsk_individual < p_tables->individuals.num_rows)
                    && (location.size()
                        == (p_tables->individuals.location_offset[tsk_individual + 1]
                            - p_tables->individuals.location_offset[tsk_individual]))
@@ -5968,9 +6031,9 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			// BCH 4/29/2019: This assert is, we think, not technically necessary – the code
 			// would work even if it were violated.  But it's a nice invariant to guarantee,
 			// and right now it is always true.
-			assert(((size_t) p_tables->nodes.individual[ind->genome1_->tsk_node_id_]
+			assert((p_tables->nodes.individual[ind->genome1_->tsk_node_id_]
                      == tsk_individual)
-                   && ((size_t) p_tables->nodes.individual[ind->genome2_->tsk_node_id_]
+                   && (p_tables->nodes.individual[ind->genome2_->tsk_node_id_]
                        == tsk_individual));
 			
 			memcpy(p_tables->individuals.location
