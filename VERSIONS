@@ -27,6 +27,9 @@ OpenMP additions:
 
 
 development head:
+
+
+version 3.3.2 (build 2158; Eidos version 2.3.2):
 	add recipe 5.2.4 (joining subpopulations)
 	extend recipe 5.4 (the Gravel model) to show output from a vector of genomes sampled from multiple subpops
 	fix a bug in recipe 13.4 (introduced in SLiM 3.3) that caused the environmental noise not to be included in the phenotypic values used for fitness calculations
@@ -41,7 +44,7 @@ development head:
 	fix a bug in AddNewDrawnMutation()/AddNewMutation() if a non-singleton vector of positions is given in unsorted order: the genome order is incorrect!
 	tweak the default nonWF model to find a mate with "subpop.sampleIndividuals(1)" not "p1.sampleIndividuals(1)", for generality
 	tweaks to allow distribution under conda-forge
-
+	increase the precision of MS output from 7 decimal places to 10, to accommodate larger chromosomes with precise positions
 
 version 3.3.1 (build 2116; Eidos version 2.3.1):
 	fix SLiMgui crashing bug involving (a) a type "s" mutation type with (b) a fixed color set for it

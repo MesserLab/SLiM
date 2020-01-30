@@ -1425,7 +1425,7 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 		std::ios_base::fmtflags oldflags = p_out.flags();
 		std::streamsize oldprecision = p_out.precision();
 		
-		p_out << std::fixed << std::setprecision(7);
+		p_out << std::fixed << std::setprecision(10);	// BCH 26 Jan. 2020: increasing this from 7 to 10, so longer chromosomes work; maybe this should be a parameter?
 		
 		// Output positions
 		p_out << "positions:";
@@ -2891,6 +2891,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 					if ((pos_double < 0.0) || (pos_double > 1.0))
 						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readMS() requires positions in [0,1]." << EidosTerminate();
 					
+					// BCH 26 Jan. 2020: There is a little subtlety here.  This equation, round(pos * L), provides
+					// the exact inverse of what outputMS() / outputMSSample() do, so it should exactly recover
+					// positions written out by SLiM in MS format (modulo numerical error).  However, it results
+					// in half as much "mutational density" at positions 0 and L as at other positions, if the
+					// positions are uniformly distributed in [0,1] rather than originating in SLiM.  In that case,
+					// min(floor(pos*(L+1)), L) would be better.  Maybe this choice ought to be an optional logical
+					// parameter to readFromMS(), but nobody has complained yet, so I'm ignoring it for now; if
+					// you expect to get exact discrete base positions you shouldn't be using MS format anyway...
 					positions.push_back((slim_position_t)round(pos_double * last_position));
 				}
 				
