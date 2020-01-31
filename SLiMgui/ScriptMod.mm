@@ -310,7 +310,7 @@
 	{
 		NSAlert *alert = [[NSAlert alloc] init];
 		
-		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setAlertStyle:NSAlertStyleCritical];
 		[alert setMessageText:@"No subpopulations defined"];
 		[alert setInformativeText:@"No subpopulations are currently defined, so there is nothing for this operation to operate upon.  (Probably you need to step forward to a generation in which subpopulations have been defined.)"];
 		[alert addButtonWithTitle:@"OK"];
@@ -329,7 +329,7 @@
 	{
 		NSAlert *alert = [[NSAlert alloc] init];
 		
-		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setAlertStyle:NSAlertStyleCritical];
 		[alert setMessageText:@"No mutation types defined"];
 		[alert setInformativeText:@"No mutation types are currently defined, so there is nothing for this operation to operate upon.  (Probably you need to step forward to a generation in which mutation types have been defined.)"];
 		[alert addButtonWithTitle:@"OK"];
@@ -348,7 +348,7 @@
 	{
 		NSAlert *alert = [[NSAlert alloc] init];
 		
-		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setAlertStyle:NSAlertStyleCritical];
 		[alert setMessageText:@"No genomic element types defined"];
 		[alert setInformativeText:@"No genomic element types are currently defined, so there is nothing for this operation to operate upon.  (Probably you need to step forward to a generation in which genomic element types have been defined.)"];
 		[alert addButtonWithTitle:@"OK"];

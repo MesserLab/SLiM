@@ -196,7 +196,7 @@ static const int heightForTicks = 15;
 	if (![self enabled])
 	{
 		[[NSColor colorWithCalibratedWhite:0.9 alpha:0.8] set];
-		NSRectFillUsingOperation(interiorRect, NSCompositeSourceOver);
+		NSRectFillUsingOperation(interiorRect, NSCompositingOperationSourceOver);
 	}
 }
 
@@ -467,7 +467,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 // makes a new marker with no label and no tip point, not shown
 + (instancetype)new
 {
-	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 150, 20) styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];	// 150x20 should suffice, unless we change our font size...
+	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 150, 20) styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES];	// 150x20 should suffice, unless we change our font size...
 }
 
 - (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSUInteger)aStyle backing:(NSBackingStoreType)bufferingType defer:(BOOL)flag
@@ -572,7 +572,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 // makes a new marker with no label and no tip point, not shown
 + (instancetype)new
 {
-	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 50, 20) styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];	// 50x20 should suffice, unless we change our font size...
+	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 50, 20) styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES];	// 50x20 should suffice, unless we change our font size...
 }
 
 - (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSUInteger)aStyle backing:(NSBackingStoreType)bufferingType defer:(BOOL)flag
@@ -918,7 +918,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 // makes a new marker with no label and no tip point, not shown
 + (instancetype)new
 {
-	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 77, 50) styleMask:NSBorderlessWindowMask backing:NSBackingStoreBuffered defer:YES];
+	return [[[self class] alloc] initWithContentRect:NSMakeRect(0, 0, 77, 50) styleMask:NSWindowStyleMaskBorderless backing:NSBackingStoreBuffered defer:YES];
 }
 
 - (instancetype)initWithContentRect:(NSRect)contentRect styleMask:(NSUInteger)aStyle backing:(NSBackingStoreType)bufferingType defer:(BOOL)flag

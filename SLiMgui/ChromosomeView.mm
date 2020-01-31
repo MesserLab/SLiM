@@ -1645,7 +1645,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		NSRect selectionRect = [self rectEncompassingBase:selectionFirstBase toBase:selectionLastBase interiorRect:interiorRect displayedRange:displayedRange];
 		
 		[[NSColor colorWithCalibratedWhite:0.0 alpha:0.30] set];
-		NSRectFillUsingOperation(selectionRect, NSCompositeSourceOver);
+		NSRectFillUsingOperation(selectionRect, NSCompositingOperationSourceOver);
 		
 		// draw a bar at the start and end of the selection
 		NSRect selectionStartBar1 = NSMakeRect(selectionRect.origin.x - 1, interiorRect.origin.y, 1, interiorRect.size.height);
@@ -1656,16 +1656,16 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		NSRect selectionEndBar3 = NSMakeRect(selectionRect.origin.x + selectionRect.size.width, interiorRect.origin.y, 1, interiorRect.size.height);
 		
 		[[NSColor colorWithCalibratedWhite:1.0 alpha:0.15] set];
-		NSRectFillUsingOperation(selectionStartBar1, NSCompositeSourceOver);
-		//NSRectFillUsingOperation(selectionEndBar1, NSCompositeSourceOver);
+		NSRectFillUsingOperation(selectionStartBar1, NSCompositingOperationSourceOver);
+		//NSRectFillUsingOperation(selectionEndBar1, NSCompositingOperationSourceOver);
 		
 		[[NSColor blackColor] set];
 		NSRectFill(selectionStartBar2);
 		NSRectFill(selectionEndBar2);
 		
 		[[NSColor colorWithCalibratedWhite:0.0 alpha:0.30] set];
-		//NSRectFillUsingOperation(selectionStartBar3, NSCompositeSourceOver);
-		NSRectFillUsingOperation(selectionEndBar3, NSCompositeSourceOver);
+		//NSRectFillUsingOperation(selectionStartBar3, NSCompositingOperationSourceOver);
+		NSRectFillUsingOperation(selectionEndBar3, NSCompositingOperationSourceOver);
 		
 		// draw a ball at the end of each bar
 		NSRect selectionStartBall = NSMakeRect(selectionRect.origin.x - selectionKnobSizeExtension, interiorRect.origin.y - (selectionKnobSize + 2), selectionKnobSize, selectionKnobSize);
@@ -1868,7 +1868,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		curPoint.x = (int)round(curPoint.x);
 		
 		// Option-clicks just set the selection to the clicked genomic element, no questions asked
-		if ([theEvent modifierFlags] & NSAlternateKeyMask)
+		if ([theEvent modifierFlags] & NSEventModifierFlagOption)
 		{
 			if (NSPointInRect(curPoint, contentRect))
 			{

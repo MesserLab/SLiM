@@ -508,7 +508,7 @@
 		
 		// Frame the legend and erase it with a slightly translucent wash
 		[[NSColor colorWithCalibratedWhite:0.95 alpha:0.9] set];
-		NSRectFillUsingOperation(legendRect, NSCompositeSourceOver);
+		NSRectFillUsingOperation(legendRect, NSCompositingOperationSourceOver);
 		
 		[[NSColor colorWithCalibratedWhite:0.3 alpha:1.0] set];
 		NSFrameRect(legendRect);

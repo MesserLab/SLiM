@@ -177,7 +177,7 @@
 {
 	// EidosScribe runs the standard Eidos test suite on launch if the option key is down.
 	// You would probably not want to do this in your own Context.
-	if ([NSEvent modifierFlags] & NSAlternateKeyMask)
+	if ([NSEvent modifierFlags] & NSEventModifierFlagOption)
 		RunEidosTests();
 }
 

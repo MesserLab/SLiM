@@ -569,6 +569,8 @@
 		98F65D541DF145230058BD29 /* TipsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 98F65D531DF145230058BD29 /* TipsWindowController.m */; };
 		98F65D561DF14DA50058BD29 /* Tips in Resources */ = {isa = PBXBuildFile; fileRef = 98F65D551DF14DA40058BD29 /* Tips */; };
 		98F65D5A1DF39F9D0058BD29 /* Tip_END.rtfd in Resources */ = {isa = PBXBuildFile; fileRef = 98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */; };
+		98FC8E9323E3B84400FA8C03 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98FC8E9123E3B84400FA8C03 /* Metal.framework */; };
+		98FC8E9423E3B84400FA8C03 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98FC8E9223E3B84400FA8C03 /* MetalKit.framework */; };
 		D0A758F720A4CC9800132D2F /* text_input.c in Sources */ = {isa = PBXBuildFile; fileRef = D0A758F620A4CC9800132D2F /* text_input.c */; };
 		D0A758F920A4CCCF00132D2F /* text_input.c in Sources */ = {isa = PBXBuildFile; fileRef = D0A758F620A4CC9800132D2F /* text_input.c */; };
 /* End PBXBuildFile section */
@@ -1055,6 +1057,8 @@
 		98F65D531DF145230058BD29 /* TipsWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TipsWindowController.m; sourceTree = "<group>"; };
 		98F65D551DF14DA40058BD29 /* Tips */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Tips; path = SLiMgui/Tips; sourceTree = "<group>"; };
 		98F65D591DF39F9D0058BD29 /* Tip_END.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = Tip_END.rtfd; sourceTree = "<group>"; };
+		98FC8E9123E3B84400FA8C03 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		98FC8E9223E3B84400FA8C03 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		98FF384D228AFDD900A96440 /* SLiMgui.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SLiMgui.entitlements; sourceTree = "<group>"; };
 		98FF384E228AFE1E00A96440 /* EidosScribe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EidosScribe.entitlements; sourceTree = "<group>"; };
 		D05AC1EA20B47EC400FFD319 /* text_input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = text_input.h; path = treerec/tskit/text_input.h; sourceTree = "<group>"; };
@@ -1096,6 +1100,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98FC8E9323E3B84400FA8C03 /* Metal.framework in Frameworks */,
+				98FC8E9423E3B84400FA8C03 /* MetalKit.framework in Frameworks */,
 				98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */,
 				98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */,
 				9821E2041ABDBC300036EAEA /* QuartzCore.framework in Frameworks */,
@@ -1205,6 +1211,7 @@
 				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
 				984D5FA91E3AF0D200473719 /* EidosSLiMTests */,
 				982663511A3BABD300A0CBBF /* Products */,
+				98FC8E9023E3B84400FA8C03 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1830,6 +1837,15 @@
 				98D4C1EF1A6FED4000FFB083 /* split_subpop.pdf */,
 			);
 			path = buttons;
+			sourceTree = "<group>";
+		};
+		98FC8E9023E3B84400FA8C03 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				98FC8E9123E3B84400FA8C03 /* Metal.framework */,
+				98FC8E9223E3B84400FA8C03 /* MetalKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -3168,7 +3184,7 @@
 				GCC_WARN_UNUSED_VALUE = NO;
 				INFOPLIST_FILE = EidosScribe/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -3188,7 +3204,7 @@
 				INFOPLIST_FILE = EidosScribe/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LLVM_LTO = YES_THIN;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -3211,7 +3227,7 @@
 				GCC_WARN_UNUSED_VALUE = NO;
 				INFOPLIST_FILE = SLiMgui/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SYSTEM_HEADER_SEARCH_PATHS = "\"${SRCROOT}\"/treerec/ \"${SRCROOT}\"/treerec/tskit/kastore/";
@@ -3236,7 +3252,7 @@
 				INFOPLIST_FILE = SLiMgui/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LLVM_LTO = YES_THIN;
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_BUNDLE_IDENTIFIER = "edu.MesserLab.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SYSTEM_HEADER_SEARCH_PATHS = "\"${SRCROOT}\"/treerec/ \"${SRCROOT}\"/treerec/tskit/kastore/";

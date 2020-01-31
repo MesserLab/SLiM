@@ -572,7 +572,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			// On failure, we show an alert describing the error, and highlight the relevant script line
 			NSAlert *alert = [[NSAlert alloc] init];
 			
-			[alert setAlertStyle:NSWarningAlertStyle];
+			[alert setAlertStyle:NSAlertStyleWarning];
 			[alert setMessageText:@"Script error"];
 			[alert setInformativeText:errorDiagnostic];
 			[alert addButtonWithTitle:@"OK"];
@@ -596,7 +596,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			{
 				NSAlert *alert = [[NSAlert alloc] init];
 				
-				[alert setAlertStyle:NSInformationalAlertStyle];
+				[alert setAlertStyle:NSAlertStyleInformational];
 				[alert setMessageText:@"No script errors"];
 				[alert setInformativeText:@"No errors found."];
 				[alert addButtonWithTitle:@"OK"];

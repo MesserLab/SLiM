@@ -8,7 +8,8 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
-
+	move deployment target to 10.12, so we can move to Metal to fix flicker issues on Catalina
+	
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):
 	add recipe 5.2.4 (joining subpopulations)

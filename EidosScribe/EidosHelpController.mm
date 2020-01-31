@@ -757,7 +757,7 @@
 		
 		if (clickItem)
 		{
-			BOOL optionPressed = (([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask) == NSAlternateKeyMask);
+			BOOL optionPressed = (([[NSApp currentEvent] modifierFlags] & NSEventModifierFlagOption) == NSEventModifierFlagOption);
 			
 			if ([_topicOutlineView isItemExpanded:clickItem])
 				[_topicOutlineView.animator collapseItem:clickItem collapseChildren:optionPressed];
@@ -1189,12 +1189,12 @@
 		if (item && ([item rangeOfString:@"Eidos"].location != NSNotFound))	// BCH 4/7/2016: containsString: added in 10.10
 		{
 			[[NSColor colorWithCalibratedRed:0 green:1.0 blue:0 alpha:0.04] set];
-			NSRectFillUsingOperation(rowRect, NSCompositeSourceOver);
+			NSRectFillUsingOperation(rowRect, NSCompositingOperationSourceOver);
 		}
 		else
 		{
 			[[NSColor colorWithCalibratedRed:0 green:0 blue:1.0 alpha:0.04] set];
-			NSRectFillUsingOperation(rowRect, NSCompositeSourceOver);
+			NSRectFillUsingOperation(rowRect, NSCompositingOperationSourceOver);
 		}
 	}
 	

@@ -208,7 +208,7 @@
 		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
 		
 		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
-		NSRectFillUsingOperation(substitutionRect, NSCompositeSourceOver);
+		NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
 	}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
@@ -294,7 +294,7 @@
 		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
 		
 		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
-		NSRectFillUsingOperation(substitutionRect, NSCompositeSourceOver);
+		NSRectFillUsingOperation(substitutionRect, NSCompositingOperationSourceOver);
 	}
 	
 	// Draw the fitness history as a scatter plot; better suited to caching of the image
