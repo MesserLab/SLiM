@@ -24,7 +24,7 @@
 #include "slim_sim.h"
 #include "slim_gui.h"
 #import "ChromosomeView.h"
-#import "PopulationView.h"
+#import "PopulationMetalView.h"
 #import "GraphView.h"
 #import "CocoaExtra.h"
 #import "EidosTextView.h"
@@ -142,7 +142,7 @@
 	IBOutlet NSTableColumn *subpopFemaleCloningRateColumn;
 	IBOutlet NSTableColumn *subpopSexRatioColumn;
 	
-	IBOutlet PopulationView *populationView;
+	IBOutlet PopulationMetalView *populationView;
 	IBOutlet PopulationErrorView *populationErrorView;
 	
 	IBOutlet ChromosomeView *chromosomeOverview;

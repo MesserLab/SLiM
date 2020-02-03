@@ -94,8 +94,11 @@ struct _SpatialMap
 	float *green_components_;			// OWNED POINTER: green components, n_colors_ in size, from min to max value
 	float *blue_components_;			// OWNED POINTER: blue components, n_colors_ in size, from min to max value
 	
-	uint8_t *display_buffer_;			// OWNED POINTER: used by SLiMgui, contains RGB values for pixels in the PopulationView
-	int buffer_width_, buffer_height_;	// the size of the buffer, in pixels, each of which is 3 x sizeof(uint8_t)
+	uint8_t *display_buffer_;			// OWNED POINTER: used by SLiMgui, contains BGRA values for pixels in the PopulationView
+	int buffer_width_, buffer_height_;	// the size of the buffer, in pixels, each of which is 4 x sizeof(uint8_t)
+	
+	void *display_texture_;				// OWNED POINTER: (id<MTLTexture>) the Metal texture generated from display_buffer_
+	void (*texture_free_FUN)(void *);	// a pointer to a function used to free the texture (since that happens in C++)
 	
 	_SpatialMap(std::string p_spatiality_string, int p_spatiality, int64_t *p_grid_sizes, bool p_interpolate, double p_min_value, double p_max_value, int p_num_colors);
 	~_SpatialMap(void);

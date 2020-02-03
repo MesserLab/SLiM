@@ -88,6 +88,7 @@ _SpatialMap::_SpatialMap(std::string p_spatiality_string, int p_spatiality, int6
 	}
 	
 	display_buffer_ = nullptr;
+	display_texture_ = nullptr;
 }
 
 _SpatialMap::~_SpatialMap(void)
@@ -103,6 +104,14 @@ _SpatialMap::~_SpatialMap(void)
 		free(blue_components_);
 	if (display_buffer_)
 		free(display_buffer_);
+	if (display_texture_)
+	{
+		// this is an Objective-C object and we're in C++, so we call a function supplied by SLiMgui to do the release
+		if (texture_free_FUN)
+			texture_free_FUN(display_texture_);
+		else
+			std::cout << "_SpatialMap::~_SpatialMap(): no free function for non-nil display_texture_!" << std::endl;
+	}
 }
 
 double _SpatialMap::ValueAtPoint(double *p_point)

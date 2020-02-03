@@ -4496,7 +4496,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 				if (map.red_components_)
 					p_usage->subpopulationSpatialMaps += map.n_colors_ * sizeof(float) * 3;
 				if (map.display_buffer_)
-					p_usage->subpopulationSpatialMapsDisplay += map.buffer_width_ * map.buffer_height_ * sizeof(uint8_t) * 3;
+					p_usage->subpopulationSpatialMapsDisplay += map.buffer_width_ * map.buffer_height_ * sizeof(uint8_t) * 4;
 			}
 		}
 	}
