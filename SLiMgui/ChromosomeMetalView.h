@@ -1,9 +1,9 @@
 //
-//  ChromosomeGLView.h
-//  SLiM
+//  ChromosomeMetalView.h
+//  SLiMgui
 //
-//  Created by Ben Haller on 12/5/16.
-//  Copyright (c) 2016-2020 Philipp Messer.  All rights reserved.
+//  Created by Ben Haller on 2/4/20.
+//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -18,20 +18,26 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#import <Cocoa/Cocoa.h>
-
-
-// This class just delegates OpenGL drawing to the ChromosomeView.  Sort of a weird design, but convenient...
+#import "SLiMMetalView.h"
 
 @class ChromosomeView;
 
-@interface ChromosomeGLView : NSOpenGLView
+
+@interface ChromosomeMetalView : SLiMMetalView
 {
 }
 
-@property (nonatomic, assign) IBOutlet ChromosomeView *delegate;
+@property (nonatomic, assign) IBOutlet ChromosomeView *_Nullable chromosomeView;		// NOT OWNED; the view that we are a proxy for; the main chromosome view
 
 @end
+
+
+
+
+
+
+
+
 
 
 

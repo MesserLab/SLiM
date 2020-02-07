@@ -22,9 +22,10 @@
 
 #import "CocoaExtra.h"
 #include "slim_globals.h"
-#include "ChromosomeGLView.h"
 
 #include <vector>
+
+@class ChromosomeMetalView;
 
 
 extern NSString *SLiMChromosomeSelectionChangedNotification;
@@ -47,10 +48,6 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	int trackingXAdjust;	// to keep the cursor stuck on a knob that is click-dragged
 	SLiMSelectionMarker *startMarker, *endMarker;
 	
-	// OpenGL buffers
-	float *glArrayVertices;
-	float *glArrayColors;
-	
 	// Display options
 	BOOL display_haplotypes_;						// if NO, displaying frequencies; if YES, displaying haplotypes
 	int64_t *haplotype_previous_bincounts;			// used by SLiMHaplotypeManager to keep the sort order stable
@@ -66,7 +63,7 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 @property (nonatomic) BOOL shouldDrawMutations;
 @property (nonatomic) BOOL shouldDrawFixedSubstitutions;
 
-@property (nonatomic, retain) IBOutlet ChromosomeGLView *proxyGLView;	// we can have an OpenGL subview to do our interior drawing for us
+@property (nonatomic, retain) IBOutlet ChromosomeMetalView *proxyMetalView;	// we can have a Metal subview to do our interior drawing for us
 
 - (NSRange)selectedRange;
 - (void)setSelectedRange:(NSRange)selectionRange;
@@ -76,10 +73,15 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 
 - (void)setNeedsDisplayInInterior;	// set to need display only within the interior; avoid redrawing ticks unnecessarily
 
-// called by proxyGLView to do OpenGL drawing in the interior
-- (void)glDrawRect:(NSRect)dirtyRect;
+// helpers for drawing
+- (void)updateDisplayedMutationTypes;
+- (NSRect)rectEncompassingBase:(slim_position_t)startBase toBase:(slim_position_t)endBase interiorRect:(NSRect)interiorRect displayedRange:(NSRange)displayedRange;
 
 @end
+
+// This is a fast macro for when all we need is the offset of a base from the left edge of interiorRect; interiorRect.origin.x is not added here!
+// This is based on the same math as rectEncompassingBase:toBase:interiorRect:displayedRange: above, and must be kept in synch with that method.
+#define LEFT_OFFSET_OF_BASE(startBase, interiorRect, displayedRange) ((int)floor(((startBase - (slim_position_t)displayedRange.location) / (double)(displayedRange.length)) * interiorRect.size.width))
 
 
 

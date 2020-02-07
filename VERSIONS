@@ -11,6 +11,7 @@ development head:
 	move deployment target to 10.12, so we can move to Metal to fix flicker issues on Catalina
 	ported PopulationView to PopulationMetalView, removed PopulationView
 	removed the PopulationViewOptions sheet and the two display modes it supported (fitness line plot and bar plot); those will return as graphs instead
+	ported ChromosomeView to ChromosomeMetalView, removed OpenGL code from ChromosomeView
 	
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):

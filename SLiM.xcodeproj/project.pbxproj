@@ -139,7 +139,6 @@
 		984824F5210B9F31002402A5 /* ddot.c in Sources */ = {isa = PBXBuildFile; fileRef = 984824ED210B9E8F002402A5 /* ddot.c */; };
 		984824F6210B9F32002402A5 /* ddot.c in Sources */ = {isa = PBXBuildFile; fileRef = 984824ED210B9E8F002402A5 /* ddot.c */; };
 		984824F7210B9F32002402A5 /* ddot.c in Sources */ = {isa = PBXBuildFile; fileRef = 984824ED210B9E8F002402A5 /* ddot.c */; };
-		984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */; };
 		984AD1991DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */; };
 		984AD19A1DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */; };
 		984D5FB31E3AF18C00473719 /* EidosTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984D5FB21E3AF18C00473719 /* EidosTests.mm */; };
@@ -197,7 +196,7 @@
 		985724F71AD6DD470047C223 /* show_execution.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985724F51AD6DD470047C223 /* show_execution.pdf */; };
 		98606AEE1DED0DCD00821CFF /* mutation_run.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98606AEC1DED0DCD00821CFF /* mutation_run.cpp */; };
 		98606AEF1DED0DCD00821CFF /* mutation_run.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98606AEC1DED0DCD00821CFF /* mutation_run.cpp */; };
-		98624DE123E4A5F70037ED25 /* PopulationMetalView.metal in Sources */ = {isa = PBXBuildFile; fileRef = 98624DE023E4A5F70037ED25 /* PopulationMetalView.metal */; };
+		98624DE123E4A5F70037ED25 /* MetalView_Shared.metal in Sources */ = {isa = PBXBuildFile; fileRef = 98624DE023E4A5F70037ED25 /* MetalView_Shared.metal */; };
 		986926D41AA1337A0000E138 /* graph_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D21AA1337A0000E138 /* graph_submenu_H.pdf */; };
 		986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D31AA1337A0000E138 /* graph_submenu.pdf */; };
 		986926D91AA140550000E138 /* GraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926D81AA140550000E138 /* GraphView.mm */; };
@@ -308,6 +307,7 @@
 		98B40DFA1FB2DA8C0046F695 /* SLiMHaplotypeManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */; };
 		98B40DFE1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98B40DFC1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib */; };
 		98B40E011FB452440046F695 /* SLiMHaplotypeProgressSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98B40DFF1FB452440046F695 /* SLiMHaplotypeProgressSheet.xib */; };
+		98BF628223EA32B8003767DD /* ChromosomeMetalView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98BF628123EA32B8003767DD /* ChromosomeMetalView.mm */; };
 		98C0943E1B7663DF00766A9A /* female_symbol.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98C0943C1B7663DF00766A9A /* female_symbol.pdf */; };
 		98C0943F1B7663DF00766A9A /* male_symbol.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98C0943D1B7663DF00766A9A /* male_symbol.pdf */; };
 		98C821241C7A980000548839 /* inline.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C820E51C7A980000548839 /* inline.c */; };
@@ -546,6 +546,7 @@
 		98DE4C311B713F6B004FDF5F /* ScriptMod_AddGenomicElement.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E24D1ABF47100036EAEA /* ScriptMod_AddGenomicElement.xib */; };
 		98DE4C321B713F6F004FDF5F /* ScriptMod_AddRecombinationRate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9821E2541ABF50BC0036EAEA /* ScriptMod_AddRecombinationRate.mm */; };
 		98DE4C331B713F72004FDF5F /* ScriptMod_AddRecombinationRate.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9821E2561ABF50D20036EAEA /* ScriptMod_AddRecombinationRate.xib */; };
+		98E49CB623EB81E00029D3A0 /* SLiMMetalView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98E49CB523EB81E00029D3A0 /* SLiMMetalView.mm */; };
 		98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6881A3CCFD0000AD4FC /* mutation.cpp */; };
 		98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */; };
 		98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6911A3CD4EF000AD4FC /* genomic_element.cpp */; };
@@ -749,8 +750,6 @@
 		984824EF210B9EE6002402A5 /* source_dot_r.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = source_dot_r.h; path = cblas/source_dot_r.h; sourceTree = "<group>"; };
 		984824F0210B9F23002402A5 /* dtrsv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dtrsv.c; path = cblas/dtrsv.c; sourceTree = "<group>"; };
 		984824F8210B9F63002402A5 /* source_trsv_r.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = source_trsv_r.h; path = cblas/source_trsv_r.h; sourceTree = "<group>"; };
-		984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChromosomeGLView.h; sourceTree = "<group>"; };
-		984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ChromosomeGLView.mm; sourceTree = "<group>"; };
 		984AD1971DF6B588002D4AC8 /* slim_eidos_dictionary.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_eidos_dictionary.cpp; sourceTree = "<group>"; };
 		984AD1981DF6B588002D4AC8 /* slim_eidos_dictionary.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_eidos_dictionary.h; sourceTree = "<group>"; };
 		984D5FA81E3AF0D200473719 /* EidosSLiMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EidosSLiMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -806,8 +805,8 @@
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		98606AEC1DED0DCD00821CFF /* mutation_run.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_run.cpp; sourceTree = "<group>"; };
 		98606AED1DED0DCD00821CFF /* mutation_run.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_run.h; sourceTree = "<group>"; };
-		98624DE023E4A5F70037ED25 /* PopulationMetalView.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = PopulationMetalView.metal; sourceTree = "<group>"; };
-		98624DE223E4A7C20037ED25 /* PopulationMetalView_Shared.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PopulationMetalView_Shared.h; sourceTree = "<group>"; };
+		98624DE023E4A5F70037ED25 /* MetalView_Shared.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = MetalView_Shared.metal; sourceTree = "<group>"; };
+		98624DE223E4A7C20037ED25 /* MetalView_Shared.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MetalView_Shared.h; sourceTree = "<group>"; };
 		9866319421260DD3008F8F40 /* json.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = json.hpp; sourceTree = "<group>"; };
 		986764A92089066A00E81B2E /* tables.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tables.h; path = treerec/tskit/tables.h; sourceTree = "<group>"; };
 		986926D21AA1337A0000E138 /* graph_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu_H.pdf; sourceTree = "<group>"; };
@@ -895,6 +894,8 @@
 		98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeManager.mm; sourceTree = "<group>"; };
 		98B40DFD1FB436120046F695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeOptionsSheet.xib; sourceTree = "<group>"; };
 		98B40E001FB452440046F695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeProgressSheet.xib; sourceTree = "<group>"; };
+		98BF628023EA32B8003767DD /* ChromosomeMetalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ChromosomeMetalView.h; sourceTree = "<group>"; };
+		98BF628123EA32B8003767DD /* ChromosomeMetalView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ChromosomeMetalView.mm; sourceTree = "<group>"; };
 		98C0943C1B7663DF00766A9A /* female_symbol.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = female_symbol.pdf; sourceTree = "<group>"; };
 		98C0943D1B7663DF00766A9A /* male_symbol.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = male_symbol.pdf; sourceTree = "<group>"; };
 		98C820E11C7A980000548839 /* build.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = build.h; sourceTree = "<group>"; };
@@ -1021,6 +1022,8 @@
 		98DDAED5221765480038C133 /* slim_functions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = slim_functions.h; sourceTree = "<group>"; };
 		98DE4C111B6F9657004FDF5F /* eidos_property_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_property_signature.cpp; sourceTree = "<group>"; };
 		98DE4C121B6F9657004FDF5F /* eidos_property_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_property_signature.h; sourceTree = "<group>"; };
+		98E49CB423EB81E00029D3A0 /* SLiMMetalView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SLiMMetalView.h; sourceTree = "<group>"; };
+		98E49CB523EB81E00029D3A0 /* SLiMMetalView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMMetalView.mm; sourceTree = "<group>"; };
 		98E9A6881A3CCFD0000AD4FC /* mutation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation.cpp; sourceTree = "<group>"; };
 		98E9A6891A3CCFD0000AD4FC /* mutation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation.h; sourceTree = "<group>"; };
 		98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_type.cpp; sourceTree = "<group>"; };
@@ -1748,6 +1751,10 @@
 				98B40DFB1FB433F40046F695 /* Tips Window */,
 				98D4C21A1A718EFD00FFB083 /* CocoaExtra.h */,
 				98D4C21B1A718EFD00FFB083 /* CocoaExtra.mm */,
+				98624DE223E4A7C20037ED25 /* MetalView_Shared.h */,
+				98624DE023E4A5F70037ED25 /* MetalView_Shared.metal */,
+				98E49CB423EB81E00029D3A0 /* SLiMMetalView.h */,
+				98E49CB523EB81E00029D3A0 /* SLiMMetalView.mm */,
 				98D4C1B71A6F537B00FFB083 /* AppDelegate.h */,
 				98D4C1B81A6F537B00FFB083 /* AppDelegate.mm */,
 				989524A71E40AE74007E62FA /* SLiMDocument.h */,
@@ -1758,12 +1765,10 @@
 				98D4C2031A701D5A00FFB083 /* SLiMWindowController.mm */,
 				98FC8E9523E3BD3600FA8C03 /* PopulationMetalView.h */,
 				98FC8E9623E3BD3600FA8C03 /* PopulationMetalView.mm */,
-				98624DE023E4A5F70037ED25 /* PopulationMetalView.metal */,
-				98624DE223E4A7C20037ED25 /* PopulationMetalView_Shared.h */,
 				98D4C2081A7086FF00FFB083 /* ChromosomeView.h */,
 				98D4C2091A7086FF00FFB083 /* ChromosomeView.mm */,
-				984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */,
-				984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */,
+				98BF628023EA32B8003767DD /* ChromosomeMetalView.h */,
+				98BF628123EA32B8003767DD /* ChromosomeMetalView.mm */,
 				984252C1216FA9930019696A /* FindRecipeController.h */,
 				984252C2216FA9930019696A /* FindRecipeController.mm */,
 				98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */,
@@ -2577,6 +2582,7 @@
 				986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */,
 				98D4C2041A701D5A00FFB083 /* SLiMWindowController.mm in Sources */,
 				98DC39952127D52000025211 /* sparse_array.cpp in Sources */,
+				98BF628223EA32B8003767DD /* ChromosomeMetalView.mm in Sources */,
 				98332B121FDBD0F500274FF0 /* init.c in Sources */,
 				986926EB1AA6B7480000E138 /* GraphView_PopulationVisualization.mm in Sources */,
 				98DE4C221B713F37004FDF5F /* ScriptMod_ChangeSelfing.mm in Sources */,
@@ -2594,7 +2600,6 @@
 				9876E6091ED55B4F00FF9762 /* erfc.c in Sources */,
 				98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */,
 				98D4C1D41A6F541700FFB083 /* slim_sim.cpp in Sources */,
-				984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */,
 				98C8215D1C7A983700548839 /* zeta.c in Sources */,
 				D0A758F920A4CCCF00132D2F /* text_input.c in Sources */,
 				98C821591C7A983700548839 /* log.c in Sources */,
@@ -2612,6 +2617,7 @@
 				980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */,
 				989524A91E40AE74007E62FA /* SLiMDocument.mm in Sources */,
 				987AD88A1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */,
+				98E49CB623EB81E00029D3A0 /* SLiMMetalView.mm in Sources */,
 				984AD19A1DF6B588002D4AC8 /* slim_eidos_dictionary.cpp in Sources */,
 				98CF26521E4353FE00E392D8 /* SLiMDocumentController.mm in Sources */,
 				98332A9F1FDB990400274FF0 /* mvgauss.c in Sources */,
@@ -2619,7 +2625,7 @@
 				986926E51AA3FF000000E138 /* GraphView_MutationFixationTimeHistogram.mm in Sources */,
 				98332AED1FDBC29400274FF0 /* rowcol.c in Sources */,
 				98C8214D1C7A983700548839 /* gausszig.c in Sources */,
-				98624DE123E4A5F70037ED25 /* PopulationMetalView.metal in Sources */,
+				98624DE123E4A5F70037ED25 /* MetalView_Shared.metal in Sources */,
 				9893C7EA1CDFE9870029AC94 /* eidos_type_interpreter.cpp in Sources */,
 				987D19A6209A53850030D28D /* kastore.c in Sources */,
 				98D4C1DD1A6F543600FFB083 /* chromosome.cpp in Sources */,

@@ -1,5 +1,5 @@
 //
-//  PopulationMetalView_Shared.h
+//  MetalView_Shared.h
 //  SLiM
 //
 //  Created by Ben Haller on 1/31/20.
@@ -17,40 +17,41 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef PopulationMetalView_Shared_h
-#define PopulationMetalView_Shared_h
+#ifndef MetalView_Shared_h
+#define MetalView_Shared_h
+
 
 #include <simd/simd.h>
 
 
 // Buffer index values shared between shader and C code
-typedef enum PopViewVertexInputIndex
+typedef enum SLiMVertexInputIndex
 {
-    PopViewVertexInputIndexVertices     = 0,
-    PopViewVertexInputIndexViewportSize = 1,
-} PopViewVertexInputIndex;
+    SLiMVertexInputIndexVertices     = 0,
+    SLiMVertexInputIndexViewportSize = 1,
+} SLiMVertexInputIndex;
 
 // Texture index values shared between shader and C code
-typedef enum PopViewTextureIndex
+typedef enum SLiMTextureIndex
 {
-    PopViewTextureIndexBaseColor = 0,
-} PopViewTextureIndex;
+    SLiMTextureIndexBaseColor = 0,
+} SLiMTextureIndex;
 
 // Vertex structure layouts, shared between shader and C code
 typedef struct
 {
     simd::float2 position;
     simd::float4 color;
-} PopViewFlatVertex;
+} SLiMFlatVertex;
 
 typedef struct
 {
     simd::float2 position;
     simd::float2 textureCoordinate;
-} PopViewTexturedVertex;
+} SLiMTexturedVertex;
 
 
-#endif /* PopulationMetalView_Shared_h */
+#endif /* MetalView_Shared_h */
 
 
 

@@ -20,112 +20,6 @@
 
 #import "PopulationMetalView.h"
 #import "SLiMWindowController.h"
-#import "CocoaExtra.h"
-#import "ScriptMod.h"		// we use ScriptMod's validation tools
-
-#import <MetalKit/MetalKit.h>
-#import <simd/simd.h>
-
-// Header shared between C code here, which executes Metal API commands, and .metal files, which
-// uses these types as inputs to the shaders.
-#import "PopulationMetalView_Shared.h"
-
-
-//	Metal rendering utility functions.  These should go into a shared header somewhere, once they are used outside this file...
-
-static inline void slimMetalFillRect(float x, float y, float w, float h, simd::float4 *color, PopViewFlatVertex **vbPtrMod)
-{
-	// This "draws" a rect in a vertex buffer by adding two triangles.  It assumes flat shading,
-	// and so sets the fill color only on the first vertex of each triangle.  It advances the
-	// buffer pointer by 6; the client must ensure that room exists in the buffer.
-	PopViewFlatVertex *vbPtr = *vbPtrMod;
-	
-	vbPtr[0].position.x = x;
-	vbPtr[0].position.y = y;
-	vbPtr[0].color = *color;
-	
-	vbPtr[1].position.x = x;
-	vbPtr[1].position.y = y + h;
-	
-	vbPtr[2].position.x = x + w;
-	vbPtr[2].position.y = y;
-	
-	vbPtr[3].position.x = x + w;
-	vbPtr[3].position.y = y + h;
-	vbPtr[3].color = *color;
-	
-	vbPtr[4].position.x = x;
-	vbPtr[4].position.y = y + h;
-	
-	vbPtr[5].position.x = x + w;
-	vbPtr[5].position.y = y;
-	
-	*vbPtrMod = vbPtr + 6;
-}
-
-static inline void slimMetalTextureRect(float x, float y, float w, float h, PopViewTexturedVertex **vbPtrMod)
-{
-	// This "draws" a rect in a vertex buffer by adding two triangles.  It assumes
-	// the rect should have a texture overlaid on it completely.  It advances the
-	// buffer pointer by 6; the client must ensure that room exists in the buffer.
-	PopViewTexturedVertex *vbPtr = *vbPtrMod;
-	
-	vbPtr[0].position.x = x;
-	vbPtr[0].position.y = y;
-	vbPtr[0].textureCoordinate.x = 0.0f;
-	vbPtr[0].textureCoordinate.y = 0.0f;
-	
-	vbPtr[1].position.x = x;
-	vbPtr[1].position.y = y + h;
-	vbPtr[1].textureCoordinate.x = 0.0f;
-	vbPtr[1].textureCoordinate.y = 1.0f;
-	
-	vbPtr[2].position.x = x + w;
-	vbPtr[2].position.y = y;
-	vbPtr[2].textureCoordinate.x = 1.0f;
-	vbPtr[2].textureCoordinate.y = 0.0f;
-	
-	vbPtr[3].position.x = x + w;
-	vbPtr[3].position.y = y + h;
-	vbPtr[3].textureCoordinate.x = 1.0f;
-	vbPtr[3].textureCoordinate.y = 1.0f;
-	
-	vbPtr[4].position.x = x;
-	vbPtr[4].position.y = y + h;
-	vbPtr[4].textureCoordinate.x = 0.0f;
-	vbPtr[4].textureCoordinate.y = 1.0f;
-	
-	vbPtr[5].position.x = x + w;
-	vbPtr[5].position.y = y;
-	vbPtr[5].textureCoordinate.x = 1.0f;
-	vbPtr[5].textureCoordinate.y = 0.0f;
-	
-	*vbPtrMod = vbPtr + 6;
-}
-
-static inline void slimMetalFillNSRect(NSRect rect, simd::float4 *color, PopViewFlatVertex **vbPtrMod)
-{
-	slimMetalFillRect((float)rect.origin.x, (float)rect.origin.y, (float)rect.size.width, (float)rect.size.height, color, vbPtrMod);
-}
-
-static inline void slimMetalTextureNSRect(NSRect rect, PopViewTexturedVertex **vbPtrMod)
-{
-	slimMetalTextureRect((float)rect.origin.x, (float)rect.origin.y, (float)rect.size.width, (float)rect.size.height, vbPtrMod);
-}
-
-static void slimMetalFrameNSRect(NSRect rect, simd::float4 *color, PopViewFlatVertex **vbPtrMod)
-{
-	float ox = (float)rect.origin.x, oy = (float)rect.origin.y;
-	float h = (float)rect.size.height, w = (float)rect.size.width;
-	
-	slimMetalFillRect(ox, oy, 1, h, color, vbPtrMod);
-	slimMetalFillRect(ox + 1, oy, w - 2, 1, color, vbPtrMod);
-	slimMetalFillRect(ox + w - 1, oy, 1, h, color, vbPtrMod);
-	slimMetalFillRect(ox + 1, oy + h - 1, w - 2, 1, color, vbPtrMod);
-}
-
-// The maximum number of frames in flight; see Apple's "CPU-GPU Synchronization" example for explanation of this design
-static const int MaxFramesInFlight = 3;
 
 
 typedef struct {
@@ -145,159 +39,6 @@ typedef struct {
 	
 	// subview tiling, kept indexed by subpopulation id
 	std::map<slim_objectid_t, NSRect> subpopTiles;
-	
-	//
-	//	Metal stuff
-	//
-	
-	// The Metal device (i.e., GPU) that we are rendering to; this can change!
-    id<MTLDevice> device_;
-
-    // Render pipelines generated from the vertex and fragment shaders in the .metal shader file.
-    id<MTLRenderPipelineState> flatPipelineState_;
-    id<MTLRenderPipelineState> texturedPipelineState_;
-
-    // The command queue used to pass commands to the device.
-    id<MTLCommandQueue> commandQueue_;
-	
-    // A semaphore used to ensure that buffers read by the GPU are not simultaneously written by the CPU.
-    dispatch_semaphore_t inFlightSemaphore_;
-	
-	// The vertex buffers we use for rendering; ensure it has sufficient capacity before using it, with takeVertexBufferWithCapacity:
-	id<MTLBuffer> vertexBuffers_[MaxFramesInFlight];
-
-    // The index of the Metal buffer in vertexBuffers_ to write to for the current frame.
-    NSUInteger currentBuffer_;
-	
-    // The current size of the view, in AppKit (i.e., visual not device) coordinates, used as an input to the vertex shader.
-    simd::float2 viewportSize_;
-}
-
-- (void)releaseDeviceResources
-{
-	[flatPipelineState_ release];
-	flatPipelineState_ = nil;
-	
-	[texturedPipelineState_ release];
-	texturedPipelineState_ = nil;
-	
-	[commandQueue_ release];
-	commandQueue_ = nil;
-	
-	[device_ release];
-	device_ = nil;
-	
-	// note that we do NOT release the vertex buffers here, even though they are associated with the device,
-	// because they might currently be in use by a command buffer; instead, whenever we are about to start
-	// using a vertex buffer we check that it comes from the correct device, and reallocate it if not
-}
-
-- (void)dealloc
-{
-	// dispose of vertex buffers and inFlightSemaphore_; if they are still in use by a command buffer, it
-	// will have a retain on them, so releasing them here is not a problem
-	for (int i = 0; i < MaxFramesInFlight; ++i)
-	{
-		[vertexBuffers_[i] release];
-		vertexBuffers_[i] = nil;
-	}
-	
-	dispatch_release(inFlightSemaphore_);
-	
-	// and then we can release everything else
-	[self releaseDeviceResources];
-	
-	[super dealloc];
-}
-
-- (void)adaptToDevice:(id<MTLDevice>)newDevice
-{
-	NSAssert(newDevice, @"Nil device passed to adaptToDevice:");
-	
-	if (newDevice != device_)
-	{
-#if DEBUG
-		if (device_ != nil)
-			NSLog(@"adaptToDevice: ADAPTING TO NEW METAL DEVICE");
-#endif
-		
-		// Release our old resources
-		[self releaseDeviceResources];
-		
-		// Set ourselves to use the default device
-		device_ = [newDevice retain];
-		[self setDevice:device_];
-		
-		// Load all the shader files in the project, and find the functions we're using
-		id<MTLLibrary> defaultLibrary = [device_ newDefaultLibrary];
-		NSAssert(defaultLibrary, @"No default Metal library");
-		
-		// Configure a pipeline descriptor and a pipeline state for rendering flat polygons
-		{
-			id<MTLFunction> flatVertexFunction = [defaultLibrary newFunctionWithName:@"flatVertexShader"];
-			id<MTLFunction> flatFragmentFunction = [defaultLibrary newFunctionWithName:@"flatFragmentShader"];
-			NSAssert(flatVertexFunction, @"No flatVertexShader");
-			NSAssert(flatFragmentFunction, @"No flatFragmentShader");
-			
-			MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-			NSError *error = NULL;
-			
-			[pipelineStateDescriptor setLabel:@"PopulationMetalView Flat Pipeline"];
-			[pipelineStateDescriptor setVertexFunction:flatVertexFunction];
-			[pipelineStateDescriptor setFragmentFunction:flatFragmentFunction];
-			[pipelineStateDescriptor setSampleCount:[self sampleCount]];
-			[[pipelineStateDescriptor colorAttachments][0] setPixelFormat:[self colorPixelFormat]];
-			if (@available(macOS 10.13, *)) {
-				[[pipelineStateDescriptor vertexBuffers][PopViewVertexInputIndexVertices] setMutability:MTLMutabilityImmutable];
-			} else {
-				// No worries, just very slightly less efficient since Metal can't take advantage of the immutability of the buffer
-			}
-			
-			flatPipelineState_ = [device_ newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
-			NSAssert(flatPipelineState_, @"Failed to create flat pipeline state: %@", error);
-			
-			[flatVertexFunction release];
-			[flatFragmentFunction release];
-			[pipelineStateDescriptor release];
-		}
-		
-		// Configure a pipeline descriptor and a pipeline state for rendering textured polygons
-		{
-			id<MTLFunction> texturedVertexFunction = [defaultLibrary newFunctionWithName:@"texturedVertexShader"];
-			id<MTLFunction> texturedFragmentFunction = [defaultLibrary newFunctionWithName:@"texturedFragmentShader"];
-			NSAssert(texturedVertexFunction, @"No texturedVertexShader");
-			NSAssert(texturedFragmentFunction, @"No texturedFragmentShader");
-			
-			MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-			NSError *error = NULL;
-			
-			[pipelineStateDescriptor setLabel:@"PopulationMetalView Textured Pipeline"];
-			[pipelineStateDescriptor setVertexFunction:texturedVertexFunction];
-			[pipelineStateDescriptor setFragmentFunction:texturedFragmentFunction];
-			[pipelineStateDescriptor setSampleCount:[self sampleCount]];
-			[[pipelineStateDescriptor colorAttachments][0] setPixelFormat:[self colorPixelFormat]];
-			if (@available(macOS 10.13, *)) {
-				[[pipelineStateDescriptor vertexBuffers][PopViewVertexInputIndexVertices] setMutability:MTLMutabilityImmutable];
-			} else {
-				// No worries, just very slightly less efficient since Metal can't take advantage of the immutability of the buffer
-			}
-			
-			texturedPipelineState_ = [device_ newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
-			NSAssert(texturedPipelineState_, @"Failed to create textured pipeline state: %@", error);
-			
-			[texturedVertexFunction release];
-			[texturedFragmentFunction release];
-			[pipelineStateDescriptor release];
-		}
-		
-		[defaultLibrary release];
-		
-		// Create the command queue
-		commandQueue_ = [device_ newCommandQueue];
-		NSAssert(commandQueue_, @"No command queue");
-		
-		// Vertex buffers will be created, or fixed to belong to our new device, on demand later
-	}
 }
 
 - (void)completeInitialize
@@ -305,103 +46,10 @@ typedef struct {
 	// Display setup
 	displayMode = -1;	// don't know yet whether the model is spatial or not, which will determine our initial choice
 	
-	// Metal setup
-	[self setPaused:YES];
-	[self setEnableSetNeedsDisplay:YES];
-	
-	id<MTLDevice> defaultDevice = MTLCreateSystemDefaultDevice();
-	NSAssert(defaultDevice, @"Metal is not supported on this device");
-	
-	[self adaptToDevice:defaultDevice];
-	[defaultDevice release];
-	
-	// Make our semaphore to manage our set of vertex buffers (which will be created on demand).
-	// We start it at MaxFramesInFlight, to indicate that all buffers are available for use.
-	inFlightSemaphore_ = dispatch_semaphore_create(MaxFramesInFlight);
+	[super completeInitialize];
 }
 
-- (nonnull instancetype)initWithFrame:(CGRect)frameRect device:(nullable id<MTLDevice>)device
-{
-	if (self = [super initWithFrame:frameRect device:device])
-	{
-		[self completeInitialize];
-	}
-	
-	return self;
-}
-
-- (nonnull instancetype)initWithCoder:(nonnull NSCoder *)coder
-{
-	if (self = [super initWithCoder:coder])
-	{
-		[self completeInitialize];
-	}
-	
-	return self;
-}
-
-- (id<MTLBuffer>)takeVertexBufferWithCapacity:(NSUInteger)requestedCapacity
-{
-    // Wait to ensure only `MaxFramesInFlight` number of frames are getting processed
-    // by any stage in the Metal pipeline (CPU, GPU, Metal, Drivers, etc.).
-    long dispatch_result = dispatch_semaphore_wait(inFlightSemaphore_, 0);		// 0 is DISPATCH_WALLTIME_NOW, but that is 10.14+
-	
-	if (dispatch_result != 0)
-	{
-		// This is for debugging purposes, to see whether we ever stall waiting for a buffer
-#if DEBUG
-		NSLog(@"stalled waiting for a vertex buffer to land...");
-#endif
-		dispatch_semaphore_wait(inFlightSemaphore_, DISPATCH_TIME_FOREVER);
-	}
-	
-    // Iterate through the Metal buffers, and cycle back to the first when you've written to the last
-    currentBuffer_ = (currentBuffer_ + 1) % MaxFramesInFlight;
-	
-	// Make sure the vertex buffer we intend to use belongs to the current device
-	id<MTLBuffer> buffer = vertexBuffers_[currentBuffer_];
-	
-	if ([buffer device] != device_)
-	{
-		[buffer release];
-		buffer = nil;
-	}
-	
-	// And now ensure that it fits the requested capacity
-	NSUInteger oldCapacity = [buffer length];
-	
-	if ((requestedCapacity > oldCapacity) || (oldCapacity == 0))
-	{
-		// First, ditch the old buffer
-		[buffer release];
-		buffer = nil;
-		
-		// Decide on a new capacity: enforce a minimum of 10,000 vertices, otherwise
-		// at least double in capacity whenever we expand, to avoid excessive reallocs
-		NSUInteger newCapacity;
-		
-		if (requestedCapacity < 10000 * sizeof(PopViewFlatVertex))
-			newCapacity = 10000 * sizeof(PopViewFlatVertex);
-		else if (requestedCapacity < oldCapacity * 2)
-			newCapacity = oldCapacity * 2;
-		else
-			newCapacity = requestedCapacity;
-		
-#if DEBUG
-		NSLog(@"REALLOCATING buffer #%ld to %ld bytes", (unsigned long)currentBuffer_, (unsigned long)newCapacity);
-#endif
-		
-		// Allocate the new buffer; note that we guarantee we will never read from the vertex buffer!
-		buffer = [device_ newBufferWithLength:newCapacity options:MTLResourceStorageModeShared | MTLResourceCPUCacheModeWriteCombined];
-		[buffer setLabel:[NSString stringWithFormat:@"PopulationMetalView Vertex Buffer #%lu", (unsigned long)currentBuffer_]];
-		
-		vertexBuffers_[currentBuffer_] = buffer;
-	}
-	
-	return buffer;
-}
-
-- (NSUInteger)drawIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds withBuffer:(PopViewFlatVertex **)vbPtrMod
+- (NSUInteger)drawIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds withBuffer:(SLiMFlatVertex **)vbPtrMod
 {
 	//
 	//	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
@@ -506,12 +154,6 @@ typedef struct {
 		
 		return 1;
 	}
-}
-
-static void TextureFreeFUN(void *texture)
-{
-	id<MTLTexture> texture_id = (id<MTLTexture>)texture;
-	[texture_id release];
 }
 
 - (void)cacheDisplayBufferForMap:(SpatialMap *)background_map subpopulation:(Subpopulation *)subpop
@@ -640,7 +282,7 @@ static void TextureFreeFUN(void *texture)
 	}
 }
 
-- (NSUInteger)_drawFlatBackgroundSpatialMap:(SpatialMap *)background_map inBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop withBuffer:(PopViewFlatVertex **)vbPtrMod
+- (NSUInteger)_drawFlatBackgroundSpatialMap:(SpatialMap *)background_map inBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop withBuffer:(SLiMFlatVertex **)vbPtrMod
 {
 	// We have a spatial map with a color map, so use it to draw the background
 	int bounds_x1 = (int)bounds.origin.x;
@@ -884,7 +526,7 @@ static void TextureFreeFUN(void *texture)
 	}
 }
 
-- (NSUInteger)_drawTexturedBackgroundSpatialMap:(SpatialMap *)background_map inBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop withBuffer:(PopViewTexturedVertex **)vbPtrMod texture:(id<MTLTexture> *)texture
+- (NSUInteger)_drawTexturedBackgroundSpatialMap:(SpatialMap *)background_map inBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop withBuffer:(SLiMTexturedVertex **)vbPtrMod texture:(id<MTLTexture> *)texture
 {
 	// We have a spatial map with a color map, so use it to draw the background
 	if (background_map->spatiality_ == 1)
@@ -992,7 +634,7 @@ static void TextureFreeFUN(void *texture)
 	}
 }
 
-- (NSUInteger)drawFlatSpatialBackgroundInBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop dimensionality:(int)dimensionality withBuffer:(PopViewFlatVertex **)vbPtrMod
+- (NSUInteger)drawFlatSpatialBackgroundInBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop dimensionality:(int)dimensionality withBuffer:(SLiMFlatVertex **)vbPtrMod
 {
 	PopulationViewBackgroundSettings background;
 	SpatialMap *background_map = nil;
@@ -1031,7 +673,7 @@ static void TextureFreeFUN(void *texture)
 	}
 }
 
-- (NSUInteger)drawTexturedSpatialBackgroundInBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop dimensionality:(int)dimensionality withBuffer:(PopViewTexturedVertex **)vbPtrMod texture:(id<MTLTexture> *)texture
+- (NSUInteger)drawTexturedSpatialBackgroundInBounds:(NSRect)bounds forSubpopulation:(Subpopulation *)subpop dimensionality:(int)dimensionality withBuffer:(SLiMTexturedVertex **)vbPtrMod texture:(id<MTLTexture> *)texture
 {
 	PopulationViewBackgroundSettings background;
 	SpatialMap *background_map = nil;
@@ -1044,7 +686,7 @@ static void TextureFreeFUN(void *texture)
 		return 0;	// No background map, so the background is flat
 }
 
-- (NSUInteger)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality withBuffer:(PopViewFlatVertex **)vbPtrMod
+- (NSUInteger)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality withBuffer:(SLiMFlatVertex **)vbPtrMod
 {
 	SLiMWindowController *controller = [[self window] windowController];
 	double scalingFactor = controller->fitnessColorScale;
@@ -1261,10 +903,10 @@ static void TextureFreeFUN(void *texture)
 	{
 		// Then we ensure there is adequate space in our vertex buffer
 		NSUInteger vertexCount = rectCount * 2 * 3;						// 2 triangles per rect, 3 vertices per triangle
-		PopViewFlatVertex tempVertexBuffer[vertexCount];
+		SLiMFlatVertex tempVertexBuffer[vertexCount];
 		
 		// Now we can get our pointer into the vertex buffer
-		PopViewFlatVertex *vbPtr = tempVertexBuffer;
+		SLiMFlatVertex *vbPtr = tempVertexBuffer;
 		
 		// Clear to the chosen background color, if any
 		if (fillColor)
@@ -1317,49 +959,9 @@ static void TextureFreeFUN(void *texture)
 			NSLog(@"vertex count mismatch in step1_drawBackdropInRenderEncoder; expected %ld, drew %ld!", vertexCount, vbPtr - tempVertexBuffer);
 		
 		// Draw the primitives into the encoder
-		[renderEncoder setVertexBytes:tempVertexBuffer length:sizeof(tempVertexBuffer) atIndex:PopViewVertexInputIndexVertices];
+		[renderEncoder setVertexBytes:tempVertexBuffer length:sizeof(tempVertexBuffer) atIndex:SLiMVertexInputIndexVertices];
 		[renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
 	}
-}
-
-- (id<MTLTexture>)testTexture
-{
-	// This constructs a small texture for testing purposes; it is not used in the production code
-	static const int width = 4;
-	static const int height = 4;
-	static const uint32_t bgra8data[width * height] = {		// 0xAARRGGBB, which is confusingly called BGRA; AA seems to be unused
-		0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0xFF0000FF,
-		0xFFFF00FF, 0xFF0000FF, 0xFF0000FF, 0xFF00FFFF,
-		0x00FF00FF, 0xFF0000FF, 0xFF0000FF, 0x0000FFFF,
-		0x000000FF, 0xFF000000, 0xFF000000, 0x000000FF,
-	};
-	
-    MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
-    
-    // Indicate that each pixel has a blue, green, red, and alpha channel, where each channel is
-    // an 8-bit unsigned normalized value (i.e. 0 maps to 0.0 and 255 maps to 1.0)
-    textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    
-    // Set the pixel dimensions of the texture
-    textureDescriptor.width = width;
-    textureDescriptor.height = height;
-    
-    // Create the texture from the device by using the descriptor
-    id<MTLTexture> texture = [device_ newTextureWithDescriptor:textureDescriptor];
-	[textureDescriptor release];
-    
-    // Calculate the number of bytes per row in the image.
-    NSUInteger bytesPerRow = 4 * width;
-    
-    MTLRegion region = {
-        { 0, 0, 0 },        // MTLOrigin
-        {width, height, 1} 	// MTLSize
-    };
-    
-    // Copy the bytes from the data object into the texture
-    [texture replaceRegion:region mipmapLevel:0 withBytes:bgra8data bytesPerRow:bytesPerRow];
-	
-    return [texture autorelease];
 }
 
 - (void)step2_drawTexturedBackgroundsInRenderEncoder:(id<MTLRenderCommandEncoder>)renderEncoder
@@ -1395,8 +997,8 @@ static void TextureFreeFUN(void *texture)
 				NSRect tileBounds = tileIter->second;
 				
 				NSUInteger vertexCount = 1 * 2 * 3;		// one rect, 2 triangles per rect, 3 vertices per triangle
-				PopViewTexturedVertex tempVertexBuffer[vertexCount];
-				PopViewTexturedVertex *vbPtr = tempVertexBuffer;
+				SLiMTexturedVertex tempVertexBuffer[vertexCount];
+				SLiMTexturedVertex *vbPtr = tempVertexBuffer;
 				id<MTLTexture> texture = nullptr; //[self testTexture];
 				
 				if ((displayMode == 1) && (sim->spatial_dimensionality_ == 1))
@@ -1415,8 +1017,8 @@ static void TextureFreeFUN(void *texture)
 				{
 					if (texture)
 					{
-						[renderEncoder setFragmentTexture:texture atIndex:PopViewTextureIndexBaseColor];
-						[renderEncoder setVertexBytes:tempVertexBuffer length:sizeof(tempVertexBuffer) atIndex:PopViewVertexInputIndexVertices];
+						[renderEncoder setFragmentTexture:texture atIndex:SLiMTextureIndexBaseColor];
+						[renderEncoder setVertexBytes:tempVertexBuffer length:sizeof(tempVertexBuffer) atIndex:SLiMVertexInputIndexVertices];
 						[renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
 					}
 					else
@@ -1508,12 +1110,12 @@ static void TextureFreeFUN(void *texture)
 	if (vertexCount)
 	{
 		// Then we ensure there is adequate space in our vertex buffer
-		NSUInteger bufferLength = vertexCount * sizeof(PopViewFlatVertex);	// sizeof() includes the necessary padding for data alignment
+		NSUInteger bufferLength = vertexCount * sizeof(SLiMFlatVertex);	// sizeof() includes the necessary padding for data alignment
 		
 		id<MTLBuffer> buffer = [self takeVertexBufferWithCapacity:bufferLength];
 		
 		// Now we can get our pointer into the vertex buffer
-		PopViewFlatVertex *vbPtr = (PopViewFlatVertex *)[buffer contents];
+		SLiMFlatVertex *vbPtr = (SLiMFlatVertex *)[buffer contents];
 		
 		// Finally we render into the vertex buffer in the manner we planned
 		if ((selectedSubpopCount > 0) && (selectedSubpopCount <= 10))
@@ -1561,107 +1163,38 @@ static void TextureFreeFUN(void *texture)
 			slimMetalFrameNSRect(bounds, &frameColor, &vbPtr);
 		
 		// Check that we added the planned number of vertices
-		if (vbPtr != (PopViewFlatVertex *)[buffer contents] + vertexCount)
-			NSLog(@"vertex count mismatch in step3_drawIndividualsInVertexBuffer; expected %ld, drew %ld!", vertexCount, vbPtr - (PopViewFlatVertex *)[buffer contents]);
+		if (vbPtr != (SLiMFlatVertex *)[buffer contents] + vertexCount)
+			NSLog(@"vertex count mismatch in step3_drawIndividualsInVertexBuffer; expected %ld, drew %ld!", vertexCount, vbPtr - (SLiMFlatVertex *)[buffer contents]);
 	}
 	
 	return vertexCount;
 }
 
-- (void)drawRect:(NSRect)dirtyRect
+- (void)drawWithRenderEncoder:(id<MTLRenderCommandEncoder>_Nonnull)renderEncoder
 {
-	// Check that we are using our preferred device, and switch if necessary
-	NSNumber *screenNumber = [[[self window] screen] deviceDescription][@"NSScreenNumber"];
-	CGDirectDisplayID viewDisplayID = [screenNumber unsignedIntValue];
-	id <MTLDevice> preferredDevice = CGDirectDisplayCopyCurrentMetalDevice(viewDisplayID);
-	
-	if (preferredDevice != device_)
-		[self adaptToDevice:preferredDevice];
-	
-	[preferredDevice release];
-	
-    // Save the size of the drawable to pass to the vertex shader for scaling; this is in AppKit coordinates,
-	// not device coordinates, so that our drawing looks the same whether we're on Retina or not; on Retina
-	// one "drawing pixel" will map to more than one "device pixel" because of this setup
-	CGSize drawableSize = [self drawableSize];
-	CGSize frameSize = [self frame].size;
-	
-	viewportSize_.x = (float)frameSize.width;
-    viewportSize_.y = (float)frameSize.height;
-	
-    // Obtain a renderPassDescriptor generated from the view's drawable textures.
-    MTLRenderPassDescriptor *renderPassDescriptor = [self currentRenderPassDescriptor];
-
-    if (renderPassDescriptor == nil)
+	// Step 1: render the background fills that underlie everything, using ad hoc buffers
 	{
-#if DEBUG
-		NSLog(@"drawRect: no renderPassDescriptor, skipping frame...");
-#endif
+		[renderEncoder setRenderPipelineState:flatPipelineState_OriginTop_];
+		
+		[self step1_drawBackdropInRenderEncoder:renderEncoder];
 	}
-	else
-    {
-		// Set a background color of magenta, which we use to detect drawing coverage problems
-		renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1, 0, 1, 1);
+	
+	// Step 2: render any textured backgrounds for spatial subpopulations, using ad hoc buffers
+	{
+		[renderEncoder setRenderPipelineState:texturedPipelineState_];
 		
-		// Create a new command buffer for each render pass to the current drawable.
-		id<MTLCommandBuffer> commandBuffer = [commandQueue_ commandBuffer];
-		[commandBuffer setLabel:@"PopulationMetalViewCommandBuffer"];
-		NSAssert(commandBuffer, @"drawRect: No commandBuffer");
-
-		// Create a render command encoder.
-        id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-        [renderEncoder setLabel:@"PopulationMetalViewRenderEncoder"];
-		NSAssert(renderEncoder, @"drawRect: No renderEncoder");
-
-        // Set the region of the drawable to draw into; this is in device coordinates as defined by the drawable
-		// We use depth for layering: the background fills at are depth 1.0, spatial maps at 0.5, and individuals at 0.0
-        [renderEncoder setViewport:(MTLViewport){0.0, 0.0, drawableSize.width, drawableSize.height, 0.0, 1.0}];
-		[renderEncoder setVertexBytes:&viewportSize_ length:sizeof(viewportSize_) atIndex:PopViewVertexInputIndexViewportSize];
+		[self step2_drawTexturedBackgroundsInRenderEncoder:renderEncoder];
+	}
+	
+	// Step 3: render individuals and overlying frames, using our preallocated vertex buffers
+	{
+		[renderEncoder setRenderPipelineState:flatPipelineState_OriginTop_];
 		
-		// Step 1: render the background fills that underlie everything, using ad hoc buffers
-		{
-			[renderEncoder setRenderPipelineState:flatPipelineState_];
-			
-			[self step1_drawBackdropInRenderEncoder:renderEncoder];
-		}
+		NSUInteger vertexCount = [self step3_drawIndividualsInVertexBuffer];
 		
-		// Step 2: render any textured backgrounds for spatial subpopulations, using ad hoc buffers
-		{
-			[renderEncoder setRenderPipelineState:texturedPipelineState_];
-			
-			[self step2_drawTexturedBackgroundsInRenderEncoder:renderEncoder];
-		}
-		
-		// Step 3: render individuals and overlying frames, using our preallocated vertex buffers
-		{
-			[renderEncoder setRenderPipelineState:flatPipelineState_];
-			
-			NSUInteger vertexCount = [self step3_drawIndividualsInVertexBuffer];
-			
-			[renderEncoder setVertexBuffer:vertexBuffers_[currentBuffer_] offset:0 atIndex:PopViewVertexInputIndexVertices];
-			[renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
-		}
-		
-		// End encoding now that we're done with all rendering
-        [renderEncoder endEncoding];
-
-        // Schedule a present once the framebuffer is complete using the current drawable.
-        [commandBuffer presentDrawable:[self currentDrawable]];
-		
-		// Add a completion handler that signals `inFlightSemaphore_` when Metal and the GPU have fully
-		// finished processing the commands that were encoded for this frame.
-		// This completion indicates that the dynamic buffers that were written to in this frame are no
-		// longer needed by Metal and the GPU; therefore, the CPU can overwrite the buffer contents
-		// without corrupting any rendering operations.  Note that this block retains inFlightSemaphore_,
-		// and the command buffer retains the vertex buffer that it's using.
-		__block dispatch_semaphore_t block_semaphore = inFlightSemaphore_;
-		[commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
-			dispatch_semaphore_signal(block_semaphore);
-		}];
-		
-		// Finalize rendering here & push the command buffer to the GPU.
-		[commandBuffer commit];
-    }
+		[renderEncoder setVertexBuffer:vertexBuffers_[currentBuffer_] offset:0 atIndex:SLiMVertexInputIndexVertices];
+		[renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
+	}
 }
 
 

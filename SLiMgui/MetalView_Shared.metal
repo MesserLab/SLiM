@@ -25,7 +25,7 @@ using namespace metal;
 
 
 // Include header shared between this Metal shader code and C code executing Metal API commands.
-#import "PopulationMetalView_Shared.h"
+#import "MetalView_Shared.h"
 
 
 //
@@ -39,9 +39,9 @@ typedef struct
 	float4 color [[flat]];			// the color of the first vertex is used for all vertices, avoiding interpolation
 } FlatRasterizerData;
 
-vertex FlatRasterizerData flatVertexShader(const uint vertexID [[vertex_id]],
-										   const device PopViewFlatVertex *vertices [[buffer(PopViewVertexInputIndexVertices)]],
-										   constant float2 *viewportSizePointer [[buffer(PopViewVertexInputIndexViewportSize)]])
+vertex FlatRasterizerData flatVertexShader_OriginTop(const uint vertexID [[vertex_id]],
+													 const device SLiMFlatVertex *vertices [[buffer(SLiMVertexInputIndexVertices)]],
+													 constant float2 *viewportSizePointer [[buffer(SLiMVertexInputIndexViewportSize)]])
 {
     FlatRasterizerData out;
 
@@ -55,6 +55,30 @@ vertex FlatRasterizerData flatVertexShader(const uint vertexID [[vertex_id]],
     out.position = float4(0.0, 0.0, 0.0, 1.0);
     out.position.x = pixelSpacePosition.x / (viewportSize.x / 2.0) - 1.0;
     out.position.y = 1.0 - pixelSpacePosition.y / (viewportSize.y / 2.0);
+	
+    // Pass the input color directly to the rasterizer.
+    out.color = vertices[vertexID].color;
+
+    return out;
+}
+
+vertex FlatRasterizerData flatVertexShader_OriginBottom(const uint vertexID [[vertex_id]],
+														const device SLiMFlatVertex *vertices [[buffer(SLiMVertexInputIndexVertices)]],
+														constant float2 *viewportSizePointer [[buffer(SLiMVertexInputIndexViewportSize)]])
+{
+    FlatRasterizerData out;
+
+    // Get the currect vertex position in pixel space, with (0,0) at bottom-left
+    float2 pixelSpacePosition = vertices[vertexID].position.xy;
+
+    // Get the viewport size
+    float2 viewportSize = *viewportSizePointer;
+    
+    // Convert from pixel space, with (0,0) at bottom-left, to clip space
+    out.position = float4(0.0, 0.0, 0.0, 1.0);
+	out.position.xy = pixelSpacePosition.xy / (viewportSize / 2.0) - 1.0;
+    //out.position.x = pixelSpacePosition.x / (viewportSize.x / 2.0) - 1.0;
+    //out.position.y = pixelSpacePosition.y / (viewportSize.y / 2.0) - 1.0;
 	
     // Pass the input color directly to the rasterizer.
     out.color = vertices[vertexID].color;
@@ -80,8 +104,8 @@ typedef struct
 } TexturedRasterizerData;
 
 vertex TexturedRasterizerData texturedVertexShader(const uint vertexID [[vertex_id]],
-												   const device PopViewTexturedVertex *vertices [[buffer(PopViewVertexInputIndexVertices)]],
-												   constant float2 *viewportSizePointer [[buffer(PopViewVertexInputIndexViewportSize)]])
+												   const device SLiMTexturedVertex *vertices [[buffer(SLiMVertexInputIndexVertices)]],
+												   constant float2 *viewportSizePointer [[buffer(SLiMVertexInputIndexViewportSize)]])
 {
     TexturedRasterizerData out;
 
@@ -103,7 +127,7 @@ vertex TexturedRasterizerData texturedVertexShader(const uint vertexID [[vertex_
 }
 
 fragment float4 texturedFragmentShader(TexturedRasterizerData in [[stage_in]],
-									   texture2d<half> colorTexture [[ texture(PopViewTextureIndexBaseColor) ]])
+									   texture2d<half> colorTexture [[ texture(SLiMTextureIndexBaseColor) ]])
 {
     constexpr sampler textureSampler (mag_filter::linear, min_filter::linear);
 
