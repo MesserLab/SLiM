@@ -820,6 +820,8 @@
 	NSUInteger rectCount = 0;	// accurate only at the end of pass 0 / beginning of pass 1; pass 1 is not required to count correctly
 	NSUInteger vertexCount = 0;	// accurate at the end of pass 1
 	
+	SLiMHaplotypeManager *haplotypeManager = nil;	// created in pass 0 and kept through pass 1
+	
 	for (int pass = 0; pass <= 1; ++pass)
 	{
 		id<MTLBuffer> buffer = nil;
@@ -891,18 +893,19 @@
 			{
 				if (display_haplotypes)
 				{
-					/*
-					 // display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
-					 // kSLiMHaplotypeClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
-					 int interiorHeight = (int)ceil(interiorRect.size.height);	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-					 SLiMHaplotypeManager *haplotypeManager = [[SLiMHaplotypeManager alloc] initWithClusteringMethod:kSLiMHaplotypeClusterNearestNeighbor optimizationMethod:kSLiMHaplotypeClusterNoOptimization sourceController:controller sampleSize:interiorHeight clusterInBackground:NO];
-					 
-					 [haplotypeManager glDrawHaplotypesInRect:interiorRect displayBlackAndWhite:NO showSubpopStrips:NO eraseBackground:NO previousFirstBincounts:&(_chromosomeView->haplotype_previous_bincounts)];
-					 
-					 // it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
-					 // time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
-					 [haplotypeManager release];
-					 */
+					// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
+					// kSLiMHaplotypeClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
+					int interiorHeight = (int)ceil(interiorRect.size.height);	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
+					
+					if (pass == 0)
+						haplotypeManager = [[SLiMHaplotypeManager alloc] initWithClusteringMethod:kSLiMHaplotypeClusterNearestNeighbor optimizationMethod:kSLiMHaplotypeClusterNoOptimization sourceController:controller sampleSize:interiorHeight clusterInBackground:NO];
+					
+					rectCount += [haplotypeManager metalDrawHaplotypesInRect:interiorRect displayBlackAndWhite:NO showSubpopStrips:NO eraseBackground:NO previousFirstBincounts:&(_chromosomeView->haplotype_previous_bincounts) withBuffer:vbPtrMod];
+					
+					// it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
+					// time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
+					if (pass == 1)
+						[haplotypeManager release];
 				}
 				else
 				{

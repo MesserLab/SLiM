@@ -22,30 +22,8 @@
 #import "SLiMWindowController.h"
 #import "SLiMHaplotypeManager.h"
 
-#import <OpenGL/OpenGL.h>
-#include <OpenGL/glu.h>
-#include <GLKit/GLKMatrix4.h>
-
 
 @implementation SLiMHaplotypeGraphView
-
-- (instancetype)initWithCoder:(NSCoder *)coder
-{
-	if (self = [super initWithCoder:coder])
-	{
-	}
-	
-	return self;
-}
-
-- (instancetype)initWithFrame:(NSRect)frameRect
-{
-	if (self = [super initWithFrame:frameRect])
-	{
-	}
-	
-	return self;
-}
 
 - (void)cleanup
 {
@@ -114,44 +92,65 @@
 	return NSMakeRect(windowOnScreen.origin.x + 10, cvOnScreen.origin.y - remainingHeightInWindow, cvOnScreen.size.width + 6, remainingHeightInWindow - 5);
 }
 
-/*
-// BCH 4/19/2019: these subclass methods are not needed, and are generating a warning in Xcode 10.2, so I'm removing them
- 
-// Called after being summoned from a NIB/XIB.
-- (void)prepareOpenGL
-{
-}
-
-// Adjust the OpenGL viewport in response to window resize
-- (void)reshape
-{
-}
-*/
-
-- (void)drawRect:(NSRect)rect
+- (NSUInteger)drawInVertexBuffer
 {
 	NSRect bounds = [self bounds];
 	NSRect interior = NSInsetRect(bounds, 1, 1);
 	
-	// Update the viewport
-	glViewport(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+	// We render in two passes: first we add up how many triangles we need to fill, and then we get a vertex buffer
+	// and define the triangles.  If this proves inefficient, we can cache work between the two stages, perhaps.
+	NSUInteger rectCount = 0;	// accurate only at the end of pass 0 / beginning of pass 1; pass 1 is not required to count correctly
+	NSUInteger vertexCount = 0;	// accurate at the end of pass 1
 	
-	// Update the projection
-	glMatrixMode(GL_PROJECTION);
-	GLKMatrix4 orthoMat = GLKMatrix4MakeOrtho(0.0, (int)bounds.size.width, 0.0, (int)bounds.size.height, -1.0f, 1.0f);
-	//GLKMatrix4 orthoMat = GLKMatrix4MakeOrtho(0.0, (int)bounds.size.width, (int)bounds.size.height, 0.0, -1.0f, 1.0f);
-	glLoadMatrixf(orthoMat.m);
-	glMatrixMode(GL_MODELVIEW);
+	for (int pass = 0; pass <= 1; ++pass)
+	{
+		id<MTLBuffer> buffer = nil;
+		SLiMFlatVertex *vbPtr = NULL;
+		
+		if (pass == 1)
+		{
+			// calculate the vertex buffeer size needed, and get a buffer at least that large
+			vertexCount = rectCount * 2 * 3;						// 2 triangles per rect, 3 vertices per triangle
+			buffer = [self takeVertexBufferWithCapacity:vertexCount * sizeof(SLiMFlatVertex)];	// sizeof() includes data alignment padding
+			
+			// Now we can get our pointer into the vertex buffer
+			vbPtr = (SLiMFlatVertex *)[buffer contents];
+		}
+		
+		SLiMFlatVertex **vbPtrMod = (vbPtr ? &vbPtr : NULL);
+		
+		// Frame in gray and clear to black
+		static simd::float4 fillColor = {0.5f, 0.5f, 0.5f, 1.0f};
+		
+		rectCount++;
+		if (pass == 1)
+			slimMetalFillNSRect(bounds, &fillColor, vbPtrMod);
+		
+		// Draw haplotypes by delegating to our haplotype manager
+		rectCount += [haplotypeManager metalDrawHaplotypesInRect:interior displayBlackAndWhite:[self displayBlackAndWhite] showSubpopStrips:[self showSubpopulationStrips] eraseBackground:YES previousFirstBincounts:NULL withBuffer:vbPtrMod];
+		
+		if (pass == 1)
+		{
+			// Check that we added the planned number of vertices
+			if (vbPtr != (SLiMFlatVertex *)[buffer contents] + vertexCount)
+				NSLog(@"vertex count overflow in drawInVertexBuffer; expected %ld, drew %ld!", vertexCount, vbPtr - (SLiMFlatVertex *)[buffer contents]);
+			
+			// Since the vertex count can be an overestimate, return the realized vertex count
+			vertexCount = vbPtr - (SLiMFlatVertex *)[buffer contents];
+		}
+	}
 	
-	// Frame in gray and clear to black
-	glColor3f(0.5f, 0.5f, 0.5f);
-	glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+	return vertexCount;
+}
+
+- (void)drawWithRenderEncoder:(id<MTLRenderCommandEncoder>_Nonnull)renderEncoder
+{
+	[renderEncoder setRenderPipelineState:flatPipelineState_OriginBottom_];
 	
-	// Draw haplotypes by delegating to our haplotype manager
-	[haplotypeManager glDrawHaplotypesInRect:interior displayBlackAndWhite:[self displayBlackAndWhite] showSubpopStrips:[self showSubpopulationStrips] eraseBackground:YES previousFirstBincounts:NULL];
+	NSUInteger vertexCount = [self drawInVertexBuffer];
 	
-	// Flush
-	[[self openGLContext] flushBuffer];
+	[renderEncoder setVertexBuffer:vertexBuffers_[currentBuffer_] offset:0 atIndex:SLiMVertexInputIndexVertices];
+	[renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:vertexCount];
 }
 
 - (IBAction)copy:(id)sender

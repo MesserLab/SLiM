@@ -111,7 +111,7 @@
 		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 	}
 	
-	NSColor *color = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match OpenGL
+	NSColor *color = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match Metal hopefully
 	
 	// draw the circle
 	NSRect subpopRect = NSMakeRect(center.x - subpopRadius, center.y - subpopRadius, 2.0 * subpopRadius, 2.0 * subpopRadius);

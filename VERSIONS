@@ -12,6 +12,7 @@ development head:
 	ported PopulationView to PopulationMetalView, removed PopulationView
 	removed the PopulationViewOptions sheet and the two display modes it supported (fitness line plot and bar plot); those will return as graphs instead
 	ported ChromosomeView to ChromosomeMetalView, removed OpenGL code from ChromosomeView
+	port the haplotype display and the haplotype graph to Metal
 	
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):

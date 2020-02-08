@@ -396,133 +396,8 @@ typedef struct {
 	else // if (background_map->spatiality_ == 2)
 	{
 		// This is the spatiality "xy" case; it is the only 2D spatiality for which SLiMgui will draw
-		// This is now handled by _drawTexturedBackgroundSpatialMap:, so this code is for curiosity only
+		// This is now handled by _drawTexturedBackgroundSpatialMap:
 		return 0;
-		
-		/*
-		// First, cache the display buffer if needed.  If this succeeds, we'll use it.
-		// It should always succeed, so the tile-drawing code below is dead code, kept for parallelism with the 1D case.
-		[self cacheDisplayBufferForMap:background_map subpopulation:subpop];
-		
-		uint8_t *display_buf = background_map->display_buffer_;
-		
-		if (display_buf)
-		{
-			// Use a cached display buffer to draw.
-			int buf_width = background_map->buffer_width_;
-			int buf_height = background_map->buffer_height_;
-			
-			if (vbPtrMod)
-			{
-				bool display_full_size = (((int)bounds.size.width == buf_width) && ((int)bounds.size.height == buf_height));
-				float scale_x = (float)(bounds.size.width / buf_width);
-				float scale_y = (float)(bounds.size.height / buf_height);
-				
-				// Then run through the pixels in the display buffer and draw them; this could be done
-				// with some sort of OpenGL image-drawing method instead, but it's actually already
-				// remarkably fast, at least on my machine, and drawing an image with OpenGL seems very
-				// gross, and I tried it once before and couldn't get it to work well...
-				for (int y = 0; y < buf_height; y++)
-				{
-					// We flip the buffer vertically; it's the simplest way to get it into the right coordinate space
-					uint8_t *buf_ptr = display_buf + ((buf_height - 1) - y) * buf_width * 3;
-					
-					for (int x = 0; x < buf_width; x++)
-					{
-						float blue = *(buf_ptr++) / 255.0f;
-						float green = *(buf_ptr++) / 255.0f;
-						float red = *(buf_ptr++) / 255.0f;
-						buf_ptr++;								// discard alpha
-		 
-						float left, right, top, bottom;
-						
-						if (display_full_size)
-						{
-							left = bounds_x1 + x;
-							right = left + 1.0f;
-							top = bounds_y1 + y;
-							bottom = top + 1.0f;
-						}
-						else
-						{
-							left = bounds_x1 + x * scale_x;
-							right = bounds_x1 + (x + 1) * scale_x;
-							top = bounds_y1 + y * scale_y;
-							bottom = bounds_y1 + (y + 1) * scale_y;
-						}
-						
-						simd::float4 color = {red, green, blue, 1.0};
-						slimMetalFillRect(left, top, right - left, bottom - top, &color, vbPtrMod);
-					}
-				}
-			}
-			
-			return buf_height * (NSUInteger)buf_width;
-		}
-		else
-		{
-			// Draw rects for each map tile, without caching.  Not as slow as you might expect,
-			// but for really big maps it does get cumbersome.  This is dead code now, overridden
-			// by the buffer-drawing code above, which also handles interpolation correctly.
-			int64_t xsize = background_map->grid_size_[0];
-			int64_t ysize = background_map->grid_size_[1];
-			
-			if (vbPtrMod)
-			{
-				double *values = background_map->values_;
-				int n_colors = background_map->n_colors_;
-				
-				for (int y = 0; y < ysize; y++)
-				{
-					int y1 = (int)round(((y - 0.5) / (ysize - 1)) * bounds.size.height + bounds.origin.y);
-					int y2 = (int)round(((y + 0.5) / (ysize - 1)) * bounds.size.height + bounds.origin.y);
-					
-					if (y1 < bounds_y1) y1 = bounds_y1;
-					if (y2 > bounds_y2) y2 = bounds_y2;
-					
-					// Flip our display, since our coordinate system is flipped relative to our buffer
-					double *values_row = values + ((ysize - 1) - y) * xsize;
-					
-					for (int x = 0; x < xsize; x++)
-					{
-						double value = *(values_row + x);
-						int x1 = (int)round(((x - 0.5) / (xsize - 1)) * bounds.size.width + bounds.origin.x);
-						int x2 = (int)round(((x + 0.5) / (xsize - 1)) * bounds.size.width + bounds.origin.x);
-						
-						if (x1 < bounds_x1) x1 = bounds_x1;
-						if (x2 > bounds_x2) x2 = bounds_x2;
-						
-						float value_fraction = (float)((value - background_map->min_value_) / (background_map->max_value_ - background_map->min_value_));
-						float color_index = value_fraction * (n_colors - 1);
-						int color_index_1 = (int)floorf(color_index);
-						int color_index_2 = (int)ceilf(color_index);
-						
-						if (color_index_1 < 0) color_index_1 = 0;
-						if (color_index_1 >= n_colors) color_index_1 = n_colors - 1;
-						if (color_index_2 < 0) color_index_2 = 0;
-						if (color_index_2 >= n_colors) color_index_2 = n_colors - 1;
-						
-						float color_2_weight = color_index - color_index_1;
-						float color_1_weight = 1.0f - color_2_weight;
-						
-						float red1 = background_map->red_components_[color_index_1];
-						float green1 = background_map->green_components_[color_index_1];
-						float blue1 = background_map->blue_components_[color_index_1];
-						float red2 = background_map->red_components_[color_index_2];
-						float green2 = background_map->green_components_[color_index_2];
-						float blue2 = background_map->blue_components_[color_index_2];
-						float red = red1 * color_1_weight + red2 * color_2_weight;
-						float green = green1 * color_1_weight + green2 * color_2_weight;
-						float blue = blue1 * color_1_weight + blue2 * color_2_weight;
-						
-						simd::float4 color = {red, green, blue, 1.0};
-						slimMetalFillRect(x1, y1, x2 - x1, y2 - y1, &color, vbPtrMod);
-					}
-				}
-			}
-			
-			return ysize * (NSUInteger)xsize;
-		}*/
 	}
 }
 
@@ -1487,7 +1362,7 @@ typedef struct {
 		NSPoint eventPoint = [theEvent locationInWindow];
 		NSPoint viewPoint = [self convertPoint:eventPoint fromView:nil];
 		
-		// our tile coordinates are in the OpenGL coordinate system, which has the origin at top left
+		// our tile coordinates are in our Metal coordinate system, which has the origin at top left
 		viewPoint.y = [self bounds].size.height - viewPoint.y;
 		
 		for (Subpopulation *subpop : selectedSubpopulations)

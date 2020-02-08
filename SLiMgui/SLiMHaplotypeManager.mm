@@ -21,9 +21,7 @@
 #import "SLiMHaplotypeManager.h"
 #import "SLiMWindowController.h"
 
-#import <OpenGL/OpenGL.h>
-#include <OpenGL/glu.h>
-#include <GLKit/GLKMatrix4.h>
+#import "SLiMMetalView.h"
 
 #include <vector>
 #include <algorithm>
@@ -460,104 +458,48 @@ cancelledExit:
 	}
 }
 
-static const int kMaxGLRects = 2000;				// 2000 rects
-static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
-
-static float *glArrayVertices = nil;
-static float *glArrayColors = nil;
-
-- (void)allocateGLBuffers
+- (NSUInteger)drawMetalSubpopStripsInRect:(NSRect)interior withBuffer:(SLiMFlatVertex **)vbPtrMod
 {
-	// Set up the vertex and color arrays
-	if (!glArrayVertices)
-		glArrayVertices = (float *)malloc(kMaxVertices * 2 * sizeof(float));		// 2 floats per vertex, kMaxVertices vertices
-	
-	if (!glArrayColors)
-		glArrayColors = (float *)malloc(kMaxVertices * 4 * sizeof(float));		// 4 floats per color, kMaxVertices colors
-}
-
-- (void)drawSubpopStripsInRect:(NSRect)interior
-{
-	int displayListIndex;
-	float *vertices = NULL, *colors = NULL;
-	
-	// Set up to draw rects
-	displayListIndex = 0;
-	
-	vertices = glArrayVertices;
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
-	
-	colors = glArrayColors;
-	glEnableClientState(GL_COLOR_ARRAY);
-	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
-	
 	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
 	int genome_index = 0, genome_count = (int)genomeSubpopIDs.size();
-	double height_divisor = genome_count;
-	float left = (float)(interior.origin.x);
-	float right = (float)(interior.origin.x + interior.size.width);
-	NSColorSpace *rgbColorSpace = [NSColorSpace deviceRGBColorSpace];
 	
-	for (slim_objectid_t genome_subpop_id : genomeSubpopIDs)
+	if (vbPtrMod)
 	{
-		float top = (float)(interior.origin.y + (genome_index / height_divisor) * interior.size.height);
-		float bottom = (float)(interior.origin.y + ((genome_index + 1) / height_divisor) * interior.size.height);
+		double height_divisor = genome_count;
+		float left = (float)(interior.origin.x);
+		float right = (float)(interior.origin.x + interior.size.width);
+		NSColorSpace *rgbColorSpace = [NSColorSpace deviceRGBColorSpace];
 		
-		if (bottom - top > 1.0)
+		for (slim_objectid_t genome_subpop_id : genomeSubpopIDs)
 		{
-			// If the range spans a width of more than one pixel, then use the maximal pixel range
-			top = floorf(top);
-			bottom = ceilf(bottom);
-		}
-		else
-		{
-			// If the range spans a pixel or less, make sure that we end up with a range that is one pixel wide, even if the positions span a pixel boundary
-			top = floorf(top);
-			bottom = top + 1;
-		}
-		
-		*(vertices++) = left;		*(vertices++) = top;
-		*(vertices++) = left;		*(vertices++) = bottom;
-		*(vertices++) = right;		*(vertices++) = bottom;
-		*(vertices++) = right;		*(vertices++) = top;
-		
-		float colorRed, colorGreen, colorBlue;
-		float hue = (genome_subpop_id - minSubpopID) / (float)(maxSubpopID - minSubpopID + 1);
-		NSColor *hsbColor = [NSColor colorWithCalibratedHue:hue saturation:1.0 brightness:1.0 alpha:1.0];
-		NSColor *rgbColor = [hsbColor colorUsingColorSpace:rgbColorSpace];
-		
-		colorRed = (float)[rgbColor redComponent];
-		colorGreen = (float)[rgbColor greenComponent];
-		colorBlue = (float)[rgbColor blueComponent];
-		
-		for (int j = 0; j < 4; ++j) {
-			*(colors++) = colorRed;		*(colors++) = colorGreen;		*(colors++) = colorBlue;	*(colors++) = 1.0;
-		}
-		
-		displayListIndex++;
-		
-		// If we've filled our buffers, get ready to draw more
-		if (displayListIndex == kMaxGLRects)
-		{
-			// Draw our arrays
-			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+			float top = (float)(interior.origin.y + (genome_index / height_divisor) * interior.size.height);
+			float bottom = (float)(interior.origin.y + ((genome_index + 1) / height_divisor) * interior.size.height);
 			
-			// And get ready to draw more
-			vertices = glArrayVertices;
-			colors = glArrayColors;
-			displayListIndex = 0;
+			if (bottom - top > 1.0)
+			{
+				// If the range spans a width of more than one pixel, then use the maximal pixel range
+				top = floorf(top);
+				bottom = ceilf(bottom);
+			}
+			else
+			{
+				// If the range spans a pixel or less, make sure that we end up with a range that is one pixel wide, even if the positions span a pixel boundary
+				top = floorf(top);
+				bottom = top + 1;
+			}
+			
+			float hue = (genome_subpop_id - minSubpopID) / (float)(maxSubpopID - minSubpopID + 1);
+			NSColor *hsbColor = [NSColor colorWithCalibratedHue:hue saturation:1.0 brightness:1.0 alpha:1.0];
+			NSColor *rgbColor = [hsbColor colorUsingColorSpace:rgbColorSpace];
+			
+			simd::float4 color = {(float)[rgbColor redComponent], (float)[rgbColor greenComponent], (float)[rgbColor blueComponent], 1.0};
+			slimMetalFillRect(left, top, right - left, bottom - top, &color, vbPtrMod);
+			
+			genome_index++;
 		}
-		
-		genome_index++;
 	}
 	
-	// Draw any leftovers
-	if (displayListIndex)
-		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
+	return genome_count;
 }
 
 - (void)tallyBincounts:(int64_t *)bincounts fromGenomeList:(std::vector<MutationIndex> &)genomeList
@@ -578,26 +520,22 @@ static float *glArrayColors = nil;
 	return distance;
 }
 
-- (void)drawDisplayListInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW previousFirstBincounts:(int64_t **)previousFirstBincounts
+- (NSUInteger)drawMetalDisplayListInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW previousFirstBincounts:(int64_t **)previousFirstBincounts withBuffer:(SLiMFlatVertex **)vbPtrMod
 {
-	int displayListIndex;
-	float *vertices = NULL, *colors = NULL;
-	
-	// Set up to draw rects
-	displayListIndex = 0;
-	
-	vertices = glArrayVertices;
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
-	
-	colors = glArrayColors;
-	glEnableClientState(GL_COLOR_ARRAY);
-	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
-	
 	// decide whether to plot in ascending order or descending order; we do this based on a calculated
 	// similarity to the previously displayed first genome, so that we maximize visual continuity
 	int genome_count = (int)displayList->size();
 	bool ascending = true;
+	
+	if (!vbPtrMod)
+	{
+		NSUInteger rectCount = 0;
+		
+		for (int genome_index = 0; genome_index < genome_count; ++genome_index)
+			rectCount += (*displayList)[genome_index].size();
+		
+		return rectCount;
+	}
 	
 	if (previousFirstBincounts && (genome_count > 1))
 	{
@@ -683,11 +621,6 @@ static float *glArrayColors = nil;
 						right = left + 1;
 					}
 					
-					*(vertices++) = left;		*(vertices++) = top;
-					*(vertices++) = left;		*(vertices++) = bottom;
-					*(vertices++) = right;		*(vertices++) = bottom;
-					*(vertices++) = right;		*(vertices++) = top;
-					
 					float colorRed, colorGreen, colorBlue;
 					
 					if (displayBW) {
@@ -696,50 +629,33 @@ static float *glArrayColors = nil;
 						colorRed = mut_info.red_;		colorGreen = mut_info.green_;		colorBlue = mut_info.blue_;
 					}
 					
-					for (int j = 0; j < 4; ++j) {
-						*(colors++) = colorRed;		*(colors++) = colorGreen;		*(colors++) = colorBlue;	*(colors++) = 1.0;
-					}
-					
-					displayListIndex++;
-					
-					// If we've filled our buffers, get ready to draw more
-					if (displayListIndex == kMaxGLRects)
-					{
-						// Draw our arrays
-						glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-						
-						// And get ready to draw more
-						vertices = glArrayVertices;
-						colors = glArrayColors;
-						displayListIndex = 0;
-					}
+					simd::float4 color = {colorRed, colorGreen, colorBlue, 1.0};
+					slimMetalFillRect(left, top, right - left, bottom - top, &color, vbPtrMod);
 				}
 			}
 		}
 	}
 	
-	// Draw any leftovers
-	if (displayListIndex)
-		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
+	return 0;
 }
 
-- (void)glDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground previousFirstBincounts:(int64_t **)previousFirstBincounts
+- (NSUInteger)metalDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground previousFirstBincounts:(int64_t **)previousFirstBincounts withBuffer:(SLiMFlatVertex **)vbPtrMod
 {
+	NSUInteger rectCount = 0;
+	
 	// Erase the background to either black or white, depending on displayBW
 	if (eraseBackground)
 	{
-		if (displayBW)
-			glColor3f(1.0f, 1.0f, 1.0f);
-		else
-			glColor3f(0.0f, 0.0f, 0.0f);
-		glRecti((int)interior.origin.x, (int)interior.origin.y, (int)(interior.origin.x + interior.size.width), (int)(interior.origin.y + interior.size.height));
+		rectCount++;
+		
+		if (vbPtrMod)
+		{
+			simd::float4 bwBackground = {1.0f, 1.0f, 1.0f, 1.0f};
+			simd::float4 colorBackground = {0.0f, 0.0f, 0.0f, 0.0f};
+			
+			slimMetalFillNSRect(interior, displayBW ? &bwBackground : &colorBackground, vbPtrMod);
+		}
 	}
-	
-	// Make sure our GL data buffers are allocated; these are shared among all instances and drawing routines
-	[self allocateGLBuffers];
 	
 	// Draw subpopulation strips if requested
 	if (showSubpopStrips)
@@ -750,18 +666,20 @@ static float *glArrayColors = nil;
 		
 		subpopStripRect.size.width = stripWidth;
 		
-		[self drawSubpopStripsInRect:subpopStripRect];
+		rectCount += [self drawMetalSubpopStripsInRect:subpopStripRect withBuffer:vbPtrMod];
 		
 		interior.origin.x += stripWidth;
 		interior.size.width -= stripWidth;
 	}
 	
 	// Draw the haplotypes in the remaining portion of the interior
-	[self drawDisplayListInRect:interior displayBlackAndWhite:displayBW previousFirstBincounts:previousFirstBincounts];
+	rectCount += [self drawMetalDisplayListInRect:interior displayBlackAndWhite:displayBW previousFirstBincounts:previousFirstBincounts withBuffer:vbPtrMod];
+	
+	return rectCount;
 }
 
-// NSOpenGLView doesn't cache properly, perhaps unsurprisingly; so we need to redraw the contents using non-GL calls.
-// This is parallel to glDrawHaplotypesInRect:displayBlackAndWhite:showSubpopStrips: but generates an NSBitmapImageRep.
+// SLiMMetalView presumably doesn't cache properly; so we need to redraw the contents using non-Metal calls.
+// This is parallel to metalDrawHaplotypesInRect:displayBlackAndWhite:showSubpopStrips: but generates an NSBitmapImageRep.
 // Yes, this is a bit brute force.  I couldn't get NSImage to lock focus and let me draw, so I did this.  :->
 - (NSBitmapImageRep *)bitmapImageRepForPlotInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips;
 {

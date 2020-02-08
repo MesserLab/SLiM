@@ -20,6 +20,7 @@
 
 #import <Cocoa/Cocoa.h>
 
+#import "SLiMMetalView.h"
 #include "slim_globals.h"
 #include "mutation.h"
 
@@ -28,8 +29,8 @@
 @class SLiMHaplotypeManager;
 
 
-// SLiMHaplotypeGraphView is an NSOpenGLView that provides a context for an SLiMHaplotypeManager that displays haplotypes in a window
-@interface SLiMHaplotypeGraphView : NSOpenGLView
+// SLiMHaplotypeGraphView is an SLiMMetalView that provides a context for an SLiMHaplotypeManager that displays haplotypes in a window
+@interface SLiMHaplotypeGraphView : SLiMMetalView
 {
 	SLiMHaplotypeManager *haplotypeManager;
 }

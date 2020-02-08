@@ -23,6 +23,8 @@
 #include "slim_globals.h"
 #include "mutation.h"
 
+#import "MetalView_Shared.h"
+
 
 @class SLiMWindowController;
 class Genome;
@@ -92,7 +94,7 @@ typedef enum
 							  sampleSize:(int)sampleSize
 					 clusterInBackground:(BOOL)clusterInBackground;
 
-- (void)glDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground previousFirstBincounts:(int64_t **)previousFirstBincounts;
+- (NSUInteger)metalDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground previousFirstBincounts:(int64_t **)previousFirstBincounts withBuffer:(SLiMFlatVertex **)vbPtrMod;
 - (NSBitmapImageRep *)bitmapImageRepForPlotInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips;
 
 @end

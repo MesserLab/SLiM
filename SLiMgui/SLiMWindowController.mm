@@ -3460,10 +3460,9 @@
 
 - (void)createHaplotypePlot
 {
-	// This roughly follows the outline of -graphWindowWithTitle:viewClass: with minor differences (no positioning,
-	// and the graph view is in the nib since NSOpenGLView is much easier to use when it comes out of a nib).
+	// This roughly follows the outline of -graphWindowWithTitle:viewClass: with minor differences (no positioning, nib).
 	// How are we not a graph window?  There can be many of us open; we don't update as the sim changes; we don't position
-	// the way graph windows do; we set our own title and size; we use an NSOpenGLView subclass (that's why we can't subclass).
+	// the way graph windows do; we set our own title and size; we use a SLiMMetalView subclass (that's why we can't subclass).
 	
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
