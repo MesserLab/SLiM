@@ -292,7 +292,6 @@
 		9898172F1A59750300F7417C /* slim_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9898172D1A59750300F7417C /* slim_globals.cpp */; };
 		98A240591B8E3295005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
 		98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A240581B8E3295005C9A30 /* Cocoa.framework */; };
-		98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98A2405C1B8E338E005C9A30 /* OpenGL.framework */; };
 		98A2FF891D7DF4D7007E3DB8 /* Recipes in Resources */ = {isa = PBXBuildFile; fileRef = 98A2FF881D7DF4D7007E3DB8 /* Recipes */; };
 		98A4EC941B67C1CD00CD92FD /* EidosConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */; };
 		98A4EC951B67C1D900CD92FD /* EidosConsoleWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */; };
@@ -1106,7 +1105,6 @@
 			files = (
 				98FC8E9323E3B84400FA8C03 /* Metal.framework in Frameworks */,
 				98FC8E9423E3B84400FA8C03 /* MetalKit.framework in Frameworks */,
-				98A2405D1B8E338E005C9A30 /* OpenGL.framework in Frameworks */,
 				98A2405A1B8E32D0005C9A30 /* Cocoa.framework in Frameworks */,
 				9821E2041ABDBC300036EAEA /* QuartzCore.framework in Frameworks */,
 				98D4C2161A7187E200FFB083 /* Quartz.framework in Frameworks */,
