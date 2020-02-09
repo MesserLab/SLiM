@@ -7709,6 +7709,12 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		MutationMetadataRec metadata;
 		slim_position_t position = mut_info.position;
 		
+		// BCH 4 Feb 2020: bump the next mutation ID counter as needed here, so that this happens in all cases – even if
+		// the mutation in the mutation table is fixed (so we will create a Substitution) or absent (so we will create
+		// nothing).  Even in those cases, we have to ensure that we do not re-use the previously used mutation ID.
+		if (gSLiM_next_mutation_id <= mutation_id)
+			gSLiM_next_mutation_id = mutation_id + 1;
+		
 		// a mutation might not be refered by any extant genome; it might be present in an ancestral node,
 		// but have been lost in all descendants, in which we do not need to instantiate it
 		if (mut_info.ref_count == 0)
