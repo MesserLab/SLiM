@@ -4127,7 +4127,7 @@
 			// of that block, at the outer level of the script.  Detect that case and fall through to the handler for it at the end.
 			int32_t completion_block_end = completion_block->token_->token_end_;
 			
-			if ((int)(selection.location + selection.length) > completion_block_end)
+			if ((int)selection.location > completion_block_end)
 			{
 				 // Selection is after end of completion_block
 				completion_block = nullptr;
