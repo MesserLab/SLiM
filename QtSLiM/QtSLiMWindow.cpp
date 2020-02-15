@@ -61,7 +61,6 @@
 // enable the more efficient code paths in the chromosome view
 // enable the other display types in the individuals view
 // implement pop-up menu for graph pop-up button, graph windows
-// code editing: code completion
 // decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
@@ -128,6 +127,10 @@ void QtSLiMWindow::init(void)
     ui->scriptTextEdit->setOptionClickEnabled(true);
     ui->outputTextEdit->setOptionClickEnabled(false);
     
+    // the script textview completes, the output textview does not
+    ui->scriptTextEdit->setCodeCompletionEnabled(true);
+    ui->outputTextEdit->setCodeCompletionEnabled(false);
+    
     // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
     sim_working_dir = Eidos_ResolvedPath("~/Desktop");
@@ -143,6 +146,24 @@ void QtSLiMWindow::init(void)
     
     // Instantiate the help panel up front so that it responds instantly; slows down our launch, but it seems better to me...
     QtSLiMHelpWindow::instance();
+    
+    // Create our console window; we want one all the time, so that it keeps live symbols for code completion for us
+    if (!consoleController)
+    {
+        consoleController = new QtSLiMEidosConsole(this);
+        if (consoleController)
+        {
+            // wire ourselves up to monitor the console for closing, to fix our button state
+            connect(consoleController, &QtSLiMEidosConsole::willClose, [this]() {
+                ui->consoleButton->setChecked(false);
+                showConsoleReleased();
+            });
+        }
+        else
+        {
+            qDebug() << "Could not create console controller";
+        }
+    }
 }
 
 void QtSLiMWindow::initializeUI(void)
@@ -1839,18 +1860,8 @@ void QtSLiMWindow::showConsoleClicked(void)
 
     if (!consoleController)
     {
-        consoleController = new QtSLiMEidosConsole(this);
-        if (!consoleController)
-        {
-            qApp->beep();
-            return;
-        }
-        
-        // wire ourselves up to monitor the console for closing, to fix our button state
-        connect(consoleController, &QtSLiMEidosConsole::willClose, [this]() {
-            ui->consoleButton->setChecked(false);
-            showConsoleReleased();
-        });
+        qApp->beep();
+        return;
     }
     
     if (ui->consoleButton->isChecked())

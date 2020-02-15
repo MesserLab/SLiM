@@ -24,6 +24,8 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QScrollBar>
+#include <QCompleter>
+#include <QAbstractItemView>
 #include <QDebug>
 
 #include "QtSLiMPreferences.h"
@@ -58,11 +60,6 @@ void QtSLiMConsoleTextEdit::selfInit(void)
     connect(this, &QTextEdit::selectionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
     connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
     connect(this, &QtSLiMConsoleTextEdit::selectionWasChangedDuringLastEvent, this, &QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly, Qt::QueuedConnection);
-
-    // QtSLiMConsoleTextEdit, unlike other QtSLiMTextEdits, uses the live simulation for its context;
-    // this means that zero-gen functions are not available outside zero gen, completion is based on
-    // the presently existing variables and functions and methods, etc.
-    basedOnLiveSimulation = true;
 }
 
 QtSLiMConsoleTextEdit::~QtSLiMConsoleTextEdit()
@@ -466,6 +463,43 @@ void QtSLiMConsoleTextEdit::executeCurrentPrompt(void)
 
 void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
 {
+    // With a completer, we have to call super in some cases to let it handle the completer logic
+    // This code is parallel to the code in QtSLiMTextEdit::keyPressEvent()
+    if (completer)
+    {
+        if (completer->popup()->isVisible()) {
+            // The following keys are forwarded by the completer to the widget
+           switch (event->key()) {
+           case Qt::Key_Enter:
+           case Qt::Key_Return:
+           case Qt::Key_Escape:
+           case Qt::Key_Tab:
+           case Qt::Key_Backtab:
+                QtSLiMTextEdit::keyPressEvent(event);
+                return; // let super pass these keys on to the completer
+           default:
+               break;
+           }
+        }
+        
+        // if we have a visible completer popup, the key pressed is not one of the special keys above (including escape)
+        // our completion key shortcut is the escape key, so check for that now
+        bool isShortcut = ((event->modifiers() == Qt::NoModifier) && event->key() == Qt::Key_Escape); // escape
+        
+        if (!isShortcut)
+        {
+            // any key other than escape and the special keys above causes the completion popup to hide
+            // then we drop through to our normal key handling below
+            completer->popup()->hide();
+        }
+        else
+        {
+            // the completer shortcut has been pressed; let super run the completer
+            QtSLiMTextEdit::keyPressEvent(event);
+            return;
+        }
+    }
+    
     if (event->matches(QKeySequence::MoveToPreviousLine))
     {
         // up-arrow pressed; cycle through the command history
@@ -486,8 +520,8 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
     }
     else if (event->key() == Qt::Key_Escape)
     {
-        // escape pressed; code completion
-        qDebug() << "escape!";
+        // escape pressed; this should be handled by the code above, but if we get here just ignore it
+        //qDebug() << "escape!";
         event->accept();
     }
     else if (event->matches(QKeySequence::MoveToEndOfBlock) ||

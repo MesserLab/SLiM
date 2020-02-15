@@ -23,12 +23,28 @@
 #include <QTextEdit>
 
 #include "eidos_interpreter.h"
+#include "eidos_type_interpreter.h"
 
 class QtSLiMOutputHighlighter;
 class QtSLiMScriptHighlighter;
 class QStatusBar;
 class EidosCallSignature;
 class QtSLiMWindow;
+class QtSLiMEidosConsole;
+class QCompleter;
+
+
+// We define NSRange and NSNotFound because we want to be able to represent "no range",
+// which QTextCursor cannot do; there is no equivalent of NSNotFound for it.  We should
+// never be linked with Objective-C code, so there should be no conflict.  Note these
+// definitions are not the same as Apple's; I kept the names just for convenience.
+
+typedef struct _NSRange {
+    int location;
+    int length;
+} NSRange;
+
+static const int NSNotFound = INT_MAX;
 
 
 // A QTextEdit subclass that provides a signal for an option-click on a script symbol
@@ -58,6 +74,7 @@ public:
     void setScriptType(ScriptType type);
     void setSyntaxHighlightType(ScriptHighlightingType type);
     void setOptionClickEnabled(bool enabled);
+    void setCodeCompletionEnabled(bool enabled);
     
     // highlight errors
     void highlightError(int startPosition, int endPosition);   
@@ -70,7 +87,6 @@ public slots:
 signals:
     
 protected:
-    bool basedOnLiveSimulation = false;
     ScriptType scriptType = ScriptType::NoScriptType;
     ScriptHighlightingType syntaxHighlightingType = QtSLiMTextEdit::NoHighlighting;
     QtSLiMOutputHighlighter *outputHighlighter = nullptr;
@@ -79,6 +95,7 @@ protected:
     void selfInit(void);
     QStatusBar *statusBarForWindow(void);
     QtSLiMWindow *slimControllerForWindow(void);
+    QtSLiMEidosConsole *slimEidosConsoleForWindow(void);
     
     // used to track that we are intercepting a mouse event
     bool optionClickEnabled = false;
@@ -92,15 +109,36 @@ protected:
     void fixMouseCursor(void);
     void enterEvent(QEvent *event) override;
     
+    // used for code completion in script textviews
+    bool codeCompletionEnabled = false;
+    QCompleter *completer = nullptr;
+    
+    void keyPressEvent(QKeyEvent *e) override;
+    QStringList completionsForPartialWordRange(NSRange charRange, int *indexOfSelectedItem);
+    NSRange rangeForUserCompletion(void);
+    
+    QStringList globalCompletionsWithTypesFunctionsKeywordsArguments(EidosTypeTable *typeTable, EidosFunctionMap *functionMap, QStringList keywords, QStringList argumentNames);
+    QStringList completionsForKeyPathEndingInTokenIndexOfTokenStream(int lastDotTokenIndex, const std::vector<EidosToken> &tokens, EidosTypeTable *typeTable, EidosFunctionMap *functionMap, EidosCallTypeTable *callTypeTable, QStringList keywords);
+    QStringList completionsFromArrayMatchingBase(QStringList candidates, QString base);
+    QStringList completionsForTokenStream(const std::vector<EidosToken> &tokens, int lastTokenIndex, bool canExtend, EidosTypeTable *typeTable, EidosFunctionMap *functionMap, EidosCallTypeTable *callTypeTable, QStringList keywords, QStringList argumentNames);
+    QStringList uniquedArgumentNameCompletions(std::vector<std::string> *argumentCompletions);
+    void _completionHandlerWithRangeForCompletion(NSRange *baseRange, QStringList *completions);
+    int64_t scoreForCandidateAsCompletionOfString(QString candidate, QString base);
+    virtual int rangeOffsetForCompletionRange(void);
+    void slimSpecificCompletion(QString completionScriptString, NSRange selection, EidosTypeTable **typeTable, EidosFunctionMap **functionMap, EidosCallTypeTable **callTypeTable, QStringList *keywords, std::vector<std::string> *argNameCompletions);
+
+    EidosFunctionMap *functionMapForScriptString(QString scriptString, bool includingOptionalFunctions);
+    EidosFunctionMap *functionMapForTokenizedScript(EidosScript &script, bool includingOptionalFunctions);
+    EidosSymbolTable *symbolsFromBaseSymbols(EidosSymbolTable *baseSymbols);
+    
     // status bar signatures
     EidosFunctionSignature_CSP signatureForFunctionName(QString callName, EidosFunctionMap *functionMapPtr);
     const std::vector<EidosMethodSignature_CSP> *slimguiAllMethodSignatures(void);
     EidosMethodSignature_CSP signatureForMethodName(QString callName);
-    EidosFunctionMap *functionMapForTokenizedScript(EidosScript &script);
     EidosCallSignature_CSP signatureForScriptSelection(QString &callName);
     
     // virtual function for accessing the script portion of the contents; for normal
-    // script textedits this is the whole content and te text cursor, but for the
+    // script textedits this is the whole content and the text cursor, but for the
     // console view it is just the snippet of script following the prompt
     virtual void scriptStringAndSelection(QString &scriptString, int &pos, int &len);
     
@@ -112,6 +150,8 @@ protected slots:
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);
     
     void updateStatusFieldFromSelection(void);
+    
+    void insertCompletion(const QString &completion);
 };
 
 // A QtSLiMTextEdit subclass that provides various smarts for editing Eidos script

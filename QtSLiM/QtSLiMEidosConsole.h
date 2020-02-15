@@ -58,6 +58,8 @@ public:
     // to produce the symbol table as a side effect of setting up for the script's execution
     void validateSymbolTableAndFunctionMap(void);
     
+    EidosSymbolTable *symbolTable(void) { return global_symbols; }
+    
     // Execute the given script string, with the terminating semicolon being optional if requested
     void executeScriptString(QString scriptString, bool semicolonOptional);
     

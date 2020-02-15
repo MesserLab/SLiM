@@ -54,6 +54,10 @@ QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
     ui->scriptTextEdit->setOptionClickEnabled(true);
     ui->consoleTextEdit->setOptionClickEnabled(true);
     
+    // enable code completion in both textedits
+    ui->scriptTextEdit->setCodeCompletionEnabled(true);
+    ui->consoleTextEdit->setCodeCompletionEnabled(true);
+    
     // set initial text in console and show the initial prompt
     QtSLiMConsoleTextEdit *console = ui->consoleTextEdit;
     console->showWelcome();
@@ -236,6 +240,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 	{
 		global_symbols = gEidosConstantsSymbolTable;
 		
+        // in SLiMgui this comes from the delegate method eidosConsoleWindowController:symbolsFromBaseSymbols:
         if (parentSLiMWindow->sim && !parentSLiMWindow->invalidSimulation())
             global_symbols = parentSLiMWindow->sim->SymbolsFromBaseSymbols(global_symbols);
 		

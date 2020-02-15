@@ -149,6 +149,7 @@ public:
     void setContinuousPlayOn(bool p_flag);
     void setGenerationPlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
+    QtSLiMEidosConsole *ConsoleController(void) { return consoleController; }
     
     void selectErrorRange(void);
     void checkForSimulationTermination(void);
