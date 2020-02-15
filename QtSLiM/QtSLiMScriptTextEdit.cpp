@@ -1031,6 +1031,47 @@ void QtSLiMTextEdit::insertCompletion(const QString& completionOriginal)
     }
 }
 
+void QtSLiMTextEdit::autoindentAfterNewline(void)
+{
+    // We are called by QtSLiMTextEdit::keyPressEvent() immediately after it calls
+    // super to insert a newline in response to Key_Enter or Key_Return
+    if (scriptType != NoScriptType)
+    {
+        QTextCursor tc = textCursor();
+        int selStart = tc.selectionStart(), selEnd = tc.selectionEnd();
+        const QString scriptString = toPlainText();
+        
+        // verify that we have an insertion point immediately following a newline
+        if ((selStart == selEnd) && (selStart > 0) && (scriptString[selStart - 1] == '\n'))
+        {
+            QTextCursor previousLine = tc;
+            previousLine.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor);
+            previousLine.movePosition(QTextCursor::StartOfLine, QTextCursor::KeepAnchor);
+            
+            QString lineString = previousLine.selectedText();
+            QString whitespace;
+            
+            for (int pos = 0; pos < lineString.length(); ++pos)
+            {
+                QChar qch = lineString[pos];
+                
+                if (qch.isSpace())
+                    whitespace.append(qch);
+                else
+                    break;
+            }
+            
+            // insert the same whitespace as the previous line had, joining the undo block for the newline insertion
+            if (whitespace.length())
+            {
+                tc.joinPreviousEditBlock();
+                tc.insertText(whitespace);
+                tc.endEditBlock();
+            }
+        }
+    }
+}
+
 void QtSLiMTextEdit::keyPressEvent(QKeyEvent *event)
 {
     // Without a completer, we just call super
@@ -1064,6 +1105,11 @@ void QtSLiMTextEdit::keyPressEvent(QKeyEvent *event)
         // any key other than escape and the special keys above causes the completion popup to hide
         completer->popup()->hide();
         QTextEdit::keyPressEvent(event);
+        
+        // implement autoindent
+        if ((event->modifiers() == Qt::NoModifier) && ((event->key() == Qt::Key_Enter) || (event->key() == Qt::Key_Return)))
+            autoindentAfterNewline();
+        
         return;
     }
     

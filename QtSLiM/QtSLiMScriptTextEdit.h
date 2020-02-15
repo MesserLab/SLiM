@@ -113,6 +113,7 @@ protected:
     bool codeCompletionEnabled = false;
     QCompleter *completer = nullptr;
     
+    void autoindentAfterNewline(void);
     void keyPressEvent(QKeyEvent *e) override;
     QStringList completionsForPartialWordRange(NSRange charRange, int *indexOfSelectedItem);
     NSRange rangeForUserCompletion(void);
