@@ -4108,9 +4108,6 @@
 		if (symbols)
 			symbols->AddSymbolsToTypeTable(*typeTable);
 		
-		// Ensure that the slimgui symbol is always available
-		(*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
-		
 		// Use the script text view's facility for using type-interpreting to get a "definitive" function map.  This way
 		// all functions that are defined, even if below the completion point, end up in the function map.
 		*functionMap = [scriptTextView functionMapForScriptString:[scriptTextView string] includingOptionalFunctions:NO];
@@ -4209,6 +4206,9 @@
 							(*typeTable)->RemoveTypeForSymbol(gID_sim);
 						else
 							(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
+						
+						// The slimgui symbol is always available within a block, but not at the top level
+						(*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
 						
 						// Do the same for the zero-generation functions, which should be defined in initialization() blocks and
 						// not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
@@ -4379,7 +4379,7 @@
 		std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
 		
 		for (EidosGlobalStringID symbol_id : symbol_ids)
-			if ((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject)
+			if (((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject) || (symbol_id == gID_sim) || (symbol_id == gID_slimgui))
 				(*typeTable)->RemoveTypeForSymbol(symbol_id);
 		
 		return YES;
