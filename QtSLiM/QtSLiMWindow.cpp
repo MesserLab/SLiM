@@ -2497,7 +2497,6 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		{
             ui->profileButton->setChecked(true);
             updateProfileButtonIcon(false);
-            profileStartDate_ = QDateTime::currentDateTime();
 		}
 		else
 		{
@@ -2516,6 +2515,7 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		{
 			gEidosProfilingClientCount++;
 			startProfiling();
+            profileStartDate_ = QDateTime::currentDateTime();
 		}
 #endif
 		
