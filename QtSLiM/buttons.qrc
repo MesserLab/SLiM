@@ -56,5 +56,7 @@
         <file>buttons/Qt_female_symbol.png</file>
         <file>buttons/Qt_male_symbol.png</file>
         <file>buttons/Qt_selfing_rate.png</file>
+        <file>buttons/profile_R.png</file>
+        <file>buttons/profile_RH.png</file>
     </qresource>
 </RCC>

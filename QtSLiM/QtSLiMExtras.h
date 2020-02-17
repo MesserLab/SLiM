@@ -27,6 +27,8 @@
 #include <QPainter>
 #include <QLineEdit>
 #include <QTextCursor>
+#include <QHBoxLayout>
+#include <QList>
 
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
@@ -62,6 +64,26 @@ private:
 
 void ColorizePropertySignature(const EidosPropertySignature *property_signature, double pointSize, QTextCursor lineCursor);
 void ColorizeCallSignature(const EidosCallSignature *call_signature, double pointSize, QTextCursor lineCursor);
+
+// A subclass of QHBoxLayout specifically designed to lay out the play controls in the main window
+class QtSLiMPlayControlsLayout : public QHBoxLayout
+{
+public:
+    QtSLiMPlayControlsLayout(QWidget *parent): QHBoxLayout(parent) {}
+    QtSLiMPlayControlsLayout(): QHBoxLayout() {}
+    ~QtSLiMPlayControlsLayout() override;
+
+    QSize sizeHint() const override;
+    QSize minimumSize() const override;
+    void setGeometry(const QRect &rect) override;
+};
+
+// Heat colors for profiling display
+QColor slimColorForFraction(double fraction);
+
+// Nicely formatted memory usage strings
+QString stringForByteCount(uint64_t bytes);
+QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharFormat &format);
 
 
 #endif // QTSLIMEXTRAS_H

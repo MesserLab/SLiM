@@ -24,6 +24,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QColor>
+#include <QDateTime>
 
 #include <string>
 #include <vector>
@@ -90,14 +91,16 @@ private:
     QTimer continuousPlayInvocationTimer_;
     uint64_t continuousPlayGenerationsCompleted_ = 0;
     QTimer generationPlayInvocationTimer_;
+    QTimer continuousProfileInvocationTimer_;
     int partialUpdateCount_ = 0;
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
     // profiling-related variables
-    //NSDate *profileEndDate = nullptr;
-    //clock_t profileElapsedCPUClock = 0;
-    //eidos_profile_t profileElapsedWallClock = 0;
-    //slim_generation_t profileStartGeneration = 0;
+    QDateTime profileStartDate_;
+    QDateTime profileEndDate_;
+    std::clock_t profileElapsedCPUClock = 0;
+    eidos_profile_t profileElapsedWallClock = 0;
+    slim_generation_t profileStartGeneration = 0;
 #endif
     
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
@@ -148,6 +151,7 @@ public:
     void setReachedSimulationEnd(bool p_reachedEnd);
     void setContinuousPlayOn(bool p_flag);
     void setGenerationPlayOn(bool p_flag);
+    void setProfilePlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
     QtSLiMEidosConsole *ConsoleController(void) { return consoleController; }
     
@@ -164,10 +168,16 @@ public:
     void updateRecycleButtonIcon(bool pressed);
     void updateUIEnabling(void);
 
+    void colorScriptWithProfileCountsFromNode(const EidosASTNode *node, double elapsedTime, int32_t baseIndex, QTextDocument *doc, QTextCharFormat &baseFormat);
+    void displayProfileResults(void);
+    void startProfiling(void);
+    void endProfiling(void);
+    
     void willExecuteScript(void);
     void didExecuteScript(void);
     bool runSimOneGeneration(void);
     void _continuousPlay(void);
+    void _continuousProfile(void);
     void playOrProfile(bool isPlayAction);
     void _generationPlay(void);
     

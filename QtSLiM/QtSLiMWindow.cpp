@@ -53,7 +53,6 @@
 
 // TO DO:
 //
-// custom layout for play/profile buttons: https://doc.qt.io/qt-5/layout.html
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
 // make the population tableview rows selectable
@@ -61,7 +60,6 @@
 // enable the more efficient code paths in the chromosome view
 // enable the other display types in the individuals view
 // implement pop-up menu for graph pop-up button, graph windows
-// decide whether to implement profiling or not
 // decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
@@ -119,6 +117,7 @@ void QtSLiMWindow::init(void)
     // wire up our continuous play and generation play timers
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
     connect(&generationPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_generationPlay);
+    connect(&continuousProfileInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousProfile);
     
     // wire up deferred display of script errors and termination messages
     connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
@@ -179,9 +178,48 @@ void QtSLiMWindow::initializeUI(void)
     ui->outputHeaderLayout->setMargin(0);
     ui->outputHeaderLabel->setContentsMargins(8, 0, 15, 0);
 
-    ui->playControlsLayout->setSpacing(4);
+    ui->playControlsLayout->setSpacing(8);
     ui->playControlsLayout->setMargin(0);
-
+    
+    // substitute a custom layout subclass for playControlsLayout to lay out the profile button specially
+    {
+        QtSLiMPlayControlsLayout *newPlayControlsLayout = new QtSLiMPlayControlsLayout();
+        int indexOfPlayControlsLayout = -1;
+        
+        // QLayout::indexOf(QLayoutItem *layoutItem) wasn't added until 5.12, oddly
+        for (int i = 0; i < ui->topRightLayout->count(); ++i)
+            if (ui->topRightLayout->itemAt(i) == ui->playControlsLayout)
+                indexOfPlayControlsLayout = i;
+        
+        if (indexOfPlayControlsLayout >= 0)
+        {
+            ui->topRightLayout->insertItem(indexOfPlayControlsLayout, newPlayControlsLayout);
+            newPlayControlsLayout->setParent(ui->topRightLayout);   // surprising that insertItem() doesn't do this...; but this sets our parentWidget also, correctly
+            
+            // Transfer over the contents of the old layout
+            while (ui->playControlsLayout->count())
+            {
+                QLayoutItem *layoutItem = ui->playControlsLayout->takeAt(0);
+                newPlayControlsLayout->addItem(layoutItem);
+            }
+            
+            // Transfer properties of the old layout
+            newPlayControlsLayout->setSpacing(ui->playControlsLayout->spacing());
+            newPlayControlsLayout->setMargin(ui->playControlsLayout->margin());
+            
+            // Get rid of the old layout
+            ui->topRightLayout->removeItem(ui->playControlsLayout);
+            ui->playControlsLayout = nullptr;
+            
+            // Remember the new layout
+            ui->playControlsLayout = newPlayControlsLayout;
+        }
+        else
+        {
+            qDebug() << "Couldn't find playControlsLayout!";
+        }
+    }
+    
     // set the script types and syntax highlighting appropriately
     ui->scriptTextEdit->setScriptType(QtSLiMTextEdit::SLiMScriptType);
     ui->scriptTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::ScriptHighlighting);
@@ -189,12 +227,6 @@ void QtSLiMWindow::initializeUI(void)
     ui->outputTextEdit->setScriptType(QtSLiMTextEdit::NoScriptType);
     ui->outputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
     
-    // remove the profile button, for the time being
-    QPushButton *profileButton = ui->profileButton;
-
-    ui->playControlsLayout->removeWidget(profileButton);
-    delete profileButton;
-
     // set button states
     ui->showChromosomeMapsButton->setChecked(zoomedChromosomeShowsRateMaps);
     ui->showGenomicElementsButton->setChecked(zoomedChromosomeShowsGenomicElements);
@@ -910,6 +942,12 @@ void QtSLiMWindow::setGenerationPlayOn(bool p_flag)
     updateUIEnabling();
 }
 
+void QtSLiMWindow::setProfilePlayOn(bool p_flag)
+{
+    profilePlayOn_ = p_flag;
+    updateUIEnabling();
+}
+
 void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
 {
     nonProfilePlayOn_ = p_flag;
@@ -1214,7 +1252,10 @@ void QtSLiMWindow::updateProfileButtonIcon(bool pressed)
 {
     bool highlighted = ui->profileButton->isChecked() ^ pressed;
     
-    ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
+    if (profilePlayOn_)
+        ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_R.png" : ":/buttons/profile_RH.png"));    // flipped intentionally
+    else
+        ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
 }
 
 void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
@@ -1229,7 +1270,7 @@ void QtSLiMWindow::updateUIEnabling(void)
 {
     ui->playOneStepButton->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
     ui->playButton->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_ && !generationPlayOn_);
-    //ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
+    ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
     ui->recycleButton->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
     
     ui->playSpeedSlider->setEnabled(!generationPlayOn_ && !invalidSimulation_);
@@ -1260,6 +1301,954 @@ void QtSLiMWindow::updateUIEnabling(void)
     if (consoleController)
         consoleController->setInterfaceEnabled(!(continuousPlayOn_ || generationPlayOn_));
 }
+
+//
+//  profiling
+//
+
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+
+void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node, double elapsedTime, int32_t baseIndex, QTextDocument *doc, QTextCharFormat &baseFormat)
+{
+    // First color the range for this node
+	eidos_profile_t count = node->profile_total_;
+	
+	if (count > 0)
+	{
+		int32_t start = 0, end = 0;
+		
+		node->FullUTF16Range(&start, &end);
+		
+		start -= baseIndex;
+		end -= baseIndex;
+		
+		QTextCursor colorCursor(doc);
+        colorCursor.setPosition(start);
+        colorCursor.setPosition(end, QTextCursor::KeepAnchor); // +1?
+        
+        QColor backgroundColor = slimColorForFraction(Eidos_ElapsedProfileTime(count) / elapsedTime);
+		QTextCharFormat colorFormat = baseFormat;
+        
+        colorFormat.setBackground(backgroundColor);
+        colorCursor.setCharFormat(colorFormat);
+	}
+	
+	// Then let child nodes color
+	for (const EidosASTNode *child : node->children_)
+        colorScriptWithProfileCountsFromNode(child, elapsedTime, baseIndex, doc, baseFormat);
+}
+
+void QtSLiMWindow::displayProfileResults(void)
+{
+    // Make a new window to show the profile results
+    QWidget *window = new QWidget(this, Qt::Window);    // the profile window has us as a parent, but is still a standalone window
+    QString title = window->windowTitle();
+    
+    if (title.length() == 0)
+        title = "Untitled";
+    
+    window->setWindowTitle("Profile Report for " + title);
+    window->setMinimumSize(500, 200);
+    window->resize(500, 600);
+    window->move(50, 50);
+    
+    // Make a QTextEdit to hold the results
+    QHBoxLayout *layout = new QHBoxLayout;
+    QTextEdit *textEdit = new QTextEdit();
+    
+    window->setLayout(layout);
+    
+    layout->setMargin(0);
+    layout->setSpacing(0);
+    layout->addWidget(textEdit);
+    
+    textEdit->setFrameStyle(QFrame::NoFrame);
+    textEdit->setReadOnly(true);
+    
+    QTextDocument *doc = textEdit->document();
+    QTextCursor tc = textEdit->textCursor();
+    
+    doc->setDocumentMargin(10);
+    
+    // Make the QTextCharFormat objects we will use
+    QFont optima18b("Optima", 18, QFont::Bold);
+    QFont optima14b("Optima", 14, QFont::Bold);
+    QFont optima13("Optima", 13);
+    QFont optima13i("Optima", 13, -1, true);
+    QFont optima8("Optima", 8);
+    QFont optima3("Optima", 3);
+    QFont menlo11("Menlo", 11);
+    
+    QTextCharFormat optima18b_d, optima14b_d, optima13_d, optima13i_d, optima8_d, optima3_d, menlo11_d;
+    
+    optima18b_d.setFont(optima18b);
+    optima14b_d.setFont(optima14b);
+    optima13_d.setFont(optima13);
+    optima13i_d.setFont(optima13i);
+    optima8_d.setFont(optima8);
+    optima3_d.setFont(optima3);
+    menlo11_d.setFont(menlo11);
+    
+    // Adjust the tab width to the monospace font we have chosen
+    int tabWidth = 0;
+    QFontMetrics fm(menlo11);
+    
+    //tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
+    tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
+    
+    textEdit->setTabStopWidth(tabWidth);
+    
+    // Build the report attributed string
+    QString startDateString = profileStartDate_.toString("M/d/yy, h:mm:ss AP");
+    QString endDateString = profileEndDate_.toString("M/d/yy, h:mm:ss AP");
+    double elapsedWallClockTime = (profileStartDate_.msecsTo(profileEndDate_)) / 1000.0;
+    double elapsedCPUTimeInSLiM = profileElapsedCPUClock / static_cast<double>(CLOCKS_PER_SEC);
+	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(profileElapsedWallClock);
+    
+    tc.insertText("Profile Report\n", optima18b_d);
+    tc.insertText(" \n", optima3_d);
+    
+    tc.insertText("Model: " + title + "\n", optima13_d);
+    tc.insertText(" \n", optima8_d);
+    
+    tc.insertText("Run start: " + startDateString + "\n", optima13_d);
+    tc.insertText("Run end: " + endDateString + "\n", optima13_d);
+    tc.insertText(" \n", optima8_d);
+    
+    tc.insertText(QString("Elapsed wall clock time: %1 s\n").arg(elapsedWallClockTime, 0, 'f', 2), optima13_d);
+    tc.insertText(QString("Elapsed wall clock time inside SLiM core (corrected): %1 s\n").arg(elapsedWallClockTimeInSLiM, 0, 'f', 2), optima13_d);
+    tc.insertText(QString("Elapsed CPU time inside SLiM core (uncorrected): %1 s\n").arg(elapsedCPUTimeInSLiM, 0, 'f', 2), optima13_d);
+    tc.insertText(QString("Elapsed generations: %1%2\n").arg(continuousPlayGenerationsCompleted_).arg((profileStartGeneration == 0) ? " (including initialize)" : ""), optima13_d);
+    tc.insertText(" \n", optima8_d);
+    
+    tc.insertText(QString("Profile block external overhead: %1 ticks (%2 s)\n").arg(gEidos_ProfileOverheadTicks, 0, 'f', 2).arg(gEidos_ProfileOverheadSeconds, 0, 'g', 4), optima13_d);
+    tc.insertText(QString("Profile block internal lag: %1 ticks (%2 s)\n").arg(gEidos_ProfileLagTicks, 0, 'f', 2).arg(gEidos_ProfileLagSeconds, 0, 'g', 4), optima13_d);
+    tc.insertText(" \n", optima8_d);
+    
+    tc.insertText(QString("Average generation SLiM memory use: %1\n").arg(stringForByteCount(sim->profile_total_memory_usage_.totalMemoryUsage / static_cast<size_t>(sim->total_memory_tallies_))), optima13_d);
+    tc.insertText(QString("Final generation SLiM memory use: %1\n").arg(stringForByteCount(sim->profile_last_memory_usage_.totalMemoryUsage)), optima13_d);
+    
+	//
+	//	Generation stage breakdown
+	//
+	if (elapsedWallClockTimeInSLiM > 0.0)
+	{
+		bool isWF = (sim->ModelType() == SLiMModelType::kModelTypeWF);
+		double elapsedStage0Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[0]);
+		double elapsedStage1Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[1]);
+		double elapsedStage2Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[2]);
+		double elapsedStage3Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[3]);
+		double elapsedStage4Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[4]);
+		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
+		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
+		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage3 = (elapsedStage3Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage4 = (elapsedStage4Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage5 = (elapsedStage5Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage6 = (elapsedStage6Time / elapsedWallClockTimeInSLiM) * 100.0;
+		int fw = 4;
+		
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage0Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage1Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage2Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage3Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage4Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage5Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage6Time)))));
+		
+		tc.insertText(" \n", optima13_d);
+		tc.insertText("Generation stage breakdown\n", optima14b_d);
+		tc.insertText(" \n", optima3_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage0Time, fw, 'f', 2).arg(percentStage0, 5, 'f', 2), menlo11_d);
+		tc.insertText(" : initialize() callback execution\n", optima13_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage1Time, fw, 'f', 2).arg(percentStage1, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 1 – early() event execution\n" : " : stage 1 – offspring generation\n"), optima13_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage2Time, fw, 'f', 2).arg(percentStage2, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 2 – offspring generation\n" : " : stage 2 – early() event execution\n"), optima13_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage3Time, fw, 'f', 2).arg(percentStage3, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : " : stage 3 – fitness calculation\n"), optima13_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage4Time, fw, 'f', 2).arg(percentStage4, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 4 – generation swap\n" : " : stage 4 – viability/survival selection\n"), optima13_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage5Time, fw, 'f', 2).arg(percentStage5, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 5 – late() event execution\n" : " : stage 5 – bookkeeping (fixed mutation removal, etc.)\n"), optima13_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage6Time, fw, 'f', 2).arg(percentStage6, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 6 – fitness calculation\n" : " : stage 6 – late() event execution\n"), optima13_d);
+	}
+	
+	//
+	//	Callback type breakdown
+	//
+	if (elapsedWallClockTimeInSLiM > 0.0)
+	{
+		double elapsedType0Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[0]);
+		double elapsedType1Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[1]);
+		double elapsedType2Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[2]);
+		double elapsedType3Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[3]);
+		double elapsedType4Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[4]);
+		double elapsedType5Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[5]);
+		double elapsedType6Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[6]);
+		double elapsedType7Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[7]);
+		double elapsedType8Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[8]);
+		double elapsedType9Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[9]);
+		double elapsedType10Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[10]);
+		double percentType0 = (elapsedType0Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType1 = (elapsedType1Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType2 = (elapsedType2Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType3 = (elapsedType3Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType4 = (elapsedType4Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType5 = (elapsedType5Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType6 = (elapsedType6Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType7 = (elapsedType7Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType8 = (elapsedType8Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType9 = (elapsedType9Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentType10 = (elapsedType10Time / elapsedWallClockTimeInSLiM) * 100.0;
+		int fw = 4, fw2 = 4;
+		
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType0Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType1Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType2Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType3Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType4Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType5Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType6Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType7Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType8Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType9Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType10Time)))));
+		
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType0)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType1)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType2)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType3)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType4)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType5)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType6)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType7)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType8)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType9)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType10)))));
+		
+		tc.insertText(" \n", optima13_d);
+		tc.insertText("Callback type breakdown\n", optima14b_d);
+		tc.insertText(" \n", optima3_d);
+		
+		// Note these are out of numeric order, but in generation-cycle order
+		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
+		{
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType2Time, fw, 'f', 2).arg(percentType2, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : initialize() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType0Time, fw, 'f', 2).arg(percentType0, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : early() events\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType6Time, fw, 'f', 2).arg(percentType6, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : mateChoice() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType8Time, fw, 'f', 2).arg(percentType8, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : recombination() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType9Time, fw, 'f', 2).arg(percentType9, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : mutation() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType7Time, fw, 'f', 2).arg(percentType7, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : modifyChild() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType1Time, fw, 'f', 2).arg(percentType1, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : late() events\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType3Time, fw, 'f', 2).arg(percentType3, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : fitness() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType4Time, fw, 'f', 2).arg(percentType4, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType5Time, fw, 'f', 2).arg(percentType5, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : interaction() callbacks\n", optima13_d);
+		}
+		else
+		{
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType2Time, fw, 'f', 2).arg(percentType2, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : initialize() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType10Time, fw, 'f', 2).arg(percentType10, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : reproduction() events\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType8Time, fw, 'f', 2).arg(percentType8, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : recombination() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType9Time, fw, 'f', 2).arg(percentType9, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : mutation() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType7Time, fw, 'f', 2).arg(percentType7, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : modifyChild() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType0Time, fw, 'f', 2).arg(percentType0, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : early() events\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType3Time, fw, 'f', 2).arg(percentType3, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : fitness() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType4Time, fw, 'f', 2).arg(percentType4, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType1Time, fw, 'f', 2).arg(percentType1, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : late() events\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedType5Time, fw, 'f', 2).arg(percentType5, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : interaction() callbacks\n", optima13_d);
+		}
+	}
+	
+	//
+	//	Script block profiles
+	//
+	if (elapsedWallClockTimeInSLiM > 0.0)
+	{
+		{
+			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			
+			// Convert the profile counts in all script blocks into self counts (excluding the counts of nodes below them)
+			for (SLiMEidosBlock *script_block : script_blocks)
+				if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)		// exclude function blocks; not user-visible
+					script_block->root_node_->ConvertProfileTotalsToSelfCounts();
+		}
+		{
+			tc.insertText(" \n", optima13_d);
+			tc.insertText("Script block profiles (as a fraction of corrected wall clock time)\n", optima14b_d);
+			tc.insertText(" \n", optima3_d);
+			
+			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (SLiMEidosBlock *script_block : script_blocks)
+			{
+				if (script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+					continue;
+				
+				const EidosASTNode *profile_root = script_block->root_node_;
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						tc.insertText(" \n \n", menlo11_d);
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+					QString script_string = QString::fromStdString(script_std_string);
+					
+					tc.insertText(QString("%1 s (%2%):\n").arg(total_block_time, 0, 'f', 2).arg(percent_block_time, 0, 'f', 2), menlo11_d);
+					tc.insertText(" \n", optima3_d);
+					
+                    int colorBase = tc.position();
+                    tc.insertText(script_string, menlo11_d);
+                    colorScriptWithProfileCountsFromNode(profile_root, elapsedWallClockTimeInSLiM, profile_root->token_->token_UTF16_start_ - colorBase, doc, menlo11_d);
+				}
+				else
+					hiddenInconsequentialBlocks = true;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				tc.insertText(" \n", menlo11_d);
+				tc.insertText(" \n", optima3_d);
+				tc.insertText("(blocks using < 0.01 s and < 0.01% of total wall clock time are not shown)", optima13i_d);
+			}
+		}
+		{
+			tc.insertText(" \n", menlo11_d);
+			tc.insertText(" \n", optima13_d);
+			tc.insertText("Script block profiles (as a fraction of within-block wall clock time)\n", optima14b_d);
+			tc.insertText(" \n", optima3_d);
+			
+			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (SLiMEidosBlock *script_block : script_blocks)
+			{
+				if (script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+					continue;
+				
+				const EidosASTNode *profile_root = script_block->root_node_;
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						tc.insertText(" \n \n", menlo11_d);
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+                    QString script_string = QString::fromStdString(script_std_string);
+					
+					tc.insertText(QString("%1 s (%2%):\n").arg(total_block_time, 0, 'f', 2).arg(percent_block_time, 0, 'f', 2), menlo11_d);
+					tc.insertText(" \n", optima3_d);
+					
+                    int colorBase = tc.position();
+                    tc.insertText(script_string, menlo11_d);
+                    if (total_block_time > 0.0)
+                        colorScriptWithProfileCountsFromNode(profile_root, total_block_time, profile_root->token_->token_UTF16_start_ - colorBase, doc, menlo11_d);
+				}
+				else
+					hiddenInconsequentialBlocks = true;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				tc.insertText(" \n", menlo11_d);
+				tc.insertText(" \n", optima3_d);
+				tc.insertText("(blocks using < 0.01 s and < 0.01% of total wall clock time are not shown)", optima13i_d);
+			}
+		}
+	}
+	
+	//
+	//	User-defined functions (if any)
+	//
+	if (elapsedWallClockTimeInSLiM > 0.0)
+	{
+		EidosFunctionMap &function_map = sim->FunctionMap();
+		std::vector<const EidosFunctionSignature *> userDefinedFunctions;
+		
+		for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
+		{
+			const EidosFunctionSignature *signature = functionPairIter->second.get();
+			
+			if (signature->body_script_ && signature->user_defined_)
+			{
+				signature->body_script_->AST()->ConvertProfileTotalsToSelfCounts();
+				userDefinedFunctions.push_back(signature);
+			}
+		}
+		
+		if (userDefinedFunctions.size())
+		{
+			tc.insertText(" \n", menlo11_d);
+			tc.insertText(" \n", optima13_d);
+			tc.insertText("User-defined functions (as a fraction of corrected wall clock time)\n", optima14b_d);
+			tc.insertText(" \n", optima3_d);
+			
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (const EidosFunctionSignature *signature : userDefinedFunctions)
+			{
+				const EidosASTNode *profile_root = signature->body_script_->AST();
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						tc.insertText(" \n \n", menlo11_d);
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+					QString script_string = QString::fromStdString(script_std_string);
+					const std::string &&signature_string = signature->SignatureString();
+					QString signatureString = QString::fromStdString(signature_string);
+					
+					tc.insertText(QString("%1 s (%2%):\n").arg(total_block_time, 0, 'f', 2).arg(percent_block_time, 0, 'f', 2), menlo11_d);
+					tc.insertText(" \n", optima3_d);
+					tc.insertText(signatureString + "\n", menlo11_d);
+					
+                    int colorBase = tc.position();
+                    tc.insertText(script_string, menlo11_d);
+                    colorScriptWithProfileCountsFromNode(profile_root, elapsedWallClockTimeInSLiM, profile_root->token_->token_UTF16_start_ - colorBase, doc, menlo11_d);
+				}
+				else
+					hiddenInconsequentialBlocks = true;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				tc.insertText(" \n", menlo11_d);
+				tc.insertText(" \n", optima3_d);
+				tc.insertText("(functions using < 0.01 s and < 0.01% of total wall clock time are not shown)", optima13i_d);
+			}
+		}
+		if (userDefinedFunctions.size())
+		{
+			tc.insertText(" \n", menlo11_d);
+			tc.insertText(" \n", optima13_d);
+			tc.insertText("User-defined functions (as a fraction of within-block wall clock time)\n", optima14b_d);
+			tc.insertText(" \n", optima3_d);
+			
+			bool firstBlock = true, hiddenInconsequentialBlocks = false;
+			
+			for (const EidosFunctionSignature *signature : userDefinedFunctions)
+			{
+				const EidosASTNode *profile_root = signature->body_script_->AST();
+				double total_block_time = Eidos_ElapsedProfileTime(profile_root->TotalOfSelfCounts());	// relies on ConvertProfileTotalsToSelfCounts() being called above!
+				double percent_block_time = (total_block_time / elapsedWallClockTimeInSLiM) * 100.0;
+				
+				if ((total_block_time >= 0.01) || (percent_block_time >= 0.01))
+				{
+					if (!firstBlock)
+						tc.insertText(" \n \n", menlo11_d);
+					firstBlock = false;
+					
+					const std::string &script_std_string = profile_root->token_->token_string_;
+					QString script_string = QString::fromStdString(script_std_string);
+					const std::string &&signature_string = signature->SignatureString();
+					QString signatureString = QString::fromStdString(signature_string);
+					
+					tc.insertText(QString("%1 s (%2%):\n").arg(total_block_time, 0, 'f', 2).arg(percent_block_time, 0, 'f', 2), menlo11_d);
+					tc.insertText(" \n", optima3_d);
+					tc.insertText(signatureString + "\n", menlo11_d);
+					
+                    int colorBase = tc.position();
+                    tc.insertText(script_string, menlo11_d);
+                    if (total_block_time > 0.0)
+                        colorScriptWithProfileCountsFromNode(profile_root, total_block_time, profile_root->token_->token_UTF16_start_ - colorBase, doc, menlo11_d);
+				}
+				else
+					hiddenInconsequentialBlocks = true;
+			}
+			
+			if (hiddenInconsequentialBlocks)
+			{
+				tc.insertText(" \n", menlo11_d);
+				tc.insertText(" \n", optima3_d);
+				tc.insertText("(functions using < 0.01 s and < 0.01% of total wall clock time are not shown)", optima13i_d);
+			}
+		}
+	}
+	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	//
+	//	MutationRun metrics
+	//
+	{
+		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+		int64_t power_tallies_total = static_cast<int>(sim->profile_mutcount_history_.size());
+		
+		for (int power = 0; power < 20; ++power)
+			power_tallies[power] = 0;
+		
+		for (int32_t count : sim->profile_mutcount_history_)
+		{
+			int power = static_cast<int>(round(log2(count)));
+			
+			power_tallies[power]++;
+		}
+		
+		tc.insertText(" \n", menlo11_d);
+		tc.insertText(" \n", optima13_d);
+		tc.insertText("MutationRun usage\n", optima14b_d);
+		tc.insertText(" \n", optima3_d);
+		
+		for (int power = 0; power < 20; ++power)
+		{
+			if (power_tallies[power] > 0)
+			{
+				tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
+				tc.insertText(QString(" of generations : %1 mutation runs per genome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
+			}
+		}
+		
+		
+		int64_t regime_tallies[3];
+		int64_t regime_tallies_total = static_cast<int>(sim->profile_nonneutral_regime_history_.size());
+		
+		for (int regime = 0; regime < 3; ++regime)
+			regime_tallies[regime] = 0;
+		
+		for (int32_t regime : sim->profile_nonneutral_regime_history_)
+			if ((regime >= 1) && (regime <= 3))
+				regime_tallies[regime - 1]++;
+			else
+				regime_tallies_total--;
+		
+		tc.insertText(" \n", optima13_d);
+		
+		for (int regime = 0; regime < 3; ++regime)
+		{
+			tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
+			tc.insertText(QString(" of generations : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no fitness callbacks" : (regime == 1 ? "constant neutral fitness callbacks only" : "unpredictable fitness callbacks present")), optima13_d);
+		}
+		
+		
+		tc.insertText(" \n", optima13_d);
+		
+		tc.insertText(QString("%1").arg(sim->profile_mutation_total_usage_), menlo11_d);
+		tc.insertText(" mutations referenced, summed across all generations\n", optima13_d);
+		
+		tc.insertText(QString("%1").arg(sim->profile_nonneutral_mutation_total_), menlo11_d);
+		tc.insertText(" mutations considered potentially nonneutral\n", optima13_d);
+		
+		tc.insertText(QString("%1%").arg(((sim->profile_mutation_total_usage_ - sim->profile_nonneutral_mutation_total_) / static_cast<double>(sim->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
+		tc.insertText(" of mutations excluded from fitness calculations\n", optima13_d);
+		
+		tc.insertText(QString("%1").arg(sim->profile_max_mutation_index_), menlo11_d);
+		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
+		
+		
+		tc.insertText(" \n", optima13_d);
+		
+		tc.insertText(QString("%1").arg(sim->profile_mutrun_total_usage_), menlo11_d);
+		tc.insertText(" mutation runs referenced, summed across all generations\n", optima13_d);
+		
+		tc.insertText(QString("%1").arg(sim->profile_unique_mutrun_total_), menlo11_d);
+		tc.insertText(" unique mutation runs maintained among those\n", optima13_d);
+		
+		tc.insertText(QString("%1%").arg((sim->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(sim->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
+		tc.insertText(" of mutation run nonneutral caches rebuilt per generation\n", optima13_d);
+		
+		tc.insertText(QString("%1%").arg(((sim->profile_mutrun_total_usage_ - sim->profile_unique_mutrun_total_) / static_cast<double>(sim->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
+		tc.insertText(" of mutation runs shared among genomes", optima13_d);
+	}
+#endif
+	
+	{
+		//
+		//	Memory usage metrics
+		//
+		SLiM_MemoryUsage &mem_tot = sim->profile_total_memory_usage_;
+		SLiM_MemoryUsage &mem_last = sim->profile_last_memory_usage_;
+		uint64_t div = static_cast<uint64_t>(sim->total_memory_tallies_);
+		double ddiv = sim->total_memory_tallies_;
+		double average_total = mem_tot.totalMemoryUsage / ddiv;
+		double final_total = mem_last.totalMemoryUsage;
+		
+		tc.insertText(" \n", menlo11_d);
+		tc.insertText(" \n", optima13_d);
+		tc.insertText("SLiM memory usage (average / final generation)\n", optima14b_d);
+		tc.insertText(" \n", optima3_d);
+		
+        QTextCharFormat colored_menlo = menlo11_d;
+        
+		// Chromosome
+		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.chromosomeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : Chromosome object\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeMutationRateMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.chromosomeMutationRateMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : mutation rate maps\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeRecombinationRateMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.chromosomeRecombinationRateMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : recombination rate maps\n", optima13_d);
+
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeAncestralSequence / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.chromosomeAncestralSequence, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : ancestral nucleotides\n", optima13_d);
+		
+		// Genome
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.genomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.genomeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Genome objects (%1 / %2)\n").arg(mem_tot.genomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomeObjects_count), optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.genomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.genomeExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : external MutationRun* buffers\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.genomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.genomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : unused pool space\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.genomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.genomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : unused pool buffers\n", optima13_d);
+		
+		// GenomicElement
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.genomicElementObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.genomicElementObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : GenomicElement objects (%1 / %2)\n").arg(mem_tot.genomicElementObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomicElementObjects_count), optima13_d);
+		
+		// GenomicElementType
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.genomicElementTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.genomicElementTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : GenomicElementType objects (%1 / %2)\n").arg(mem_tot.genomicElementTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomicElementTypeObjects_count), optima13_d);
+		
+		// Individual
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.individualObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.individualObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Individual objects (%1 / %2)\n").arg(mem_tot.individualObjects_count / ddiv, 0, 'f', 2).arg(mem_last.individualObjects_count), optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.individualUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.individualUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : unused pool space\n", optima13_d);
+		
+		// InteractionType
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.interactionTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : InteractionType objects (%1 / %2)\n").arg(mem_tot.interactionTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.interactionTypeObjects_count), optima13_d);
+		
+		if (mem_tot.interactionTypeObjects_count || mem_last.interactionTypeObjects_count)
+		{
+			tc.insertText("   ", menlo11_d);
+			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeKDTrees / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(" / ", optima13_d);
+			tc.insertText(attributedStringForByteCount(mem_last.interactionTypeKDTrees, final_total, colored_menlo), colored_menlo);
+			tc.insertText(" : k-d trees\n", optima13_d);
+			
+			tc.insertText("   ", menlo11_d);
+			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypePositionCaches / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(" / ", optima13_d);
+			tc.insertText(attributedStringForByteCount(mem_last.interactionTypePositionCaches, final_total, colored_menlo), colored_menlo);
+			tc.insertText(" : position caches\n", optima13_d);
+			
+			tc.insertText("   ", menlo11_d);
+			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeSparseArrays / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(" / ", optima13_d);
+			tc.insertText(attributedStringForByteCount(mem_last.interactionTypeSparseArrays, final_total, colored_menlo), colored_menlo);
+			tc.insertText(" : sparse arrays\n", optima13_d);
+		}
+		
+		// Mutation
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Mutation objects (%1 / %2)\n").arg(mem_tot.mutationObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationObjects_count), optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationRefcountBuffer / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationRefcountBuffer, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : refcount buffer\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : unused pool space\n", optima13_d);
+		
+		// MutationRun
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationRunObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : MutationRun objects (%1 / %2)\n").arg(mem_tot.mutationRunObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationRunObjects_count), optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationRunExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : external MutationIndex buffers\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunNonneutralCaches / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationRunNonneutralCaches, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : nonneutral mutation caches\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationRunUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : unused pool space\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationRunUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : unused pool buffers\n", optima13_d);
+		
+		// MutationType
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.mutationTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.mutationTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : MutationType objects (%1 / %2)\n").arg(mem_tot.mutationTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationTypeObjects_count), optima13_d);
+		
+		// SLiMSim
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.slimsimObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.slimsimObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : SLiMSim object\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.slimsimTreeSeqTables / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.slimsimTreeSeqTables, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : tree-sequence tables\n", optima13_d);
+		
+		// Subpopulation
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.subpopulationObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Subpopulation objects (%1 / %2)\n").arg(mem_tot.subpopulationObjects_count / ddiv, 0, 'f', 2).arg(mem_last.subpopulationObjects_count), optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationFitnessCaches / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.subpopulationFitnessCaches, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : fitness caches\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationParentTables / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.subpopulationParentTables, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : parent tables\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationSpatialMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.subpopulationSpatialMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : spatial maps\n", optima13_d);
+		
+		if (mem_tot.subpopulationSpatialMapsDisplay || mem_last.subpopulationSpatialMapsDisplay)
+		{
+			tc.insertText("   ", menlo11_d);
+			tc.insertText(attributedStringForByteCount(mem_tot.subpopulationSpatialMapsDisplay / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(" / ", optima13_d);
+			tc.insertText(attributedStringForByteCount(mem_last.subpopulationSpatialMapsDisplay, final_total, colored_menlo), colored_menlo);
+			tc.insertText(" : spatial map display (QtSLiM only)\n", optima13_d);
+		}
+		
+		// Substitution
+		tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.substitutionObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.substitutionObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Substitution objects (%1 / %2)\n").arg(mem_tot.substitutionObjects_count / ddiv, 0, 'f', 2).arg(mem_last.substitutionObjects_count), optima13_d);
+		
+		// Eidos
+		tc.insertText(" \n", optima8_d);
+		tc.insertText("Eidos:\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.eidosASTNodePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.eidosASTNodePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : EidosASTNode pool\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.eidosSymbolTablePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.eidosSymbolTablePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : EidosSymbolTable pool\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot.eidosValuePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.eidosValuePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : EidosValue pool", optima13_d);
+	}
+    
+    // Done, show the window
+    tc.setPosition(0);
+    textEdit->setTextCursor(tc);
+    window->show();    
+}
+
+void QtSLiMWindow::startProfiling(void)
+{
+	// prepare for profiling by measuring profile block overhead and lag
+	Eidos_PrepareForProfiling();
+	
+	// initialize counters
+	profileElapsedCPUClock = 0;
+	profileElapsedWallClock = 0;
+	profileStartGeneration = sim->Generation();
+	
+	// call this first, which has the side effect of emptying out any pending profile counts
+	sim->CollectSLiMguiMutationProfileInfo();
+	
+	// zero out profile counts for generation stages
+	sim->profile_stage_totals_[0] = 0;
+	sim->profile_stage_totals_[1] = 0;
+	sim->profile_stage_totals_[2] = 0;
+	sim->profile_stage_totals_[3] = 0;
+	sim->profile_stage_totals_[4] = 0;
+	sim->profile_stage_totals_[5] = 0;
+	sim->profile_stage_totals_[6] = 0;
+	
+	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
+	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
+	
+	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
+	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+	
+	for (SLiMEidosBlock *script_block : script_blocks)
+		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
+			script_block->root_node_->ZeroProfileTotals();
+	
+	// zero out profile counts for all user-defined functions
+	EidosFunctionMap &function_map = sim->FunctionMap();
+	
+	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
+	{
+		const EidosFunctionSignature *signature = functionPairIter->second.get();
+		
+		if (signature->body_script_ && signature->user_defined_)
+			signature->body_script_->AST()->ZeroProfileTotals();
+	}
+	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	// zero out mutation run metrics
+	sim->profile_mutcount_history_.clear();
+	sim->profile_nonneutral_regime_history_.clear();
+	sim->profile_mutation_total_usage_ = 0;
+	sim->profile_nonneutral_mutation_total_ = 0;
+	sim->profile_mutrun_total_usage_ = 0;
+	sim->profile_unique_mutrun_total_ = 0;
+	sim->profile_mutrun_nonneutral_recache_total_ = 0;
+	sim->profile_max_mutation_index_ = 0;
+#endif
+	
+	// zero out memory usage metrics
+	EIDOS_BZERO(&sim->profile_last_memory_usage_, sizeof(SLiM_MemoryUsage));
+	EIDOS_BZERO(&sim->profile_total_memory_usage_, sizeof(SLiM_MemoryUsage));
+	sim->total_memory_tallies_ = 0;
+}
+
+void QtSLiMWindow::endProfiling(void)
+{
+    profileEndDate_ = QDateTime::currentDateTime();
+}
+
+#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
 
 
 //
@@ -1327,7 +2316,7 @@ bool QtSLiMWindow::runSimOneGeneration(void)
     willExecuteScript();
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
-	if (profilePlayOn)
+	if (profilePlayOn_)
 	{
 		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
 		// as profile report percentages are fractions of the total elapsed wall clock time.
@@ -1358,7 +2347,7 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 
 void QtSLiMWindow::_continuousPlay(void)
 {
-    // NOTE this code is parallel to the code in _continuousProfile:
+    // NOTE this code is parallel to the code in _continuousProfile()
 	if (!invalidSimulation_)
 	{
         QElapsedTimer startTimer;
@@ -1410,25 +2399,105 @@ void QtSLiMWindow::_continuousPlay(void)
 	}
 }
 
+void QtSLiMWindow::_continuousProfile(void)
+{
+	// NOTE this code is parallel to the code in _continuousPlay()
+	if (!invalidSimulation_)
+	{
+        QElapsedTimer startTimer;
+        startTimer.start();
+		
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
+		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
+		bool reachedEnd = reachedSimulationEnd_;
+		
+		if (!reachedEnd)
+		{
+			do
+			{
+                reachedEnd = !runSimOneGeneration();
+				
+				continuousPlayGenerationsCompleted_++;
+			}
+            while (!reachedEnd && (startTimer.nsecsElapsed() / 1000000000.0) < 0.02);
+			
+            setReachedSimulationEnd(reachedEnd);
+		}
+		
+		if (!reachedSimulationEnd_)
+		{
+            updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
+            continuousProfileInvocationTimer_.start(0);
+		}
+		else
+		{
+			// stop profiling
+            updateAfterTickFull(true);
+			playOrProfile(false);   // click the Profile button
+			
+			// bounce our icon; if we are not the active app, to signal that the run is done
+			//[NSApp requestUserAttention:NSInformationalRequest];
+		}
+	}
+}
+
 void QtSLiMWindow::playOrProfile(bool isPlayAction)
 {
     bool isProfileAction = !isPlayAction;	// to avoid having to think in negatives
     
+#ifdef DEBUG
+	if (isProfileAction)
+	{
+        ui->profileButton->setChecked(false);
+        updateProfileButtonIcon(false);
+		
+        QMessageBox messageBox(this);
+        messageBox.setText("Release build required");
+        messageBox.setInformativeText("In order to obtain accurate timing information that is relevant to the actual runtime of a model, profiling requires that you are running a Release build of QtSLiM.");
+        messageBox.setIcon(QMessageBox::Warning);
+        messageBox.setWindowModality(Qt::WindowModal);
+        messageBox.exec();
+		
+		return;
+	}
+#endif
+    
 #if (SLIMPROFILING == 0)
-    if (isProfileAction)
-    {
-        // profiling is currently disabled in QtSLiM; the UI is not even visible
-        return;
-    }
+	if (isProfileAction)
+	{
+        ui->profileButton->setChecked(false);
+        updateProfileButtonIcon(false);
+		
+        QMessageBox messageBox(this);
+        messageBox.setText("Profiling disabled");
+        messageBox.setInformativeText("Profiling has been disabled in this build of QtSLiM.  Please change the definition of SLIMPROFILING to 1 in the project's .pro files.");
+        messageBox.setIcon(QMessageBox::Warning);
+        messageBox.setWindowModality(Qt::WindowModal);
+        messageBox.exec();
+		
+		return;
+	}
 #endif
     
     if (!continuousPlayOn_)
 	{
+        // log information needed to track our play speed
+        continuousPlayElapsedTimer_.restart();
+		continuousPlayGenerationsCompleted_ = 0;
+        
+		setContinuousPlayOn(true);
+		if (isProfileAction)
+            setProfilePlayOn(true);
+        else
+            setNonProfilePlayOn(true);
+		
 		// keep the button on; this works for the button itself automatically, but when the menu item is chosen this is needed
 		if (isProfileAction)
 		{
-			//[profileButton setState:NSOnState];
-			//[profileButton slimSetTintColor:[NSColor colorWithCalibratedHue:0.0 saturation:0.5 brightness:1.0 alpha:1.0]];
+            ui->profileButton->setChecked(true);
+            updateProfileButtonIcon(false);
+            profileStartDate_ = QDateTime::currentDateTime();
 		}
 		else
 		{
@@ -1436,16 +2505,6 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
             updatePlayButtonIcon(false);
 			//[self placeSubview:playButton aboveSubview:profileButton];
 		}
-		
-		// log information needed to track our play speed
-        continuousPlayElapsedTimer_.restart();
-		continuousPlayGenerationsCompleted_ = 0;
-        
-		setContinuousPlayOn(true);
-		//if (isProfileAction)
-        //    [self setProfilePlayOn:YES];
-        //else
-            setNonProfilePlayOn(true);
 		
 		// invalidate the console symbols, and don't validate them until we are done
 		if (consoleController)
@@ -1456,32 +2515,44 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		if (isProfileAction)
 		{
 			gEidosProfilingClientCount++;
-			[self startProfiling];
+			startProfiling();
 		}
 #endif
 		
 		// start playing/profiling
 		if (isPlayAction)
             continuousPlayInvocationTimer_.start(0);
-		//else
-		//	[self performSelector:@selector(_continuousProfile:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+		else
+            continuousProfileInvocationTimer_.start(0);
 	}
 	else
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// close out profiling information if necessary
-		if (isProfileAction && sim && !invalidSimulation)
+		if (isProfileAction && sim && !invalidSimulation_)
 		{
-			[self endProfiling];
+			endProfiling();
 			gEidosProfilingClientCount--;
 		}
 #endif
 		
+        // stop our recurring perform request
+		if (isPlayAction)
+            continuousPlayInvocationTimer_.stop();
+		else
+            continuousProfileInvocationTimer_.stop();
+		
+        setContinuousPlayOn(false);
+        if (isProfileAction)
+            setProfilePlayOn(false);
+        else
+            setNonProfilePlayOn(false);
+		
 		// keep the button off; this works for the button itself automatically, but when the menu item is chosen this is needed
 		if (isProfileAction)
 		{
-			//[profileButton setState:NSOffState];
-			//[profileButton slimSetTintColor:nil];
+            ui->profileButton->setChecked(false);
+            updateProfileButtonIcon(false);
 		}
 		else
 		{
@@ -1490,18 +2561,7 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 			//[self placeSubview:profileButton aboveSubview:playButton];
 		}
 		
-		// stop our recurring perform request
-		if (isPlayAction)
-            continuousPlayInvocationTimer_.stop();
-		//else
-		//	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_continuousProfile:) object:nil];
-		
-        setContinuousPlayOn(false);
-        //if (isProfileAction)
-        //    [self setProfilePlayOn:NO];
-        //else
-            setNonProfilePlayOn(false);
-		
+        // clean up and update UI
 		if (consoleController)
             consoleController->validateSymbolTableAndFunctionMap();
         
@@ -1509,8 +2569,8 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// If we just finished profiling, display a report
-		if (isProfileAction && sim && !invalidSimulation)
-			[self displayProfileResults];
+		if (isProfileAction && sim && !invalidSimulation_)
+			displayProfileResults();
 #endif
 	}
 }

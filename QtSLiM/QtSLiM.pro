@@ -18,13 +18,12 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 # Set up to build QtSLiM; note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
-DEFINES += SLIMPROFILING=0
 
 CONFIG += c++11
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
-QMAKE_CFLAGS_RELEASE += -O3
+QMAKE_CFLAGS_RELEASE += -O3 -DSLIMPROFILING=1
 QMAKE_CXXFLAGS_DEBUG += -g -Og -DDEBUG=1
-QMAKE_CXXFLAGS_RELEASE += -O3
+QMAKE_CXXFLAGS_RELEASE += -O3 -DSLIMPROFILING=1
 
 # get rid of spurious errors on Ubuntu, for now
 linux-*: {

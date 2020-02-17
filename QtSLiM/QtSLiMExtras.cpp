@@ -381,7 +381,132 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
 }
 
 
+// A subclass of QHBoxLayout specifically designed to lay out the play controls in the main window
 
+QtSLiMPlayControlsLayout::~QtSLiMPlayControlsLayout()
+{
+}
+
+QSize QtSLiMPlayControlsLayout::sizeHint() const
+{
+    QSize size(0,0);
+    int n = count();
+    
+    for (int i = 0; i < n; ++i)
+    {
+        if (i == 2)
+            continue;     // the profile button takes no space
+        
+        QLayoutItem *layoutItem = itemAt(i);
+        QSize sizeHint = layoutItem->sizeHint();
+        
+        size.rwidth() += sizeHint.width();
+        size.rheight() = std::max(size.height(), sizeHint.height());
+    }
+    
+    size.rwidth() += (n - 2) * spacing();   // -2 because we exclude spacing for the profile button
+    
+    return size;
+}
+
+QSize QtSLiMPlayControlsLayout::minimumSize() const
+{
+    QSize size(0,0);
+    int n = count();
+    
+    for (int i = 0; i < n; ++i)
+    {
+        if (i == 2)
+            continue;     // the profile button takes no space
+        
+        QLayoutItem *layoutItem = itemAt(i);
+        QSize minimumSize = layoutItem->minimumSize();
+        
+        size.rwidth() += minimumSize.width();
+        size.rheight() = std::max(size.height(), minimumSize.height());
+    }
+    
+    size.rwidth() += (n - 2) * spacing();   // -2 because we exclude spacing for the profile button
+    
+    return size;
+}
+
+void QtSLiMPlayControlsLayout::setGeometry(const QRect &rect)
+{
+    QHBoxLayout::setGeometry(rect);
+    
+    int n = count();
+    int position = rect.x();
+    QRect playButtonRect;
+    
+    for (int i = 0; i < n; ++i)
+    {
+        if (i == 2)
+            continue;     // the profile button takes no space
+        
+        QLayoutItem *layoutItem = itemAt(i);
+        QSize sizeHint = layoutItem->sizeHint();
+        QRect geom(position, rect.y(), sizeHint.width(), sizeHint.height());
+        
+        layoutItem->setGeometry(geom);
+        position += sizeHint.width() + spacing();
+        
+        if (i == 1)
+            playButtonRect = geom;
+    }
+    
+    // position the profile button
+    QLayoutItem *profileButton = itemAt(2);
+    QSize sizeHint = profileButton->sizeHint();
+    QRect geom(playButtonRect.right() - 21, rect.y() - 6, sizeHint.width(), sizeHint.height());
+    
+    profileButton->setGeometry(geom);
+}
+
+// Heat colors for profiling display
+#define SLIM_YELLOW_FRACTION 0.10
+#define SLIM_SATURATION 0.75
+
+QColor slimColorForFraction(double fraction)
+{
+    if (fraction < SLIM_YELLOW_FRACTION)
+	{
+		// small fractions fall on a ramp from white (0.0) to yellow (SLIM_YELLOW_FRACTION)
+        return QtSLiMColorWithHSV(1.0 / 6.0, (fraction / SLIM_YELLOW_FRACTION) * SLIM_SATURATION, 1.0, 1.0);
+	}
+	else
+	{
+		// larger fractions ramp from yellow (SLIM_YELLOW_FRACTION) to red (1.0)
+        return QtSLiMColorWithHSV((1.0 / 6.0) * (1.0 - (fraction - SLIM_YELLOW_FRACTION) / (1.0 - SLIM_YELLOW_FRACTION)), SLIM_SATURATION, 1.0, 1.0);
+	}
+}
+
+// Nicely formatted memory usage strings
+QString stringForByteCount(uint64_t bytes)
+{
+    if (bytes > 512L * 1024L * 1024L * 1024L)
+		return QString("%1 TB").arg(bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+	else if (bytes > 512L * 1024L * 1024L)
+		return QString("%1 GB").arg(bytes / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+	else if (bytes > 512L * 1024L)
+		return QString("%1 MB").arg(bytes / (1024.0 * 1024.0), 0, 'f', 2);
+	else if (bytes > 512L)
+		return QString("%1 KB").arg(bytes / 1024.0, 0, 'f', 2);
+	else
+		return QString("%1 bytes").arg(bytes);
+}
+
+QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharFormat &format)
+{
+    QString byteString = stringForByteCount(bytes);
+	double fraction = bytes / total;
+	QColor fractionColor = slimColorForFraction(fraction);
+	
+    // We modify format for the caller, which they can use to colorize the returned string
+    format.setBackground(fractionColor);
+    
+	return byteString;
+}
 
 
 

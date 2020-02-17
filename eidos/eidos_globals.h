@@ -199,7 +199,7 @@ void Eidos_PrepareForProfiling(void);
 		eidos_profile_t slim__end_clock = Eidos_ProfileTime();																												\
 																																											\
 		uint64_t slim__uncorrected_ticks = (slim__end_clock - slim__start_clock);																							\
-		uint64_t slim__correction = (eidos_profile_t)round(gEidos_ProfileLagTicks + gEidos_ProfileOverheadTicks * slim__contained_profile_calls);							\
+		uint64_t slim__correction = static_cast<eidos_profile_t>(round(gEidos_ProfileLagTicks + gEidos_ProfileOverheadTicks * slim__contained_profile_calls));				\
 		uint64_t slim__corrected_ticks = ((slim__correction < slim__uncorrected_ticks) ? (slim__uncorrected_ticks - slim__correction) : 0);									\
 																																											\
 		(slim__accumulator) += slim__corrected_ticks;																														\
