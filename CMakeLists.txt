@@ -40,6 +40,11 @@
 # Then you can just do "make"; cmake will automatically be re-run by make since the CMakeLists.txt
 # file has changed.
 
+# By default, this will make a serial execution build but can be changed by turning on the parallel flag
+#
+#   mkdir Release
+#   cd Release
+#   cmake -D Parallel=ON
 
 cmake_minimum_required (VERSION 2.6)
 
@@ -53,14 +58,26 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value")
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
+
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -DDEBUG=1 ")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -DDEBUG=1 ")
 
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-# Report the build type
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+#set(Parallel "OFF" CACHE STRING "Parallel or Serial")
+
+if(Parallel MATCHES "ON")
+    add_definitions(-DParallel=1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -shared-libgcc -DTBB_USE_THREADING_TOOLS")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -shared-libgcc -DTBB_USE_THREADING_TOOLS")
+endif(Parallel MATCHES "ON")
+
+message("flags ${CMAKE_C_FLAGS}")
+# Report the build and execution type
+message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE} and parallel execution is ${Parallel}(Empty space implies Parallel
+execution is off)")
+
 
 # Test for -flto support
 # BCH 4/4/2019: I am disabling this LTO stuff for now.  It made only a very small performance
@@ -94,9 +111,15 @@ target_include_directories(${TARGET_NAME} PUBLIC)
 set(TARGET_NAME tables)
 file(GLOB_RECURSE TABLE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/*.c)
 set(TSKIT_INCLUDES ${PROJECT_SOURCE_DIR}/treerec)
-add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
+if(Parallel MATCHES "ON")
+    file(GLOB_RECURSE PARALLEL_TABLE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/*.cpp)
+    add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES} ${PARALLEL_TABLE_SOURCES})
+else()
+    add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
+endif(Parallel MATCHES "ON")
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} ${KASTORE_INCLUDES})
 target_include_directories(${TARGET_NAME} PUBLIC ${KASTORE_INCLUDES} ${TSKIT_INCLUDES})
+add_definitions(-Dparallel_mode=${Parallel})
 
 set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
