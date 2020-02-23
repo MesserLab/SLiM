@@ -77,6 +77,10 @@ void QtSLiMIndividualsWidget::paintGL()
 	std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
 	int selectedSubpopCount = static_cast<int>(selectedSubpopulations.size());
 	
+    // In SLiMgui this has to be called in advance, to swap in/out the error view, but here we
+    // can simply call it before each update to pre-plan, making for a simpler design
+    tileSubpopulations(selectedSubpopulations);
+    
 	// Decide on our display mode
 	if (!controller->invalidSimulation() && sim && sim->simulation_valid_ && (sim->generation_ >= 1))
 	{

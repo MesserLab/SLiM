@@ -62,6 +62,7 @@
 // enable the other display types in the individuals view
 // implement pop-up menu for graph pop-up button, graph windows
 // decide whether to implement the variable browser or not
+// hover preview tooltips in the objects tables; probably hard to do...
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 
 
@@ -1183,8 +1184,6 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	}
 	
 	// Now update our other UI, some of which depends upon the state of subpopTableView
-    std::vector<Subpopulation*> selectedSubpops = selectedSubpopulations();
-    ui->individualsWidget->tileSubpopulations(selectedSubpops);
     ui->individualsWidget->update();
     ui->chromosomeZoomed->update();
 	
