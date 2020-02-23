@@ -54,15 +54,21 @@
 
 // TO DO:
 //
-// splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
-// set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
 // implement selection of a subrange in the chromosome view
-// enable the more efficient code paths in the chromosome view
+// haplotype view and other display switches in the chromosome view
 // enable the other display types in the individuals view
 // implement pop-up menu for graph pop-up button, graph windows
 // decide whether to implement the variable browser or not
 // hover preview tooltips in the objects tables; probably hard to do...
+//      https://stackoverflow.com/questions/23111075/how-to-highlight-the-entire-row-on-mouse-hover-in-qtablewidget-qt5
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
+//      https://askubuntu.com/questions/538299/globally-associate-file-type-with-certain-application for example
+// displaying PDFs in QtSLiM, opened by the slimgui method, etc.
+//      might leverage https://mupdf.com as an external renderer?  use system() to call mupdf, QtSLiM displays a PNG?
+// set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
+//      https://askubuntu.com/questions/894990/how-to-change-an-icon-in-16-04
+// splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
+//      I'd like to introduce the splitviews in code, around the existing views, if possible
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
