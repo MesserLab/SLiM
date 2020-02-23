@@ -42,6 +42,7 @@ class QCloseEvent;
 class QTextCursor;
 class QtSLiMEidosConsole;
 class QtSLiMTablesDrawer;
+class QItemSelection;
 class SLiMgui;
 
 
@@ -120,7 +121,7 @@ public:
     bool zoomedChromosomeShowsGenomicElements = false;
     bool zoomedChromosomeShowsMutations = true;
     bool zoomedChromosomeShowsFixedSubstitutions = false;
-    //bool reloadingSubpopTableview = false;
+    bool reloadingSubpopTableview = false;
 
 public:
     typedef enum {
@@ -220,6 +221,8 @@ public slots:
     void graphPopupButtonClicked(void);
     void changeDirectoryClicked(void);
 
+    void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
+    
     //
     //  UI glue, defined in QtSLiMWindow_glue.cpp
     //

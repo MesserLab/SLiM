@@ -56,7 +56,6 @@
 //
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
-// make the population tableview rows selectable
 // implement selection of a subrange in the chromosome view
 // enable the more efficient code paths in the chromosome view
 // enable the other display types in the individuals view
@@ -139,6 +138,9 @@ void QtSLiMWindow::init(void)
     // Wire up things that set the window to be modified.
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
+    
+    // Watch for changes to the selection in the population tableview
+    connect(ui->subpopTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &QtSLiMWindow::subpopSelectionDidChange);
     
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
@@ -1154,33 +1156,35 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		// to change when a subpop goes extinct.  The current selection is noted in the gui_selected_ ivar of each subpop.  So what we do here is reload the tableview
 		// while suppressing our usual update of our selection state, and then we try to re-impose our selection state on the new tableview content.  If a subpop
 		// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
-//		reloadingSubpopTableview = true;
+		reloadingSubpopTableview = true;
         populationTableModel_->reloadTable();
 		
-//		if (invalid || !sim)
-//		{
-//			[subpopTableView deselectAll:nil];
-//		}
-//		else
-//		{
-//			Population &population = sim->population_;
-//			int subpopCount = (int)population.subpops_.size();
-//			auto popIter = population.subpops_.begin();
-//			NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
+		if (invalid || !sim)
+		{
+            ui->subpopTableView->selectionModel()->clear();
+		}
+		else
+		{
+            ui->subpopTableView->selectionModel()->reset();
+            
+			Population &population = sim->population_;
+			int subpopCount = static_cast<int>(population.subpops_.size());
+			auto popIter = population.subpops_.begin();
 			
-//			for (int i = 0; i < subpopCount; ++i)
-//			{
-//				if (popIter->second->gui_selected_)
-//					[indicesToSelect addIndex:i];
+			for (int i = 0; i < subpopCount; ++i)
+			{
+				if (popIter->second->gui_selected_)
+                {
+                    QModelIndex modelIndex = ui->subpopTableView->model()->index(i, 0);
+                    
+                    ui->subpopTableView->selectionModel()->select(modelIndex, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+                }
 				
-//				popIter++;
-//			}
-			
-//			[subpopTableView selectRowIndexes:indicesToSelect byExtendingSelection:NO];
-//		}
+				popIter++;
+			}
+		}
 		
-//		reloadingSubpopTableview = false;
-//		[subpopTableView setNeedsDisplay];
+		reloadingSubpopTableview = false;
 	}
 	
 	// Now update our other UI, some of which depends upon the state of subpopTableView
@@ -3045,7 +3049,47 @@ void QtSLiMWindow::changeDirectoryClicked(void)
     }
 }
 
-
+void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected */, const QItemSelection & /* deselected */)
+{
+    if (!invalidSimulation_ && !reloadingSubpopTableview)
+    {
+        QItemSelectionModel *selectionModel = ui->subpopTableView->selectionModel();
+        QModelIndexList selectedRows = selectionModel->selectedRows();
+        Population &population = sim->population_;
+        std::map<slim_objectid_t,Subpopulation*> &subpops = population.subpops_;
+        size_t subpopCount = subpops.size();
+        
+        // first get the state of each row, for algorithmic convenience
+        std::vector<bool> rowSelectedState(subpopCount, false);
+        
+        for (QModelIndex &modelIndex : selectedRows)
+            rowSelectedState[static_cast<size_t>(modelIndex.row())] = true;
+        
+        // then loop through subpops and update their selected state
+        auto popIter = population.subpops_.begin();
+        bool all_selected = true;
+        
+        for (size_t i = 0; i < subpopCount; ++i)
+        {
+            popIter->second->gui_selected_ = rowSelectedState[i];
+            
+            if (!popIter->second->gui_selected_)
+                all_selected = false;
+            
+            popIter++;
+        }
+        
+        population.gui_all_selected_ = all_selected;
+        
+        // If the selection has changed, that means that the mutation tallies need to be recomputed
+        population.TallyMutationReferences(nullptr, true);
+        
+        // It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
+        // selection changes should not happen often, so we can just always update, I think.
+        ui->individualsWidget->update();
+        ui->chromosomeZoomed->update();     // was setNeedsDisplayInInterior, which would be more minimal
+    }
+}
 
 
 
