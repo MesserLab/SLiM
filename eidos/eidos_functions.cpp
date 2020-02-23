@@ -4727,7 +4727,7 @@ EidosValue_SP Eidos_ExecuteFunction_qnorm(const EidosValue_SP *const p_arguments
 		{
 			const double float_prob = arg_prob->FloatAtIndex(0, nullptr);
 			if (float_prob < 0.0 || float_prob > 1.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function qnorm() requires 0.0 <= p <= 1.0 (" << EidosStringForFloat(float_prob) << " supplied)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires 0.0 <= p <= 1.0 (" << EidosStringForFloat(float_prob) << " supplied)." << EidosTerminate(nullptr);
 
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_cdf_gaussian_Pinv(float_prob, sigma0) + mu0));
 		}

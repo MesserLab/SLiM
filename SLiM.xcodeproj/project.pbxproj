@@ -234,6 +234,10 @@
 		9876E6141ED55C7400FF9762 /* beta.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6111ED55C6B00FF9762 /* beta.c */; };
 		9876E6151ED55C7400FF9762 /* beta.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E6111ED55C6B00FF9762 /* beta.c */; };
 		9878A93F1A4E57E70007B9D6 /* slim_sim.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */; };
+		987A2A0724033856009A636F /* gaussinv.c in Sources */ = {isa = PBXBuildFile; fileRef = 987A2A0524033856009A636F /* gaussinv.c */; };
+		987A2A0824033856009A636F /* gaussinv.c in Sources */ = {isa = PBXBuildFile; fileRef = 987A2A0524033856009A636F /* gaussinv.c */; };
+		987A2A0924033856009A636F /* gaussinv.c in Sources */ = {isa = PBXBuildFile; fileRef = 987A2A0524033856009A636F /* gaussinv.c */; };
+		987A2A0A24033856009A636F /* gaussinv.c in Sources */ = {isa = PBXBuildFile; fileRef = 987A2A0524033856009A636F /* gaussinv.c */; };
 		987AD8741B2CBDA70035D6C8 /* show_console_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 987AD8721B2CBDA70035D6C8 /* show_console_H.pdf */; };
 		987AD8751B2CBDA70035D6C8 /* show_console.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 987AD8731B2CBDA70035D6C8 /* show_console.pdf */; };
 		987AD8761B2CBE010035D6C8 /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
@@ -835,6 +839,8 @@
 		9876E6111ED55C6B00FF9762 /* beta.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = beta.c; sourceTree = "<group>"; };
 		9878A93D1A4E57E70007B9D6 /* slim_sim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_sim.cpp; sourceTree = "<group>"; };
 		9878A93E1A4E57E70007B9D6 /* slim_sim.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_sim.h; sourceTree = "<group>"; };
+		987A2A0524033856009A636F /* gaussinv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gaussinv.c; path = cdf/gaussinv.c; sourceTree = "<group>"; };
+		987A2A0624033856009A636F /* rat_eval.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rat_eval.h; path = cdf/rat_eval.h; sourceTree = "<group>"; };
 		987AD8721B2CBDA70035D6C8 /* show_console_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_console_H.pdf; sourceTree = "<group>"; };
 		987AD8731B2CBDA70035D6C8 /* show_console.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_console.pdf; sourceTree = "<group>"; };
 		987AD8841B2CC0C10035D6C8 /* EidosVariableBrowserController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosVariableBrowserController.h; sourceTree = "<group>"; };
@@ -1485,6 +1491,8 @@
 		9876E5F21ED5571C00FF9762 /* cdf */ = {
 			isa = PBXGroup;
 			children = (
+				987A2A0524033856009A636F /* gaussinv.c */,
+				987A2A0624033856009A636F /* rat_eval.h */,
 				9876E5F31ED5572C00FF9762 /* gsl_cdf.h */,
 				9876E5F91ED557B000FF9762 /* beta_inc.inc */,
 				9876E5FB1ED5599F00FF9762 /* gauss.c */,
@@ -2221,6 +2229,7 @@
 				98332AF31FDBC36400274FF0 /* submatrix.c in Sources */,
 				98C821A11C7A99B200548839 /* minmax.c in Sources */,
 				98C821A61C7A99F000548839 /* pow_int.c in Sources */,
+				987A2A0A24033856009A636F /* gaussinv.c in Sources */,
 				98C821951C7A983800548839 /* log.c in Sources */,
 				9876E6051ED55A7900FF9762 /* gamma_inc.c in Sources */,
 				98C821911C7A983800548839 /* taus.c in Sources */,
@@ -2283,6 +2292,7 @@
 				9876E6011ED55A2500FF9762 /* gamma_inc.c in Sources */,
 				98332AC71FDBA6B600274FF0 /* vector.c in Sources */,
 				981BAC6A1ACC6E8B0005BE94 /* eidos_script.cpp in Sources */,
+				987A2A0724033856009A636F /* gaussinv.c in Sources */,
 				9876E6081ED55B4700FF9762 /* erfc.c in Sources */,
 				98C8212E1C7A980000548839 /* gausszig.c in Sources */,
 				984824EE210B9E8F002402A5 /* ddot.c in Sources */,
@@ -2439,6 +2449,7 @@
 				988880EE20744F0100E10172 /* cauchy.c in Sources */,
 				98C8217D1C7A983800548839 /* fdiv.c in Sources */,
 				985724D01AD479010047C223 /* eidos_value.cpp in Sources */,
+				987A2A0924033856009A636F /* gaussinv.c in Sources */,
 				982556661BA450980054CB3F /* EidosHelpController.mm in Sources */,
 				98332AEE1FDBC29500274FF0 /* rowcol.c in Sources */,
 				987AD8871B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
@@ -2514,6 +2525,7 @@
 				98C8214F1C7A983700548839 /* multinomial.c in Sources */,
 				98C821541C7A983700548839 /* rng.c in Sources */,
 				98C821551C7A983700548839 /* taus.c in Sources */,
+				987A2A0824033856009A636F /* gaussinv.c in Sources */,
 				98332AB51FDBA1E400274FF0 /* blas.c in Sources */,
 				98C821531C7A983700548839 /* mt.c in Sources */,
 				98D4C1DB1A6F542F00FFB083 /* genomic_element.cpp in Sources */,

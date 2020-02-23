@@ -26,7 +26,7 @@
  *      Applied Statistics, 37, 477-484.
  */
 
-#include <config.h>
+#include "config.h"
 #include "gsl_errno.h"
 #include "gsl_math.h"
 #include "gsl_cdf.h"
