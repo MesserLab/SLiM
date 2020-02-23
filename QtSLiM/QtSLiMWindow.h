@@ -41,6 +41,7 @@ class Subpopulation;
 class QCloseEvent;
 class QTextCursor;
 class QtSLiMEidosConsole;
+class QtSLiMTablesDrawer;
 class SLiMgui;
 
 
@@ -105,6 +106,7 @@ private:
     
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
     QtSLiMEidosConsole *consoleController = nullptr;
+    QtSLiMTablesDrawer *tablesDrawerController = nullptr;
     
 public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
@@ -203,6 +205,7 @@ public slots:
     void recycleClicked(void);
     void playSpeedChanged(void);
 
+    void toggleDrawerToggled(void);
     void showMutationsToggled(void);
     void showFixedSubstitutionsToggled(void);
     void showChromosomeMapsToggled(void);
@@ -245,6 +248,8 @@ private slots:
     void recyclePressed(void);
     void recycleReleased(void);
 
+    void toggleDrawerPressed(void);
+    void toggleDrawerReleased(void);
     void showMutationsPressed(void);
     void showMutationsReleased(void);
     void showFixedSubstitutionsPressed(void);

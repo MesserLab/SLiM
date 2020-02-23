@@ -40,6 +40,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
 
+    connect(ui->toggleDrawerButton, &QPushButton::clicked, this, &QtSLiMWindow::toggleDrawerToggled);
     connect(ui->showMutationsButton, &QPushButton::clicked, this, &QtSLiMWindow::showMutationsToggled);
     connect(ui->showFixedSubstitutionsButton, &QPushButton::clicked, this, &QtSLiMWindow::showFixedSubstitutionsToggled);
     connect(ui->showChromosomeMapsButton, &QPushButton::clicked, this, &QtSLiMWindow::showChromosomeMapsToggled);
@@ -65,6 +66,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->profileButton, &QPushButton::released, this, &QtSLiMWindow::profileReleased);
     connect(ui->recycleButton, &QPushButton::pressed, this, &QtSLiMWindow::recyclePressed);
     connect(ui->recycleButton, &QPushButton::released, this, &QtSLiMWindow::recycleReleased);
+    connect(ui->toggleDrawerButton, &QPushButton::pressed, this, &QtSLiMWindow::toggleDrawerPressed);
+    connect(ui->toggleDrawerButton, &QPushButton::released, this, &QtSLiMWindow::toggleDrawerReleased);
     connect(ui->showMutationsButton, &QPushButton::pressed, this, &QtSLiMWindow::showMutationsPressed);
     connect(ui->showMutationsButton, &QPushButton::released, this, &QtSLiMWindow::showMutationsReleased);
     connect(ui->showFixedSubstitutionsButton, &QPushButton::pressed, this, &QtSLiMWindow::showFixedSubstitutionsPressed);
@@ -331,6 +334,14 @@ void QtSLiMWindow::recyclePressed(void)
 void QtSLiMWindow::recycleReleased(void)
 {
     updateRecycleButtonIcon(false);
+}
+void QtSLiMWindow::toggleDrawerPressed(void)
+{
+    ui->toggleDrawerButton->setIcon(QIcon(ui->toggleDrawerButton->isChecked() ? ":/buttons/open_type_drawer.png" : ":/buttons/open_type_drawer_H.png"));
+}
+void QtSLiMWindow::toggleDrawerReleased(void)
+{
+    ui->toggleDrawerButton->setIcon(QIcon(ui->toggleDrawerButton->isChecked() ? ":/buttons/open_type_drawer_H.png" : ":/buttons/open_type_drawer.png"));
 }
 void QtSLiMWindow::showMutationsPressed(void)
 {

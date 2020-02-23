@@ -74,7 +74,7 @@ signals:
     void willClose(void);
     
     //
-    //  UI glue, defined in QtSLiMWindow_glue.cpp
+    //  UI glue, defined in QtSLiMEidosConsole_glue.cpp
     //
     
 private slots:

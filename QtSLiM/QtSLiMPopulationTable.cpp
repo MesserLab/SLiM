@@ -186,6 +186,18 @@ QVariant QtSLiMPopulationTableModel::headerData(int section,
         case 5: return QVariant("the sex ratio of the subpopulation, M:(M+F)");
         }
     }
+    else if (role == Qt::TextAlignmentRole)
+    {
+        switch (section)
+        {
+        case 0: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
+        case 1: return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
+        case 2: return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
+        case 3: return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
+        case 4: return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
+        case 5: return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
+        }
+    }
 //    else if (role == Qt::DecorationRole)
 //    {
 //        switch (section)

@@ -26,6 +26,7 @@
 #include "QtSLiMPreferences.h"
 #include "QtSLiMHelpWindow.h"
 #include "QtSLiMEidosConsole.h"
+#include "QtSLiMTablesDrawer.h"
 #include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiM_SLiMgui.h"
@@ -60,7 +61,6 @@
 // enable the more efficient code paths in the chromosome view
 // enable the other display types in the individuals view
 // implement pop-up menu for graph pop-up button, graph windows
-// decide whether to implement the drawer or not
 // decide whether to implement the variable browser or not
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 
@@ -228,6 +228,7 @@ void QtSLiMWindow::initializeUI(void)
     ui->outputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
     
     // set button states
+    ui->toggleDrawerButton->setChecked(false);
     ui->showChromosomeMapsButton->setChecked(zoomedChromosomeShowsRateMaps);
     ui->showGenomicElementsButton->setChecked(zoomedChromosomeShowsGenomicElements);
     ui->showMutationsButton->setChecked(zoomedChromosomeShowsMutations);
@@ -1191,41 +1192,41 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		updateGenerationCounter();
 	
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
-//	if (invalid || sim->mutation_types_changed_)
-//	{
-//		[mutTypeTableView reloadData];
-//		[mutTypeTableView setNeedsDisplay];
+	if (invalid || sim->mutation_types_changed_)
+	{
+        if (tablesDrawerController && tablesDrawerController->mutTypeTableModel_)
+            tablesDrawerController->mutTypeTableModel_->reloadTable();
 		
-//		if (sim)
-//			sim->mutation_types_changed_ = false;
-//	}
+		if (sim)
+			sim->mutation_types_changed_ = false;
+	}
 	
-//	if (invalid || sim->genomic_element_types_changed_)
-//	{
-//		[genomicElementTypeTableView reloadData];
-//		[genomicElementTypeTableView setNeedsDisplay];
+	if (invalid || sim->genomic_element_types_changed_)
+	{
+        if (tablesDrawerController && tablesDrawerController->geTypeTableModel_)
+            tablesDrawerController->geTypeTableModel_->reloadTable();
 		
-//		if (sim)
-//			sim->genomic_element_types_changed_ = false;
-//	}
+		if (sim)
+			sim->genomic_element_types_changed_ = false;
+	}
 	
-//	if (invalid || sim->interaction_types_changed_)
-//	{
-//		[interactionTypeTableView reloadData];
-//		[interactionTypeTableView setNeedsDisplay];
+	if (invalid || sim->interaction_types_changed_)
+	{
+        if (tablesDrawerController && tablesDrawerController->interactionTypeTableModel_)
+            tablesDrawerController->interactionTypeTableModel_->reloadTable();
 		
-//		if (sim)
-//			sim->interaction_types_changed_ = false;
-//	}
+		if (sim)
+			sim->interaction_types_changed_ = false;
+	}
 	
-//	if (invalid || sim->scripts_changed_)
-//	{
-//		[scriptBlocksTableView reloadData];
-//		[scriptBlocksTableView setNeedsDisplay];
+	if (invalid || sim->scripts_changed_)
+	{
+        if (tablesDrawerController && tablesDrawerController->eidosBlockTableModel_)
+            tablesDrawerController->eidosBlockTableModel_->reloadTable();
 		
-//		if (sim)
-//			sim->scripts_changed_ = false;
-//	}
+		if (sim)
+			sim->scripts_changed_ = false;
+	}
 	
 	if (invalid || sim->chromosome_changed_)
 	{
@@ -1276,6 +1277,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->playSpeedSlider->setEnabled(!generationPlayOn_ && !invalidSimulation_);
     ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
 
+    ui->toggleDrawerButton->setEnabled(true);
     ui->showMutationsButton->setEnabled(!invalidSimulation_);
     ui->showChromosomeMapsButton->setEnabled(!invalidSimulation_);
     ui->showGenomicElementsButton->setEnabled(!invalidSimulation_);
@@ -2847,6 +2849,49 @@ void QtSLiMWindow::playSpeedChanged(void)
     QPoint cursorPosition = QCursor::pos();
     QPoint tooltipPosition = QPoint(cursorPosition.x() - 2, widgetOrigin.y() - ui->playSpeedSlider->rect().height() - 8);
     QToolTip::showText(tooltipPosition, fpsString, ui->playSpeedSlider, QRect(), 1000000);  // 1000 seconds; taken down on mouseup automatically
+}
+
+void QtSLiMWindow::toggleDrawerToggled(void)
+{
+    bool newValue = ui->toggleDrawerButton->isChecked();
+    
+    ui->toggleDrawerButton->setIcon(QIcon(newValue ? ":/buttons/open_type_drawer_H.png" : ":/buttons/open_type_drawer.png"));
+
+    if (!tablesDrawerController)
+    {
+        tablesDrawerController = new QtSLiMTablesDrawer(this);
+        if (tablesDrawerController)
+        {
+            // wire ourselves up to monitor the console for closing, to fix our button state
+            connect(tablesDrawerController, &QtSLiMTablesDrawer::willClose, [this]() {
+                ui->toggleDrawerButton->setChecked(false);
+                toggleDrawerReleased();
+            });
+        }
+        else
+        {
+            qDebug() << "Could not create tables drawer";
+            return;
+        }
+    }
+    
+    if (newValue)
+    {
+        // position it to the right of the main window, with the same height
+        QRect windowRect = geometry();
+        windowRect.setLeft(windowRect.right() + 10);
+        windowRect.setRight(windowRect.left() + 200);   // the minimum in the nib is larger
+        
+        tablesDrawerController->setGeometry(windowRect);
+        
+        tablesDrawerController->show();
+        tablesDrawerController->raise();
+        tablesDrawerController->activateWindow();
+    }
+    else
+    {
+        tablesDrawerController->hide();
+    }
 }
 
 void QtSLiMWindow::showMutationsToggled(void)
