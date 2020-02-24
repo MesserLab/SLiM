@@ -32,6 +32,7 @@ SOURCES += \
     cblas/dtrsv.c \
     cblas/xerbla.c \
     cdf/gauss.c \
+    cdf/gaussinv.c \
     cdf/tdist.c \
     complex/inline.c \
     complex/math.c \
@@ -114,7 +115,7 @@ HEADERS += \
     cblas/source_trmv_r.h \
     cblas/source_trsv_r.h \
     cdf/gsl_cdf.h \
-    cdf/gsl_cdf.h \
+    cdf/rat_eval.h \
     complex/gsl_complex_math.h \
     complex/gsl_complex.h \
     err/gsl_message.h \
