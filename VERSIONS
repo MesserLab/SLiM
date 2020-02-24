@@ -9,6 +9,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 development head:
 	fix a subtle bug in which mutation IDs used by mutations read in from a .trees file could be re-used, producing a conflict, if the mutations were not ancestral to any extant genome -- biting you if you wrote a .trees file out again at the end
+	add qnorm() function in Eidos; thanks to Vince Buffalo for the PR
 
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):
