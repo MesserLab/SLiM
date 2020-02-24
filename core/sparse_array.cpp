@@ -139,7 +139,7 @@ void SparseArray::Reset(unsigned int p_nrows, unsigned int p_ncols)
 	finished_ = false;
 }
 
-void SparseArray::Resize(uint32_t p_row)
+void SparseArray::IncreaseRowCapacity(uint32_t p_row)
 {
     //vectors are reallocated by 1000 entries at a time. It can be wasteful but probably better than making a function call for each new entry. Will defer the final decision to Ben. 
 

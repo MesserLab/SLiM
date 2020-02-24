@@ -22,7 +22,6 @@
 
 
 #include "slim_global.h"
-#include <omp.h>
 #include <vector>
 
 
@@ -130,15 +129,15 @@ public:
 		distances_[offset] = p_distance;
 	}
    
-    //Added by Sudharshan    
-    void Resize(uint32_t p_row);
+    void IncreaseRowCapacity(uint32_t p_row);
 
+    
    inline void AddDistance(uint32_t p_row, const uint32_t p_column, sa_distance_t p_distance)
     {
         //Resize if needed
         if(*(nnz + p_row) >= *(nnz_capacity + p_row))
         {
-            Resize(p_row);
+            IncreaseRowCapacity(p_row);
         }
 
 

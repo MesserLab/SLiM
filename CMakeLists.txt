@@ -44,7 +44,9 @@
 #
 #   mkdir Release
 #   cd Release
-#   cmake -D Parallel=ON
+#   cmake -D Parallel=ON ../SLiM
+#   make -j
+#   make install
 
 cmake_minimum_required (VERSION 2.6)
 
@@ -58,25 +60,24 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value")
 
-
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -DDEBUG=1 ")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -DDEBUG=1 ")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1 ")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 ")
 
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-#set(Parallel "OFF" CACHE STRING "Parallel or Serial")
-
 if(Parallel MATCHES "ON")
     add_definitions(-DParallel=1)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -shared-libgcc -DTBB_USE_THREADING_TOOLS")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -shared-libgcc -DTBB_USE_THREADING_TOOLS")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    message("Parallel execution is ${Parallel}")
+else
+    message("Parallel execution is OFF")
 endif(Parallel MATCHES "ON")
 
-message("flags ${CMAKE_C_FLAGS}")
-# Report the build and execution type
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE} and parallel execution is ${Parallel}(Empty space implies Parallel
-execution is off)")
+# Report the build
+message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}"}
+
 
 
 # Test for -flto support
