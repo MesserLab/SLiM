@@ -39,17 +39,12 @@ class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
     
-    // display mode: 0 == individuals (non-spatial), 1 == individuals (spatial), 2 == fitness distribution line plots, 3 == fitness distribution barplot
+    // display mode: 0 == individuals (non-spatial), 1 == individuals (spatial)
 	int displayMode = 0;
 	
-	// used in displayMode 2 and 3, set by PopulationViewOptionsSheet.xib
-//	int binCount;
-//	double fitnessMin;
-//	double fitnessMax;
-	
 	// display background preferences, kept indexed by subpopulation id
-//	std::map<slim_objectid_t, PopulationViewBackgroundSettings> backgroundSettings;
-//	slim_objectid_t lastContextMenuSubpopID;
+	std::map<slim_objectid_t, PopulationViewBackgroundSettings> backgroundSettings;
+	slim_objectid_t lastContextMenuSubpopID;
 	
 	// subview tiling, kept indexed by subpopulation id
 	std::map<slim_objectid_t, QRect> subpopTiles;
@@ -71,9 +66,15 @@ protected:
     void paintGL() override;
 
     bool canDisplayIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
+    QRect spatialDisplayBoundsForSubpopulation(Subpopulation *subpop, QRect tileBounds);
     
     void drawViewFrameInBounds(QRect bounds);
     void drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
+    void cacheDisplayBufferForMapForSubpopulation(SpatialMap *background_map, Subpopulation *subpop);
+    void _drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop);
+    void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewBackgroundSettings *background, SpatialMap **returnMap, Subpopulation *subpop);
+    void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
+    void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality);
 };
 
 #endif // QTSLIMINDIVIDUALSWIDGET_H
