@@ -1,5 +1,5 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf500
-{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
+{\rtf1\ansi\ansicpg1252\cocoartf2511
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fswiss\fcharset0 Optima-Regular;\f4\fswiss\fcharset0 Optima-BoldItalic;\f5\fnil\fcharset0 Menlo-Italic;
 \f6\fnil\fcharset0 AppleSymbols;\f7\fswiss\fcharset0 Optima-Italic;\f8\froman\fcharset0 TimesNewRomanPS-ItalicMT;
 \f9\fswiss\fcharset0 Helvetica-Oblique;\f10\fswiss\fcharset0 Helvetica;\f11\fnil\fcharset0 Menlo-Bold;
@@ -1272,6 +1272,26 @@ Cholesky decomposition of the variance-covariance matrix
 \f3\fs20  parameters may either be singletons, specifying a single value to be used for all of the quantiles, or they may be vectors of the same length as 
 \f1\fs18 q
 \f3\fs20 , specifying a value for each quantile.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)qnorm(float\'a0p, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f0\b quantiles for a normal distribution
+\f3\b0  with lower tail probabilities less than 
+\f1\fs18 p
+\f3\fs20 , with mean 
+\f1\fs18 mean
+\f3\fs20  and standard deviation 
+\f1\fs18 sd
+\f3\fs20 . The 
+\f1\fs18 mean
+\f3\fs20  and 
+\f1\fs18 sd
+\f3\fs20  parameters may either be singletons, specifying a single value to be used for all of the quantiles, or they may be vectors of the same length as 
+\f1\fs18 p
+\f3\fs20 , specifying a value for each quantile computation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float)rbeta(integer$\'a0n, numeric\'a0alpha, numeric\'a0beta)\

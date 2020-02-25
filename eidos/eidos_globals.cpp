@@ -77,10 +77,9 @@ double gEidos_ProfileOverheadSeconds;
 double gEidos_ProfileLagTicks;
 double gEidos_ProfileLagSeconds;
 
-#include <mach/mach.h>
-#include <mach/mach_time.h>
+#if defined(MACH_PROFILING)
 
-double Eidos_ElapsedProfileTime(uint64_t p_elapsed_profile_time)
+double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time)
 {
 	// Eidos_ProfileTime() calls out to mach_absolute_time() at present.  It returns uint64_t, and the client would
 	// then collect a start and end clock, subtract (end - start), and pass the result to this function to convert to
@@ -103,6 +102,17 @@ double Eidos_ElapsedProfileTime(uint64_t p_elapsed_profile_time)
 	
 	return p_elapsed_profile_time * timebaseRatio;
 }
+
+#elif defined(CHRONO_PROFILING)
+
+double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time)
+{
+	// Eidos_ProfileTime() provides time points in nanoseconds since epoch, and thus a duration is a duration in
+	// nanoseconds.  We just need to convert from nanoseconds to seconds.
+	return p_elapsed_profile_time / 1000000000.0;
+}
+
+#endif
 
 static eidos_profile_t gEidos_ProfilePrep_Ticks;
 

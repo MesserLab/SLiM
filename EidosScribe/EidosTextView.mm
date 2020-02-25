@@ -1706,6 +1706,18 @@
 	[super keyDown:event];
 }
 
+- (void)cancel:(id)sender
+{
+	// Apple is now sending this for esc and/or command-. in some OS X versions; we want it to continue to trigger complete:
+	[self complete:sender];
+}
+
+- (void)cancelOperation:(id)sender
+{
+	// Apple is now sending this for esc and/or command-. in some OS X versions; we want it to continue to trigger complete:
+	[self complete:sender];
+}
+
 - (NSArray *)completionsForPartialWordRange:(NSRange)charRange indexOfSelectedItem:(NSInteger *)index
 {
 	NSArray *completions = nil;

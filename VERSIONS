@@ -13,7 +13,9 @@ development head:
 	removed the PopulationViewOptions sheet and the two display modes it supported (fitness line plot and bar plot); those will return as graphs instead
 	ported ChromosomeView to ChromosomeMetalView, removed OpenGL code from ChromosomeView
 	port the haplotype display and the haplotype graph to Metal
-	
+	fix a subtle bug in which mutation IDs used by mutations read in from a .trees file could be re-used, producing a conflict, if the mutations were not ancestral to any extant genome -- biting you if you wrote a .trees file out again at the end
+	add qnorm() function in Eidos; thanks to Vince Buffalo for the PR
+
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):
 	add recipe 5.2.4 (joining subpopulations)
