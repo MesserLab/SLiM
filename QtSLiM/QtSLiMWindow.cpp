@@ -1380,15 +1380,46 @@ void QtSLiMWindow::displayProfileResults(void)
     
     doc->setDocumentMargin(10);
     
-    // Make the QTextCharFormat objects we will use
-    QFont optima18b("Optima", 18, QFont::Bold);
-    QFont optima14b("Optima", 14, QFont::Bold);
-    QFont optima13("Optima", 13);
-    QFont optima13i("Optima", 13, -1, true);
-    QFont optima8("Optima", 8);
-    QFont optima3("Optima", 3);
-    QFont menlo11("Menlo", 11);
+    // Choose our fonts; the variable names here are historical, they are not necessarily menlo/optima...
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    QFont menlo11(prefs.displayFontPref());
+    qreal displayFontSize = menlo11.pointSizeF();
+    qreal scaleFactor = displayFontSize / 11.0;     // The unscaled sizes are geared toward Optima on the Mac
     
+#if !defined(__APPLE__)
+    // On Linux font sizes seem to run large, who knows why, so reduce the scale factor somewhat to compensate
+    scaleFactor *= 0.75;
+#endif
+
+    QFont optimaFont;
+    {
+        // We want a body font of Optima on the Mac; on non-Mac platforms we'll just use the default system font for now
+        QFontDatabase fontdb;
+        QStringList families = fontdb.families();
+        
+        // Use filter() to look for matches, since the foundry can be appended after the name (why isn't this easier??)
+        if (families.filter("Optima").size() > 0)              // good on Mac
+            optimaFont = QFont("Optima", 13);
+    }
+    
+    QFont optima18b(optimaFont);
+    QFont optima14b(optimaFont);
+    QFont optima13(optimaFont);
+    QFont optima13i(optimaFont);
+    QFont optima8(optimaFont);
+    QFont optima3(optimaFont);
+    
+    optima18b.setPointSizeF(scaleFactor * 18);
+    optima18b.setWeight(QFont::Bold);
+    optima14b.setPointSizeF(scaleFactor * 14);
+    optima14b.setWeight(QFont::Bold);
+    optima13.setPointSizeF(scaleFactor * 13);
+    optima13i.setPointSizeF(scaleFactor * 13);
+    optima13i.setItalic(true);
+    optima8.setPointSizeF(scaleFactor * 8);
+    optima3.setPointSizeF(scaleFactor * 3);
+    
+    // Make the QTextCharFormat objects we will use
     QTextCharFormat optima18b_d, optima14b_d, optima13_d, optima13i_d, optima8_d, optima3_d, menlo11_d;
     
     optima18b_d.setFont(optima18b);
