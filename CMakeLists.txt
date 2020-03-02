@@ -71,12 +71,12 @@ if(Parallel MATCHES "ON")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
     message("Parallel execution is ${Parallel}")
-else
+else()
     message("Parallel execution is OFF")
 endif(Parallel MATCHES "ON")
 
 # Report the build
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}"}
+message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 
 
@@ -137,4 +137,4 @@ target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOU
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
 target_link_libraries(${TARGET_NAME} PUBLIC tables)
 
-install(TARGETS slim eidos DESTINATION bin)
+install(TARGETS slim eidos DESTINATION /home/users/ssriniv2/local/parallel_slim)
