@@ -4000,6 +4000,11 @@ void _RunTreeSeqTests(std::string temp_path)
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_2.trees', simplify=T, _binary=F); stop(); }", __LINE__);
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_3.trees', simplify=F, _binary=T); stop(); }", __LINE__);
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_4.trees', simplify=T, _binary=T); stop(); }", __LINE__);
+		
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_1.trees', simplify=F, includeModel=F, _binary=F); stop(); }", __LINE__);
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_2.trees', simplify=T, includeModel=F, _binary=F); stop(); }", __LINE__);
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_3.trees', simplify=F, includeModel=F, _binary=T); stop(); }", __LINE__);
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_4.trees', simplify=T, includeModel=F, _binary=T); stop(); }", __LINE__);
 	}
 }
 
