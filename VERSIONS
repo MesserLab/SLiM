@@ -12,6 +12,7 @@ development head:
 	add qnorm() function in Eidos; thanks to Vince Buffalo for the PR
 	add SHA-256 code, output of a script hash to .trees files with the parameters/model_hash subkey, and an option to omit provenance output of the full script in outputTreeSeq() with includeModel=F; increment .trees file_version to "0.4"
 	fix a crash in haplotype plotting when the number of genomes is large
+	fix display bug with haplotype display on retina displays
 
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):
