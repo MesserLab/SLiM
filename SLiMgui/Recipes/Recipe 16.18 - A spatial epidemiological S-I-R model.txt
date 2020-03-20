@@ -1,0 +1,136 @@
+// Keywords: nonWF, non-Wright-Fisher, continuous space, continuous spatial landscape, periodic boundaries, spatial competition, spatial mate choice, disease, epidemiology, SIR, S-I-R, infection, epidemic, pandemic
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
+	
+	defineConstant("K", 10000);   // carrying-capacity density
+	defineConstant("S", 0.01);    // sigma_S, the competition width
+	
+	defineConstant("HEALTH_S", 0);   // susceptible
+	defineConstant("HEALTH_I", 1);   // infectious
+	defineConstant("HEALTH_R", 2);   // recovered
+	
+	defineConstant("FERTILITY", 0.05);
+	defineConstant("INFECTIVITY", 4);
+	defineConstant("RATE_DEATH", 0.3);
+	defineConstant("RATE_CLEAR", 0.05);
+	defineConstant("MAX_AGE", 100.0);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+	
+	// spatial competition
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=S * 3);
+	i1.setInteractionFunction("n", 1.0, S);
+	
+	// spatial mate choice
+	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.05);
+}
+reproduction() {
+	litterSize = rpois(1, FERTILITY);
+	
+	if (litterSize)
+	{
+		mate = i2.nearestNeighbors(individual, 1);
+		
+		if (mate.size())
+			for (i in seqLen(litterSize))
+			{
+				offspring = subpop.addCrossed(individual, mate);
+				
+				// set offspring position and state
+				pos = individual.spatialPosition + rnorm(2, 0, 0.005);
+				offspring.setSpatialPosition(p1.pointPeriodic(pos));
+				offspring.tag = HEALTH_S;
+			}
+	}
+}
+1 early() {
+	sim.addSubpop("p1", K);
+	p1.individuals.setSpatialPosition(p1.pointUniform(K));
+	p1.individuals.tag = HEALTH_S;
+}
+100 early() {
+	// seed the infection in a susceptible individual
+	target = p1.sampleIndividuals(1, tag=HEALTH_S);
+	target.tag = HEALTH_I;
+}
+early() {
+	i1.evaluate();
+	
+	// spatial competition provides density-dependent selection
+	inds = p1.individuals;
+	competition = i1.totalOfNeighborStrengths(inds);
+	competition = (competition + 1) / (2 * PI * S^2);
+	inds.fitnessScaling = K / competition;
+	
+	// age-based mortality; at age 100 mortality is 100%
+	age_mortality = sqrt((MAX_AGE - inds.age) / MAX_AGE);
+	inds.fitnessScaling = inds.fitnessScaling * age_mortality;
+	
+	// SIR model
+	infected = inds[inds.tag == HEALTH_I];
+	
+	for (ind in infected)
+	{
+		// make contact with random neighbors each generation
+		contacts = i1.drawByStrength(ind, rpois(1, INFECTIVITY));
+		
+		for (contact in contacts)
+		{
+			// if the contact is susceptible, they might get infected
+			if (contact.tag == HEALTH_S)
+			{
+				strength = i1.strength(ind, contact);
+				
+				if (runif(1) < strength)
+					contact.tag = HEALTH_I;
+			}
+		}
+		
+		// die with some probability each generation
+		if (runif(1) < RATE_DEATH)
+			ind.fitnessScaling = 0.0;
+		
+		// recover with some probability each generation
+		if (runif(1) < RATE_CLEAR)
+			ind.tag = HEALTH_R;
+	}
+}
+late()
+{
+	inds = p1.individuals;
+	
+	// move around a bit
+	for (ind in inds)
+	{
+		newPos = ind.spatialPosition + runif(2, -0.005, 0.005);
+		ind.setSpatialPosition(p1.pointPeriodic(newPos));
+	}
+	
+	// color according to health status; S=green, I=red, R=blue
+	inds_tags = inds.tag;
+	inds[inds_tags == HEALTH_S].color = "green";
+	inds[inds_tags == HEALTH_I].color = "red";
+	inds[inds_tags == HEALTH_R].color = "blue";
+	
+	// then look for mates
+	i2.evaluate();
+}
+1:1000 late() {
+	tags = p1.individuals.tag;
+	
+	cat(sum(tags == HEALTH_S) + ", " + sum(tags == HEALTH_I) + ", " +
+		sum(tags == HEALTH_R) + ", ");
+	
+	if ((sum(tags == HEALTH_I) == 0) & (sim.generation >= 100)) {
+		catn("\nLOST in generation " + sim.generation);
+		sim.simulationFinished();
+	}
+}
