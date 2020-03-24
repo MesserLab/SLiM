@@ -402,6 +402,19 @@ std::string EidosStringForFloat(double p_value);
 
 // *******************************************************************************************************************
 //
+//	SHA-256
+//
+#pragma mark -
+#pragma mark SHA-256
+#pragma mark -
+
+// from https://github.com/amosnier/sha-2 which is under the public-domain "unlicense"; see .cpp for further details
+void Eidos_calc_sha_256(uint8_t hash[32], const void *input, size_t len);	// len is the number of bytes in input
+void Eidos_hash_to_string(char string[65], const uint8_t hash[32]);
+
+
+// *******************************************************************************************************************
+//
 //	Locking
 //
 #pragma mark -

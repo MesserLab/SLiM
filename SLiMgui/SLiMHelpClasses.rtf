@@ -1,5 +1,5 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf600
-{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
+{\rtf1\ansi\ansicpg1252\cocoartf2511
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-BoldMT;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
 \f9\fswiss\fcharset0 Helvetica;}
@@ -5128,7 +5128,7 @@ This method may only be called if tree sequence recording has been turned on wit
 \f4\fs20  to obtain up-to-date information.  However, the speed penalty of doing this in every generation would be large, and most models do not need this level of precision; usually it is sufficient to know that the model has coalesced, without knowing whether that happened in the current generation or in a recent preceding generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T])\
+\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
@@ -5140,6 +5140,15 @@ This method may only be called if tree sequence recording has been turned on wit
 \f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  A binary tree sequence file will be written to the specified path; a filename extension of 
 \f3\fs18 .trees
 \f4\fs20  is suggested for this type of file.\
+Normally, the full SLiM script used to generate the tree sequence is written out to the provenance entry of the tree sequence file, to the 
+\f3\fs18 model
+\f4\fs20  subkey of the 
+\f3\fs18 parameters
+\f4\fs20  top-level key.  Supplying 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 includeModel
+\f4\fs20  suppresses output of the full script.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals)\

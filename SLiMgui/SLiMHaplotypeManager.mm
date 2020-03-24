@@ -292,7 +292,7 @@ BidiIter random_unique(BidiIter begin, BidiIter end, size_t num_random)
 // Delegate the genome sorting to the appropriate method based on our configuration
 - (void)sortGenomesWithBackgroundController:(SLiMWindowController *)backgroundController
 {
-	int genome_count = (int)genomes.size();
+	int64_t genome_count = (int64_t)genomes.size();
 	
 	if (genome_count == 0)
 		return;
@@ -371,7 +371,7 @@ cancelledExit:
 
 - (void)configureDisplayBuffers
 {
-	int genome_count = (int)genomes.size();
+	int64_t genome_count = (int64_t)genomes.size();
 	
 	// Allocate our display list and size it so it has one std::vector<MutationIndex> per genome
 	displayList = new std::vector<std::vector<MutationIndex>>;
@@ -908,7 +908,7 @@ static float *glArrayColors = nil;
 // subset of all of the mutation types.
 - (int64_t *)buildDistanceArrayWithBackgroundController:(SLiMWindowController *)backgroundController
 {
-	int genome_count = (int)genomes.size();
+	int64_t genome_count = (int64_t)genomes.size();
 	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
@@ -993,7 +993,7 @@ static float *glArrayColors = nil;
 {
 	slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	int genome_count = (int)genomes.size();
+	int64_t genome_count = (int64_t)genomes.size();
 	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
@@ -1093,7 +1093,7 @@ static float *glArrayColors = nil;
 // This does the same thing as buildDistanceArrayForGenomes:, but uses only mutations of a mutation type that is chosen for display
 - (int64_t *)buildDistanceArrayForSubtypesWithBackgroundController:(SLiMWindowController *)backgroundController
 {
-	int genome_count = (int)genomes.size();
+	int64_t genome_count = (int64_t)genomes.size();
 	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
@@ -1187,7 +1187,7 @@ static float *glArrayColors = nil;
 {
 	slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	int genome_count = (int)genomes.size();
+	int64_t genome_count = (int64_t)genomes.size();
 	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
@@ -1294,7 +1294,7 @@ static float *glArrayColors = nil;
 // may be quite important to the solution we get.  It seems reasonable to start at the city that is the most isolated, i.e. has
 // the largest distance from itself to any other city.  By starting with this city, we avoid having to have two edges connecting
 // to it, both of which would be relatively long.  However, this is just a guess, and might be modified by refinement later.
-- (int)indexOfMostIsolatedGenomeWithDistances:(int64_t *)distances size:(int)genome_count
+- (int)indexOfMostIsolatedGenomeWithDistances:(int64_t *)distances size:(int64_t)genome_count
 {
 	int64_t greatest_isolation = -1;
 	int greatest_isolation_index = -1;
@@ -1331,9 +1331,9 @@ static float *glArrayColors = nil;
 // (see indexOfMostIsolatedGenomeWithDistances:size: above) and adding successive cities according to which is closest to the
 // city we have reached thus far.  This is quite simple to implement, and runs in O(N^2) time.  However, the greedy algorithm
 // below runs only a little more slowly, and produces significantly better results, so unless speed is essential it is better.
-- (void)nearestNeighborSolveWithDistances:(int64_t *)distances size:(int)genome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
+- (void)nearestNeighborSolveWithDistances:(int64_t *)distances size:(int64_t)genome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
 {
-	int genomes_left = genome_count;
+	int64_t genomes_left = genome_count;
 	
 	solution.reserve(genome_count);
 	
@@ -1353,7 +1353,7 @@ static float *glArrayColors = nil;
 		if ([backgroundController haplotypeProgressIsCancelled])
 			break;
 		
-		[backgroundController setHaplotypeProgress:(genome_count - genomes_left + 1) forStage:1];
+		[backgroundController setHaplotypeProgress:(int)(genome_count - genomes_left + 1) forStage:1];
 		
 		// if we just added the last genome, we're done
 		if (--genomes_left == 0)
@@ -1438,7 +1438,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 	[pool release];
 }
 
-- (void)greedySolveWithDistances:(int64_t *)distances size:(int)genome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
+- (void)greedySolveWithDistances:(int64_t *)distances size:(int64_t)genome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
 {
 	// The first thing we need to do is sort all possible edges in ascending order by length;
 	// we don't need to differentiate a->b versus b->a since our distances are symmetric
@@ -1459,7 +1459,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 	if (backgroundController)
 	{
 		// We're running in the background, sorting the edges can take a long time, we want to show progress,
-		// but std::sort() provides no progress.  What to do?  We should switch to doing a large number of
+		// but std::sort() provides no progress.  What to do?  We could switch to doing a large number of
 		// std::partial_sort() calls, incrementing progress in between, but that would greatly increase the
 		// total time for the sorting to complete.  We could write our own sort code, or clone std::sort's
 		// template code and insert progress code into it, or something gross like that.  Instead, here's an
@@ -1471,7 +1471,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 		// bars will be incorrect.  I can live with it.
 		slim_greedy_progress_max = (int64_t)(edge_count * log2(edge_count) / 2);	// n log n estimated comparisons; seems to be half that for some reason, in practice
 		slim_greedy_progress = 0;
-		slim_greedy_progress_scale = genome_count;					// this is the GUI progress bar's max scale
+		slim_greedy_progress_scale = (int)genome_count;					// this is the GUI progress bar's max scale
 		
 		backgroundController->haplotypeProgressGreedySortProgressFlag = 1;	// indicate we are running the sort
 		
@@ -1485,7 +1485,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 		while (backgroundController->haplotypeProgressGreedySortProgressFlag == 0)
 			;
 		
-		[backgroundController setHaplotypeProgress:genome_count forStage:1];	// fill out the bar
+		[backgroundController setHaplotypeProgress:(int)genome_count forStage:1];	// fill out the bar
 	}
 	else
 	{
@@ -1590,7 +1590,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 	// Finally, we have a jumble of edges that are in no order, and we need to make a coherent path from them.
 	// We start at the first degree-1 node we find, which is one of the two ends; doesn't matter which.
 	{
-		int remaining_edge_count = genome_count - 1;
+		int remaining_edge_count = (int)genome_count - 1;
 		int last_index;
 		
 		for (last_index = 0; last_index < genome_count; ++last_index)
@@ -1639,7 +1639,7 @@ cancelExit:
 }
 
 // check that a given path visits every city exactly once
-- (BOOL)checkPath:(std::vector<int> &)path size:(int)genome_count
+- (BOOL)checkPath:(std::vector<int> &)path size:(int64_t)genome_count
 {
 	uint8_t *visits = (uint8_t *)calloc(sizeof(uint8_t), genome_count);
 	
@@ -1670,7 +1670,7 @@ cancelExit:
 }
 
 // calculate the length of a given path
-- (int64_t)lengthOfPath:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int)genome_count
+- (int64_t)lengthOfPath:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int64_t)genome_count
 {
 	int64_t length = 0;
 	int current_city = path[0];
@@ -1691,7 +1691,7 @@ cancelExit:
 // might be useful to provide as an option.  This method always takes the first optimization it sees that moves in a
 // positive direction; I tried taking the best optimization available at each step, instead, and it ran half as fast
 // and achieved results that were no better on average, so I didn't even keep that code.
-- (void)do2optOptimizationOfSolution:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int)genome_count backgroundController:(SLiMWindowController *)backgroundController
+- (void)do2optOptimizationOfSolution:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int64_t)genome_count backgroundController:(SLiMWindowController *)backgroundController
 {
 	// Figure out the length of the current path
 	int64_t original_distance = [self lengthOfPath:path withDistances:distances size:genome_count];
