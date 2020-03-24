@@ -28,6 +28,8 @@
 #include "subpopulation.h"
 #include <map>
 
+class QContextMenuEvent;
+
 
 typedef struct {
 	int backgroundType;				// 0 == black, 1 == gray, 2 == white, 3 == named spatial map; if no preference has been set, no entry will exist
@@ -44,7 +46,6 @@ class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
 	
 	// display background preferences, kept indexed by subpopulation id
 	std::map<slim_objectid_t, PopulationViewBackgroundSettings> backgroundSettings;
-	slim_objectid_t lastContextMenuSubpopID;
 	
 	// subview tiling, kept indexed by subpopulation id
 	std::map<slim_objectid_t, QRect> subpopTiles;
@@ -75,6 +76,8 @@ protected:
     void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewBackgroundSettings *background, SpatialMap **returnMap, Subpopulation *subpop);
     void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
     void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality);
+    
+    void contextMenuEvent(QContextMenuEvent *event) override;
 };
 
 #endif // QTSLIMINDIVIDUALSWIDGET_H

@@ -21,6 +21,8 @@
 #include "QtSLiMIndividualsWidget.h"
 #include "QtSLiMWindow.h"
 
+#include <QMenu>
+#include <QAction>
 #include <QDebug>
 
 
@@ -1298,7 +1300,178 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-
+void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	SLiMSim *sim = controller->sim;
+	bool disableAll = false;
+	
+	// When the simulation is not valid and initialized, the context menu is disabled
+	if (controller->invalidSimulation() || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+		disableAll = true;
+	
+    QMenu contextMenu("population_menu", this);
+    
+    QAction *displayNonSpatial = contextMenu.addAction("Display Individuals (non-spatial)");
+    displayNonSpatial->setData(0);
+    displayNonSpatial->setCheckable(true);
+    displayNonSpatial->setEnabled(!disableAll);
+    
+    QAction *displaySpatial = contextMenu.addAction("Display Individuals (spatial)");
+    displaySpatial->setData(1);
+    displaySpatial->setCheckable(true);
+    displaySpatial->setEnabled(!disableAll && (sim->spatial_dimensionality_ > 0));
+    
+    // Check the item corresponding to our current display preference, if any
+    if (!disableAll)
+        (displayMode == 0 ? displayNonSpatial : displaySpatial)->setChecked(true);
+    
+	// If we're displaying spatially, find the subpop that was clicked in
+    Subpopulation *subpopForEvent = nullptr;
+    
+	if (!disableAll && (sim->spatial_dimensionality_ > 0) && (displayMode == 1))
+	{
+		std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
+        QPoint viewPoint = event->pos();
+		
+		// our tile coordinates are in the OpenGL coordinate system, which has the origin at top left
+		//viewPoint.y = [self bounds].size.height - viewPoint.y;
+		
+		for (Subpopulation *subpop : selectedSubpopulations)
+		{
+			slim_objectid_t subpop_id = subpop->subpopulation_id_;
+			auto tileIter = subpopTiles.find(subpop_id);
+			
+			if (tileIter != subpopTiles.end())
+			{
+				QRect tileRect = tileIter->second;
+				
+                if (tileRect.contains(viewPoint))
+				{
+					subpopForEvent = subpop;
+					break;
+				}
+			}
+		}
+    }
+    
+    // If a spatial subpop was clicked in, provide background options (colors, spatial maps)
+    if (subpopForEvent)
+    {
+        contextMenu.addSeparator();
+        
+        QAction *headerAction = contextMenu.addAction(QString("Background for p%1:").arg(subpopForEvent->subpopulation_id_));
+        headerAction->setData(-1);
+        headerAction->setEnabled(false);
+        
+        // check the menu item for the preferred display option; if we're in auto mode, don't check anything (could put a dash by the currently chosen style?)
+        auto backgroundIter = backgroundSettings.find(subpopForEvent->subpopulation_id_);
+        PopulationViewBackgroundSettings *background = ((backgroundIter == backgroundSettings.end()) ? nullptr : &backgroundIter->second);
+        int backgroundType = (background ? background->backgroundType : -1);
+        
+        QAction *blackAction = contextMenu.addAction("Black Background");
+        blackAction->setData(10);
+        blackAction->setCheckable(true);
+        blackAction->setChecked(backgroundType == 0);
+        blackAction->setEnabled(!disableAll);
+        
+        QAction *grayAction = contextMenu.addAction("Gray Background");
+        grayAction->setData(11);
+        grayAction->setCheckable(true);
+        grayAction->setChecked(backgroundType == 1);
+        grayAction->setEnabled(!disableAll);
+        
+        QAction *whiteAction = contextMenu.addAction("White Background");
+        whiteAction->setData(12);
+        whiteAction->setCheckable(true);
+        whiteAction->setChecked(backgroundType == 2);
+        whiteAction->setEnabled(!disableAll);
+        
+        // look for spatial maps to offer as choices; need to scan the defined maps for the ones we can use
+        SpatialMapMap &spatial_maps = subpopForEvent->spatial_maps_;
+        
+        for (const auto &map_pair : spatial_maps)
+        {
+            SpatialMap *map = map_pair.second;
+            
+            // We used to display only maps with a color scale; now we just make up a color scale if none is given.  Only
+            // "x", "y", and "xy" maps are considered displayable; We can't display a z coordinate, and we can't display
+            // even the x or y portion of "xz", "yz", and "xyz" maps since we don't know which z-slice to use.
+            bool displayable = ((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy"));
+            QString mapName = QString::fromStdString(map_pair.first);
+            QString spatialityName = QString::fromStdString(map->spatiality_string_);
+            QString menuItemTitle;
+            
+            if (map->spatiality_ == 1)
+                menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]);
+            else if (map->spatiality_ == 2)
+                menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3×%4)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]).arg(map->grid_size_[1]);
+            else // (map->spatiality_ == 3)
+                menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3×%4×%5)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]).arg(map->grid_size_[1]).arg(map->grid_size_[2]);
+            
+            QAction *mapAction = contextMenu.addAction(menuItemTitle);
+            mapAction->setData(mapName);
+            mapAction->setCheckable(true);
+            mapAction->setChecked((backgroundType == 3) && (mapName == QString::fromStdString(background->spatialMapName)));
+            mapAction->setEnabled(!disableAll && displayable);
+        }
+    }
+	
+    // Run the context menu synchronously
+    QAction *action = contextMenu.exec(event->globalPos());
+    
+    // Act upon the chosen action; we just do it right here instead of dealing with slots
+    if (action)
+    {
+        if ((action == displayNonSpatial) || (action == displaySpatial))
+        {
+            // - (IBAction)setDisplayStyle:(id)sender
+            int newDisplayMode = action->data().toInt();
+            
+            if (newDisplayMode != displayMode)
+            {
+                displayMode = newDisplayMode;
+                update();
+            }
+        }
+        else if (subpopForEvent)
+        {
+            // - (IBAction)setDisplayBackground:(id)sender
+            int newDisplayBackground;
+            auto backgroundIter = backgroundSettings.find(subpopForEvent->subpopulation_id_);
+            PopulationViewBackgroundSettings *background = ((backgroundIter == backgroundSettings.end()) ? nullptr : &backgroundIter->second);
+            std::string mapName;
+            
+            // If the user has selected a spatial map, extract its name
+            if (static_cast<QMetaType::Type>(action->data().type()) == QMetaType::QString)  // for some reason this method's return type is apparently misdeclared; see the doc
+            {
+                mapName = action->data().toString().toStdString();
+                
+                if (mapName.length() == 0)
+                    return;
+                
+                newDisplayBackground = 3;
+            }
+            else
+            {
+                newDisplayBackground = action->data().toInt() - 10;
+            }
+            
+            // Update the existing background entry, or make a new entry
+            if (background)
+            {
+                background->backgroundType = newDisplayBackground;
+                background->spatialMapName = mapName;
+                update();
+            }
+            else
+            {
+                backgroundSettings.insert(std::pair<const int, PopulationViewBackgroundSettings>(subpopForEvent->subpopulation_id_, PopulationViewBackgroundSettings{newDisplayBackground, mapName}));
+                update();
+            }
+        }
+    }
+}
 
 
 
