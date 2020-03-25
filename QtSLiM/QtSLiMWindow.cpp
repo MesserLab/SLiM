@@ -55,7 +55,7 @@
 // TO DO:
 //
 // implement selection of a subrange in the chromosome view
-// haplotype view and other display switches in the chromosome view
+// implement haplotype display mode in the chromosome view
 // implement pop-up menu for graph pop-up button, graph windows
 // decide whether to implement the variable browser or not
 // hover preview tooltips in the objects tables; probably hard to do...

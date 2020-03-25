@@ -29,6 +29,7 @@
 
 class QtSLiMWindow;
 class QPainter;
+class QContextMenuEvent;
 
 struct QtSLiMRange
 {
@@ -104,6 +105,8 @@ protected:
     void glDrawRecombinationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     void glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     void glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
+    
+    void contextMenuEvent(QContextMenuEvent *event) override;
 };
 
 #endif // QTSLIMCHROMOSOMEWIDGET_H

@@ -21,8 +21,11 @@
 #include "QtSLiMChromosomeWidget.h"
 #include "QtSLiMWindow.h"
 #include "QtSLiMExtras.h"
-#include <QtDebug>
+
 #include <QPainter>
+#include <QMenu>
+#include <QAction>
+#include <QtDebug>
 
 
 // OpenGL constants
@@ -1114,7 +1117,125 @@ void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *c
 	}
 }
 
-
+void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+    
+    if (!controller->invalidSimulation())// && !isSelectable() && enabled())
+	{
+		SLiMSim *sim = controller->sim;
+		
+		if (sim)
+		{
+			std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+			
+			if (muttypes.size() > 0)
+			{
+                QMenu contextMenu("chromosome_menu", this);
+                
+                QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
+                displayFrequencies->setCheckable(true);
+                displayFrequencies->setChecked(!display_haplotypes_);
+                
+                QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
+                displayHaplotypes->setCheckable(true);
+                displayHaplotypes->setChecked(display_haplotypes_);
+                
+                contextMenu.addSeparator();
+                
+                QAction *displayAllMutations = contextMenu.addAction("Display All Mutations");
+                displayAllMutations->setCheckable(true);
+                displayAllMutations->setChecked(display_muttypes_.size() == 0);
+                
+                // Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
+				std::vector<slim_objectid_t> all_muttypes;
+				
+				for (auto muttype_iter : muttypes)
+				{
+					MutationType *muttype = muttype_iter.second;
+					slim_objectid_t muttype_id = muttype->mutation_type_id_;
+					
+					all_muttypes.push_back(muttype_id);
+				}
+				
+				all_muttypes.insert(all_muttypes.end(), display_muttypes_.begin(), display_muttypes_.end());
+                
+                // Avoid building a huge menu, which will hang the app
+				if (all_muttypes.size() <= 500)
+				{
+					std::sort(all_muttypes.begin(), all_muttypes.end());
+					all_muttypes.resize(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end())));
+					
+					// Then add menu items for each of those muttypes
+					for (slim_objectid_t muttype_id : all_muttypes)
+					{
+                        QString menuItemTitle = QString("Display m%1").arg(muttype_id);
+                        QAction *mutationAction = contextMenu.addAction(menuItemTitle);
+                        
+                        mutationAction->setData(muttype_id);
+                        mutationAction->setCheckable(true);
+                        
+						if (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end())
+							mutationAction->setChecked(true);
+					}
+				}
+                
+                contextMenu.addSeparator();
+                
+                QAction *selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
+                
+                // Run the context menu synchronously
+                QAction *action = contextMenu.exec(event->globalPos());
+                
+                // Act upon the chosen action; we just do it right here instead of dealing with slots
+                if (action)
+                {
+                    if (action == displayFrequencies)
+                        display_haplotypes_ = false;
+                    else if (action == displayHaplotypes)
+                        display_haplotypes_ = true;
+                    else if (action == displayAllMutations)
+                        display_muttypes_.clear();
+                    else if (action == selectNonneutralMutations)
+                    {
+                        // - (IBAction)filterNonNeutral:(id)sender
+                        display_muttypes_.clear();
+                        
+                        std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+                        
+                        for (auto muttype_iter : muttypes)
+                        {
+                            MutationType *muttype = muttype_iter.second;
+                            slim_objectid_t muttype_id = muttype->mutation_type_id_;
+                            
+                            if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+                                display_muttypes_.push_back(muttype_id);
+                        }
+                    }
+                    else
+                    {
+                        // - (IBAction)filterMutations:(id)sender
+                        slim_objectid_t muttype_id = action->data().toInt();
+                        auto present_iter = std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id);
+                        
+                        if (present_iter == display_muttypes_.end())
+                        {
+                            // this mut-type is not being displayed, so add it to our display list
+                            display_muttypes_.push_back(muttype_id);
+                        }
+                        else
+                        {
+                            // this mut-type is being displayed, so remove it from our display list
+                            display_muttypes_.erase(present_iter);
+                        }
+                    }
+                    
+                    update();
+                }
+            }
+        }
+    }
+}
 
 
 
