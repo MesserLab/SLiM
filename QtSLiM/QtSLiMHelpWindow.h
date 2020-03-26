@@ -89,8 +89,10 @@ public:
 private:
     // singleton pattern
     explicit QtSLiMHelpWindow(QWidget *parent = nullptr);
-    QtSLiMHelpWindow() = default;
-    virtual ~QtSLiMHelpWindow() override;
+    QtSLiMHelpWindow(void) = delete;
+    virtual ~QtSLiMHelpWindow(void) override;
+    QtSLiMHelpWindow(const QtSLiMHelpWindow&) = delete;
+    QtSLiMHelpWindow& operator=(const QtSLiMHelpWindow&) = delete;
     
     // Add topics and items drawn from a specially formatted HTML file, under a designated top-level heading.
     // The signatures found for functions, methods, and prototypes will be checked against the supplied lists,

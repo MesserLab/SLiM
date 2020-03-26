@@ -70,9 +70,12 @@ static QFont &defaultDisplayFont(void)
 
 QtSLiMPreferencesNotifier &QtSLiMPreferencesNotifier::instance(void)
 {
-    static QtSLiMPreferencesNotifier inst;
+    static QtSLiMPreferencesNotifier *inst = nullptr;
     
-    return inst;
+    if (!inst)
+        inst = new QtSLiMPreferencesNotifier();
+    
+    return *inst;
 }
 
 // pref value fetching
@@ -191,9 +194,12 @@ void QtSLiMPreferencesNotifier::resetSuppressedClicked()
 
 QtSLiMPreferences &QtSLiMPreferences::instance(void)
 {
-    static QtSLiMPreferences inst(nullptr);
+    static QtSLiMPreferences *inst = nullptr;
     
-    return inst;
+    if (!inst)
+        inst = new QtSLiMPreferences(nullptr);
+    
+    return *inst;
 }
 
 QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMPreferences)

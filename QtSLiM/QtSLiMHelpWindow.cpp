@@ -194,9 +194,12 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
 //
 QtSLiMHelpWindow &QtSLiMHelpWindow::instance(void)
 {
-    static QtSLiMHelpWindow inst(nullptr);
+    static QtSLiMHelpWindow *inst = nullptr;
     
-    return inst;
+    if (!inst)
+        inst = new QtSLiMHelpWindow(nullptr);
+    
+    return *inst;
 }
 
 QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMHelpWindow)

@@ -28,6 +28,7 @@
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMAppDelegate.h"
+#include "QtSLiMFindPanel.h"
 
 
 void QtSLiMWindow::glueUI(void)
@@ -100,6 +101,7 @@ void QtSLiMWindow::glueUI(void)
     ui->actionNew_nonWF->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionOpen->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionQtSLiMHelp->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionSLiMWorkshops->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionSendFeedback->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionMailingList_slimannounce->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionMailingList_slimdiscuss->setShortcutContext(Qt::ApplicationShortcut);
@@ -151,6 +153,9 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionClearOutput, &QAction::triggered, this, &QtSLiMWindow::clearOutputClicked);
     
     // connect menu items that open a URL
+    connect(ui->actionSLiMWorkshops, &QAction::triggered, []() {
+        QDesktopServices::openUrl(QUrl("http://benhaller.com/workshops/workshops.html", QUrl::TolerantMode));
+    });
     connect(ui->actionSendFeedback, &QAction::triggered, []() {
         QDesktopServices::openUrl(QUrl("mailto:bhaller@mac.com?subject=SLiM%20Feedback", QUrl::TolerantMode));
     });
@@ -286,16 +291,15 @@ void QtSLiMWindow::glueUI(void)
         else if (textEdit && textEdit->isEnabled())
             textEdit->selectAll();
     });
-    /*
-    currently unimplemented:
     
-    QAction *actionFind_2;
-    QAction *actionFind_and_Replace;
-    QAction *actionFind_Next;
-    QAction *actionFind_Previous;
-    QAction *actionUse_Selection_for_Find;
-    QAction *actionJump_to_Selection;
-    */
+    // Find panel actions; these just get forwarded to QtSLiMFindPanel
+    connect(ui->actionFindShow, &QAction::triggered, []() { QtSLiMFindPanel::instance().showFindPanel(); });
+    connect(ui->actionFindNext, &QAction::triggered, []() { QtSLiMFindPanel::instance().findNext(); });
+    connect(ui->actionFindPrevious, &QAction::triggered, []() { QtSLiMFindPanel::instance().findPrevious(); });
+    connect(ui->actionReplaceAndFind, &QAction::triggered, []() { QtSLiMFindPanel::instance().replaceAndFind(); });
+    connect(ui->actionUseSelectionForFind, &QAction::triggered, []() { QtSLiMFindPanel::instance().useSelectionForFind(); });
+    connect(ui->actionUseSelectionForReplace, &QAction::triggered, []() { QtSLiMFindPanel::instance().useSelectionForReplace(); });
+    connect(ui->actionJumpToSelection, &QAction::triggered, []() { QtSLiMFindPanel::instance().jumpToSelection(); });
 }
 
 

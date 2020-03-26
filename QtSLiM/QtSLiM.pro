@@ -76,7 +76,8 @@ SOURCES += \
     QtSLiMEidosConsole_glue.cpp \
     QtSLiMConsoleTextEdit.cpp \
     QtSLiM_SLiMgui.cpp \
-    QtSLiMTablesDrawer.cpp
+    QtSLiMTablesDrawer.cpp \
+    QtSLiMFindPanel.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -95,7 +96,8 @@ HEADERS += \
     QtSLiMEidosConsole.h \
     QtSLiMConsoleTextEdit.h \
     QtSLiM_SLiMgui.h \
-    QtSLiMTablesDrawer.h
+    QtSLiMTablesDrawer.h \
+    QtSLiMFindPanel.h
 
 FORMS += \
     QtSLiMWindow.ui \
@@ -104,7 +106,8 @@ FORMS += \
     QtSLiMFindRecipe.ui \
     QtSLiMHelpWindow.ui \
     QtSLiMEidosConsole.ui \
-    QtSLiMTablesDrawer.ui
+    QtSLiMTablesDrawer.ui \
+    QtSLiMFindPanel.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

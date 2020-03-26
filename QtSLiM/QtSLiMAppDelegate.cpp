@@ -81,6 +81,9 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     // Install our event filter to detect modifier key changes
     app->installEventFilter(this);
     
+    // Track the last focused main window, for activeQtSLiMWindow()
+    connect(app, &QApplication::focusChanged, this, &QtSLiMAppDelegate::focusChanged);
+    
     // We assume we are the global instance; FIXME singleton pattern would be good
     qtSLiMAppDelegate = this;
 }
@@ -217,28 +220,6 @@ void QtSLiMAppDelegate::aboutToQuit(void)
     //qDebug() << "QtSLiMAppDelegate::aboutToQuit";
 }
 
-QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
-{
-    QWidget *activeWindow = qApp->activeWindow();
-    QtSLiMWindow *activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(activeWindow);
-    
-    if (!activeQtSLiMWindow)
-    {
-        const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
-        
-        for (QWidget *widget : topLevelWidgets)
-        {
-            if (!widget->isHidden())
-            {
-                activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(widget);
-                if (activeQtSLiMWindow) break;
-            }
-        }
-    }
-    
-    return activeQtSLiMWindow;
-}
-
 void QtSLiMAppDelegate::findRecipe(void)
 {
     // We delegate the opening itself to the active window, so that it can tile
@@ -308,6 +289,65 @@ void QtSLiMAppDelegate::openRecipe(void)
             }
         }
      }
+}
+
+//
+//  Active QtSLiMWindow tracking
+//
+//  For the Find window and similar modeless interactions, we need to be able to find the active
+//  main window, which Qt does not provide (the "active window" is not necessarily a main window).
+//  To do this, we have to track focus changes and window closes, to maintain a list of main
+//  windows that is sorted from back to front.
+//
+
+void QtSLiMAppDelegate::focusChanged(QWidget * /* old */, QWidget *now)
+{
+    if (now)
+    {
+        QWidget *window = now->window();
+        
+        if (window)
+        {
+            QtSLiMWindow *slimWindow = qobject_cast<QtSLiMWindow *>(window);
+            
+            if (slimWindow)
+            {
+                // If this was already the front window, ignore the focus change
+                if ((focusedQtSLiMWindowList.length() > 0) && (focusedQtSLiMWindowList.back() == slimWindow))
+                    return;
+                
+                // Remember the new main window as the active main window
+                //qDebug() << "new window got focus";
+                
+                // slimWindow is now the front window, so move it to the end of focusedQtSLiMWindowList
+                focusedQtSLiMWindowList.removeOne(slimWindow);
+                focusedQtSLiMWindowList.push_back(slimWindow);
+            }
+        }
+    }
+}
+
+void QtSLiMAppDelegate::QtSLiMWindowClosing(QtSLiMWindow *window)
+{
+    //qDebug() << "closing window";
+    
+    focusedQtSLiMWindowList.removeOne(window);
+}
+
+QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
+{
+    // First try qApp's active window; if the SLiM window is key, this suffices
+    QWidget *activeWindow = qApp->activeWindow();
+    QtSLiMWindow *activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(activeWindow);
+    
+    if (activeQtSLiMWindow)
+        return activeQtSLiMWindow;
+    
+    // If that fails, use the last focused main window, as tracked by focusChanged()
+    if (focusedQtSLiMWindowList.length())
+        return focusedQtSLiMWindowList.back();
+    
+    return nullptr;
 }
 
 

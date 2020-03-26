@@ -21,6 +21,7 @@
 #define QTSLIMAPPDELEGATE_H
 
 #include <QObject>
+#include <QVector>
 #include <string>
 
 class QMenu;
@@ -40,7 +41,12 @@ class QtSLiMAppDelegate : public QObject
 public:
     explicit QtSLiMAppDelegate(QObject *parent);
 
+    // The current working directory for the app
     std::string &QtSLiMCurrentWorkingDirectory(void) { return app_cwd_; }
+    
+    // Tracking the current active main window
+    QtSLiMWindow *activeQtSLiMWindow(void);
+    void QtSLiMWindowClosing(QtSLiMWindow *window);     // called by QtSLiMWindow::closeEvent()
     
     void setUpRecipesMenu(QMenu *openRecipesSubmenu, QAction *findRecipeAction);
 
@@ -55,9 +61,12 @@ signals:
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);
     
 private:
-    QtSLiMWindow *activeQtSLiMWindow(void);  
-    
     bool eventFilter(QObject *obj, QEvent *event) override;
+    
+    QVector<QtSLiMWindow *> focusedQtSLiMWindowList;    // a list of all main windows, from back to front
+    
+private slots:
+    void focusChanged(QWidget *old, QWidget *now);
 };
 
 

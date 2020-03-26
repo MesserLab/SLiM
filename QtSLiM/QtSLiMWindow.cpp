@@ -492,6 +492,9 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
         settings.setValue("pos", pos());
         settings.endGroup();
         
+        // Tell QtSLiMAppDelegate we're closing; it keeps track of all open QtSLiMWindows
+        qtSLiMAppDelegate->QtSLiMWindowClosing(this);
+        
         event->accept();
     }
     else
@@ -510,15 +513,6 @@ void QtSLiMWindow::aboutQtSLiM()
     aboutWindow->show();
     aboutWindow->raise();
     aboutWindow->activateWindow();
-}
-
-void QtSLiMWindow::showPreferences()
-{
-    QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
-    
-    prefsWindow.show();
-    prefsWindow.raise();
-    prefsWindow.activateWindow();
 }
 
 void QtSLiMWindow::newFile_WF()
@@ -2987,6 +2981,15 @@ void QtSLiMWindow::showGenomicElementsToggled(void)
 		ui->chromosomeZoomed->setShouldDrawGenomicElements(newValue);
         ui->chromosomeZoomed->update();
 	}
+}
+
+void QtSLiMWindow::showPreferences()
+{
+    QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
+    
+    prefsWindow.show();
+    prefsWindow.raise();
+    prefsWindow.activateWindow();
 }
 
 void QtSLiMWindow::scriptHelpClicked(void)

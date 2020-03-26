@@ -1356,10 +1356,11 @@ QPushButton:checked {
       <string>Find</string>
      </property>
      <addaction name="actionFindShow"/>
-     <addaction name="actionFindAndReplace"/>
      <addaction name="actionFindNext"/>
      <addaction name="actionFindPrevious"/>
+     <addaction name="actionReplaceAndFind"/>
      <addaction name="actionUseSelectionForFind"/>
+     <addaction name="actionUseSelectionForReplace"/>
      <addaction name="actionJumpToSelection"/>
     </widget>
     <addaction name="actionUndo"/>
@@ -1411,6 +1412,7 @@ QPushButton:checked {
      <string>Help</string>
     </property>
     <addaction name="actionQtSLiMHelp"/>
+    <addaction name="actionSLiMWorkshops"/>
     <addaction name="separator"/>
     <addaction name="actionSendFeedback"/>
     <addaction name="actionMailingList_slimannounce"/>
@@ -1755,12 +1757,12 @@ QPushButton:checked {
     <string>Ctrl+F</string>
    </property>
   </action>
-  <action name="actionFindAndReplace">
+  <action name="actionReplaceAndFind">
    <property name="text">
-    <string>Find and Replace...</string>
+    <string>Replace &amp;&amp; Find</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Alt+F</string>
+    <string>Ctrl+Alt+G</string>
    </property>
   </action>
   <action name="actionFindNext">
@@ -1803,6 +1805,19 @@ QPushButton:checked {
   <action name="actionOpenRecent">
    <property name="text">
     <string>Open Recent</string>
+   </property>
+  </action>
+  <action name="actionSLiMWorkshops">
+   <property name="text">
+    <string>SLiM Workshops</string>
+   </property>
+  </action>
+  <action name="actionUseSelectionForReplace">
+   <property name="text">
+    <string>Use Selection for Replace</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+E</string>
    </property>
   </action>
  </widget>
