@@ -53,6 +53,7 @@ extern NSString *defaultsPlaySoundParseFailureKey;
 
 - (IBAction)showHelp:(id)sender;
 - (IBAction)sendFeedback:(id)sender;
+- (IBAction)slimWorkshops:(id)sender;
 - (IBAction)mailingListAnnounce:(id)sender;
 - (IBAction)mailingListDiscuss:(id)sender;
 - (IBAction)showMesserLab:(id)sender;
