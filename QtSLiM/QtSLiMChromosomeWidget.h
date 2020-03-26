@@ -58,6 +58,12 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
 	bool savedHasSelection_ = false;
 	slim_position_t savedSelectionFirstBase_ = 0, savedSelectionLastBase_ = 0;
 	
+    // Tracking
+	bool isTracking_ = false;
+	slim_position_t trackingStartBase_ = 0, trackingLastBase_ = 0;
+	int trackingXAdjust_ = 0;	// to keep the cursor stuck on a knob that is click-dragged
+	//SLiMSelectionMarker *startMarker, *endMarker;
+    
     // OpenGL buffers
 	float *glArrayVertices = nullptr;
 	float *glArrayColors = nullptr;
@@ -71,7 +77,7 @@ public:
     virtual ~QtSLiMChromosomeWidget() override;
     
     inline void setSelectable(bool p_flag) { selectable_ = p_flag; }
-    inline void setReferenceChromosomeView(QtSLiMChromosomeWidget *p_ref_widget) { referenceChromosomeView_ = p_ref_widget; }
+    void setReferenceChromosomeView(QtSLiMChromosomeWidget *p_ref_widget);
     
     inline void setShouldDrawGenomicElements(bool p_flag) { shouldDrawGenomicElements_ = p_flag; }
     inline void setShouldDrawRateMaps(bool p_flag) { shouldDrawRateMaps_ = p_flag; }
@@ -84,16 +90,21 @@ public:
     
     QtSLiMRange getDisplayedRange(void);
     
+signals:
+    void selectedRangeChanged(void);
+    
 protected:
     void initializeGL() override;
     void resizeGL(int w, int h) override;
     void paintGL() override;
     
     QRect rectEncompassingBaseToBase(slim_position_t startBase, slim_position_t endBase, QRect interiorRect, QtSLiMRange displayedRange);
+    slim_position_t baseForPosition(double position, QRect interiorRect, QtSLiMRange displayedRange);
     QRect getContentRect(void);
     QRect getInteriorRect(void);
     
     void drawTicksInContentRect(QRect contentRect, QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter);
+    void overlaySelection(QRect interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter);
     void glDrawRect(void);
     
     void glDrawGenomicElements(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
@@ -106,6 +117,10 @@ protected:
     void glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     void glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     
+    void mousePressEvent(QMouseEvent *event) override;
+    void _mouseTrackEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
 };
 

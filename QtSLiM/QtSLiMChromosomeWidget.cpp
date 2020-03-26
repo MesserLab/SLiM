@@ -90,6 +90,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 static const int numberOfTicksPlusOne = 4;
 static const int tickLength = 5;
 static const int heightForTicks = 16;
+static const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2 + 1 + 2, an extension on each side plus the one pixel of the bar in the middle
+static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
 
 
 QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *parent, Qt::WindowFlags f) : QOpenGLWidget(parent, f)
@@ -168,6 +170,14 @@ QRect QtSLiMChromosomeWidget::rectEncompassingBaseToBase(slim_position_t startBa
 	return QRect(leftEdge, interiorRect.top(), rightEdge - leftEdge, interiorRect.height());
 }
 
+slim_position_t QtSLiMChromosomeWidget::baseForPosition(double position, QRect interiorRect, QtSLiMRange displayedRange)
+{
+	double fraction = (position - interiorRect.left()) / interiorRect.width();
+	slim_position_t base = static_cast<slim_position_t>(floor(fraction * (displayedRange.length + 1) + displayedRange.location));
+	
+	return base;
+}
+
 QRect QtSLiMChromosomeWidget::getContentRect(void)
 {
     QRect bounds = rect();
@@ -180,6 +190,20 @@ QRect QtSLiMChromosomeWidget::getContentRect(void)
 QRect QtSLiMChromosomeWidget::getInteriorRect(void)
 {
     return getContentRect().marginsRemoved(QMargins(1, 1, 1, 1));
+}
+
+void QtSLiMChromosomeWidget::setReferenceChromosomeView(QtSLiMChromosomeWidget *p_ref_widget)
+{
+	if (referenceChromosomeView_ != p_ref_widget)
+	{
+        if (p_ref_widget)
+            disconnect(p_ref_widget);
+        
+        referenceChromosomeView_ = p_ref_widget;
+        
+        if (referenceChromosomeView_)
+            connect(referenceChromosomeView_, &QtSLiMChromosomeWidget::selectedRangeChanged, [this]() { update(); });
+	}
 }
 
 QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(void)
@@ -229,7 +253,7 @@ void QtSLiMChromosomeWidget::setSelectedRange(QtSLiMRange p_selectionRange)
 	// Our selection changed, so update and post a change notification
     update();
 	
-	//[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
+    emit selectedRangeChanged();
 }
 
 void QtSLiMChromosomeWidget::restoreLastSelection(void)
@@ -254,7 +278,7 @@ void QtSLiMChromosomeWidget::restoreLastSelection(void)
 	// Our selection changed, so update and post a change notification
 	update();
 	
-	//[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
+    emit selectedRangeChanged();
 }
 
 QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(void)
@@ -309,8 +333,8 @@ void QtSLiMChromosomeWidget::paintGL()
 		QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(0.6, 1.0), painter);
         
 		// overlay the selection last, since it bridges over the frame
-//		if (hasSelection)
-//			[self overlaySelectionInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		if (hasSelection_)
+			overlaySelection(interiorRect, controller, displayedRange, painter);
     }
     else
     {
@@ -1117,6 +1141,235 @@ void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *c
 	}
 }
 
+void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMWindow * /*controller*/, QtSLiMRange displayedRange, QPainter &painter)
+{
+	if (hasSelection_)
+	{
+        // darken the interior of the selection slightly
+        QRect selectionRect = rectEncompassingBaseToBase(selectionFirstBase_, selectionLastBase_, interiorRect, displayedRange);
+        
+        painter.fillRect(selectionRect, QtSLiMColorWithWhite(0.0, 0.30));
+        
+		// draw a bar at the start and end of the selection
+		QRect selectionStartBar1 = QRect(selectionRect.left() - 1, interiorRect.top(), 1, interiorRect.height());
+		QRect selectionStartBar2 = QRect(selectionRect.left(), interiorRect.top(), 1, interiorRect.height() + 5);
+		//QRect selectionStartBar3 = QRect(selectionRect.left() + 1, interiorRect.top(), 1, interiorRect.height());
+		//QRect selectionEndBar1 = QRect(selectionRect.left() + selectionRect.width() - 2, interiorRect.top(), 1, interiorRect.height());
+		QRect selectionEndBar2 = QRect(selectionRect.left() + selectionRect.width() - 1, interiorRect.top(), 1, interiorRect.height() + 5);
+		QRect selectionEndBar3 = QRect(selectionRect.left() + selectionRect.width(), interiorRect.top(), 1, interiorRect.height());
+		
+        painter.fillRect(selectionStartBar1, QtSLiMColorWithWhite(1.0, 0.15));
+        //painter.fillRect(selectionEndBar1, QtSLiMColorWithWhite(1.0, 0.15));
+		
+		painter.fillRect(selectionStartBar2, Qt::black);
+		painter.fillRect(selectionEndBar2, Qt::black);
+		
+        //painter.fillRect(selectionStartBar3, QtSLiMColorWithWhite(0.0, 0.30));
+        painter.fillRect(selectionEndBar3, QtSLiMColorWithWhite(0.0, 0.30));
+        
+		// draw a ball at the end of each bar
+        // FIXME this doesn't look quite as nice as SLiMgui, because QPainter doesn't antialias
+        // also we can get clipped by one pixel at the edge of the view; subtle but imperfect
+		QRect selectionStartBall = QRect(selectionRect.left() - selectionKnobSizeExtension, interiorRect.bottom() + (selectionKnobSize - 2), selectionKnobSize, selectionKnobSize);
+		QRect selectionEndBall = QRect(selectionRect.left() + selectionRect.width() - (selectionKnobSizeExtension + 1), interiorRect.bottom() + (selectionKnobSize - 2), selectionKnobSize, selectionKnobSize);
+		
+        painter.save();
+        painter.setPen(Qt::NoPen);
+        
+        painter.setBrush(Qt::black);	// outline
+		painter.drawEllipse(selectionStartBall);
+		painter.drawEllipse(selectionEndBall);
+		
+        painter.setBrush(QtSLiMColorWithWhite(0.3, 1.0));	// interior
+		painter.drawEllipse(selectionStartBall.adjusted(1, 1, -1, -1));
+		painter.drawEllipse(selectionEndBall.adjusted(1, 1, -1, -1));
+		
+		painter.setBrush(QtSLiMColorWithWhite(1.0, 0.5));	// highlight
+		painter.drawEllipse(selectionStartBall.adjusted(1, 1, -2, -2));
+		painter.drawEllipse(selectionEndBall.adjusted(1, 1, -2, -2));
+        
+        painter.restore();
+    }
+}
+
+void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *event)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	bool ready = (selectable_ && isEnabled() && !controller->invalidSimulation());
+	
+	// if the simulation is at generation 0, it is not ready
+	if (ready)
+		if (controller->sim->generation_ == 0)
+			ready = false;
+	
+	if (ready)
+	{
+		QRect contentRect = getContentRect();
+		QRect interiorRect = getInteriorRect();
+		QtSLiMRange displayedRange = getDisplayedRange();
+        QPoint curPoint = event->pos();
+		
+		// Option-clicks just set the selection to the clicked genomic element, no questions asked
+        if (event->modifiers() & Qt::AltModifier)
+		{
+            if (contentRect.contains(curPoint))
+			{
+				slim_position_t clickedBase = baseForPosition(curPoint.x(), interiorRect, displayedRange);
+				QtSLiMRange selectionRange = QtSLiMRange(0, 0);
+				Chromosome &chromosome = controller->sim->chromosome_;
+				
+				for (GenomicElement *genomicElement : chromosome.GenomicElements())
+				{
+					slim_position_t startPosition = genomicElement->start_position_;
+					slim_position_t endPosition = genomicElement->end_position_;
+					
+					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
+						selectionRange = QtSLiMRange(startPosition, endPosition - startPosition + 1);
+				}
+				
+				setSelectedRange(selectionRange);
+				return;
+			}
+		}
+		
+		// first check for a hit in one of our selection handles
+		if (hasSelection_)
+		{
+			QRect selectionRect = rectEncompassingBaseToBase(selectionFirstBase_, selectionLastBase_, interiorRect, displayedRange);
+			int leftEdge = selectionRect.left();
+			int rightEdge = selectionRect.left() + selectionRect.width() - 1;	// -1 to be on the left edge of the right-edge pixel strip
+			QRect leftSelectionBar = QRect(leftEdge - 2, selectionRect.top() - 1, 5, selectionRect.height() + 2);
+			QRect leftSelectionKnob = QRect(leftEdge - (selectionKnobSizeExtension + 1), selectionRect.bottom() + (selectionKnobSize - 3), (selectionKnobSizeExtension + 1) * 2 + 1, selectionKnobSize + 2);
+			QRect rightSelectionBar = QRect(rightEdge - 2, selectionRect.top() - 1, 5, selectionRect.height() + 2);
+			QRect rightSelectionKnob = QRect(rightEdge - (selectionKnobSizeExtension + 1), selectionRect.bottom() + (selectionKnobSize - 3), (selectionKnobSizeExtension + 1) * 2 + 1, selectionKnobSize + 2);
+			
+			if (leftSelectionBar.contains(curPoint) || leftSelectionKnob.contains(curPoint))
+			{
+				isTracking_ = true;
+				trackingXAdjust_ = (curPoint.x() - leftEdge) - 1;		// I'm not sure why the -1 is needed, but it is...
+				trackingStartBase_ = selectionLastBase_;	// we're dragging the left knob, so the right knob is the tracking anchor
+				trackingLastBase_ = baseForPosition(curPoint.x() - trackingXAdjust_, interiorRect, displayedRange);	// instead of selectionFirstBase, so the selection does not change at all if the mouse does not move
+				
+				mouseMoveEvent(event);	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
+				return;
+			}
+			else if (rightSelectionBar.contains(curPoint) || rightSelectionKnob.contains(curPoint))
+			{
+				isTracking_ = true;
+				trackingXAdjust_ = (curPoint.x() - rightEdge);
+				trackingStartBase_ = selectionFirstBase_;	// we're dragging the right knob, so the left knob is the tracking anchor
+				trackingLastBase_ = baseForPosition(curPoint.x() - trackingXAdjust_, interiorRect, displayedRange);	// instead of selectionLastBase, so the selection does not change at all if the mouse does not move
+				
+				mouseMoveEvent(event);	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
+				return;
+			}
+		}
+		
+        if (contentRect.contains(curPoint))
+        {
+            isTracking_ = true;
+            trackingStartBase_ = baseForPosition(curPoint.x(), interiorRect, displayedRange);
+            trackingLastBase_ = trackingStartBase_;
+            trackingXAdjust_ = 0;
+            
+            // We start off with no selection, and wait for the user to drag out a selection
+			if (hasSelection_)
+			{
+				hasSelection_ = false;
+				
+				// Save the selection for restoring across recycles, etc.
+				savedHasSelection_ = hasSelection_;
+				
+				update();
+                emit selectedRangeChanged();
+			}
+        }
+	}
+}
+
+// - (void)setUpMarker:(SLiMSelectionMarker **)marker atBase:(slim_position_t)selectionBase isLeft:(BOOL)isLeftMarker
+// FIXME at present QtSLiM doesn't have the selection markers during tracking that SLiMgui has...
+
+void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *event)
+{
+    QRect interiorRect = getInteriorRect();
+    QtSLiMRange displayedRange = getDisplayedRange();
+    QPoint curPoint = event->pos();
+	
+	QPoint correctedPoint = QPoint(curPoint.x() - trackingXAdjust_, curPoint.y());
+	slim_position_t trackingNewBase = baseForPosition(correctedPoint.x(), interiorRect, displayedRange);
+	bool selectionChanged = false;
+	
+	if (trackingNewBase != trackingLastBase_)
+	{
+		trackingLastBase_ = trackingNewBase;
+		
+		slim_position_t trackingLeftBase = trackingStartBase_, trackingRightBase = trackingLastBase_;
+		
+		if (trackingLeftBase > trackingRightBase)
+		{
+			trackingLeftBase = trackingLastBase_;
+			trackingRightBase = trackingStartBase_;
+		}
+		
+		if (trackingLeftBase <= static_cast<slim_position_t>(displayedRange.location))
+			trackingLeftBase = static_cast<slim_position_t>(displayedRange.location);
+		if (trackingRightBase > static_cast<slim_position_t>((displayedRange.location + displayedRange.length) - 1))
+			trackingRightBase = static_cast<slim_position_t>((displayedRange.location + displayedRange.length) - 1);
+		
+		if (trackingRightBase <= trackingLeftBase + 100)
+		{
+			if (hasSelection_)
+				selectionChanged = true;
+			
+			hasSelection_ = false;
+			
+			// Save the selection for restoring across recycles, etc.
+			savedHasSelection_ = hasSelection_;
+			
+			//[self removeSelectionMarkers];
+		}
+		else
+		{
+			selectionChanged = true;
+			hasSelection_ = true;
+			selectionFirstBase_ = trackingLeftBase;
+			selectionLastBase_ = trackingRightBase;
+			
+			// Save the selection for restoring across recycles, etc.
+			savedSelectionFirstBase_ = selectionFirstBase_;
+			savedSelectionLastBase_ = selectionLastBase_;
+			savedHasSelection_ = hasSelection_;
+			
+			//[self setUpMarker:&startMarker atBase:selectionFirstBase isLeft:YES];
+			//[self setUpMarker:&endMarker atBase:selectionLastBase isLeft:NO];
+		}
+		
+		if (selectionChanged)
+		{
+			update();
+            emit selectedRangeChanged();
+		}
+	}
+}
+
+void QtSLiMChromosomeWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    if (selectable_ && isTracking_)
+		_mouseTrackEvent(event);
+}
+
+void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (selectable_ && isTracking_)
+	{
+        _mouseTrackEvent(event);
+		//[self removeSelectionMarkers];
+	}
+	
+	isTracking_ = false;
+}
+
 void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
@@ -1140,6 +1393,7 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
                 QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
                 displayHaplotypes->setCheckable(true);
                 displayHaplotypes->setChecked(display_haplotypes_);
+                displayHaplotypes->setEnabled(false);                   // disable this until haplotype display is supported
                 
                 contextMenu.addSeparator();
                 
@@ -1164,7 +1418,7 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
 				if (all_muttypes.size() <= 500)
 				{
 					std::sort(all_muttypes.begin(), all_muttypes.end());
-					all_muttypes.resize(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end())));
+					all_muttypes.resize(static_cast<size_t>(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end()))));
 					
 					// Then add menu items for each of those muttypes
 					for (slim_objectid_t muttype_id : all_muttypes)
