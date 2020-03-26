@@ -14,7 +14,7 @@ development head:
 	fix a crash in haplotype plotting when the number of genomes is large
 	fix display bug with haplotype display on retina displays
 	add recipe 16.18: a spatial epidemiological S-I-R model
-	new versions of recipes 9.5.2 and 9.5.3 to fix a bug involving fitness calculations with multiple mutational lineages for a single sweep
+	new versions of recipes 9.5.2 and 9.5.3 to fix a bug involving fitness calculations with multiple mutational lineages for a single sweep; see https://groups.google.com/d/msg/slim-discuss/DW-QqzoZLgg/NCusXvBqBAAJ
 
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):

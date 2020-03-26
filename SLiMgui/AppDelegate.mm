@@ -403,6 +403,11 @@ typedef enum SLiMLaunchAction
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"mailto:philipp.messer@gmail.com?subject=SLiM%20Feedback"]];
 }
 
+- (IBAction)slimWorkshops:(id)sender
+{
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://benhaller.com/workshops/workshops.html"]];
+}
+
 - (IBAction)mailingListAnnounce:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://groups.google.com/d/forum/slim-announce"]];
