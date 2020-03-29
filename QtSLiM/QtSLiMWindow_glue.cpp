@@ -55,7 +55,7 @@ void QtSLiMWindow::glueUI(void)
 
     connect(ui->clearOutputButton, &QPushButton::clicked, this, &QtSLiMWindow::clearOutputClicked);
     connect(ui->dumpPopulationButton, &QPushButton::clicked, this, &QtSLiMWindow::dumpPopulationClicked);
-    connect(ui->graphPopupButton, &QPushButton::clicked, this, &QtSLiMWindow::graphPopupButtonClicked);
+    //connect(ui->graphPopupButton, &QPushButton::clicked, this, &QtSLiMWindow::graphPopupButtonClicked); // this button runs when it is pressed
     connect(ui->changeDirectoryButton, &QPushButton::clicked, this, &QtSLiMWindow::changeDirectoryClicked);
 
     // set up all icon-based QPushButtons to change their icon as they track
@@ -438,6 +438,7 @@ void QtSLiMWindow::dumpPopulationReleased(void)
 void QtSLiMWindow::graphPopupButtonPressed(void)
 {
     ui->graphPopupButton->setIcon(QIcon(":/buttons/graph_submenu_H.png"));
+    graphPopupButtonRunMenu();  // this button runs its menu when it is pressed, so make that call here
 }
 void QtSLiMWindow::graphPopupButtonReleased(void)
 {

@@ -77,7 +77,9 @@ SOURCES += \
     QtSLiMConsoleTextEdit.cpp \
     QtSLiM_SLiMgui.cpp \
     QtSLiMTablesDrawer.cpp \
-    QtSLiMFindPanel.cpp
+    QtSLiMFindPanel.cpp \
+    QtSLiMGraphView.cpp \
+    QtSLiMGraphView_MutationFrequencySpectra.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -97,7 +99,9 @@ HEADERS += \
     QtSLiMConsoleTextEdit.h \
     QtSLiM_SLiMgui.h \
     QtSLiMTablesDrawer.h \
-    QtSLiMFindPanel.h
+    QtSLiMFindPanel.h \
+    QtSLiMGraphView.h \
+    QtSLiMGraphView_MutationFrequencySpectra.h
 
 FORMS += \
     QtSLiMWindow.ui \

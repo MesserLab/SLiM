@@ -40,10 +40,12 @@
 class Subpopulation;
 class QCloseEvent;
 class QTextCursor;
+class QDialog;
 class QtSLiMEidosConsole;
 class QtSLiMTablesDrawer;
 class QItemSelection;
 class SLiMgui;
+class QtSLiMGraphView;
 
 
 namespace Ui {
@@ -109,6 +111,13 @@ private:
     QtSLiMEidosConsole *consoleController = nullptr;
     QtSLiMTablesDrawer *tablesDrawerController = nullptr;
     
+    QWidget *graphWindowMutationFreqSpectrum = nullptr;
+    QWidget *graphWindowMutationFreqTrajectories = nullptr;
+    QWidget *graphWindowMutationLossTimeHistogram = nullptr;
+    QWidget *graphWindowMutationFixationTimeHistogram = nullptr;
+    QWidget *graphWindowFitnessOverTime = nullptr;
+    QWidget *graphWindowPopulationVisualization = nullptr;
+    
 public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
     SLiMSim *sim = nullptr;		// the simulation instance for this window
@@ -129,6 +138,14 @@ public:
         nonWF
     } ModelType;
     
+    // dynamic dispatch to linked views – graph windows, etc.
+    enum DynamicDispatchID {
+        updateAfterTick,
+        controllerSelectionChanged,
+        controllerGenerationFinished,
+        controllerRecycled,
+    };
+    
     QtSLiMWindow(QtSLiMWindow::ModelType modelType);                        // untitled window
     explicit QtSLiMWindow(const QString &fileName);                         // window from a file
     QtSLiMWindow(const QString &recipeName, const QString &recipeScript);   // window from a recipe
@@ -147,6 +164,7 @@ public:
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
     
     std::vector<Subpopulation*> selectedSubpopulations(void);
+    void chromosomeSelection(bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase);
     
     inline bool invalidSimulation(void) { return invalidSimulation_; }
     void setInvalidSimulation(bool p_invalid);
@@ -218,7 +236,7 @@ public slots:
 
     void clearOutputClicked(void);
     void dumpPopulationClicked(void);
-    void graphPopupButtonClicked(void);
+    void graphPopupButtonRunMenu(void);
     void changeDirectoryClicked(void);
 
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
@@ -286,6 +304,10 @@ private slots:
     
 protected:
     void closeEvent(QCloseEvent *event) override;
+    QWidget *graphWindowWithView(QtSLiMGraphView *graphView);
+    QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
+    
+    void sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID);
     
 private:
     void glueUI(void);

@@ -84,6 +84,7 @@ public:
     inline void setShouldDrawMutations(bool p_flag) { shouldDrawMutations_ = p_flag; }
     inline void setShouldDrawFixedSubstitutions(bool p_flag) { shouldDrawFixedSubstitutions_ = p_flag; }
     
+    bool hasSelection(void) { return hasSelection_; }
     QtSLiMRange getSelectedRange(void);
     void setSelectedRange(QtSLiMRange p_selectionRange);
     void restoreLastSelection(void);

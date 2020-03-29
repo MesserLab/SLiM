@@ -31,6 +31,9 @@
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiM_SLiMgui.h"
 
+#include "QtSLiMGraphView.h"
+#include "QtSLiMGraphView_MutationFrequencySpectra.h"
+
 #include <QCoreApplication>
 #include <QFontDatabase>
 #include <QFontMetrics>
@@ -145,6 +148,9 @@ void QtSLiMWindow::init(void)
     
     // Watch for changes to the selection in the population tableview
     connect(ui->subpopTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &QtSLiMWindow::subpopSelectionDidChange);
+    
+    // Watch for changes to the selection in the chromosome view
+    connect(ui->chromosomeOverview, &QtSLiMChromosomeWidget::selectedRangeChanged, [this]() { sendAllLinkedViewsSelector(DynamicDispatchID::controllerSelectionChanged); });
     
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
@@ -326,6 +332,10 @@ void QtSLiMWindow::initializeUI(void)
 
 QtSLiMWindow::~QtSLiMWindow()
 {
+    // Do this first, in case it uses any ivars that will be freed
+    setInvalidSimulation(true);
+    
+    // Then tear down the UI
     delete ui;
 
     // Disconnect delegate relationships
@@ -345,8 +355,6 @@ QtSLiMWindow::~QtSLiMWindow()
 	}
 
     Eidos_FreeRNG(sim_RNG);
-
-    setInvalidSimulation(true);
     
     // The console is owned by us, and it owns the variable browser.  Since the parent
     // relationships are set up, they should be released by Qt automatically.
@@ -918,7 +926,22 @@ std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 	}
 	
 	return selectedSubpops;
-}         
+}
+
+void QtSLiMWindow::chromosomeSelection(bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase)
+{
+    QtSLiMChromosomeWidget *chromosomeOverview = ui->chromosomeOverview;
+    
+    if (p_hasSelection)
+        *p_hasSelection = chromosomeOverview->hasSelection();
+    
+    QtSLiMRange selRange = chromosomeOverview->getSelectedRange();
+    
+    if (p_selectionFirstBase)
+        *p_selectionFirstBase = selRange.location;
+    if (p_selectionLastBase)
+        *p_selectionLastBase = selRange.location + selRange.length - 1;
+}
 
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
@@ -1072,6 +1095,49 @@ void QtSLiMWindow::setScriptStringAndInitializeSimulation(std::string string)
 {
     scriptString = string;
     startNewSimulationFromScript();
+}
+
+QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *window)
+{
+    if (window)
+    {
+        QLayout *layout = window->layout();
+        
+        if (layout && (layout->count() > 0))
+        {
+            QLayoutItem *item = layout->itemAt(0);
+            
+            if (item)
+                return qobject_cast<QtSLiMGraphView *>(item->widget());
+        }
+    }
+    return nullptr;
+}
+
+void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID)
+{
+    QtSLiMGraphView *graphViewMutationFreqSpectrum = graphViewForGraphWindow(graphWindowMutationFreqSpectrum);
+    QtSLiMGraphView *graphViewMutationFreqTrajectories = graphViewForGraphWindow(graphWindowMutationFreqTrajectories);
+    QtSLiMGraphView *graphViewMutationLossTimeHistogram = graphViewForGraphWindow(graphWindowMutationLossTimeHistogram);
+    QtSLiMGraphView *graphViewMutationFixationTimeHistogram = graphViewForGraphWindow(graphWindowMutationFixationTimeHistogram);
+    QtSLiMGraphView *graphViewFitnessOverTime = graphViewForGraphWindow(graphWindowFitnessOverTime);
+    QtSLiMGraphView *graphViewPopulationVisualization = graphViewForGraphWindow(graphWindowPopulationVisualization);
+    
+    if (graphViewMutationFreqSpectrum)              graphViewMutationFreqSpectrum->dispatch(dispatchID);
+    if (graphViewMutationFreqTrajectories)          graphViewMutationFreqTrajectories->dispatch(dispatchID);
+    if (graphViewMutationLossTimeHistogram)         graphViewMutationLossTimeHistogram->dispatch(dispatchID);
+    if (graphViewMutationFixationTimeHistogram)     graphViewMutationFixationTimeHistogram->dispatch(dispatchID);
+    if (graphViewFitnessOverTime)                   graphViewFitnessOverTime->dispatch(dispatchID);
+    if (graphViewPopulationVisualization)           graphViewPopulationVisualization->dispatch(dispatchID);
+    
+	/*
+	for (NSWindow *window : linkedWindows)
+	{
+		NSView *contentView = [window contentView];
+		
+		if ([contentView respondsToSelector:selector])
+			[contentView performSelector:selector];
+	}*/
 }
 
 void QtSLiMWindow::updateOutputTextView(void)
@@ -1238,9 +1304,9 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 			sim->chromosome_changed_ = false;
 	}
 	
-	// Update graph windows as well; this will usually trigger a setNeedsDisplay:YES but may do other updating work as well
-//	if (fullUpdate)
-//		[self sendAllLinkedViewsSelector:@selector(updateAfterTick)];
+	// Update graph windows as well; this will usually trigger an update() but may do other updating work as well
+	if (fullUpdate)
+		sendAllLinkedViewsSelector(DynamicDispatchID::updateAfterTick);
 }
 
 void QtSLiMWindow::updatePlayButtonIcon(bool pressed)
@@ -2374,7 +2440,7 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 
     // We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
     // happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
-    //[self sendAllLinkedViewsSelector:@selector(controllerGenerationFinished)];
+    sendAllLinkedViewsSelector(DynamicDispatchID::controllerGenerationFinished);
 
     return stillRunning;
 }
@@ -2843,7 +2909,7 @@ void QtSLiMWindow::recycleClicked(void)
     //[scriptTextView breakUndoCoalescing];
     resetSLiMChangeCount();
     
-    //[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
+    sendAllLinkedViewsSelector(DynamicDispatchID::controllerRecycled);
 }
 
 void QtSLiMWindow::playSpeedChanged(void)
@@ -3061,9 +3127,110 @@ void QtSLiMWindow::dumpPopulationClicked(void)
 	}
 }
 
-void QtSLiMWindow::graphPopupButtonClicked(void)
+QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 {
-    qDebug() << "graphButtonClicked";
+    // Make a new window to show the graph
+    QWidget *window = new QWidget(this, Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
+    QString title = graphView->graphTitle();
+    
+    window->setWindowTitle(title);
+    window->setMinimumSize(250, 250);
+    window->resize(300, 300);
+    
+    // Position the window nicely; FIXME
+    window->move(50, 50);
+    
+    // Install graphView in the window
+    QHBoxLayout *layout = new QHBoxLayout;
+    
+    window->setLayout(layout);
+    layout->setMargin(0);
+    layout->setSpacing(0);
+    layout->addWidget(graphView);
+    
+    return window;
+}
+
+void QtSLiMWindow::graphPopupButtonRunMenu(void)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	//SLiMSim *sim = controller->sim;
+	bool disableAll = false;
+	
+	// When the simulation is not valid and initialized, the context menu is disabled
+	if (controller->invalidSimulation()) // || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+		disableAll = true;
+    
+    QMenu contextMenu("graph_menu", this);
+    
+    QAction *graphMutFreqSpectrum = contextMenu.addAction("Graph Mutation Frequency Spectrum");
+    graphMutFreqSpectrum->setEnabled(!disableAll);
+    
+    QAction *graphMutFreqTrajectories = contextMenu.addAction("Graph Mutation Frequency Trajectories");
+    graphMutFreqTrajectories->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
+    
+    QAction *graphMutLossTimeHist = contextMenu.addAction("Graph Mutation Loss Time Histogram");
+    graphMutLossTimeHist->setEnabled(!disableAll);
+    
+    QAction *graphMutFixTimeHist = contextMenu.addAction("Graph Mutation Fixation Time Histogram");
+    graphMutFixTimeHist->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
+    
+    QAction *graphFitnessVsTime = contextMenu.addAction("Graph Fitness ~ Time");
+    graphFitnessVsTime->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
+    
+    QAction *graphPopVisualization = contextMenu.addAction("Graph Population Visualization");
+    graphPopVisualization->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
+    
+    QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
+    createHaplotypePlot->setEnabled(!disableAll && false);  // disabled until we add haplotype plotting
+    
+    // Run the context menu synchronously
+    // FIXME the menu doesn't go away on mouse-up, annoyingly; not sure how to fix this
+    // see https://stackoverflow.com/questions/60892357/run-a-qt-qmenu-with-exec-and-have-it-close-on-mouse-up
+    QPoint mousePos = QCursor::pos();
+    QAction *action = contextMenu.exec(mousePos);
+    
+    if (action && !controller->invalidSimulation())
+    {
+        QWidget *graphWindow = nullptr;
+        
+        if (action == graphMutFreqSpectrum)
+        {
+            if (!graphWindowMutationFreqSpectrum)
+                graphWindowMutationFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_MutationFrequencySpectra(this));
+            graphWindow = graphWindowMutationFreqSpectrum;
+        }
+        if (action == graphMutFreqTrajectories)
+            ;
+        if (action == graphMutLossTimeHist)
+            ;
+        if (action == graphMutFixTimeHist)
+            ;
+        if (action == graphFitnessVsTime)
+            ;
+        if (action == graphPopVisualization)
+            ;
+        if (action == createHaplotypePlot)
+            ;
+        
+        if (graphWindow)
+        {
+            graphWindow->show();
+            graphWindow->raise();
+            this->activateWindow();     // Qt activates the window even if we don't ask for it; this takes the focus back
+        }
+    }
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    graphPopupButtonReleased();
 }
 
 void QtSLiMWindow::changeDirectoryClicked(void)

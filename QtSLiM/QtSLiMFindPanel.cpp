@@ -2,7 +2,7 @@
 //  QtSLiMFindPanel.cpp
 //  SLiM
 //
-//  Created by Ben Haller on 8/3/2019.
+//  Created by Ben Haller on 3/24/2020.
 //  Copyright (c) 2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //

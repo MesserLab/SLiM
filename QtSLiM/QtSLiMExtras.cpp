@@ -482,6 +482,7 @@ QColor slimColorForFraction(double fraction)
 }
 
 // Nicely formatted memory usage strings
+
 QString stringForByteCount(uint64_t bytes)
 {
     if (bytes > 512L * 1024L * 1024L * 1024L)
@@ -507,6 +508,19 @@ QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharForm
     
 	return byteString;
 }
+
+// Running a panel to obtain numbers from the user
+// The goal here is to avoid a proliferation of dumb forms, by programmatically generating the UI
+
+QStringList QtSLiMRunLineEditArrayDialog(QString title, QStringList captions)
+{
+    
+    
+    return QStringList("20");
+}
+
+
+
 
 
 
