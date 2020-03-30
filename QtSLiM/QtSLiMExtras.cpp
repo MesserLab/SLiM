@@ -22,6 +22,16 @@
 
 #include <QTimer>
 #include <QTextCharFormat>
+#include <QAction>
+#include <QButtonGroup>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QSizePolicy>
+#include <QGridLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QSpacerItem>
+#include <QVBoxLayout>
 #include <QDebug>
 #include <cmath>
 
@@ -512,11 +522,110 @@ QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharForm
 // Running a panel to obtain numbers from the user
 // The goal here is to avoid a proliferation of dumb forms, by programmatically generating the UI
 
-QStringList QtSLiMRunLineEditArrayDialog(QString title, QStringList captions)
+QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QStringList captions, QStringList values)
 {
+    if (captions.size() < 1)
+        return QStringList();
+    if (captions.size() != values.size())
+    {
+        qDebug("QtSLiMRunLineEditArrayDialog: captions and values are not the same length!");
+        return QStringList();
+    }
     
+    // make the dialog with an overall vertical layout
+    QDialog *dialog = new QDialog(parent);
+    QVBoxLayout *verticalLayout = new QVBoxLayout(dialog);
     
-    return QStringList("20");
+    // title label
+    {
+        QLabel *titleLabel = new QLabel(dialog);
+        QFont font;
+        font.setBold(true);
+        font.setWeight(75);
+        titleLabel->setText(title);
+        titleLabel->setFont(font);
+        verticalLayout->addWidget(titleLabel);
+    }
+    
+    // below-title spacer
+    {
+        QSpacerItem *belowTitleSpacer = new QSpacerItem(20, 8, QSizePolicy::Minimum, QSizePolicy::Fixed);
+        verticalLayout->addItem(belowTitleSpacer);
+    }
+    
+    // grid layout
+    QVector<QLineEdit *> lineEdits;
+    
+    {
+        QGridLayout *gridLayout = new QGridLayout();
+        int rowCount = captions.size();
+        
+        for (int rowIndex = 0; rowIndex < rowCount; ++rowIndex)
+        {
+            QString caption = captions[rowIndex];
+            QString value = values[rowIndex];
+            
+            QLabel *paramLabel = new QLabel(dialog);
+            paramLabel->setText(caption);
+            gridLayout->addWidget(paramLabel, rowIndex, 1);
+            
+            QLineEdit *paramLineEdit = new QLineEdit(dialog);
+            paramLineEdit->setText(value);
+            paramLineEdit->setFixedWidth(60);
+            paramLineEdit->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            gridLayout->addWidget(paramLineEdit, rowIndex, 3);
+            
+            lineEdits.push_back(paramLineEdit);
+        }
+        
+        // spacers, which only need to exist in the first row of the grid
+        {
+            QSpacerItem *leftMarginSpacer = new QSpacerItem(16, 5, QSizePolicy::Fixed, QSizePolicy::Minimum);
+            gridLayout->addItem(leftMarginSpacer, 0, 0);
+        }
+        {
+            QSpacerItem *internalSpacer = new QSpacerItem(20, 5, QSizePolicy::Fixed, QSizePolicy::Minimum);
+            gridLayout->addItem(internalSpacer, 0, 2);
+        }
+        
+        verticalLayout->addLayout(gridLayout);
+    }
+    
+    // button box
+    {
+        QDialogButtonBox *buttonBox = new QDialogButtonBox(dialog);
+        buttonBox->setOrientation(Qt::Horizontal);
+        buttonBox->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+        verticalLayout->addWidget(buttonBox);
+        
+        QObject::connect(buttonBox, SIGNAL(accepted()), dialog, SLOT(accept()));
+        QObject::connect(buttonBox, SIGNAL(rejected()), dialog, SLOT(reject()));
+    }
+    
+    // fix sizing
+    dialog->setFixedSize(dialog->sizeHint());
+    dialog->setSizeGripEnabled(false);
+    
+    // select the first lineEdit and run the dialog
+    lineEdits[0]->selectAll();
+    
+    int result = dialog->exec();
+    
+    if (result == QDialog::Accepted)
+    {
+        QStringList returnList;
+        
+        for (QLineEdit *lineEdit : lineEdits)
+            returnList.append(lineEdit->text());
+        
+        delete dialog;
+        return returnList;
+    }
+    else
+    {
+        delete dialog;
+        return QStringList();
+    }
 }
 
 

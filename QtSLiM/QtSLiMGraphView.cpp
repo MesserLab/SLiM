@@ -732,11 +732,27 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             }
             if (action == changeXAxisScale)
             {
+                QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a configuration for the axis:",
+                                                                   QStringList{"Minimum value:", "Maximum value:", "Major tick interval:", "Minor tick divisions:", "Tick label precision:"},
+                                                                   QStringList{QString::number(xAxisMin_), QString::number(xAxisMax_), QString::number(xAxisMajorTickInterval_), QString::number(xAxisMajorTickModulus_),QString::number(xAxisTickValuePrecision_)});
                 
+                if (choices.length() == 5)
+                {
+                    xAxisMin_ = choices[0].toDouble();
+                    xAxisMax_ = choices[1].toDouble();
+                    xAxisMajorTickInterval_ = choices[2].toDouble();
+                    xAxisMajorTickModulus_ = choices[3].toInt();
+                    xAxisTickValuePrecision_ = choices[4].toInt();
+                    xAxisMinorTickInterval_ = xAxisMajorTickInterval_ / xAxisMajorTickModulus_;
+                    xAxisIsUserRescaled_ = true;
+                    
+                    invalidateDrawingCache();
+                    update();
+                }
             }
             if (action == changeXBarCount)
             {
-                QStringList choices = QtSLiMRunLineEditArrayDialog("Choose a bar count:", QStringList("Bar count:"));
+                QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a bar count:", QStringList("Bar count:"), QStringList(QString::number(histogramBinCount_)));
                 
                 if (choices.length() == 1)
                 {
@@ -753,7 +769,23 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             }
             if (action == changeYAxisScale)
             {
+                QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a configuration for the axis:",
+                                                                   QStringList{"Minimum value:", "Maximum value:", "Major tick interval:", "Minor tick divisions:", "Tick label precision:"},
+                                                                   QStringList{QString::number(yAxisMin_), QString::number(yAxisMax_), QString::number(yAxisMajorTickInterval_), QString::number(yAxisMajorTickModulus_),QString::number(yAxisTickValuePrecision_)});
                 
+                if (choices.length() == 5)
+                {
+                    yAxisMin_ = choices[0].toDouble();
+                    yAxisMax_ = choices[1].toDouble();
+                    yAxisMajorTickInterval_ = choices[2].toDouble();
+                    yAxisMajorTickModulus_ = choices[3].toInt();
+                    yAxisTickValuePrecision_ = choices[4].toInt();
+                    yAxisMinorTickInterval_ = yAxisMajorTickInterval_ / yAxisMajorTickModulus_;
+                    yAxisIsUserRescaled_ = true;
+                    
+                    invalidateDrawingCache();
+                    update();
+                }
             }
             if (action == copyGraph)
             {

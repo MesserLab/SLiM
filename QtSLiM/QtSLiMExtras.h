@@ -86,7 +86,7 @@ QString stringForByteCount(uint64_t bytes);
 QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharFormat &format);
 
 // Running a panel to obtain numbers from the user
-QStringList QtSLiMRunLineEditArrayDialog(QString title, QStringList captions);
+QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QStringList captions, QStringList values);
 
 
 #endif // QTSLIMEXTRAS_H
