@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_MutationFrequencySpectra.cpp
+//  QtSLiMGraphView_FrequencySpectra.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
@@ -17,12 +17,12 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "QtSLiMGraphView_MutationFrequencySpectra.h"
+#include "QtSLiMGraphView_FrequencySpectra.h"
 
 #include "QtSLiMWindow.h"
 
 
-QtSLiMGraphView_MutationFrequencySpectra::QtSLiMGraphView_MutationFrequencySpectra(QWidget *parent) : QtSLiMGraphView(parent)
+QtSLiMGraphView_FrequencySpectra::QtSLiMGraphView_FrequencySpectra(QWidget *parent) : QtSLiMGraphView(parent)
 {
     histogramBinCount_ = 10;
     allowXAxisBinRescale_ = true;
@@ -41,16 +41,16 @@ QtSLiMGraphView_MutationFrequencySpectra::QtSLiMGraphView_MutationFrequencySpect
     showHorizontalGridLines_ = true;
 }
 
-QtSLiMGraphView_MutationFrequencySpectra::~QtSLiMGraphView_MutationFrequencySpectra()
+QtSLiMGraphView_FrequencySpectra::~QtSLiMGraphView_FrequencySpectra()
 {
 }
 
-QString QtSLiMGraphView_MutationFrequencySpectra::graphTitle(void)
+QString QtSLiMGraphView_FrequencySpectra::graphTitle(void)
 {
     return "Mutation Frequency Spectrum";
 }
 
-double *QtSLiMGraphView_MutationFrequencySpectra::mutationFrequencySpectrum(QtSLiMWindow *controller, int mutationTypeCount)
+double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(QtSLiMWindow *controller, int mutationTypeCount)
 {
     static uint32_t *spectrum = nullptr;			// used for tallying
 	static double *doubleSpectrum = nullptr;	// not used for tallying, to avoid precision issues
@@ -137,7 +137,7 @@ double *QtSLiMGraphView_MutationFrequencySpectra::mutationFrequencySpectrum(QtSL
 	return doubleSpectrum;
 }
 
-void QtSLiMGraphView_MutationFrequencySpectra::drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller)
+void QtSLiMGraphView_FrequencySpectra::drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller)
 {
 	int binCount = histogramBinCount_;
 	int mutationTypeCount = static_cast<int>(controller->sim->mutation_types_.size());
@@ -173,22 +173,22 @@ void QtSLiMGraphView_MutationFrequencySpectra::drawGraph(QPainter &painter, QRec
 	}
 }
 
-QtSLiMLegendSpec QtSLiMGraphView_MutationFrequencySpectra::legendKey(void)
+QtSLiMLegendSpec QtSLiMGraphView_FrequencySpectra::legendKey(void)
 {
 	return mutationTypeLegendKey();     // we use the prefab mutation type legend
 }
 
-void QtSLiMGraphView_MutationFrequencySpectra::controllerSelectionChanged(void)
+void QtSLiMGraphView_FrequencySpectra::controllerSelectionChanged(void)
 {
     update();
 }
 
-bool QtSLiMGraphView_MutationFrequencySpectra::providesStringForData(QtSLiMWindow * /* controller */)
+bool QtSLiMGraphView_FrequencySpectra::providesStringForData(QtSLiMWindow * /* controller */)
 {
     return true;
 }
 
-QString QtSLiMGraphView_MutationFrequencySpectra::stringForData(QtSLiMWindow *controller)
+QString QtSLiMGraphView_FrequencySpectra::stringForData(QtSLiMWindow *controller)
 {
     QString string("# Graph data: Mutation frequency spectrum\n");
     

@@ -79,7 +79,9 @@ SOURCES += \
     QtSLiMTablesDrawer.cpp \
     QtSLiMFindPanel.cpp \
     QtSLiMGraphView.cpp \
-    QtSLiMGraphView_MutationFrequencySpectra.cpp
+    QtSLiMGraphView_FixationTimeHistogram.cpp \
+    QtSLiMGraphView_FrequencySpectra.cpp \
+    QtSLiMGraphView_LossTimeHistogram.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -101,7 +103,9 @@ HEADERS += \
     QtSLiMTablesDrawer.h \
     QtSLiMFindPanel.h \
     QtSLiMGraphView.h \
-    QtSLiMGraphView_MutationFrequencySpectra.h
+    QtSLiMGraphView_FixationTimeHistogram.h \
+    QtSLiMGraphView_FrequencySpectra.h \
+    QtSLiMGraphView_LossTimeHistogram.h
 
 FORMS += \
     QtSLiMWindow.ui \

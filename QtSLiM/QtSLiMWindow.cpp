@@ -32,7 +32,9 @@
 #include "QtSLiM_SLiMgui.h"
 
 #include "QtSLiMGraphView.h"
-#include "QtSLiMGraphView_MutationFrequencySpectra.h"
+#include "QtSLiMGraphView_FrequencySpectra.h"
+#include "QtSLiMGraphView_LossTimeHistogram.h"
+#include "QtSLiMGraphView_FixationTimeHistogram.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -3205,15 +3207,23 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         if (action == graphMutFreqSpectrum)
         {
             if (!graphWindowMutationFreqSpectrum)
-                graphWindowMutationFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_MutationFrequencySpectra(this));
+                graphWindowMutationFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_FrequencySpectra(this));
             graphWindow = graphWindowMutationFreqSpectrum;
         }
         if (action == graphMutFreqTrajectories)
             ;
         if (action == graphMutLossTimeHist)
-            ;
+        {
+            if (!graphWindowMutationLossTimeHistogram)
+                graphWindowMutationLossTimeHistogram = graphWindowWithView(new QtSLiMGraphView_LossTimeHistogram(this));
+            graphWindow = graphWindowMutationLossTimeHistogram;
+        }
         if (action == graphMutFixTimeHist)
-            ;
+        {
+            if (!graphWindowMutationFixationTimeHistogram)
+                graphWindowMutationFixationTimeHistogram = graphWindowWithView(new QtSLiMGraphView_FixationTimeHistogram(this));
+            graphWindow = graphWindowMutationFixationTimeHistogram;
+        }
         if (action == graphFitnessVsTime)
             ;
         if (action == graphPopVisualization)

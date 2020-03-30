@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_MutationFrequencySpectra.h
+//  QtSLiMGraphView_FrequencySpectra.h
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
@@ -17,21 +17,21 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef QTSLIMGRAPHVIEW_MUTATIONFREQUENCYSPECTRA_H
-#define QTSLIMGRAPHVIEW_MUTATIONFREQUENCYSPECTRA_H
+#ifndef QTSLIMGRAPHVIEW_FREQUENCYSPECTRA_H
+#define QTSLIMGRAPHVIEW_FREQUENCYSPECTRA_H
 
 #include <QWidget>
 
 #include "QtSLiMGraphView.h"
 
 
-class QtSLiMGraphView_MutationFrequencySpectra : public QtSLiMGraphView
+class QtSLiMGraphView_FrequencySpectra : public QtSLiMGraphView
 {
     Q_OBJECT
     
 public:
-    explicit QtSLiMGraphView_MutationFrequencySpectra(QWidget *parent = nullptr);
-    ~QtSLiMGraphView_MutationFrequencySpectra() override;
+    explicit QtSLiMGraphView_FrequencySpectra(QWidget *parent = nullptr);
+    ~QtSLiMGraphView_FrequencySpectra() override;
     
     QString graphTitle(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller) override;
@@ -47,7 +47,7 @@ private:
 };
 
 
-#endif // QTSLIMGRAPHVIEW_MUTATIONFREQUENCYSPECTRA_H
+#endif // QTSLIMGRAPHVIEW_FREQUENCYSPECTRA_H
 
 
 
