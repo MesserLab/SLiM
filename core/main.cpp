@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 	// command-line SLiM generally terminates rather than throwing
 	gEidosTerminateThrows = false;
 	
-	// "slim" with no arguments prints uage, *unless* stdin is not a tty, in which case we're running the stdin script
+	// "slim" with no arguments prints usage, *unless* stdin is not a tty, in which case we're running the stdin script
 	if ((argc == 1) && isatty(fileno(stdin)))
 		PrintUsageAndDie(true, true);
 	
@@ -408,7 +408,8 @@ int main(int argc, char *argv[])
 			if (retval != 0)
 				EIDOS_TERMINATION << std::endl << "ERROR (main): could not access input file: " << input_file << "." << EidosTerminate();
 			
-			if (!S_ISREG(fileInfo.st_mode))
+			// BCH 30 March 2020: adding S_ISFIFO() as a permitted file type here, to re-enable redirection of input
+			if (!S_ISREG(fileInfo.st_mode) && !S_ISFIFO(fileInfo.st_mode))
 			{
 				fclose(fp);
 				EIDOS_TERMINATION << std::endl << "ERROR (main): input file " << input_file << " is not a regular file (it might be a directory or other special file)." << EidosTerminate();
