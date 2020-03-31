@@ -46,7 +46,7 @@ class QtSLiMGraphView : public QWidget
     Q_OBJECT
     
 public:
-    static QFont labelFontOfPointSize(int size);
+    static QFont labelFontOfPointSize(double size);
     static inline QFont fontForAxisLabels(void) { return labelFontOfPointSize(15); }
     static inline QFont fontForTickLabels(void) { return labelFontOfPointSize(10); }
     static inline QFont fontForLegendLabels(void) { return labelFontOfPointSize(10); }
@@ -96,7 +96,7 @@ protected:
     virtual QtSLiMLegendSpec legendKey(void);
     virtual QSize legendSize(QPainter &painter);
     virtual void drawLegend(QPainter &painter, QRect legendRect);
-    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event);
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event, QtSLiMWindow *controller);
     
     // Prefab additions
     QString dateline(void);

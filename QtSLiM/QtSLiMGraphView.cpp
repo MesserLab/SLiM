@@ -33,13 +33,13 @@
 #include <QDebug>
 
 
-QFont QtSLiMGraphView::labelFontOfPointSize(int size)
+QFont QtSLiMGraphView::labelFontOfPointSize(double size)
 {
     static QFont timesNewRoman("Times New Roman", 10);
     
-    // Derive a font of the proper size, while leavingthe original untouched
+    // Derive a font of the proper size, while leaving the original untouched
     QFont font(timesNewRoman);
-    font.setPointSize(size);
+    font.setPointSizeF(size);
     
     return font;
 }
@@ -598,7 +598,7 @@ QString QtSLiMGraphView::dateline(void)
 	return QString("# %1").arg(dateTimeString);
 }
 
-void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */)
+void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */, QtSLiMWindow * /* controller */)
 {
 }
 
@@ -683,7 +683,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
         // we are responsible for adding a separator afterwards if needed
 		int preSubclassItemCount = contextMenu.actions().count();
 		
-		subclassAddItemsToMenu(contextMenu, event);
+		subclassAddItemsToMenu(contextMenu, event, controller);
 		
 		if (preSubclassItemCount != contextMenu.actions().count())
             contextMenu.addSeparator();

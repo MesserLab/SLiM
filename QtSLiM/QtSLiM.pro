@@ -81,7 +81,8 @@ SOURCES += \
     QtSLiMGraphView.cpp \
     QtSLiMGraphView_FixationTimeHistogram.cpp \
     QtSLiMGraphView_FrequencySpectra.cpp \
-    QtSLiMGraphView_LossTimeHistogram.cpp
+    QtSLiMGraphView_LossTimeHistogram.cpp \
+    QtSLiMGraphView_PopulationVisualization.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -105,7 +106,8 @@ HEADERS += \
     QtSLiMGraphView.h \
     QtSLiMGraphView_FixationTimeHistogram.h \
     QtSLiMGraphView_FrequencySpectra.h \
-    QtSLiMGraphView_LossTimeHistogram.h
+    QtSLiMGraphView_LossTimeHistogram.h \
+    QtSLiMGraphView_PopulationVisualization.h
 
 FORMS += \
     QtSLiMWindow.ui \

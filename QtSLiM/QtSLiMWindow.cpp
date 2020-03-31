@@ -35,6 +35,7 @@
 #include "QtSLiMGraphView_FrequencySpectra.h"
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
+#include "QtSLiMGraphView_PopulationVisualization.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -3227,7 +3228,11 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         if (action == graphFitnessVsTime)
             ;
         if (action == graphPopVisualization)
-            ;
+        {
+            if (!graphWindowPopulationVisualization)
+                graphWindowPopulationVisualization = graphWindowWithView(new QtSLiMGraphView_PopulationVisualization(this));
+            graphWindow = graphWindowPopulationVisualization;
+        }
         if (action == createHaplotypePlot)
             ;
         
