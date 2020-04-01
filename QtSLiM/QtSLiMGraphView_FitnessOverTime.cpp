@@ -120,7 +120,7 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 				{
 					double historyEntry = history[i];
 					
-					if (!isnan(historyEntry))
+					if (!std::isnan(historyEntry))
 					{
 						if (historyEntry > maxHistory)
 							maxHistory = historyEntry;
@@ -132,7 +132,7 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 		}
 		
 		// set axis range to encompass the data
-		if (!isinf(minHistory) && !isinf(maxHistory))
+		if (!std::isinf(minHistory) && !std::isinf(maxHistory))
 		{
 			if ((minHistory < 0.9) || (maxHistory > 1.1))	// if we're outside our original axis range...
 			{
@@ -239,7 +239,7 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
 				{
 					double historyEntry = history[i];
 					
-					if (!isnan(historyEntry))
+					if (!std::isnan(historyEntry))
 					{
 						QPointF historyPoint(plotToDeviceX(i, interiorRect), plotToDeviceY(historyEntry, interiorRect));
 						
@@ -269,7 +269,7 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
 			{
 				double historyEntry = history[i];
 				
-				if (!isnan(historyEntry))
+				if (!std::isnan(historyEntry))
 				{
 					QPointF historyPoint(plotToDeviceX(i, interiorRect), plotToDeviceY(historyEntry, interiorRect));
 					
@@ -319,7 +319,7 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
 				{
 					double historyEntry = history[i];
 					
-					if (isnan(historyEntry))
+					if (std::isnan(historyEntry))
 					{
 						startedLine = false;
 					}
@@ -357,7 +357,7 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
 			{
 				double historyEntry = history[i];
 				
-				if (isnan(historyEntry))
+				if (std::isnan(historyEntry))
 				{
 					startedLine = false;
 				}

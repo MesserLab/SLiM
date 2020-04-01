@@ -262,7 +262,7 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 		double y = center_y[subpopIndex];
 		
 		// If any node has a NaN value, that is an immediate disqualifier; I'm not sure how it happens, but it occasionally does
-		if (isnan(x) || isnan(y))
+		if (std::isnan(x) || std::isnan(y))
 			return -100000000;
 		
 		if (x < minx) minx = x;
