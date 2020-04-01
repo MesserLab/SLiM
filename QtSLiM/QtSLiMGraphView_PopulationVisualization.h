@@ -30,12 +30,12 @@ class QtSLiMGraphView_PopulationVisualization : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    explicit QtSLiMGraphView_PopulationVisualization(QWidget *parent = nullptr);
+    QtSLiMGraphView_PopulationVisualization(QWidget *parent, QtSLiMWindow *controller);
     ~QtSLiMGraphView_PopulationVisualization() override;
     
     QString graphTitle(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller) override;
-    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event, QtSLiMWindow *controller) override;
+    void drawGraph(QPainter &painter, QRect interiorRect) override;
+    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
     
 public slots:
     void toggleOptimizedPositions(void);
@@ -45,10 +45,10 @@ private:
     
     bool optimizePositions_;
     double scorePositions(double *center_x, double *center_y, bool *connected, size_t subpopCount);
-    void optimizePositions(QtSLiMWindow *controller);    
+    void optimizePositions(void);    
     
     QRectF rectForSubpop(Subpopulation *subpop, QPointF center);
-    void drawSubpop(QPainter &painter, Subpopulation *subpop, slim_objectid_t subpopID, QPointF center, QtSLiMWindow *controller);
+    void drawSubpop(QPainter &painter, Subpopulation *subpop, slim_objectid_t subpopID, QPointF center);
     void drawArrowFromSubpopToSubpop(QPainter &painter, Subpopulation *sourceSubpop, Subpopulation *destSubpop, double migrantFraction);
 };
 

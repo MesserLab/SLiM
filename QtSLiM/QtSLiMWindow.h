@@ -161,6 +161,7 @@ public:
     static std::string defaultNonWFScriptString(void);
 
     static const QColor &blackContrastingColorForIndex(int index);
+    static const QColor &whiteContrastingColorForIndex(int index);
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
     
     std::vector<Subpopulation*> selectedSubpopulations(void);

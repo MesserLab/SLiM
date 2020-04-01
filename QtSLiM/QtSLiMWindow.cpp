@@ -36,6 +36,7 @@
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
+#include "QtSLiMGraphView_FitnessOverTime.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -452,6 +453,24 @@ const QColor &QtSLiMWindow::blackContrastingColorForIndex(int index)
 	}
 	
 	return ((index >= 0) && (index <= 6)) ? colorArray[static_cast<size_t>(index)] : colorArray[7];
+}
+
+const QColor &QtSLiMWindow::whiteContrastingColorForIndex(int index)
+{
+    static std::vector<QColor> colorArray;
+    
+    if (colorArray.size() == 0)
+    {
+        colorArray.emplace_back(QtSLiMColorWithHSV(0.65, 0.75, 1.00, 1.0));
+		colorArray.emplace_back(QtSLiMColorWithHSV(0.55, 1.00, 1.00, 1.0));
+		colorArray.emplace_back(QtSLiMColorWithHSV(0.40, 1.00, 0.80, 1.0));
+		colorArray.emplace_back(QtSLiMColorWithHSV(0.08, 0.75, 1.00, 1.0));
+		colorArray.emplace_back(QtSLiMColorWithHSV(0.00, 0.85, 1.00, 1.0));
+		colorArray.emplace_back(QtSLiMColorWithHSV(0.80, 0.85, 1.00, 1.0));
+		colorArray.emplace_back(QtSLiMColorWithHSV(0.00, 0.00, 0.50, 1.0));
+    }
+    
+    return ((index >= 0) && (index <= 5)) ? colorArray[static_cast<size_t>(index)] : colorArray[6];
 }
 
 void QtSLiMWindow::colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha)
@@ -3208,7 +3227,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         if (action == graphMutFreqSpectrum)
         {
             if (!graphWindowMutationFreqSpectrum)
-                graphWindowMutationFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_FrequencySpectra(this));
+                graphWindowMutationFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_FrequencySpectra(this, this));
             graphWindow = graphWindowMutationFreqSpectrum;
         }
         if (action == graphMutFreqTrajectories)
@@ -3216,21 +3235,25 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         if (action == graphMutLossTimeHist)
         {
             if (!graphWindowMutationLossTimeHistogram)
-                graphWindowMutationLossTimeHistogram = graphWindowWithView(new QtSLiMGraphView_LossTimeHistogram(this));
+                graphWindowMutationLossTimeHistogram = graphWindowWithView(new QtSLiMGraphView_LossTimeHistogram(this, this));
             graphWindow = graphWindowMutationLossTimeHistogram;
         }
         if (action == graphMutFixTimeHist)
         {
             if (!graphWindowMutationFixationTimeHistogram)
-                graphWindowMutationFixationTimeHistogram = graphWindowWithView(new QtSLiMGraphView_FixationTimeHistogram(this));
+                graphWindowMutationFixationTimeHistogram = graphWindowWithView(new QtSLiMGraphView_FixationTimeHistogram(this, this));
             graphWindow = graphWindowMutationFixationTimeHistogram;
         }
         if (action == graphFitnessVsTime)
-            ;
+        {
+            if (!graphWindowFitnessOverTime)
+                graphWindowFitnessOverTime = graphWindowWithView(new QtSLiMGraphView_FitnessOverTime(this, this));
+            graphWindow = graphWindowFitnessOverTime;
+        }
         if (action == graphPopVisualization)
         {
             if (!graphWindowPopulationVisualization)
-                graphWindowPopulationVisualization = graphWindowWithView(new QtSLiMGraphView_PopulationVisualization(this));
+                graphWindowPopulationVisualization = graphWindowWithView(new QtSLiMGraphView_PopulationVisualization(this, this));
             graphWindow = graphWindowPopulationVisualization;
         }
         if (action == createHaplotypePlot)

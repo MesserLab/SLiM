@@ -44,8 +44,10 @@ QFont QtSLiMGraphView::labelFontOfPointSize(double size)
     return font;
 }
 
-QtSLiMGraphView::QtSLiMGraphView(QWidget *parent) : QWidget(parent)
+QtSLiMGraphView::QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller) : QWidget(parent)
 {
+    controller_ = controller;
+    
     showXAxis_ = true;
     allowXAxisUserRescale_ = true;
     showXAxisTicks_ = true;
@@ -80,6 +82,8 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *parent) : QWidget(parent)
 QtSLiMGraphView::~QtSLiMGraphView()
 {
     cleanup();
+    
+    controller_ = nullptr;
 }
 
 void QtSLiMGraphView::cleanup()
@@ -138,7 +142,7 @@ double QtSLiMGraphView::roundPlotToDeviceY(double ploty, QRect interiorRect)
 	return SLIM_SCREEN_ROUND(fractionAlongAxis * (interiorRect.height() - 1.0) + interiorRect.y()) + 0.5;
 }
 
-void QtSLiMGraphView::willDraw(QPainter & /* painter */, QRect /* interiorRect */, QtSLiMWindow * /* controller */)
+void QtSLiMGraphView::willDraw(QPainter & /* painter */, QRect /* interiorRect */)
 {
 }
 
@@ -358,7 +362,7 @@ void QtSLiMGraphView::drawMessage(QPainter &painter, QString messageString, QRec
     painter.drawText(rect, Qt::AlignHCenter | Qt::AlignVCenter, messageString, nullptr);
 }
 
-void QtSLiMGraphView::drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow * /* controller */)
+void QtSLiMGraphView::drawGraph(QPainter &painter, QRect interiorRect)
 {
     painter.fillRect(interiorRect, QtSLiMColorWithHSV(0.15, 0.15, 1.0, 1.0));
 }
@@ -457,9 +461,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
         painter.fillRect(bounds, Qt::white);
     
 	// Get our controller and test for validity, so subclasses don't have to worry about this
-	QtSLiMWindow *controller = slimWindowController();
-	
-	if (!controller->invalidSimulation() && (controller->sim->generation_ > 0))
+	if (!controller_->invalidSimulation() && (controller_->sim->generation_ > 0))
 	{
 		QRect interiorRect = interiorRectForBounds(bounds);
         
@@ -469,7 +471,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
         painter.translate(0, height());
         painter.scale(1.0, -1.0);
 		
-		willDraw(painter, interiorRect, controller);
+		willDraw(painter, interiorRect);
 		
 		// Draw grid lines, if requested, and if tick marks are turned on for the corresponding axis
 		if (showHorizontalGridLines_ && showYAxis_ && showYAxisTicks_)
@@ -483,7 +485,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
         painter.save();
 		//[[NSBezierPath bezierPathWithRect:NSInsetRect(interiorRect, -0.1, -0.1)] addClip];
 		
-		drawGraph(painter, interiorRect, controller);
+		drawGraph(painter, interiorRect);
 		
         painter.restore();
 		
@@ -578,14 +580,14 @@ void QtSLiMGraphView::updateAfterTick(void)
 	update();
 }
 
-bool QtSLiMGraphView::providesStringForData(QtSLiMWindow * /* controller */)
+bool QtSLiMGraphView::providesStringForData(void)
 {
     // subclassers that override stringForData() should also override this to return true
     // this is an annoying substitute for Obj-C's respondsToSelector:
     return false;
 }
 
-QString QtSLiMGraphView::stringForData(QtSLiMWindow * /* controller */)
+QString QtSLiMGraphView::stringForData(void)
 {
     return QString();
 }
@@ -598,15 +600,13 @@ QString QtSLiMGraphView::dateline(void)
 	return QString("# %1").arg(dateTimeString);
 }
 
-void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */, QtSLiMWindow * /* controller */)
+void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */)
 {
 }
 
 void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 {
-    QtSLiMWindow *controller = slimWindowController();
-    
-    if (!controller->invalidSimulation()) // && ![[controller window] attachedSheet])
+    if (!controller_->invalidSimulation()) // && ![[controller window] attachedSheet])
 	{
 		bool addedItems = false;
         QMenu contextMenu("graph_menu", this);
@@ -683,7 +683,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
         // we are responsible for adding a separator afterwards if needed
 		int preSubclassItemCount = contextMenu.actions().count();
 		
-		subclassAddItemsToMenu(contextMenu, event, controller);
+		subclassAddItemsToMenu(contextMenu, event);
 		
 		if (preSubclassItemCount != contextMenu.actions().count())
             contextMenu.addSeparator();
@@ -697,7 +697,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		}
         
 		// Copy/export the data to the clipboard
-		if (providesStringForData(controller))
+		if (providesStringForData())
 		{
             contextMenu.addSeparator();
             copyData = contextMenu.addAction("Copy Data");
@@ -846,7 +846,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             }
             if (action == copyData)
             {
-                QString data = stringForData(controller);
+                QString data = stringForData();
                 QClipboard *clipboard = QGuiApplication::clipboard();
                 clipboard->setText(data);
             }
@@ -863,7 +863,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
                     QFile file(fileName);
                     
                     if (file.open(QFile::WriteOnly | QFile::Text))
-                        file.write(stringForData(controller).toUtf8());
+                        file.write(stringForData().toUtf8());
                     else
                         qApp->beep();
                 }
@@ -874,8 +874,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 
 void QtSLiMGraphView::setXAxisRangeFromGeneration(void)
 {
-    QtSLiMWindow *controller = slimWindowController();
-	SLiMSim *sim = controller->sim;
+	SLiMSim *sim = controller_->sim;
 	slim_generation_t lastGen = sim->EstimatedLastGeneration();
 	
 	// The last generation could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
@@ -910,8 +909,7 @@ void QtSLiMGraphView::setXAxisRangeFromGeneration(void)
 
 QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 {
-    QtSLiMWindow *controller = slimWindowController();
-	SLiMSim *sim = controller->sim;
+	SLiMSim *sim = controller_->sim;
 	int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
 	
 	// if we only have one mutation type, do not show a legend
@@ -932,13 +930,13 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 		QtSLiMLegendEntry &entry = legendKey[static_cast<size_t>(mutationTypeIndex)];
         
         entry.first = labelString;
-        entry.second = controller->blackContrastingColorForIndex(mutationTypeIndex);
+        entry.second = controller_->blackContrastingColorForIndex(mutationTypeIndex);
 	}
 	
 	return legendKey;
 }
 
-void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth)
+void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth)
 {
     // Decide on a display style; if we have lots of width, then we draw bars with a fill color, spaced out nicely,
 	// but if we are cramped for space then we draw solid black bars.  Note the latter style does not really
@@ -1000,7 +998,7 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
 				}
 				else
 				{
-                    painter.fillRect(barRect, controller->blackContrastingColorForIndex(subBinIndex));
+                    painter.fillRect(barRect, controller_->blackContrastingColorForIndex(subBinIndex));
                     QtSLiMFrameRect(barRect, Qt::black, painter);
 				}
 			}
@@ -1008,9 +1006,9 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
 	}
 }
 
-void QtSLiMGraphView::drawBarplot(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller, double *buffer, int binCount, double firstBinValue, double binWidth)
+void QtSLiMGraphView::drawBarplot(QPainter &painter, QRect interiorRect, double *buffer, int binCount, double firstBinValue, double binWidth)
 {
-	drawGroupedBarplot(painter, interiorRect, controller, buffer, 1, binCount, firstBinValue, binWidth);
+	drawGroupedBarplot(painter, interiorRect, buffer, 1, binCount, firstBinValue, binWidth);
 }
 
 

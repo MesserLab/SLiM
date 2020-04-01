@@ -22,7 +22,7 @@
 #include "QtSLiMWindow.h"
 
 
-QtSLiMGraphView_FixationTimeHistogram::QtSLiMGraphView_FixationTimeHistogram(QWidget *parent) : QtSLiMGraphView(parent)
+QtSLiMGraphView_FixationTimeHistogram::QtSLiMGraphView_FixationTimeHistogram(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 10;
     //allowXAxisBinRescale_ = true;     // not supported yet
@@ -51,12 +51,12 @@ QString QtSLiMGraphView_FixationTimeHistogram::graphTitle(void)
     return "Mutation Fixation Time";
 }
 
-double *QtSLiMGraphView_FixationTimeHistogram::fixationTimeData(QtSLiMWindow *controller)
+double *QtSLiMGraphView_FixationTimeHistogram::fixationTimeData(void)
 {
     int binCount = histogramBinCount_;
-	int mutationTypeCount = static_cast<int>(controller->sim->mutation_types_.size());
-	slim_generation_t *histogram = controller->sim->population_.mutation_fixation_times_;
-	int64_t histogramBins = static_cast<int64_t>(controller->sim->population_.mutation_fixation_gen_slots_);	// fewer than binCount * mutationTypeCount may exist
+	int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
+	slim_generation_t *histogram = controller_->sim->population_.mutation_fixation_times_;
+	int64_t histogramBins = static_cast<int64_t>(controller_->sim->population_.mutation_fixation_gen_slots_);	// fewer than binCount * mutationTypeCount may exist
 	static double *rebin = nullptr;
 	static size_t rebinBins = 0;
 	size_t usedRebinBins = static_cast<size_t>(binCount * mutationTypeCount);
@@ -105,14 +105,14 @@ double *QtSLiMGraphView_FixationTimeHistogram::fixationTimeData(QtSLiMWindow *co
 	return rebin;
 }
 
-void QtSLiMGraphView_FixationTimeHistogram::drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller)
+void QtSLiMGraphView_FixationTimeHistogram::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    double *plotData = fixationTimeData(controller);
+    double *plotData = fixationTimeData();
 	int binCount = histogramBinCount_;
-    int mutationTypeCount = static_cast<int>(controller->sim->mutation_types_.size());
+    int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
 	
 	// plot our histogram bars
-	drawGroupedBarplot(painter, interiorRect, controller, plotData, mutationTypeCount, binCount, 0.0, 100.0);
+	drawGroupedBarplot(painter, interiorRect, plotData, mutationTypeCount, binCount, 0.0, 100.0);
 }
 
 QtSLiMLegendSpec QtSLiMGraphView_FixationTimeHistogram::legendKey(void)
@@ -120,21 +120,21 @@ QtSLiMLegendSpec QtSLiMGraphView_FixationTimeHistogram::legendKey(void)
 	return mutationTypeLegendKey();     // we use the prefab mutation type legend
 }
 
-bool QtSLiMGraphView_FixationTimeHistogram::providesStringForData(QtSLiMWindow * /* controller */)
+bool QtSLiMGraphView_FixationTimeHistogram::providesStringForData(void)
 {
     return true;
 }
 
-QString QtSLiMGraphView_FixationTimeHistogram::stringForData(QtSLiMWindow *controller)
+QString QtSLiMGraphView_FixationTimeHistogram::stringForData(void)
 {
     QString string("# Graph data: Mutation fixation time histogram\n");
 	
     string.append(dateline());
     string.append("\n\n");
 	
-	double *plotData = fixationTimeData(controller);
+	double *plotData = fixationTimeData();
 	int binCount = histogramBinCount_;
-	SLiMSim *sim = controller->sim;
+	SLiMSim *sim = controller_->sim;
     int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
 	
 	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)

@@ -22,7 +22,7 @@
 #include "QtSLiMWindow.h"
 
 
-QtSLiMGraphView_FrequencySpectra::QtSLiMGraphView_FrequencySpectra(QWidget *parent) : QtSLiMGraphView(parent)
+QtSLiMGraphView_FrequencySpectra::QtSLiMGraphView_FrequencySpectra(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 10;
     allowXAxisBinRescale_ = true;
@@ -50,7 +50,7 @@ QString QtSLiMGraphView_FrequencySpectra::graphTitle(void)
     return "Mutation Frequency Spectrum";
 }
 
-double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(QtSLiMWindow *controller, int mutationTypeCount)
+double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(int mutationTypeCount)
 {
     static uint32_t *spectrum = nullptr;			// used for tallying
 	static double *doubleSpectrum = nullptr;	// not used for tallying, to avoid precision issues
@@ -74,10 +74,10 @@ double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(QtSLiMWindow
 	bool hasSelection;
 	slim_position_t selectionFirstBase;
 	slim_position_t selectionLastBase;
-    controller->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
+    controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
 	
 	// tally into our bins
-	SLiMSim *sim = controller->sim;
+	SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
 	
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
@@ -137,20 +137,20 @@ double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(QtSLiMWindow
 	return doubleSpectrum;
 }
 
-void QtSLiMGraphView_FrequencySpectra::drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller)
+void QtSLiMGraphView_FrequencySpectra::drawGraph(QPainter &painter, QRect interiorRect)
 {
 	int binCount = histogramBinCount_;
-	int mutationTypeCount = static_cast<int>(controller->sim->mutation_types_.size());
-	double *spectrum = mutationFrequencySpectrum(controller, mutationTypeCount);
+	int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
+	double *spectrum = mutationFrequencySpectrum(mutationTypeCount);
 	
 	// plot our histogram bars
-	drawGroupedBarplot(painter, interiorRect, controller, spectrum, mutationTypeCount, binCount, 0.0, (1.0 / binCount));
+	drawGroupedBarplot(painter, interiorRect, spectrum, mutationTypeCount, binCount, 0.0, (1.0 / binCount));
 	
 	// if we have a limited selection range, overdraw a note about that
     bool hasSelection;
 	slim_position_t selectionFirstBase;
 	slim_position_t selectionLastBase;
-    controller->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
+    controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
 	
 	if (hasSelection)
 	{
@@ -183,12 +183,12 @@ void QtSLiMGraphView_FrequencySpectra::controllerSelectionChanged(void)
     update();
 }
 
-bool QtSLiMGraphView_FrequencySpectra::providesStringForData(QtSLiMWindow * /* controller */)
+bool QtSLiMGraphView_FrequencySpectra::providesStringForData(void)
 {
     return true;
 }
 
-QString QtSLiMGraphView_FrequencySpectra::stringForData(QtSLiMWindow *controller)
+QString QtSLiMGraphView_FrequencySpectra::stringForData(void)
 {
     QString string("# Graph data: Mutation frequency spectrum\n");
     
@@ -196,7 +196,7 @@ QString QtSLiMGraphView_FrequencySpectra::stringForData(QtSLiMWindow *controller
 	bool hasSelection;
 	slim_position_t selectionFirstBase;
 	slim_position_t selectionLastBase;
-    controller->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
+    controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
 
 	if (hasSelection)
         string.append(QString("# Selected chromosome range: %1 – %2\n").arg(selectionFirstBase).arg(selectionLastBase));
@@ -205,9 +205,9 @@ QString QtSLiMGraphView_FrequencySpectra::stringForData(QtSLiMWindow *controller
     string.append("\n\n");
 	
 	int binCount = histogramBinCount_;
-	SLiMSim *sim = controller->sim;
+	SLiMSim *sim = controller_->sim;
 	int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
-	double *plotData = mutationFrequencySpectrum(controller, mutationTypeCount);
+	double *plotData = mutationFrequencySpectrum(mutationTypeCount);
 	
 	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
 	{

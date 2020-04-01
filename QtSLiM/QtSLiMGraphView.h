@@ -52,11 +52,11 @@ public:
     static inline QFont fontForLegendLabels(void) { return labelFontOfPointSize(10); }
     static inline QColor gridLineColor(void) { return QtSLiMColorWithWhite(0.85, 1.0); }
     
-    explicit QtSLiMGraphView(QWidget *parent = nullptr);
+    QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller);
     ~QtSLiMGraphView() override;
     
     virtual QString graphTitle(void) = 0;
-    virtual void drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller);
+    virtual void drawGraph(QPainter &painter, QRect interiorRect);
     
 public slots:
     void dispatch(QtSLiMWindow::DynamicDispatchID dispatchID);  // called by QtSLiMWindow::sendAllLinkedViewsSelector()
@@ -68,7 +68,7 @@ public slots:
     virtual void updateAfterTick(void);
     
 protected:
-    QtSLiMWindow *slimWindowController(void) { return dynamic_cast<QtSLiMWindow *>(window()->parent()); }
+    QtSLiMWindow *controller_ = nullptr;
     
     // Base graphing functionality
     QRect interiorRectForBounds(QRect bounds);
@@ -90,20 +90,20 @@ protected:
     
     // Optional subclass overrides
     virtual void cleanup();
-    virtual void willDraw(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller);
-    virtual bool providesStringForData(QtSLiMWindow *controller);
-    virtual QString stringForData(QtSLiMWindow *controller);    
+    virtual void willDraw(QPainter &painter, QRect interiorRect);
+    virtual bool providesStringForData(void);
+    virtual QString stringForData(void);    
     virtual QtSLiMLegendSpec legendKey(void);
     virtual QSize legendSize(QPainter &painter);
     virtual void drawLegend(QPainter &painter, QRect legendRect);
-    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event, QtSLiMWindow *controller);
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event);
     
     // Prefab additions
     QString dateline(void);
     void setXAxisRangeFromGeneration(void);
     QtSLiMLegendSpec mutationTypeLegendKey(void);
-    void drawGroupedBarplot(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);
-    void drawBarplot(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller, double *buffer, int binCount, double firstBinValue, double binWidth);
+    void drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);
+    void drawBarplot(QPainter &painter, QRect interiorRect, double *buffer, int binCount, double firstBinValue, double binWidth);
     
     // Properties; initialzed in the constructor, these defaults are just zero-fill
     bool showXAxis_ = false;

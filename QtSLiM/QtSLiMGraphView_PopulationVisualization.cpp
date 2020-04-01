@@ -27,7 +27,7 @@
 #include "subpopulation.h"
 
 
-QtSLiMGraphView_PopulationVisualization::QtSLiMGraphView_PopulationVisualization(QWidget *parent) : QtSLiMGraphView(parent)
+QtSLiMGraphView_PopulationVisualization::QtSLiMGraphView_PopulationVisualization(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     showXAxis_ = false;
     showYAxis_ = false;
@@ -61,7 +61,7 @@ QRectF QtSLiMGraphView_PopulationVisualization::rectForSubpop(Subpopulation *sub
 	return QRectF(center.x() - subpopRadius, center.y() - subpopRadius, 2 * subpopRadius, 2 * subpopRadius);
 }
 
-void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subpopulation *subpop, slim_objectid_t subpopID, QPointF center, QtSLiMWindow * /* controller */)
+void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subpopulation *subpop, slim_objectid_t subpopID, QPointF center)
 {
 	// figure out the right radius, clamped to reasonable limits
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
@@ -192,9 +192,7 @@ void QtSLiMGraphView_PopulationVisualization::drawArrowFromSubpopToSubpop(QPaint
     bezierLines.moveTo(QPointF(shiftedSourceEndX, shiftedSourceEndY));
     bezierLines.cubicTo(QPointF(shiftedControl1X, shiftedControl1Y), QPointF(shiftedControl2X, shiftedControl2Y), QPointF(shiftedDestEndX, shiftedDestEndY));
     
-    painter.setPen(QPen(Qt::black, lineWidth));
-    painter.setBrush(Qt::NoBrush);
-    painter.drawPath(bezierLines);
+    painter.strokePath(bezierLines, QPen(Qt::black, lineWidth));
 	
 	// restore the clipping path
     painter.restore();
@@ -218,9 +216,7 @@ void QtSLiMGraphView_PopulationVisualization::drawArrowFromSubpopToSubpop(QPaint
     bezierArrowheads.lineTo(shiftedDestEndX + headMidlineNormDX * 1.75 + headPerpendicular2DX * 0.9, shiftedDestEndY + headMidlineNormDY * 1.75 + headPerpendicular2DY * 0.9);
     bezierArrowheads.closeSubpath();
     
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(Qt::black);
-    painter.drawPath(bezierArrowheads);
+    painter.fillPath(bezierArrowheads, Qt::black);
 }
 
 static bool is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, double p2_x, double p2_y, double p3_x, double p3_y)
@@ -347,9 +343,9 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 #ifdef SLIM_WF_ONLY
 // This is a simple implementation of the algorithm of Fruchterman and Reingold 1991;
 // there are better algorithms out there, but this one is simple...
-void QtSLiMGraphView_PopulationVisualization::optimizePositions(QtSLiMWindow *controller)
+void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 {
-    SLiMSim *sim = controller->sim;
+    SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
 	size_t subpopCount = pop.subpops_.size();
 	
@@ -551,9 +547,9 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(QtSLiMWindow *co
 }
 #endif	// SLIM_WF_ONLY
 
-void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller)
+void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller->sim;
+    SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
 	int subpopCount = static_cast<int>(pop.subpops_.size());
 	
@@ -592,7 +588,7 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		auto subpopIter = pop.subpops_.begin();
 		
 		// a single subpop is shown as a circle at the center
-		drawSubpop(painter, (*subpopIter).second, (*subpopIter).first, QPointF(0.5, 0.5), controller);
+		drawSubpop(painter, (*subpopIter).second, (*subpopIter).first, QPointF(0.5, 0.5));
 	}
 	else if (subpopCount > 1)
 	{
@@ -620,7 +616,7 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		// if position optimization is on, we do that to optimize the positions of the subpops
 #ifdef SLIM_WF_ONLY
 		if ((sim->ModelType() == SLiMModelType::kModelTypeWF) && optimizePositions_ && (subpopCount > 2))
-			optimizePositions(controller);
+			optimizePositions();
 #endif	// SLIM_WF_ONLY
 		
 		if (!allUserConfigured)
@@ -663,7 +659,7 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 				slim_objectid_t subpopID = (*subpopIter).first;
 				QPointF center(subpop->gui_center_x_, subpop->gui_center_y_);
 				
-				drawSubpop(painter, subpop, subpopID, center, controller);
+				drawSubpop(painter, subpop, subpopID, center);
 				++subpopIter;
 			}
 		}
@@ -718,17 +714,10 @@ void QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions(void)
     update();
 }
 
-void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent * /* event */, QtSLiMWindow *controller)
+void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent * /* event */)
 {
     QAction *menuItem = contextMenu.addAction(optimizePositions_ ? "Standard Positions" : "Optimized Positions", this, &QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions);
-    
-    if (!controller)
-    {
-        menuItem->setEnabled(false);
-        return;
-    }
-    
-    SLiMSim *sim = controller->sim;
+    SLiMSim *sim = controller_->sim;
     Population &pop = sim->population_;
     
     // If any subpop has a user-defined center, disable position optimization; it doesn't know how to

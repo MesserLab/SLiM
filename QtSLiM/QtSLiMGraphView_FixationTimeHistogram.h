@@ -30,17 +30,17 @@ class QtSLiMGraphView_FixationTimeHistogram : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    explicit QtSLiMGraphView_FixationTimeHistogram(QWidget *parent = nullptr);
+    QtSLiMGraphView_FixationTimeHistogram(QWidget *parent, QtSLiMWindow *controller);
     ~QtSLiMGraphView_FixationTimeHistogram() override;
     
     QString graphTitle(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect, QtSLiMWindow *controller) override;
+    void drawGraph(QPainter &painter, QRect interiorRect) override;
     QtSLiMLegendSpec legendKey(void) override;
-    bool providesStringForData(QtSLiMWindow *controller) override;
-    QString stringForData(QtSLiMWindow *controller) override;
+    bool providesStringForData(void) override;
+    QString stringForData(void) override;
     
 private:
-    double *fixationTimeData(QtSLiMWindow *controller);    
+    double *fixationTimeData(void);    
 };
 
 
