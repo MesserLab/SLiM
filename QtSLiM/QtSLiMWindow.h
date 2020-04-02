@@ -67,7 +67,7 @@ private:
     QtSLiMWindow *findMainWindow(const QString &fileName) const;
     
     QString curFile;
-    bool isUntitled = false, isRecipe = false;
+    bool isUntitled = false, isRecipe = false, isTransient = false;
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
     
     // recent files
@@ -203,6 +203,7 @@ public:
     void playOrProfile(bool isPlayAction);
     void _generationPlay(void);
     
+    bool windowIsReuseable(void);   // requires isUntitled, !isRecipe, isTransient, and other conditions
     void updateChangeCount(void);
     bool changedSinceRecycle(void);
     void resetSLiMChangeCount(void);

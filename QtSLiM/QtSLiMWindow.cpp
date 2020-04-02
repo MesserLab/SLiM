@@ -64,8 +64,7 @@
 
 // TO DO:
 //
-// implement haplotype display mode in the chromosome view
-// implement pop-up menu for graph pop-up button, graph windows
+// implement haplotype display mode in the chromosome view, and the haplotype plot
 // decide whether to implement the variable browser or not
 // hover preview tooltips in the objects tables; probably hard to do...
 //      https://stackoverflow.com/questions/23111075/how-to-highlight-the-entire-row-on-mouse-hover-in-qtablewidget-qt5
@@ -107,6 +106,7 @@ QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScrip
     setCurrentFile(QString());
     setWindowFilePath(recipeName);
     isRecipe = true;
+    isTransient = false;
     
     // set up the initial script
     ui->scriptTextEdit->setPlainText(recipeScript);
@@ -123,6 +123,7 @@ void QtSLiMWindow::init(void)
     setAttribute(Qt::WA_DeleteOnClose);
     isUntitled = true;
     isRecipe = false;
+    isTransient = true;
     
     // create the window UI
     ui->setupUi(this);
@@ -547,6 +548,11 @@ void QtSLiMWindow::aboutQtSLiM()
     aboutWindow->activateWindow();
 }
 
+bool QtSLiMWindow::windowIsReuseable(void)
+{
+    return (isUntitled && !isRecipe && isTransient && (slimChangeCount == 0) && !isWindowModified());
+}
+
 void QtSLiMWindow::newFile_WF()
 {
     QtSLiMWindow *other = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
@@ -606,7 +612,7 @@ void QtSLiMWindow::openFile(const QString &fileName)
         return;
     }
 
-    if (isUntitled && !isRecipe && (slimChangeCount == 0) && !isWindowModified()) {
+    if (windowIsReuseable()) {
         loadFile(fileName);
         return;
     }
@@ -622,7 +628,7 @@ void QtSLiMWindow::openFile(const QString &fileName)
 
 void QtSLiMWindow::openRecipe(const QString &recipeName, const QString &recipeScript)
 {
-    if (isUntitled && !isRecipe && (slimChangeCount == 0) && !isWindowModified())
+    if (windowIsReuseable())
     {
         if (consoleController)
             consoleController->invalidateSymbolTableAndFunctionMap();
@@ -636,6 +642,7 @@ void QtSLiMWindow::openRecipe(const QString &recipeName, const QString &recipeSc
         
         setWindowFilePath(recipeName);
         isRecipe = true;
+        isTransient = false;
         
         // Update all our UI to reflect the current state of the simulation
         updateAfterTickFull(true);
@@ -791,6 +798,8 @@ void QtSLiMWindow::setCurrentFile(const QString &fileName)
 
     ui->scriptTextEdit->document()->setModified(false);
     setWindowModified(false);
+    if (!isUntitled)
+        isTransient = false;
     
     if (!isUntitled)
         QtSLiMWindow::prependToRecentFiles(curFile);
@@ -2433,6 +2442,8 @@ void QtSLiMWindow::didExecuteScript(void)
 
 bool QtSLiMWindow::runSimOneGeneration(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     // This method should always be used when calling out to run the simulation, because it swaps the correct random number
     // generator stuff in and out bracketing the call to RunOneGeneration().  This bracketing would need to be done around
     // any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
@@ -2913,6 +2924,8 @@ void QtSLiMWindow::generationChanged(void)
 
 void QtSLiMWindow::recycleClicked(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     // Converting a QString to a std::string is surprisingly tricky: https://stackoverflow.com/a/4644922/2752221
     std::string utf8_script_string = ui->scriptTextEdit->toPlainText().toUtf8().constData();
     
@@ -2939,6 +2952,8 @@ void QtSLiMWindow::recycleClicked(void)
 
 void QtSLiMWindow::playSpeedChanged(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
 	// We want our speed to be from the point when the slider changed, not from when play started
     continuousPlayElapsedTimer_.restart();
 	continuousPlayGenerationsCompleted_ = 1;		// this prevents a new generation from executing every time the slider moves a pixel
@@ -2976,6 +2991,8 @@ void QtSLiMWindow::playSpeedChanged(void)
 
 void QtSLiMWindow::toggleDrawerToggled(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     bool newValue = ui->toggleDrawerButton->isChecked();
     
     ui->toggleDrawerButton->setIcon(QIcon(newValue ? ":/buttons/open_type_drawer_H.png" : ":/buttons/open_type_drawer.png"));
@@ -3019,6 +3036,8 @@ void QtSLiMWindow::toggleDrawerToggled(void)
 
 void QtSLiMWindow::showMutationsToggled(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     bool newValue = ui->showMutationsButton->isChecked();
     
     ui->showMutationsButton->setIcon(QIcon(newValue ? ":/buttons/show_mutations_H.png" : ":/buttons/show_mutations.png"));
@@ -3033,6 +3052,8 @@ void QtSLiMWindow::showMutationsToggled(void)
 
 void QtSLiMWindow::showFixedSubstitutionsToggled(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     bool newValue = ui->showFixedSubstitutionsButton->isChecked();
     
     ui->showFixedSubstitutionsButton->setIcon(QIcon(newValue ? ":/buttons/show_fixed_H.png" : ":/buttons/show_fixed.png"));
@@ -3047,6 +3068,8 @@ void QtSLiMWindow::showFixedSubstitutionsToggled(void)
 
 void QtSLiMWindow::showChromosomeMapsToggled(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     bool newValue = ui->showChromosomeMapsButton->isChecked();
     
     ui->showChromosomeMapsButton->setIcon(QIcon(newValue ? ":/buttons/show_recombination_H.png" : ":/buttons/show_recombination.png"));
@@ -3061,6 +3084,8 @@ void QtSLiMWindow::showChromosomeMapsToggled(void)
 
 void QtSLiMWindow::showGenomicElementsToggled(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     bool newValue = ui->showGenomicElementsButton->isChecked();
     
     ui->showGenomicElementsButton->setIcon(QIcon(newValue ? ":/buttons/show_genomicelements_H.png" : ":/buttons/show_genomicelements.png"));
@@ -3093,6 +3118,8 @@ void QtSLiMWindow::scriptHelpClicked(void)
 
 void QtSLiMWindow::showConsoleClicked(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
 
     if (!consoleController)
@@ -3115,6 +3142,8 @@ void QtSLiMWindow::showConsoleClicked(void)
 
 void QtSLiMWindow::showBrowserClicked(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser_H.png" : ":/buttons/show_browser.png"));
 
     qDebug() << "showBrowserClicked: isChecked() == " << ui->browserButton->isChecked();
@@ -3122,11 +3151,15 @@ void QtSLiMWindow::showBrowserClicked(void)
 
 void QtSLiMWindow::clearOutputClicked(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     ui->outputTextEdit->setPlainText("");
 }
 
 void QtSLiMWindow::dumpPopulationClicked(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     try
 	{
 		// dump the population
@@ -3154,6 +3187,8 @@ void QtSLiMWindow::dumpPopulationClicked(void)
 
 QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     // Make a new window to show the graph
     QWidget *window = new QWidget(this, Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
     QString title = graphView->graphTitle();
@@ -3275,7 +3310,10 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphWindow = graphWindowPopulationVisualization;
         }
         if (action == createHaplotypePlot)
-            ;
+        {
+            // move this to createHaplotypePlot() when you create that...
+            isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status            
+        }
         
         if (graphWindow)
         {
@@ -3291,6 +3329,8 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
 
 void QtSLiMWindow::changeDirectoryClicked(void)
 {
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
     QFileDialog dialog(this);
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
     dialog.setFileMode(QFileDialog::Directory);
