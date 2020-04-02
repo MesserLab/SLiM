@@ -3185,6 +3185,115 @@ void QtSLiMWindow::dumpPopulationClicked(void)
 	}
 }
 
+static bool rectIsOnscreen(QRect windowRect)
+{
+    QDesktopWidget *desktop = QApplication::desktop();
+    
+    for (int i = 0, screens = desktop->screenCount(); i < screens; i++)
+    {
+        QRect screenRect = desktop->availableGeometry(i);
+        
+        if (screenRect.contains(windowRect, true))
+            return true;
+    }
+    
+    return false;
+}
+
+void QtSLiMWindow::positionNewGraphWindow(QWidget *window)
+{
+    // force geometry calculation, which is lazy
+    window->setAttribute(Qt::WA_DontShowOnScreen, true);
+    window->show();
+    window->hide();
+    window->setAttribute(Qt::WA_DontShowOnScreen, false);
+    
+    // now get the geometry
+    QRect windowFrame = window->frameGeometry();
+    QRect mainWindowFrame = this->frameGeometry();
+    bool drawerIsOpen = (!!tablesDrawerController);
+    
+    // try along the bottom first
+    {
+        QRect candidateFrame = windowFrame;
+        
+        candidateFrame.moveLeft(mainWindowFrame.left() + openedGraphCount_bottom * (windowFrame.width() + 5));
+        candidateFrame.moveTop(mainWindowFrame.bottom() + 5);
+        
+        if (rectIsOnscreen(candidateFrame) && (candidateFrame.right() <= mainWindowFrame.right()))
+        {
+            window->move(candidateFrame.topLeft());
+            openedGraphCount_bottom++;
+            return;
+        }
+    }
+    
+    // try on the left side
+    {
+        QRect candidateFrame = windowFrame;
+        
+        candidateFrame.moveRight(mainWindowFrame.left() - 5);
+        candidateFrame.moveTop(mainWindowFrame.top() + openedGraphCount_left * (windowFrame.height() + 5));
+        
+        if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= mainWindowFrame.bottom()))    // doesn't overlap anybody else
+        {
+            window->move(candidateFrame.topLeft());
+            openedGraphCount_left++;
+            return;
+        }
+    }
+    
+    // unless the drawer is open, let's try on the right side
+	if (!drawerIsOpen)
+	{
+		QRect candidateFrame = windowFrame;
+		
+		candidateFrame.moveLeft(mainWindowFrame.right() + 5);
+        candidateFrame.moveTop(mainWindowFrame.top() + openedGraphCount_right * (windowFrame.height() + 5));
+		
+        if (rectIsOnscreen(candidateFrame) && (candidateFrame.bottom() <= mainWindowFrame.bottom()))
+        {
+            window->move(candidateFrame.topLeft());
+            openedGraphCount_right++;
+            return;
+        }
+	}
+	
+	// try along the top
+	{
+		QRect candidateFrame = windowFrame;
+		
+		candidateFrame.moveLeft(mainWindowFrame.left() + openedGraphCount_top * (windowFrame.width() + 5));
+		candidateFrame.moveBottom(mainWindowFrame.top() - 5);
+		
+        if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.right() <= mainWindowFrame.right()))    // doesn't overlap anybody else
+        {
+            window->move(candidateFrame.topLeft());
+            openedGraphCount_top++;
+            return;
+        }
+	}
+    
+    // if the drawer is open, try to the right of it
+    if (drawerIsOpen)
+    {
+        QRect drawerFrame = tablesDrawerController->frameGeometry();
+        QRect candidateFrame = windowFrame;
+		
+		candidateFrame.moveLeft(drawerFrame.right() + 5);
+        candidateFrame.moveTop(drawerFrame.top() + openedGraphCount_right * (windowFrame.height() + 5));
+		
+        if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= drawerFrame.bottom()))    // doesn't overlap anybody else
+        {
+            window->move(candidateFrame.topLeft());
+            openedGraphCount_right++;
+            return;
+        }
+    }
+	
+	// if none of those worked, we just leave the window where it got placed out of the nib
+}
+
 QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
@@ -3196,9 +3305,6 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     window->setWindowTitle(title);
     window->setMinimumSize(250, 250);
     window->resize(300, 300);
-    
-    // Position the window nicely; FIXME
-    window->move(50, 50);
     
     // Install graphView in the window
     QVBoxLayout *topLayout = new QVBoxLayout;
@@ -3220,6 +3326,9 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     
     // Give the graph view a chance to do something with the window it's now in
     graphView->addedToWindow();
+    
+    // Position the window nicely
+    positionNewGraphWindow(window);
     
     return window;
 }

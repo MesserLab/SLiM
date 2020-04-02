@@ -118,6 +118,11 @@ private:
     QWidget *graphWindowFitnessOverTime = nullptr;
     QWidget *graphWindowPopulationVisualization = nullptr;
     
+    int openedGraphCount_left = 0;      // used for new graph window positioning
+    int openedGraphCount_right = 0;
+    int openedGraphCount_top = 0;
+    int openedGraphCount_bottom = 0;
+    
 public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
     SLiMSim *sim = nullptr;		// the simulation instance for this window
@@ -306,6 +311,7 @@ private slots:
     
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void positionNewGraphWindow(QWidget *window);
     QWidget *graphWindowWithView(QtSLiMGraphView *graphView);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
     
