@@ -79,6 +79,10 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller) : QW
     showFullBox_ = false;
 }
 
+void QtSLiMGraphView::addedToWindow(void)
+{
+}
+
 QtSLiMGraphView::~QtSLiMGraphView()
 {
     cleanup();
@@ -89,6 +93,28 @@ QtSLiMGraphView::~QtSLiMGraphView()
 void QtSLiMGraphView::cleanup()
 {
     invalidateDrawingCache();
+}
+
+bool QtSLiMGraphView::needsButtonLayout(void)
+{
+    return false;
+}
+
+QHBoxLayout *QtSLiMGraphView::buttonLayout(void)
+{
+    // Note this method makes assumptions about the layouts in the parent window
+    // It needs to be kept parallel to QtSLiMWindow::graphWindowWithView()
+    QVBoxLayout *topLayout = dynamic_cast<QVBoxLayout *>(window()->layout());
+    
+    if (topLayout && (topLayout->count() >= 2))
+    {
+        QLayoutItem *layoutItem = topLayout->itemAt(1);
+        QHBoxLayout *buttonLayout = dynamic_cast<QHBoxLayout *>(layoutItem);
+        
+        return buttonLayout;
+    }
+    
+    return nullptr;
 }
 
 QRect QtSLiMGraphView::interiorRectForBounds(QRect bounds)
@@ -413,7 +439,7 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRect legendRect)
         QtSLiMFrameRect(swatchRect, Qt::black, painter);
         
         double labelX = swatchRect.x() + swatchRect.width() + 5;
-        double labelY = swatchRect.y() - 2;
+        double labelY = swatchRect.y() + 1;
         
         labelY = painter.transform().map(QPointF(labelX, labelY)).y();
         

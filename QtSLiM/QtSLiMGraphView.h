@@ -30,6 +30,8 @@
 #include "QtSLiMExtras.h"
 #include "QtSLiMWindow.h"
 
+class QHBoxLayout;
+
 
 // A quick and dirty macro to enable rounding of coordinates to the nearest pixel only when we are not generating PDF
 // FIXME this ought to be revisited in the light of Retina displays, printing, etc.
@@ -56,10 +58,12 @@ public:
     ~QtSLiMGraphView() override;
     
     virtual QString graphTitle(void) = 0;
+    virtual bool needsButtonLayout(void);
     virtual void drawGraph(QPainter &painter, QRect interiorRect);
     
 public slots:
     void dispatch(QtSLiMWindow::DynamicDispatchID dispatchID);  // called by QtSLiMWindow::sendAllLinkedViewsSelector()
+    virtual void addedToWindow(void);
     virtual void invalidateDrawingCache(void);
     virtual void graphWindowResized(void);
     virtual void controllerRecycled(void);
@@ -97,6 +101,9 @@ protected:
     virtual QSize legendSize(QPainter &painter);
     virtual void drawLegend(QPainter &painter, QRect legendRect);
     virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event);
+    
+    // Adding new widgets at the bottom of the window
+    QHBoxLayout *buttonLayout(void);
     
     // Prefab additions
     QString dateline(void);

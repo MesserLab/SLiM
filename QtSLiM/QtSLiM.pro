@@ -83,7 +83,8 @@ SOURCES += \
     QtSLiMGraphView_FrequencySpectra.cpp \
     QtSLiMGraphView_LossTimeHistogram.cpp \
     QtSLiMGraphView_PopulationVisualization.cpp \
-    QtSLiMGraphView_FitnessOverTime.cpp
+    QtSLiMGraphView_FitnessOverTime.cpp \
+    QtSLiMGraphView_FrequencyTrajectory.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -109,7 +110,8 @@ HEADERS += \
     QtSLiMGraphView_FrequencySpectra.h \
     QtSLiMGraphView_LossTimeHistogram.h \
     QtSLiMGraphView_PopulationVisualization.h \
-    QtSLiMGraphView_FitnessOverTime.h
+    QtSLiMGraphView_FitnessOverTime.h \
+    QtSLiMGraphView_FrequencyTrajectory.h
 
 FORMS += \
     QtSLiMWindow.ui \

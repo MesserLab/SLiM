@@ -37,6 +37,7 @@
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
 #include "QtSLiMGraphView_FitnessOverTime.h"
+#include "QtSLiMGraphView_FrequencyTrajectory.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -53,6 +54,8 @@
 #include <QDesktopWidget>
 #include <QStandardPaths>
 #include <QToolTip>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
 
 #include <unistd.h>
 
@@ -3163,12 +3166,25 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     window->move(50, 50);
     
     // Install graphView in the window
-    QHBoxLayout *layout = new QHBoxLayout;
+    QVBoxLayout *topLayout = new QVBoxLayout;
     
-    window->setLayout(layout);
-    layout->setMargin(0);
-    layout->setSpacing(0);
-    layout->addWidget(graphView);
+    window->setLayout(topLayout);
+    topLayout->setMargin(0);
+    topLayout->setSpacing(0);
+    topLayout->addWidget(graphView);
+    
+    // Add a horizontal layout at the bottom, for popup buttons and such added by the graph
+    if (graphView->needsButtonLayout())
+    {
+        QHBoxLayout *buttonLayout = new QHBoxLayout;
+        
+        buttonLayout->setMargin(5);
+        buttonLayout->setSpacing(5);
+        topLayout->addLayout(buttonLayout);
+    }
+    
+    // Give the graph view a chance to do something with the window it's now in
+    graphView->addedToWindow();
     
     return window;
 }
@@ -3215,8 +3231,6 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     createHaplotypePlot->setEnabled(!disableAll && false);  // disabled until we add haplotype plotting
     
     // Run the context menu synchronously
-    // FIXME the menu doesn't go away on mouse-up, annoyingly; not sure how to fix this
-    // see https://stackoverflow.com/questions/60892357/run-a-qt-qmenu-with-exec-and-have-it-close-on-mouse-up
     QPoint mousePos = QCursor::pos();
     QAction *action = contextMenu.exec(mousePos);
     
@@ -3231,7 +3245,11 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphWindow = graphWindowMutationFreqSpectrum;
         }
         if (action == graphMutFreqTrajectories)
-            ;
+        {
+            if (!graphWindowMutationFreqTrajectories)
+                graphWindowMutationFreqTrajectories = graphWindowWithView(new QtSLiMGraphView_FrequencyTrajectory(this, this));
+            graphWindow = graphWindowMutationFreqTrajectories;
+        }
         if (action == graphMutLossTimeHist)
         {
             if (!graphWindowMutationLossTimeHistogram)
