@@ -399,6 +399,26 @@ std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascend
 
 std::string EidosStringForFloat(double p_value);
 
+// Fisher-Yates Shuffle: choose a random subset of a std::vector, without replacement.
+// see https://stackoverflow.com/questions/9345087/choose-m-elements-randomly-from-a-vector-containing-n-elements
+// see also https://ideone.com/3A3cv for demo code using this
+template<class BidiIter>
+BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
+{
+	size_t left = std::distance(begin, end);
+	
+	while (num_random--)
+	{
+		BidiIter r = begin;
+		std::advance(r, random() % left);
+		std::swap(*begin, *r);
+		++begin;
+		--left;
+	}
+	
+	return begin;
+}
+
 
 // *******************************************************************************************************************
 //
