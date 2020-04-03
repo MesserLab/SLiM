@@ -33,6 +33,9 @@
 #include <QCollator>
 #include <QKeyEvent>
 
+#include <stdio.h>
+#include <unistd.h>
+
 #include "eidos_globals.h"
 #include "eidos_beep.h"
 #include "slim_globals.h"
@@ -45,6 +48,9 @@ QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
 
 QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
 {
+    // Determine whether we were launched from a shell or from something else (Finder, Xcode, etc.)
+	launchedFromShell_ = (isatty(fileno(stdin)) == 1); // && !SLiM_AmIBeingDebugged();
+    
     // Install our custom beep handler
     Eidos_Beep = &Eidos_Beep_QT;
     

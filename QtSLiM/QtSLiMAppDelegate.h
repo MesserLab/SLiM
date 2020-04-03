@@ -36,11 +36,15 @@ class QtSLiMAppDelegate : public QObject
 {
     Q_OBJECT
 
-    std::string app_cwd_;	// the app's current working directory
+    std::string app_cwd_;       // the app's current working directory
+    bool launchedFromShell_;	// true if launched from shell, false if launched from Finder/other
 
 public:
     explicit QtSLiMAppDelegate(QObject *parent);
 
+    // Whether we were launched from a shell (true) or Finder/other (false)
+    bool launchedFromShell(void) { return launchedFromShell_; }
+    
     // The current working directory for the app
     std::string &QtSLiMCurrentWorkingDirectory(void) { return app_cwd_; }
     

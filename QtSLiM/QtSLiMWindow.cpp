@@ -58,6 +58,7 @@
 #include <QVBoxLayout>
 
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "individual.h"
 
@@ -147,8 +148,20 @@ void QtSLiMWindow::init(void)
     
     // We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
     // Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
-    sim_working_dir = Eidos_ResolvedPath("~/Desktop");
-    sim_requested_working_dir = sim_working_dir;	// return to Desktop on recycle unless the user overrides it
+    // BCH 4/2/2020: Per request from PLR, we will now use the Desktop as the default directory only if we were launched by Finder
+    // or equivalent; if we were launched by a shell, we will use the working directory given us by that shell.  See issue #76
+    if (qtSLiMAppDelegate->launchedFromShell())
+        sim_working_dir = qtSLiMAppDelegate->QtSLiMCurrentWorkingDirectory();
+    else
+        sim_working_dir = Eidos_ResolvedPath("~/Desktop");
+    
+    // Check that our chosen working directory actually exists; if not, use ~
+    struct stat buffer;
+    
+    if (stat(sim_working_dir.c_str(), &buffer) != 0)
+        sim_working_dir = Eidos_ResolvedPath("~");
+    
+    sim_requested_working_dir = sim_working_dir;	// return to the working dir on recycle unless the user overrides it
     
     // Wire up things that set the window to be modified.
     connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
