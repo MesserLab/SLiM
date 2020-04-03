@@ -164,7 +164,7 @@
 		NSString *labelText = [NSString stringWithFormat:@"%lld – %lld", (int64_t)selectionFirstBase, (int64_t)selectionLastBase];
 		NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:attrs];
 		NSSize labelSize = [attributedLabel size];
-		double labelX = interiorRect.origin.y + (interiorRect.size.width - labelSize.width) / 2.0;
+		double labelX = interiorRect.origin.x + (interiorRect.size.width - labelSize.width) / 2.0;
 		double labelY = interiorRect.origin.y + interiorRect.size.height - (labelSize.height + 4);
 		
 		[attributedLabel drawAtPoint:NSMakePoint(labelX, labelY)];

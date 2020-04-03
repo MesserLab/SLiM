@@ -57,6 +57,7 @@
 #include <sstream>
 #include <iterator>
 #include <stdexcept>
+#include <sys/stat.h>
 
 
 @implementation SLiMWindowController
@@ -171,8 +172,22 @@
 		
 		// We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
 		// Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
-		sim_working_dir = Eidos_ResolvedPath("~/Desktop");
-		sim_requested_working_dir = sim_working_dir;	// return to Desktop on recycle unless the user overrides it
+		// BCH 4/2/2020: Per request from PLR, we will now use the Desktop as the default directory only if we were launched by Finder
+		// or equivalent; if we were launched by a shell, we will use the working directory given us by that shell.  See issue #76
+		bool launchedFromShell = [(AppDelegate *)[NSApp delegate] launchedFromShell];
+		
+		if (launchedFromShell)
+			sim_working_dir = [(AppDelegate *)[NSApp delegate] SLiMguiCurrentWorkingDirectory];
+		else
+			sim_working_dir = Eidos_ResolvedPath("~/Desktop");
+		
+		// Check that our chosen working directory actually exists; if not, use ~
+		struct stat buffer;
+		
+		if (stat(sim_working_dir.c_str(), &buffer) != 0)
+			sim_working_dir = Eidos_ResolvedPath("~");
+		
+		sim_requested_working_dir = sim_working_dir;	// return to the working dir on recycle unless the user overrides it
 	}
 	
 	return self;

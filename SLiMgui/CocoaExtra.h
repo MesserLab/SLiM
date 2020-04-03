@@ -25,6 +25,9 @@
 class MutationType;
 class InteractionType;
 
+// Returns true if we are running under the debugger
+bool SLiM_AmIBeingDebugged(void);
+
 // An NSTableView subclass that avoids becoming first responder; annoying that this is necessary, sigh...
 @interface SLiMTableView : NSTableView
 @end

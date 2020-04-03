@@ -13,6 +13,7 @@
 #include <string>
 #include <ctime>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/stat.h>
 
 #include "eidos_globals.h"
@@ -36,6 +37,10 @@ int main(int argc, const char * argv[])
 	// parse command-line arguments
 	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false;
+	
+	// "slim" with no arguments prints usage, *unless* stdin is not a tty, in which case we're running the stdin script
+	if ((argc == 1) && isatty(fileno(stdin)))
+		PrintUsageAndDie();
 	
 	for (int arg_index = 1; arg_index < argc; ++arg_index)
 	{
@@ -90,7 +95,7 @@ int main(int argc, const char * argv[])
 	}
 	
 	// check that we got what we need
-	if (!input_file)
+	if (!input_file && isatty(fileno(stdin)))
 		PrintUsageAndDie();
 	
 	// announce if we are running a debug build
@@ -116,52 +121,68 @@ int main(int argc, const char * argv[])
 	Eidos_FinishWarmUp();
 	EidosScript::ClearErrorPosition();
 	
-	// BCH 1/18/2020: check that input_file is a valid path to a file that we can access before opening it
+	EidosScript *script = nullptr;
+	
+	if (!input_file)
 	{
-		FILE *fp = fopen(input_file, "r");
+		// no input file supplied; either the user forgot (if stdin is a tty) or they're piping a script into stdin
+		// we checked for the tty case above, so here we assume stdin will supply the script
+		std::stringstream buffer;
 		
-		if (!fp)
-			EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
+		buffer << std::cin.rdbuf();
 		
-		struct stat fileInfo;
-		int retval = fstat(fileno(fp), &fileInfo);
-		
-		if (retval != 0)
-			EIDOS_TERMINATION << std::endl << "ERROR (main): could not access input file: " << input_file << "." << EidosTerminate();
-		
-		if (!S_ISREG(fileInfo.st_mode))
+		script = new EidosScript(buffer.str());
+	}
+	else
+	{
+		// BCH 1/18/2020: check that input_file is a valid path to a file that we can access before opening it
 		{
+			FILE *fp = fopen(input_file, "r");
+			
+			if (!fp)
+				EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
+			
+			struct stat fileInfo;
+			int retval = fstat(fileno(fp), &fileInfo);
+			
+			if (retval != 0)
+				EIDOS_TERMINATION << std::endl << "ERROR (main): could not access input file: " << input_file << "." << EidosTerminate();
+			
+			// BCH 30 March 2020: adding S_ISFIFO() as a permitted file type here, to re-enable redirection of input
+			if (!S_ISREG(fileInfo.st_mode) && !S_ISFIFO(fileInfo.st_mode))
+			{
+				fclose(fp);
+				EIDOS_TERMINATION << std::endl << "ERROR (main): input file " << input_file << " is not a regular file or a fifo (it might be a directory or other special file)." << EidosTerminate();
+			}
 			fclose(fp);
-			EIDOS_TERMINATION << std::endl << "ERROR (main): input file " << input_file << " is not a regular file (it might be a directory or other special file)." << EidosTerminate();
 		}
-		fclose(fp);
+		
+		std::ifstream infile(input_file);
+		
+		if (!infile.is_open())
+			EIDOS_TERMINATION << "ERROR (eidos): could not open input file: " << input_file << "." << EidosTerminate();
+		
+		infile.seekg(0, std::fstream::beg);
+		std::stringstream buffer;
+		
+		buffer << infile.rdbuf();
+		
+		script = new EidosScript(buffer.str());
 	}
 	
-	std::ifstream infile(input_file);
-	
-	if (!infile.is_open())
-		EIDOS_TERMINATION << "ERROR (eidos): could not open input file: " << input_file << "." << EidosTerminate();
-	
-	infile.seekg(0, std::fstream::beg);
-	std::stringstream buffer;
-	
-	buffer << infile.rdbuf();
-	
-	EidosScript script(buffer.str());
-	
 	// set up top-level error-reporting info
-	gEidosCurrentScript = &script;
+	gEidosCurrentScript = script;
 	gEidosExecutingRuntimeScript = false;
 	
-	script.Tokenize();
-	script.ParseInterpreterBlockToAST(true);
+	script->Tokenize();
+	script->ParseInterpreterBlockToAST(true);
 	
 	// reset error position indicators used by SLiMgui
 	EidosScript::ClearErrorPosition();
 
 	EidosSymbolTable *variable_symbols = new EidosSymbolTable(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
-	EidosInterpreter interpreter(script, *variable_symbols, function_map, nullptr);
+	EidosInterpreter interpreter(*script, *variable_symbols, function_map, nullptr);
 	
 	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
 	std::string output = interpreter.ExecutionOutput();
