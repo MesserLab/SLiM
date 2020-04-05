@@ -22,6 +22,7 @@
 #include <QDateTime>
 #include <QMenu>
 #include <QAction>
+#include <QContextMenuEvent>
 #include <QApplication>
 #include <QGuiApplication>
 #include <QClipboard>

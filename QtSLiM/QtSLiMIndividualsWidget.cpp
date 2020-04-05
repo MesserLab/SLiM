@@ -23,6 +23,7 @@
 
 #include <QMenu>
 #include <QAction>
+#include <QContextMenuEvent>
 #include <QDebug>
 
 

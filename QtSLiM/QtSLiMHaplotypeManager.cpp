@@ -26,6 +26,7 @@
 #include <QDialog>
 #include <QMenu>
 #include <QAction>
+#include <QContextMenuEvent>
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QMimeData>
