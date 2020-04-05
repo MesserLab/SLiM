@@ -12,8 +12,8 @@ TARGET = QtSLiM
 TEMPLATE = app
 
 # Warn and error on usage of deprecated Qt APIs
-DEFINES += QT_DEPRECATED_WARNINGS
-DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+# DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
+DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900    # disables all the APIs deprecated before Qt 5.9.0
 
 # Set up to build QtSLiM; note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro
 DEFINES += EIDOS_GUI
@@ -24,6 +24,9 @@ QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1 -DSLIMPROFILING=0
 QMAKE_CFLAGS_RELEASE += -O3 -DSLIMPROFILING=1
 QMAKE_CXXFLAGS_DEBUG += -g -Og -DDEBUG=1 -DSLIMPROFILING=0
 QMAKE_CXXFLAGS_RELEASE += -O3 -DSLIMPROFILING=1
+
+# get rid of warnings for deprecated declarations (not sure why commenting out QT_DEPRECATED_WARNINGS above is insufficient...)
+QMAKE_CXXFLAGS += -Wno-deprecated-declarations
 
 # get rid of spurious errors on Ubuntu, for now
 linux-*: {
