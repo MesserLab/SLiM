@@ -26,6 +26,7 @@
 #include <QPainter>
 #include <QMenu>
 #include <QAction>
+#include <QMouseEvent>
 #include <QtDebug>
 
 

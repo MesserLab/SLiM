@@ -22,6 +22,7 @@
 #include "ui_QtSLiMTablesDrawer.h"
 
 #include <QPainter>
+#include <QKeyEvent>
 #include <QDebug>
 
 #include "QtSLiMWindow.h"
