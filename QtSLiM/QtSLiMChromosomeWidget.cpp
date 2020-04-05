@@ -21,6 +21,7 @@
 #include "QtSLiMChromosomeWidget.h"
 #include "QtSLiMWindow.h"
 #include "QtSLiMExtras.h"
+#include "QtSLiMHaplotypeManager.h"
 
 #include <QPainter>
 #include <QMenu>
@@ -281,6 +282,11 @@ void QtSLiMChromosomeWidget::restoreLastSelection(void)
     emit selectedRangeChanged();
 }
 
+const std::vector<slim_objectid_t> &QtSLiMChromosomeWidget::displayMuttypes(void)
+{
+    return display_muttypes_;
+}
+
 QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(void)
 {
 	QtSLiMChromosomeWidget *reference = referenceChromosomeView_;
@@ -461,24 +467,23 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 		// draw mutations in interior
 		if (shouldDrawMutations_)
 		{
-//			if (display_haplotypes_)
-//			{
-//				// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
-//				// kSLiMHaplotypeClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
-//				int interiorHeight = (int)ceil(interiorRect.size.height);	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-//				SLiMHaplotypeManager *haplotypeManager = [[SLiMHaplotypeManager alloc] initWithClusteringMethod:kSLiMHaplotypeClusterNearestNeighbor optimizationMethod:kSLiMHaplotypeClusterNoOptimization sourceController:controller sampleSize:interiorHeight clusterInBackground:NO];
+			if (display_haplotypes_)
+			{
+				// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
+				// kSLiMHaplotypeClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
+				size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
+				QtSLiMHaplotypeManager haplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller, interiorHeight, false);
 				
-//				[haplotypeManager glDrawHaplotypesInRect:interiorRect displayBlackAndWhite:NO showSubpopStrips:NO eraseBackground:NO];
+				haplotypeManager.glDrawHaplotypes(interiorRect, false, false, false, &haplotype_previous_bincounts);
 				
-//				// it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
-//				// time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
-//				[haplotypeManager release];
-//			}
-//			else
-//			{
+				// it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
+				// time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
+			}
+			else
+			{
 				// display mutations as a frequency plot; this is the standard display mode
                 glDrawMutations(interiorRect, controller, displayedRange);
-//			}
+			}
 		}
     }
     else
@@ -1393,7 +1398,6 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
                 QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
                 displayHaplotypes->setCheckable(true);
                 displayHaplotypes->setChecked(display_haplotypes_);
-                displayHaplotypes->setEnabled(false);                   // disable this until haplotype display is supported
                 
                 contextMenu.addSeparator();
                 

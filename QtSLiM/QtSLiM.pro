@@ -84,7 +84,10 @@ SOURCES += \
     QtSLiMGraphView_LossTimeHistogram.cpp \
     QtSLiMGraphView_PopulationVisualization.cpp \
     QtSLiMGraphView_FitnessOverTime.cpp \
-    QtSLiMGraphView_FrequencyTrajectory.cpp
+    QtSLiMGraphView_FrequencyTrajectory.cpp \
+    QtSLiMHaplotypeManager.cpp \
+    QtSLiMHaplotypeOptions.cpp \
+    QtSLiMHaplotypeProgress.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -111,7 +114,10 @@ HEADERS += \
     QtSLiMGraphView_LossTimeHistogram.h \
     QtSLiMGraphView_PopulationVisualization.h \
     QtSLiMGraphView_FitnessOverTime.h \
-    QtSLiMGraphView_FrequencyTrajectory.h
+    QtSLiMGraphView_FrequencyTrajectory.h \
+    QtSLiMHaplotypeManager.h \
+    QtSLiMHaplotypeOptions.h \
+    QtSLiMHaplotypeProgress.h
 
 FORMS += \
     QtSLiMWindow.ui \
@@ -121,7 +127,9 @@ FORMS += \
     QtSLiMHelpWindow.ui \
     QtSLiMEidosConsole.ui \
     QtSLiMTablesDrawer.ui \
-    QtSLiMFindPanel.ui
+    QtSLiMFindPanel.ui \
+    QtSLiMHaplotypeOptions.ui \
+    QtSLiMHaplotypeProgress.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

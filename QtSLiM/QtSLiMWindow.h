@@ -171,6 +171,7 @@ public:
     
     std::vector<Subpopulation*> selectedSubpopulations(void);
     void chromosomeSelection(bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase);
+    const std::vector<slim_objectid_t> &chromosomeDisplayMuttypes(void);
     
     inline bool invalidSimulation(void) { return invalidSimulation_; }
     void setInvalidSimulation(bool p_invalid);

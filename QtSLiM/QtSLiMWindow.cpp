@@ -38,6 +38,7 @@
 #include "QtSLiMGraphView_PopulationVisualization.h"
 #include "QtSLiMGraphView_FitnessOverTime.h"
 #include "QtSLiMGraphView_FrequencyTrajectory.h"
+#include "QtSLiMHaplotypeManager.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -65,7 +66,6 @@
 
 // TO DO:
 //
-// implement haplotype display mode in the chromosome view, and the haplotype plot
 // decide whether to implement the variable browser or not
 // hover preview tooltips in the objects tables; probably hard to do...
 //      https://stackoverflow.com/questions/23111075/how-to-highlight-the-entire-row-on-mouse-hover-in-qtablewidget-qt5
@@ -73,8 +73,11 @@
 //      https://askubuntu.com/questions/538299/globally-associate-file-type-with-certain-application for example
 // displaying PDFs in QtSLiM, opened by the slimgui method, etc.
 //      might leverage https://mupdf.com as an external renderer?  use system() to call mupdf, QtSLiM displays a PNG?
+//      oh, or maybe QtSLiM should display PNG files dynamically instead, and people could write their script to generate PNG not PDF – that would be easy!
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
 //      https://askubuntu.com/questions/894990/how-to-change-an-icon-in-16-04
+// how to distribute QtSLiM on Linux
+//      how it should be installed (build from source, or some kind of installer?), version requirements/checks, icon, .slim extension registration, etc. all open issues
 // splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
 //      I'd like to introduce the splitviews in code, around the existing views, if possible
 
@@ -988,6 +991,13 @@ void QtSLiMWindow::chromosomeSelection(bool *p_hasSelection, slim_position_t *p_
         *p_selectionFirstBase = selRange.location;
     if (p_selectionLastBase)
         *p_selectionLastBase = selRange.location + selRange.length - 1;
+}
+
+const std::vector<slim_objectid_t> &QtSLiMWindow::chromosomeDisplayMuttypes(void)
+{
+    QtSLiMChromosomeWidget *chromosomeZoomed = ui->chromosomeZoomed;
+    
+    return chromosomeZoomed->displayMuttypes();
 }
 
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
@@ -3385,7 +3395,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     contextMenu.addSeparator();
     
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    createHaplotypePlot->setEnabled(!disableAll && false);  // disabled until we add haplotype plotting
+    createHaplotypePlot->setEnabled(!disableAll);
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
@@ -3433,8 +3443,12 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         }
         if (action == createHaplotypePlot)
         {
-            // move this to createHaplotypePlot() when you create that...
-            isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status            
+            isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+            
+            QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
+            
+            // Note that we don't use graphWindow, and don't remember the window in an ivar.  Haplotype plots
+            // are different from graphs; they don't update dynamically, and you can have more than one.
         }
         
         if (graphWindow)

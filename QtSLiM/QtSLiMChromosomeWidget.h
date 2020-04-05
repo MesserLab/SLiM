@@ -70,6 +70,7 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
     
     // Display options
 	bool display_haplotypes_ = false;                   // if false, displaying frequencies; if true, displaying haplotypes
+    int64_t *haplotype_previous_bincounts = nullptr;    // used by QtSLiMHaplotypeManager to keep the sort order stable
 	std::vector<slim_objectid_t> display_muttypes_;     // if empty, display all mutation types; otherwise, display only the muttypes chosen
     
 public:
@@ -88,6 +89,7 @@ public:
     QtSLiMRange getSelectedRange(void);
     void setSelectedRange(QtSLiMRange p_selectionRange);
     void restoreLastSelection(void);
+    const std::vector<slim_objectid_t> &displayMuttypes(void);
     
     QtSLiMRange getDisplayedRange(void);
     
