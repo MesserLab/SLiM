@@ -31,6 +31,7 @@
 #include <QPdfWriter>
 #include <QBuffer>
 #include <QDebug>
+#include <QtGui>
 
 
 QFont QtSLiMGraphView::labelFontOfPointSize(double size)

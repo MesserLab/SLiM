@@ -24,6 +24,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QDebug>
+#include <QtGui>
 
 
 // OpenGL constants

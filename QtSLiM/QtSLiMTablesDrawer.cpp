@@ -23,6 +23,7 @@
 
 #include <QPainter>
 #include <QDebug>
+#include <QKeyEvent>
 
 #include "QtSLiMWindow.h"
 

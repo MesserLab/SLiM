@@ -26,6 +26,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QtDebug>
+#include <QMouseEvent>
 
 
 // OpenGL constants
