@@ -6,9 +6,24 @@
 #include <QCommandLineParser>
 #include <QDebug>
 
+#include <locale>
+
 
 int main(int argc, char *argv[])
 {
+    // Reset the locale to "C" regardless of user locale; see issue #81
+    {
+        //qDebug() << "QLocale().name() before:" << QLocale().name();
+        //
+        //std::locale loc;
+        //std::cout << "loc.name() : " << loc.name() << std::endl;
+        
+        QLocale::setDefault(QLocale("C"));
+        
+        //qDebug() << "QLocale().name() after:" << QLocale().name();
+    }
+    
+    // Start the application
     QApplication app(argc, argv);
     QtSLiMAppDelegate appDelegate(nullptr);
     
