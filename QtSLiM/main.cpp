@@ -12,9 +12,13 @@
 
 int main(int argc, char *argv[])
 {
+    // Start the application
+    QApplication app(argc, argv);
+    QtSLiMAppDelegate appDelegate(nullptr);
+    
     // Reset the locale to "C" regardless of user locale; see issue #81
     {
-        {
+        /*{
             qDebug() << "QLocale().name() before:" << QLocale().name();
             
             std::locale loc;
@@ -22,11 +26,12 @@ int main(int argc, char *argv[])
             
             char *loc_c = setlocale(LC_ALL, NULL);
             std::cout << "setlocale() name before :" << loc_c << std::endl;
-        }
+        }*/
         
+        setlocale(LC_ALL, "C");          // Might just do LC_NUMERIC, but let's avoid surprises...
         QLocale::setDefault(QLocale("C"));
         
-        {
+        /*{
             qDebug() << "QLocale().name() after:" << QLocale().name();
             
             std::locale loc;
@@ -34,21 +39,17 @@ int main(int argc, char *argv[])
             
             char *loc_c = setlocale(LC_ALL, nullptr);
             std::cout << "setlocale() name after :" << loc_c << std::endl;
-        }
+        }*/
         
         // Test that the locale is working for us; is the decimal separator a period or a comma?
-        double converted_value = strtod("1.0e-8", nullptr);
+        double converted_value = strtod("0.5", nullptr);
         
-        if (fabs(1e-8 - converted_value) > 1e-10)
+        if (fabs(0.5 - converted_value) > 1e-10)
         {
             std::cout << "Locale issue: strtod() is not translating numbers according to the C locale.";
             exit(EXIT_FAILURE);
         }
     }
-    
-    // Start the application
-    QApplication app(argc, argv);
-    QtSLiMAppDelegate appDelegate(nullptr);
     
     // Parse the command line
     QCommandLineParser parser;
