@@ -197,7 +197,6 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 	SLiMSim *sim = controller_->sim;
 	Population &population = sim->population_;
 	MutationRun &mutationRegistry = population.mutation_registry_;
-	static bool alreadyHere = false;
 	
 #ifdef SLIM_WF_ONLY
 	if (population.child_generation_valid_)
@@ -222,19 +221,15 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 	// Make sure we have a selected subpop if possible.  Our menu might not have been loaded, or our chosen subpop might have vanished.
 	if ((selectedSubpopulationID_ == -1) || !foundSelectedSubpop)
 	{
-		// Call -addSubpopulationsToMenu to reload our subpop menu and choose a subpop.  This will call us, so we use a static flag to prevent re-entrancy.
-		alreadyHere = true;
+		// Call -addSubpopulationsToMenu to reload our subpop menu and choose a subpop
 		foundSelectedSubpop = addSubpopulationsToMenu();
-		alreadyHere = false;
 	}
 	
 	// Make sure we have a selected muttype if possible.  Our menu might not have been loaded, or our chosen muttype might have vanished.
 	if ((selectedMutationTypeIndex_ == -1) || !foundSelectedMutType)
 	{
-		// Call -addMutationTypesToMenu to reload our muttype menu and choose a muttype.  This will call us, so we use a static flag to prevent re-entrancy.
-		alreadyHere = true;
+		// Call -addMutationTypesToMenu to reload our muttype menu and choose a muttype
 		foundSelectedMutType = addMutationTypesToMenu();
-		alreadyHere = false;
         //qDebug() << "fetchDataForFinishedGeneration() mut type invalid :" << foundSelectedMutType << "," << selectedMutationTypeIndex_;
 	}
 	
@@ -242,8 +237,8 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 		return;
 	
 	// Start by zeroing out the "updated" flags; this is how we find dead mutations
-    for (auto &pair_ref : frequencyHistoryDict_)
-        pair_ref.second->updated = false;
+	for (auto &pair_ref : frequencyHistoryDict_)
+		pair_ref.second->updated = false;
 	
 	//
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
@@ -596,16 +591,16 @@ QtSLiMLegendSpec QtSLiMGraphView_FrequencyTrajectory::legendKey(void)
 	if (!useColorsForPlotting_)
 		return QtSLiMLegendSpec();
 	
-    QtSLiMLegendSpec legendKey;
-    
-    if (plotLostMutations_)
-        legendKey.push_back(QtSLiMLegendEntry("lost", Qt::red));
-    
-    if (plotFixedMutations_)
-        legendKey.push_back(QtSLiMLegendEntry("fixed", QtSLiMColorWithRGB(0.4, 0.4, 1.0, 1.0)));
-    
-    if (plotActiveMutations_)
-        legendKey.push_back(QtSLiMLegendEntry("active", Qt::black));
+	QtSLiMLegendSpec legendKey;
+	
+	if (plotLostMutations_)
+		legendKey.push_back(QtSLiMLegendEntry("lost", Qt::red));
+	
+	if (plotFixedMutations_)
+		legendKey.push_back(QtSLiMLegendEntry("fixed", QtSLiMColorWithRGB(0.4, 0.4, 1.0, 1.0)));
+	
+	if (plotActiveMutations_)
+		legendKey.push_back(QtSLiMLegendEntry("active", Qt::black));
 	
 	return legendKey;
 }

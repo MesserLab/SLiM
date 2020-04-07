@@ -1317,8 +1317,8 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 			edge_buf.emplace_back(greedy_edge{static_cast<int>(i), static_cast<int>(k), *(distances + i + k * genome_count)});
 	}
 	
-    if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
-        return;
+	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
+		return;
 	
 	if (progressPanel_)
 	{
@@ -1362,8 +1362,8 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 		std::sort(edge_buf.begin(), edge_buf.end(), comp_greedy_edge);
 	}
 	
-    if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
-        return;
+	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
+		return;
 	
 	// Now we take take the first legal edge from the top of edge_buf and add it to our path. "Legal" means it
 	// doesn't increase the degree of either participating node above 2, and doesn't create a cycle.  We check
@@ -1453,8 +1453,8 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 		}
 	}
 	
-    if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
-        goto cancelExit;
+	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
+		goto cancelExit;
 	
 	// Finally, we have a jumble of edges that are in no order, and we need to make a coherent path from them.
 	// We start at the first degree-1 node we find, which is one of the two ends; doesn't matter which.

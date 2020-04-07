@@ -365,8 +365,8 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
 				{
 					QPointF historyPoint(plotToDeviceX(i, interiorRect), plotToDeviceY(historyEntry, interiorRect));
 					
-                    if (startedLine)    linePath.lineTo(historyPoint);
-                    else                linePath.moveTo(historyPoint);
+					if (startedLine)    linePath.lineTo(historyPoint);
+					else                linePath.moveTo(historyPoint);
 					
 					startedLine = true;
 				}

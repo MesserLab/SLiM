@@ -404,9 +404,9 @@ QSize QtSLiMGraphView::legendSize(QPainter &painter)
     QtSLiMLegendSpec legend = legendKey();
 	int legendEntryCount = static_cast<int>(legend.size());
     
-    if (legendEntryCount == 0)
-        return QSize();
-    
+	if (legendEntryCount == 0)
+		return QSize();
+	
 	const int legendRowHeight = 15;
 	QSize legendSize = QSize(0, legendRowHeight * legendEntryCount - 6);
 	
@@ -484,9 +484,9 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
     // Erase background
     QRect bounds = rect();
     
-    if (!generatingPDF_)
-        painter.fillRect(bounds, Qt::white);
-    
+	if (!generatingPDF_)
+		painter.fillRect(bounds, Qt::white);
+	
 	// Get our controller and test for validity, so subclasses don't have to worry about this
 	if (!controller_->invalidSimulation() && (controller_->sim->generation_ > 0))
 	{
