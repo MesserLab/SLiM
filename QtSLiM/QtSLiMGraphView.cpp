@@ -510,7 +510,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
 		// Draw the interior of the graph; this will be overridden by the subclass
 		// We clip the interior drawing to the interior rect, so outliers get clipped out
         painter.save();
-		//[[NSBezierPath bezierPathWithRect:NSInsetRect(interiorRect, -0.1, -0.1)] addClip];
+        painter.setClipRect(interiorRect, Qt::IntersectClip);
 		
 		drawGraph(painter, interiorRect);
 		
