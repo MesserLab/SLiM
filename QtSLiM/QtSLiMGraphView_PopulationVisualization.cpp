@@ -555,7 +555,14 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 	
 	if (subpopCount == 0)
 	{
-		drawMessage(painter, "no subpopulations", interiorRect);
+        // this is an ugly hack that assumes things about QtSLiMGraphView's implementation
+        // we restore() twice to get back to the original coordinate system for drawMessage()
+        // then we save() twice so that the expected number of pops are still available
+        painter.restore();
+        painter.restore();
+		drawMessage(painter, "no subpopulations", rect());
+        painter.save();
+        painter.save();
 		return;
 	}
 	
