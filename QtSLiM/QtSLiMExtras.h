@@ -28,6 +28,7 @@
 #include <QLineEdit>
 #include <QTextCursor>
 #include <QHBoxLayout>
+#include <QPushButton>
 #include <QList>
 
 #include "eidos_property_signature.h"
@@ -68,6 +69,8 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
 // A subclass of QHBoxLayout specifically designed to lay out the play controls in the main window
 class QtSLiMPlayControlsLayout : public QHBoxLayout
 {
+    Q_OBJECT
+    
 public:
     QtSLiMPlayControlsLayout(QWidget *parent): QHBoxLayout(parent) {}
     QtSLiMPlayControlsLayout(): QHBoxLayout() {}
@@ -88,6 +91,20 @@ QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharForm
 // Running a panel to obtain numbers from the user
 QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QStringList captions, QStringList values);
 
+// A subclass of QPushButton that draws its image with antialiasing, for a better appearance
+class QtSLiMPushButton : public QPushButton
+{
+    Q_OBJECT
+    
+public:
+    QtSLiMPushButton(const QIcon &icon, const QString &text, QWidget *parent = nullptr) : QPushButton(icon, text, parent) {}
+    QtSLiMPushButton(const QString &text, QWidget *parent = nullptr) : QPushButton(text, parent) {}
+    QtSLiMPushButton(QWidget *parent = nullptr) : QPushButton(parent) {}
+    ~QtSLiMPushButton(void) override {}
+    
+protected:
+    void paintEvent(QPaintEvent *paintEvent) override;
+};
 
 #endif // QTSLIMEXTRAS_H
 

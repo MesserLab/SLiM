@@ -119,7 +119,7 @@
              <enum>QLayout::SetDefaultConstraint</enum>
             </property>
             <item>
-             <widget class="QPushButton" name="playOneStepButton">
+             <widget class="QtSLiMPushButton" name="playOneStepButton">
               <property name="minimumSize">
                <size>
                 <width>60</width>
@@ -162,7 +162,7 @@ QPushButton:checked {
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="playButton">
+             <widget class="QtSLiMPushButton" name="playButton">
               <property name="minimumSize">
                <size>
                 <width>60</width>
@@ -208,7 +208,7 @@ QPushButton:checked {
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="profileButton">
+             <widget class="QtSLiMPushButton" name="profileButton">
               <property name="minimumSize">
                <size>
                 <width>30</width>
@@ -254,7 +254,7 @@ QPushButton:checked {
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="recycleButton">
+             <widget class="QtSLiMPushButton" name="recycleButton">
               <property name="minimumSize">
                <size>
                 <width>60</width>
@@ -526,7 +526,7 @@ QSlider::handle:horizontal:disabled {
            <number>0</number>
           </property>
           <item alignment="Qt::AlignRight">
-           <widget class="QPushButton" name="toggleDrawerButton">
+           <widget class="QtSLiMPushButton" name="toggleDrawerButton">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -633,7 +633,7 @@ QPushButton:checked {
               <number>5</number>
              </property>
              <item row="1" column="0">
-              <widget class="QPushButton" name="showChromosomeMapsButton">
+              <widget class="QtSLiMPushButton" name="showChromosomeMapsButton">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -685,7 +685,7 @@ QPushButton:checked {
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QPushButton" name="showGenomicElementsButton">
+              <widget class="QtSLiMPushButton" name="showGenomicElementsButton">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -737,7 +737,7 @@ QPushButton:checked {
               </widget>
              </item>
              <item row="2" column="0">
-              <widget class="QPushButton" name="showMutationsButton">
+              <widget class="QtSLiMPushButton" name="showMutationsButton">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -792,7 +792,7 @@ QPushButton:checked {
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QPushButton" name="showFixedSubstitutionsButton">
+              <widget class="QtSLiMPushButton" name="showFixedSubstitutionsButton">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -866,7 +866,7 @@ QPushButton:checked {
         <item>
          <layout class="QHBoxLayout" name="scriptHeaderLayout">
           <item>
-           <widget class="QPushButton" name="checkScriptButton">
+           <widget class="QtSLiMPushButton" name="checkScriptButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -909,7 +909,7 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="prettyprintButton">
+           <widget class="QtSLiMPushButton" name="prettyprintButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -952,7 +952,7 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="scriptHelpButton">
+           <widget class="QtSLiMPushButton" name="scriptHelpButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -995,7 +995,7 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="consoleButton">
+           <widget class="QtSLiMPushButton" name="consoleButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -1041,7 +1041,7 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="browserButton">
+           <widget class="QtSLiMPushButton" name="browserButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -1105,7 +1105,7 @@ QPushButton:checked {
         <item>
          <layout class="QHBoxLayout" name="outputHeaderLayout">
           <item>
-           <widget class="QPushButton" name="clearOutputButton">
+           <widget class="QtSLiMPushButton" name="clearOutputButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -1148,7 +1148,7 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="dumpPopulationButton">
+           <widget class="QtSLiMPushButton" name="dumpPopulationButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -1198,7 +1198,7 @@ QPushButton:checked {
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="graphPopupButton">
+           <widget class="QtSLiMPushButton" name="graphPopupButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -1254,7 +1254,7 @@ QPushButton:checked {
            </spacer>
           </item>
           <item>
-           <widget class="QPushButton" name="changeDirectoryButton">
+           <widget class="QtSLiMPushButton" name="changeDirectoryButton">
             <property name="minimumSize">
              <size>
               <width>20</width>
@@ -1847,6 +1847,11 @@ QPushButton:checked {
    <class>QtSLiMTextEdit</class>
    <extends>QTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMPushButton</class>
+   <extends>QPushButton</extends>
+   <header>QtSLiMExtras.h</header>
   </customwidget>
  </customwidgets>
  <resources>

@@ -32,6 +32,7 @@
 #include <QLineEdit>
 #include <QSpacerItem>
 #include <QVBoxLayout>
+#include <QPaintEvent>
 #include <QDebug>
 #include <cmath>
 
@@ -627,6 +628,23 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QString
         return QStringList();
     }
 }
+
+
+// A subclass of QPushButton that draws its image at screen resolution, for a better appearance on Retina etc.
+void QtSLiMPushButton::paintEvent(QPaintEvent * /* paintEvent */)
+{
+    QPainter painter(this);
+    QRect bounds = rect();
+    QTransform transform = painter.combinedTransform();
+    QRect mappedBounds = transform.mapRect(bounds);
+    QSize size = mappedBounds.size();
+    QIcon ico = icon();
+    QPixmap pix = ico.pixmap(size, QIcon::Normal, QIcon::Off);
+    QImage image = pix.toImage();
+    
+    painter.drawImage(rect(), image);
+}
+
 
 
 

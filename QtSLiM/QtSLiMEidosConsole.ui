@@ -60,7 +60,7 @@
           <number>3</number>
          </property>
          <item>
-          <widget class="QPushButton" name="checkScriptButton">
+          <widget class="QtSLiMPushButton" name="checkScriptButton">
            <property name="minimumSize">
             <size>
              <width>20</width>
@@ -103,7 +103,7 @@ QPushButton:checked {
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="prettyprintButton">
+          <widget class="QtSLiMPushButton" name="prettyprintButton">
            <property name="minimumSize">
             <size>
              <width>20</width>
@@ -146,7 +146,7 @@ QPushButton:checked {
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="scriptHelpButton">
+          <widget class="QtSLiMPushButton" name="scriptHelpButton">
            <property name="minimumSize">
             <size>
              <width>20</width>
@@ -189,7 +189,7 @@ QPushButton:checked {
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="browserButton">
+          <widget class="QtSLiMPushButton" name="browserButton">
            <property name="minimumSize">
             <size>
              <width>20</width>
@@ -255,7 +255,7 @@ QPushButton:checked {
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="executeSelectionButton">
+          <widget class="QtSLiMPushButton" name="executeSelectionButton">
            <property name="minimumSize">
             <size>
              <width>20</width>
@@ -301,7 +301,7 @@ QPushButton:checked {
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="executeAllButton">
+          <widget class="QtSLiMPushButton" name="executeAllButton">
            <property name="minimumSize">
             <size>
              <width>20</width>
@@ -361,7 +361,7 @@ QPushButton:checked {
           <number>3</number>
          </property>
          <item>
-          <widget class="QPushButton" name="clearOutputButton">
+          <widget class="QtSLiMPushButton" name="clearOutputButton">
            <property name="minimumSize">
             <size>
              <width>20</width>
@@ -446,6 +446,11 @@ QPushButton:checked {
    <class>QtSLiMScriptTextEdit</class>
    <extends>QTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMPushButton</class>
+   <extends>QPushButton</extends>
+   <header>QtSLiMExtras.h</header>
   </customwidget>
   <customwidget>
    <class>QtSLiMConsoleTextEdit</class>
