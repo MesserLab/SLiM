@@ -54,6 +54,12 @@ int main(int argc, char *argv[])
     // Tell Qt to use high-DPI pixmaps for icons
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     
+    // Set the application icon
+    QIcon appIcon;
+    appIcon.addFile(":/icons/AppIcon128.png");
+    appIcon.addFile(":/icons/AppIcon1024.png");
+    app.setWindowIcon(appIcon);
+    
     // Parse the command line
     QCommandLineParser parser;
     
