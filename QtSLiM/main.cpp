@@ -51,6 +51,9 @@ int main(int argc, char *argv[])
         }
     }
     
+    // Tell Qt to use high-DPI pixmaps for icons
+    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    
     // Parse the command line
     QCommandLineParser parser;
     

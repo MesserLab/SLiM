@@ -631,18 +631,27 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QString
 
 
 // A subclass of QPushButton that draws its image at screen resolution, for a better appearance on Retina etc.
+// Turns out setting Qt::AA_UseHighDpiPixmaps fixes that issue; but this subclass also makes the buttons draw
+// correctly in Qt 5.14.2, where button icons are shifted right one pixel and then clipped in an ugly way.
 void QtSLiMPushButton::paintEvent(QPaintEvent * /* paintEvent */)
 {
     QPainter painter(this);
     QRect bounds = rect();
+    
+    // This uses the icon to draw, which works because of Qt::AA_UseHighDpiPixmaps
+    icon().paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+    
+    /*
+    // This code would construct and draw a high-DPI image, but using Qt::AA_UseHighDpiPixmaps is better
     QTransform transform = painter.combinedTransform();
     QRect mappedBounds = transform.mapRect(bounds);
     QSize size = mappedBounds.size();
     QIcon ico = icon();
-    QPixmap pix = ico.pixmap(size, QIcon::Normal, QIcon::Off);
+    QPixmap pix = ico.pixmap(size, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
     QImage image = pix.toImage();
     
     painter.drawImage(rect(), image);
+    */
 }
 
 

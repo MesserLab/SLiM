@@ -270,7 +270,12 @@ void QtSLiMWindow::initializeUI(void)
     ui->showGenomicElementsButton->setChecked(zoomedChromosomeShowsGenomicElements);
     ui->showMutationsButton->setChecked(zoomedChromosomeShowsMutations);
     ui->showFixedSubstitutionsButton->setChecked(zoomedChromosomeShowsFixedSubstitutions);
-
+    
+    showChromosomeMapsToggled();
+    showGenomicElementsToggled();
+    showMutationsToggled();
+    showFixedSubstitutionsToggled();
+    
     // Set up the population table view
     populationTableModel_ = new QtSLiMPopulationTableModel(this);
     ui->subpopTableView->setModel(populationTableModel_);
