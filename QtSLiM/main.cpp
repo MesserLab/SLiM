@@ -54,9 +54,15 @@ int main(int argc, char *argv[])
     // Tell Qt to use high-DPI pixmaps for icons
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     
-    // Set the application icon
+    // Set the application icon; this fixes in app icon in the dock/toolbar/whatever, even if the right icon is not attached in the desktop
     QIcon appIcon;
+    appIcon.addFile(":/icons/AppIcon16.png");
+    appIcon.addFile(":/icons/AppIcon32.png");
+    appIcon.addFile(":/icons/AppIcon48.png");
+    appIcon.addFile(":/icons/AppIcon64.png");
     appIcon.addFile(":/icons/AppIcon128.png");
+    appIcon.addFile(":/icons/AppIcon256.png");
+    appIcon.addFile(":/icons/AppIcon512.png");
     appIcon.addFile(":/icons/AppIcon1024.png");
     app.setWindowIcon(appIcon);
     

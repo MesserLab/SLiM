@@ -2,5 +2,11 @@
     <qresource prefix="/">
         <file>icons/AppIcon128.png</file>
         <file>icons/AppIcon1024.png</file>
+        <file>icons/AppIcon16.png</file>
+        <file>icons/AppIcon32.png</file>
+        <file>icons/AppIcon48.png</file>
+        <file>icons/AppIcon64.png</file>
+        <file>icons/AppIcon256.png</file>
+        <file>icons/AppIcon512.png</file>
     </qresource>
 </RCC>
