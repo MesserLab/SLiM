@@ -22,12 +22,17 @@
 
 #include <QApplication>
 
+#include "QtSLiMAppDelegate.h"
+
 
 QtSLiMHaplotypeOptions::QtSLiMHaplotypeOptions(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::QtSLiMHaplotypeOptions)
 {
     ui->setupUi(this);
+    
+    // change the app icon to our multi-size app icon for best results
+    ui->appIconButton->setIcon(qtSLiMAppDelegate->applicationIcon());
     
     // fix sizing
     setFixedSize(sizeHint());

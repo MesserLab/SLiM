@@ -20,12 +20,17 @@
 #include "QtSLiMHaplotypeProgress.h"
 #include "ui_QtSLiMHaplotypeProgress.h"
 
+#include "QtSLiMAppDelegate.h"
+
 
 QtSLiMHaplotypeProgress::QtSLiMHaplotypeProgress(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::QtSLiMHaplotypeProgress)
 {
     ui->setupUi(this);
+    
+    // change the app icon to our multi-size app icon for best results
+    ui->appIconButton->setIcon(qtSLiMAppDelegate->applicationIcon());
     
     // wire up cancel button
     connect(ui->cancelButton, &QPushButton::clicked, [this]() { cancelled_ = true; });

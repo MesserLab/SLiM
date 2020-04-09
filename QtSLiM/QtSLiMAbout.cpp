@@ -21,12 +21,17 @@
 #include "QtSLiMAbout.h"
 #include "ui_QtSLiMAbout.h"
 
+#include "QtSLiMAppDelegate.h"
+
 #include "slim_globals.h"
 
 
 QtSLiMAbout::QtSLiMAbout(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMAbout)
 {
     ui->setupUi(this);
+    
+    // change the app icon to our multi-size app icon for best results
+    ui->appIconButton->setIcon(qtSLiMAppDelegate->applicationIcon());
     
     // prevent this window from keeping the app running when all main windows are closed
     setAttribute(Qt::WA_QuitOnClose, false);

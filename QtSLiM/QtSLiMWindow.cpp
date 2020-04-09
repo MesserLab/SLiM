@@ -200,6 +200,9 @@ void QtSLiMWindow::init(void)
             qDebug() << "Could not create console controller";
         }
     }
+    
+    // Set the window icon, overriding the app icon
+    setWindowIcon(qtSLiMAppDelegate->documentIcon());
 }
 
 void QtSLiMWindow::initializeUI(void)

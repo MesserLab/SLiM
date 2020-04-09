@@ -20,7 +20,7 @@
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <widget class="QtSLiMPushButton" name="pushButton">
+      <widget class="QtSLiMPushButton" name="appIconButton">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>

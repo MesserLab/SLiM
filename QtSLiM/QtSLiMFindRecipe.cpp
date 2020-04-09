@@ -23,6 +23,7 @@
 
 #include "QtSLiMPreferences.h"
 #include "QtSLiMSyntaxHighlighting.h"
+#include "QtSLiMAppDelegate.h"
 
 #include <QDir>
 #include <QCollator>
@@ -34,6 +35,10 @@ QtSLiMFindRecipe::QtSLiMFindRecipe(QWidget *parent) : QDialog(parent), ui(new Ui
 {
     ui->setupUi(this);
     
+    // change the app icon to our multi-size app icon for best results
+    ui->iconSLiM->setIcon(qtSLiMAppDelegate->applicationIcon());
+    
+    // load recipes and get ready to search
     loadRecipes();
 	constructMatchList();
     updateMatchListWidget();

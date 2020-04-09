@@ -92,6 +92,27 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     
     // We assume we are the global instance; FIXME singleton pattern would be good
     qtSLiMAppDelegate = this;
+    
+    // Cache app-wide icons
+    documentIcon_.addFile(":/icons/DocIcon16.png");
+    documentIcon_.addFile(":/icons/DocIcon32.png");
+    documentIcon_.addFile(":/icons/DocIcon64.png");
+    documentIcon_.addFile(":/icons/DocIcon128.png");
+    documentIcon_.addFile(":/icons/DocIcon256.png");
+    documentIcon_.addFile(":/icons/DocIcon512.png");
+    
+    appIcon_.addFile(":/icons/AppIcon16.png");
+    appIcon_.addFile(":/icons/AppIcon32.png");
+    appIcon_.addFile(":/icons/AppIcon48.png");
+    appIcon_.addFile(":/icons/AppIcon64.png");
+    appIcon_.addFile(":/icons/AppIcon128.png");
+    appIcon_.addFile(":/icons/AppIcon256.png");
+    appIcon_.addFile(":/icons/AppIcon512.png");
+    appIcon_.addFile(":/icons/AppIcon1024.png");
+    
+    // Set the application icon; this fixes in app icon in the dock/toolbar/whatever,
+    // even if the right icon is not attached for display in the desktop environment
+    app->setWindowIcon(appIcon_);
 }
 
 void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRecipeAction)

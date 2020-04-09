@@ -22,6 +22,7 @@
 
 #include <QObject>
 #include <QVector>
+#include <QIcon>
 #include <string>
 
 class QMenu;
@@ -38,7 +39,10 @@ class QtSLiMAppDelegate : public QObject
 
     std::string app_cwd_;       // the app's current working directory
     bool launchedFromShell_;	// true if launched from shell, false if launched from Finder/other
-
+    
+    QIcon appIcon_;
+    QIcon documentIcon_;
+    
 public:
     explicit QtSLiMAppDelegate(QObject *parent);
 
@@ -52,8 +56,13 @@ public:
     QtSLiMWindow *activeQtSLiMWindow(void);
     void QtSLiMWindowClosing(QtSLiMWindow *window);     // called by QtSLiMWindow::closeEvent()
     
+    // Recipes menu
     void setUpRecipesMenu(QMenu *openRecipesSubmenu, QAction *findRecipeAction);
 
+    // App-wide shared icons
+    QIcon applicationIcon(void) { return appIcon_; }
+    QIcon documentIcon(void) { return documentIcon_; }
+    
 public slots:
     void lastWindowClosed(void);
     void aboutToQuit(void);
