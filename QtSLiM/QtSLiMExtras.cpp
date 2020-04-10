@@ -466,7 +466,7 @@ void QtSLiMPlayControlsLayout::setGeometry(const QRect &rect)
             playButtonRect = geom;
     }
     
-    // position the profile button
+    // position the profile button; the button must lie inside the bounds of the parent widget due to clipping
     QLayoutItem *profileButton = itemAt(2);
     QSize sizeHint = profileButton->sizeHint();
     QRect geom(playButtonRect.right() - 21, rect.y() - 6, sizeHint.width(), sizeHint.height());
@@ -657,6 +657,53 @@ void QtSLiMPushButton::paintEvent(QPaintEvent * /* paintEvent */)
     */
 }
 
+
+// A subclass of QSplitterHandle that does some custom drawing
+void QtSLiMSplitterHandle::paintEvent(QPaintEvent *paintEvent)
+{
+    QPainter painter(this);
+    QRect bounds = rect();
+    
+    if (orientation() == Qt::Vertical)
+    {
+        // provide a darkened and beveled appearance
+        QRect top1Strip = bounds.adjusted(0, 0, 0, -(bounds.height() - 1));
+        QRect top2Strip = bounds.adjusted(0, 1, 0, -(bounds.height() - 2));
+        QRect centerStrip = bounds.adjusted(0, 2, 0, -2);
+        //QRect bottom2Strip = bounds.adjusted(0, bounds.height() - 2, 0, -1);
+        QRect bottom1Strip = bounds.adjusted(0, bounds.height() - 1, 0, 0);
+        
+        painter.fillRect(top1Strip, QtSLiMColorWithWhite(0.0, 0.15));
+        painter.fillRect(top2Strip, QtSLiMColorWithWhite(1.0, 1.0));
+        painter.fillRect(centerStrip, QtSLiMColorWithWhite(1.0, 0.6));
+        //painter.fillRect(bottom2Strip, QtSLiMColorWithWhite(0.0, 0.05));
+        painter.fillRect(bottom1Strip, QtSLiMColorWithWhite(0.0, 0.2));
+        
+        // debug fill
+        //painter.fillRect(bounds.adjusted(0, 0, -800, 0), Qt::red);
+    }
+    else    // Qt::Horizontal
+    {
+        // provide a darkened and beveled appearance
+        QRect left1Strip = bounds.adjusted(0, 0, -(bounds.width() - 1), 0);
+        QRect left2Strip = bounds.adjusted(1, 0, -(bounds.width() - 2), 0);
+        QRect centerStrip = bounds.adjusted(2, 0, -2, 0);
+        //QRect right2Strip = bounds.adjusted(bounds.width() - 2, 0, -1, 0);
+        QRect right1Strip = bounds.adjusted(bounds.width() - 1, 0, 0, 0);
+        
+        painter.fillRect(left1Strip, QtSLiMColorWithWhite(0.0, 0.15));
+        painter.fillRect(left2Strip, QtSLiMColorWithWhite(1.0, 1.0));
+        painter.fillRect(centerStrip, QtSLiMColorWithWhite(1.0, 0.6));
+        //painter.fillRect(right2Strip, QtSLiMColorWithWhite(0.0, 0.05));
+        painter.fillRect(right1Strip, QtSLiMColorWithWhite(0.0, 0.2));
+        
+        // debug fill
+        //painter.fillRect(bounds.adjusted(0, 0, 0, -200), Qt::red);
+    }
+    
+    // call super to overlay the splitter knob
+    QSplitterHandle::paintEvent(paintEvent);
+}
 
 
 

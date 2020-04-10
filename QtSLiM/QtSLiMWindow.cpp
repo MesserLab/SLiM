@@ -57,6 +57,7 @@
 #include <QToolTip>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QSplitter>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -78,8 +79,6 @@
 //      https://askubuntu.com/questions/894990/how-to-change-an-icon-in-16-04
 // how to distribute QtSLiM on Linux
 //      how it should be installed (build from source, or some kind of installer?), version requirements/checks, icon, .slim extension registration, etc. all open issues
-// splitviews for the window: https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer
-//      I'd like to introduce the splitviews in code, around the existing views, if possible
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
@@ -131,6 +130,7 @@ void QtSLiMWindow::init(void)
     
     // create the window UI
     ui->setupUi(this);
+    interpolateSplitters();
     initializeUI();
     
     // wire up our continuous play and generation play timers
@@ -203,6 +203,127 @@ void QtSLiMWindow::init(void)
     
     // Set the window icon, overriding the app icon
     setWindowIcon(qtSLiMAppDelegate->documentIcon());
+}
+
+void QtSLiMWindow::interpolateVerticalSplitter(void)
+{
+    const int splitterMargin = 8;
+    QLayout *parentLayout = ui->centralWidget->layout();
+    QVBoxLayout *firstSubLayout = ui->overallTopLayout;
+    QHBoxLayout *secondSubLayout = ui->overallBottomLayout;
+    
+    // force geometry calculation, which is lazy
+    setAttribute(Qt::WA_DontShowOnScreen, true);
+    show();
+    hide();
+    setAttribute(Qt::WA_DontShowOnScreen, false);
+    
+    // get the geometry we need
+    QSize firstSubSize = firstSubLayout->sizeHint();
+    QMargins marginsP = QMargins(8, 8, 8, 8); //parentLayout->contentsMargins();
+    QMargins marginsS1 = firstSubLayout->contentsMargins();
+    QMargins marginsS2 = secondSubLayout->contentsMargins();
+    
+    // change fixed-size views to be flexible, so they cooperate with the splitters
+    firstSubLayout->setStretch(0, 1);
+    ui->subpopTableView->setMaximumHeight(QWIDGETSIZE_MAX);
+    ui->individualsWidget->setMaximumHeight(QWIDGETSIZE_MAX);
+    ui->topRightLayout->setStretch(4, 1);
+    ui->topRightLayout->setSpacing(4);
+    ui->playSpeedSlider->setFixedHeight(ui->playSpeedSlider->sizeHint().height());
+    
+    // empty out parentLayout
+    QLayoutItem *child;
+    while ((child = parentLayout->takeAt(0)) != nullptr);
+    
+    ui->line->setParent(nullptr);
+    ui->line = nullptr;
+    
+    // make the new top-level widgets and transfer in their contents
+    overallTopWidget = new QWidget(nullptr);
+    overallTopWidget->setLayout(firstSubLayout);
+    overallTopWidget->setMinimumHeight(firstSubSize.height() + (splitterMargin - 5));   // there is already 5 pixels of margin at the bottom of overallTopWidget due to layout details
+    firstSubLayout->setContentsMargins(QMargins(marginsS1.left() + marginsP.left(), marginsS1.top() + marginsP.top(), marginsS1.right() + marginsP.right(), marginsS1.bottom() + (splitterMargin - 5)));
+    
+    overallBottomWidget = new QWidget(nullptr);
+    overallBottomWidget->setLayout(secondSubLayout);
+    secondSubLayout->setContentsMargins(QMargins(marginsS2.left() + marginsP.left(), marginsS2.top() + splitterMargin, marginsS2.right() + marginsP.right(), marginsS2.bottom() + marginsP.bottom()));
+    
+    // make the QSplitter between the top and bottom and add the top-level widgets to it
+    overallSplitter = new QtSLiMSplitter(Qt::Vertical, this);
+    
+    overallSplitter->setChildrenCollapsible(true);
+    overallSplitter->addWidget(overallTopWidget);
+    overallSplitter->addWidget(overallBottomWidget);
+    overallSplitter->setHandleWidth(overallSplitter->handleWidth() + 3);
+    overallSplitter->setStretchFactor(0, 1);
+    overallSplitter->setStretchFactor(1, 100);    // initially, give all height to the bottom widget
+    
+    // and finally, add the splitter to the parent layout
+    parentLayout->addWidget(overallSplitter);
+    parentLayout->setContentsMargins(0, 0, 0, 0);
+}
+
+void QtSLiMWindow::interpolateHorizontalSplitter(void)
+{
+    const int splitterMargin = 8;
+    QLayout *parentLayout = overallBottomWidget->layout();
+    QVBoxLayout *firstSubLayout = ui->scriptLayout;
+    QVBoxLayout *secondSubLayout = ui->outputLayout;
+    
+    // force geometry calculation, which is lazy
+    setAttribute(Qt::WA_DontShowOnScreen, true);
+    show();
+    hide();
+    setAttribute(Qt::WA_DontShowOnScreen, false);
+    
+    // get the geometry we need
+    QMargins marginsP = parentLayout->contentsMargins();
+    QMargins marginsS1 = firstSubLayout->contentsMargins();
+    QMargins marginsS2 = secondSubLayout->contentsMargins();
+    
+    // empty out parentLayout
+    QLayoutItem *child;
+    while ((child = parentLayout->takeAt(0)) != nullptr);
+    
+    // make the new top-level widgets and transfer in their contents
+    scriptWidget = new QWidget(nullptr);
+    scriptWidget->setLayout(firstSubLayout);
+    firstSubLayout->setContentsMargins(QMargins(marginsS1.left() + marginsP.left(), marginsS1.top() + marginsP.top(), marginsS1.right() + splitterMargin, marginsS1.bottom() + marginsP.bottom()));
+    
+    outputWidget = new QWidget(nullptr);
+    outputWidget->setLayout(secondSubLayout);
+    secondSubLayout->setContentsMargins(QMargins(marginsS2.left() + splitterMargin, marginsS2.top() + marginsP.top(), marginsS2.right() + marginsP.right(), marginsS2.bottom() + marginsP.bottom()));
+    
+    // make the QSplitter between the left and right and add the subsidiary widgets to it
+    bottomSplitter = new QtSLiMSplitter(Qt::Horizontal, this);
+    
+    bottomSplitter->setChildrenCollapsible(true);
+    bottomSplitter->addWidget(scriptWidget);
+    bottomSplitter->addWidget(outputWidget);
+    bottomSplitter->setHandleWidth(bottomSplitter->handleWidth() + 3);
+    bottomSplitter->setStretchFactor(0, 2);
+    bottomSplitter->setStretchFactor(1, 1);    // initially, give 2/3 of the width to the script widget
+    
+    // and finally, add the splitter to the parent layout
+    parentLayout->addWidget(bottomSplitter);
+    parentLayout->setContentsMargins(0, 0, 0, 0);
+}
+
+void QtSLiMWindow::interpolateSplitters(void)
+{
+#if 1
+    // This case is hit if splitters are enabled; it adds a top-level vertical splitter and a subsidiary horizontal splitter
+    // We do this at runtime, rather than in QtSLiMWindow.ui, to preserve the non-splitter option, and because the required
+    // alterations are complex and depend upon the (platform-dependent) initial calculated sizes of the various elements
+    interpolateVerticalSplitter();
+    interpolateHorizontalSplitter();
+#else
+    // This case is hit if splitters are disabled; it does a little cleanup of elements that exist to support the splitters
+    ui->topRightLayout->removeItem(ui->playControlsSpacerExpanding);
+    delete ui->playControlsSpacerExpanding;
+    ui->playControlsSpacerExpanding = nullptr;
+#endif
 }
 
 void QtSLiMWindow::initializeUI(void)

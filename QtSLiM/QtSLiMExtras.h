@@ -30,9 +30,13 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QList>
+#include <QSplitter>
+#include <QSplitterHandle>
 
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
+
+class QPaintEvent;
 
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter);
@@ -104,6 +108,33 @@ public:
     
 protected:
     void paintEvent(QPaintEvent *paintEvent) override;
+};
+
+// A subclass of QSplitterHandle that does some custom drawing
+class QtSLiMSplitterHandle : public QSplitterHandle
+{
+    Q_OBJECT
+    
+public:
+    QtSLiMSplitterHandle(Qt::Orientation orientation, QSplitter *parent) : QSplitterHandle(orientation, parent) {}
+    ~QtSLiMSplitterHandle(void) override {}
+    
+protected:
+    void paintEvent(QPaintEvent *paintEvent) override;
+};
+
+// A subclass of QSplitter that supplies a custom QSplitterHandle subclass
+class QtSLiMSplitter : public QSplitter
+{
+    Q_OBJECT
+    
+public:
+    QtSLiMSplitter(Qt::Orientation orientation, QWidget *parent = nullptr) : QSplitter(orientation, parent) {}
+    QtSLiMSplitter(QWidget *parent = nullptr) : QSplitter(parent) {}
+    ~QtSLiMSplitter(void) override {}
+    
+protected:
+    QSplitterHandle *createHandle(void) override { return new QtSLiMSplitterHandle(orientation(), this); }
 };
 
 #endif // QTSLIMEXTRAS_H

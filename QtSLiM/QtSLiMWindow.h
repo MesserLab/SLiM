@@ -318,6 +318,19 @@ protected:
     
     void sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID);
     
+    // splitter support
+    void interpolateVerticalSplitter(void);
+    QWidget *overallTopWidget = nullptr;
+    QWidget *overallBottomWidget = nullptr;
+    QSplitter *overallSplitter = nullptr;
+    
+    void interpolateHorizontalSplitter(void);
+    QWidget *scriptWidget = nullptr;
+    QWidget *outputWidget = nullptr;
+    QSplitter *bottomSplitter = nullptr;
+    
+    void interpolateSplitters(void);
+    
 private:
     void glueUI(void);
     Ui::QtSLiMWindow *ui;
