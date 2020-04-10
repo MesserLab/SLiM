@@ -23,6 +23,7 @@
 
 #include <QStatusBar>
 #include <QSettings>
+#include <QSplitter>
 #include <QDebug>
 
 #include "QtSLiMWindow.h"
@@ -35,12 +36,17 @@ QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
     ui(new Ui::QtSLiMEidosConsole)
 {
     ui->setupUi(this);
+    interpolateSplitters();
     glueUI();
+    
+    // no window icon
+    setWindowIcon(QIcon());
     
     // add a status bar at the bottom; there is a layout in Designer for it already
     // thanks to https://stackoverflow.com/a/6143818/2752221
     statusBar_ = new QStatusBar(this);
     ui->statusBarLayout->addWidget(statusBar_);
+    statusBar_->setMaximumHeight(statusBar_->sizeHint().height());
     
     // set up the script view to syntax highlight
     ui->scriptTextEdit->setScriptType(QtSLiMTextEdit::EidosScriptType);
@@ -90,6 +96,60 @@ QtSLiMEidosConsole::~QtSLiMEidosConsole()
     if (global_function_map_owned)
         delete global_function_map;
     global_function_map = nullptr;
+}
+
+void QtSLiMEidosConsole::interpolateSplitters(void)
+{
+#if 1
+    // add a top-level horizontal splitter
+    
+    const int splitterMargin = 0;
+    QLayout *parentLayout = ui->overallLayout;
+    QVBoxLayout *firstSubLayout = ui->scriptLayout;
+    QVBoxLayout *secondSubLayout = ui->outputLayout;
+    
+    // force geometry calculation, which is lazy
+    setAttribute(Qt::WA_DontShowOnScreen, true);
+    show();
+    hide();
+    setAttribute(Qt::WA_DontShowOnScreen, false);
+    
+    // get the geometry we need
+    QMargins marginsP = parentLayout->contentsMargins();
+    QMargins marginsS1 = firstSubLayout->contentsMargins();
+    QMargins marginsS2 = secondSubLayout->contentsMargins();
+    
+    // change fixed-size views to be flexible, so they cooperate with the splitter
+    ui->scriptTextEdit->setMinimumWidth(250);
+    ui->consoleTextEdit->setMinimumWidth(250);
+    
+    // empty out parentLayout
+    QLayoutItem *child;
+    while ((child = parentLayout->takeAt(0)) != nullptr);
+    
+    // make the new top-level widgets and transfer in their contents
+    scriptWidget = new QWidget(nullptr);
+    scriptWidget->setLayout(firstSubLayout);
+    firstSubLayout->setContentsMargins(QMargins(marginsS1.left() + marginsP.left(), marginsS1.top() + marginsP.top(), marginsS1.right() + splitterMargin, marginsS1.bottom() + marginsP.bottom()));
+    
+    outputWidget = new QWidget(nullptr);
+    outputWidget->setLayout(secondSubLayout);
+    secondSubLayout->setContentsMargins(QMargins(marginsS2.left() + splitterMargin, marginsS2.top() + marginsP.top(), marginsS2.right() + marginsP.right(), marginsS2.bottom() + marginsP.bottom()));
+    
+    // make the QSplitter between the left and right and add the subsidiary widgets to it
+    splitter = new QSplitter(Qt::Horizontal, this);
+    
+    splitter->setChildrenCollapsible(true);
+    splitter->addWidget(scriptWidget);
+    splitter->addWidget(outputWidget);
+    splitter->setHandleWidth(splitter->handleWidth() + 3);
+    splitter->setStretchFactor(0, 1);
+    splitter->setStretchFactor(1, 2);    // initially, give 2/3 of the width to the output widget
+    
+    // and finally, add the splitter to the parent layout
+    parentLayout->addWidget(splitter);
+    parentLayout->setContentsMargins(0, 0, 0, 0);
+#endif
 }
 
 void QtSLiMEidosConsole::closeEvent(QCloseEvent *event)

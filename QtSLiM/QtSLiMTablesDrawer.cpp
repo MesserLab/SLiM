@@ -77,6 +77,9 @@ QHeaderView *QtSLiMTablesDrawer::configureTableView(QTableView *tableView)
 
 void QtSLiMTablesDrawer::initializeUI(void)
 {
+    // no window icon
+    setWindowIcon(QIcon());
+    
     // Make the models for the tables; this is a sort of datasource concept, except
     // that because C++ is not sufficiently dynamic it has to be a separate object
     mutTypeTableModel_ = new QtSLiMMutTypeTableModel(parentSLiMWindow);

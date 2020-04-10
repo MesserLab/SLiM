@@ -47,6 +47,9 @@ QtSLiMFindPanel::QtSLiMFindPanel(QWidget *parent) : QDialog(parent), ui(new Ui::
     
     QSettings settings;
     
+    // no window icon
+    setWindowIcon(QIcon());
+    
     // Connect the panel UI
     connect(ui->findNextButton, &QPushButton::clicked, this, &QtSLiMFindPanel::findNext);
     connect(ui->findPreviousButton, &QPushButton::clicked, this, &QtSLiMFindPanel::findPrevious);

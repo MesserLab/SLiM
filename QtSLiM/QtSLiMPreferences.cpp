@@ -206,6 +206,9 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new 
 {
     ui->setupUi(this);
     
+    // no window icon
+    setWindowIcon(QIcon());
+    
     // set the initial state of the UI elements from QtSLiMPreferencesNotifier
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
     

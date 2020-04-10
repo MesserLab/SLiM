@@ -31,6 +31,9 @@ QtSLiMHaplotypeOptions::QtSLiMHaplotypeOptions(QWidget *parent) :
 {
     ui->setupUi(this);
     
+    // no window icon
+    setWindowIcon(QIcon());
+    
     // change the app icon to our multi-size app icon for best results
     ui->appIconButton->setIcon(qtSLiMAppDelegate->applicationIcon());
     

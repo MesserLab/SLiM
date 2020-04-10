@@ -27,6 +27,7 @@
 class QCloseEvent;
 class QtSLiMWindow;
 class QStatusBar;
+class QSplitter;
 
 #include "eidos_script.h"
 #include "eidos_globals.h"
@@ -115,6 +116,13 @@ private:
     // Execution internals
     QString _executeScriptString(QString scriptString, QString *tokenString, QString *parseString,
                                  QString *executionString, QString *errorString, bool semicolonOptional);
+    
+    
+    // splitter support
+    void interpolateSplitters(void);
+    QWidget *scriptWidget = nullptr;
+    QWidget *outputWidget = nullptr;
+    QSplitter *splitter = nullptr;
 };
 
 

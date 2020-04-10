@@ -205,6 +205,10 @@ QtSLiMHelpWindow &QtSLiMHelpWindow::instance(void)
 QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMHelpWindow)
 {
     ui->setupUi(this);
+    interpolateSplitters();
+    
+    // no window icon
+    setWindowIcon(QIcon());
     
     // Configure the search field to look like a search field
     ui->searchField->setClearButtonEnabled(true);
@@ -288,6 +292,46 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui
 QtSLiMHelpWindow::~QtSLiMHelpWindow()
 {
     delete ui;
+}
+
+void QtSLiMHelpWindow::interpolateSplitters(void)
+{
+#if 1
+    // add a top-level horizontal splitter
+    
+    QLayout *parentLayout = ui->horizontalLayout;
+    QWidget *firstWidget = ui->topicOutlineView;
+    QWidget *secondWidget = ui->descriptionTextEdit;
+    
+    // force geometry calculation, which is lazy
+    setAttribute(Qt::WA_DontShowOnScreen, true);
+    show();
+    hide();
+    setAttribute(Qt::WA_DontShowOnScreen, false);
+    
+    // change fixed-size views to be flexible, so they cooperate with the splitter
+    firstWidget->setMinimumWidth(200);
+    firstWidget->setMaximumWidth(400);
+    
+    // empty out parentLayout
+    QLayoutItem *child;
+    while ((child = parentLayout->takeAt(0)) != nullptr);
+    
+    // make the QSplitter between the left and right and add the subsidiary widgets to it
+    splitter = new QSplitter(Qt::Horizontal, this);
+    
+    splitter->addWidget(firstWidget);
+    splitter->addWidget(secondWidget);
+    splitter->setHandleWidth(splitter->handleWidth() + 3);
+    splitter->setStretchFactor(0, 1);
+    splitter->setStretchFactor(1, 2);    // initially, give 2/3 of the width to the description textedit
+    splitter->setCollapsible(0, true);
+    splitter->setCollapsible(1, false);
+    
+    // and finally, add the splitter to the parent layout
+    parentLayout->addWidget(splitter);
+    parentLayout->setContentsMargins(0, 0, 0, 0);
+#endif
 }
 
 bool QtSLiMHelpWindow::findItemsMatchingSearchString(QTreeWidgetItem *root, const QString searchString, bool titlesOnly, std::vector<QTreeWidgetItem *> &matchKeys, std::vector<QTreeWidgetItem *> &expandItems)

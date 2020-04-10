@@ -231,7 +231,7 @@ void QtSLiMWindow::interpolateVerticalSplitter(void)
     ui->topRightLayout->setStretch(4, 1);
 #if !defined(__APPLE__)
     ui->topRightLayout->setSpacing(3);  // a platform-dependent value that prevents a couple of pixels of "play" above the play speed slider, for reasons I don't understand
-#else    
+#else
     ui->topRightLayout->setSpacing(4);
 #endif
     ui->playSpeedSlider->setFixedHeight(ui->playSpeedSlider->sizeHint().height());
@@ -1610,6 +1610,7 @@ void QtSLiMWindow::displayProfileResults(void)
     window->setMinimumSize(500, 200);
     window->resize(500, 600);
     window->move(50, 50);
+    window->setWindowIcon(QIcon());
     
     // Make a QTextEdit to hold the results
     QHBoxLayout *layout = new QHBoxLayout;
@@ -3461,6 +3462,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     window->setWindowTitle(title);
     window->setMinimumSize(250, 250);
     window->resize(300, 300);
+    window->setWindowIcon(QIcon());
     
     // Install graphView in the window
     QVBoxLayout *topLayout = new QVBoxLayout;
