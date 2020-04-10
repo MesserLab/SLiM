@@ -33,6 +33,8 @@
 #include <QSpacerItem>
 #include <QVBoxLayout>
 #include <QPaintEvent>
+#include <QStyleOption>
+#include <QStyle>
 #include <QDebug>
 #include <cmath>
 
@@ -701,8 +703,48 @@ void QtSLiMSplitterHandle::paintEvent(QPaintEvent *paintEvent)
         //painter.fillRect(bounds.adjusted(0, 0, 0, -200), Qt::red);
     }
     
+    // On Linux, super draws the knob one pixel to the right of where it ought to be, so we draw it ourselves
+    // This code is modified from QtSplitterHandle in the Qt 5.14.2 sources (it's identical in Qt 5.9.8)
+    // This may turn out to be undesirable, as it assumes that the Linux widget kit is the one I use on Ubuntu
+#if !defined(__APPLE__)
+    if (orientation() == Qt::Horizontal)
+    {
+        QStyleOption opt(0);
+        opt.rect = contentsRect().adjusted(0, 0, -1, 0);    // make the rect one pixel narrower, which shifts the knob
+        opt.palette = palette();
+        opt.state = QStyle::State_Horizontal;
+        
+        /*
+        // We don't have access to the hover/pressed state as far as I know, but it seems to be unused anyway
+        if (d->hover)
+            opt.state |= QStyle::State_MouseOver;
+        if (d->pressed)
+            opt.state |= QStyle::State_Sunken;
+        */
+        
+        if (isEnabled())
+            opt.state |= QStyle::State_Enabled;
+        
+        parentWidget()->style()->drawControl(QStyle::CE_Splitter, &opt, &painter, splitter());
+        return;
+    }
+#endif
+    
     // call super to overlay the splitter knob
     QSplitterHandle::paintEvent(paintEvent);
+}
+
+
+// A subclass of QStatusBar that draws a top separator on Linux, so our splitters abut nicely
+void QtSLiMStatusBar::paintEvent(QPaintEvent *paintEvent)
+{
+    QStatusBar::paintEvent(paintEvent);
+    
+    // draw the top separator
+    QPainter painter(this);
+    QRect bounds = rect();
+    
+    painter.fillRect(bounds.adjusted(0, 0, 0, -(bounds.height() - 1)), QtSLiMColorWithWhite(0.72, 1.0));
 }
 
 

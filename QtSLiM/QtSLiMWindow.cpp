@@ -229,7 +229,11 @@ void QtSLiMWindow::interpolateVerticalSplitter(void)
     ui->subpopTableView->setMaximumHeight(QWIDGETSIZE_MAX);
     ui->individualsWidget->setMaximumHeight(QWIDGETSIZE_MAX);
     ui->topRightLayout->setStretch(4, 1);
+#if !defined(__APPLE__)
+    ui->topRightLayout->setSpacing(3);  // a platform-dependent value that prevents a couple of pixels of "play" above the play speed slider, for reasons I don't understand
+#else    
     ui->topRightLayout->setSpacing(4);
+#endif
     ui->playSpeedSlider->setFixedHeight(ui->playSpeedSlider->sizeHint().height());
     
     // empty out parentLayout
@@ -255,7 +259,7 @@ void QtSLiMWindow::interpolateVerticalSplitter(void)
     overallSplitter->setChildrenCollapsible(true);
     overallSplitter->addWidget(overallTopWidget);
     overallSplitter->addWidget(overallBottomWidget);
-    overallSplitter->setHandleWidth(overallSplitter->handleWidth() + 3);
+    overallSplitter->setHandleWidth(std::max(9, overallSplitter->handleWidth() + 3));   // ends up 9 on Ubuntu, 10 on macOS
     overallSplitter->setStretchFactor(0, 1);
     overallSplitter->setStretchFactor(1, 100);    // initially, give all height to the bottom widget
     
@@ -301,7 +305,7 @@ void QtSLiMWindow::interpolateHorizontalSplitter(void)
     bottomSplitter->setChildrenCollapsible(true);
     bottomSplitter->addWidget(scriptWidget);
     bottomSplitter->addWidget(outputWidget);
-    bottomSplitter->setHandleWidth(bottomSplitter->handleWidth() + 3);
+    bottomSplitter->setHandleWidth(std::max(9, bottomSplitter->handleWidth() + 3));   // ends up 9 on Ubuntu, 10 on macOS
     bottomSplitter->setStretchFactor(0, 2);
     bottomSplitter->setStretchFactor(1, 1);    // initially, give 2/3 of the width to the script widget
     

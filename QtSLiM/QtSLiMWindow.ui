@@ -1447,7 +1447,7 @@ QPushButton:checked {
    <addaction name="menuScript"/>
    <addaction name="menuHelp"/>
   </widget>
-  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QtSLiMStatusBar" name="statusBar"/>
   <action name="actionNew">
    <property name="text">
     <string>New</string>
@@ -1867,6 +1867,11 @@ QPushButton:checked {
   <customwidget>
    <class>QtSLiMPushButton</class>
    <extends>QPushButton</extends>
+   <header>QtSLiMExtras.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMStatusBar</class>
+   <extends>QStatusBar</extends>
    <header>QtSLiMExtras.h</header>
   </customwidget>
  </customwidgets>

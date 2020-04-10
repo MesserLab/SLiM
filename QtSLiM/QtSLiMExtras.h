@@ -32,6 +32,7 @@
 #include <QList>
 #include <QSplitter>
 #include <QSplitterHandle>
+#include <QStatusBar>
 
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
@@ -135,6 +136,19 @@ public:
     
 protected:
     QSplitterHandle *createHandle(void) override { return new QtSLiMSplitterHandle(orientation(), this); }
+};
+
+// A subclass of QStatusBar that draws a top separator on Linux, so our splitters abut nicely
+class QtSLiMStatusBar : public QStatusBar
+{
+    Q_OBJECT
+    
+public:
+    QtSLiMStatusBar(QWidget *parent = nullptr) : QStatusBar(parent) {}
+    ~QtSLiMStatusBar(void) override {}
+    
+protected:
+    void paintEvent(QPaintEvent *paintEvent) override;
 };
 
 #endif // QTSLIMEXTRAS_H
