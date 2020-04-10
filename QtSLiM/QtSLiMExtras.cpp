@@ -666,42 +666,31 @@ void QtSLiMSplitterHandle::paintEvent(QPaintEvent *paintEvent)
     QPainter painter(this);
     QRect bounds = rect();
     
+    // provide a darkened and beveled appearance
+    QRect begin1Strip, begin2Strip, centerStrip, end2Strip, end1Strip;
+    
     if (orientation() == Qt::Vertical)
     {
-        // provide a darkened and beveled appearance
-        QRect top1Strip = bounds.adjusted(0, 0, 0, -(bounds.height() - 1));
-        QRect top2Strip = bounds.adjusted(0, 1, 0, -(bounds.height() - 2));
-        QRect centerStrip = bounds.adjusted(0, 2, 0, -2);
-        //QRect bottom2Strip = bounds.adjusted(0, bounds.height() - 2, 0, -1);
-        QRect bottom1Strip = bounds.adjusted(0, bounds.height() - 1, 0, 0);
-        
-        painter.fillRect(top1Strip, QtSLiMColorWithWhite(0.0, 0.15));
-        painter.fillRect(top2Strip, QtSLiMColorWithWhite(1.0, 1.0));
-        painter.fillRect(centerStrip, QtSLiMColorWithWhite(1.0, 0.6));
-        //painter.fillRect(bottom2Strip, QtSLiMColorWithWhite(0.0, 0.05));
-        painter.fillRect(bottom1Strip, QtSLiMColorWithWhite(0.0, 0.2));
-        
-        // debug fill
-        //painter.fillRect(bounds.adjusted(0, 0, -800, 0), Qt::red);
+        begin1Strip = bounds.adjusted(0, 0, 0, -(bounds.height() - 1));
+        begin2Strip = bounds.adjusted(0, 1, 0, -(bounds.height() - 2));
+        centerStrip = bounds.adjusted(0, 2, 0, -2);
+        end2Strip = bounds.adjusted(0, bounds.height() - 2, 0, -1);
+        end1Strip = bounds.adjusted(0, bounds.height() - 1, 0, 0);
     }
     else    // Qt::Horizontal
     {
-        // provide a darkened and beveled appearance
-        QRect left1Strip = bounds.adjusted(0, 0, -(bounds.width() - 1), 0);
-        QRect left2Strip = bounds.adjusted(1, 0, -(bounds.width() - 2), 0);
-        QRect centerStrip = bounds.adjusted(2, 0, -2, 0);
-        //QRect right2Strip = bounds.adjusted(bounds.width() - 2, 0, -1, 0);
-        QRect right1Strip = bounds.adjusted(bounds.width() - 1, 0, 0, 0);
-        
-        painter.fillRect(left1Strip, QtSLiMColorWithWhite(0.0, 0.15));
-        painter.fillRect(left2Strip, QtSLiMColorWithWhite(1.0, 1.0));
-        painter.fillRect(centerStrip, QtSLiMColorWithWhite(1.0, 0.6));
-        //painter.fillRect(right2Strip, QtSLiMColorWithWhite(0.0, 0.05));
-        painter.fillRect(right1Strip, QtSLiMColorWithWhite(0.0, 0.2));
-        
-        // debug fill
-        //painter.fillRect(bounds.adjusted(0, 0, 0, -200), Qt::red);
+        begin1Strip = bounds.adjusted(0, 0, -(bounds.width() - 1), 0);
+        begin2Strip = bounds.adjusted(1, 0, -(bounds.width() - 2), 0);
+        centerStrip = bounds.adjusted(2, 0, -2, 0);
+        end2Strip = bounds.adjusted(bounds.width() - 2, 0, -1, 0);
+        end1Strip = bounds.adjusted(bounds.width() - 1, 0, 0, 0);
     }
+    
+    painter.fillRect(begin1Strip, QtSLiMColorWithWhite(0.773, 1.0));
+    painter.fillRect(begin2Strip, QtSLiMColorWithWhite(1.000, 1.0));
+    painter.fillRect(centerStrip, QtSLiMColorWithWhite(0.965, 1.0));
+    painter.fillRect(end2Strip, QtSLiMColorWithWhite(0.918, 1.0));
+    painter.fillRect(end1Strip, QtSLiMColorWithWhite(0.722, 1.0));
     
     // On Linux, super draws the knob one pixel to the right of where it ought to be, so we draw it ourselves
     // This code is modified from QtSplitterHandle in the Qt 5.14.2 sources (it's identical in Qt 5.9.8)
