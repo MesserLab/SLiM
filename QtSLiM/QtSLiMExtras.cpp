@@ -639,7 +639,10 @@ void QtSLiMPushButton::paintEvent(QPaintEvent * /* paintEvent */)
     QRect bounds = rect();
     
     // This uses the icon to draw, which works because of Qt::AA_UseHighDpiPixmaps
+    painter.save();
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
     icon().paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+    painter.restore();
     
     /*
     // This code would construct and draw a high-DPI image, but using Qt::AA_UseHighDpiPixmaps is better

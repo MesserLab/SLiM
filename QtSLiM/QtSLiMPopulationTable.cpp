@@ -261,6 +261,9 @@ void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRec
     QHeaderView::paintSection(painter, rect, logicalIndex);
     painter->restore();
     
+    painter->save();
+    painter->setRenderHint(QPainter::SmoothPixmapTransform);
+    
     switch (logicalIndex)
     {
     case 2:
@@ -294,6 +297,8 @@ void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRec
     }
     default: break;
     }
+    
+    painter->restore();
 }
 
 
