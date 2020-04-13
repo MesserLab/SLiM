@@ -14,5 +14,7 @@
         <file>icons/DocIcon128.png</file>
         <file>icons/DocIcon256.png</file>
         <file>icons/DocIcon512.png</file>
+        <file>icons/GenericDocIcon16.png</file>
+        <file>icons/GenericDocIcon32.png</file>
     </qresource>
 </RCC>

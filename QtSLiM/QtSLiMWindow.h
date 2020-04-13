@@ -312,7 +312,8 @@ private slots:
     
 protected:
     void closeEvent(QCloseEvent *event) override;
-    void positionNewGraphWindow(QWidget *window);
+    void positionNewSubsidiaryWindow(QWidget *window);
+    QWidget *imageWindowWithPath(const QString &path);
     QWidget *graphWindowWithView(QtSLiMGraphView *graphView);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
     

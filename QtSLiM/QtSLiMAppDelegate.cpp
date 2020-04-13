@@ -94,12 +94,15 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     qtSLiMAppDelegate = this;
     
     // Cache app-wide icons
-    documentIcon_.addFile(":/icons/DocIcon16.png");
-    documentIcon_.addFile(":/icons/DocIcon32.png");
-    documentIcon_.addFile(":/icons/DocIcon64.png");
-    documentIcon_.addFile(":/icons/DocIcon128.png");
-    documentIcon_.addFile(":/icons/DocIcon256.png");
-    documentIcon_.addFile(":/icons/DocIcon512.png");
+    slimDocumentIcon_.addFile(":/icons/DocIcon16.png");
+    slimDocumentIcon_.addFile(":/icons/DocIcon32.png");
+    slimDocumentIcon_.addFile(":/icons/DocIcon64.png");
+    slimDocumentIcon_.addFile(":/icons/DocIcon128.png");
+    slimDocumentIcon_.addFile(":/icons/DocIcon256.png");
+    slimDocumentIcon_.addFile(":/icons/DocIcon512.png");
+    
+    genericDocumentIcon_.addFile(":/icons/GenericDocIcon16.png");
+    genericDocumentIcon_.addFile(":/icons/GenericDocIcon32.png");
     
     appIcon_.addFile(":/icons/AppIcon16.png");
     appIcon_.addFile(":/icons/AppIcon32.png");

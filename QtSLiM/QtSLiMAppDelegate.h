@@ -41,7 +41,8 @@ class QtSLiMAppDelegate : public QObject
     bool launchedFromShell_;	// true if launched from shell, false if launched from Finder/other
     
     QIcon appIcon_;
-    QIcon documentIcon_;
+    QIcon slimDocumentIcon_;
+    QIcon genericDocumentIcon_;
     
 public:
     explicit QtSLiMAppDelegate(QObject *parent);
@@ -61,7 +62,8 @@ public:
 
     // App-wide shared icons
     QIcon applicationIcon(void) { return appIcon_; }
-    QIcon documentIcon(void) { return documentIcon_; }
+    QIcon slimDocumentIcon(void) { return slimDocumentIcon_; }
+    QIcon genericDocumentIcon(void) { return genericDocumentIcon_; }
     
 public slots:
     void lastWindowClosed(void);

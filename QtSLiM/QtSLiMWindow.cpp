@@ -58,6 +58,10 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QSplitter>
+#include <QFileSystemWatcher>
+#include <QClipboard>
+#include <QProcess>
+#include <QDesktopServices>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -72,9 +76,6 @@
 //      https://stackoverflow.com/questions/23111075/how-to-highlight-the-entire-row-on-mouse-hover-in-qtablewidget-qt5
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 //      https://askubuntu.com/questions/538299/globally-associate-file-type-with-certain-application for example
-// displaying PDFs in QtSLiM, opened by the slimgui method, etc.
-//      might leverage https://mupdf.com as an external renderer?  use system() to call mupdf, QtSLiM displays a PNG?
-//      oh, or maybe QtSLiM should display PNG files dynamically instead, and people could write their script to generate PNG not PDF – that would be easy!
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
 //      https://askubuntu.com/questions/894990/how-to-change-an-icon-in-16-04
 // how to distribute QtSLiM on Linux
@@ -202,7 +203,7 @@ void QtSLiMWindow::init(void)
     }
     
     // Set the window icon, overriding the app icon
-    setWindowIcon(qtSLiMAppDelegate->documentIcon());
+    setWindowIcon(qtSLiMAppDelegate->slimDocumentIcon());
 }
 
 void QtSLiMWindow::interpolateVerticalSplitter(void)
@@ -722,7 +723,7 @@ QtSLiMWindow *QtSLiMWindow::runInitialOpenPanel(void)
     QSettings settings;
     QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
     
-    const QString fileName = QFileDialog::getOpenFileName(nullptr, QString(), directory, "SLiM models (*.slim);;Text files (*.txt)");  // add PDF files eventually
+    const QString fileName = QFileDialog::getOpenFileName(nullptr, QString(), directory, "Files (*.slim *.txt)");
     if (!fileName.isEmpty())
     {
         settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
@@ -743,7 +744,7 @@ void QtSLiMWindow::open()
     QSettings settings;
     QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
     
-    const QString fileName = QFileDialog::getOpenFileName(this, QString(), directory, "SLiM models (*.slim);;Text files (*.txt)");  // add PDF files eventually
+    const QString fileName = QFileDialog::getOpenFileName(this, QString(), directory, "Files (*.slim *.txt *.png *.jpg *.jpeg *.bmp *.gif)");
     if (!fileName.isEmpty())
     {
         settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
@@ -753,26 +754,46 @@ void QtSLiMWindow::open()
 
 void QtSLiMWindow::openFile(const QString &fileName)
 {
-    QtSLiMWindow *existing = findMainWindow(fileName);
-    if (existing) {
-        existing->show();
-        existing->raise();
-        existing->activateWindow();
-        return;
+    if (fileName.endsWith(".png", Qt::CaseInsensitive) ||
+            fileName.endsWith(".jpg", Qt::CaseInsensitive) ||
+            fileName.endsWith(".jpeg", Qt::CaseInsensitive) ||
+            fileName.endsWith(".bmp", Qt::CaseInsensitive) ||
+            fileName.endsWith(".gif", Qt::CaseInsensitive))
+    {
+        // An image; this opens as a child of the current SLiM window
+        QWidget *imageWindow = imageWindowWithPath(fileName);
+        
+        if (imageWindow)
+        {
+            imageWindow->show();
+            imageWindow->raise();
+            this->activateWindow();     // Qt activates the window even if we don't ask for it; this takes the focus back
+        }
     }
-
-    if (windowIsReuseable()) {
-        loadFile(fileName);
-        return;
+    else
+    {
+        // Should be a .slim or .txt file; look for an existing window for the file, otherwise open a new window (or reuse a reuseable window)
+        QtSLiMWindow *existing = findMainWindow(fileName);
+        if (existing) {
+            existing->show();
+            existing->raise();
+            existing->activateWindow();
+            return;
+        }
+        
+        if (windowIsReuseable()) {
+            loadFile(fileName);
+            return;
+        }
+        
+        QtSLiMWindow *other = new QtSLiMWindow(fileName);
+        if (other->isUntitled) {
+            delete other;
+            return;
+        }
+        other->tile(this);
+        other->show();
     }
-
-    QtSLiMWindow *other = new QtSLiMWindow(fileName);
-    if (other->isUntitled) {
-        delete other;
-        return;
-    }
-    other->tile(this);
-    other->show();
 }
 
 void QtSLiMWindow::openRecipe(const QString &recipeName, const QString &recipeScript)
@@ -2885,12 +2906,9 @@ void QtSLiMWindow::finish_eidos_pauseExecution(void)
 	}
 }
 
-void QtSLiMWindow::eidos_openDocument(QString __attribute__((unused)) path)
+void QtSLiMWindow::eidos_openDocument(QString path)
 {
-    // FIXME needs to be ported, including PDF display...
-    //NSURL *pathURL = [NSURL fileURLWithPath:path];
-	
-	//[[NSDocumentController sharedDocumentController] openDocumentWithContentsOfURL:pathURL display:YES completionHandler:(^ void (NSDocument *typelessDoc, BOOL already_open, NSError *error) { })];
+    openFile(path);
 }
 
 void QtSLiMWindow::eidos_pauseExecution(void)
@@ -3357,7 +3375,7 @@ static bool rectIsOnscreen(QRect windowRect)
     return false;
 }
 
-void QtSLiMWindow::positionNewGraphWindow(QWidget *window)
+void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
 {
     // force geometry calculation, which is lazy
     window->setAttribute(Qt::WA_DontShowOnScreen, true);
@@ -3451,6 +3469,114 @@ void QtSLiMWindow::positionNewGraphWindow(QWidget *window)
 	// if none of those worked, we just leave the window where it got placed out of the nib
 }
 
+QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
+{
+    QImage image(path);
+    QFileInfo fileInfo(path);
+    
+    // We have an image; note that it might be a "null image", however
+    bool null = image.isNull();
+    int width = (null ? 288 : image.width());
+    int height = (null ? 288 : image.height());
+    
+    QWidget *window = new QWidget(this, Qt::Window | Qt::Tool);    // the image window has us as a parent, but is still a standalone window
+    
+    window->setWindowTitle(fileInfo.fileName());
+    window->setFixedSize(width, height);
+    window->setWindowIcon(qtSLiMAppDelegate->genericDocumentIcon());    // doesn't seem to quite work; we get the SLiM document icon, inherited from parent presumably
+    window->setWindowFilePath(path);
+    
+    // Make the image view
+    QLabel *imageView = new QLabel();
+    
+    imageView->setStyleSheet("QLabel { background-color : white; }");
+    imageView->setBackgroundRole(QPalette::Base);
+    imageView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    imageView->setScaledContents(true);
+    imageView->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
+    
+    if (null)
+        imageView->setText("No image data");
+    else
+        imageView->setPixmap(QPixmap::fromImage(image));
+    
+    // Install imageView in the window
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    window->setLayout(topLayout);
+    topLayout->setMargin(0);
+    topLayout->setSpacing(0);
+    topLayout->addWidget(imageView);
+    
+    // Make a file system watcher to update us when the image changes
+    QFileSystemWatcher *watcher = new QFileSystemWatcher(QStringList(path), window);
+    
+    connect(watcher, &QFileSystemWatcher::fileChanged, [imageView](const QString &path) {
+        QImage image(path);
+        
+        if (image.isNull()) {
+            imageView->setText("No image data");
+        } else {
+            imageView->setPixmap(QPixmap::fromImage(image));
+            imageView->window()->setFixedSize(image.width(), image.height());
+        }
+    });
+    
+    // Set up a context menu for copy/open
+    QMenu *contextMenu = new QMenu("image_menu", imageView);
+    contextMenu->addAction("Copy Image", [path]() {
+        QImage image(path);     // get the current image from the filesystem
+        QClipboard *clipboard = QGuiApplication::clipboard();
+        clipboard->setImage(image);
+    });
+    contextMenu->addAction("Copy File Path", [path]() {
+        QClipboard *clipboard = QGuiApplication::clipboard();
+        clipboard->setText(path);
+    });
+    
+    // Reveal in Finder / Show in Explorer: see https://stackoverflow.com/questions/3490336
+    // Note there is no good solution on Linux, so we do "Open File" instead
+    #if defined(Q_OS_MACOS)
+    contextMenu->addAction("Reveal in Finder", [path]() {
+        const QFileInfo fileInfo(path);
+        QStringList scriptArgs;
+        scriptArgs << QLatin1String("-e") << QString::fromLatin1("tell application \"Finder\" to reveal POSIX file \"%1\"").arg(fileInfo.canonicalFilePath());
+        QProcess::execute(QLatin1String("/usr/bin/osascript"), scriptArgs);
+        scriptArgs.clear();
+        scriptArgs << QLatin1String("-e") << QLatin1String("tell application \"Finder\" to activate");
+        QProcess::execute(QLatin1String("/usr/bin/osascript"), scriptArgs);
+    });
+    #elif defined(Q_WS_WIN)
+    contextMenu->addAction("Show in Explorer", [path]() {
+        const QFileInfo fileInfo(path);
+        const FileName explorer = Environment::systemEnvironment().searchInPath(QLatin1String("explorer.exe"));
+        if (explorer.isEmpty())
+            qApp->beep();
+        QStringList param;
+        if (!fileInfo.isDir())
+            param += QLatin1String("/select,");
+        param += QDir::toNativeSeparators(fileInfo.canonicalFilePath());
+        QProcess::startDetached(explorer.toString() + " " + param);
+    });
+    #else
+    contextMenu->addAction("Open File", [path]() {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    });
+    #endif
+    
+    imageView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(imageView, &QLabel::customContextMenuRequested, [imageView, contextMenu](const QPoint &pos) {
+        // Run the context menu if we have an image (in which case the text length is zero)
+        if (imageView->text().length() == 0)
+            contextMenu->exec(imageView->mapToGlobal(pos));
+    });
+    
+    // Position the window nicely
+    positionNewSubsidiaryWindow(window);
+    
+    return window;
+}
+
 QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
@@ -3486,7 +3612,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     graphView->addedToWindow();
     
     // Position the window nicely
-    positionNewGraphWindow(window);
+    positionNewSubsidiaryWindow(window);
     
     return window;
 }
