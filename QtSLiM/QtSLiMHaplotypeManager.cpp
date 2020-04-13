@@ -41,6 +41,80 @@
 #include "subpopulation.h"
 
 
+// Incremental sorting
+//
+// This is from https://github.com/MesserLab/incsort by Benjamin C. Haller, released under the GPL 3.
+// More indirectly, much of the logic is thanks to Lars Hagen's blog post on incremental sorting, at
+// http://larshagencpp.github.io/blog/2016/04/23/fast-incremental-sort, and to Paredes & Navarro (2006)
+// who first described the algorithm implemented here.
+//
+// As described in the incsort project, Lars did not explicitly state the license he was releasing
+// his code under, but he has released other blog-related code under the MIT License, which is GPL-
+// compatible, so I have presumed the same applies here.
+
+template<typename I>
+class Eidos_partial_sorter {
+public:
+	typedef typename std::iterator_traits<I>::value_type value_type;
+	
+	Eidos_partial_sorter(I i1, I i2) : first(i1), last(i2) {}
+	
+	class iterator {
+	public:
+		iterator(I first, I last) : current(first), sort_end(first), end(last) {}
+		
+		iterator& operator++() {
+			ensure_sorted_at_current();
+			++current;
+			return *this;
+		}
+		
+		value_type& operator*() {
+			ensure_sorted_at_current();
+			return *current;
+		}
+		
+		bool operator==(const iterator &iter) { return current == iter.current; }
+		bool operator!=(const iterator &iter) { return current != iter.current; }
+		
+	private:
+		void ensure_sorted_at_current() {
+			if (current == sort_end) {
+				sort_end = (sort_size < end - sort_end) ? sort_end + sort_size : end;
+				std::partial_sort(current, sort_end, end);
+				sort_size *= 2;
+			}
+		}
+		I current;
+		I sort_end;
+		I end;
+		int sort_size = 100;
+	};
+	
+	iterator begin(void) { return iterator(first, last); }
+	iterator end(void) { return iterator(last, last); }
+	
+private:
+	I first;
+	I last;
+};
+
+// class Eidos_simple_quick_sorter;
+//
+// I was originally going to use the IQS or incremental quicksort algorithm of Paredes & Navarro (2006)
+// here, but it seems to hit its worst-case performance because so many distances in the edge buffer
+// have identical values.  I think Regla & Paredes (2015) would perhaps fix that issue, but again they
+// provide no C++ implementation of their code, and trying to get from pseudocode to C++ has proved a
+// major hassle – especially since they use a different definition of "partition" thanstd::partition(),
+// apparently.  See https://github.com/MesserLab/incsort for further comments.  If someone wants to
+// implement Regla & Paredes (2015) for me, I'm pretty sure it would speed up greedy clustering by
+// several times; but I'm giving up no it for now and using Eidos_partial_sorter instead.
+
+//
+// Incremental sorting ENDS
+//
+
+
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
 void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
 {
@@ -66,6 +140,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
             window->setWindowTitle(QString("Haplotype snapshot (%1)").arg(haplotypeManager->titleString));
             window->setMinimumSize(400, 200);
             window->resize(500, 400);
+            window->setWindowIcon(QIcon());
             
             // Make the window layout
             QVBoxLayout *topLayout = new QVBoxLayout;
@@ -1287,20 +1362,13 @@ typedef struct {
 	int64_t d;
 } greedy_edge;
 
-static bool comp_greedy_edge(greedy_edge &i, greedy_edge &j) { return (i.d < j.d); }
+static bool operator<(const greedy_edge &i, const greedy_edge &j) __attribute__((unused));
+static bool operator==(const greedy_edge &i, const greedy_edge &j) __attribute__((unused));
+static bool operator!=(const greedy_edge &i, const greedy_edge &j) __attribute__((unused));
 
-// progress indicator support for the std::sort in the greedy algorithm; see comment below
-/*
-static int64_t slim_greedy_progress_max;
-static volatile int64_t slim_greedy_progress;
-static int slim_greedy_progress_scale;
-
-static bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progress++; return (i.d < j.d); }
-
-void QtSLiMHaplotypeManager::greedyPeriodicCounterUpdate()
-{
-    
-}*/
+static bool operator<(const greedy_edge &i, const greedy_edge &j) { return (i.d < j.d); }
+static bool operator==(const greedy_edge &i, const greedy_edge &j) { return (i.d == j.d); }
+static bool operator!=(const greedy_edge &i, const greedy_edge &j) { return (i.d != j.d); }
 
 void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count, std::vector<int> &solution)
 {
@@ -1316,50 +1384,32 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 		for (size_t k = i + 1; k < genome_count; ++k)
 			edge_buf.emplace_back(greedy_edge{static_cast<int>(i), static_cast<int>(k), *(distances + i + k * genome_count)});
 	}
-	
+    
 	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
 		return;
 	
 	if (progressPanel_)
 	{
-		// We're running in the background, sorting the edges can take a long time, we want to show progress,
-		// but std::sort() provides no progress.  What to do?  We could switch to doing a large number of
-		// std::partial_sort() calls, incrementing progress in between, but that would greatly increase the
-		// total time for the sorting to complete.  We could write our own sort code, or clone std::sort's
-		// template code and insert progress code into it, or something gross like that.  Instead, here's an
-		// interesting idea: https://stackoverflow.com/a/13898735/2752221 .  The idea is to increment your
-		// progress counter in your comparator function!  Then call std::sort() as usual to do the sort, and
-		// update the progress bar periodically on a separate thread.  So that's what we do.  Note that the
-		// way I've implemented this is not re-entrant, so if the user creates multiple haplotype plots
-		// simultaneously, in multiple windows, they will collide in the progress counters and their progress
-		// bars will be incorrect.  I can live with it.
-/*		slim_greedy_progress_max = (int64_t)(edge_count * log2(edge_count) / 2);	// n log n estimated comparisons; seems to be half that for some reason, in practice
-		slim_greedy_progress = 0;
-		slim_greedy_progress_scale = (int)genome_count;					// this is the GUI progress bar's max scale
-		
-		backgroundController->haplotypeProgressGreedySortProgressFlag = 1;	// indicate we are running the sort
-		
-		[self performSelectorInBackground:@selector(greedyPeriodicCounterUpdateWithBackgroundController:) withObject:backgroundController];
-		
-		std::sort(edge_buf.begin(), edge_buf.end(), comp_greedy_edge_count);
-		
-		backgroundController->haplotypeProgressGreedySortProgressFlag = 0;	// indicate we are done with the sort
-		
-		// wait for the background thread to die; yes, we ought to use NSConditionLock, but this will be quick...
-		while (backgroundController->haplotypeProgressGreedySortProgressFlag == 0)
-			;
-		*/
+        // We have a progress panel, so we do an incremental sort
+        //Eidos_simple_quick_sorter<std::vector<greedy_edge>::iterator> sorter(edge_buf.begin(), edge_buf.end());
+        Eidos_partial_sorter<std::vector<greedy_edge>::iterator> sorter(edge_buf.begin(), edge_buf.end());
+        auto sorted_iter = sorter.begin();
         
-        // for this initial commit, use std::sort() and don't update the progress panel
-        std::sort(edge_buf.begin(), edge_buf.end(), comp_greedy_edge);
-        
-        if (progressPanel_)
-            progressPanel_->setHaplotypeProgress(genome_count, 1);
+        for (size_t i = 0; i < genome_count - 1; ++i)
+        {
+            for (size_t k = i + 1; k < genome_count; ++k)
+                ++sorted_iter;
+            
+            if (progressPanel_->haplotypeProgressIsCancelled())
+                return;
+            
+            progressPanel_->setHaplotypeProgress(i, 1);
+        }
 	}
 	else
 	{
 		// If we're not running in the background, we have no progress indicator so we can just use std::sort()
-		std::sort(edge_buf.begin(), edge_buf.end(), comp_greedy_edge);
+		std::sort(edge_buf.begin(), edge_buf.end());
 	}
 	
 	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
