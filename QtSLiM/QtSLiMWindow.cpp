@@ -127,12 +127,14 @@ void QtSLiMWindow::init(void)
     setAttribute(Qt::WA_DeleteOnClose);
     isUntitled = true;
     isRecipe = false;
-    isTransient = true;
     
     // create the window UI
     ui->setupUi(this);
     interpolateSplitters();
     initializeUI();
+    
+    // with everything built, mark ourselves as transient (recipes and files will mark this false after us)
+    isTransient = true;
     
     // wire up our continuous play and generation play timers
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
