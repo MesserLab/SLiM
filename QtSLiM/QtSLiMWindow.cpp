@@ -72,8 +72,6 @@
 // TO DO:
 //
 // decide whether to implement the variable browser or not
-// hover preview tooltips in the objects tables; probably hard to do...
-//      https://stackoverflow.com/questions/23111075/how-to-highlight-the-entire-row-on-mouse-hover-in-qtablewidget-qt5
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 //      https://askubuntu.com/questions/538299/globally-associate-file-type-with-certain-application for example
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...

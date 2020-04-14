@@ -23,10 +23,304 @@
 
 #include <QPainter>
 #include <QKeyEvent>
+#include <QImage>
+#include <QBuffer>
+#include <QByteArray>
+#include <QString>
+#include <QtGlobal>
+#include <QWindow>
 #include <QDebug>
 
 #include "QtSLiMWindow.h"
+#include "QtSLiMExtras.h"
+#include "mutation_type.h"
+#include "interaction_type.h"
+#include "eidos_rng.h"
 
+
+// a helper function for making the tooltip images in the mutation and interaction type tables
+// this corresponds to SLiMgui's -[SLiMFunctionGraphToolTipView drawRect:]
+static QImage imageForMutationOrInteractionType(MutationType *mut_type, InteractionType *interaction_type)
+{
+    QImage image = QImage(154, 100, QImage::Format_ARGB32);     // double resolution, for high-resolution displays
+    QPainter painter(&image);
+    
+    painter.scale(2.0, 2.0);    // compensate for high resolution
+    painter.setRenderHint(QPainter::Antialiasing);
+    
+    QRect bounds(0, 0, 77, 50);
+    
+    // Flip coordinate system to match that in SLiMgui, for easy porting
+    painter.translate(0, 50);
+    painter.scale(1.0, -1.0);
+    
+    // Frame and fill our tooltip rect
+    painter.fillRect(bounds, QtSLiMColorWithWhite(0.95, 1.0));
+    //QtSLiMFrameRect(bounds, QtSLiMColorWithWhite(0.75, 1.0), painter);  // not used, since Qt gives our tooltip a frame
+    
+    // Plan our plotting
+	if ((!mut_type && !interaction_type) || (mut_type && interaction_type))
+		return image;
+	
+	size_t sample_size;
+	std::vector<double> draws;
+	bool draw_positive = false, draw_negative = false;
+	bool heights_negative = false;
+	double axis_min, axis_max;
+	bool draw_axis_midpoint = true, custom_axis_max = false;
+	
+	if (mut_type)
+	{
+		// Generate draws for a mutation type; this case is stochastic, based upon a large number of DFE samples.
+		// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
+		// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
+		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
+		static Eidos_RNG_State local_rng;
+		
+		sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+		draws.reserve(sample_size);
+		
+		std::swap(local_rng, gEidos_RNG);	// swap in our local RNG
+		
+		if (!EIDOS_GSL_RNG)
+			Eidos_InitializeRNG();
+		Eidos_SetRNGSeed(10);		// arbitrary seed, but the same seed every time
+		
+		//std::clock_t start = std::clock();
+		
+		try
+		{
+			for (size_t sample_count = 0; sample_count < sample_size; ++sample_count)
+			{
+				double draw = mut_type->DrawSelectionCoefficient();
+				
+				draws.push_back(draw);
+				
+				if (draw < 0.0)			draw_negative = true;
+				else if (draw > 0.0)	draw_positive = true;
+			}
+		}
+		catch (...)
+		{
+			draws.clear();
+			draw_negative = true;
+			draw_positive = true;
+		}
+		
+		//NSLog(@"Draws took %f seconds", (std::clock() - start) / (double)CLOCKS_PER_SEC);
+		
+		std::swap(local_rng, gEidos_RNG);	// swap out our local RNG; restore the standard RNG
+		
+		// figure out axis limits
+		if (draw_negative && !draw_positive)
+		{
+			axis_min = -1.0;
+			axis_max = 0.0;
+		}
+		else if (draw_positive && !draw_negative)
+		{
+			axis_min = 0.0;
+			axis_max = 1.0;
+		}
+		else
+		{
+			axis_min = -1.0;
+			axis_max = 1.0;
+		}
+	}
+	else // if (interaction_type)
+	{
+		// Since interaction types are deterministic, we don't need draws; we will just calculate our
+		// bin heights directly below.
+		sample_size = 0;
+		draw_negative = false;
+		draw_positive = true;
+		axis_min = 0.0;
+		if ((interaction_type->max_distance_ < 1.0) || std::isinf(interaction_type->max_distance_))
+		{
+			axis_max = 1.0;
+		}
+		else
+		{
+			axis_max = interaction_type->max_distance_;
+			draw_axis_midpoint = false;
+			custom_axis_max = true;
+		}
+		heights_negative = (interaction_type->if_param1_ < 0.0);	// this is a negative-strength interaction, if T
+	}
+	
+	// Draw the graph axes and ticks
+    QRect graphRect(bounds.x() + 6, bounds.y() + (heights_negative ? 5 : 14), bounds.width() - 12, bounds.height() - 20);
+	int axis_y = (heights_negative ? graphRect.y() + graphRect.height() - 1 : graphRect.y());
+	int tickoff3 = (heights_negative ? 1 : -3);
+	int tickoff1 = (heights_negative ? 1 : -1);
+	QColor axisColor = QtSLiMColorWithWhite(0.2, 1.0);
+    
+    painter.fillRect(QRect(graphRect.x(), axis_y, graphRect.width(), 1), axisColor);
+	
+	painter.fillRect(QRect(graphRect.x(), axis_y + tickoff3, 1, 3), axisColor);
+	painter.fillRect(QRect(graphRect.x() + qRound((graphRect.width() - 1) * 0.125), axis_y + tickoff1, 1, 1), axisColor);
+	painter.fillRect(QRect(graphRect.x() + qRound((graphRect.width() - 1) * 0.25), axis_y + tickoff1, 1, 1), axisColor);
+	painter.fillRect(QRect(graphRect.x() + qRound((graphRect.width() - 1) * 0.375), axis_y + tickoff1, 1, 1), axisColor);
+	painter.fillRect(QRect(graphRect.x() + qRound((graphRect.width() - 1) * 0.5), axis_y + tickoff3, 1, 3), axisColor);
+	painter.fillRect(QRect(graphRect.x() + qRound((graphRect.width() - 1) * 0.625), axis_y + tickoff1, 1, 1), axisColor);
+	painter.fillRect(QRect(graphRect.x() + qRound((graphRect.width() - 1) * 0.75), axis_y + tickoff1, 1, 1), axisColor);
+	painter.fillRect(QRect(graphRect.x() + qRound((graphRect.width() - 1) * 0.875), axis_y + tickoff1, 1, 1), axisColor);
+	painter.fillRect(QRect(graphRect.x() + graphRect.width() - 1, axis_y + tickoff3, 1, 3), axisColor);
+    
+    // Draw the axis labels
+    painter.setFont(QFont("Times New Roman", 18));  // 9, but double scale
+    
+    std::ostringstream ss;
+	ss << axis_max;
+	std::string ss_str = ss.str();
+	QString axis_max_pretty_string = QString::fromStdString(ss_str);
+	QString axis_min_label = (axis_min == 0.0 ? "0" : "−1");
+	QString axis_half_label = (axis_min == 0.0 ? "0.5" : (axis_max == 0.0 ? "−0.5" : "0"));
+	QString axis_max_label = (custom_axis_max ? axis_max_pretty_string : (axis_max == 0.0 ? "0" : "1"));
+    double min_label_width = painter.boundingRect(QRectF(), 0, axis_min_label).width() / 2.0;       // /2.0 to compensate for scaled font size
+    double half_label_width = painter.boundingRect(QRectF(), 0, axis_half_label).width() / 2.0;
+    double max_label_width = painter.boundingRect(QRectF(), 0, axis_max_label).width() / 2.0;
+    double min_label_halfwidth = min_label_width / 2.0;
+    double half_label_halfwidth = half_label_width / 2.0;
+    double max_label_halfwidth = max_label_width / 2.0;
+    double label_y = (heights_negative ? bounds.y() + bounds.height() - 11 : bounds.y() + 2);
+    QPointF min_label_point = painter.transform().map(QPointF(bounds.x() + 7 - min_label_halfwidth, label_y));
+    QPointF half_label_point = painter.transform().map(QPointF(bounds.x() + 39 - half_label_halfwidth, label_y));
+    QPointF max_label_point = painter.transform().map(QPointF(custom_axis_max ? bounds.x() + 72 - max_label_width : bounds.x() + 71 - max_label_halfwidth, label_y));
+    
+    label_y = painter.transform().map(QPointF(0, label_y)).y();
+    
+    painter.setWorldMatrixEnabled(false);
+    painter.drawText(min_label_point, axis_min_label);
+    if (draw_axis_midpoint)
+        painter.drawText(half_label_point, axis_half_label);
+    painter.drawText(max_label_point, axis_max_label);
+    painter.setWorldMatrixEnabled(true);
+    
+    // If we had an exception while drawing values, just show a question mark and return
+	if (mut_type && !draws.size())
+	{
+        painter.setFont(QFont("Times New Roman", 36));  // 18, but double scale
+        
+		QString labelText("?");
+        int labelWidth = painter.boundingRect(QRect(), 0, labelText).width();
+        double labelX = bounds.x() + qRound((bounds.width() - labelWidth / 2.0) / 2.0); // inner /2.0 compensates for the double-scaled font size, which QPainter does not do, oddly
+        double labelY = bounds.y() + 22;
+        QPointF labelPoint = painter.transform().map(QPointF(labelX, labelY));
+        
+        painter.setWorldMatrixEnabled(false);
+        painter.drawText(labelPoint, labelText);
+        painter.setWorldMatrixEnabled(true);
+	}
+    
+    QRect interiorRect(graphRect.x(), graphRect.y() + (heights_negative ? 0 : 2), graphRect.width(), graphRect.height() - 2);
+	
+	// Tabulate the distribution from the samples we took; the math here is a bit subtle, because when we are doing a -1 to +1 axis
+	// we want those values to fall at bin centers, but when we're doing 0 to +1 or -1 to 0 we want 0 to fall at the bin edge.
+	int half_bin_count = interiorRect.width();
+	int bin_count = half_bin_count * 2;								// 2x bins to look nice on Retina displays
+	double *bins = static_cast<double *>(calloc(static_cast<size_t>(bin_count), sizeof(double)));
+	
+	if (sample_size)
+	{
+		// sample-based tabulation into a histogram; mutation types only, right now
+		for (size_t sample_count = 0; sample_count < sample_size; ++sample_count)
+		{
+			double sel_coeff = draws[sample_count];
+			int bin_index;
+			
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+			if ((axis_min == -1.0) && (axis_max == 1.0))
+				bin_index = static_cast<int>(floor(((sel_coeff + 1.0) / 2.0) * (bin_count - 1) + 0.5));
+			else if ((axis_min == -1.0) && (axis_max == 0.0))
+				bin_index = static_cast<int>(ceil((sel_coeff + 1.0) * (bin_count - 1 - 0.5) + 0.5));		// 0.0 maps to bin_count - 1, -1.0 maps to the center of bin 0
+			else // if ((axis_min == 0.0) && (axis_max == 1.0))
+				bin_index = static_cast<int>(floor(sel_coeff * (bin_count - 1 + 0.5)));					// 0.0 maps to 0, 1.0 maps to the center of bin_count - 1
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+			
+			if ((bin_index >= 0) && (bin_index < bin_count))
+				bins[bin_index]++;
+		}
+	}
+	else
+	{
+		// non-sample-based construction of a function by evaluation; interaction types only, right now
+		double max_x = interaction_type->max_distance_;
+		
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+		{
+			double bin_left = (bin_index / static_cast<double>(bin_count)) * axis_max;
+			double bin_right = ((bin_index + 1) / static_cast<double>(bin_count)) * axis_max;
+			double total_value = 0.0;
+			
+			for (int evaluate_index = 0; evaluate_index <= 999; ++evaluate_index)
+			{
+				double evaluate_x = bin_left + (bin_right - bin_left) / 999;
+				
+				if (evaluate_x < max_x)
+					total_value += interaction_type->CalculateStrengthNoCallbacks(evaluate_x);
+			}
+			
+			bins[bin_index] = total_value / 1000.0;
+		}
+	}
+	
+    // If we only have samples equal to zero, replicate the center column for symmetry
+	if (!draw_positive && !draw_negative)
+	{
+		double zero_count = std::max(bins[half_bin_count - 1], bins[half_bin_count]);	// whichever way it rounds...
+		
+		bins[half_bin_count - 1] = zero_count;
+		bins[half_bin_count] = zero_count;
+	}
+	
+	// Find the maximum-magnitude bin count
+	double max_bin = 0;
+	
+	if (heights_negative)
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+			max_bin = std::min(max_bin, bins[bin_index]);
+	}
+	else
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+			max_bin = std::max(max_bin, bins[bin_index]);
+	}
+	
+    // Plot the bins
+    QColor plotColor = Qt::black;
+	
+	if (heights_negative)
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+		{
+			if (bins[bin_index] < 0)
+			{
+				double height = interiorRect.height() * (bins[bin_index] / max_bin);
+				
+                painter.fillRect(QRectF(interiorRect.x() + bin_index * 0.5, interiorRect.y() + interiorRect.height() - height, 0.5, height), plotColor);
+			}
+		}
+	}
+	else
+	{
+		for (int bin_index = 0; bin_index < bin_count; ++bin_index)
+		{
+			if (bins[bin_index] > 0)
+                painter.fillRect(QRectF(interiorRect.x() + bin_index * 0.5, interiorRect.y(), 0.5, interiorRect.height() * (bins[bin_index] / max_bin)), plotColor);
+		}
+	}
+	
+	free(bins);
+    return image;
+}
+    
 
 //
 //  QtSLiMTablesDrawer
@@ -106,6 +400,9 @@ void QtSLiMTablesDrawer::initializeUI(void)
         mutTypeTableHHeader->setSectionResizeMode(1, QHeaderView::Fixed);
         mutTypeTableHHeader->setSectionResizeMode(2, QHeaderView::Fixed);
         mutTypeTableHHeader->setSectionResizeMode(3, QHeaderView::Stretch);
+        
+        // pre-configure for our image tooltips with an off-white background
+        ui->mutationTypeTable->setStyleSheet("QToolTip{border: 0px; padding: 0px; margin-top: 1px; background-color: '#F2F2F2'; opacity: 255;}");
     }
     {
         QHeaderView *geTypeTableHHeader = configureTableView(ui->genomicElementTypeTable);
@@ -131,6 +428,9 @@ void QtSLiMTablesDrawer::initializeUI(void)
         interactionTypeTableHHeader->setSectionResizeMode(1, QHeaderView::Fixed);
         interactionTypeTableHHeader->setSectionResizeMode(2, QHeaderView::Fixed);
         interactionTypeTableHHeader->setSectionResizeMode(3, QHeaderView::Stretch);
+        
+        // pre-configure for our image tooltips with an off-white background
+        ui->interactionTypeTable->setStyleSheet("QToolTip{border: 0px; padding: 0px; margin-top: 1px; background-color: '#F2F2F2'; opacity: 255;}");
     }
     {
         QHeaderView *eidosBlockTableHHeader = configureTableView(ui->eidosBlockTable);
@@ -282,6 +582,34 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &index, int role) const
                 
                 return QVariant(paramString);
             }
+        }
+    }
+    else if (role == Qt::ToolTipRole)
+    {
+        SLiMSim *sim = controller->sim;
+        std::map<slim_objectid_t,MutationType*> &mutationTypes = sim->mutation_types_;
+        int mutationTypeCount = static_cast<int>(mutationTypes.size());
+        
+        if (index.row() < mutationTypeCount)
+        {
+            auto mutTypeIter = mutationTypes.begin();
+            std::advance(mutTypeIter, index.row());
+            
+            // Display an image in the tooltip; thanks to https://stackoverflow.com/a/34300771/2752221
+            QImage image = imageForMutationOrInteractionType(mutTypeIter->second, nullptr);
+            
+            // the image is high-dpi; smoothly downscale the image to standard DPI if we're not on a high-DPI screen
+            QWidget *tablesWindow = controller->TablesDrawerController();
+            QWindow *tablesWindowHandle = tablesWindow ? tablesWindow->windowHandle() : nullptr;
+            double dpi = tablesWindowHandle ? tablesWindowHandle->devicePixelRatio() : 1.0;
+            
+            if (dpi < 1.5)
+                image = image.scaled(QSize(77, 50), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            
+            QByteArray data;
+            QBuffer buffer(&data);
+            image.save(&buffer, "PNG", 100);
+            return QString("<img width=77 height=50 src='data:image/png;base64, %0'>").arg(QString(data.toBase64()));
         }
     }
     else if (role == Qt::TextAlignmentRole)
@@ -582,6 +910,34 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &index, int rol
             }
         }
     }
+    else if (role == Qt::ToolTipRole)
+    {
+        SLiMSim *sim = controller->sim;
+        std::map<slim_objectid_t,InteractionType*> &interactionTypes = sim->interaction_types_;
+        int interactionTypeCount = static_cast<int>(interactionTypes.size());
+        
+        if (index.row() < interactionTypeCount)
+        {
+            auto interactionTypeIter = interactionTypes.begin();
+            std::advance(interactionTypeIter, index.row());
+            
+            // Display an image in the tooltip; thanks to https://stackoverflow.com/a/34300771/2752221
+            QImage image = imageForMutationOrInteractionType(nullptr, interactionTypeIter->second);
+            
+            // the image is high-dpi; smoothly downscale the image to standard DPI if we're not on a high-DPI screen
+            QWidget *tablesWindow = controller->TablesDrawerController();
+            QWindow *tablesWindowHandle = tablesWindow ? tablesWindow->windowHandle() : nullptr;
+            double dpi = tablesWindowHandle ? tablesWindowHandle->devicePixelRatio() : 1.0;
+            
+            if (dpi < 1.5)
+                image = image.scaled(QSize(77, 50), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            
+            QByteArray data;
+            QBuffer buffer(&data);
+            image.save(&buffer, "PNG", 100);
+            return QString("<img width=77 height=50 src='data:image/png;base64, %0'>").arg(QString(data.toBase64()));
+        }
+    }
     else if (role == Qt::TextAlignmentRole)
     {
         switch (index.column())
@@ -743,6 +1099,23 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) co
                     case SLiMEidosBlockType::SLiMEidosNoBlockType:				return QVariant("");	// never hit
                 }
             }
+        }
+    }
+    else if (role == Qt::ToolTipRole)
+    {
+        SLiMSim *sim = controller->sim;
+        std::vector<SLiMEidosBlock*> &scriptBlocks = sim->AllScriptBlocks();
+        int scriptBlockCount = static_cast<int>(scriptBlocks.size());
+        
+        if (index.row() < scriptBlockCount)
+        {
+            SLiMEidosBlock *scriptBlock = scriptBlocks[static_cast<size_t>(index.row())];
+            const char *script_string = scriptBlock->compound_statement_node_->token_->token_string_.c_str();
+            QString q_script_string = QString::fromStdString(script_string);
+            
+            q_script_string.replace('\t', "   ");
+            
+            return q_script_string;
         }
     }
     else if (role == Qt::TextAlignmentRole)

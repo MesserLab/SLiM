@@ -182,6 +182,7 @@ public:
     void setProfilePlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
     QtSLiMEidosConsole *ConsoleController(void) { return consoleController; }
+    QtSLiMTablesDrawer *TablesDrawerController(void) { return tablesDrawerController; }
     
     void selectErrorRange(void);
     void checkForSimulationTermination(void);
