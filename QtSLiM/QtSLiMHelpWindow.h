@@ -20,7 +20,7 @@
 #ifndef QTSLIMHELPWINDOW_H
 #define QTSLIMHELPWINDOW_H
 
-#include <QDialog>
+#include <QWidget>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QTextDocumentFragment>
@@ -78,7 +78,7 @@ namespace Ui {
 class QtSLiMHelpWindow;
 }
 
-class QtSLiMHelpWindow : public QDialog
+class QtSLiMHelpWindow : public QWidget
 {
     Q_OBJECT
     

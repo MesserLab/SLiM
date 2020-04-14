@@ -20,7 +20,7 @@
 #ifndef QTSLIMEIDOSCONSOLE_H
 #define QTSLIMEIDOSCONSOLE_H
 
-#include <QDialog>
+#include <QWidget>
 #include <QString>
 #include <QTextCursor>
 
@@ -39,7 +39,7 @@ namespace Ui {
 class QtSLiMEidosConsole;
 }
 
-class QtSLiMEidosConsole : public QDialog
+class QtSLiMEidosConsole : public QWidget
 {
     Q_OBJECT
     

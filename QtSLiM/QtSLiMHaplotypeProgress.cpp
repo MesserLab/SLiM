@@ -30,7 +30,10 @@ QtSLiMHaplotypeProgress::QtSLiMHaplotypeProgress(QWidget *parent) :
     ui->setupUi(this);
     
     // no window icon
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(QIcon());
+#endif
     
     // change the app icon to our multi-size app icon for best results
     ui->appIconButton->setIcon(qtSLiMAppDelegate->applicationIcon());

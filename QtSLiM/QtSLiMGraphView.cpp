@@ -40,7 +40,12 @@ QFont QtSLiMGraphView::labelFontOfPointSize(double size)
     
     // Derive a font of the proper size, while leaving the original untouched
     QFont font(timesNewRoman);
+#ifdef __APPLE__
     font.setPointSizeF(size);
+#else
+    // font sizes are calibrated for macOS; on Linux they need to be a little smaller
+    font.setPointSizeF(size * 0.75);
+#endif
     
     return font;
 }

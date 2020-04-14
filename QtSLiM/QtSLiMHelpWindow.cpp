@@ -190,7 +190,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
 
 
 //
-// This is the QDialog subclass for the help window, which does the heavy lifting of building the doc outline from HTML files
+// This is the QWidget subclass for the help window, which does the heavy lifting of building the doc outline from HTML files
 //
 QtSLiMHelpWindow &QtSLiMHelpWindow::instance(void)
 {
@@ -202,13 +202,16 @@ QtSLiMHelpWindow &QtSLiMHelpWindow::instance(void)
     return *inst;
 }
 
-QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMHelpWindow)
+QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window), ui(new Ui::QtSLiMHelpWindow)
 {
     ui->setupUi(this);
     interpolateSplitters();
     
     // no window icon
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(QIcon());
+#endif
     
     // Configure the search field to look like a search field
     ui->searchField->setClearButtonEnabled(true);
@@ -477,7 +480,7 @@ void QtSLiMHelpWindow::closeEvent(QCloseEvent *event)
     settings.endGroup();
     
     // use super's default behavior
-    QDialog::closeEvent(event);
+    QWidget::closeEvent(event);
 }
 
 // This is a helper method for addTopicsFromRTFFile:... that finds the right parent item to insert a given section index under.

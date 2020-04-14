@@ -48,7 +48,10 @@ QtSLiMFindPanel::QtSLiMFindPanel(QWidget *parent) : QDialog(parent), ui(new Ui::
     QSettings settings;
     
     // no window icon
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(QIcon());
+#endif
     
     // Connect the panel UI
     connect(ui->findNextButton, &QPushButton::clicked, this, &QtSLiMFindPanel::findNext);

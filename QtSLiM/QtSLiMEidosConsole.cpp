@@ -31,7 +31,7 @@
 
 
 QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
-    QDialog(parent),
+    QWidget(parent, Qt::Window),    // the console window has us as a parent, but is still a standalone window
     parentSLiMWindow(parent),
     ui(new Ui::QtSLiMEidosConsole)
 {
@@ -40,7 +40,13 @@ QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
     glueUI();
     
     // no window icon
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(QIcon());
+#endif
+    
+    // prevent this window from keeping the app running when all main windows are closed
+    setAttribute(Qt::WA_QuitOnClose, false);
     
     // add a status bar at the bottom; there is a layout in Designer for it already
     // thanks to https://stackoverflow.com/a/6143818/2752221
@@ -166,7 +172,7 @@ void QtSLiMEidosConsole::closeEvent(QCloseEvent *event)
     emit willClose();
     
     // use super's default behavior
-    QDialog::closeEvent(event);
+    QWidget::closeEvent(event);
 }
 
 QStatusBar *QtSLiMEidosConsole::statusBar(void)

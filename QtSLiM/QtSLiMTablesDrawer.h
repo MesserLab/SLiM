@@ -22,7 +22,7 @@
 
 #include <QAbstractTableModel>
 #include <QStyledItemDelegate>
-#include <QDialog>
+#include <QWidget>
 
 class QCloseEvent;
 class QtSLiMWindow;
@@ -39,7 +39,7 @@ namespace Ui {
 class QtSLiMTablesDrawer;
 }
 
-class QtSLiMTablesDrawer : public QDialog
+class QtSLiMTablesDrawer : public QWidget
 {
     Q_OBJECT
     
@@ -48,9 +48,6 @@ public:
     
     explicit QtSLiMTablesDrawer(QtSLiMWindow *parent = nullptr);
     virtual ~QtSLiMTablesDrawer() override;
-    
-protected:
-    virtual void keyPressEvent(QKeyEvent *event) override;
     
 signals:
     void willClose(void);

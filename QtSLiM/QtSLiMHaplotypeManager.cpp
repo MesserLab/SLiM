@@ -140,7 +140,10 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
             window->setWindowTitle(QString("Haplotype snapshot (%1)").arg(haplotypeManager->titleString));
             window->setMinimumSize(400, 200);
             window->resize(500, 400);
+#ifdef __APPLE__
+            // set the window icon only on macOS; on Linux it changes the app icon as a side effect
             window->setWindowIcon(QIcon());
+#endif
             
             // Make the window layout
             QVBoxLayout *topLayout = new QVBoxLayout;

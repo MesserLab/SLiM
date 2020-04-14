@@ -203,7 +203,10 @@ void QtSLiMWindow::init(void)
     }
     
     // Set the window icon, overriding the app icon
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(qtSLiMAppDelegate->slimDocumentIcon());
+#endif
 }
 
 void QtSLiMWindow::interpolateVerticalSplitter(void)
@@ -1631,7 +1634,10 @@ void QtSLiMWindow::displayProfileResults(void)
     window->setMinimumSize(500, 200);
     window->resize(500, 600);
     window->move(50, 50);
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     window->setWindowIcon(QIcon());
+#endif
     
     // Make a QTextEdit to hold the results
     QHBoxLayout *layout = new QHBoxLayout;
@@ -3483,7 +3489,10 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     
     window->setWindowTitle(fileInfo.fileName());
     window->setFixedSize(width, height);
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     window->setWindowIcon(qtSLiMAppDelegate->genericDocumentIcon());    // doesn't seem to quite work; we get the SLiM document icon, inherited from parent presumably
+#endif
     window->setWindowFilePath(path);
     
     // Make the image view
@@ -3588,7 +3597,10 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     window->setWindowTitle(title);
     window->setMinimumSize(250, 250);
     window->resize(300, 300);
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     window->setWindowIcon(QIcon());
+#endif
     
     // Install graphView in the window
     QVBoxLayout *topLayout = new QVBoxLayout;

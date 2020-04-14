@@ -169,7 +169,11 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 	painter.fillRect(QRect(graphRect.x() + graphRect.width() - 1, axis_y + tickoff3, 1, 3), axisColor);
     
     // Draw the axis labels
+#ifdef __APPLE__
     painter.setFont(QFont("Times New Roman", 18));  // 9, but double scale
+#else
+    painter.setFont(QFont("Times New Roman", 14));  // 7, but double scale
+#endif
     
     std::ostringstream ss;
 	ss << axis_max;
@@ -201,9 +205,13 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
     // If we had an exception while drawing values, just show a question mark and return
 	if (mut_type && !draws.size())
 	{
+#ifdef __APPLE__
         painter.setFont(QFont("Times New Roman", 36));  // 18, but double scale
+#else
+        painter.setFont(QFont("Times New Roman", 28));  // 14, but double scale
+#endif
         
-		QString labelText("?");
+        QString labelText("?");
         int labelWidth = painter.boundingRect(QRect(), 0, labelText).width();
         double labelX = bounds.x() + qRound((bounds.width() - labelWidth / 2.0) / 2.0); // inner /2.0 compensates for the double-scaled font size, which QPainter does not do, oddly
         double labelY = bounds.y() + 22;
@@ -327,7 +335,7 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 //
 
 QtSLiMTablesDrawer::QtSLiMTablesDrawer(QtSLiMWindow *parent) :
-    QDialog(parent),
+    QWidget(parent, Qt::Window),
     parentSLiMWindow(parent),
     ui(new Ui::QtSLiMTablesDrawer)
 {
@@ -372,7 +380,10 @@ QHeaderView *QtSLiMTablesDrawer::configureTableView(QTableView *tableView)
 void QtSLiMTablesDrawer::initializeUI(void)
 {
     // no window icon
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(QIcon());
+#endif
     
     // Make the models for the tables; this is a sort of datasource concept, except
     // that because C++ is not sufficiently dynamic it has to be a separate object
@@ -452,16 +463,7 @@ void QtSLiMTablesDrawer::closeEvent(QCloseEvent *event)
     emit willClose();
     
     // use super's default behavior
-    QDialog::closeEvent(event);
-}
-
-void QtSLiMTablesDrawer::keyPressEvent(QKeyEvent *event)
-{
-    // Prevent escape from closing the window
-    if (event->key() == Qt::Key_Escape)
-        return;
-    
-    QDialog::keyPressEvent(event);
+    QWidget::closeEvent(event);
 }
 
 

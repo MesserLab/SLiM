@@ -40,7 +40,6 @@
 class Subpopulation;
 class QCloseEvent;
 class QTextCursor;
-class QDialog;
 class QtSLiMEidosConsole;
 class QtSLiMTablesDrawer;
 class QItemSelection;

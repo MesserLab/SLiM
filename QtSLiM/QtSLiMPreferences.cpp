@@ -207,7 +207,13 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new 
     ui->setupUi(this);
     
     // no window icon
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(QIcon());
+#endif
+    
+    // prevent this window from keeping the app running when all main windows are closed
+    setAttribute(Qt::WA_QuitOnClose, false);
     
     // set the initial state of the UI elements from QtSLiMPreferencesNotifier
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();

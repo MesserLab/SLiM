@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>QtSLiMTablesDrawer</class>
- <widget class="QDialog" name="QtSLiMTablesDrawer">
+ <widget class="QWidget" name="QtSLiMTablesDrawer">
   <property name="geometry">
    <rect>
     <x>0</x>
