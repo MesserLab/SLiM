@@ -28,10 +28,11 @@
 #include <QSurfaceFormat>
 #include <QMenu>
 #include <QAction>
-#include <QDebug>
 #include <QDir>
 #include <QCollator>
 #include <QKeyEvent>
+#include <QtGlobal>
+#include <QDebug>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -39,6 +40,13 @@
 #include "eidos_globals.h"
 #include "eidos_beep.h"
 #include "slim_globals.h"
+
+
+// Check the Qt version and display an error if it is unacceptable
+// We enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled
+#if (QT_VERSION < 0x050905)
+#error "QtSLiM requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS recommended)."
+#endif
 
 
 static std::string Eidos_Beep_QT(std::string p_sound_name);
