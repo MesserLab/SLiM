@@ -208,10 +208,7 @@ void QtSLiMGraphView::drawXAxisTicks(QPainter &painter, QRect interiorRect)
 			labelValueForTick = tickValue;
 			
             QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
-            QRect labelBoundingRect;
-            
-            painter.drawText(QRect(), 0, labelText, &labelBoundingRect);
-            
+            QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
             double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
             double labelX = xValueForTick - SLIM_SCREEN_ROUND(labelWidth / 2.0);
             double labelY = interiorRect.y() - (labelHeight + 4);
@@ -244,8 +241,7 @@ void QtSLiMGraphView::drawXAxis(QPainter &painter, QRect interiorRect)
     painter.setFont(QtSLiMGraphView::fontForAxisLabels());
     painter.setBrush(Qt::black);
     
-    QRect labelBoundingRect;
-    painter.drawText(QRect(), 0, xAxisLabel_, &labelBoundingRect);
+    QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, xAxisLabel_);
     QPoint drawPoint(interiorRect.x() + (interiorRect.width() - labelBoundingRect.width()) / 2, interiorRect.y() - 42);
     
     drawPoint = painter.transform().map(drawPoint);
@@ -283,10 +279,7 @@ void QtSLiMGraphView::drawYAxisTicks(QPainter &painter, QRect interiorRect)
 			labelValueForTick = tickValue;
 			
             QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
-            QRect labelBoundingRect;
-            
-            painter.drawText(QRect(), 0, labelText, &labelBoundingRect);
-            
+            QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
             double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
             double labelY = yValueForTick - SLIM_SCREEN_ROUND(labelHeight / 2.0) + 3;
             double labelX = interiorRect.x() - (labelWidth + 8);
@@ -311,8 +304,7 @@ void QtSLiMGraphView::drawYAxis(QPainter &painter, QRect interiorRect)
     painter.setFont(QtSLiMGraphView::fontForAxisLabels());
     painter.setBrush(Qt::black);
     
-    QRect labelBoundingRect;
-    painter.drawText(QRect(), 0, yAxisLabel_, &labelBoundingRect);
+    QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, yAxisLabel_);
     
     painter.save();
     painter.translate(interiorRect.x() - 35, interiorRect.y() + SLIM_SCREEN_ROUND(interiorRect.height() / 2.0));
@@ -392,7 +384,7 @@ void QtSLiMGraphView::drawMessage(QPainter &painter, QString messageString, QRec
     painter.setFont(QtSLiMGraphView::labelFontOfPointSize(16));
     painter.setBrush(QtSLiMColorWithWhite(0.4, 1.0));
     
-    painter.drawText(rect, Qt::AlignHCenter | Qt::AlignVCenter, messageString, nullptr);
+    painter.drawText(rect, Qt::AlignHCenter | Qt::AlignVCenter, messageString);
 }
 
 void QtSLiMGraphView::drawGraph(QPainter &painter, QRect interiorRect)
@@ -419,9 +411,7 @@ QSize QtSLiMGraphView::legendSize(QPainter &painter)
     for (const QtSLiMLegendEntry &legendEntry : legend)
     {
         QString labelString = legendEntry.first;
-        QRect labelBoundingBox;
-        
-        painter.drawText(QRect(), 0, labelString, &labelBoundingBox);
+        QRect labelBoundingBox = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelString);
         
         legendSize.setWidth(std::max(legendSize.width(), 0 + (legendRowHeight - 6) + 5 + labelBoundingBox.width()));
     }

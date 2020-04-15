@@ -121,9 +121,7 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
     painter.setPen((brightness > 0.5) ? Qt::black : Qt::white);
     painter.setBrush(Qt::NoBrush);
 	
-    QRect labelBoundingRect;
-    painter.drawText(QRect(), 0, popString, &labelBoundingRect);
-	
+    QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, popString);
     QPointF drawPoint = painter.transform().map(center);
     drawPoint.setX(drawPoint.x() - labelBoundingRect.width() / 2.0 + 1.0);
     drawPoint.setY(drawPoint.y() + 0.008 * scalingFactor_ * scalingFromUser);

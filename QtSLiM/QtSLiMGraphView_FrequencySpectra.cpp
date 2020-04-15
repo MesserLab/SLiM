@@ -158,10 +158,7 @@ void QtSLiMGraphView_FrequencySpectra::drawGraph(QPainter &painter, QRect interi
         painter.setBrush(Qt::darkGray);
 		
         QString labelText = QString("%1 – %2").arg(selectionFirstBase).arg(selectionLastBase);
-        QRect labelBoundingRect;
-        
-        painter.drawText(QRect(), 0, labelText, &labelBoundingRect);
-        
+        QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
 		double labelX = interiorRect.x() + (interiorRect.width() - labelBoundingRect.width()) / 2.0;
 		double labelY = interiorRect.y() + interiorRect.height() - (labelBoundingRect.height() + 4);
 		
