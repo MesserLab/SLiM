@@ -213,6 +213,9 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window
     setWindowIcon(QIcon());
 #endif
     
+    // prevent this window from keeping the app running when all main windows are closed
+    setAttribute(Qt::WA_QuitOnClose, false);
+    
     // Configure the search field to look like a search field
     ui->searchField->setClearButtonEnabled(true);
     ui->searchField->setPlaceholderText("Search...");
