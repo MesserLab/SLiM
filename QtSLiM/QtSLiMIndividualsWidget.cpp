@@ -24,6 +24,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QContextMenuEvent>
+#include <QtGlobal>
 #include <QDebug>
 
 
@@ -235,10 +236,10 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
 			{
 				int columnIndex = subpopIndex % columnCount;
 				int rowIndex = subpopIndex / columnCount;
-				int boxLeft = static_cast<int>(round(bounds.x() + columnIndex * (interBoxSpace + boxWidth)));
-				int boxRight = static_cast<int>(round(bounds.x() + columnIndex * (interBoxSpace + boxWidth) + boxWidth));
-				int boxTop = static_cast<int>(round(bounds.y() + rowIndex * (interBoxSpace + boxHeight)));
-				int boxBottom = static_cast<int>(round(bounds.y() + rowIndex * (interBoxSpace + boxHeight) + boxHeight));
+				int boxLeft = qRound(bounds.x() + columnIndex * (interBoxSpace + boxWidth));
+				int boxRight = qRound(bounds.x() + columnIndex * (interBoxSpace + boxWidth) + boxWidth);
+				int boxTop = qRound(bounds.y() + rowIndex * (interBoxSpace + boxHeight));
+				int boxBottom = qRound(bounds.y() + rowIndex * (interBoxSpace + boxHeight) + boxHeight);
 				QRect boxBounds(boxLeft, boxTop, boxRight - boxLeft, boxBottom - boxTop);
 				Subpopulation *subpop = selectedSubpopulations[static_cast<size_t>(subpopIndex)];
 				
@@ -271,8 +272,8 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
         
 		for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
 		{
-			int boxTop = static_cast<int>(round(bounds.top() + subpopIndex * (interBoxSpace + boxHeight)));
-			int boxBottom = static_cast<int>(round(bounds.top() + subpopIndex * (interBoxSpace + boxHeight) + boxHeight));
+			int boxTop = qRound(bounds.top() + subpopIndex * (interBoxSpace + boxHeight));
+			int boxBottom = qRound(bounds.top() + subpopIndex * (interBoxSpace + boxHeight) + boxHeight);
 			QRect boxBounds(bounds.left(), boxTop, bounds.width(), boxBottom - boxTop);
 			Subpopulation *subpop = selectedSubpopulations[static_cast<size_t>(subpopIndex)];
 			
@@ -332,8 +333,8 @@ QRect QtSLiMIndividualsWidget::spatialDisplayBoundsForSubpopulation(Subpopulatio
 	if (subpopAspect > displayAspect)
 	{
 		// The display bounds will need to shrink vertically to match the subpop
-		int idealSize = static_cast<int>(round(spatialDisplayBounds.width() / subpopAspect));
-		int roundedOffset = static_cast<int>(round((spatialDisplayBounds.height() - idealSize) / 2.0));
+		int idealSize = qRound(spatialDisplayBounds.width() / subpopAspect);
+		int roundedOffset = qRound((spatialDisplayBounds.height() - idealSize) / 2.0);
 		
         spatialDisplayBounds.setY(spatialDisplayBounds.y() + roundedOffset);
         spatialDisplayBounds.setHeight(idealSize);
@@ -341,8 +342,8 @@ QRect QtSLiMIndividualsWidget::spatialDisplayBoundsForSubpopulation(Subpopulatio
 	else if (subpopAspect < displayAspect)
 	{
 		// The display bounds will need to shrink horizontally to match the subpop
-		int idealSize = static_cast<int>(round(spatialDisplayBounds.height() * subpopAspect));
-		int roundedOffset = static_cast<int>(round((spatialDisplayBounds.width() - idealSize) / 2.0));
+		int idealSize = qRound(spatialDisplayBounds.height() * subpopAspect);
+		int roundedOffset = qRound((spatialDisplayBounds.width() - idealSize) / 2.0);
 		
 		spatialDisplayBounds.setX(spatialDisplayBounds.x() + roundedOffset);
 		spatialDisplayBounds.setWidth(idealSize);
@@ -546,7 +547,7 @@ void QtSLiMIndividualsWidget::cacheDisplayBufferForMapForSubpopulation(SpatialMa
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
 	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
 	double subpopAspect = bounds_x_size / bounds_y_size;
-	int max_width = static_cast<int>(round(max_height * subpopAspect));
+	int max_width = qRound(max_height * subpopAspect);
 	
 	// If we have a display buffer of the wrong size, free it.  This should only happen when the user changes
 	// the Subpopulation's spatialBounds after it has displayed; it should not happen with a window resize.
@@ -602,8 +603,8 @@ void QtSLiMIndividualsWidget::cacheDisplayBufferForMapForSubpopulation(SpatialMa
 				}
 				else
 				{
-					int x_map = static_cast<int>(round(x_fraction * (xsize - 1)));
-					int y_map = static_cast<int>(round(y_fraction * (ysize - 1)));
+					int x_map = qRound(x_fraction * (xsize - 1));
+					int y_map = qRound(y_fraction * (ysize - 1));
 					
 					value = values[x_map + y_map * xsize];
 				}
@@ -750,8 +751,8 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 				
 				if (spatiality_is_x)
 				{
-					x1 = static_cast<int>(round(((x - 0.5) / (xsize - 1)) * bounds.width() + bounds.x()));
-					x2 = static_cast<int>(round(((x + 0.5) / (xsize - 1)) * bounds.width() + bounds.x()));
+					x1 = qRound(((x - 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
+					x2 = qRound(((x + 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
 					
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;
@@ -761,8 +762,8 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 				}
 				else
 				{
-					y1 = static_cast<int>(round(((x - 0.5) / (xsize - 1)) * bounds.height() + bounds.y()));
-					y2 = static_cast<int>(round(((x + 0.5) / (xsize - 1)) * bounds.height() + bounds.y()));
+					y1 = qRound(((x - 0.5) / (xsize - 1)) * bounds.height() + bounds.y());
+					y2 = qRound(((x + 0.5) / (xsize - 1)) * bounds.height() + bounds.y());
 					
 					if (y1 < bounds_y1) y1 = bounds_y1;
 					if (y2 > bounds_y2) y2 = bounds_y2;
@@ -906,8 +907,8 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 			
 			for (int y = 0; y < ysize; y++)
 			{
-				int y1 = static_cast<int>(round(((y - 0.5) / (ysize - 1)) * bounds.height() + bounds.y()));
-				int y2 = static_cast<int>(round(((y + 0.5) / (ysize - 1)) * bounds.height() + bounds.y()));
+				int y1 = qRound(((y - 0.5) / (ysize - 1)) * bounds.height() + bounds.y());
+				int y2 = qRound(((y + 0.5) / (ysize - 1)) * bounds.height() + bounds.y());
 				
 				if (y1 < bounds_y1) y1 = bounds_y1;
 				if (y2 > bounds_y2) y2 = bounds_y2;
@@ -918,8 +919,8 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 				for (int x = 0; x < xsize; x++)
 				{
 					double value = *(values_row + x);
-					int x1 = static_cast<int>(round(((x - 0.5) / (xsize - 1)) * bounds.width() + bounds.x()));
-					int x2 = static_cast<int>(round(((x + 0.5) / (xsize - 1)) * bounds.width() + bounds.x()));
+					int x1 = qRound(((x - 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
+					int x2 = qRound(((x + 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
 					
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;

@@ -31,6 +31,7 @@
 #include <QStandardPaths>
 #include <QPdfWriter>
 #include <QBuffer>
+#include <QtGlobal>
 #include <QDebug>
 
 
@@ -1007,7 +1008,7 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
 			double binValue = buffer[actualBinIndex];
 			double barBottom = interiorRect.y() - 1;
 			double barTop = (fabs(binValue - 0) < 0.00000001 ? interiorRect.y() - 1 : roundPlotToDeviceY(binValue, interiorRect) + 0.5);
-			QRect barRect(static_cast<int>(round(barLeft)), static_cast<int>(round(barBottom)), static_cast<int>(round(barRight - barLeft)), static_cast<int>(round(barTop - barBottom)));
+			QRect barRect(qRound(barLeft), qRound(barBottom), qRound(barRight - barLeft), qRound(barTop - barBottom));
 			
 			if (barRect.height() > 0.0)
 			{
@@ -1019,8 +1020,8 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
 					double subbarLeft = SLIM_SCREEN_ROUND(barRect.x() + subBinIndex * subBarWidth);
 					double subbarRight = SLIM_SCREEN_ROUND(barRect.x() + (subBinIndex + 1) * subBarWidth) + 1;
 					
-					barRect.setX(static_cast<int>(round(subbarLeft)));
-					barRect.setWidth(static_cast<int>(round(subbarRight - subbarLeft)));
+					barRect.setX(qRound(subbarLeft));
+					barRect.setWidth(qRound(subbarRight - subbarLeft));
 				}
                 
 				// fill and frame
