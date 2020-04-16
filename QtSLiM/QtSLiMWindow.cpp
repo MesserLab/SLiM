@@ -1638,7 +1638,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     ui->actionSaveAs->setEnabled(true);
     ui->actionRevertToSaved->setEnabled(!isUntitled);
     
-    ui->menuSimulation->setEnabled(true);
+    //ui->menuSimulation->setEnabled(true);     // commented out these menu-level enable/disables; they flash weirdly and are distracting
     ui->actionStep->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
     ui->actionPlay->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_ && !generationPlayOn_);
     ui->actionPlay->setText(nonProfilePlayOn_ ? "Stop" : "Play");
@@ -1646,7 +1646,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     ui->actionProfile->setText(profilePlayOn_ ? "Stop" : "Profile");
     ui->actionRecycle->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
     
-    ui->menuScript->setEnabled(true);
+    //ui->menuScript->setEnabled(true);
     ui->actionCheckScript->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
     ui->actionPrettyprintScript->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
     ui->actionShowScriptHelp->setEnabled(true);
@@ -1666,7 +1666,7 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *foc
     ui->actionSaveAs->setEnabled(false);
     ui->actionRevertToSaved->setEnabled(false);
     
-    ui->menuSimulation->setEnabled(false);          // does nothing on macOS, but maybe does something on another platform
+    //ui->menuSimulation->setEnabled(false);
     ui->actionStep->setEnabled(false);
     ui->actionPlay->setEnabled(false);
     ui->actionPlay->setText("Play");
@@ -1680,7 +1680,7 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *foc
     bool consoleFocused = (eidosConsole != nullptr);
     bool consoleFocusedAndEditable = ((eidosConsole != nullptr) && !continuousPlayOn_ && !generationPlayOn_);
     
-    ui->menuScript->setEnabled(consoleFocused);     // does nothing on macOS, but maybe does something on another platform
+    //ui->menuScript->setEnabled(consoleFocused);
     ui->actionCheckScript->setEnabled(consoleFocusedAndEditable);
     ui->actionPrettyprintScript->setEnabled(consoleFocusedAndEditable);
     ui->actionShowScriptHelp->setEnabled(consoleFocused);

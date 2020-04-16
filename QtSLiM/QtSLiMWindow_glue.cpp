@@ -101,6 +101,7 @@ void QtSLiMWindow::glueUI(void)
     ui->actionNew->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionNew_nonWF->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionOpen->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionClose->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionQtSLiMHelp->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionSLiMWorkshops->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionSendFeedback->setShortcutContext(Qt::ApplicationShortcut);
@@ -113,8 +114,30 @@ void QtSLiMWindow::glueUI(void)
     ui->actionAboutStickSoftware->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionQuitQtSLiM->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionFindRecipe->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionAboutQtSLiM->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionPreferences->setShortcutContext(Qt::ApplicationShortcut);
     ui->actionOpenRecent->setShortcutContext(Qt::ApplicationShortcut);
+    
+    // ok, "application-level" means they can fire even when a QtSLiMWindow is not the active window, basically,
+    // so all actions that we want to be able to fire while the Eidos console is front need to have this set as well
+    ui->actionCheckScript->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionPrettyprintScript->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionShowScriptHelp->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionShowEidosConsole->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionShowVariableBrowser->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionClearOutput->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionShiftLeft->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionShiftRight->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionCommentUncomment->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionExecuteSelection->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionExecuteAll->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionFindShow->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionFindNext->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionFindPrevious->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionReplaceAndFind->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionUseSelectionForFind->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionUseSelectionForReplace->setShortcutContext(Qt::ApplicationShortcut);
+    ui->actionJumpToSelection->setShortcutContext(Qt::ApplicationShortcut);
     
     // this action seems to need to be added to the main window in order to function reliably;
     // I'm not sure why, maybe it is because it is connected to an object that is not a widget?
