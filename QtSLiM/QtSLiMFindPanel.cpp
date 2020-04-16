@@ -135,9 +135,9 @@ QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiab
     QWidget *focusWidget = QApplication::focusWidget();
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
     
-    if (!textEdit)
+    // If this window has the focus, we fall back to the current main window
+    if (focusWidget && focusWidget->window() == this)
     {
-        // Next, focusWidget() having failed, we try looking up the focusWidget in the current main window
         QWidget *currentMainWindow = qtSLiMAppDelegate->activeQtSLiMWindow();
         
         if (currentMainWindow)
@@ -472,13 +472,15 @@ void QtSLiMFindPanel::optionsChanged(void)
 
 void QtSLiMFindPanel::fixEnableState(void)
 {
-    bool enb = (ui->findTextLineEdit->text().length() > 0);
+    bool hasFindText = (ui->findTextLineEdit->text().length() > 0);
+    bool hasTarget = (QtSLiMFindPanel::targetTextEditRequireModifiable(false) != nullptr);
+    bool hasModifiableTarget = (QtSLiMFindPanel::targetTextEditRequireModifiable(true) != nullptr);
     
-    ui->findNextButton->setEnabled(enb);
-    ui->findPreviousButton->setEnabled(enb);
-    ui->replaceAndFindButton->setEnabled(enb);    
-    ui->replaceButton->setEnabled(enb);    
-    ui->replaceAllButton->setEnabled(enb);    
+    ui->findNextButton->setEnabled(hasFindText && hasTarget);
+    ui->findPreviousButton->setEnabled(hasFindText && hasTarget);
+    ui->replaceAndFindButton->setEnabled(hasFindText && hasModifiableTarget);    
+    ui->replaceButton->setEnabled(hasFindText && hasModifiableTarget);    
+    ui->replaceAllButton->setEnabled(hasFindText && hasModifiableTarget);    
 }
 
 

@@ -28,6 +28,8 @@ class QCloseEvent;
 class QtSLiMWindow;
 class QStatusBar;
 class QSplitter;
+class QtSLiMScriptTextEdit;
+class QtSLiMConsoleTextEdit;
 
 #include "eidos_script.h"
 #include "eidos_globals.h"
@@ -64,8 +66,10 @@ public:
     // Execute the given script string, with the terminating semicolon being optional if requested
     void executeScriptString(QString scriptString, bool semicolonOptional);
     
-    // Access to the status bar
+    // Access to key UI items
     QStatusBar *statusBar(void);
+    QtSLiMScriptTextEdit *scriptTextEdit(void);
+    QtSLiMConsoleTextEdit *consoleTextEdit(void);
     
 public slots:
     void executeAllClicked(void);

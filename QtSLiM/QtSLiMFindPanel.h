@@ -37,6 +37,8 @@ class QtSLiMFindPanel : public QDialog
 public:
     static QtSLiMFindPanel &instance(void);
     
+    QTextEdit *targetTextEditRequireModifiable(bool requireModifiable); // public for menu enabling
+    
 public slots:
     void showFindPanel(void);
     void findNext(void);
@@ -47,6 +49,7 @@ public slots:
     void useSelectionForFind(void);
     void useSelectionForReplace(void);
     void jumpToSelection(void);
+    void fixEnableState(void);
     
 private:
     // singleton pattern
@@ -56,11 +59,9 @@ private:
     QtSLiMFindPanel(const QtSLiMFindPanel&) = delete;
     QtSLiMFindPanel& operator=(const QtSLiMFindPanel&) = delete;
     
-    QTextEdit *targetTextEditRequireModifiable(bool requireModifiable);
     void closeEvent(QCloseEvent *e) override;
     
     bool findForwardWrapBeep(QTextEdit *target, bool forward, bool wrap, bool beepIfNotFound);
-    void fixEnableState(void);
     
     bool changingFindText = false;
     

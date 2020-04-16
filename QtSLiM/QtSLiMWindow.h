@@ -195,6 +195,9 @@ public:
     void updateProfileButtonIcon(bool pressed);
     void updateRecycleButtonIcon(bool pressed);
     void updateUIEnabling(void);
+    void updateMenuEnablingACTIVE(QWidget *focusWidget);
+    void updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *focusWindow);
+    void updateMenuEnablingSHARED(QWidget *focusWidget);
 
     void colorScriptWithProfileCountsFromNode(const EidosASTNode *node, double elapsedTime, int32_t baseIndex, QTextDocument *doc, QTextCharFormat &baseFormat);
     void displayProfileResults(void);

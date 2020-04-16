@@ -80,6 +80,11 @@ public:
     void highlightError(int startPosition, int endPosition);   
     void selectErrorRange(void);
     
+    // undo/redo availability; named to avoid future collision with QTextEdit for this obvious feature
+    bool qtslimIsUndoAvailable(void) { return undoAvailable_; }
+    bool qtslimIsRedoAvailable(void) { return redoAvailable_; }
+    bool qtslimIsCopyAvailable(void) { return copyAvailable_; }
+    
 public slots:
     void checkScript(void);
     void prettyprint(void);
@@ -108,6 +113,11 @@ protected:
     // used to maintain the correct cursor (pointing hand when option is pressed)
     void fixMouseCursor(void);
     void enterEvent(QEvent *event) override;
+    
+    // keeping track of undo/redo availability
+    bool undoAvailable_ = false;
+    bool redoAvailable_ = false;
+    bool copyAvailable_ = false;
     
     // used for code completion in script textviews
     bool codeCompletionEnabled = false;

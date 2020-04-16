@@ -24,6 +24,7 @@
 #include "QtSLiMEidosPrettyprinter.h"
 #include "QtSLiMAbout.h"
 #include "QtSLiMPreferences.h"
+#include "QtSLiMFindPanel.h"
 #include "QtSLiMHelpWindow.h"
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMTablesDrawer.h"
@@ -201,6 +202,17 @@ void QtSLiMWindow::init(void)
             qDebug() << "Could not create console controller";
         }
     }
+    
+    // We need to update our button/menu enable state whenever the focus changes
+    connect(qApp, &QApplication::focusChanged, [this]() { updateUIEnabling(); } );
+    
+    // We also do it specifically when the Edit menu is about to show, to correctly validate undo/redo in all cases
+    // Note that it is not simple to do this revalidation when a keyboard shortcut is pressed, but happily (?), Qt
+    // ignores the action validation state in that case anyway; undo/redo is delivered even if the action is disabled
+    connect(ui->menuEdit, &QMenu::aboutToShow, [this]() { updateUIEnabling(); });
+    
+    // And also when about to show the Script menu, because the Show/Hide menu items might not be accurately named
+    connect(ui->menuScript, &QMenu::aboutToShow, [this]() { updateUIEnabling(); });
     
     // Set the window icon, overriding the app icon
 #ifdef __APPLE__
@@ -1159,38 +1171,56 @@ const std::vector<slim_objectid_t> &QtSLiMWindow::chromosomeDisplayMuttypes(void
 
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
-    invalidSimulation_ = p_invalid;
-    updateUIEnabling();
+    if (invalidSimulation_ != p_invalid)
+    {
+        invalidSimulation_ = p_invalid;
+        updateUIEnabling();
+    }
 }
 
 void QtSLiMWindow::setReachedSimulationEnd(bool p_reachedEnd)
 {
-    reachedSimulationEnd_ = p_reachedEnd;
-    updateUIEnabling();
+    if (reachedSimulationEnd_ != p_reachedEnd)
+    {
+        reachedSimulationEnd_ = p_reachedEnd;
+        updateUIEnabling();
+    }
 }
 
 void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
 {
-    continuousPlayOn_ = p_flag;
-    updateUIEnabling();
+    if (continuousPlayOn_ != p_flag)
+    {
+        continuousPlayOn_ = p_flag;
+        updateUIEnabling();
+    }
 }
 
 void QtSLiMWindow::setGenerationPlayOn(bool p_flag)
 {
-    generationPlayOn_ = p_flag;
-    updateUIEnabling();
+    if (generationPlayOn_ != p_flag)
+    {
+        generationPlayOn_ = p_flag;
+        updateUIEnabling();
+    }
 }
 
 void QtSLiMWindow::setProfilePlayOn(bool p_flag)
 {
-    profilePlayOn_ = p_flag;
-    updateUIEnabling();
+    if (profilePlayOn_ != p_flag)
+    {
+        profilePlayOn_ = p_flag;
+        updateUIEnabling();
+    }
 }
 
 void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
 {
-    nonProfilePlayOn_ = p_flag;
-    updateUIEnabling();
+    if (nonProfilePlayOn_ != p_flag)
+    {
+        nonProfilePlayOn_ = p_flag;
+        updateUIEnabling();
+    }
 }
 
 void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
@@ -1550,6 +1580,7 @@ void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
 
 void QtSLiMWindow::updateUIEnabling(void)
 {
+    // First we update all the UI that belongs exclusively to ourselves: buttons, labels, etc.
     ui->playOneStepButton->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
     ui->playButton->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_ && !generationPlayOn_);
     ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
@@ -1573,7 +1604,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
     ui->graphPopupButton->setEnabled(!invalidSimulation_);
-    ui->changeDirectoryButton->setEnabled(!invalidSimulation_);
+    ui->changeDirectoryButton->setEnabled(!invalidSimulation_ && !continuousPlayOn_ && !generationPlayOn_);
     
     ui->scriptTextEdit->setReadOnly(continuousPlayOn_ || generationPlayOn_);
     ui->outputTextEdit->setReadOnly(true);
@@ -1581,9 +1612,149 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->generationLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
     
+    // Tell the console controller to enable/disable its buttons
     if (consoleController)
-        consoleController->setInterfaceEnabled(!(continuousPlayOn_ || generationPlayOn_));
+        consoleController->setInterfaceEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    
+    // Then, if we are the active window, we update the menus to reflect our state
+    // If there's an active window but it isn't us, we reflect that situation with a different method
+    // Keep in mind that in Qt each QMainWindow has its own menu bar, its own actions, etc.; this is not global state!
+    // This means we spend a little time updating menu enable states that are not visible anyway, but it's fast
+    QWidget *focusWidget = qApp->focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    
+    if (focusWindow == this) {
+        //qDebug() << "updateMenuEnablingACTIVE()";
+        updateMenuEnablingACTIVE(focusWidget);
+    } else {
+        //qDebug() << "updateMenuEnablingINACTIVE()";
+        updateMenuEnablingINACTIVE(focusWidget, focusWindow);
+    }
 }
+
+void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
+{
+    ui->actionSave->setEnabled(true);
+    ui->actionSaveAs->setEnabled(true);
+    ui->actionRevertToSaved->setEnabled(!isUntitled);
+    
+    ui->menuSimulation->setEnabled(true);
+    ui->actionStep->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
+    ui->actionPlay->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_ && !generationPlayOn_);
+    ui->actionPlay->setText(nonProfilePlayOn_ ? "Stop" : "Play");
+    ui->actionProfile->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
+    ui->actionProfile->setText(profilePlayOn_ ? "Stop" : "Profile");
+    ui->actionRecycle->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    
+    ui->menuScript->setEnabled(true);
+    ui->actionCheckScript->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->actionPrettyprintScript->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->actionShowScriptHelp->setEnabled(true);
+    ui->actionShowEidosConsole->setEnabled(true);
+    ui->actionShowEidosConsole->setText(!consoleController->isVisible() ? "Show Eidos Console" : "Hide Eidos Console");
+    ui->actionShowVariableBrowser->setEnabled(true);
+    ui->actionClearOutput->setEnabled(!invalidSimulation_);
+    ui->actionDumpPopulationState->setEnabled(!invalidSimulation_);
+    ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_ && !generationPlayOn_);
+    
+    updateMenuEnablingSHARED(focusWidget);
+}
+
+void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *focusWindow)
+{
+    ui->actionSave->setEnabled(false);
+    ui->actionSaveAs->setEnabled(false);
+    ui->actionRevertToSaved->setEnabled(false);
+    
+    ui->menuSimulation->setEnabled(false);          // does nothing on macOS, but maybe does something on another platform
+    ui->actionStep->setEnabled(false);
+    ui->actionPlay->setEnabled(false);
+    ui->actionPlay->setText("Play");
+    ui->actionProfile->setEnabled(false);
+    ui->actionProfile->setText("Profile");
+    ui->actionRecycle->setEnabled(false);
+    
+    // The script menu state, if we are inactive, is mostly either (a) governed by the front console
+    // controller, or (b) is disabled, if a console controller is not active
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    bool consoleFocused = (eidosConsole != nullptr);
+    bool consoleFocusedAndEditable = ((eidosConsole != nullptr) && !continuousPlayOn_ && !generationPlayOn_);
+    
+    ui->menuScript->setEnabled(consoleFocused);     // does nothing on macOS, but maybe does something on another platform
+    ui->actionCheckScript->setEnabled(consoleFocusedAndEditable);
+    ui->actionPrettyprintScript->setEnabled(consoleFocusedAndEditable);
+    ui->actionShowScriptHelp->setEnabled(consoleFocused);
+    ui->actionShowEidosConsole->setEnabled(consoleFocused);
+    ui->actionShowEidosConsole->setText(!consoleFocused ? "Show Eidos Console" : "Hide Eidos Console");
+    ui->actionShowVariableBrowser->setEnabled(consoleFocused);
+    ui->actionClearOutput->setEnabled(consoleFocused);
+    ui->actionExecuteAll->setEnabled(consoleFocusedAndEditable);
+    ui->actionExecuteSelection->setEnabled(consoleFocusedAndEditable);
+    
+    // but these two menu items apply only to QtSLiMWindow, not to the Eidos console
+    ui->actionDumpPopulationState->setEnabled(false);
+    ui->actionChangeWorkingDirectory->setEnabled(false);
+    
+    updateMenuEnablingSHARED(focusWidget);
+}
+
+void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *focusWidget)
+{
+    // Here we update the enable state for menu items, such as cut/copy/paste, that go to
+    // the focusWidget whatever window it might be in; "first responder" in Cocoa parlance
+    QLineEdit *lE = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *tE = dynamic_cast<QTextEdit*>(focusWidget);
+    QtSLiMTextEdit *stE = dynamic_cast<QtSLiMTextEdit *>(tE);
+    bool hasEnabledDestination = (lE && lE->isEnabled()) || (tE && tE->isEnabled());
+    bool hasEnabledModifiableDestination = (lE && lE->isEnabled() && !lE->isReadOnly()) ||
+            (tE && tE->isEnabled() && !tE->isReadOnly());
+    bool hasUndoableDestination = (lE && lE->isEnabled() && !lE->isReadOnly() && lE->isUndoAvailable()) ||
+            (tE && tE->isEnabled() && !tE->isReadOnly() && tE->isUndoRedoEnabled());
+    bool hasRedoableDestination = (lE && lE->isEnabled() && !lE->isReadOnly() && lE->isRedoAvailable()) ||
+            (tE && tE->isEnabled() && !tE->isReadOnly() && tE->isUndoRedoEnabled());
+    bool hasCopyableDestination = (lE && lE->isEnabled() && lE->selectedText().length()) ||
+            (tE && tE->isEnabled());
+    
+    if (stE)
+    {
+        // refine our assessment of undo/redo/copy capability if possible
+        hasUndoableDestination = hasUndoableDestination && stE->qtslimIsUndoAvailable();
+        hasRedoableDestination = hasRedoableDestination && stE->qtslimIsRedoAvailable();
+        hasCopyableDestination = hasCopyableDestination && stE->qtslimIsCopyAvailable();
+    }
+    
+    ui->actionUndo->setEnabled(hasUndoableDestination);
+    ui->actionRedo->setEnabled(hasRedoableDestination);
+    ui->actionCut->setEnabled(hasEnabledModifiableDestination);
+    ui->actionCopy->setEnabled(hasCopyableDestination);
+    ui->actionPaste->setEnabled(hasEnabledModifiableDestination);
+    ui->actionDelete->setEnabled(hasEnabledModifiableDestination);
+    ui->actionSelectAll->setEnabled(hasEnabledDestination);
+    
+    // actions handled by QtSLiMScriptTextEdit only
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    bool isModifiableScriptTextEdit = (scriptEdit && !scriptEdit->isReadOnly());
+    
+    ui->actionShiftLeft->setEnabled(isModifiableScriptTextEdit);
+    ui->actionShiftRight->setEnabled(isModifiableScriptTextEdit);
+    ui->actionCommentUncomment->setEnabled(isModifiableScriptTextEdit);
+    
+    // actions handled by the Find panel only
+    QtSLiMFindPanel &findPanelInstance = QtSLiMFindPanel::instance();
+    bool hasFindTarget = (findPanelInstance.targetTextEditRequireModifiable(false) != nullptr);
+    bool hasModifiableFindTarget = (findPanelInstance.targetTextEditRequireModifiable(true) != nullptr);
+    
+    ui->actionFindShow->setEnabled(true);
+    ui->actionFindNext->setEnabled(hasFindTarget);
+    ui->actionFindPrevious->setEnabled(hasFindTarget);
+    ui->actionReplaceAndFind->setEnabled(hasModifiableFindTarget);
+    ui->actionUseSelectionForFind->setEnabled(hasFindTarget);
+    ui->actionUseSelectionForReplace->setEnabled(hasFindTarget);
+    ui->actionJumpToSelection->setEnabled(hasFindTarget);
+    
+    findPanelInstance.fixEnableState();   // give it a chance to update its buttons whenever we update
+}
+
 
 //
 //  profiling
@@ -3631,12 +3802,10 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 
 void QtSLiMWindow::graphPopupButtonRunMenu(void)
 {
-    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-	//SLiMSim *sim = controller->sim;
 	bool disableAll = false;
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (controller->invalidSimulation()) // || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+	if (invalidSimulation_) // || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
 		disableAll = true;
     
     QMenu contextMenu("graph_menu", this);
@@ -3668,13 +3837,13 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     contextMenu.addSeparator();
     
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    createHaplotypePlot->setEnabled(!disableAll);
+    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && !generationPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size());
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
     QAction *action = contextMenu.exec(mousePos);
     
-    if (action && !controller->invalidSimulation())
+    if (action && !invalidSimulation_)
     {
         QWidget *graphWindow = nullptr;
         
@@ -3716,12 +3885,19 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         }
         if (action == createHaplotypePlot)
         {
-            isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
-            
-            QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
-            
-            // Note that we don't use graphWindow, and don't remember the window in an ivar.  Haplotype plots
-            // are different from graphs; they don't update dynamically, and you can have more than one.
+            if (!continuousPlayOn_ && !generationPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
+            {
+                isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+                
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
+                
+                // Note that we don't use graphWindow, and don't remember the window in an ivar.  Haplotype plots
+                // are different from graphs; they don't update dynamically, and you can have more than one.
+            }
+            else
+            {
+                qApp->beep();
+            }
         }
         
         if (graphWindow)

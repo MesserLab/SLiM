@@ -58,6 +58,11 @@ public:
     // Fix the selection to be legal, and adjust the read-only setting accordingly
     void adjustSelectionAndReadOnly(void);
     
+    // Read-only state handling; this is a consequence of two independent flags, for us
+    void setReadOnlyDueToSelection(bool flag) { roDTS = flag; updateReadOnly(); }
+    void setReadOnlyDueToActivation(bool flag) { roDTA = flag; updateReadOnly(); }
+    void updateReadOnly(void) { setReadOnly(roDTS | roDTA); }
+    
 public slots:
     void previousHistory(void);
     void nextHistory(void);
@@ -84,6 +89,10 @@ protected:
     QStringList history;
     int historyIndex = 0;
     bool lastHistoryItemIsProvisional = false;	// got added to the history by a moveUp: event but is not an executed command
+    
+    // handling read-only status
+    bool roDTS = false;
+    bool roDTA = false;
     
     // handling the selection and editability
     bool insideMouseTracking = false, sawSelectionChange = false;

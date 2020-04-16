@@ -27,6 +27,7 @@
 
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiMEidosConsole.h"
+#include "QtSLiMConsoleTextEdit.h"
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMFindPanel.h"
 
@@ -144,13 +145,75 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
     connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
     connect(ui->actionDumpPopulationState, &QAction::triggered, this, &QtSLiMWindow::dumpPopulationClicked);
-    connect(ui->actionCheckScript, &QAction::triggered, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
-    connect(ui->actionPrettyprintScript, &QAction::triggered, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
-    connect(ui->actionShowScriptHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
     connect(ui->actionQtSLiMHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
-    connect(ui->actionShowEidosConsole, &QAction::triggered, [this]() { ui->consoleButton->toggle(); showConsoleClicked(); });
-    connect(ui->actionShowVariableBrowser, &QAction::triggered, this, &QtSLiMWindow::showBrowserClicked);
-    connect(ui->actionClearOutput, &QAction::triggered, this, &QtSLiMWindow::clearOutputClicked);
+    
+    // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
+    connect(ui->actionCheckScript, &QAction::triggered, [this]() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (slimWindow == this)
+            ui->scriptTextEdit->checkScript();
+        else if (eidosConsole)
+            eidosConsole->scriptTextEdit()->checkScript();
+    });
+    connect(ui->actionPrettyprintScript, &QAction::triggered, [this]() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (slimWindow == this)
+            ui->scriptTextEdit->prettyprint();
+        else if (eidosConsole)
+            eidosConsole->scriptTextEdit()->prettyprint();
+    });
+    connect(ui->actionShowScriptHelp, &QAction::triggered, [this]() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (slimWindow == this)
+            scriptHelpClicked();
+        else if (eidosConsole)
+            eidosConsole->parentSLiMWindow->scriptHelpClicked();
+    });
+    connect(ui->actionShowEidosConsole, &QAction::triggered, [this]() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (slimWindow == this)
+        {
+            ui->consoleButton->toggle();
+            showConsoleClicked();
+        }
+        else if (eidosConsole)
+        {
+            eidosConsole->parentSLiMWindow->ui->consoleButton->toggle();
+            eidosConsole->parentSLiMWindow->showConsoleClicked();
+        }
+    });
+    connect(ui->actionShowVariableBrowser, &QAction::triggered, [this]() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (slimWindow == this)
+            showBrowserClicked();
+        else if (eidosConsole)
+            eidosConsole->parentSLiMWindow->showBrowserClicked();
+    });
+    connect(ui->actionClearOutput, &QAction::triggered, [this]() {
+        QWidget *focusWidget = QApplication::focusWidget();
+        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
+        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        
+        if (slimWindow == this)
+            clearOutputClicked();
+        else if (eidosConsole)
+            eidosConsole->consoleTextEdit()->clearToPrompt();
+    });
     
     // connect menu items that open a URL
     connect(ui->actionSLiMWorkshops, &QAction::triggered, []() {
@@ -220,7 +283,6 @@ void QtSLiMWindow::glueUI(void)
     
     // standard actions that need to be dispatched (I haven't found a better way to do this;
     // this is basically implementing the first responder / event dispatch mechanism)
-    // FIXME should enable/disable the menu items using copyAvailable(), undoAvailable(), etc.
     connect(ui->actionUndo, &QAction::triggered, []() {
         QWidget *focusWidget = QApplication::focusWidget();
         QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);

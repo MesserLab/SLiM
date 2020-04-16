@@ -180,13 +180,24 @@ QStatusBar *QtSLiMEidosConsole::statusBar(void)
     return statusBar_;
 }
 
-// enable/disable the user interface as the simulation's state changes
-void QtSLiMEidosConsole::setInterfaceEnabled(bool __attribute__((unused)) enabled)
+QtSLiMScriptTextEdit *QtSLiMEidosConsole::scriptTextEdit(void)
 {
-    //qDebug() << "setInterfaceEnabled:" << enabled;
-    
-    // SLiMgui disables some buttons, but actually it is not clear that anything needs to be disabled!
-    // FIXME remove this whole method if it is really not needed
+    return ui->scriptTextEdit;
+}
+
+QtSLiMConsoleTextEdit *QtSLiMEidosConsole::consoleTextEdit(void)
+{
+    return ui->consoleTextEdit;
+}
+
+// enable/disable the user interface as the simulation's state changes
+void QtSLiMEidosConsole::setInterfaceEnabled(bool enabled)
+{
+    ui->checkScriptButton->setEnabled(enabled);
+    ui->prettyprintButton->setEnabled(enabled);
+    ui->executeAllButton->setEnabled(enabled);
+    ui->executeSelectionButton->setEnabled(enabled);
+    ui->consoleTextEdit->setReadOnlyDueToActivation(!enabled);
 }
 
 // Throw away the current symbol table

@@ -560,7 +560,7 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *event)
             // so we change ourselves to editable around the call to super
             setReadOnly(false);
             QtSLiMTextEdit::keyPressEvent(event);
-            setReadOnly(true);
+            updateReadOnly();   // maybe roDTS has changed, so maybe we no longer want to be read-only
         }
         else if (event->matches(QKeySequence::SelectAll))
         {
@@ -674,7 +674,7 @@ void QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly(void)
         else if (selection.position() < lastPromptCursor.position())
             moveCursor(QTextCursor::End);
         
-        setReadOnly(false);
+        setReadOnlyDueToSelection(false);
     }
     else
     {
@@ -683,9 +683,9 @@ void QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly(void)
         int start = selection.selectionStart();
         
         if (start < lastPromptCursor.position())
-            setReadOnly(true);
+            setReadOnlyDueToSelection(true);
         else
-            setReadOnly(false);
+            setReadOnlyDueToSelection(false);
     }
 }
 
