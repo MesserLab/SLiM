@@ -3968,7 +3968,7 @@ See
 \f3\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F])
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F])
 \f2 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3992,7 +3992,31 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned.\
-Note that newline characters will be added at the ends of the lines in 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+If 
+\f1\fs18 compress
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the contents will be compressed with 
+\f1\fs18 zlib
+\f3\fs20  as they are written, and the standard 
+\f1\fs18 .gz
+\f3\fs20  extension for 
+\f1\fs18 gzip
+\f3\fs20 -compressed files will be appended to the filename in 
+\f1\fs18 filePath
+\f3\fs20  if it is not already present; the 
+\f1\fs18 compress
+\f3\fs20  option may not be used in conjunction with 
+\f1\fs18 append==T
+\f3\fs20 .  The 
+\f1\fs18 compress
+\f3\fs20  option was added in Eidos 2.4 (SLiM 3.4).  Note that 
+\f1\fs18 readFile()
+\f3\fs20  does not currently support reading in compressed data.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f3\fs20 .  If you do not wish to have newlines added, you should use 
 \f1\fs18 paste()
@@ -4003,7 +4027,7 @@ Note that newline characters will be added at the ends of the lines in
 \f2\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string$)writeTempFile(string$\'a0prefix, string$\'a0suffix, string\'a0contents)
+\f1\fs18 \cf0 (string$)writeTempFile(string$\'a0prefix, string$\'a0suffix, string\'a0contents, [logical$\'a0compress\'a0=\'a0F])
 \f2 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4043,7 +4067,27 @@ Note that newline characters will be added at the ends of the lines in
 \f3\fs20 , allowing reading and writing only by the user for security.  If the write is successful, the full path to the temporary file will be returned; if not, 
 \f1\fs18 ""
 \f3\fs20  will be returned.\
-Note that newline characters will be added at the ends of the lines in 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+If 
+\f1\fs18 compress
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the contents will be compressed with 
+\f1\fs18 zlib
+\f3\fs20  as they are written, and the standard 
+\f1\fs18 .gz
+\f3\fs20  extension for 
+\f1\fs18 gzip
+\f3\fs20 -compressed files will be appended to the filename suffix in 
+\f1\fs18 suffix
+\f3\fs20  if it is not already present.  The 
+\f1\fs18 compress
+\f3\fs20  option was added in Eidos 2.4 (SLiM 3.4).  Note that 
+\f1\fs18 readFile()
+\f3\fs20  does not currently support reading in compressed data.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f3\fs20 .  If you do not wish to have newlines added, you should use 
 \f1\fs18 paste()
@@ -4904,6 +4948,8 @@ Arbitrary command strings involving multiple commands, pipes, redirection, etc.,
 \f1\fs18 ()
 \f3\fs20  operator.  If this strategy doesn\'92t work for the command line you want to execute, you can always write a temporary file yourself using 
 \f1\fs18 writeFile()
+\f3\fs20  or 
+\f1\fs18 writeTempFile()
 \f3\fs20  and redirect that file to standard input in 
 \f1\fs18 command
 \f3\fs20  with 
