@@ -6977,6 +6977,11 @@ void _RunFunctionFilesystemTests(std::string temp_path)
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', 'foo'); identical(readFile(file), 'foo');", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', c(paste(0:4), paste(5:9))); identical(readFile(file), c('0 1 2 3 4', '5 6 7 8 9'));", gStaticEidosValue_LogicalT);
 	
+	// writeFile() and writeTempFile() with compression – we don't decompress to verify, but we check for success and file existence
+	EidosAssertScriptSuccess("writeFile('" + temp_path + "/EidosTest.txt', c(paste(0:4), paste(5:9)), compress=T);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("fileExists('" + temp_path + "/EidosTest.txt.gz');", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_', '.txt', 'foo'); fileExists(file);", gStaticEidosValue_LogicalT);
+	
 	// createDirectory() – we rely on writeTempFile() to give us a file path that isn't in use, from which we derive a directory path that also shouldn't be in use
 	EidosAssertScriptSuccess("file = writeTempFile('eidos_test_dir', '.txt', ''); dir = substr(file, 0, nchar(file) - 5); createDirectory(dir);", gStaticEidosValue_LogicalT);
 	

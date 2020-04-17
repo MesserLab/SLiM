@@ -43,6 +43,8 @@
 
 cmake_minimum_required (VERSION 2.6)
 
+project(SLiM)
+
 
 # Make a Release build by default
 if(NOT CMAKE_BUILD_TYPE) 
@@ -83,6 +85,13 @@ set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${
 add_library(${TARGET_NAME} STATIC ${GSL_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES})
 
+# ZLIB
+set(TARGET_NAME eidos_zlib)
+file(GLOB_RECURSE ZLIB_SOURCES ${PROJECT_SOURCE_DIR}/eidos_zlib/*.c)
+set(ZLIB_INCLUDES ${PROJECT_SOURCE_DIR}/eidos_zlib)
+add_library(${TARGET_NAME} STATIC ${ZLIB_SOURCES})
+target_include_directories(${TARGET_NAME} PUBLIC)
+
 # KASTORE
 set(TARGET_NAME kastore)
 file(GLOB_RECURSE KASTORE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore/*.c)
@@ -103,6 +112,7 @@ file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE
 add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
+target_link_libraries(${TARGET_NAME} PUBLIC eidos_zlib)
 target_link_libraries(${TARGET_NAME} PUBLIC tables)
 target_link_libraries(${TARGET_NAME} PUBLIC)
 
@@ -111,6 +121,7 @@ file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SO
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl)
+target_link_libraries(${TARGET_NAME} PUBLIC eidos_zlib)
 target_link_libraries(${TARGET_NAME} PUBLIC tables)
 
 install(TARGETS slim eidos DESTINATION bin)

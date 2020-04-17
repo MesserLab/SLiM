@@ -48,6 +48,8 @@
 #include "gsl_errno.h"
 #include "gsl_cdf.h"
 
+#include "../eidos_zlib/zlib.h"
+
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
 // builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
@@ -320,8 +322,8 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("fileExists",		Eidos_ExecuteFunction_fileExists,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setwd",				Eidos_ExecuteFunction_setwd,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("path"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents")->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
 
 		
 		// ************************************************************************************
@@ -9553,7 +9555,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const EidosValue_SP *const p_arguments
 	return result_SP;
 }
 
-//	(logical$)writeFile(string$ filePath, string contents, [logical$ append = F])
+//	(logical$)writeFile(string$ filePath, string contents, [logical$ append = F], [logical$ compress = F])
 EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -9571,55 +9573,123 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	// the third argument is an optional append flag, F by default
 	bool append = p_arguments[2]->LogicalAtIndex(0, nullptr);
 	
-	// write the contents out
-	std::ofstream file_stream(file_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
+	// and then there is a flag for optional gzip compression
+	bool do_compress = p_arguments[3]->LogicalAtIndex(0, nullptr);
 	
-	if (!file_stream.is_open())
+	if (append && do_compress)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeFile): writeFile() does not allow both append==T and compress==T." << EidosTerminate(nullptr);
+	
+	if (do_compress && !Eidos_string_hasSuffix(file_path, ".gz"))
+		file_path.append(".gz");
+	
+	// write the contents out
+	if (do_compress)
 	{
-		if (!gEidosSuppressWarnings)
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
-		result_SP = gStaticEidosValue_LogicalF;
-	}
-	else
-	{
-		if (contents_count == 1)
-		{
-			// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-			// Note that system() and writeTempFile() do not append this newline, to allow the user to exactly specify file contents,
-			// but with writeFile() appending seems more likely to me; we'll see if anybody squawks
-			file_stream << contents_value->StringAtIndex(0, nullptr) << std::endl;
-		}
-		else
-		{
-			const std::vector<std::string> &string_vec = *contents_value->StringVector();
-			
-			for (int value_index = 0; value_index < contents_count; ++value_index)
-			{
-				file_stream << string_vec[value_index];
-				
-				// Add newlines after all lines but the last
-				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-				//if (value_index + 1 < contents_count)
-				file_stream << std::endl;
-			}
-		}
+		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
+		gzFile gzf = z_gzopen(file_path.c_str(), "wb");
 		
-		if (file_stream.bad())
+		if (!gzf)
 		{
 			if (!gEidosSuppressWarnings)
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValue_LogicalF;
 		}
 		else
 		{
-			result_SP = gStaticEidosValue_LogicalT;
+			std::ostringstream outstream;
+			
+			if (contents_count == 1)
+			{
+				outstream << contents_value->StringAtIndex(0, nullptr) << std::endl;
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+					outstream << string_vec[value_index] << std::endl;
+			}
+			
+			std::string outstring = outstream.str();
+			const char *outcstr = outstring.c_str();
+			size_t outcstr_length = strlen(outcstr);
+			
+			// do the writing with zlib
+			bool failed = true;
+			int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+			
+			if (retval != -1)
+			{
+				retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+				
+				if (retval != 0)
+				{
+					retval = gzclose_w(gzf);
+					
+					if (retval == Z_OK)
+						failed = false;
+				}
+			}
+			
+			if (failed)
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered zlib errors while writing to file at path " << file_path << "." << std::endl;
+			
+			result_SP = failed ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT;
+		}
+	}
+	else
+	{
+		// no compression
+		std::ofstream file_stream(file_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
+		
+		if (!file_stream.is_open())
+		{
+			if (!gEidosSuppressWarnings)
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
+			result_SP = gStaticEidosValue_LogicalF;
+		}
+		else
+		{
+			if (contents_count == 1)
+			{
+				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+				// Note that system() and writeTempFile() do not append this newline, to allow the user to exactly specify file contents,
+				// but with writeFile() appending seems more likely to me; we'll see if anybody squawks
+				file_stream << contents_value->StringAtIndex(0, nullptr) << std::endl;
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+				{
+					file_stream << string_vec[value_index];
+					
+					// Add newlines after all lines but the last
+					// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+					//if (value_index + 1 < contents_count)
+					file_stream << std::endl;
+				}
+			}
+			
+			if (file_stream.bad())
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				result_SP = gStaticEidosValue_LogicalF;
+			}
+			else
+			{
+				result_SP = gStaticEidosValue_LogicalT;
+			}
 		}
 	}
 	
 	return result_SP;
 }
 
-//	(string$)writeTempFile(string$ prefix, string$ suffix, string contents)
+//	(string$)writeTempFile(string$ prefix, string$ suffix, string contents, [logical$ compress = F])
 EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -9633,15 +9703,23 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	std::string prefix = prefix_value->StringAtIndex(0, nullptr);
 	EidosValue *suffix_value = p_arguments[1].get();
 	std::string suffix = suffix_value->StringAtIndex(0, nullptr);
+	
+	// the third argument is the file contents to write
+	EidosValue *contents_value = p_arguments[2].get();
+	int contents_count = contents_value->Count();
+	
+	// and then there is a flag for optional gzip compression
+	bool do_compress = p_arguments[3]->LogicalAtIndex(0, nullptr);
+	
+	if (do_compress && !Eidos_string_hasSuffix(suffix, ".gz"))
+		suffix.append(".gz");
+	
+	// generate the filename template from the prefix/suffix
 	std::string filename = prefix + "XXXXXX" + suffix;
 	std::string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
 	
 	if ((filename.find("~") != std::string::npos) || (filename.find("/") != std::string::npos))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), prefix and suffix may not contain '~' or '/'; they may specify only a filename." << EidosTerminate(nullptr);
-	
-	// the third argument is the file contents to write
-	EidosValue *contents_value = p_arguments[2].get();
-	int contents_count = contents_value->Count();
 	
 	// write the contents out; thanks to http://stackoverflow.com/questions/499636/how-to-create-a-stdofstream-to-a-temp-file for the temp file creation code
 	char *file_path_cstr = strdup(file_path_template.c_str());
@@ -9653,46 +9731,111 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) Eidos_mkstemps() failed!" << EidosTerminate(nullptr);
 	}
 	
-	std::string file_path(file_path_cstr);
-	std::ofstream file_stream(file_path.c_str(), std::ios_base::out);
-	close(fd);	// opened by Eidos_mkstemps()
-	
-	if (!file_stream.is_open())
+	if (do_compress)
 	{
-		if (!gEidosSuppressWarnings)
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << std::endl;
-		result_SP = gStaticEidosValue_StringEmpty;
-	}
-	else
-	{
-		if (contents_count == 1)
-		{
-			file_stream << contents_value->StringAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
-		}
-		else
-		{
-			const std::vector<std::string> &string_vec = *contents_value->StringVector();
-			
-			for (int value_index = 0; value_index < contents_count; ++value_index)
-			{
-				file_stream << string_vec[value_index];
-				
-				// Add newlines after all lines but the last
-				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-				//if (value_index + 1 < contents_count)
-				file_stream << std::endl;
-			}
-		}
+		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
+		gzFile gzf = z_gzdopen(fd, "wb");
 		
-		if (file_stream.bad())
+		if (!gzf)
 		{
 			if (!gEidosSuppressWarnings)
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path_cstr << "." << std::endl;
 			result_SP = gStaticEidosValue_StringEmpty;
 		}
 		else
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+			std::ostringstream outstream;
+			
+			if (contents_count == 1)
+			{
+				outstream << contents_value->StringAtIndex(0, nullptr);
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+					outstream << string_vec[value_index] << std::endl;
+			}
+			
+			std::string outstring = outstream.str();
+			const char *outcstr = outstring.c_str();
+			size_t outcstr_length = strlen(outcstr);
+			
+			// do the writing with zlib
+			bool failed = true;
+			int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+			
+			if (retval != -1)
+			{
+				retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+				
+				if (retval != 0)
+				{
+					retval = gzclose_w(gzf);
+					
+					if (retval == Z_OK)
+						failed = false;
+				}
+			}
+			
+			if (failed)
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered zlib errors while writing to file at path " << file_path_cstr << "." << std::endl;
+				result_SP = gStaticEidosValue_StringEmpty;
+			}
+			else
+			{
+				std::string file_path(file_path_cstr);
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+			}
+		}
+	}
+	else
+	{
+		// no compression
+		std::string file_path(file_path_cstr);
+		std::ofstream file_stream(file_path.c_str(), std::ios_base::out);
+		close(fd);	// opened by Eidos_mkstemps()
+		
+		if (!file_stream.is_open())
+		{
+			if (!gEidosSuppressWarnings)
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << std::endl;
+			result_SP = gStaticEidosValue_StringEmpty;
+		}
+		else
+		{
+			if (contents_count == 1)
+			{
+				file_stream << contents_value->StringAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+				{
+					file_stream << string_vec[value_index];
+					
+					// Add newlines after all lines but the last
+					// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+					//if (value_index + 1 < contents_count)
+					file_stream << std::endl;
+				}
+			}
+			
+			if (file_stream.bad())
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				result_SP = gStaticEidosValue_StringEmpty;
+			}
+			else
+			{
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+			}
 		}
 	}
 	
