@@ -5,7 +5,8 @@ SUBDIRS += \
     core \
     QtSLiM \
     gsl \
-    treerec/tskit
+    treerec/tskit \
+    eidos_zlib
 
 eidos.depends = gsl
 core.depends = gsl eidos treerec/tskit

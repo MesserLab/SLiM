@@ -35,6 +35,18 @@ INCLUDEPATH += $$PWD/../gsl $$PWD/../gsl/blas $$PWD/../gsl/block $$PWD/../gsl/cb
 INCLUDEPATH += $$PWD/../gsl/complex $$PWD/../gsl/err $$PWD/../gsl/linalg $$PWD/../gsl/matrix
 INCLUDEPATH += $$PWD/../gsl/randist $$PWD/../gsl/rng $$PWD/../gsl/specfunc $$PWD/../gsl/sys $$PWD/../gsl/vector
 
+# eidos_zlib dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../eidos_zlib/release/ -leidos_zlib
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../eidos_zlib/debug/ -leidos_zlib
+else:unix: LIBS += -L$$OUT_PWD/../eidos_zlib/ -leidos_zlib
+INCLUDEPATH += $$PWD/../eidos_zlib
+DEPENDPATH += $$PWD/../eidos_zlib
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/release/libeidos_zlib.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/debug/libeidos_zlib.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/release/eidos_zlib.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/debug/eidos_zlib.lib
+else:unix: PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/libeidos_zlib.a
+
 SOURCES += \
     eidos_ast_node.cpp \
     eidos_beep.cpp \
@@ -74,3 +86,5 @@ HEADERS += \
     eidos_type_interpreter.h \
     eidos_type_table.h \
     eidos_value.h
+
+
