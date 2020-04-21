@@ -246,10 +246,17 @@ QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *parent) :
 #endif
     
     browserTree->setHeaderLabels(QStringList{"Symbol", "Type", "Size", "Values"});
+#if defined(__APPLE__)
     browserTree->headerItem()->setTextAlignment(0, Qt::AlignVCenter);
     browserTree->headerItem()->setTextAlignment(1, Qt::AlignVCenter);
     browserTree->headerItem()->setTextAlignment(2, Qt::AlignCenter);
     browserTree->headerItem()->setTextAlignment(3, Qt::AlignVCenter);
+#else
+    browserTree->headerItem()->setTextAlignment(0, Qt::AlignTop);
+    browserTree->headerItem()->setTextAlignment(1, Qt::AlignTop);
+    browserTree->headerItem()->setTextAlignment(2, Qt::AlignHCenter | Qt::AlignTop);
+    browserTree->headerItem()->setTextAlignment(3, Qt::AlignTop);
+#endif
     browserTree->setColumnWidth(0, 180);
     browserTree->setColumnWidth(1, 180);
     browserTree->setColumnWidth(2, 75);
