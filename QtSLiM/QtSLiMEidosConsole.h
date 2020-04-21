@@ -30,6 +30,7 @@ class QStatusBar;
 class QSplitter;
 class QtSLiMScriptTextEdit;
 class QtSLiMConsoleTextEdit;
+class QtSLiMVariableBrowser;
 
 #include "eidos_script.h"
 #include "eidos_globals.h"
@@ -54,6 +55,9 @@ public:
     // Enable/disable the user interface as the simulation's state changes
     void setInterfaceEnabled(bool enabled);
     
+    // Variable browser state
+    void setVariableBrowserVisibility(bool visible);
+    
     // Throw away the current symbol table
     void invalidateSymbolTableAndFunctionMap(void);
     
@@ -70,6 +74,7 @@ public:
     QStatusBar *statusBar(void);
     QtSLiMScriptTextEdit *scriptTextEdit(void);
     QtSLiMConsoleTextEdit *consoleTextEdit(void);
+    QtSLiMVariableBrowser *variableBrowser(void);
     
 public slots:
     void executeAllClicked(void);
@@ -105,10 +110,14 @@ private slots:
     
 private:
     Ui::QtSLiMEidosConsole *ui;
-    QStatusBar *statusBar_;
+    QStatusBar *statusBar_ = nullptr;
     void glueUI(void);
     
     bool interfaceEnabled = false;              // set to false when the simulation is running or invalid
+    
+    // Variable browser support
+    void updateVariableBrowserButtonStates(bool visible);
+    QtSLiMVariableBrowser *variableBrowser_ = nullptr;
     
     // The symbol table for the console interpreter; needs to be wiped whenever the symbol table changes
 	EidosSymbolTable *global_symbols = nullptr;

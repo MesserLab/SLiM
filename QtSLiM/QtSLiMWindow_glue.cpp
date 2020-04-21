@@ -27,6 +27,7 @@
 
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiMEidosConsole.h"
+#include "QtSLiMVariableBrowser.h"
 #include "QtSLiMConsoleTextEdit.h"
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMFindPanel.h"
@@ -221,11 +222,26 @@ void QtSLiMWindow::glueUI(void)
         QWidget *focusWidget = QApplication::focusWidget();
         QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
         QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
+        QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWidget->window());
         
         if (slimWindow == this)
+        {
+            // If our QtSLiMWindow is the focus, handle this ourselves
+            ui->browserButton->toggle();
             showBrowserClicked();
+        }
         else if (eidosConsole)
+        {
+            // If an Eidos console window is the focus, give it to that console's QtSLiMWindow
+            eidosConsole->parentSLiMWindow->ui->browserButton->toggle();
             eidosConsole->parentSLiMWindow->showBrowserClicked();
+        }
+        else if (varBrowser)
+        {
+            // If a variable browser is the focus, give it to the browser's console's QtSLiMWindow
+            varBrowser->parentEidosConsole->parentSLiMWindow->ui->browserButton->toggle();
+            varBrowser->parentEidosConsole->parentSLiMWindow->showBrowserClicked();
+        }
     });
     connect(ui->actionClearOutput, &QAction::triggered, [this]() {
         QWidget *focusWidget = QApplication::focusWidget();

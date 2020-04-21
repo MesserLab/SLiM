@@ -27,6 +27,7 @@
 #include "QtSLiMFindPanel.h"
 #include "QtSLiMHelpWindow.h"
 #include "QtSLiMEidosConsole.h"
+#include "QtSLiMVariableBrowser.h"
 #include "QtSLiMTablesDrawer.h"
 #include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMScriptTextEdit.h"
@@ -72,13 +73,10 @@
 
 // TO DO:
 //
-// decide whether to implement the variable browser or not
 // associate .slim with QtSLiM; how is this done in Linux, or in Qt?
 //      https://askubuntu.com/questions/538299/globally-associate-file-type-with-certain-application for example
 // set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
 //      https://askubuntu.com/questions/894990/how-to-change-an-icon-in-16-04
-// how to distribute QtSLiM on Linux
-//      how it should be installed (build from source, or some kind of installer?), version requirements/checks, icon, .slim extension registration, etc. all open issues
 
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
@@ -89,7 +87,14 @@ QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(null
     // set up the initial script
     std::string untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? QtSLiMWindow::defaultWFScriptString() : QtSLiMWindow::defaultNonWFScriptString();
     ui->scriptTextEdit->setPlainText(QString::fromStdString(untitledScriptString));
+    
+    if (consoleController)
+        consoleController->invalidateSymbolTableAndFunctionMap();
+    
     setScriptStringAndInitializeSimulation(untitledScriptString);
+    
+    if (consoleController)
+        consoleController->validateSymbolTableAndFunctionMap();
     
     // Update all our UI to reflect the current state of the simulation
     updateAfterTickFull(true);
@@ -703,10 +708,9 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
 
 void QtSLiMWindow::aboutQtSLiM()
 {
-    static QtSLiMAbout *aboutWindow = nullptr;
+    QtSLiMAbout *aboutWindow = new QtSLiMAbout(nullptr);
     
-    if (!aboutWindow)
-        aboutWindow = new QtSLiMAbout(nullptr);     // shared instance with no parent, never freed
+    aboutWindow->setAttribute(Qt::WA_DeleteOnClose);    
     
     aboutWindow->show();
     aboutWindow->raise();
@@ -1652,7 +1656,14 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     ui->actionShowScriptHelp->setEnabled(true);
     ui->actionShowEidosConsole->setEnabled(true);
     ui->actionShowEidosConsole->setText(!consoleController->isVisible() ? "Show Eidos Console" : "Hide Eidos Console");
+    
+    bool varBrowserVisible = false;
+    if (consoleController->variableBrowser())
+        varBrowserVisible = consoleController->variableBrowser()->isVisible();
+    
     ui->actionShowVariableBrowser->setEnabled(true);
+    ui->actionShowVariableBrowser->setText(!varBrowserVisible ? "Show Variable Browser" : "Hide Variable Browser");
+    
     ui->actionClearOutput->setEnabled(!invalidSimulation_);
     ui->actionDumpPopulationState->setEnabled(!invalidSimulation_);
     ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_ && !generationPlayOn_);
@@ -1679,6 +1690,14 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *foc
     QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
     bool consoleFocused = (eidosConsole != nullptr);
     bool consoleFocusedAndEditable = ((eidosConsole != nullptr) && !continuousPlayOn_ && !generationPlayOn_);
+    QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWindow);
+    bool varBrowserFocused = (varBrowser != nullptr);
+    bool varBrowserVisible = false;
+    
+    if (consoleFocused)
+        varBrowserVisible = (eidosConsole->variableBrowser() && eidosConsole->variableBrowser()->isVisible());
+    else if (varBrowserFocused)
+        varBrowserVisible = varBrowser->isVisible();
     
     //ui->menuScript->setEnabled(consoleFocused);
     ui->actionCheckScript->setEnabled(consoleFocusedAndEditable);
@@ -1686,7 +1705,8 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *foc
     ui->actionShowScriptHelp->setEnabled(consoleFocused);
     ui->actionShowEidosConsole->setEnabled(consoleFocused);
     ui->actionShowEidosConsole->setText(!consoleFocused ? "Show Eidos Console" : "Hide Eidos Console");
-    ui->actionShowVariableBrowser->setEnabled(consoleFocused);
+    ui->actionShowVariableBrowser->setEnabled(consoleFocused || varBrowserFocused);
+    ui->actionShowVariableBrowser->setText(!varBrowserVisible ? "Show Variable Browser" : "Hide Variable Browser");
     ui->actionClearOutput->setEnabled(consoleFocused);
     ui->actionExecuteAll->setEnabled(consoleFocusedAndEditable);
     ui->actionExecuteSelection->setEnabled(consoleFocusedAndEditable);
@@ -1753,6 +1773,13 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *focusWidget)
     ui->actionJumpToSelection->setEnabled(hasFindTarget);
     
     findPanelInstance.fixEnableState();   // give it a chance to update its buttons whenever we update
+}
+
+void QtSLiMWindow::updateVariableBrowserButtonState(bool visible)
+{
+    // Should only be called by QtSLiMEidosConsole::updateVariableBrowserButtonStates() so state is synced
+    ui->browserButton->setChecked(visible);
+    showBrowserReleased();
 }
 
 
@@ -3472,13 +3499,13 @@ void QtSLiMWindow::showConsoleClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
-    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
-
     if (!consoleController)
     {
         qApp->beep();
         return;
     }
+    
+    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
     
     if (ui->consoleButton->isChecked())
     {
@@ -3496,9 +3523,13 @@ void QtSLiMWindow::showBrowserClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
-    ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser_H.png" : ":/buttons/show_browser.png"));
-
-    qDebug() << "showBrowserClicked: isChecked() == " << ui->browserButton->isChecked();
+    if (!consoleController)
+    {
+        qApp->beep();
+        return;
+    }
+    
+    consoleController->setVariableBrowserVisibility(ui->browserButton->isChecked());
 }
 
 void QtSLiMWindow::clearOutputClicked(void)

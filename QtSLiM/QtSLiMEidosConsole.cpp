@@ -28,6 +28,7 @@
 
 #include "QtSLiMWindow.h"
 #include "QtSLiMPreferences.h"
+#include "QtSLiMVariableBrowser.h"
 
 
 QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
@@ -175,6 +176,57 @@ void QtSLiMEidosConsole::closeEvent(QCloseEvent *event)
     QWidget::closeEvent(event);
 }
 
+void QtSLiMEidosConsole::updateVariableBrowserButtonStates(bool visible)
+{
+    // Called from various places to ensure that both our button and QtSLiMWindow's button show the right state
+    
+    // our button
+    ui->browserButton->setChecked(visible);
+    showBrowserReleased();
+    
+    // QtSLiMWindow's button
+    parentSLiMWindow->updateVariableBrowserButtonState(visible);
+}
+
+void QtSLiMEidosConsole::setVariableBrowserVisibility(bool visible)
+{
+    if (!visible && !variableBrowser_)
+        return;
+    
+    if (!variableBrowser_)
+    {
+        variableBrowser_ = new QtSLiMVariableBrowser(this);
+        
+        if (variableBrowser_)
+        {
+            variableBrowser_->setAttribute(Qt::WA_DeleteOnClose);
+            
+            // wire ourselves up to monitor the console for closing, to fix our button state
+            connect(variableBrowser_, &QtSLiMVariableBrowser::willClose, [this]() {
+                updateVariableBrowserButtonStates(false);
+                variableBrowser_ = nullptr;     // deleted on close
+            });
+        }
+        else
+        {
+            qDebug() << "Could not create variable browser";
+        }
+    }
+    
+    updateVariableBrowserButtonStates(visible);
+    
+    if (ui->browserButton->isChecked())
+    {
+        variableBrowser_->show();
+        variableBrowser_->raise();
+        variableBrowser_->activateWindow();
+    }
+    else
+    {
+        variableBrowser_->close();
+    }
+}
+
 QStatusBar *QtSLiMEidosConsole::statusBar(void)
 {
     return statusBar_;
@@ -188,6 +240,11 @@ QtSLiMScriptTextEdit *QtSLiMEidosConsole::scriptTextEdit(void)
 QtSLiMConsoleTextEdit *QtSLiMEidosConsole::consoleTextEdit(void)
 {
     return ui->consoleTextEdit;
+}
+
+QtSLiMVariableBrowser *QtSLiMEidosConsole::variableBrowser(void)
+{
+    return variableBrowser_;
 }
 
 // enable/disable the user interface as the simulation's state changes
@@ -216,7 +273,8 @@ void QtSLiMEidosConsole::invalidateSymbolTableAndFunctionMap(void)
 		global_function_map = nullptr;
 	}
 	
-	//[browserController reloadBrowser];
+    if (variableBrowser_)
+        variableBrowser_->reloadBrowser(false);     // false tells the browser we're now invalid
 }
 
 // Make a new symbol table from our delegate's current state; this actually executes a minimal script, ";",
@@ -233,7 +291,8 @@ void QtSLiMEidosConsole::validateSymbolTableAndFunctionMap(void)
 			qDebug() << "Error in validateSymbolTableAndFunctionMap: " << errorString;
 	}
 	
-	//[browserController reloadBrowser];
+    if (variableBrowser_)
+        variableBrowser_->reloadBrowser(true);
 }
 
 // Low-level script execution
@@ -355,8 +414,8 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
 		output = interpreter.ExecutionOutput();
 		
-		// reload outline view to show new global symbols, in case they have changed
-		//[browserController reloadBrowser];
+        if (variableBrowser_)
+            variableBrowser_->reloadBrowser(true);
 		
 		if (executionString)
 		{

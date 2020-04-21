@@ -36,7 +36,7 @@ void QtSLiMEidosConsole::glueUI(void)
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
     connect(ui->prettyprintButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
     connect(ui->scriptHelpButton, &QPushButton::clicked, parentSLiMWindow, &QtSLiMWindow::scriptHelpClicked);
-    connect(ui->browserButton, &QPushButton::clicked, parentSLiMWindow, &QtSLiMWindow::showBrowserClicked);
+    connect(ui->browserButton, &QPushButton::clicked, [this]() { setVariableBrowserVisibility(ui->browserButton->isChecked()); });
     
     connect(ui->executeSelectionButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::executeSelectionClicked);
     connect(ui->executeAllButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::executeAllClicked);

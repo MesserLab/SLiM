@@ -90,7 +90,8 @@ SOURCES += \
     QtSLiMGraphView_FrequencyTrajectory.cpp \
     QtSLiMHaplotypeManager.cpp \
     QtSLiMHaplotypeOptions.cpp \
-    QtSLiMHaplotypeProgress.cpp
+    QtSLiMHaplotypeProgress.cpp \
+    QtSLiMVariableBrowser.cpp
 
 HEADERS += \
     QtSLiMWindow.h \
@@ -120,7 +121,8 @@ HEADERS += \
     QtSLiMGraphView_FrequencyTrajectory.h \
     QtSLiMHaplotypeManager.h \
     QtSLiMHaplotypeOptions.h \
-    QtSLiMHaplotypeProgress.h
+    QtSLiMHaplotypeProgress.h \
+    QtSLiMVariableBrowser.h
 
 FORMS += \
     QtSLiMWindow.ui \
@@ -132,7 +134,8 @@ FORMS += \
     QtSLiMTablesDrawer.ui \
     QtSLiMFindPanel.ui \
     QtSLiMHaplotypeOptions.ui \
-    QtSLiMHaplotypeProgress.ui
+    QtSLiMHaplotypeProgress.ui \
+    QtSLiMVariableBrowser.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
