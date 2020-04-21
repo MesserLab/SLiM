@@ -229,7 +229,7 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window
     connect(ui->topicOutlineView, &QTreeWidget::itemCollapsed, this, &QtSLiMHelpWindow::itemCollapsed);
     connect(ui->topicOutlineView, &QTreeWidget::itemExpanded, this, &QtSLiMHelpWindow::itemExpanded);
     
-    QAbstractItemDelegate *outlineDelegate = new QtSLiMHelpOutlineDelegate();
+    QAbstractItemDelegate *outlineDelegate = new QtSLiMHelpOutlineDelegate(ui->topicOutlineView);
     ui->topicOutlineView->setItemDelegate(outlineDelegate);
     
     // tweak appearance on Linux; the form is adjusted for macOS

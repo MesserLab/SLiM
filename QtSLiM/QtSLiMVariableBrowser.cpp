@@ -233,7 +233,7 @@ QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *parent) :
     // tree widget settings
     QTreeWidget *browserTree = ui->browserTreeWidget;
     
-    QAbstractItemDelegate *outlineDelegate = new QtSLiMVariableBrowserDelegate();
+    QAbstractItemDelegate *outlineDelegate = new QtSLiMVariableBrowserDelegate(browserTree);
     browserTree->setItemDelegate(outlineDelegate);
     
 #if !defined(__APPLE__)
