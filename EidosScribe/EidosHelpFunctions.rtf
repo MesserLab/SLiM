@@ -1232,6 +1232,130 @@ Cholesky decomposition of the variance-covariance matrix
 \f3\fs20  can then be done just once.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (float)dbeta(float\'a0x, numeric\'a0alpha, numeric\'a0beta)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f0\b probability densities for a beta distribution
+\f3\b0  at quantiles 
+\f1\fs18 x
+\f3\fs20  with parameters 
+\f1\fs18 alpha
+\f3\fs20  and 
+\f1\fs18 beta
+\f3\fs20 .  The 
+\f1\fs18 alpha
+\f3\fs20  and 
+\f1\fs18 beta
+\f3\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of the same length as 
+\f1\fs18 x
+\f3\fs20 , specifying a value for each density computation.  The probability density function is 
+\f8\i P
+\f2\i0 (
+\f8\i s
+\f2\i0 \'a0|\'a0
+\f8\i \uc0\u945 
+\f2\i0 ,
+\f8\i \uc0\u946 
+\f2\i0 )\'a0= [\uc0\u915 (
+\f8\i \uc0\u945 
+\f2\i0 +
+\f8\i \uc0\u946 
+\f2\i0 )/\uc0\u915 (
+\f8\i \uc0\u945 
+\f2\i0 )\uc0\u915 (
+\f8\i \uc0\u946 
+\f2\i0 )]
+\f8\i s
+\fs13\fsmilli6667 \super \uc0\u945 
+\f2\i0 \uc0\u8722 1
+\fs20 \nosupersub (1\uc0\u8722 
+\f8\i s
+\f2\i0 )
+\f8\i\fs13\fsmilli6667 \super \uc0\u946 
+\f2\i0 \uc0\u8722 1
+\f3\fs20 \nosupersub , where 
+\f8\i \uc0\u945 
+\f3\i0  is 
+\f1\fs18 alpha
+\f3\fs20  and 
+\f8\i \uc0\u946 
+\f3\i0  is 
+\f1\fs18 beta
+\f3\fs20 .  Both parameters must be greater than 
+\f1\fs18 0
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)dexp(float\'a0x, [numeric\'a0mu\'a0=\'a01])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f0\b probability densities for an exponential distribution
+\f3\b0  at quantiles 
+\f1\fs18 x
+\f3\fs20  with mean 
+\f1\fs18 mu
+\f3\fs20  (i.e. rate 
+\f1\fs18 1/mu
+\f3\fs20 ).  The 
+\f1\fs18 mu
+\f3\fs20  parameter may either be a singleton, specifying a single value to be used for all of the draws, or they may be vectors of the same length as 
+\f1\fs18 x
+\f3\fs20 , specifying a value for each density computation.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)dgamma(float\'a0x, numeric\'a0mean, numeric\'a0shape)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f0\b probability densities for a gamma distribution
+\f3\b0  at quantiles 
+\f1\fs18 x
+\f3\fs20  with mean 
+\f1\fs18 mean
+\f3\fs20  and shape parameter 
+\f1\fs18 shape
+\f3\fs20 .  The 
+\f1\fs18 mean
+\f3\fs20  and 
+\f1\fs18 shape
+\f3\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of the same length as 
+\f1\fs18 x
+\f3\fs20 , specifying a value for each density computation.  The probability density function is 
+\f8\i P
+\f2\i0 (
+\f8\i s
+\f2\i0 \'a0|\'a0
+\f8\i \uc0\u945 
+\f2\i0 ,
+\f8\i \uc0\u946 
+\f2\i0 )\'a0= [\uc0\u915 (
+\f8\i \uc0\u945 
+\f2\i0 )
+\f8\i \uc0\u946 
+\fs13\fsmilli6667 \super \uc0\u945 
+\f2\i0\fs20 \nosupersub ]
+\fs13\fsmilli6667 \super \uc0\u8722 1
+\f8\i\fs20 \nosupersub s
+\fs13\fsmilli6667 \super \uc0\u945 
+\f2\i0 \uc0\u8722 1
+\fs20 \nosupersub exp(\uc0\u8722 
+\f8\i s
+\f2\i0 /
+\f8\i \uc0\u946 
+\f2\i0 )
+\f3 , where 
+\f8\i \uc0\u945 
+\f3\i0  is the shape parameter 
+\f1\fs18 shape
+\f3\fs20 , and the mean of the distribution given by 
+\f1\fs18 mean
+\f3\fs20  is equal to 
+\f8\i \uc0\u945 \u946 
+\f3\i0 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)dnorm(float\'a0x, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
