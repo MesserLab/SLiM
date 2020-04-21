@@ -21,11 +21,51 @@
 #define QTSLIMVARIABLEBROWSER_H
 
 #include <QWidget>
+#include <QTreeWidgetItem>
+#include <QStyledItemDelegate>
+
+#include "eidos_value.h"
 
 class QCloseEvent;
 class QtSLiMEidosConsole;
-class QTreeWidgetItem;
-class QtSLiMBrowserItem;
+
+
+// A QTreeWidgetItem subclass that keeps associated information
+
+class QtSLiMBrowserItem : public QTreeWidgetItem
+{
+    // no Q_OBJECT; QTreeWidgetItem is not a QObject subclass!
+    
+public:
+    QtSLiMBrowserItem(QString name, EidosValue_SP value) : QtSLiMBrowserItem(name, value, -1) {}
+    QtSLiMBrowserItem(QString name, EidosValue_SP value, int index) : QtSLiMBrowserItem(name, value, index, false) {}
+    QtSLiMBrowserItem(QString name, EidosValue_SP value, int index, bool isEllipsis);
+    ~QtSLiMBrowserItem(void) override;
+    
+    QVariant data(int column, int role) const override;
+    
+    QString symbol_name;            // the name as displayed in the browser
+    EidosValue_SP eidos_value;      // the EidosValue referred to by this item (perhaps just one element of it)
+    int element_index;              // -1 if this item refers to the whole value; otherwise, an element index
+    uint item_hash;                 // a precomputed hash value that can be used to confirm that items match
+    bool is_eidos_constant;         // true if this is one of the built-in Eidos constants; cached for speed
+    bool is_ellipsis;               // true if this item is a "..." representing more undisplayed elements
+    bool has_children;              // true if this item has children (which might not be created yet)
+};
+
+
+// This subclass of QStyledItemDelegate provides custom drawing for the outline view.
+
+class QtSLiMVariableBrowserDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+    
+public:
+    QtSLiMVariableBrowserDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+    ~QtSLiMVariableBrowserDelegate(void) override;
+    
+    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+};
 
 
 namespace Ui {

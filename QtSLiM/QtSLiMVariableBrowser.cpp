@@ -31,7 +31,6 @@
 #include "QtSLiMWindow.h"
 #include "QtSLiMEidosConsole.h"
 
-#include "eidos_value.h"
 #include "eidos_symbol_table.h"
 
 
@@ -39,35 +38,29 @@ static int QtSLiMVarBrowserRowHeight = 0;  // a global, for simplicity; 0 is uni
 
 
 //
-//  QtSLiMBrowserItem
+// This subclass of QStyledItemDelegate provides custom drawing for the outline view.
 //
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpadded"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpadded"
-
-class QtSLiMBrowserItem : public QTreeWidgetItem
+QtSLiMVariableBrowserDelegate::~QtSLiMVariableBrowserDelegate(void)
 {
-public:
-    QtSLiMBrowserItem(QString name, EidosValue_SP value) : QtSLiMBrowserItem(name, value, -1) {}
-    QtSLiMBrowserItem(QString name, EidosValue_SP value, int index) : QtSLiMBrowserItem(name, value, index, false) {}
-    QtSLiMBrowserItem(QString name, EidosValue_SP value, int index, bool isEllipsis);
-    ~QtSLiMBrowserItem(void) override;
-    
-    QVariant data(int column, int role) const override;
-    
-    QString symbol_name;            // the name as displayed in the browser
-    EidosValue_SP eidos_value;      // the EidosValue referred to by this item (perhaps just one element of it)
-    int element_index;              // -1 if this item refers to the whole value; otherwise, an element index
-    uint item_hash;                 // a precomputed hash value that can be used to confirm that items match
-    bool is_eidos_constant;         // true if this is one of the built-in Eidos constants; cached for speed
-    bool is_ellipsis;               // true if this item is a "..." representing more undisplayed elements
-    bool has_children;              // true if this item has children (which might not be created yet)
-};
+}
 
-#pragma clang diagnostic pop
-#pragma GCC diagnostic pop
+void QtSLiMVariableBrowserDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    // On Ubuntu, items get shown as having "focus" even when they're not selectable, which I dislike; this disables that appearance
+    // See https://stackoverflow.com/a/2061871/2752221
+    QStyleOptionViewItem modifiedOption(option);
+    if (modifiedOption.state & QStyle::State_HasFocus)
+        modifiedOption.state = modifiedOption.state ^ QStyle::State_HasFocus;
+    
+    // then let super draw
+    QStyledItemDelegate::paint(painter, modifiedOption, index);
+}
+
+
+//
+//  QtSLiMBrowserItem
+//
 
 QtSLiMBrowserItem::QtSLiMBrowserItem(QString name, EidosValue_SP value, int elementIndex, bool isEllipsis) :
     QTreeWidgetItem(), symbol_name(name), eidos_value(value), element_index(elementIndex), is_ellipsis(isEllipsis)
@@ -240,6 +233,9 @@ QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *parent) :
     // tree widget settings
     QTreeWidget *browserTree = ui->browserTreeWidget;
     
+    QAbstractItemDelegate *outlineDelegate = new QtSLiMVariableBrowserDelegate();
+    browserTree->setItemDelegate(outlineDelegate);
+    
 #if !defined(__APPLE__)
     {
         // use a smaller font for the outline on Linux
@@ -250,7 +246,10 @@ QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *parent) :
 #endif
     
     browserTree->setHeaderLabels(QStringList{"Symbol", "Type", "Size", "Values"});
-    browserTree->headerItem()->setTextAlignment(2, Qt::AlignHCenter);
+    browserTree->headerItem()->setTextAlignment(0, Qt::AlignVCenter);
+    browserTree->headerItem()->setTextAlignment(1, Qt::AlignVCenter);
+    browserTree->headerItem()->setTextAlignment(2, Qt::AlignCenter);
+    browserTree->headerItem()->setTextAlignment(3, Qt::AlignVCenter);
     browserTree->setColumnWidth(0, 180);
     browserTree->setColumnWidth(1, 180);
     browserTree->setColumnWidth(2, 75);
