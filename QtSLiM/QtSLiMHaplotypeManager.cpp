@@ -1792,7 +1792,7 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *event)
         }
         if (action == exportPlot)
         {
-            // FIXME maybe this should QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
+            // FIXME maybe this should use QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
             QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
             QFileInfo fileInfo(QDir(desktopPath), "haplotypes.png");
             QString path = fileInfo.absoluteFilePath();

@@ -713,10 +713,9 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
         
 		// Copy/export the graph image
 		{
-            copyGraph = contextMenu.addAction("Copy Graph");
-            copyGraph->setEnabled(false);       // disabled until it can be fixed; see comments below
-            
-            exportGraph = contextMenu.addAction("Export Graph...");
+            // BCH 4/21/2020: FIXME the "as ..." names here are temporary, until the bug below is fixed and we can copy PDF...
+            copyGraph = contextMenu.addAction("Copy Graph as Bitmap");
+            exportGraph = contextMenu.addAction("Export Graph as PDF...");
 		}
         
 		// Copy/export the data to the clipboard
@@ -812,6 +811,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             }
             if (action == copyGraph)
             {
+#if 0
                 // FIXME this clipboard data is not usable on macOS, apparently because the MIME tag doesn't
                 // come through properly; see https://bugreports.qt.io/browse/QTBUG-83164
                 // I can't find a workaround so I'll wait for them to respond
@@ -840,10 +840,18 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
                 QMimeData mimeData;
                 mimeData.setData("application/pdf", buffer.data());
                 clipboard->setMimeData(&mimeData);
+#else
+                // Until the above bug gets fixed, we'll copy raster data to the clipboard instead
+                QPixmap pixmap(size());
+                render(&pixmap);
+                QImage image = pixmap.toImage();
+                QClipboard *clipboard = QGuiApplication::clipboard();
+                clipboard->setImage(image);
+#endif
             }
             if (action == exportGraph)
             {
-                // FIXME maybe this should QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
+                // FIXME maybe this should use QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
                 QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
                 QFileInfo fileInfo(QDir(desktopPath), "graph.pdf");
                 QString path = fileInfo.absoluteFilePath();
@@ -875,7 +883,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             }
             if (action == exportData)
             {
-                // FIXME maybe this should QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
+                // FIXME maybe this should use QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
                 QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
                 QFileInfo fileInfo(QDir(desktopPath), "data.txt");
                 QString path = fileInfo.absoluteFilePath();
