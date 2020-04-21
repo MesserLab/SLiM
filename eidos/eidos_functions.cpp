@@ -160,12 +160,15 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dmvnorm",			Eidos_ExecuteFunction_dmvnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mu")->AddNumeric("sigma"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dbeta",				Eidos_ExecuteFunction_dbeta,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("alpha")->AddNumeric("beta"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dexp",				Eidos_ExecuteFunction_dexp,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mu", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dgamma",			Eidos_ExecuteFunction_dgamma,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",				Eidos_ExecuteFunction_dnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("qnorm",				Eidos_ExecuteFunction_qnorm,		kEidosValueMaskFloat))->AddFloat("p")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pnorm",				Eidos_ExecuteFunction_pnorm,		kEidosValueMaskFloat))->AddFloat("q")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("qnorm",				Eidos_ExecuteFunction_qnorm,		kEidosValueMaskFloat))->AddFloat("p")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbeta",				Eidos_ExecuteFunction_rbeta,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("alpha")->AddNumeric("beta"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			Eidos_ExecuteFunction_rbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt("size")->AddFloat("prob"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",				Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",			Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rdunif",			Eidos_ExecuteFunction_rdunif,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt_O("min", gStaticEidosValue_Integer0)->AddInt_O("max", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
@@ -4642,7 +4645,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 	EidosValue *arg_quantile = p_arguments[0].get();
 	EidosValue *arg_mu = p_arguments[1].get();
 	EidosValue *arg_sigma = p_arguments[2].get();
-	int64_t num_quantiles = arg_quantile->Count();
+	int num_quantiles = arg_quantile->Count();
 	int arg_mu_count = arg_mu->Count();
 	int arg_sigma_count = arg_sigma->Count();
 	bool mu_singleton = (arg_mu_count == 1);
@@ -4671,14 +4674,14 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int64_t value_index = 0; value_index < num_quantiles; ++value_index)
+			for (int value_index = 0; value_index < num_quantiles; ++value_index)
 				float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu0, sigma0), value_index);
 		}
 	}
 	else
 	{
 		const double *float_data = arg_quantile->FloatVector()->data();
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_quantiles);
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
@@ -4828,6 +4831,74 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const EidosValue_SP *const p_arguments
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_cdf_gaussian_P(float_data[value_index] - mu, sigma), value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(float)dbeta(float x, numeric alpha, numeric beta)
+EidosValue_SP Eidos_ExecuteFunction_dbeta(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_quantile = p_arguments[0].get();
+	EidosValue *arg_alpha = p_arguments[1].get();
+	EidosValue *arg_beta = p_arguments[2].get();
+	int num_quantiles = arg_quantile->Count();
+	int arg_alpha_count = arg_alpha->Count();
+	int arg_beta_count = arg_beta->Count();
+	bool alpha_singleton = (arg_alpha_count == 1);
+	bool beta_singleton = (arg_beta_count == 1);
+	
+	if (!alpha_singleton && (arg_alpha_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	if (!beta_singleton && (arg_beta_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	
+	double alpha0 = (arg_alpha_count ? arg_alpha->FloatAtIndex(0, nullptr) : 0.0);
+	double beta0 = (arg_beta_count ? arg_beta->FloatAtIndex(0, nullptr) : 0.0);
+	
+	if (alpha_singleton && beta_singleton)
+	{
+		if (alpha0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha0) << " supplied)." << EidosTerminate(nullptr);
+		if (beta0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta > 0.0 (" << EidosStringForFloat(beta0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_quantiles == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_beta_pdf(arg_quantile->FloatAtIndex(0, nullptr), alpha0, beta0)));
+		}
+		else
+		{
+			const double *float_data = arg_quantile->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index = 0; value_index < num_quantiles; ++value_index)
+				float_result->set_float_no_check(gsl_ran_beta_pdf(float_data[value_index], alpha0, beta0), value_index);
+		}
+	}
+	else
+	{
+		const double *float_data = arg_quantile->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double alpha = (alpha_singleton ? alpha0 : arg_alpha->FloatAtIndex(value_index, nullptr));
+			double beta = (beta_singleton ? beta0 : arg_beta->FloatAtIndex(value_index, nullptr));
+			
+			if (alpha <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha) << " supplied)." << EidosTerminate(nullptr);
+			if (beta <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta > 0.0 (" << EidosStringForFloat(beta) << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_beta_pdf(float_data[value_index], alpha, beta), value_index);
 		}
 	}
 	
@@ -5123,6 +5194,57 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 	return result_SP;
 }
 
+//	(float)dexp(float x, [numeric mu = 1])
+EidosValue_SP Eidos_ExecuteFunction_dexp(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_quantile = p_arguments[0].get();
+	EidosValue *arg_mu = p_arguments[1].get();
+	int num_quantiles = arg_quantile->Count();
+	int arg_mu_count = arg_mu->Count();
+	bool mu_singleton = (arg_mu_count == 1);
+	
+	if (!mu_singleton && (arg_mu_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dexp): function dexp() requires mu to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	
+	if (mu_singleton)
+	{
+		double mu0 = arg_mu->FloatAtIndex(0, nullptr);
+		
+		if (num_quantiles == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_exponential_pdf(arg_quantile->FloatAtIndex(0, nullptr), mu0)));
+		}
+		else
+		{
+			const double *float_data = arg_quantile->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index = 0; value_index < num_quantiles; ++value_index)
+				float_result->set_float_no_check(gsl_ran_exponential_pdf(float_data[value_index], mu0), value_index);
+		}
+	}
+	else
+	{
+		const double *float_data = arg_quantile->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double mu = arg_mu->FloatAtIndex(value_index, nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_exponential_pdf(float_data[value_index], mu), value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
 //	(float)rexp(integer$ n, [numeric mu = 1])
 EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -5168,6 +5290,72 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments,
 			double mu = arg_mu->FloatAtIndex(draw_index, nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_exponential(EIDOS_GSL_RNG, mu), draw_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(float)dgamma(float x, numeric mean, numeric shape)
+EidosValue_SP Eidos_ExecuteFunction_dgamma(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_quantile = p_arguments[0].get();
+	EidosValue *arg_mean = p_arguments[1].get();
+	EidosValue *arg_shape = p_arguments[2].get();
+	int num_quantiles = arg_quantile->Count();
+	int arg_mean_count = arg_mean->Count();
+	int arg_shape_count = arg_shape->Count();
+	bool mean_singleton = (arg_mean_count == 1);
+	bool shape_singleton = (arg_shape_count == 1);
+	
+	if (!mean_singleton && (arg_mean_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires mean to be of length 1 or n." << EidosTerminate(nullptr);
+	if (!shape_singleton && (arg_shape_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex(0, nullptr) : 1.0);
+	double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex(0, nullptr) : 0.0);
+	
+	if (mean_singleton && shape_singleton)
+	{
+		if (shape0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape > 0.0 (" << EidosStringForFloat(shape0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_quantiles == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gamma_pdf(arg_quantile->FloatAtIndex(0, nullptr), shape0, mean0/shape0)));
+		}
+		else
+		{
+			const double *float_data = arg_quantile->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+			result_SP = EidosValue_SP(float_result);
+			
+			double scale = mean0 / shape0;
+			
+			for (int64_t value_index = 0; value_index < num_quantiles; ++value_index)
+				float_result->set_float_no_check(gsl_ran_gamma_pdf(float_data[value_index], shape0, scale), value_index);
+		}
+	}
+	else
+	{
+		const double *float_data = arg_quantile->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex(value_index, nullptr));
+			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(value_index, nullptr));
+			
+			if (shape <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape > 0.0 (" << EidosStringForFloat(shape) << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_gamma_pdf(float_data[value_index], shape, mean / shape), value_index);
 		}
 	}
 	

@@ -16,7 +16,8 @@ development head:
 	add recipe 16.18: a spatial epidemiological S-I-R model
 	new versions of recipes 9.5.2 and 9.5.3 to fix a bug involving fitness calculations with multiple mutational lineages for a single sweep; see https://groups.google.com/d/msg/slim-discuss/DW-QqzoZLgg/NCusXvBqBAAJ
 	extended writeFile() and writeTempFile() to support writing .gz compressed files with compress=T, added zlib 1.2.11 to the project
-	
+	add dbeta(), dexp(), and dgamma() functions to Eidos to provide probability density functions for those distributions
+
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):
 	add recipe 5.2.4 (joining subpopulations)
