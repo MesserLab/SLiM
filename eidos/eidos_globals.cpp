@@ -2404,9 +2404,9 @@ EidosGlobalStringID Eidos_GlobalStringIDForString(const std::string &p_string)
 		gStringToID[*copied_string] = string_id;
 		gIDToString[string_id] = copied_string;
 		
-#if DEBUG
+#if SLIM_LEAK_CHECKING
 		// We add copied strings to a thunk vector so we can free them at the end to un-confuse Valgrind;
-		// see Eidos_FreeGlobalStrings().  We do this only in DEBUG since we run Valgrind on a DEBUG build.
+		// see Eidos_FreeGlobalStrings().
 		gIDToString_Thunk.push_back(copied_string);
 #endif
 		
