@@ -40,17 +40,6 @@
 #include "eidos_test_element.h"
 
 
-// To leak-check slim, a few steps are recommended (BCH 5/1/2019):
-//
-//	- turn on Malloc Scribble so spurious pointers left over in deallocated blocks are not taken to be live references
-//	- turn on Malloc Logging so you get backtraces from every leaked allocation
-//	- use a DEBUG build of slim so the backtraces are accurate and not obfuscated by optimization
-//	- set this #define to 1 so slim cleans up a bit and then sleeps before exit, waiting for its leaks to be assessed
-//	- run "leaks slim" in Terminal; the leaks tool in Instruments seems to be very confused and reports tons of false positives
-//
-#define SLIM_LEAK_CHECKING	0
-
-
 static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 {
 	if (p_print_header)
