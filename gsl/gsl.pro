@@ -9,6 +9,12 @@ QT       -= core gui
 TARGET = gsl
 TEMPLATE = lib
 
+
+# Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
+# .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
+# CONFIG += sanitizer sanitize_address
+
+
 DEFINES += GSL_LIBRARY
 
 CONFIG -= qt

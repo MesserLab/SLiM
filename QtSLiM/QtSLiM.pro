@@ -11,6 +11,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = QtSLiM
 TEMPLATE = app
 
+
+# Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
+# .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
+# CONFIG += sanitizer sanitize_address
+
+
 # Warn and error on usage of deprecated Qt APIs
 # DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900    # disables all the APIs deprecated before Qt 5.9.0

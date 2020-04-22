@@ -8,8 +8,13 @@ QT       -= core gui
 
 TARGET = core
 TEMPLATE = lib
-
 DEFINES += CORE_LIBRARY
+
+
+# Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
+# .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
+# CONFIG += sanitizer sanitize_address
+
 
 # Set up to build QtSLiM; note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro
 DEFINES += EIDOS_GUI

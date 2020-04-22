@@ -9,6 +9,12 @@ QT       -= core gui
 TARGET = tskit
 TEMPLATE = lib
 
+
+# Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
+# .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
+# CONFIG += sanitizer sanitize_address
+
+
 DEFINES += TSKIT_LIBRARY
 
 CONFIG -= qt

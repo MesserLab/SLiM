@@ -12,6 +12,13 @@
 
 int main(int argc, char *argv[])
 {
+    // Check for running under ASAN and log to confirm it is enabled; see SLiM.pro to enable it
+#if defined(__has_feature)
+#  if __has_feature(address_sanitizer)
+    std::cout << "***** ASAN enabled *****" << std::endl;
+#  endif
+#endif
+    
     // Start the application
     QApplication app(argc, argv);
     QtSLiMAppDelegate appDelegate(nullptr);

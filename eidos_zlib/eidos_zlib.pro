@@ -10,6 +10,12 @@ TARGET = eidos_zlib
 TEMPLATE = lib
 CONFIG += staticlib
 
+
+# Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
+# .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
+# CONFIG += sanitizer sanitize_address
+
+
 SOURCES += \
     zutil.c \
     adler32.c \
