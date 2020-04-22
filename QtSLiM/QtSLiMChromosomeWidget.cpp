@@ -198,13 +198,13 @@ void QtSLiMChromosomeWidget::setReferenceChromosomeView(QtSLiMChromosomeWidget *
 {
 	if (referenceChromosomeView_ != p_ref_widget)
 	{
-        if (p_ref_widget)
-            disconnect(p_ref_widget);
+        if (referenceChromosomeView_)
+            disconnect(referenceChromosomeView_);
         
         referenceChromosomeView_ = p_ref_widget;
         
         if (referenceChromosomeView_)
-            connect(referenceChromosomeView_, &QtSLiMChromosomeWidget::selectedRangeChanged, [this]() { update(); });
+            connect(referenceChromosomeView_, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { update(); });
 	}
 }
 

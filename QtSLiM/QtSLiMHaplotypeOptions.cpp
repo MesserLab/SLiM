@@ -45,7 +45,7 @@ QtSLiMHaplotypeOptions::QtSLiMHaplotypeOptions(QWidget *parent) :
     setSizeGripEnabled(false);
     
     // enabled/disable the sample size lineEdit
-    connect(ui->genomesSampleRadio, &QAbstractButton::toggled, [this]() { ui->sampleSizeLineEdit->setEnabled(ui->genomesSampleRadio->isChecked()); });
+    connect(ui->genomesSampleRadio, &QAbstractButton::toggled, this, [this]() { ui->sampleSizeLineEdit->setEnabled(ui->genomesSampleRadio->isChecked()); });
 }
 
 QtSLiMHaplotypeOptions::~QtSLiMHaplotypeOptions()

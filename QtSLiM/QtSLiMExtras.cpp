@@ -601,8 +601,8 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QString
         buttonBox->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
         verticalLayout->addWidget(buttonBox);
         
-        QObject::connect(buttonBox, SIGNAL(accepted()), dialog, SLOT(accept()));
-        QObject::connect(buttonBox, SIGNAL(rejected()), dialog, SLOT(reject()));
+        QObject::connect(buttonBox, &QDialogButtonBox::accepted, dialog, &QDialog::accept);
+        QObject::connect(buttonBox, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
     }
     
     // fix sizing

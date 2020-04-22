@@ -69,13 +69,13 @@ QtSLiMTextEdit::QtSLiMTextEdit(QWidget *parent) : QTextEdit(parent)
 void QtSLiMTextEdit::selfInit(void)
 {
     // track changes to undo/redo availability
-    connect(this, &QTextEdit::undoAvailable, [this](bool b) { undoAvailable_ = b; });
-    connect(this, &QTextEdit::redoAvailable, [this](bool b) { redoAvailable_ = b; });
-    connect(this, &QTextEdit::copyAvailable, [this](bool b) { copyAvailable_ = b; });
+    connect(this, &QTextEdit::undoAvailable, this, [this](bool b) { undoAvailable_ = b; });
+    connect(this, &QTextEdit::redoAvailable, this, [this](bool b) { redoAvailable_ = b; });
+    connect(this, &QTextEdit::copyAvailable, this, [this](bool b) { copyAvailable_ = b; });
     
     // clear the custom error background color whenever the selection changes
-    connect(this, &QTextEdit::selectionChanged, [this]() { setPalette(style()->standardPalette()); });
-    connect(this, &QTextEdit::cursorPositionChanged, [this]() { setPalette(style()->standardPalette()); });
+    connect(this, &QTextEdit::selectionChanged, this, [this]() { setPalette(style()->standardPalette()); });
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() { setPalette(style()->standardPalette()); });
     
     // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
     connect(this, &QTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);

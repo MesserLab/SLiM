@@ -181,7 +181,7 @@ void QtSLiMWindow::init(void)
     connect(ui->subpopTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &QtSLiMWindow::subpopSelectionDidChange);
     
     // Watch for changes to the selection in the chromosome view
-    connect(ui->chromosomeOverview, &QtSLiMChromosomeWidget::selectedRangeChanged, [this]() { sendAllLinkedViewsSelector(DynamicDispatchID::controllerSelectionChanged); });
+    connect(ui->chromosomeOverview, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { sendAllLinkedViewsSelector(DynamicDispatchID::controllerSelectionChanged); });
     
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
@@ -197,7 +197,7 @@ void QtSLiMWindow::init(void)
         if (consoleController)
         {
             // wire ourselves up to monitor the console for closing, to fix our button state
-            connect(consoleController, &QtSLiMEidosConsole::willClose, [this]() {
+            connect(consoleController, &QtSLiMEidosConsole::willClose, this, [this]() {
                 ui->consoleButton->setChecked(false);
                 showConsoleReleased();
             });
@@ -209,15 +209,15 @@ void QtSLiMWindow::init(void)
     }
     
     // We need to update our button/menu enable state whenever the focus changes
-    connect(qApp, &QApplication::focusChanged, [this]() { updateUIEnabling(); } );
+    connect(qApp, &QApplication::focusChanged, this, &QtSLiMWindow::updateUIEnabling);
     
     // We also do it specifically when the Edit menu is about to show, to correctly validate undo/redo in all cases
     // Note that it is not simple to do this revalidation when a keyboard shortcut is pressed, but happily (?), Qt
     // ignores the action validation state in that case anyway; undo/redo is delivered even if the action is disabled
-    connect(ui->menuEdit, &QMenu::aboutToShow, [this]() { updateUIEnabling(); });
+    connect(ui->menuEdit, &QMenu::aboutToShow, this, &QtSLiMWindow::updateUIEnabling);
     
     // And also when about to show the Script menu, because the Show/Hide menu items might not be accurately named
-    connect(ui->menuScript, &QMenu::aboutToShow, [this]() { updateUIEnabling(); });
+    connect(ui->menuScript, &QMenu::aboutToShow, this, &QtSLiMWindow::updateUIEnabling);
     
     // Set the window icon, overriding the app icon
 #ifdef __APPLE__
@@ -3381,8 +3381,8 @@ void QtSLiMWindow::toggleDrawerToggled(void)
         tablesDrawerController = new QtSLiMTablesDrawer(this);
         if (tablesDrawerController)
         {
-            // wire ourselves up to monitor the console for closing, to fix our button state
-            connect(tablesDrawerController, &QtSLiMTablesDrawer::willClose, [this]() {
+            // wire ourselves up to monitor the tables drawer for closing, to fix our button state
+            connect(tablesDrawerController, &QtSLiMTablesDrawer::willClose, this, [this]() {
                 ui->toggleDrawerButton->setChecked(false);
                 toggleDrawerReleased();
             });
@@ -3722,7 +3722,7 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     // Make a file system watcher to update us when the image changes
     QFileSystemWatcher *watcher = new QFileSystemWatcher(QStringList(path), window);
     
-    connect(watcher, &QFileSystemWatcher::fileChanged, [imageView](const QString &path) {
+    connect(watcher, &QFileSystemWatcher::fileChanged, imageView, [imageView](const QString &path) {
         QImage image(path);
         
         if (image.isNull()) {
@@ -3776,7 +3776,7 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     #endif
     
     imageView->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(imageView, &QLabel::customContextMenuRequested, [imageView, contextMenu](const QPoint &pos) {
+    connect(imageView, &QLabel::customContextMenuRequested, imageView, [imageView, contextMenu](const QPoint &pos) {
         // Run the context menu if we have an image (in which case the text length is zero)
         if (imageView->text().length() == 0)
             contextMenu->exec(imageView->mapToGlobal(pos));

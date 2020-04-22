@@ -37,8 +37,8 @@ void QtSLiMWindow::glueUI(void)
 {
     // connect all QtSLiMWindow slots
     connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);
-    connect(ui->playButton, &QPushButton::clicked, [this]() { playOrProfile(true); });
-    connect(ui->profileButton, &QPushButton::clicked, [this]() { playOrProfile(false); });
+    connect(ui->playButton, &QPushButton::clicked, this, [this]() { playOrProfile(true); });
+    connect(ui->profileButton, &QPushButton::clicked, this, [this]() { playOrProfile(false); });
     connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
@@ -164,15 +164,15 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
     connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
     connect(ui->actionStep, &QAction::triggered, this, &QtSLiMWindow::playOneStepClicked);
-    connect(ui->actionPlay, &QAction::triggered, [this]() { playOrProfile(true); });
-    connect(ui->actionProfile, &QAction::triggered, [this]() { playOrProfile(false); });
+    connect(ui->actionPlay, &QAction::triggered, this, [this]() { playOrProfile(true); });
+    connect(ui->actionProfile, &QAction::triggered, this, [this]() { playOrProfile(false); });
     connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
     connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
     connect(ui->actionDumpPopulationState, &QAction::triggered, this, &QtSLiMWindow::dumpPopulationClicked);
     connect(ui->actionQtSLiMHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
     
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
-    connect(ui->actionCheckScript, &QAction::triggered, [this]() {
+    connect(ui->actionCheckScript, &QAction::triggered, this, [this]() {
         QWidget *focusWidget = QApplication::focusWidget();
         QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
         QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
@@ -182,7 +182,7 @@ void QtSLiMWindow::glueUI(void)
         else if (eidosConsole)
             eidosConsole->scriptTextEdit()->checkScript();
     });
-    connect(ui->actionPrettyprintScript, &QAction::triggered, [this]() {
+    connect(ui->actionPrettyprintScript, &QAction::triggered, this, [this]() {
         QWidget *focusWidget = QApplication::focusWidget();
         QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
         QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
@@ -192,7 +192,7 @@ void QtSLiMWindow::glueUI(void)
         else if (eidosConsole)
             eidosConsole->scriptTextEdit()->prettyprint();
     });
-    connect(ui->actionShowScriptHelp, &QAction::triggered, [this]() {
+    connect(ui->actionShowScriptHelp, &QAction::triggered, this, [this]() {
         QWidget *focusWidget = QApplication::focusWidget();
         QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
         QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
@@ -202,7 +202,7 @@ void QtSLiMWindow::glueUI(void)
         else if (eidosConsole)
             eidosConsole->parentSLiMWindow->scriptHelpClicked();
     });
-    connect(ui->actionShowEidosConsole, &QAction::triggered, [this]() {
+    connect(ui->actionShowEidosConsole, &QAction::triggered, this, [this]() {
         QWidget *focusWidget = QApplication::focusWidget();
         QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
         QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
@@ -218,7 +218,7 @@ void QtSLiMWindow::glueUI(void)
             eidosConsole->parentSLiMWindow->showConsoleClicked();
         }
     });
-    connect(ui->actionShowVariableBrowser, &QAction::triggered, [this]() {
+    connect(ui->actionShowVariableBrowser, &QAction::triggered, this, [this]() {
         QWidget *focusWidget = QApplication::focusWidget();
         QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
         QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
@@ -243,7 +243,7 @@ void QtSLiMWindow::glueUI(void)
             varBrowser->parentEidosConsole->parentSLiMWindow->showBrowserClicked();
         }
     });
-    connect(ui->actionClearOutput, &QAction::triggered, [this]() {
+    connect(ui->actionClearOutput, &QAction::triggered, this, [this]() {
         QWidget *focusWidget = QApplication::focusWidget();
         QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
         QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());

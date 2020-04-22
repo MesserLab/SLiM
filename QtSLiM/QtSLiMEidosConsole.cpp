@@ -202,7 +202,7 @@ void QtSLiMEidosConsole::setVariableBrowserVisibility(bool visible)
             variableBrowser_->setAttribute(Qt::WA_DeleteOnClose);
             
             // wire ourselves up to monitor the console for closing, to fix our button state
-            connect(variableBrowser_, &QtSLiMVariableBrowser::willClose, [this]() {
+            connect(variableBrowser_, &QtSLiMVariableBrowser::willClose, this, [this]() {
                 updateVariableBrowserButtonStates(false);
                 variableBrowser_ = nullptr;     // deleted on close
             });

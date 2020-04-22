@@ -39,7 +39,7 @@ QtSLiMHaplotypeProgress::QtSLiMHaplotypeProgress(QWidget *parent) :
     ui->appIconButton->setIcon(qtSLiMAppDelegate->applicationIcon());
     
     // wire up cancel button
-    connect(ui->cancelButton, &QPushButton::clicked, [this]() { cancelled_ = true; });
+    connect(ui->cancelButton, &QPushButton::clicked, this, [this]() { cancelled_ = true; });
 }
 
 QtSLiMHaplotypeProgress::~QtSLiMHaplotypeProgress()
