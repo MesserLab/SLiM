@@ -1403,6 +1403,10 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
                 displayHaplotypes->setCheckable(true);
                 displayHaplotypes->setChecked(display_haplotypes_);
                 
+                QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
+                displayGroup->addAction(displayFrequencies);
+                displayGroup->addAction(displayHaplotypes);
+                
                 contextMenu.addSeparator();
                 
                 QAction *displayAllMutations = contextMenu.addAction("Display All Mutations");

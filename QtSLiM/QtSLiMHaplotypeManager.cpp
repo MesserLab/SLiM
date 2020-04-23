@@ -1758,7 +1758,7 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu contextMenu("graph_menu", this);
     
-    QAction *bwColorToggle = contextMenu.addAction(displayBlackAndWhite_ ? "Display Colors" : "Display Black & White");
+    QAction *bwColorToggle = contextMenu.addAction(displayBlackAndWhite_ ? "Display Colors" : "Display Black && White");
     QAction *subpopStripsToggle = contextMenu.addAction(showSubpopulationStrips_ ? "Hide Subpopulation Strips" : "Show Subpopulation Strips");
     
     contextMenu.addSeparator();

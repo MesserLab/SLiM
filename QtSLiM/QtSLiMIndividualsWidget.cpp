@@ -1328,6 +1328,10 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *event)
     if (!disableAll)
         (displayMode == 0 ? displayNonSpatial : displaySpatial)->setChecked(true);
     
+    QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
+    displayGroup->addAction(displayNonSpatial);
+    displayGroup->addAction(displaySpatial);
+    
 	// If we're displaying spatially, find the subpop that was clicked in
     Subpopulation *subpopForEvent = nullptr;
     
@@ -1389,6 +1393,11 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *event)
         whiteAction->setChecked(backgroundType == 2);
         whiteAction->setEnabled(!disableAll);
         
+        QActionGroup *backgroundGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
+        backgroundGroup->addAction(blackAction);
+        backgroundGroup->addAction(grayAction);
+        backgroundGroup->addAction(whiteAction);
+        
         // look for spatial maps to offer as choices; need to scan the defined maps for the ones we can use
         SpatialMapMap &spatial_maps = subpopForEvent->spatial_maps_;
         
@@ -1416,6 +1425,8 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *event)
             mapAction->setCheckable(true);
             mapAction->setChecked((backgroundType == 3) && (mapName == QString::fromStdString(background->spatialMapName)));
             mapAction->setEnabled(!disableAll && displayable);
+            
+            backgroundGroup->addAction(mapAction);
         }
     }
 	
