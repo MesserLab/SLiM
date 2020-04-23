@@ -3591,10 +3591,24 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
     window->hide();
     window->setAttribute(Qt::WA_DontShowOnScreen, false);
     
-    // now get the geometry
+    // Now get the frame geometry; note that on X11 systems the window frame is often not included in frameGeometry(), even
+    // though it's supposed to be, because it is simply not available from X.  We attempt to compensate by adding in the
+    // height of the window title bar, although that entails making assumptions about the windowing system appearance.
     QRect windowFrame = window->frameGeometry();
     QRect mainWindowFrame = this->frameGeometry();
     bool drawerIsOpen = (!!tablesDrawerController);
+    const int titleBarHeight = 30;
+    QPoint unadjust;
+    
+    if (windowFrame == window->geometry())
+    {
+        windowFrame.adjust(0, -titleBarHeight, 0, 0);
+        unadjust = QPoint(0, 30);
+    }
+    if (mainWindowFrame == this->geometry())
+    {
+        mainWindowFrame.adjust(0, -titleBarHeight, 0, 0);
+    }
     
     // try along the bottom first
     {
@@ -3603,9 +3617,9 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
         candidateFrame.moveLeft(mainWindowFrame.left() + openedGraphCount_bottom * (windowFrame.width() + 5));
         candidateFrame.moveTop(mainWindowFrame.bottom() + 5);
         
-        if (rectIsOnscreen(candidateFrame) && (candidateFrame.right() <= mainWindowFrame.right()))
+        if (rectIsOnscreen(candidateFrame) && (candidateFrame.right() <= mainWindowFrame.right()))          // avoid going over to the right, to leave room for the tables drawer window
         {
-            window->move(candidateFrame.topLeft());
+            window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_bottom++;
             return;
         }
@@ -3620,11 +3634,26 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
         
         if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= mainWindowFrame.bottom()))    // doesn't overlap anybody else
         {
-            window->move(candidateFrame.topLeft());
+            window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_left++;
             return;
         }
     }
+    
+    // try along the top
+	{
+		QRect candidateFrame = windowFrame;
+		
+		candidateFrame.moveLeft(mainWindowFrame.left() + openedGraphCount_top * (windowFrame.width() + 5));
+		candidateFrame.moveBottom(mainWindowFrame.top() - 5);
+		
+        if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.right() <= mainWindowFrame.right()))    // doesn't overlap anybody else
+        {
+            window->move(candidateFrame.topLeft() + unadjust);
+            openedGraphCount_top++;
+            return;
+        }
+	}
     
     // unless the drawer is open, let's try on the right side
 	if (!drawerIsOpen)
@@ -3634,29 +3663,14 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
 		candidateFrame.moveLeft(mainWindowFrame.right() + 5);
         candidateFrame.moveTop(mainWindowFrame.top() + openedGraphCount_right * (windowFrame.height() + 5));
 		
-        if (rectIsOnscreen(candidateFrame) && (candidateFrame.bottom() <= mainWindowFrame.bottom()))
+        if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= mainWindowFrame.bottom()))   // doesn't overlap anybody else
         {
-            window->move(candidateFrame.topLeft());
+            window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_right++;
             return;
         }
 	}
 	
-	// try along the top
-	{
-		QRect candidateFrame = windowFrame;
-		
-		candidateFrame.moveLeft(mainWindowFrame.left() + openedGraphCount_top * (windowFrame.width() + 5));
-		candidateFrame.moveBottom(mainWindowFrame.top() - 5);
-		
-        if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.right() <= mainWindowFrame.right()))    // doesn't overlap anybody else
-        {
-            window->move(candidateFrame.topLeft());
-            openedGraphCount_top++;
-            return;
-        }
-	}
-    
     // if the drawer is open, try to the right of it
     if (drawerIsOpen)
     {
@@ -3668,7 +3682,7 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
 		
         if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= drawerFrame.bottom()))    // doesn't overlap anybody else
         {
-            window->move(candidateFrame.topLeft());
+            window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_right++;
             return;
         }
