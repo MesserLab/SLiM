@@ -9,6 +9,28 @@
 #include <locale>
 #include <locale.h>
 
+#include "eidos_globals.h"
+#include "eidos_test_element.h"
+#include "eidos_symbol_table.h"
+
+
+#if SLIM_LEAK_CHECKING
+static void clean_up_leak_false_positives(void)
+{
+	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
+	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
+	Eidos_FreeGlobalStrings();
+	EidosTestElement::FreeThunks();
+	MutationRun::DeleteMutationRunFreeList();
+    FreeSymbolTablePool();
+	Eidos_FreeRNG(gEidos_RNG);
+}
+
+// Note that we still get some leaks reported, many of which are likely spurious.  That seems to be caused by:
+// https://stackoverflow.com/a/51553776/2752221
+// I'd like to incorporate the fix given there, but I'm not sure where I'm supposed to find <lsan_interface.h>...
+#endif
+
 
 int main(int argc, char *argv[])
 {
@@ -107,5 +129,61 @@ int main(int argc, char *argv[])
         mainWin->show();
     
     // Run the event loop
-    return app.exec();
+    int appReturn = app.exec();
+    
+#if SLIM_LEAK_CHECKING
+    clean_up_leak_false_positives();
+#endif
+    
+    return appReturn;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

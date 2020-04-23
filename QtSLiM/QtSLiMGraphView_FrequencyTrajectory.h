@@ -71,7 +71,7 @@ private:
     std::unordered_map<slim_mutationid_t, MutationFrequencyHistory *> frequencyHistoryDict_;    // unordered_map of active MutationFrequencyHistory objects, with slim_mutationid_t keys
     std::vector<MutationFrequencyHistory *> frequencyHistoryColdStorageLost_;                   // vector of MutationFrequencyHistory objects that have been lost
     std::vector<MutationFrequencyHistory *> frequencyHistoryColdStorageFixed_;                  // vector of MutationFrequencyHistory objects that have been fixed
-    slim_generation_t lastGeneration_;                                                          // the last generation data was gathered for; used to detect a backward move in time
+    slim_generation_t lastGeneration_ = 0;                                                      // the last generation data was gathered for; used to detect a backward move in time
     
     // pop-up menu buttons
     QComboBox *subpopulationButton_ = nullptr;

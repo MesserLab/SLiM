@@ -126,6 +126,9 @@ QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
 		free(glArrayColors);
 		glArrayColors = nullptr;
 	}
+    
+    if (haplotype_previous_bincounts)
+        free(haplotype_previous_bincounts);
 }
 
 void QtSLiMChromosomeWidget::initializeGL()

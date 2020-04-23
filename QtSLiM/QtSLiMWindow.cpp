@@ -493,7 +493,7 @@ void QtSLiMWindow::initializeUI(void)
     qtSLiMAppDelegate->setUpRecipesMenu(ui->menuOpenRecipe, ui->actionFindRecipe);
     
     // Set up the recent documents submenu
-    QMenu *recentMenu = new QMenu("Open Recent");
+    QMenu *recentMenu = new QMenu("Open Recent", this);
     ui->actionOpenRecent->setMenu(recentMenu);
     connect(recentMenu, &QMenu::aboutToShow, this, &QtSLiMWindow::updateRecentFileActions);
     

@@ -425,7 +425,7 @@ void QtSLiMTablesDrawer::initializeUI(void)
         geTypeTableHHeader->setSectionResizeMode(1, QHeaderView::Fixed);
         geTypeTableHHeader->setSectionResizeMode(2, QHeaderView::Stretch);
         
-        QAbstractItemDelegate *tableDelegate = new QtSLiMGETypeTypeTableDelegate();
+        QAbstractItemDelegate *tableDelegate = new QtSLiMGETypeTypeTableDelegate(ui->genomicElementTypeTable);
         ui->genomicElementTypeTable->setItemDelegate(tableDelegate);
     }
     {

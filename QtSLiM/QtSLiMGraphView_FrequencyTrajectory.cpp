@@ -187,6 +187,17 @@ bool QtSLiMGraphView_FrequencyTrajectory::addMutationTypesToMenu(void)
 
 void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
 {
+    // first free all the MutationFrequencyHistory objects we've stored
+    for (auto &item : frequencyHistoryDict_)
+        delete item.second;
+    
+    for (auto &item : frequencyHistoryColdStorageLost_)
+        delete item;
+    
+    for (auto &item : frequencyHistoryColdStorageFixed_)
+        delete item;
+    
+    // then clear out the storage
     frequencyHistoryDict_.clear();
     frequencyHistoryColdStorageLost_.clear();
     frequencyHistoryColdStorageFixed_.clear();

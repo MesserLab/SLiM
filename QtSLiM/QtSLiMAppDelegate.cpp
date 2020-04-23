@@ -192,7 +192,7 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                     QString fullChapterName = QString("%1 – %2").arg(QString::number(recipeChapterValue), chapterName);
                     QAction *mainItem = openRecipesMenu->addAction(fullChapterName);
                     
-                    chapterSubmenu = new QMenu(fullChapterName);
+                    chapterSubmenu = new QMenu(fullChapterName, openRecipesMenu);
                     mainItem->setMenu(chapterSubmenu);
                 }
                 else

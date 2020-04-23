@@ -134,7 +134,7 @@ private:
     QtSLiMHelpItem *createItemForSection(const QString &sectionString, QString title, QtSLiMTopicMap &topics, QtSLiMHelpItem *topItem);
     
 private:
-    int searchType;		// 0 == Title, 1 == Content; equal to the tags on the search type menu items
+    int searchType = 0;		// 0 == Title, 1 == Content; equal to the tags on the search type menu items
     bool doingProgrammaticCollapseExpand = false;   // used to distinguish user actions from programmatic ones
     bool doingProgrammaticSelection = false;        // used to distinguish user actions from programmatic ones
     
