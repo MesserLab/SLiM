@@ -1045,7 +1045,7 @@ void QtSLiMHelpWindow::outlineSelectionChanged(void)
 void QtSLiMHelpWindow::recursiveExpand(QTreeWidgetItem *item)
 {
     // Expand pre-order; I don't think this matters, but it seems safer
-    if (!ui->topicOutlineView->isItemExpanded(item))
+    if (!item->isExpanded())
         ui->topicOutlineView->expandItem(item);
     
     for (int child_index = 0; child_index < item->childCount(); child_index++)
@@ -1058,7 +1058,7 @@ void QtSLiMHelpWindow::recursiveCollapse(QTreeWidgetItem *item)
     for (int child_index = 0; child_index < item->childCount(); child_index++)
         recursiveCollapse(item->child(child_index));
     
-    if (ui->topicOutlineView->isItemExpanded(item))
+    if (item->isExpanded())
         ui->topicOutlineView->collapseItem(item);
 }
 
@@ -1071,7 +1071,7 @@ void QtSLiMHelpWindow::itemClicked(QTreeWidgetItem *item, int __attribute__((__u
     if (optionPressed)
     {
         // recursively expand/collapse items below this item
-        if (ui->topicOutlineView->isItemExpanded(item))
+        if (item->isExpanded())
             recursiveCollapse(item);
         else
             recursiveExpand(item);
@@ -1079,7 +1079,7 @@ void QtSLiMHelpWindow::itemClicked(QTreeWidgetItem *item, int __attribute__((__u
     else
     {
         // expand/collapse just this item
-        if (ui->topicOutlineView->isItemExpanded(item))
+        if (item->isExpanded())
             ui->topicOutlineView->collapseItem(item);
         else
             ui->topicOutlineView->expandItem(item);

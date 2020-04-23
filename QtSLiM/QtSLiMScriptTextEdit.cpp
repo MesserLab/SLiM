@@ -97,7 +97,7 @@ void QtSLiMTextEdit::selfInit(void)
     QFont scriptFont = prefs.displayFontPref(&tabWidth);
     
     setFont(scriptFont);
-    setTabStopWidth(tabWidth);    // should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
+    setTabStopWidth(tabWidth);    // deprecated in 5.10; should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
 }
 
 QtSLiMTextEdit::~QtSLiMTextEdit()
@@ -132,7 +132,7 @@ void QtSLiMTextEdit::displayFontPrefChanged()
     QFont displayFont = prefs.displayFontPref(&tabWidth);
     
     setFont(displayFont);
-    setTabStopWidth(tabWidth);
+    setTabStopWidth(tabWidth);      // deprecated in 5.10
 }
 
 void QtSLiMTextEdit::scriptSyntaxHighlightPrefChanged()

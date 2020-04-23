@@ -105,7 +105,7 @@ QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth)
         QFontMetrics fm(font);
         
         //*tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
-        *tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
+        *tabWidth = fm.width("   ");                 // deprecated in 5.11
     }
     
     return font;

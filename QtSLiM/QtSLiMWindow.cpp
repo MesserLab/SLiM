@@ -64,6 +64,7 @@
 #include <QClipboard>
 #include <QProcess>
 #include <QDesktopServices>
+#include <QScreen>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -3570,11 +3571,11 @@ void QtSLiMWindow::dumpPopulationClicked(void)
 
 static bool rectIsOnscreen(QRect windowRect)
 {
-    QDesktopWidget *desktop = QApplication::desktop();
+    QList<QScreen *> screens = QGuiApplication::screens();
     
-    for (int i = 0, screens = desktop->screenCount(); i < screens; i++)
+    for (QScreen *screen : screens)
     {
-        QRect screenRect = desktop->availableGeometry(i);
+        QRect screenRect = screen->availableGeometry();
         
         if (screenRect.contains(windowRect, true))
             return true;

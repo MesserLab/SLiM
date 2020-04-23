@@ -51,7 +51,7 @@ QtSLiMFindRecipe::QtSLiMFindRecipe(QWidget *parent) : QDialog(parent), ui(new Ui
     int tabWidth = 0;
     
     ui->scriptPreviewTextEdit->setFont(prefs.displayFontPref(&tabWidth));
-    ui->scriptPreviewTextEdit->setTabStopWidth(tabWidth);
+    ui->scriptPreviewTextEdit->setTabStopWidth(tabWidth);                   // deprecated in 5.10
     
     if (prefs.scriptSyntaxHighlightPref())
         new QtSLiMScriptHighlighter(ui->scriptPreviewTextEdit->document());

@@ -17,7 +17,7 @@ TEMPLATE = app
 # CONFIG += sanitizer sanitize_address
 
 
-# Warn and error on usage of deprecated Qt APIs
+# Warn and error on usage of deprecated Qt APIs; see also -Wno-deprecated-declarations below
 # DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900    # disables all the APIs deprecated before Qt 5.9.0
 
