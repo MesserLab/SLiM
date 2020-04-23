@@ -70,6 +70,8 @@
 #include <sys/stat.h>
 
 #include "individual.h"
+#include "eidos_test.h"
+#include "slim_test.h"
 
 
 // TO DO:
@@ -225,6 +227,32 @@ void QtSLiMWindow::init(void)
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     setWindowIcon(qtSLiMAppDelegate->slimDocumentIcon());
 #endif
+    
+    // Run self-tests if modifiers are down, if we are the first window opened
+    // Note that this alters the state of the app: mutation ids have been used, the RNG has been used,
+    // lots of objects have been leaked due to raises, etc.  So this should be hidden/optional/undocumented.
+    static bool beenHere = false;
+    
+    if (!beenHere)
+    {
+        bool optionPressed = QGuiApplication::queryKeyboardModifiers().testFlag(Qt::AltModifier);
+        bool shiftPressed = QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier);
+        
+        if (optionPressed && shiftPressed)
+        {
+            willExecuteScript();
+            
+            std::cerr << "Running Eidos self-test..." << std::endl;
+            RunEidosTests();
+            std::cerr << std::endl << std::endl;
+            std::cerr << "Running SLiM self-test..." << std::endl;
+            RunSLiMTests();
+            
+            didExecuteScript();
+        }
+        
+        beenHere = true;
+    }
 }
 
 void QtSLiMWindow::interpolateVerticalSplitter(void)
