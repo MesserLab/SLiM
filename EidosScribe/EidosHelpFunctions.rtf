@@ -4130,11 +4130,11 @@ If
 \f1\fs18 gzip
 \f3\fs20 -compressed files will be appended to the filename in 
 \f1\fs18 filePath
-\f3\fs20  if it is not already present; the 
+\f3\fs20  if it is not already present.  If the 
 \f1\fs18 compress
-\f3\fs20  option may not be used in conjunction with 
+\f3\fs20  option is used in conjunction with 
 \f1\fs18 append==T
-\f3\fs20 .  The 
+\f3\fs20 , Eidos will accumulate data to append and flush it to the file in a delayed fashion (for performance reasons), and so appended data may not be visible in the file until later \'96 potentially not until the process ends (i.e., the end of the SLiM simulation, for example).  The 
 \f1\fs18 compress
 \f3\fs20  option was added in Eidos 2.4 (SLiM 3.4).  Note that 
 \f1\fs18 readFile()

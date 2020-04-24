@@ -9764,9 +9764,6 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	// and then there is a flag for optional gzip compression
 	bool do_compress = p_arguments[3]->LogicalAtIndex(0, nullptr);
 	
-	if (append && do_compress)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeFile): writeFile() does not allow both append==T and compress==T." << EidosTerminate(nullptr);
-	
 	if (do_compress && !Eidos_string_hasSuffix(file_path, ".gz"))
 		file_path.append(".gz");
 	
@@ -9774,56 +9771,105 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	if (do_compress)
 	{
 		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
-		gzFile gzf = z_gzopen(file_path.c_str(), "wb");
-		
-		if (!gzf)
+		#if EIDOS_BUFFER_ZIP_APPENDS
+		if (append)
 		{
-			if (!gEidosSuppressWarnings)
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
-			result_SP = gStaticEidosValue_LogicalF;
-		}
-		else
-		{
-			std::ostringstream outstream;
+			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS is true
+			auto buffer_iter = gEidosBufferedZipAppendData.find(file_path);
 			
+			if (buffer_iter == gEidosBufferedZipAppendData.end())
+				buffer_iter = gEidosBufferedZipAppendData.emplace(std::pair<std::string, std::string>(file_path, "")).first;
+			
+			std::string &buffer = buffer_iter->second;
+			
+			// append lines to the buffer; this copies bytes, which is a bit inefficient but shouldn't matter in the big picture
 			if (contents_count == 1)
 			{
-				outstream << contents_value->StringAtIndex(0, nullptr) << std::endl;
+				buffer.append(contents_value->StringAtIndex(0, nullptr));
+				buffer.append(1, '\n');
 			}
 			else
 			{
 				const std::vector<std::string> &string_vec = *contents_value->StringVector();
 				
 				for (int value_index = 0; value_index < contents_count; ++value_index)
-					outstream << string_vec[value_index] << std::endl;
-			}
-			
-			std::string outstring = outstream.str();
-			const char *outcstr = outstring.c_str();
-			size_t outcstr_length = strlen(outcstr);
-			
-			// do the writing with zlib
-			bool failed = true;
-			int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
-			
-			if (retval != -1)
-			{
-				retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
-				
-				if (retval != 0)
 				{
-					retval = gzclose_w(gzf);
-					
-					if (retval == Z_OK)
-						failed = false;
+					buffer.append(string_vec[value_index]);
+					buffer.append(1, '\n');
 				}
 			}
 			
-			if (failed)
-				if (!gEidosSuppressWarnings)
-					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered zlib errors while writing to file at path " << file_path << "." << std::endl;
+			// if the buffer data exceeds a (somewhat arbitrary) 128K buffer maximum, write it out and remove the buffer entry
+			bool result = true;
 			
-			result_SP = failed ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT;
+			if (buffer.length() > (1024L * 128L))
+			{
+				result = _Eidos_FlushZipBuffer(file_path, buffer);
+				gEidosBufferedZipAppendData.erase(buffer_iter);
+				
+				if (!result && !gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not flush zip buffer to file at path " << file_path << "." << std::endl;
+				
+			}
+			
+			result_SP = result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+		}
+		else
+		#endif
+		{
+			// this code can handle both the append and the non-append case, but the append case may generate very low-quality
+			// compression (potentially even worse than the uncompressed data) due to having an excess of gzip headers
+			gzFile gzf = z_gzopen(file_path.c_str(), append ? "ab" : "wb");
+			
+			if (!gzf)
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
+				result_SP = gStaticEidosValue_LogicalF;
+			}
+			else
+			{
+				std::ostringstream outstream;
+				
+				if (contents_count == 1)
+				{
+					outstream << contents_value->StringAtIndex(0, nullptr) << std::endl;
+				}
+				else
+				{
+					const std::vector<std::string> &string_vec = *contents_value->StringVector();
+					
+					for (int value_index = 0; value_index < contents_count; ++value_index)
+						outstream << string_vec[value_index] << std::endl;
+				}
+				
+				std::string outstring = outstream.str();
+				const char *outcstr = outstring.c_str();
+				size_t outcstr_length = strlen(outcstr);
+				
+				// do the writing with zlib
+				bool failed = true;
+				int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+				
+				if (retval != -1)
+				{
+					retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+					
+					if (retval != 0)
+					{
+						retval = gzclose_w(gzf);
+						
+						if (retval == Z_OK)
+							failed = false;
+					}
+				}
+				
+				if (failed)
+					if (!gEidosSuppressWarnings)
+						p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered zlib errors while writing to file at path " << file_path << "." << std::endl;
+				
+				result_SP = failed ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT;
+			}
 		}
 	}
 	else

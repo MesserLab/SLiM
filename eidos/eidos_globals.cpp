@@ -59,6 +59,9 @@
 // for Eidos_calc_sha_256()
 #include <stdint.h>
 
+// for _Eidos_FlushZipBuffer()
+#include "../eidos_zlib/zlib.h"
+
 
 bool eidos_do_memory_checks = true;
 
@@ -292,6 +295,59 @@ void Eidos_FinishWarmUp(void)
 		for (EidosObjectClass *eidos_class : gEidosContextClasses)
 			eidos_class->CacheDispatchTables();
 	}
+}
+
+#if EIDOS_BUFFER_ZIP_APPENDS
+// This contains all unflushed append data for zip files written by writeFile(); see Eidos_FlushFiles() below
+std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
+
+// This flushes the bytes in outstring to the file at file_path, with gzip append
+bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring)
+{
+	gzFile gzf = z_gzopen(file_path.c_str(), "ab");
+	
+	if (!gzf)
+		return false;
+	
+	const char *outcstr = outstring.c_str();
+	size_t outcstr_length = outstring.length();
+	
+	// do the writing with zlib
+	bool success = false;
+	int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+	
+	if (retval != -1)
+	{
+		retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+		
+		if (retval != 0)
+		{
+			retval = gzclose_w(gzf);
+			
+			if (retval == Z_OK)
+				success = true;
+		}
+	}
+	
+	return success;
+}
+#endif
+
+// This flushes all outstanding buffered zip data to the appropriate files
+void Eidos_FlushFiles(void)
+{
+#if EIDOS_BUFFER_ZIP_APPENDS
+	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
+	for (auto &buffer_pair : gEidosBufferedZipAppendData)
+	{
+		bool result = _Eidos_FlushZipBuffer(buffer_pair.first, buffer_pair.second);
+		
+		if (!result)
+			std::cerr << "Flush of gzip data to file " << buffer_pair.first << " failed!" << std::endl;
+	}
+	
+	gEidosBufferedZipAppendData.clear();
+#endif
 }
 
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
