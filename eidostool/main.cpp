@@ -78,6 +78,7 @@ int main(int argc, const char * argv[])
 			
 			int test_result = RunEidosTests();
 			
+			Eidos_FlushFiles();
 			exit(test_result);
 		}
 		
@@ -188,6 +189,8 @@ int main(int argc, const char * argv[])
 	std::string output = interpreter.ExecutionOutput();
 	
 	std::cout << output << std::endl;
+	
+	Eidos_FlushFiles();
 	
 	// end timing and print elapsed time
 	std::clock_t end = std::clock();

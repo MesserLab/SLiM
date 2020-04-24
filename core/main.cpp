@@ -279,6 +279,7 @@ int main(int argc, char *argv[])
 			
 			int test_result = RunEidosTests();
 			
+			Eidos_FlushFiles();
 			test_exit(test_result);
 		}
 		
@@ -292,6 +293,7 @@ int main(int argc, char *argv[])
 			
 			int test_result = RunSLiMTests();
 			
+			Eidos_FlushFiles();
 			test_exit(test_result);
 		}
 		
@@ -473,7 +475,9 @@ int main(int argc, char *argv[])
 #endif
 		}
 		
-		// clean up; but this is an unnecessary waste of time in the command-line context
+		// clean up; but most of this is an unnecessary waste of time in the command-line context
+		Eidos_FlushFiles();
+		
 #if SLIM_LEAK_CHECKING
 		delete sim;
 		sim = nullptr;

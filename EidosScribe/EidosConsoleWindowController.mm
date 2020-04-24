@@ -398,6 +398,9 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	if (safeguardReferences)
 		[self validateSymbolTableAndFunctionMap];
 	
+	// Flush buffered output to files after every script execution, so the user sees the results
+	Eidos_FlushFiles();
+	
 	return [NSString stringWithUTF8String:output.c_str()];
 }
 

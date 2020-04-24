@@ -30,6 +30,7 @@
 #include <string.h>
 #include <numeric>
 #include <algorithm>
+#include <unordered_map>
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 
@@ -55,12 +56,22 @@ class EidosToken;
 #define EIDOS_VERSION_FLOAT		(2.32)
 
 
-// This should be called once at startup to give Eidos an opportunity to initialize static state
+// These should be called once at startup to give Eidos an opportunity to initialize static state
 void Eidos_WarmUp(void);
 void Eidos_FinishWarmUp(void);
 
 // This can be called at startup, after Eidos_FinishWarmUp(), to define global constants from the command line
 void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
+
+// This should be called at the end of execution, or any other appropriate time, to flush buffered file append data
+void Eidos_FlushFiles(void);
+
+#define EIDOS_BUFFER_ZIP_APPENDS	1
+
+#if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
+extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// filename -> text
+bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring);
+#endif
 
 
 // *******************************************************************************************************************

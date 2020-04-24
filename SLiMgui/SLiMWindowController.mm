@@ -654,6 +654,10 @@
 		}
 	}
 	
+	// Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
+	if (fullUpdate)
+		Eidos_FlushFiles();
+	
 	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
 	[self checkForSimulationTermination];
 	
