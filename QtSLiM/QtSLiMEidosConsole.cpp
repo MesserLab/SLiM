@@ -441,6 +441,9 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 	if (safeguardReferences)
 		validateSymbolTableAndFunctionMap();
 	
+    // Flush buffered output to files after every script execution, so the user sees the results
+	Eidos_FlushFiles();
+    
 	return QString::fromStdString(output);
 }
 
