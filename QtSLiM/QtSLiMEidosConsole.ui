@@ -76,6 +76,9 @@
              <height>20</height>
             </size>
            </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;check script syntax&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
@@ -118,6 +121,9 @@ QPushButton:checked {
              <width>20</width>
              <height>20</height>
             </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -162,6 +168,9 @@ QPushButton:checked {
              <height>20</height>
             </size>
            </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;scripting help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
@@ -204,6 +213,9 @@ QPushButton:checked {
              <width>20</width>
              <height>20</height>
             </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -271,6 +283,9 @@ QPushButton:checked {
              <height>20</height>
             </size>
            </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;execute selection&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
@@ -316,6 +331,9 @@ QPushButton:checked {
              <width>20</width>
              <height>20</height>
             </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;execute full script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -376,6 +394,9 @@ QPushButton:checked {
              <width>20</width>
              <height>20</height>
             </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear output log&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>450</width>
-    <height>175</height>
+    <height>209</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -103,6 +103,9 @@
        </property>
        <item>
         <widget class="QCheckBox" name="matchCaseCheckBox">
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string>Match case</string>
          </property>
@@ -110,6 +113,9 @@
        </item>
        <item>
         <widget class="QCheckBox" name="wholeWordCheckBox">
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string>Whole word</string>
          </property>
@@ -117,6 +123,9 @@
        </item>
        <item>
         <widget class="QCheckBox" name="wrapAroundCheckBox">
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string>Wrap around</string>
          </property>
@@ -133,6 +142,9 @@
      </property>
      <item>
       <widget class="QPushButton" name="findNextButton">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Find Next</string>
        </property>
@@ -143,6 +155,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="findPreviousButton">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Find Previous</string>
        </property>
@@ -163,6 +178,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="replaceAndFindButton">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Replace &amp;&amp; Find</string>
        </property>
@@ -170,6 +188,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="replaceButton">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Replace</string>
        </property>
@@ -177,6 +198,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="replaceAllButton">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Replace All</string>
        </property>

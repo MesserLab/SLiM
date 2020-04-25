@@ -139,9 +139,16 @@ QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiab
     
     if (currentFocusWindow)
     {
+        //qDebug() << "targetTextEditRequireModifiable() found active window" << currentFocusWindow->windowTitle();
+        
         // Given a target window, we target the focusWidget *if* it is a textedit
         QWidget *focusWidget = currentFocusWindow->focusWidget();
         QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        
+//        if (focusWidget)
+//            qDebug() << "   focusWidget" << focusWidget << " " << focusWidget->objectName() << ", textEdit" << textEdit;
+//        else
+//            qDebug() << "   NO FOCUSWIDGET";
         
         // If we've found a textedit, return it if it satisfies requirements
         // There is no fallback, nor should there be; the focused textedit is our target
@@ -154,6 +161,10 @@ QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiab
             
             return textEdit;
         }
+    }
+    else
+    {
+        //qDebug() << "targetTextEditRequireModifiable() : NO ACTIVE WINDOW";
     }
     
     return nullptr;

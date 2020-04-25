@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>550</width>
-    <height>235</height>
+    <height>241</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -58,6 +58,9 @@
         <font>
          <pointsize>9</pointsize>
         </font>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
        </property>
        <property name="styleSheet">
         <string notr="true">QPushButton {
