@@ -23,6 +23,7 @@
 #include <QObject>
 #include <QVector>
 #include <QIcon>
+#include <QPointer>
 #include <string>
 
 class QMenu;
@@ -54,8 +55,9 @@ public:
     std::string &QtSLiMCurrentWorkingDirectory(void) { return app_cwd_; }
     
     // Tracking the current active main window
-    QtSLiMWindow *activeQtSLiMWindow(void);
-    void QtSLiMWindowClosing(QtSLiMWindow *window);     // called by QtSLiMWindow::closeEvent()
+    QtSLiMWindow *activeQtSLiMWindow(void);             // the frontmost window that is a QtSLiMWindow
+    QWidget *activeWindow(void);                        // the frontmost window
+    QWidget *activeWindowExcluding(QWidget *excluded);  // the frontmost window that is not excluded
     
     // Recipes menu
     void setUpRecipesMenu(QMenu *openRecipesSubmenu, QAction *findRecipeAction);
@@ -78,7 +80,8 @@ signals:
 private:
     bool eventFilter(QObject *obj, QEvent *event) override;
     
-    QVector<QtSLiMWindow *> focusedQtSLiMWindowList;    // a list of all main windows, from back to front
+    QVector<QPointer<QWidget>> focusedWindowList;       // a list of all windows, from front to back
+    void pruneWindowList(void);                         // remove all windows that are closed or hidden
     
 private slots:
     void focusChanged(QWidget *old, QWidget *now);
@@ -86,6 +89,38 @@ private slots:
 
 
 #endif // QTSLIMAPPDELEGATE_H
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

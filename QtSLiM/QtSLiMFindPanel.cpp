@@ -138,11 +138,11 @@ QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiab
     // If this window has the focus, we fall back to the current main window
     if (focusWidget && focusWidget->window() == this)
     {
-        QWidget *currentMainWindow = qtSLiMAppDelegate->activeQtSLiMWindow();
+        QWidget *currentFocusWindow = qtSLiMAppDelegate->activeWindowExcluding(this);
         
-        if (currentMainWindow)
+        if (currentFocusWindow)
         {
-            focusWidget = currentMainWindow->focusWidget();
+            focusWidget = currentFocusWindow->focusWidget();
             textEdit = dynamic_cast<QTextEdit*>(focusWidget);
         }
     }

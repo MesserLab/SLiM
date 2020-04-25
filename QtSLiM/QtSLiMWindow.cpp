@@ -724,9 +724,6 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
         settings.setValue("pos", pos());
         settings.endGroup();
         
-        // Tell QtSLiMAppDelegate we're closing; it keeps track of all open QtSLiMWindows
-        qtSLiMAppDelegate->QtSLiMWindowClosing(this);
-        
         event->accept();
     }
     else

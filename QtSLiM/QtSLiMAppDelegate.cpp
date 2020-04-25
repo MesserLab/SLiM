@@ -334,8 +334,8 @@ void QtSLiMAppDelegate::openRecipe(void)
 //
 //  For the Find window and similar modeless interactions, we need to be able to find the active
 //  main window, which Qt does not provide (the "active window" is not necessarily a main window).
-//  To do this, we have to track focus changes and window closes, to maintain a list of main
-//  windows that is sorted from back to front.
+//  To do this, we have to track focus changes, to maintain a list of windows that is sorted from
+//  front to back.
 //
 
 void QtSLiMAppDelegate::focusChanged(QWidget * /* old */, QWidget *now)
@@ -346,30 +346,33 @@ void QtSLiMAppDelegate::focusChanged(QWidget * /* old */, QWidget *now)
         
         if (window)
         {
-            QtSLiMWindow *slimWindow = qobject_cast<QtSLiMWindow *>(window);
+            // if this was already the front window, ignore the focus change
+            if ((focusedWindowList.length() > 0) && (focusedWindowList.front() == window))
+                return;
             
-            if (slimWindow)
-            {
-                // If this was already the front window, ignore the focus change
-                if ((focusedQtSLiMWindowList.length() > 0) && (focusedQtSLiMWindowList.back() == slimWindow))
-                    return;
-                
-                // Remember the new main window as the active main window
-                //qDebug() << "new window got focus";
-                
-                // slimWindow is now the front window, so move it to the end of focusedQtSLiMWindowList
-                focusedQtSLiMWindowList.removeOne(slimWindow);
-                focusedQtSLiMWindowList.push_back(slimWindow);
-            }
+            // window is now the front window, so move it to the front of focusedQtSLiMWindowList
+            focusedWindowList.removeOne(window);
+            focusedWindowList.push_front(window);
         }
     }
 }
 
-void QtSLiMAppDelegate::QtSLiMWindowClosing(QtSLiMWindow *window)
+void QtSLiMAppDelegate::pruneWindowList(void)
 {
-    //qDebug() << "closing window";
+    int windowListCount = focusedWindowList.size();
     
-    focusedQtSLiMWindowList.removeOne(window);
+    for (int listIndex = 0; listIndex < windowListCount; listIndex++)
+    {
+        QPointer<QWidget> &focused_window_ptr = focusedWindowList[listIndex];
+        
+        if (focused_window_ptr && focused_window_ptr->isVisible())
+            continue;
+        
+        // prune
+        focusedWindowList.removeAt(listIndex);
+        windowListCount--;
+        listIndex--;
+    }
 }
 
 QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
@@ -382,8 +385,50 @@ QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
         return activeQtSLiMWindow;
     
     // If that fails, use the last focused main window, as tracked by focusChanged()
-    if (focusedQtSLiMWindowList.length())
-        return focusedQtSLiMWindowList.back();
+    pruneWindowList();
+    
+    for (QPointer<QWidget> &focused_window_ptr : focusedWindowList)
+    {
+        if (focused_window_ptr)
+        {
+            QWidget *focused_window = focused_window_ptr.data();
+            QtSLiMWindow *focusedQtSLiMWindow = qobject_cast<QtSLiMWindow *>(focused_window);
+            
+            if (focusedQtSLiMWindow)
+                return focusedQtSLiMWindow;
+        }
+    }
+    
+    return nullptr;
+}
+
+QWidget *QtSLiMAppDelegate::activeWindow(void)
+{
+    // QApplication can handle this one
+    return qApp->activeWindow();
+}
+
+QWidget *QtSLiMAppDelegate::activeWindowExcluding(QWidget *excluded)
+{
+    // First try qApp's active window; if it is not excluded, this suffices
+    QWidget *activeWindow = qApp->activeWindow();
+    
+    if (activeWindow != excluded)
+        return activeWindow;
+    
+    // If that fails, use the last focused window, as tracked by focusChanged()
+    pruneWindowList();
+    
+    for (QPointer<QWidget> &focused_window_ptr : focusedWindowList)
+    {
+        if (focused_window_ptr)
+        {
+            QWidget *focused_window = focused_window_ptr.data();
+            
+            if (focused_window != excluded)
+                return focused_window;
+        }
+    }
     
     return nullptr;
 }
