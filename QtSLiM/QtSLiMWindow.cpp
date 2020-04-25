@@ -211,8 +211,9 @@ void QtSLiMWindow::init(void)
         }
     }
     
-    // We need to update our button/menu enable state whenever the focus changes
+    // We need to update our button/menu enable state whenever the focus or the active window changes
     connect(qApp, &QApplication::focusChanged, this, &QtSLiMWindow::updateUIEnabling);
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::activeWindowListChanged, this, &QtSLiMWindow::updateUIEnabling);
     
     // We also do it specifically when the Edit menu is about to show, to correctly validate undo/redo in all cases
     // Note that it is not simple to do this revalidation when a keyboard shortcut is pressed, but happily (?), Qt
@@ -812,7 +813,7 @@ void QtSLiMWindow::openFile(const QString &fileName)
         {
             imageWindow->show();
             imageWindow->raise();
-            this->activateWindow();     // Qt activates the window even if we don't ask for it; this takes the focus back
+            imageWindow->activateWindow();
         }
     }
     else
@@ -3979,7 +3980,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         {
             graphWindow->show();
             graphWindow->raise();
-            this->activateWindow();     // Qt activates the window even if we don't ask for it; this takes the focus back
+            graphWindow->activateWindow();
         }
     }
     

@@ -76,15 +76,18 @@ public slots:
     
 signals:
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);
+    void activeWindowListChanged(void);
     
 private:
     bool eventFilter(QObject *obj, QEvent *event) override;
     
     QVector<QPointer<QWidget>> focusedWindowList;       // a list of all windows, from front to back
     void pruneWindowList(void);                         // remove all windows that are closed or hidden
+    bool queuedActiveWindowUpdate = false;
     
 private slots:
     void focusChanged(QWidget *old, QWidget *now);
+    void updateActiveWindowList(void);
 };
 
 

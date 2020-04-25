@@ -53,6 +53,9 @@ QtSLiMFindPanel::QtSLiMFindPanel(QWidget *parent) : QDialog(parent), ui(new Ui::
     setWindowIcon(QIcon());
 #endif
     
+    // prevent this window from keeping the app running when all main windows are closed
+    setAttribute(Qt::WA_QuitOnClose, false);
+    
     // Connect the panel UI
     connect(ui->findNextButton, &QPushButton::clicked, this, &QtSLiMFindPanel::findNext);
     connect(ui->findPreviousButton, &QPushButton::clicked, this, &QtSLiMFindPanel::findPrevious);
@@ -130,32 +133,27 @@ QtSLiMFindPanel::~QtSLiMFindPanel(void)
 
 QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiable)
 {
-    // First we try focusWidget(), as a direct way of finding the current textedit
-    // This means that we will work with a focused QTextEdit that is not in a main window
-    QWidget *focusWidget = QApplication::focusWidget();
-    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    // We rely on QtSLiMAppDelegate to track the active window list for us;
+    // our target is the frontmost window that is not our own window
+    QWidget *currentFocusWindow = qtSLiMAppDelegate->activeWindowExcluding(this);
     
-    // If this window has the focus, we fall back to the current main window
-    if (focusWidget && focusWidget->window() == this)
+    if (currentFocusWindow)
     {
-        QWidget *currentFocusWindow = qtSLiMAppDelegate->activeWindowExcluding(this);
+        // Given a target window, we target the focusWidget *if* it is a textedit
+        QWidget *focusWidget = currentFocusWindow->focusWidget();
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
         
-        if (currentFocusWindow)
+        // If we've found a textedit, return it if it satisfies requirements
+        // There is no fallback, nor should there be; the focused textedit is our target
+        if (textEdit)
         {
-            focusWidget = currentFocusWindow->focusWidget();
-            textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+            if (!textEdit->isEnabled())
+                return nullptr;
+            if (requireModifiable && textEdit->isReadOnly())
+                return nullptr;
+            
+            return textEdit;
         }
-    }
-    
-    // If we've found a textedit, return it if it satisfies requirements
-    if (textEdit)
-    {
-        if (!textEdit->isEnabled())
-            return nullptr;
-        if (requireModifiable && textEdit->isReadOnly())
-            return nullptr;
-        
-        return textEdit;
     }
     
     return nullptr;
@@ -467,7 +465,6 @@ void QtSLiMFindPanel::optionsChanged(void)
     settings.setValue("wholeWord", ui->wholeWordCheckBox->isChecked());
     settings.setValue("wrapAround", ui->wrapAroundCheckBox->isChecked());
     settings.endGroup();
-    
 }
 
 void QtSLiMFindPanel::fixEnableState(void)

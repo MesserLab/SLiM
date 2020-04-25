@@ -221,6 +221,7 @@ bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
     
     if ((type == QEvent::KeyPress) || (type == QEvent::KeyRelease))
     {
+        // emit modifier changed signals for use by the app
         QKeyEvent *keyEvent = dynamic_cast<QKeyEvent *>(event);
         
         if (keyEvent)
@@ -236,6 +237,23 @@ bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
                     (key == Qt::Key_NumLock) ||
                     (key == Qt::Key_ScrollLock))
                 emit modifiersChanged(keyEvent->modifiers());
+        }
+    }
+    else if ((type == QEvent::WindowActivate) || (type == QEvent::WindowDeactivate) || (type == QEvent::WindowStateChange) ||
+             (type == QEvent::WindowBlocked) || (type == QEvent::WindowUnblocked) || (type == QEvent::HideToParent) ||
+             (type == QEvent::ShowToParent) || (type == QEvent::Close))
+    {
+        // track the active window; we use a timer here because the active window is not yet accurate in all cases
+        // we also want to coalesce the work involved, so we use a flag to avoid scheduling more than one update
+        if (!queuedActiveWindowUpdate)
+        {
+            queuedActiveWindowUpdate = true;
+            //qDebug() << "SCHEDULED... event type ==" << type;
+            QTimer::singleShot(0, this, &QtSLiMAppDelegate::updateActiveWindowList);
+        }
+        else
+        {
+            //qDebug() << "REDUNDANT... event type ==" << type;
         }
     }
     
@@ -338,22 +356,42 @@ void QtSLiMAppDelegate::openRecipe(void)
 //  front to back.
 //
 
-void QtSLiMAppDelegate::focusChanged(QWidget * /* old */, QWidget *now)
+void QtSLiMAppDelegate::updateActiveWindowList(void)
 {
-    if (now)
+    QWidget *window = qApp->activeWindow();
+    
+    if (window)
     {
-        QWidget *window = now->window();
-        
-        if (window)
-        {
-            // if this was already the front window, ignore the focus change
-            if ((focusedWindowList.length() > 0) && (focusedWindowList.front() == window))
-                return;
-            
-            // window is now the front window, so move it to the front of focusedQtSLiMWindowList
-            focusedWindowList.removeOne(window);
-            focusedWindowList.push_front(window);
-        }
+        // window is now the front window, so move it to the front of focusedQtSLiMWindowList
+        focusedWindowList.removeOne(window);
+        focusedWindowList.push_front(window);
+    }
+    
+    // keep the window list trim and accurate
+    pruneWindowList();
+    
+    // emit our signal
+    emit activeWindowListChanged();
+    
+    // we're done updating, we can now update again if something new happens
+    queuedActiveWindowUpdate = false;
+    
+    // debug output
+//    qDebug() << "New window list:";
+//
+//    for (QPointer<QWidget> &window_ptr : focusedWindowList)
+//        if (window_ptr)
+//            qDebug() << "   " << window_ptr->windowTitle();
+}
+
+void QtSLiMAppDelegate::focusChanged(QWidget * /* old */, QWidget * /* now */)
+{
+    // track the active window; we use a timer here because the active window is not yet accurate in all cases
+    // we also want to coalesce the work involved, so we use a flag to avoid scheduling more than one update
+    if (!queuedActiveWindowUpdate)
+    {
+        queuedActiveWindowUpdate = true;
+        QTimer::singleShot(0, this, &QtSLiMAppDelegate::updateActiveWindowList);
     }
 }
 
@@ -365,7 +403,7 @@ void QtSLiMAppDelegate::pruneWindowList(void)
     {
         QPointer<QWidget> &focused_window_ptr = focusedWindowList[listIndex];
         
-        if (focused_window_ptr && focused_window_ptr->isVisible())
+        if (focused_window_ptr && focused_window_ptr->isVisible() && !focused_window_ptr->isHidden())
             continue;
         
         // prune
@@ -378,6 +416,10 @@ void QtSLiMAppDelegate::pruneWindowList(void)
 QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
 {
     // First try qApp's active window; if the SLiM window is key, this suffices
+    // This allows Qt to define the active main window in some platform-specific way,
+    // perhaps based upon which window the cursor is in, for example; for the
+    // activeWindowExcluding() method we want our window list to be the sole authority,
+    // but for this method I don't think we do...?
     QWidget *activeWindow = qApp->activeWindow();
     QtSLiMWindow *activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(activeWindow);
     
@@ -410,13 +452,7 @@ QWidget *QtSLiMAppDelegate::activeWindow(void)
 
 QWidget *QtSLiMAppDelegate::activeWindowExcluding(QWidget *excluded)
 {
-    // First try qApp's active window; if it is not excluded, this suffices
-    QWidget *activeWindow = qApp->activeWindow();
-    
-    if (activeWindow != excluded)
-        return activeWindow;
-    
-    // If that fails, use the last focused window, as tracked by focusChanged()
+    // Use the last focused window, as tracked by focusChanged()
     pruneWindowList();
     
     for (QPointer<QWidget> &focused_window_ptr : focusedWindowList)
