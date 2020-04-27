@@ -1,4 +1,4 @@
-// Keywords: migration, dispersal
+// Keywords: migration, dispersal, fitness()
 
 initialize() {
 	initializeMutationRate(1e-7);

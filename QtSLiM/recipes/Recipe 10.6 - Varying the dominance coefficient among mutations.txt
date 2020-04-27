@@ -1,4 +1,4 @@
-// Keywords: dominance coefficients
+// Keywords: dominance coefficients, mutation(), fitness()
 
 initialize() {
 	initializeMutationRate(1e-8);

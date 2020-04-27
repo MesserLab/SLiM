@@ -1,4 +1,4 @@
-// Keywords: continuous space, continuous spatial landscape, reflecting boundaries
+// Keywords: continuous space, continuous spatial landscape, reflecting boundaries, fitness()
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");

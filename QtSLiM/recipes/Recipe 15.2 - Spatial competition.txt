@@ -1,4 +1,4 @@
-// Keywords: continuous space, continuous spatial landscape, reprising boundaries, spatial competition
+// Keywords: continuous space, continuous spatial landscape, reprising boundaries, spatial competition, fitness()
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");

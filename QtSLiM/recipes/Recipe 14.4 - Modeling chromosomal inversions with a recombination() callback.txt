@@ -1,4 +1,4 @@
-// Keywords: recombination suppression, inversion, gamete generation, meiosis
+// Keywords: recombination suppression, inversion, gamete generation, meiosis, fitness()
 
 initialize() {
 	initializeMutationRate(1e-7);

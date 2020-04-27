@@ -3,7 +3,7 @@
 initialize() {
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
-	initializeMutationType("m2", 1.0, "f", 0.5);    // sweep mutation
+	initializeMutationType("m2", 0.45, "f", 0.5);   // sweep mutation
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);

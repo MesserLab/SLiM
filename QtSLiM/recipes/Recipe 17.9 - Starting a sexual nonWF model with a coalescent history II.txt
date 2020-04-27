@@ -1,4 +1,4 @@
-// Keywords: nonWF, non-Wright-Fisher, sexual, tree-sequence recording, tree sequence recording
+// Keywords: nonWF, non-Wright-Fisher, sexual, tree-sequence recording, tree sequence recording, reproduction()
 
 // Part I of this recipe, which is a Python script, may be found in
 // the Recipes archive downloadable at https://messerlab.org/slim/
