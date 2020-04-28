@@ -21,6 +21,7 @@
 #include "QtSLiMWindow.h"
 #include "QtSLiMHaplotypeOptions.h"
 #include "QtSLiMHaplotypeProgress.h"
+#include "QtSLiMExtras.h"
 
 #include <QOpenGLFunctions>
 #include <QDialog>
@@ -41,78 +42,6 @@
 #include "subpopulation.h"
 
 
-// Incremental sorting
-//
-// This is from https://github.com/MesserLab/incsort by Benjamin C. Haller, released under the GPL 3.
-// More indirectly, much of the logic is thanks to Lars Hagen's blog post on incremental sorting, at
-// http://larshagencpp.github.io/blog/2016/04/23/fast-incremental-sort, and to Paredes & Navarro (2006)
-// who first described the algorithm implemented here.
-//
-// As described in the incsort project, Lars did not explicitly state the license he was releasing
-// his code under, but he has released other blog-related code under the MIT License, which is GPL-
-// compatible, so I have presumed the same applies here.
-
-template<typename I>
-class Eidos_partial_sorter {
-public:
-	typedef typename std::iterator_traits<I>::value_type value_type;
-	
-	Eidos_partial_sorter(I i1, I i2) : first(i1), last(i2) {}
-	
-	class iterator {
-	public:
-		iterator(I first, I last) : current(first), sort_end(first), end(last) {}
-		
-		iterator& operator++() {
-			ensure_sorted_at_current();
-			++current;
-			return *this;
-		}
-		
-		value_type& operator*() {
-			ensure_sorted_at_current();
-			return *current;
-		}
-		
-		bool operator==(const iterator &iter) { return current == iter.current; }
-		bool operator!=(const iterator &iter) { return current != iter.current; }
-		
-	private:
-		void ensure_sorted_at_current() {
-			if (current == sort_end) {
-				sort_end = (sort_size < end - sort_end) ? sort_end + sort_size : end;
-				std::partial_sort(current, sort_end, end);
-				sort_size *= 2;
-			}
-		}
-		I current;
-		I sort_end;
-		I end;
-		int sort_size = 100;
-	};
-	
-	iterator begin(void) { return iterator(first, last); }
-	iterator end(void) { return iterator(last, last); }
-	
-private:
-	I first;
-	I last;
-};
-
-// class Eidos_simple_quick_sorter;
-//
-// I was originally going to use the IQS or incremental quicksort algorithm of Paredes & Navarro (2006)
-// here, but it seems to hit its worst-case performance because so many distances in the edge buffer
-// have identical values.  I think Regla & Paredes (2015) would perhaps fix that issue, but again they
-// provide no C++ implementation of their code, and trying to get from pseudocode to C++ has proved a
-// major hassle – especially since they use a different definition of "partition" thanstd::partition(),
-// apparently.  See https://github.com/MesserLab/incsort for further comments.  If someone wants to
-// implement Regla & Paredes (2015) for me, I'm pretty sure it would speed up greedy clustering by
-// several times; but I'm giving up no it for now and using Eidos_partial_sorter instead.
-
-//
-// Incremental sorting ENDS
-//
 
 
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
@@ -1366,10 +1295,12 @@ typedef struct {
 } greedy_edge;
 
 static bool operator<(const greedy_edge &i, const greedy_edge &j) __attribute__((unused));
+static bool operator>(const greedy_edge &i, const greedy_edge &j) __attribute__((unused));
 static bool operator==(const greedy_edge &i, const greedy_edge &j) __attribute__((unused));
 static bool operator!=(const greedy_edge &i, const greedy_edge &j) __attribute__((unused));
 
 static bool operator<(const greedy_edge &i, const greedy_edge &j) { return (i.d < j.d); }
+static bool operator>(const greedy_edge &i, const greedy_edge &j) { return (i.d > j.d); }
 static bool operator==(const greedy_edge &i, const greedy_edge &j) { return (i.d == j.d); }
 static bool operator!=(const greedy_edge &i, const greedy_edge &j) { return (i.d != j.d); }
 
@@ -1394,14 +1325,12 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	if (progressPanel_)
 	{
         // We have a progress panel, so we do an incremental sort
-        //Eidos_simple_quick_sorter<std::vector<greedy_edge>::iterator> sorter(edge_buf.begin(), edge_buf.end());
-        Eidos_partial_sorter<std::vector<greedy_edge>::iterator> sorter(edge_buf.begin(), edge_buf.end());
-        auto sorted_iter = sorter.begin();
+        BareBoneIIQS<greedy_edge> sorter(edge_buf.data(), edge_count);
         
         for (size_t i = 0; i < genome_count - 1; ++i)
         {
             for (size_t k = i + 1; k < genome_count; ++k)
-                ++sorted_iter;
+                sorter.next();
             
             if (progressPanel_->haplotypeProgressIsCancelled())
                 return;
@@ -1411,7 +1340,7 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	}
 	else
 	{
-		// If we're not running in the background, we have no progress indicator so we can just use std::sort()
+		// If we're not running with a progress panel, we have no progress indicator so we can just use std::sort()
 		std::sort(edge_buf.begin(), edge_buf.end());
 	}
 	

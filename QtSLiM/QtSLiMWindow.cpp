@@ -74,14 +74,6 @@
 #include "slim_test.h"
 
 
-// TO DO:
-//
-// associate .slim with QtSLiM; how is this done in Linux, or in Qt?
-//      https://askubuntu.com/questions/538299/globally-associate-file-type-with-certain-application for example
-// set up the app icon correctly: this seems to be very complicated, and didn't work on macOS, sigh...
-//      https://askubuntu.com/questions/894990/how-to-change-an-icon-in-16-04
-
-
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
 {
     init();
