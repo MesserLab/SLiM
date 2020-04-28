@@ -34,6 +34,9 @@
 #include <QSplitterHandle>
 #include <QStatusBar>
 
+#include <cmath>
+#include <algorithm>
+
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
 
@@ -386,7 +389,7 @@ T BareBoneIIQS<T>::next() {
         // resize the search window
         std::size_t top_element = this->stack_peek();
         std::size_t range = top_element - this->extracted_count;
-        std::size_t p70_idx = (std::size_t)ceil(range * 0.7);
+        std::size_t p70_idx = (std::size_t)std::ceil(range * 0.7);
 
 
         if (this->extracted_count == top_element ){
@@ -417,7 +420,7 @@ T BareBoneIIQS<T>::next() {
         // IIQS changes start! only check if range is less than the square root of the total size
         // First, we need to check if this pointer belongs P70 \union P30
         #ifdef USE_ALPHA_LESS_THAN_P30
-            std::size_t p30_idx = (std::size_t)ceil(range * 0.3); // actually, if we don't care about balancing the stack, you can ignore the p30 condition
+            std::size_t p30_idx = (std::size_t)std::ceil(range * 0.3); // actually, if we don't care about balancing the stack, you can ignore the p30 condition
             if (p30_idx > pivot_idx || pivot_idx > p70_idx){
         #else
             if (pivot_idx > p70_idx){
