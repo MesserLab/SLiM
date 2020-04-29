@@ -18,7 +18,7 @@ CONFIG += staticlib
 
 # get rid of spurious errors on Ubuntu, for now
 linux-*: {
-    QMAKE_CXXFLAGS += -Wno-unknown-pragmas -Wno-pragmas
+    QMAKE_CFLAGS += -Wno-unknown-pragmas -Wno-pragmas
 }
 
 
