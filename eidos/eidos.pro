@@ -8,14 +8,13 @@ QT       -= core gui
 
 TARGET = eidos
 TEMPLATE = lib
+CONFIG += staticlib
 
 
 # Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
 # .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
 # CONFIG += sanitizer sanitize_address
 
-
-DEFINES += EIDOS_LIBRARY
 
 # Set up to build QtSLiM; note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro
 DEFINES += EIDOS_GUI
@@ -40,6 +39,12 @@ else:unix: LIBS += -L$$OUT_PWD/../gsl/ -lgsl
 INCLUDEPATH += $$PWD/../gsl $$PWD/../gsl/blas $$PWD/../gsl/block $$PWD/../gsl/cblas $$PWD/../gsl/cdf
 INCLUDEPATH += $$PWD/../gsl/complex $$PWD/../gsl/err $$PWD/../gsl/linalg $$PWD/../gsl/matrix
 INCLUDEPATH += $$PWD/../gsl/randist $$PWD/../gsl/rng $$PWD/../gsl/specfunc $$PWD/../gsl/sys $$PWD/../gsl/vector
+DEPENDPATH += $$PWD/../gsl
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/release/libgsl.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/debug/libgsl.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/release/gsl.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/debug/gsl.lib
+else:unix: PRE_TARGETDEPS += $$OUT_PWD/../gsl/libgsl.a
 
 # eidos_zlib dependency
 win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../eidos_zlib/release/ -leidos_zlib
@@ -72,7 +77,6 @@ SOURCES += \
     eidos_value.cpp
 
 HEADERS += \
-    eidos_global.h \
     eidos_ast_node.h \
     eidos_beep.h \
     eidos_call_signature.h \

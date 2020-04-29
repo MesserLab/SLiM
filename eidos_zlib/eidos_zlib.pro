@@ -35,7 +35,3 @@ HEADERS += \
     zconf.h \
     zlib.h
 
-unix {
-    target.path = /usr/lib
-    INSTALLS += target
-}

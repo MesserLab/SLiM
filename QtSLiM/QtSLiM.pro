@@ -46,24 +46,62 @@ else:unix: LIBS += -L$$OUT_PWD/../gsl/ -lgsl
 INCLUDEPATH += $$PWD/../gsl $$PWD/../gsl/blas $$PWD/../gsl/block $$PWD/../gsl/cblas $$PWD/../gsl/cdf
 INCLUDEPATH += $$PWD/../gsl/complex $$PWD/../gsl/err $$PWD/../gsl/linalg $$PWD/../gsl/matrix
 INCLUDEPATH += $$PWD/../gsl/randist $$PWD/../gsl/rng $$PWD/../gsl/specfunc $$PWD/../gsl/sys $$PWD/../gsl/vector
+DEPENDPATH += $$PWD/../gsl
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/release/libgsl.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/debug/libgsl.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/release/gsl.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/debug/gsl.lib
+else:unix: PRE_TARGETDEPS += $$OUT_PWD/../gsl/libgsl.a
+
+# eidos_zlib library dependency
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../eidos_zlib/release/ -leidos_zlib
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../eidos_zlib/debug/ -leidos_zlib
+else:unix: LIBS += -L$$OUT_PWD/../eidos_zlib/ -leidos_zlib
+INCLUDEPATH += $$PWD/../eidos_zlib $$PWD/../eidos_zlib/blas $$PWD/../eidos_zlib/block $$PWD/../eidos_zlib/cblas $$PWD/../eidos_zlib/cdf
+INCLUDEPATH += $$PWD/../eidos_zlib/complex $$PWD/../eidos_zlib/err $$PWD/../eidos_zlib/linalg $$PWD/../eidos_zlib/matrix
+INCLUDEPATH += $$PWD/../eidos_zlib/randist $$PWD/../eidos_zlib/rng $$PWD/../eidos_zlib/specfunc $$PWD/../eidos_zlib/sys $$PWD/../eidos_zlib/vector
+DEPENDPATH += $$PWD/../eidos_zlib
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/release/libeidos_zlib.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/debug/libeidos_zlib.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/release/eidos_zlib.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/debug/eidos_zlib.lib
+else:unix: PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/libeidos_zlib.a
 
 # eidos library dependency
 win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../eidos/release/ -leidos
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../eidos/debug/ -leidos
 else:unix: LIBS += -L$$OUT_PWD/../eidos/ -leidos
 INCLUDEPATH += $$PWD/../eidos
+DEPENDPATH += $$PWD/../eidos
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos/release/libeidos.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos/debug/libeidos.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos/release/eidos.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos/debug/eidos.lib
+else:unix: PRE_TARGETDEPS += $$OUT_PWD/../eidos/libeidos.a
 
 # core library dependency
 win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../core/release/ -lcore
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../core/debug/ -lcore
 else:unix: LIBS += -L$$OUT_PWD/../core/ -lcore
 INCLUDEPATH += $$PWD/../core
+DEPENDPATH += $$PWD/../core
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../core/release/libcore.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../core/debug/libcore.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../core/release/core.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../core/debug/core.lib
+else:unix: PRE_TARGETDEPS += $$OUT_PWD/../core/libcore.a
 
 # tskit library dependency
 win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../treerec/tskit/release/ -ltskit
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../treerec/tskit/debug/ -ltskit
 else:unix: LIBS += -L$$OUT_PWD/../treerec/tskit/ -ltskit
 INCLUDEPATH += $$PWD/../treerec/tskit $$PWD/../treerec $$PWD/../treerec/tskit/kastore
+DEPENDPATH += $$PWD/../treerec/tskit
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../treerec/tskit/release/libtskit.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../treerec/tskit/debug/libtskit.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../treerec/tskit/release/tskit.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../treerec/tskit/debug/tskit.lib
+else:unix: PRE_TARGETDEPS += $$OUT_PWD/../treerec/tskit/libtskit.a
 
 SOURCES += \
     main.cpp \
