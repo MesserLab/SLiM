@@ -6,7 +6,6 @@
 
 QT       -= core gui
 
-TARGET = tskit
 TEMPLATE = lib
 CONFIG += staticlib
 

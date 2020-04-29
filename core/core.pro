@@ -6,7 +6,6 @@
 
 QT       -= core gui
 
-TARGET = core
 TEMPLATE = lib
 CONFIG += staticlib
 

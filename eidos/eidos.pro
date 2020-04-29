@@ -6,7 +6,6 @@
 
 QT       -= core gui
 
-TARGET = eidos
 TEMPLATE = lib
 CONFIG += staticlib
 
