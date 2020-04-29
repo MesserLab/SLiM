@@ -16,6 +16,12 @@ CONFIG += staticlib
 # CONFIG += sanitizer sanitize_address
 
 
+# get rid of spurious errors on Ubuntu, for now
+linux-*: {
+    QMAKE_CXXFLAGS += -Wno-unknown-pragmas -Wno-pragmas
+}
+
+
 SOURCES += \
     zutil.c \
     adler32.c \
