@@ -104,6 +104,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     // Cache app-wide icons
     slimDocumentIcon_.addFile(":/icons/DocIcon16.png");
     slimDocumentIcon_.addFile(":/icons/DocIcon32.png");
+    slimDocumentIcon_.addFile(":/icons/DocIcon48.png");
     slimDocumentIcon_.addFile(":/icons/DocIcon64.png");
     slimDocumentIcon_.addFile(":/icons/DocIcon128.png");
     slimDocumentIcon_.addFile(":/icons/DocIcon256.png");
