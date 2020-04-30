@@ -67,7 +67,7 @@ option(BUILD_QTSLIM "Build the Qt5 GUI for SLiM (on Linux only)" OFF)
 
 
 # Use the flags below for [all / Debug / Release] builds; these flags are built in to cmake
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value -Wno-pragmas")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value")
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
@@ -139,7 +139,7 @@ install(TARGETS slim eidos DESTINATION bin)
 # QtSLiM -- this can be enabled with the -DBUILD_QTSLIM=ON option to cmake
 if(BUILD_QTSLIM)
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
-set(TARGET_NAME qtslim)
+set(TARGET_NAME QtSLiM)
 find_package(OpenGL REQUIRED)
 find_package(Qt5 REQUIRED
     Core
@@ -158,3 +158,4 @@ target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOUR
 target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_QTSLIM)
+
