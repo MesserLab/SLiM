@@ -26,6 +26,11 @@ linux-*: {
 
 INCLUDEPATH = . .. kastore
 
+
+# prevent link dependency cycles
+QMAKE_LFLAGS += $$QMAKE_LFLAGS_NOUNDEF
+
+
 SOURCES += \
     convert.c \
     core.c \

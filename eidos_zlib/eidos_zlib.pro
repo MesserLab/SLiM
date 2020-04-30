@@ -15,10 +15,18 @@ CONFIG += staticlib
 # CONFIG += sanitizer sanitize_address
 
 
+CONFIG -= qt
+QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
+QMAKE_CFLAGS_RELEASE += -O3
+
 # get rid of spurious errors on Ubuntu, for now
 linux-*: {
     QMAKE_CFLAGS += -Wno-unknown-pragmas -Wno-pragmas
 }
+
+
+# prevent link dependency cycles
+QMAKE_LFLAGS += $$QMAKE_LFLAGS_NOUNDEF
 
 
 SOURCES += \

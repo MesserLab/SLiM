@@ -27,6 +27,11 @@ linux-*: {
 
 INCLUDEPATH = . ./blas ./block ./cblas ./cdf ./complex ./err ./linalg ./matrix ./randist ./rng ./specfunc ./sys ./vector
 
+
+# prevent link dependency cycles
+QMAKE_LFLAGS += $$QMAKE_LFLAGS_NOUNDEF
+
+
 SOURCES += \
     blas/blas.c \
     block/init.c \
