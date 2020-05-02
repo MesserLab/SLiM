@@ -1,4 +1,4 @@
-# this is adapted from https://github.com/VioletGiraffe/file-commander/blob/master/.travis.yml
+# the Qt stuff is adapted from https://github.com/VioletGiraffe/file-commander/blob/master/.travis.yml
 # there seems to be no simple solution to building Qt5 apps on travis; you have to install all this stuff
 language: cpp
 
@@ -55,15 +55,24 @@ before_script:
 # builds can take more than 10 minutes so we use travis_wait
 script:
   - cd Release
+  - travis_wait make VERBOSE=1 -j 5 eidos
+  - travis_wait make VERBOSE=1 -j 5 slim
   - travis_wait make VERBOSE=1 -j 5 QtSLiM
+  - ./eidos -testEidos
+  - ./slim -testEidos
+  - ./slim -testSLiM
   - cd ../Debug
+  - travis_wait make VERBOSE=1 -j 5 eidos
+  - travis_wait make VERBOSE=1 -j 5 slim
   - travis_wait make VERBOSE=1 -j 5 QtSLiM
+  - ./eidos -testEidos
+  - ./slim -testEidos
+  - ./slim -testSLiM
 
 # test only the master branch for now; add other branches as needed
 branches:
   only:
     - master
-    - qtslim
 
 # notify me by email after all builds
 notifications:
