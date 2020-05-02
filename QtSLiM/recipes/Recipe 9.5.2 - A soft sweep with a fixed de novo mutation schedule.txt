@@ -1,0 +1,45 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.45, "f", 0.5);   // sweep mutation
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	p1.tag = 0;  // indicate that a mutation has not yet been seen
+}
+1000:1100 late() {
+	if (sim.generation % 10 == 0)
+	{
+		target = sample(p1.genomes, 1);
+		if (target.countOfMutationsOfType(m2) == 0)
+			target.addNewDrawnMutation(m2, 10000);
+	}
+}
+1:10000 late() {
+	if (p1.tag != sim.countOfMutationsOfType(m2))
+	{
+		if (any(sim.substitutions.mutationType == m2)) {
+			cat("Hard sweep ended in generation " + sim.generation + "\n");
+			sim.simulationFinished();
+		} else {
+			p1.tag = sim.countOfMutationsOfType(m2);
+			cat("Gen. " + sim.generation + ": " + p1.tag + " lineage(s)\n");
+			
+			if ((p1.tag == 0) & (sim.generation > 1100)) {
+				cat("Sweep failed to establish.\n");
+				sim.simulationFinished();
+			}
+		}
+	}
+	if (all(p1.genomes.countOfMutationsOfType(m2) > 0)) {
+		cat("Soft sweep ended in generation " + sim.generation + "\n");
+		cat("Frequencies:\n");
+		print(sim.mutationFrequencies(p1, sim.mutationsOfType(m2)));
+		sim.simulationFinished();
+	}
+}

@@ -1,0 +1,30 @@
+// Keywords: modifyChild()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.0);  // S-locus mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElementType("g2", m2, 1.0);
+	initializeGenomicElement(g1, 0, 20000);
+	initializeGenomicElement(g2, 20001, 21000);
+	initializeGenomicElement(g1, 21001, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+10000 late() {
+	cat("m1 mutation count: " + sim.countOfMutationsOfType(m1) + "\n");
+	cat("m2 mutation count: " + sim.countOfMutationsOfType(m2) + "\n");
+}
+modifyChild(p1) {
+	pollenSMuts = childGenome2.mutationsOfType(m2);
+	styleSMuts1 = parent1Genome1.mutationsOfType(m2);
+	styleSMuts2 = parent1Genome2.mutationsOfType(m2);
+	if (identical(pollenSMuts, styleSMuts1))
+		if (runif(1) < 0.99)
+			return F;
+	if (identical(pollenSMuts, styleSMuts2))
+		if (runif(1) < 0.99)
+			return F;
+	return T;
+}

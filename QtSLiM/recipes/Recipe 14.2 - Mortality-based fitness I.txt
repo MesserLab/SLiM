@@ -1,0 +1,27 @@
+// Keywords: fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", -0.005); // deleterious
+	m2.convertToSubstitution = F;
+	
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,0.1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+fitness(m2)
+{
+	// convert fecundity-based selection to survival-based selection
+	if (runif(1) < relFitness)
+		return 1.0;
+	else
+		return 0.0;
+}
+10000 late() {
+	sim.outputMutations(sim.mutationsOfType(m2));
+}

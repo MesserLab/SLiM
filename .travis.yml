@@ -1,55 +1,69 @@
-# Use new trusty images, should yield newer compilers and packages
-dist: trusty
-sudo: false
+# this is adapted from https://github.com/VioletGiraffe/file-commander/blob/master/.travis.yml
+# there seems to be no simple solution to building Qt5 apps on travis; you have to install all this stuff
 language: cpp
 
-# skip the install step, we have no dependencies
-install: true
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+    - os: linux
+      dist: xenial
+      compiler: gcc
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  # C++17
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test; fi
+
+install: 
+  # C++17
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.3-xenial; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qy update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq g++-8 gcc-8; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 90; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 90; fi
+  # Qt5
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export QMAKE=/usr/local/bin/qmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH=/usr/local/opt/qt5/bin:$PATH; fi
+  
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt512/bin/qmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt512/bin/:$PATH; fi
 
 # set up build directories for Release and Debug builds and run cmake in each; "make" should then work
 # note that we start out in /home/travis/build/MesserLab/SLiM here, and end in /home/travis/build/MesserLab
 before_script:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then gcc --version; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then g++ --version; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then clang --version; fi
+
   - cd ..
   - mkdir Release
   - cd Release
-  - cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
+  - cmake -D BUILD_QTSLIM=ON -D CMAKE_BUILD_TYPE=Release ../SLiM
   - cd ..
   - mkdir Debug
   - cd Debug
-  - cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
+  - cmake -D BUILD_QTSLIM=ON -D CMAKE_BUILD_TYPE=Debug ../SLiM
   - cd ..
 
 # build using make, then run Eidos and SLiM tests; do for each of Release and Debug
 # builds can take more than 10 minutes so we use travis_wait
 script:
   - cd Release
-  - travis_wait make
-  - ./eidos -testEidos
-  - ./slim -testEidos
-  - ./slim -testSLiM
+  - travis_wait make VERBOSE=1 -j 5 QtSLiM
   - cd ../Debug
-  - travis_wait make
-  - ./eidos -testEidos
-  - ./slim -testEidos
-  - ./slim -testSLiM
-
-# use gcc; this probably doesn't matter since we call make anyway
-# it would be nice to try different gcc versions, but that is presently quite complex
-# see https://stackoverflow.com/questions/29312015/building-with-more-than-one-version-of-a-compiler
-# see https://genbattle.bitbucket.io/blog/2016/01/17/c++-travis-ci/
-compiler:
-  - gcc
-
-# linux and os x builds
-os:
-  - linux
-  - osx
+  - travis_wait make VERBOSE=1 -j 5 QtSLiM
 
 # test only the master branch for now; add other branches as needed
 branches:
   only:
     - master
-    - nucmut
+    - qtslim
 
 # notify me by email after all builds
 notifications:

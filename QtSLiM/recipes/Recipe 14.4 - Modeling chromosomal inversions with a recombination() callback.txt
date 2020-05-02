@@ -1,0 +1,62 @@
+// Keywords: recombination suppression, inversion, gamete generation, meiosis, fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.0);  // inversion marker
+	m2.color = "red";
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-6);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+1 late() {
+	// give half the population the inversion
+	inverted = sample(p1.individuals, integerDiv(p1.individualCount, 2));
+	inverted.genomes.addNewDrawnMutation(m2, 25000);
+}
+1:9999 late() {
+	if (sim.generation % 50 != 0)
+		return;
+	
+	// assess the prevalence of the inversion
+	pScr = "sum(applyValue.genomes.containsMarkerMutation(m2, 25000));";
+	p = sapply(p1.individuals, pScr);
+	p__ = sum(p == 0);
+	pI_ = sum(p == 1);
+	pII = sum(p == 2);
+	cat("Generation " + format("%4d", sim.generation) + ": ");
+	cat(format("%3d", p__) + " --   ");
+	cat(format("%3d", pI_) + " I-   ");
+	cat(format("%3d", pII) + " II\n");
+	
+	if (p__ == 0) stop("Inversion fixed!");
+	if (pII == 0) stop("Inversion lost!");
+}
+fitness(m2) {
+	// fitness of the inversion is frequency-dependent
+	f = sim.mutationFrequencies(NULL, mut);
+	return 1.0 - (f - 0.5) * 0.2;
+}
+recombination() {
+	if (genome1.containsMarkerMutation(m2, 25000) ==
+			genome2.containsMarkerMutation(m2, 25000))
+		return F;
+	
+	inInv = (breakpoints > 25000) & (breakpoints < 75000);
+	if (!any(inInv))
+		return F;
+	
+	breakpoints = breakpoints[!inInv];
+	return T;
+}
+9999 late() {
+	sim.outputFixedMutations();
+	
+	// Assess fixation inside vs. outside the inversion
+	pos = sim.substitutions.position;
+	cat(sum((pos >= 25000) & (pos < 75000)) + " inside inversion.\n");
+	cat(sum((pos < 25000) | (pos >= 75000)) + " outside inversion.\n");
+}

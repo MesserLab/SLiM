@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QtSLiMEidosConsole</class>
+ <widget class="QWidget" name="QtSLiMEidosConsole">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>700</width>
+    <height>500</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>700</width>
+    <height>250</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Eidos Console</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <layout class="QHBoxLayout" name="overallLayout" stretch="2,3">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <property name="leftMargin">
+      <number>3</number>
+     </property>
+     <property name="topMargin">
+      <number>3</number>
+     </property>
+     <property name="rightMargin">
+      <number>3</number>
+     </property>
+     <property name="bottomMargin">
+      <number>3</number>
+     </property>
+     <item>
+      <layout class="QVBoxLayout" name="scriptLayout">
+       <property name="spacing">
+        <number>3</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="scriptHeaderLayout">
+         <property name="spacing">
+          <number>3</number>
+         </property>
+         <item>
+          <widget class="QtSLiMPushButton" name="checkScriptButton">
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;check script syntax&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+           </property>
+           <property name="icon">
+            <iconset resource="buttons.qrc">
+             <normaloff>:/buttons/check.png</normaloff>
+             <normalon>:/buttons/check_H.png</normalon>:/buttons/check.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QtSLiMPushButton" name="prettyprintButton">
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+           </property>
+           <property name="icon">
+            <iconset resource="buttons.qrc">
+             <normaloff>:/buttons/prettyprint.png</normaloff>
+             <normalon>:/buttons/prettyprint_H.png</normalon>:/buttons/prettyprint.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QtSLiMPushButton" name="scriptHelpButton">
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;scripting help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+           </property>
+           <property name="icon">
+            <iconset resource="buttons.qrc">
+             <normaloff>:/buttons/syntax_help.png</normaloff>
+             <normalon>:/buttons/syntax_help_H.png</normalon>:/buttons/syntax_help.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QtSLiMPushButton" name="browserButton">
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+           </property>
+           <property name="icon">
+            <iconset resource="buttons.qrc">
+             <normaloff>:/buttons/show_browser.png</normaloff>
+             <normalon>:/buttons/show_browser_H.png</normalon>:/buttons/show_browser.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="scriptHeaderLabel">
+           <property name="text">
+            <string> Eidos:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QtSLiMPushButton" name="executeSelectionButton">
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;execute selection&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+           </property>
+           <property name="icon">
+            <iconset resource="buttons.qrc">
+             <normaloff>:/buttons/execute_selection.png</normaloff>
+             <normalon>:/buttons/execute_selection_H.png</normalon>:/buttons/execute_selection.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QtSLiMPushButton" name="executeAllButton">
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;execute full script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+           </property>
+           <property name="icon">
+            <iconset resource="buttons.qrc">
+             <normaloff>:/buttons/execute_script.png</normaloff>
+             <normalon>:/buttons/execute_script_H.png</normalon>:/buttons/execute_script.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QtSLiMScriptTextEdit" name="scriptTextEdit"/>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="outputLayout">
+       <property name="spacing">
+        <number>3</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="outputHeaderLayout">
+         <property name="spacing">
+          <number>3</number>
+         </property>
+         <item>
+          <widget class="QtSLiMPushButton" name="clearOutputButton">
+           <property name="minimumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear output log&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton:pressed {
+	background-color: #00000000;
+	border: 0px;
+}
+QPushButton:checked {
+	background-color: #00000000;
+	border: 0px;
+}</string>
+           </property>
+           <property name="icon">
+            <iconset resource="buttons.qrc">
+             <normaloff>:/buttons/delete.png</normaloff>
+             <normalon>:/buttons/delete_H.png</normalon>:/buttons/delete.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="outputHeaderLabel">
+           <property name="text">
+            <string> Console:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QtSLiMConsoleTextEdit" name="consoleTextEdit">
+         <property name="acceptRichText">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="statusBarLayout"/>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QtSLiMScriptTextEdit</class>
+   <extends>QTextEdit</extends>
+   <header>QtSLiMScriptTextEdit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMPushButton</class>
+   <extends>QPushButton</extends>
+   <header>QtSLiMExtras.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMConsoleTextEdit</class>
+   <extends>QTextEdit</extends>
+   <header>QtSLiMConsoleTextEdit.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="buttons.qrc"/>
+ </resources>
+ <connections/>
+</ui>

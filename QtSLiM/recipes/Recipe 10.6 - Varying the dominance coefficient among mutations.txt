@@ -1,0 +1,24 @@
+// Keywords: dominance coefficients, mutation(), fitness()
+
+initialize() {
+	initializeMutationRate(1e-8);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.05);
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+mutation(m2) {
+	mut.setValue("dom", runif(1));
+	return T;
+}
+fitness(m2) {
+   if (homozygous)
+      return 1.0 + mut.selectionCoeff;
+   else
+      return 1.0 + mut.getValue("dom") * mut.selectionCoeff;
+}
+100000 late() { sim.outputFixedMutations(); }

@@ -1,0 +1,59 @@
+// Keywords: nonWF, non-Wright-Fisher, migration, dispersal, fitness()
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 500);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeMutationType("m2", 0.5, "e", 0.1);   // deleterious in p2
+	m2.color = "red";
+	initializeMutationType("m3", 0.5, "e", 0.1);   // deleterious in p1
+	m3.color = "green";
+	
+	initializeGenomicElementType("g1", c(m1,m2,m3), c(0.98,0.01,0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	dest = sample(sim.subpopulations, 1);
+	dest.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+	sim.addSubpop("p2", 10);
+}
+early() {
+	// habitat choice
+	inds = sim.subpopulations.individuals;
+	inds_m2 = inds.countOfMutationsOfType(m2);
+	inds_m3 = inds.countOfMutationsOfType(m3);
+	pref_p1 = 0.5 + (inds_m2 - inds_m3) * 0.1;
+	pref_p1 = pmax(pmin(pref_p1, 1.0), 0.0);
+	inertia = ifelse(inds.subpopulation.id == 1, 1.0, 0.0);
+	pref_p1 = pref_p1 * 0.75 + inertia * 0.25;
+	choice = ifelse(runif(inds.size()) < pref_p1, 1, 2);
+	moving = inds[choice != inds.subpopulation.id];
+	from_p1 = moving[moving.subpopulation == p1];
+	from_p2 = moving[moving.subpopulation == p2];
+	p2.takeMigrants(from_p1);
+	p1.takeMigrants(from_p2);
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+	p2.fitnessScaling = K / p2.individualCount;
+}
+fitness(m2, p2) { return 1/relFitness; }
+fitness(m3, p1) { return 1/relFitness; }
+1000 late() {
+	for (id in 1:2)
+	{
+		subpop = sim.subpopulations[sim.subpopulations.id == id];
+		s = subpop.individualCount;
+		inds = subpop.individuals;
+		c2 = sum(inds.countOfMutationsOfType(m2));
+		c3 = sum(inds.countOfMutationsOfType(m3));
+		catn("subpop " + id + " (" + s + "): " + c2 + " m2, " + c3 + " m3");
+	}
+}

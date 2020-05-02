@@ -1,0 +1,18 @@
+// Keywords: migration, dispersal, fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);   // neutral
+	initializeMutationType("m2", 0.5, "e", 0.1);   // deleterious in p2
+	initializeGenomicElementType("g1", c(m1,m2), c(0.99,0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+	p1.setMigrationRates(p2, 0.1);   // weak migration p2 -> p1
+	p2.setMigrationRates(p1, 0.5);   // strong migration p1 -> p2
+}
+fitness(m2, p2) { return 1/relFitness; }
+10000 { sim.simulationFinished(); }

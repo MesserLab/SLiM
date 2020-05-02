@@ -1,0 +1,42 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.1, "f", 0.5);    // sweep mutation
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	
+	gens = cumSum(rpois(10, 10));      // make a vector of start gens
+	gens = gens + (1000 - min(gens));  // align to start at 1000
+	defineConstant("Z", max(gens));    // remember the last gen
+	
+	for (gen in gens)
+		sim.registerLateEvent(NULL, s1.source, gen, gen);
+	
+	sim.deregisterScriptBlock(s1);
+}
+s1 1000 late() {
+	target = sample(p1.genomes, 1);
+	mut = sim.mutationsOfType(m2);
+	if (mut.size() > 0)
+		target.addMutations(mut);
+	else
+		target.addNewDrawnMutation(m2, 10000);
+}
+1:10000 late() {
+	if (any(sim.substitutions.mutationType == m2))
+	{
+		catn("Sweep completed in generation " + sim.generation + ".");
+		sim.simulationFinished();
+	}
+	else if ((sim.countOfMutationsOfType(m2) == 0) & (sim.generation > Z))
+	{
+		catn("Soft sweep failed to establish.");
+		sim.simulationFinished();
+	}
+}

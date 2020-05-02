@@ -1,0 +1,150 @@
+// Keywords: QTL, quantitative trait loci, pleiotropy, M-matrix, live plotting, mutation()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);   // neutral
+	initializeMutationType("m2", 0.5, "f", 0.0);   // QTLs
+	m2.convertToSubstitution = F;
+	m2.color = "red";
+	
+	// g1 is a neutral region, g2 is a QTL
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElementType("g2", c(m1,m2), c(1.0, 0.1));
+	
+	// chromosome of length 100 kb with two QTL regions
+	initializeGenomicElement(g1, 0, 39999);
+	initializeGenomicElement(g2, 40000, 49999);
+	initializeGenomicElement(g1, 50000, 79999);
+	initializeGenomicElement(g2, 80000, 89999);
+	initializeGenomicElement(g1, 90000, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	// QTL-related constants used below
+	defineConstant("QTL_mu", c(0, 0));
+	defineConstant("QTL_cov", 0.25);
+	defineConstant("QTL_sigma", matrix(c(1,QTL_cov,QTL_cov,1), nrow=2));
+	defineConstant("QTL_optima", c(20, -20));
+	
+	catn("\nQTL DFE means: ");
+	print(QTL_mu);
+	catn("\nQTL DFE variance-covariance matrix: ");
+	print(QTL_sigma);
+}
+
+1 late() {
+	sim.addSubpop("p1", 500);
+}
+
+1 late() {
+	sim.setValue("history", matrix(c(0.0, 0.0), nrow=1));
+	defineConstant("pngPath", writeTempFile("plot_", ".png", ""));
+	
+	// If we're running in SLiMgui, open a plot window
+	if (exists("slimgui"))
+		slimgui.openDocument(pngPath);
+}
+
+mutation(m2) {
+	// draw mutational effects for the new m2 mutation
+	effects = rmvnorm(1, QTL_mu, QTL_sigma);
+	mut.setValue("e0", effects[0]);
+	mut.setValue("e1", effects[1]);
+	
+	// remember all drawn effects, for our final output
+	old_effects = sim.getValue("all_effects");
+	sim.setValue("all_effects", rbind(old_effects, effects));
+	
+	return T;
+}
+
+late() {
+	for (ind in sim.subpopulations.individuals)
+	{
+		// construct phenotypes from additive effects of QTL mutations
+		muts = ind.genomes.mutationsOfType(m2);
+		phenotype0 = size(muts) ? sum(muts.getValue("e0")) else 0.0;
+		phenotype1 = size(muts) ? sum(muts.getValue("e1")) else 0.0;
+		ind.setValue("phenotype0", phenotype0);
+		ind.setValue("phenotype1", phenotype1);
+		
+		// calculate fitness effects
+		effect0 = 1.0 + dnorm(QTL_optima[0] - phenotype0, 0.0, 20.0) * 10.0;
+		effect1 = 1.0 + dnorm(QTL_optima[1] - phenotype1, 0.0, 20.0) * 10.0;
+		ind.fitnessScaling = effect0 * effect1;
+	}
+}
+
+1:1000000 late() {
+	// output, run every 1000 generations
+	if (sim.generation % 1000 != 0)
+		return;
+	
+	// print final phenotypes versus their optima
+	inds = sim.subpopulations.individuals;
+	p0_mean = mean(inds.getValue("phenotype0"));
+	p1_mean = mean(inds.getValue("phenotype1"));
+	
+	catn();
+	catn("Generation: " + sim.generation);
+	catn("Mean phenotype 0: " + p0_mean + " (" + QTL_optima[0] + ")");
+	catn("Mean phenotype 1: " + p1_mean + " (" + QTL_optima[1] + ")");
+	
+	// update our plot
+	history = sim.getValue("history");
+	history = rbind(history, c(p0_mean, p1_mean));
+	sim.setValue("history", history);
+	
+	rstr = paste(c('{',
+		'x <- c(' + paste(history[,0], sep=", ") + ')',
+		'y <- c(' + paste(history[,1], sep=", ") + ')',
+		'png(width=4, height=4, units="in", res=72, file="' + pngPath + '")',
+		'par(mar=c(4.0, 4.0, 1.5, 1.5))',
+		'plot(x=c(-10,30), y=c(-30,10), type="n", xlab="x", ylab="y")',
+		'points(x=0,y=0,col="red", pch=19, cex=2)',
+		'points(x=20,y=-20,col="green", pch=19, cex=2)',
+		'points(x=x, y=y, col="black", pch=19, cex=0.5)',
+		'lines(x=x, y=y)',
+		'dev.off()',
+		'}'), sep="\n");
+	
+	scriptPath = writeTempFile("plot_", ".R", rstr);
+	system("/usr/bin/Rscript", args=scriptPath);
+	
+	// keep running until we get within 10% of both optima
+	if ((abs(p0_mean - QTL_optima[0]) > abs(0.1 * QTL_optima[0])) |
+		(abs(p1_mean - QTL_optima[1]) > abs(0.1 * QTL_optima[1])))
+		return;
+	
+	// we are done with the main adaptive walk; print final output
+	
+	// get the QTL mutations and their frequencies
+	m2muts = sim.mutationsOfType(m2);
+	m2freqs = sim.mutationFrequencies(NULL, m2muts);
+	
+	// sort those vectors by frequency
+	o = order(m2freqs, ascending=F);
+	m2muts = m2muts[o];
+	m2freqs = m2freqs[o];
+	
+	// get the effect sizes
+	m2e0 = m2muts.getValue("e0");
+	m2e1 = m2muts.getValue("e1");
+	
+	// now output a list of the QTL mutations and their effect sizes
+	catn("\nQTL mutations (f: e0, e1):");
+	for (i in seqAlong(m2muts))
+		catn(m2freqs[i] + ": " + m2e0[i] + ", " + m2e1[i]);
+	
+	// output covariances
+	fixed_m2 = m2muts[m2freqs == 1.0];
+	cov_fixed = cov(fixed_m2.getValue("e0"), fixed_m2.getValue("e1"));
+	effects = sim.getValue("all_effects");
+	cov_drawn = cov(drop(effects[,0]), drop(effects[,1]));
+	
+	catn("\nCovariance of effects among fixed QTLs: " + cov_fixed);
+	catn("\nCovariance of effects specified by the QTL DFE: " + QTL_cov);
+	catn("\nCovariance of effects across all QTL draws: " + cov_drawn);
+	
+	sim.simulationFinished();
+}

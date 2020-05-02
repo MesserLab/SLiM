@@ -1,0 +1,49 @@
+// Keywords: nucleotide-based, fitness()
+
+initialize() {
+	defineConstant("L", 1e4);
+	defineConstant("TAA", nucleotidesToCodons("TAA"));
+	defineConstant("TAG", nucleotidesToCodons("TAG"));
+	defineConstant("TGA", nucleotidesToCodons("TGA"));
+	defineConstant("STOP", c(TAA, TAG, TGA));
+	defineConstant("NONSTOP", (0:63)[match(0:63, STOP) < 0]);
+	
+	codons = sample(NONSTOP, 194, replace=T);
+	seq1 = randomNucleotides(253);
+	seq2 = paste0(codonsToNucleotides(codons, format="char")[0:417]);
+	seq3 = randomNucleotides(200);
+	seq4 = paste0(codonsToNucleotides(codons, format="char")[418:581]);
+	seq5 = randomNucleotides(L-1035);
+	seq = seq1 + seq2 + seq3 + seq4 + seq5;
+	catn("Initial AA sequence: " + codonsToAminoAcids(codons));
+	
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(seq);
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(2.5e-6));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+fitness(NULL) {
+	for (g in individual.genomes)
+	{
+		seq = g.nucleotides(253, 670) + g.nucleotides(871, 1034);
+		codons = nucleotidesToCodons(seq);
+		if (sum(match(codons, STOP) >= 0))
+			return 0.0;
+	}
+	
+	return 1.0;
+}
+100000 late() {
+	catn(sim.substitutions.size() + " fixed mutations.");
+	
+	as1 = sim.chromosome.ancestralNucleotides(253, 670, "integer");
+	as2 = sim.chromosome.ancestralNucleotides(871, 1034, "integer");
+	as = c(as1, as2);
+	codons = nucleotidesToCodons(as);
+	catn("Final AA sequence: " + codonsToAminoAcids(codons));
+}

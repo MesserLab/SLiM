@@ -1,0 +1,30 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
+initialize() {
+	initializeTreeSeq(simplificationRatio=INF);
+	initializeMutationRate(0);
+	initializeMutationType("m2", 0.5, "f", 1.0);
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m2, 1);
+	initializeGenomicElement(g1, 0, 1e6 - 1);
+	initializeRecombinationRate(3e-10);
+}
+1 late() {
+	sim.addSubpop("p1", 1e5);
+}
+100 late() {
+	sample(p1.genomes, 1).addNewDrawnMutation(m2, 5e5);
+}
+100:10000 late() {
+	mut = sim.mutationsOfType(m2);
+	if (mut.size() != 1)
+		stop(sim.generation + ": LOST");
+	else if (sum(sim.mutationFrequencies(NULL, mut)) == 1.0)
+	{
+		sim.treeSeqOutput("recipe_17.10_decap.trees");
+		sim.simulationFinished();
+	}
+}
+
+// Part II of this recipe, which is a Python script, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/

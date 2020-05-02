@@ -1,0 +1,28 @@
+// Keywords: fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);   // neutral
+	initializeMutationType("m2", 0.5, "f", 0.1);   // lactase-promoting
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", c(m1,m2), c(0.99,0.01));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 1000);
+	p1.individuals.tag = rbinom(1000, 1, 0.5);
+}
+modifyChild() {
+	parentCulture = (parent1.tag + parent2.tag) / 2;
+	childCulture = rbinom(1, 1, 0.1 + 0.8 * parentCulture);
+	child.tag = childCulture;
+	return T;
+}
+fitness(m2) {
+	if (individual.tag == 0)
+		return 1.0;         // neutral for non-milk-drinkers
+	else
+		return relFitness;  // beneficial for milk-drinkers
+}
+10000 { sim.simulationFinished(); }

@@ -1,0 +1,20 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
+initialize() {
+	initializeTreeSeq();
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+5000 late() {
+	sim.treeSeqOutput("./recipe_17.1.trees");
+}
+
+// Section 17.2's recipe, which is a Python script that overlays
+// neutral mutations onto the .trees file saved here, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/

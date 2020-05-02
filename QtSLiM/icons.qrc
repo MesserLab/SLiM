@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/AppIcon128.png</file>
+        <file>icons/AppIcon1024.png</file>
+        <file>icons/AppIcon16.png</file>
+        <file>icons/AppIcon32.png</file>
+        <file>icons/AppIcon48.png</file>
+        <file>icons/AppIcon64.png</file>
+        <file>icons/AppIcon256.png</file>
+        <file>icons/AppIcon512.png</file>
+        <file>icons/DocIcon16.png</file>
+        <file>icons/DocIcon32.png</file>
+        <file>icons/DocIcon48.png</file>
+        <file>icons/DocIcon64.png</file>
+        <file>icons/DocIcon128.png</file>
+        <file>icons/DocIcon256.png</file>
+        <file>icons/DocIcon512.png</file>
+        <file>icons/GenericDocIcon16.png</file>
+        <file>icons/GenericDocIcon32.png</file>
+    </qresource>
+</RCC>

@@ -203,6 +203,9 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 // Memory usage tallying, for outputUsage()
 size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable);
 
+// Cleanup for Valgrind
+void FreeSymbolTablePool(void);
+
 
 #endif /* defined(__Eidos__eidos_symbol_table__) */
 

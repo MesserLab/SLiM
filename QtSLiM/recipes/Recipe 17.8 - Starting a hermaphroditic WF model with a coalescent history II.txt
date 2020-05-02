@@ -1,0 +1,30 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
+// Part I of this recipe, which is a Python script, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/
+
+initialize() {
+	initializeTreeSeq();
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.1);
+	initializeGenomicElementType("g1", m2, 1.0);
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	sim.readFromPopulationFile("recipe_17.8.trees");
+	target = sample(sim.subpopulations.genomes, 1);
+	target.addNewDrawnMutation(m2, 10000);
+}
+1: late() {
+	if (sim.mutationsOfType(m2).size() == 0) {
+		print(sim.substitutions.size() ? "FIXED" else "LOST");
+		sim.treeSeqOutput("recipe_17.8_II.trees");
+		sim.simulationFinished();
+	}
+}
+2000 { sim.simulationFinished(); }
+
+// Part III of this recipe, which is a Python script, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/

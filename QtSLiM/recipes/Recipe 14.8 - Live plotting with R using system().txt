@@ -1,0 +1,49 @@
+// Keywords: live plotting
+​
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 5000);
+	sim.setValue("fixed", NULL);
+	
+	defineConstant("pngPath", writeTempFile("plot_", ".png", ""));
+	
+	// If we're running in SLiMgui, open a plot window
+	if (exists("slimgui"))
+		slimgui.openDocument(pngPath);
+}
+1: {
+	if (sim.generation % 10 == 0)
+	{
+		count = sim.substitutions.size();
+		sim.setValue("fixed", c(sim.getValue("fixed"), count));
+	}
+	
+	if (sim.generation % 1000 != 0)
+		return;
+	
+	y = sim.getValue("fixed");
+	
+	rstr = paste(c('{',
+		'x <- (1:' + size(y) + ') * 10',
+		'y <- c(' + paste(y, sep=", ") + ')',
+		'png(width=4, height=4, units="in", res=72, file="' + pngPath + '")',
+		'par(mar=c(4.0, 4.0, 1.5, 1.5))',
+		'plot(x=x, y=y, xlim=c(0, 50000), ylim=c(0, 500), type="l",',
+			'xlab="Generation", ylab="Fixed mutations", cex.axis=0.95,',
+			'cex.lab=1.2, mgp=c(2.5, 0.7, 0), col="red", lwd=2,',
+			'xaxp=c(0, 50000, 2))',
+		'box()',
+		'dev.off()',
+		'}'), sep="\n");
+	
+	scriptPath = writeTempFile("plot_", ".R", rstr);
+	system("/usr/bin/Rscript", args=scriptPath);
+	deleteFile(scriptPath);
+}
+50000 late() { sim.outputFixedMutations(); }

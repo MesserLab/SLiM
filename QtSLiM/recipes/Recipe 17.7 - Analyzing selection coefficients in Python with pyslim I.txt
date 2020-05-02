@@ -1,0 +1,18 @@
+// Keywords: tree-sequence recording, tree sequence recording
+
+initialize() {
+	initializeTreeSeq();
+	initializeMutationRate(1e-10);
+	initializeMutationType("m1", 0.5, "g", 0.1, 0.1);
+	initializeMutationType("m2", 0.5, "g", -0.1, 0.1);
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 1.0));
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+20000 late() { sim.treeSeqOutput("./recipe_17.7.trees"); }
+
+// Part II of this recipe, which is a Python script, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/

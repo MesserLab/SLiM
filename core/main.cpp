@@ -38,6 +38,7 @@
 #include "eidos_test.h"
 #include "slim_test.h"
 #include "eidos_test_element.h"
+#include "eidos_symbol_table.h"
 
 
 static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
@@ -121,6 +122,7 @@ static void clean_up_leak_false_positives(void)
 	Eidos_FreeGlobalStrings();
 	EidosTestElement::FreeThunks();
 	MutationRun::DeleteMutationRunFreeList();
+	FreeSymbolTablePool();
 	Eidos_FreeRNG(gEidos_RNG);
 }
 #endif

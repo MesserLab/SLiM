@@ -1,0 +1,173 @@
+<RCC>
+    <qresource prefix="/">
+        <file>recipes/_README.txt</file>
+        <file>recipes/Recipe 4.1 - A basic neutral simulation.txt</file>
+        <file>recipes/Recipe 4.2.1 - Basic output, Entire population.txt</file>
+        <file>recipes/Recipe 4.2.2 - Basic output, Random population sample.txt</file>
+        <file>recipes/Recipe 4.2.3 - Basic output, Sampling individuals rather than genomes.txt</file>
+        <file>recipes/Recipe 4.2.4 - Basic output, Substitutions.txt</file>
+        <file>recipes/Recipe 4.2.5 - Basic output, Custom output with Eidos.txt</file>
+        <file>recipes/Recipe 5.1.1 - Subpopulation size, Instantaneous changes.txt</file>
+        <file>recipes/Recipe 5.1.2 - Subpopulation size, Exponential growth I.txt</file>
+        <file>recipes/Recipe 5.1.2 - Subpopulation size, Exponential growth II.txt</file>
+        <file>recipes/Recipe 5.1.2 - Subpopulation size, Exponential growth III.txt</file>
+        <file>recipes/Recipe 5.1.2 - Subpopulation size, Exponential growth IV.txt</file>
+        <file>recipes/Recipe 5.1.2 - Subpopulation size, Exponential growth V.txt</file>
+        <file>recipes/Recipe 5.1.4 - Subpopulation size, Cyclical changes.txt</file>
+        <file>recipes/Recipe 5.1.5 - Subpopulation size, Context-dependent changes (Muller's Ratchet).txt</file>
+        <file>recipes/Recipe 5.2.1 - Population structure, Adding subpopulations.txt</file>
+        <file>recipes/Recipe 5.2.2 - Population structure, Removing subpopulations.txt</file>
+        <file>recipes/Recipe 5.2.3 - Population structure, Splitting subpopulations.txt</file>
+        <file>recipes/Recipe 5.2.4 - Population structure, Joining subpopulations.txt</file>
+        <file>recipes/Recipe 5.3.1 - Migration and admixture, A linear stepping-stone model.txt</file>
+        <file>recipes/Recipe 5.3.2 - Migration and admixture, A non-spatial metapopulation.txt</file>
+        <file>recipes/Recipe 5.3.3 - Migration and admixture, A two-dimensional subpopulation matrix.txt</file>
+        <file>recipes/Recipe 5.3.4 - Migration and admixture, A random, sparse spatial metapopulation.txt</file>
+        <file>recipes/Recipe 5.3.5 - Migration and admixture, Reading a migration matrix from a file.txt</file>
+        <file>recipes/Recipe 5.4 - The Gravel et al. (2011) model of human evolution.txt</file>
+        <file>recipes/Recipe 5.5 - Rescaling population sizes to improve simulation performance I.txt</file>
+        <file>recipes/Recipe 5.5 - Rescaling population sizes to improve simulation performance II.txt</file>
+        <file>recipes/Recipe 6.1.1 - Recombination, Crossing over (Making a random recombination map).txt</file>
+        <file>recipes/Recipe 6.1.2 - Recombination, Crossing over (Reading a recombination map from a file).txt</file>
+        <file>recipes/Recipe 6.1.3 - Recombination, Gene conversion.txt</file>
+        <file>recipes/Recipe 6.1.4 - Recombination, Multiple chromosomes.txt</file>
+        <file>recipes/Recipe 6.2.1 - Separate sexes, Enabling separate sexes.txt</file>
+        <file>recipes/Recipe 6.2.2 - Separate sexes, Sex ratios I.txt</file>
+        <file>recipes/Recipe 6.2.2 - Separate sexes, Sex ratios II.txt</file>
+        <file>recipes/Recipe 6.2.3 - Separate sexes, Modeling sex-chromosome evolution.txt</file>
+        <file>recipes/Recipe 6.3.1 - Selfing and cloning, Selfing in hermaphroditic populations.txt</file>
+        <file>recipes/Recipe 6.3.2 - Selfing and cloning, Cloning I.txt</file>
+        <file>recipes/Recipe 6.3.2 - Selfing and cloning, Cloning II.txt</file>
+        <file>recipes/Recipe 7.1 - Genomic structure, Part I (Mutation types and fitness effects).txt</file>
+        <file>recipes/Recipe 7.2 - Genomic structure, Part II (Genomic element types).txt</file>
+        <file>recipes/Recipe 7.3 - Genomic structure, Part III (Chromosome organization).txt</file>
+        <file>recipes/Recipe 7.4 - Genomic structure, Part IV (Custom display colors in SLiMgui).txt</file>
+        <file>recipes/Recipe 9.1 - Introducing adaptive mutations.txt</file>
+        <file>recipes/Recipe 9.2 - Making sweeps conditional on fixation.txt</file>
+        <file>recipes/Recipe 9.3 - Making sweeps conditional on establishment.txt</file>
+        <file>recipes/Recipe 9.4 - Partial sweeps.txt</file>
+        <file>recipes/Recipe 9.5.1 - A soft sweep from recurrent de novo mutations in a large population.txt</file>
+        <file>recipes/Recipe 9.5.2 - A soft sweep with a fixed de novo mutation schedule.txt</file>
+        <file>recipes/Recipe 9.5.3 - A soft sweep with a random de novo mutation schedule.txt</file>
+        <file>recipes/Recipe 9.6.1 - A sweep from standing variation at a random locus.txt</file>
+        <file>recipes/Recipe 9.6.2 - A sweep from standing variation at a predetermined locus.txt</file>
+        <file>recipes/Recipe 9.7 - Adaptive introgression.txt</file>
+        <file>recipes/Recipe 9.8 - Fixation probabilities under Hill-Robertson interference.txt</file>
+        <file>recipes/Recipe 10.1 - Temporally varying selection.txt</file>
+        <file>recipes/Recipe 10.2 - Spatially varying selection.txt</file>
+        <file>recipes/Recipe 10.3.1 - Fitness as a function of genomic background, Epistasis I.txt</file>
+        <file>recipes/Recipe 10.3.1 - Fitness as a function of genomic background, Epistasis II.txt</file>
+        <file>recipes/Recipe 10.4.1 - Fitness as a function of population composition, Frequency-dependent selection I.txt</file>
+        <file>recipes/Recipe 10.4.1 - Fitness as a function of population composition, Frequency-dependent selection II.txt</file>
+        <file>recipes/Recipe 10.4.1 - Fitness as a function of population composition, Frequency-dependent selection III.txt</file>
+        <file>recipes/Recipe 10.4.2 - Fitness as a function of population composition, Cultural effects on fitness.txt</file>
+        <file>recipes/Recipe 10.4.3 - Fitness as a function of population composition, Kin selection and the green-beard effect.txt</file>
+        <file>recipes/Recipe 10.5 - Changing selection coefficients with setSelectionCoeff().txt</file>
+        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations.txt</file>
+        <file>recipes/Recipe 11.1 - Assortative mating.txt</file>
+        <file>recipes/Recipe 11.2 - Sequential mate search I.txt</file>
+        <file>recipes/Recipe 11.2 - Sequential mate search II.txt</file>
+        <file>recipes/Recipe 11.3 - Gametophytic self-incompatibility.txt</file>
+        <file>recipes/Recipe 12.1 - Social learning of cultural traits.txt</file>
+        <file>recipes/Recipe 12.2 - Lethal epistasis I.txt</file>
+        <file>recipes/Recipe 12.2 - Lethal epistasis II.txt</file>
+        <file>recipes/Recipe 12.3 - Simulating gene drive.txt</file>
+        <file>recipes/Recipe 12.4 - Suppressing hermaphroditic selfing.txt</file>
+        <file>recipes/Recipe 12.5 - Tracking separate sexes in script.txt</file>
+        <file>recipes/Recipe 13.1 - Polygenic selection.txt</file>
+        <file>recipes/Recipe 13.2 - A simple model of variable QTL effect sizes.txt</file>
+        <file>recipes/Recipe 13.3 - A model of discrete QTL effects with a structured chromosome.txt</file>
+        <file>recipes/Recipe 13.4 - A quantitative genetics model with heritability.txt</file>
+        <file>recipes/Recipe 13.5 - A QTL-based model with two quantitative phenotypic traits and pleiotropy.txt</file>
+        <file>recipes/Recipe 13.6 - A variety of fitness functions I (stabilizing selection).txt</file>
+        <file>recipes/Recipe 13.6 - A variety of fitness functions II (directional selection).txt</file>
+        <file>recipes/Recipe 13.6 - A variety of fitness functions III (disruptive selection).txt</file>
+        <file>recipes/Recipe 13.6 - A variety of fitness functions IV (truncation selection).txt</file>
+        <file>recipes/Recipe 13.6 - A variety of fitness functions V (squashed_stabilizing selection).txt</file>
+        <file>recipes/Recipe 14.1 - Relatedness, inbreeding, and heterozygosity.txt</file>
+        <file>recipes/Recipe 14.2 - Mortality-based fitness I.txt</file>
+        <file>recipes/Recipe 14.2 - Mortality-based fitness II.txt</file>
+        <file>recipes/Recipe 14.2 - Mortality-based fitness III.txt</file>
+        <file>recipes/Recipe 14.3 - Reading initial simulation state from an MS output file I.txt</file>
+        <file>recipes/Recipe 14.3 - Reading initial simulation state from an MS output file II.txt</file>
+        <file>recipes/Recipe 14.4 - Modeling chromosomal inversions with a recombination() callback.txt</file>
+        <file>recipes/Recipe 14.5 - Modeling both X and Y Chromosomes with a Pseudo-Autosomal Region (PAR).txt</file>
+        <file>recipes/Recipe 14.6 - Estimating model parameters with ABC.txt</file>
+        <file>recipes/Recipe 14.7 - Tracking true local ancestry along the chromosome.txt</file>
+        <file>recipes/Recipe 14.8 - Live plotting with R using system().txt</file>
+        <file>recipes/Recipe 14.9 - Modeling haploid organisms.txt</file>
+        <file>recipes/Recipe 14.10 - Using mutation rate variation to model varying functional density.txt</file>
+        <file>recipes/Recipe 14.11 - Modeling microsatellites.txt</file>
+        <file>recipes/Recipe 14.12 - Modeling transposable elements.txt</file>
+        <file>recipes/Recipe 14.13 - Modeling opposite ends of a chromosome I.txt</file>
+        <file>recipes/Recipe 14.13 - Modeling opposite ends of a chromosome II.txt</file>
+        <file>recipes/Recipe 14.14 - Visualizing ancestry and admixture with mutation() callbacks.txt</file>
+        <file>recipes/Recipe 15.1 - A simple 2D continuous-space model.txt</file>
+        <file>recipes/Recipe 15.2 - Spatial competition.txt</file>
+        <file>recipes/Recipe 15.3 - Boundaries and boundary conditions I (stopping boundaries).txt</file>
+        <file>recipes/Recipe 15.3 - Boundaries and boundary conditions II (reflecting boundaries).txt</file>
+        <file>recipes/Recipe 15.3 - Boundaries and boundary conditions III (absorbing boundaries).txt</file>
+        <file>recipes/Recipe 15.3 - Boundaries and boundary conditions IV (reprising boundaries).txt</file>
+        <file>recipes/Recipe 15.4 - Mate choice with a spatial kernel.txt</file>
+        <file>recipes/Recipe 15.5 - Mate choice with a nearest-neighbor search.txt</file>
+        <file>recipes/Recipe 15.6 - Divergence due to phenotypic competition with an interaction() callback.txt</file>
+        <file>recipes/Recipe 15.7 - Modeling phenotype as a spatial dimension.txt</file>
+        <file>recipes/Recipe 15.8 - Sympatric speciation facilitated by assortative mating.txt</file>
+        <file>recipes/Recipe 15.9 - Speciation due to spatial variation in selection.txt</file>
+        <file>recipes/Recipe 15.10 - A simple biogeographic landscape model.txt</file>
+        <file>recipes/Recipe 15.11 - Local adaptation on a heterogeneous landscape map.txt</file>
+        <file>recipes/Recipe 15.12 - Periodic spatial boundaries.txt</file>
+        <file>recipes/Recipe 16.1 - A simple nonWF model.txt</file>
+        <file>recipes/Recipe 16.2 - Age structure (a life table model).txt</file>
+        <file>recipes/Recipe 16.3 - Monogamous mating and variation in litter size.txt</file>
+        <file>recipes/Recipe 16.4 - Beneficial mutations and absolute fitness.txt</file>
+        <file>recipes/Recipe 16.5 - A metapopulation extinction-colonization model.txt</file>
+        <file>recipes/Recipe 16.6 - Habitat choice.txt</file>
+        <file>recipes/Recipe 16.7 - Evolutionary rescue after environmental change.txt</file>
+        <file>recipes/Recipe 16.8 - Pollen flow.txt</file>
+        <file>recipes/Recipe 16.9 - Litter size and parental investment.txt</file>
+        <file>recipes/Recipe 16.10 - Spatial competition and spatial mate choice in a nonWF model.txt</file>
+        <file>recipes/Recipe 16.11 - A spatial model with carrying-capacity density.txt</file>
+        <file>recipes/Recipe 16.12 - Forcing a specific pedigree in a nonWF model I.txt</file>
+        <file>recipes/Recipe 16.12 - Forcing a specific pedigree in a nonWF model II.txt</file>
+        <file>recipes/Recipe 16.13 - Modeling clonal haploids in a nonWF model with addRecombinant().txt</file>
+        <file>recipes/Recipe 16.14 - Modeling clonal haploid bacteria with horizontal gene transfer.txt</file>
+        <file>recipes/Recipe 16.15 - Implementing a Wright–Fisher model with a nonWF model.txt</file>
+        <file>recipes/Recipe 16.16 - Alternation of generations.txt</file>
+        <file>recipes/Recipe 16.17 - Meiotic drive.txt</file>
+        <file>recipes/Recipe 16.18 - A spatial epidemiological S-I-R model.txt</file>
+        <file>recipes/Recipe 17.1 - A minimal tree-seq model.txt</file>
+        <file>recipes/Recipe 17.2 - Overlaying neutral mutations.py</file>
+        <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
+        <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry II.txt</file>
+        <file>recipes/Recipe 17.4 - Detecting the "dip in diversity" (analyzing tree heights in Python) I.txt</file>
+        <file>recipes/Recipe 17.4 - Detecting the "dip in diversity" (analyzing tree heights in Python) II.py</file>
+        <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) I.txt</file>
+        <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) II.py</file>
+        <file>recipes/Recipe 17.6 - Measuring the coalescence time of a model.txt</file>
+        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with pyslim I.txt</file>
+        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with pyslim II.py</file>
+        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history I.py</file>
+        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history II.txt</file>
+        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history III.py</file>
+        <file>recipes/Recipe 17.9 - Starting a sexual nonWF model with a coalescent history I.py</file>
+        <file>recipes/Recipe 17.9 - Starting a sexual nonWF model with a coalescent history II.txt</file>
+        <file>recipes/Recipe 17.10 - Adding a neutral burn-in after simulation with recapitation I.txt</file>
+        <file>recipes/Recipe 17.10 - Adding a neutral burn-in after simulation with recapitation II.py</file>
+        <file>recipes/Recipe 18.1 - A simple neutral nucleotide-based model.txt</file>
+        <file>recipes/Recipe 18.2 - Reading an ancestral nucleotide sequence from a FASTA file.txt</file>
+        <file>recipes/Recipe 18.3 - Sequence output from nucleotide-based models.txt</file>
+        <file>recipes/Recipe 18.4 - Back-mutations, independent mutational lineages, and VCF output.txt</file>
+        <file>recipes/Recipe 18.5 - Modeling elevated CpG mutation rates and equilibrium nucleotide frequencies.txt</file>
+        <file>recipes/Recipe 18.6 - A nucleotide-based model with introduced non-nucleotide-based mutations.txt</file>
+        <file>recipes/Recipe 18.7 - Using standard SLiM fitness effects with nucleotides (modeling synonymous sites).txt</file>
+        <file>recipes/Recipe 18.8 - Defining sequence-based fitness effects at the nucleotide level.txt</file>
+        <file>recipes/Recipe 18.9 - Defining sequence-based fitness effects at the amino acid level.txt</file>
+        <file>recipes/Recipe 18.10 - Varying the mutation rate along the chromosome in a nucleotide-based model.txt</file>
+        <file>recipes/Recipe 18.11 - Modeling GC-biased gene conversion (gBGC).txt</file>
+        <file>recipes/Recipe 18.12 - Reading VCF files to create nucleotide-based SNPs.txt</file>
+        <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models I.txt</file>
+        <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models II.py</file>
+        <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models III.py</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,44 @@
+// Keywords: migration, dispersal, SLiMgui
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.3);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	mSide = 10;	// number of subpops along one side of the grid
+	for (i in 1:(mSide * mSide))
+		sim.addSubpop(i, 500);
+	
+	subpops = sim.subpopulations;
+	for (x in 1:mSide)
+		for (y in 1:mSide)
+		{
+			destID = (x - 1) + (y - 1) * mSide + 1;
+			ds = subpops[destID - 1];
+			if (x > 1)   // left to right
+				ds.setMigrationRates(destID - 1, runif(1, 0.0, 0.05));
+			if (x < mSide)   // right to left
+				ds.setMigrationRates(destID + 1, runif(1, 0.0, 0.05));
+			if (y > 1)   // top to bottom
+				ds.setMigrationRates(destID - mSide, runif(1, 0.0, 0.05));
+			if (y < mSide)   // bottom to top
+				ds.setMigrationRates(destID + mSide, runif(1, 0.0, 0.05));
+			
+			// set up SLiMgui's population visualization nicely
+			xd = ((x - 1) / (mSide - 1)) * 0.9 + 0.05;
+			yd = ((y - 1) / (mSide - 1)) * 0.9 + 0.05;
+			ds.configureDisplay(c(xd, yd), 0.4);
+		}
+	
+	// remove 25% of the subpopulations
+	subpops[sample(0:99, 25)].setSubpopulationSize(0);
+	
+	// introduce a beneficial mutation
+	target_subpop = sample(sim.subpopulations, 1);
+	sample(target_subpop.genomes, 10).addNewDrawnMutation(m2, 20000);
+}
+10000 late() { sim.outputFull(); }

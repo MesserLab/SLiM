@@ -1,0 +1,53 @@
+// Keywords: QTL, quantitative trait loci, phenotypic competition, fitness(), interaction()
+
+initialize() {
+	defineConstant("optimum", 5.0);
+	defineConstant("sigma_K", 1.0);
+	defineConstant("sigma_C", 0.4);
+	defineConstant("NORM", dnorm(0.0, mean=0, sd=sigma_C));
+	
+	initializeMutationRate(1e-6);
+	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral
+	initializeMutationType("m2", 0.5, "n", 0.0, 1.0);   // QTL
+	m2.convertToSubstitution = F;
+	
+	initializeGenomicElementType("g1", c(m1, m2), c(1, 0.01));
+	initializeGenomicElement(g1, 0, 1e5 - 1);
+	initializeRecombinationRate(1e-8);
+	
+	initializeInteractionType(1, "", reciprocal=T);     // competition
+	i1.setInteractionFunction("f", 1.0);
+}
+fitness(m2) { return 1.0; }
+1 late() {
+	sim.addSubpop("p1", 500);
+}
+1: late() {
+	inds = sim.subpopulations.individuals;
+	
+	// construct phenotypes and fitness effects from QTLs
+	phenotypes = inds.sumOfMutationsOfType(m2);
+	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optimum, sigma_K);
+	inds.tagF = phenotypes;
+	
+	// evaluate phenotypic competition
+	i1.evaluate();
+	competition = sapply(inds, "sum(i1.strength(applyValue));");
+	effects = 1.0 - competition / size(inds);
+	inds.fitnessScaling = inds.fitnessScaling * effects;
+}
+interaction(i1) {
+	return dnorm(exerter.tagF, receiver.tagF, sigma_C) / NORM;
+}
+1:2001 late() {
+	if (sim.generation == 1)
+		cat("  gen    mean      sd\n");
+	
+	if (sim.generation % 100 == 1)
+	{
+		phenotypes = p1.individuals.tagF;
+		cat(format("%5d  ", sim.generation));
+		cat(format("%6.2f  ", mean(phenotypes)));
+		cat(format("%6.2f\n", sd(phenotypes)));
+	}
+}

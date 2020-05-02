@@ -1,0 +1,17 @@
+// Keywords: mutation rate map, mutation map
+
+initialize() {
+	initializeMutationType("m1", 0.5, "f", -0.01);  // deleterious
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	// Use the mutation rate map to vary functional density
+	ends = c(20000, 30000, 70000, 90000, 99999);
+	densities = c(1e-9, 2e-8, 1e-9, 5e-8, 1e-9);
+	initializeMutationRate(densities, ends);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+200000 late() { sim.outputFixedMutations(); }

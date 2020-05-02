@@ -1,0 +1,27 @@
+// Keywords: recombination rate map, recombination map
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 23011543);
+	
+	// read Drosophila 2L map from Comeron et al. 2012
+	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
+	lines = readFile("~/Desktop/Comeron_100kb_chr2L.txt");
+	rates = NULL;
+	ends = NULL;
+	
+	for (line in lines)
+	{
+		components = strsplit(line, "\t");
+		ends = c(ends, asInteger(components[0]));
+		rates = c(rates, asFloat(components[1]));
+	}
+	
+	ends = c(ends[1:(size(ends)-1)] - 2, 23011543);
+	rates = rates * 1e-8;
+	initializeRecombinationRate(rates, ends);
+}
+1 { sim.addSubpop("p1", 500); }
+10000 { sim.simulationFinished(); }

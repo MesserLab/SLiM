@@ -1,0 +1,50 @@
+// Keywords: conditional sweep
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "f", 0.5);  // introduced mutation
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	// save this run's identifier, used to save and restore
+	defineConstant("simID", getSeed());
+	
+	sim.addSubpop("p1", 500);
+}
+1000 late() {
+	// save the state of the simulation
+	sim.outputFull("/tmp/slim_" + simID + ".txt");
+	
+	// introduce the sweep mutation
+	target = sample(p1.genomes, 1);
+	target.addNewDrawnMutation(m2, 10000);
+}
+1000:100000 late() {
+	if (sim.countOfMutationsOfType(m2) == 0)
+	{
+		fixed = (sum(sim.substitutions.mutationType == m2) == 1);
+		
+		if (fixed)
+		{
+			cat(simID + ": FIXED\n");
+			sim.simulationFinished();
+		}
+		else
+		{
+			cat(simID + ": LOST - RESTARTING\n");
+			
+			// go back to generation 1000
+			sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
+			
+			// start a newly seeded run
+			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+			
+			// re-introduce the sweep mutation
+			target = sample(p1.genomes, 1);
+			target.addNewDrawnMutation(m2, 10000);
+		}
+	}
+}

@@ -1,0 +1,14 @@
+// Keywords: rescale
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", -0.1);
+	initializeGenomicElementType("g1", c(m1,m2), c(0.8,0.2));
+	initializeGenomicElement(g1, 0, 9999);
+	initializeRecombinationRate(1e-7);
+}
+1 { sim.addSubpop("p1", 500); }
+5000 { p1.setSubpopulationSize(100); }
+5500 { p1.setSubpopulationSize(500); }
+6000 late() { p1.outputSample(10); }

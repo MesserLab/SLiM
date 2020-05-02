@@ -1,0 +1,36 @@
+// Keywords: MS format
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+}
+
+// custom MS-style output from a multi-subpop sample
+2000 late() {
+	// obtain a random sample of genomes from the whole population
+	g = sample(sim.subpopulations.genomes, 10, T);
+	
+	// get the unique mutations in the sample, sorted by position
+	m = sortBy(unique(g.mutations), "position");
+	
+	// print the number of segregating sites
+	cat("\n\nsegsites: " + size(m) + "\n");
+	
+	// print the positions
+	positions = format("%.6f", m.position / sim.chromosome.lastPosition);
+	cat("positions: " + paste(positions, " ") + "\n");
+	
+	// print the sampled genomes
+	for (genome in g)
+	{
+		hasMuts = (match(m, genome.mutations) >= 0);
+		cat(paste(asInteger(hasMuts), "") + "\n");
+	}
+}

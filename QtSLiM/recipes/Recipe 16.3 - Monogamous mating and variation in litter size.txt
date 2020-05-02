@@ -1,0 +1,45 @@
+// Keywords: nonWF, non-Wright-Fisher
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 500);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	// randomize the order of p1.individuals
+	parents = sample(p1.individuals, p1.individualCount);
+	
+	// draw monogamous pairs and generate litters
+	for (i in seq(0, p1.individualCount - 2, by=2))
+	{
+		parent1 = parents[i];
+		parent2 = parents[i + 1];
+		litterSize = rpois(1, 2.7);
+		
+		for (j in seqLen(litterSize))
+			p1.addCrossed(parent1, parent2);
+	}
+	
+	// disable this callback for this generation
+	self.active = 0;
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+late() {
+	inds = p1.individuals;
+	catn(sim.generation + ": " + size(inds) + " (" + max(inds.age) + ")");
+}
+2000 late() {
+	sim.outputFull(ages=T);
+}

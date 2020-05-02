@@ -1,0 +1,23 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "f", 0.5);  // introduced mutation
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+1000 late() {
+	target = sample(p1.genomes, 1);
+	target.addNewDrawnMutation(m2, 10000);
+}
+1000:10000 late() {
+	mut = sim.mutationsOfType(m2);
+	if (size(mut) == 0)
+		sim.simulationFinished();
+	else if (mut.selectionCoeff != 0.0)
+		if (sim.mutationFrequencies(NULL, mut) >= 0.5)
+			mut.setSelectionCoeff(0.0);
+}

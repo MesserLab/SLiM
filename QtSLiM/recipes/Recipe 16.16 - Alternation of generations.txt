@@ -1,0 +1,78 @@
+// Keywords: alternation of generations, sporophyte, gametophyte, sperm, eggs, diploid, haploid, mating system, fertilization, meiosis, reproduction()
+
+initialize()
+{
+	defineConstant("K", 500);     // carrying capacity (diploid)
+	defineConstant("MU", 1e-7);   // mutation rate
+	defineConstant("R", 1e-7);    // recombination rate
+	defineConstant("L1", 1e5-1);  // chromosome end (length - 1)
+	
+	initializeSLiMModelType("nonWF");
+	initializeSex("A");
+	initializeMutationRate(MU);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L1);
+	initializeRecombinationRate(R);
+}
+1 early()
+{
+	sim.addSubpop("p1", K);
+	sim.addSubpop("p2", 0);
+}
+reproduction(p1)
+{
+	g_1 = genome1;
+	g_2 = genome2;
+	
+	for (meiosisCount in 1:5)
+	{
+		if (individual.sex == "M")
+		{
+			breaks = sim.chromosome.drawBreakpoints(individual);
+			s_1 = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "M");
+			s_2 = p2.addRecombinant(g_2, g_1, breaks, NULL, NULL, NULL, "M");
+			
+			breaks = sim.chromosome.drawBreakpoints(individual);
+			s_3 = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "M");
+			s_4 = p2.addRecombinant(g_2, g_1, breaks, NULL, NULL, NULL, "M");
+		}
+		else if (individual.sex == "F")
+		{
+			breaks = sim.chromosome.drawBreakpoints(individual);
+			if (runif(1) <= 0.5)
+				e = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "F");
+			else
+				e = p2.addRecombinant(g_2, g_1, breaks, NULL, NULL, NULL, "F");
+		}
+	}
+}
+reproduction(p2, "F")
+{
+	mate = p2.sampleIndividuals(1, sex="M", tag=0);
+	mate.tag = 1;
+	
+	child = p1.addRecombinant(individual.genome1, NULL, NULL,
+		mate.genome1, NULL, NULL);
+}
+early()
+{
+	if (sim.generation % 2 == 0)
+	{
+		p1.fitnessScaling = 0.0;
+		p2.individuals.tag = 0;
+		sim.chromosome.setMutationRate(0.0);
+	}
+	else
+	{
+		p2.fitnessScaling = 0.0;
+		p1.fitnessScaling = K / p1.individualCount;
+		sim.chromosome.setMutationRate(MU);
+	}
+}
+10000 late()
+{
+	sim.simulationFinished();
+}
+

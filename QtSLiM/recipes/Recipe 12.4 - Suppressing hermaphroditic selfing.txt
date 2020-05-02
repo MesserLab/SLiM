@@ -1,0 +1,27 @@
+// Keywords: selfing
+
+// NOTE: This model is now obsolete!  Is it now recommended
+// that you use this call in your initialize() callback
+// instead of following this recipe:
+//
+//    initializeSLiMOptions(preventIncidentalSelfing=T);
+//
+// This recipe still works, but is much slower than using
+// that configuration flag.
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+modifyChild()
+{
+	// prevent hermaphroditic selfing
+	if (parent1 == parent2)
+		return F;
+	return T;
+}
+2000 late() { sim.outputFixedMutations(); }

@@ -1,0 +1,14 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);         // non-coding
+	initializeMutationType("m2", 0.5, "f", 0.0);         // synonymous
+	initializeMutationType("m3", 0.1, "g", -0.03, 0.2);  // deleterious
+	initializeMutationType("m4", 0.8, "e", 0.1);         // beneficial
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 5000); }
+10000 { sim.simulationFinished(); }

@@ -1,0 +1,29 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.5);  // mutation A
+	m2.convertToSubstitution = F;
+	initializeMutationType("m3", 0.5, "f", 0.5);  // mutation B
+	m3.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+1 late() {
+	sample(p1.genomes, 20).addNewDrawnMutation(m2, 10000);  // add A
+	sample(p1.genomes, 20).addNewDrawnMutation(m3, 20000);  // add B
+}
+modifyChild() {
+	childGenomes = c(childGenome1, childGenome2);
+	mutACount = sum(childGenomes.countOfMutationsOfType(m2));
+	mutBCount = sum(childGenomes.countOfMutationsOfType(m3));
+	if ((mutACount == 2) & (mutBCount == 2))
+		return F;
+	return T;
+}
+10000 { sim.simulationFinished(); }

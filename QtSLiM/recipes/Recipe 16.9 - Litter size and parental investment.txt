@@ -1,0 +1,63 @@
+// Keywords: nonWF, non-Wright-Fisher, sexual, QTL, quantitative trait loci, reproduction(), fitness()
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeSex("A");
+	defineConstant("K", 500);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeMutationType("m2", 0.5, "n", 0.0, 0.3);  // QTL
+	
+	initializeGenomicElementType("g1", c(m1,m2), c(1.0,0.1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction(NULL, "F") {
+	mate = subpop.sampleIndividuals(1, sex="M");
+	
+	if (mate.size())
+	{
+		qtlValue = individual.tagF;
+		expectedLitterSize = max(0.0, qtlValue + 3);
+		litterSize = rpois(1, expectedLitterSize);
+		penalty = 3.0 / litterSize;
+		
+		for (i in seqLen(litterSize))
+		{
+			offspring = subpop.addCrossed(individual, mate);
+			offspring.setValue("penalty", rgamma(1, penalty, 20));
+		}
+	}
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+	p1.individuals.setValue("penalty", 1.0);
+}
+early() {
+	// non-overlapping generations
+	inds = sim.subpopulations.individuals;
+	inds[inds.age > 0].fitnessScaling = 0.0;
+	inds = inds[inds.age == 0];  // focus on juveniles
+	
+	// QTL calculations
+	inds.tagF = inds.sumOfMutationsOfType(m2);
+	
+	// parental investment fitness penalties
+	inds.fitnessScaling = inds.getValue("penalty");
+	
+	// density-dependence for juveniles
+	p1.fitnessScaling = K / size(inds);
+}
+fitness(m2) { return 1.0; }
+late() {
+	// output the phenotypic mean and pop size
+	qtlValues = p1.individuals.tagF;
+	expectedSizes = pmax(0.0, qtlValues + 3);
+	
+	cat(sim.generation + ": " + p1.individualCount + " individuals");
+	cat(", mean litter size " + mean(expectedSizes));
+	catn();
+}
+20000 late() { sim.simulationFinished(); }

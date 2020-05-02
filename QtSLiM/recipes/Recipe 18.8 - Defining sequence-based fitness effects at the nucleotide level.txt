@@ -1,0 +1,33 @@
+// Keywords: nucleotide-based, fitness()
+
+initialize() {
+	defineConstant("L", 1e4);
+	defineConstant("EFF", c(1.0, 0.1, 1.5, 3.0));
+	initializeSLiMOptions(nucleotideBased=T);
+	
+	seq = randomNucleotides(100) + 'A' + randomNucleotides(1e4 - 101);
+	initializeAncestralNucleotides(seq);
+	
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(2.5e-7));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+late() {
+	if (sum(sim.mutations.position == 100) == 0)
+		s1.active = 0;
+}
+s1 fitness(NULL) {
+	nuc1 = genome1.nucleotides(100, 100, format="integer");
+	nuc2 = genome2.nucleotides(100, 100, format="integer");
+	return EFF[nuc1] * EFF[nuc2];
+}
+10000 late() {
+	subs = sim.substitutions[sim.substitutions.position == 100];
+	
+	for (sub in subs)
+		catn("Sub to " + sub.nucleotide + " in "  + sub.fixationGeneration);
+}

@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>help/SLiMHelpCallbacks.html</file>
+        <file>help/SLiMHelpClasses.html</file>
+        <file>help/SLiMHelpFunctions.html</file>
+        <file>help/EidosHelpFunctions.html</file>
+        <file>help/EidosHelpMethods.html</file>
+        <file>help/EidosHelpOperators.html</file>
+        <file>help/EidosHelpStatements.html</file>
+        <file>help/EidosHelpTypes.html</file>
+    </qresource>
+</RCC>

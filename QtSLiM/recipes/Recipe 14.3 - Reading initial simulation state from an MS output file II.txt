@@ -1,0 +1,62 @@
+// Keywords: MS format
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	sim.addSubpop("p1", 1000);
+	
+	// READ MS FORMAT INITIAL STATE
+	lines = readFile("~/Desktop/ms.txt");
+	index = 0;
+	
+	// skip lines until reaching the // line, then skip that line
+	while (lines[index] != "//")
+		index = index + 1;
+	index = index + 1;
+	
+	if (index + 2 + p1.individualCount * 2 > size(lines))
+		stop("File is too short; terminating.");
+	
+	// next line should be segsites:
+	segsitesLine = lines[index];
+	index = index + 1;
+	parts = strsplit(segsitesLine);
+	if (size(parts) != 2) stop("Malformed segsites.");
+	if (parts[0] != "segsites:") stop("Missing segsites.");
+	segsites = asInteger(parts[1]);
+	
+	// and next is positions:
+	positionsLine = lines[index];
+	index = index + 1;
+	parts = strsplit(positionsLine);
+	if (size(parts) != segsites + 1) stop("Malformed positions.");
+	if (parts[0] != "positions:") stop("Missing positions.");
+	positions = asFloat(parts[1:(size(parts)-1)]);
+	
+	// create all mutations in a genome in a dummy subpopulation
+	sim.addSubpop("p2", 1);
+	g = p2.genomes[0];
+	L = sim.chromosome.lastPosition;
+	intPositions = asInteger(round(positions * L));
+	muts = g.addNewMutation(m1, 0.0, intPositions);
+	
+	// add the appropriate mutations to each genome
+	for (g in p1.genomes)
+	{
+		f = asLogical(asInteger(strsplit(lines[index], "")));
+		index = index + 1;
+		g.addMutations(muts[f]);
+	}
+	
+	// remove the dummy subpopulation
+	p2.setSubpopulationSize(0);
+	
+	// (optional) set the generation to match the save point
+	sim.generation = 20000;
+}
+30000 late() { sim.outputFull(); }

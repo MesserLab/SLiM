@@ -96,6 +96,17 @@ static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSym
 	gEidosSymbolTable_TablePool.emplace_back(p_table);
 }
 
+void FreeSymbolTablePool(void)
+{
+    // Clean up our symbol table slot pool to avoid confusing Valgrind
+    while (gEidosSymbolTable_TablePool.size())
+	{
+		EidosSymbolTableSlot *ret = gEidosSymbolTable_TablePool.back();
+		gEidosSymbolTable_TablePool.pop_back();
+		free(ret);
+	}
+}
+
 
 //
 //	EidosSymbolTable
