@@ -50,6 +50,8 @@ private:
 	// we store the spare array in CSR format, with an offset for each row
 	// see https://medium.com/@jmaxg3/101-ways-to-store-a-sparse-matrix-c7f2bf15a229
 	// we do not sort by column within a row; we do a linear search for the column
+	/* The old sparse array still lingers around. It is technically not being used or called by anyone 
+	so it should be safe to remove but I want to make sure there are no dependency related problems. I will remove this after verifying that it is not used*/ 
 	uint32_t *row_offsets_;			// offsets into columns/values for each row; for N rows, N+1 entries (extra end entry)
 	uint32_t *columns_;				// the column indices for the non-empty values in each row
 	sa_distance_t *distances_;		// a distance value for each non-empty entry
@@ -61,6 +63,13 @@ private:
 	uint32_t nnz_capacity_;			// the number of non-zero entries allocated for at present
 	
 	bool finished_;					// if true, Finished() has been called and the sparse array is ready to use
+	//Stuff for multithreading
+    uint32_t initial_width;
+    uint32_t **columns;
+    sa_distance_t **distances;
+    sa_strength_t **strengths;
+    uint32_t *nnz;
+    uint32_t *nnz_capacity;
 	
 	void _ResizeToFitNNZ(void);
 	inline __attribute__((always_inline)) void ResizeToFitNNZ(void) { if (nnz_ > nnz_capacity_) _ResizeToFitNNZ(); };
@@ -84,6 +93,7 @@ public:
 	// to it until you do that yourself with InteractionsForRow().
 	void AddRowDistances(uint32_t p_row, const uint32_t *p_columns, const sa_distance_t *p_distances, uint32_t p_row_nnz);
 	void AddRowInteractions(uint32_t p_row, const uint32_t *p_columns, const sa_distance_t *p_distances, const sa_strength_t *p_strengths, uint32_t p_row_nnz);
+	void IncreaseRowCapacity(uint32_t p_row);
 	
 	inline void AddEntryDistance(uint32_t p_row, const uint32_t p_column, sa_distance_t p_distance)
 	{
@@ -107,21 +117,18 @@ public:
 		if (p_column >= ncols_)
 			EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding column beyond the end of the sparse array." << EidosTerminate(nullptr);
 #endif
-		
-		// make room for the new entries
-		nnz_++;
-		ResizeToFitNNZ();
-		
-		// add intervening empty rows
-		uint32_t offset = row_offsets_[nrows_set_];
-		
-		while (p_row + 1 > nrows_set_)
-			row_offsets_[++nrows_set_] = offset;
-		
-		// insert the new entry
-		row_offsets_[nrows_set_] = offset + 1;
-		columns_[offset] = p_column;
-		distances_[offset] = p_distance;
+		/* Make room for new entries*/
+        if(*(nnz + p_row) >= *(nnz_capacity + p_row))
+        {
+            IncreaseRowCapacity(p_row);
+        }
+
+        //insert new entries
+        *(*(columns + p_row) + *(nnz + p_row)) = p_column;
+        *(*(distances + p_row) + *(nnz + p_row)) = p_distance;
+
+        nnz[p_row]++;  //increment nnz for specified row
+
 	}
 	void AddEntryInteraction(uint32_t p_row, const uint32_t p_column, sa_distance_t p_distance, sa_strength_t p_strength);
 	
