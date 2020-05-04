@@ -57,8 +57,8 @@
 #include "gsl_cdf.h"
 
 // for sysctlbyname
-#include <sys/types.h>
-#include <sys/sysctl.h>
+// #include <sys/types.h>
+// #include <sys/sysctl.h>
 
 #ifdef EIDOS_SLIM_OPEN_MP
 #include <stdlib.h>
@@ -2000,7 +2000,8 @@ unsigned int Eidos_PhysicalCoreCount()
 	size_t len;
 	unsigned int ncpu;
 	len = sizeof(ncpu);
-	sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
+	//Doesn't build on Linux
+	//sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
 	return ncpu;
 }
 
