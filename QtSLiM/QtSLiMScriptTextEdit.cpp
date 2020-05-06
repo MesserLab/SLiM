@@ -453,7 +453,9 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *event)
         // QTextEdit::cursorForPosition(), which returns the closest cursor position
         // *between* characters, not which character was actually clicked on; see
         // https://www.qtcentre.org/threads/45645-QTextEdit-cursorForPosition()-and-character-at-mouse-pointer
-        int characterPositionClicked = document()->documentLayout()->hitTest(event->localPos(), Qt::ExactHit);
+        QPointF localPos = event->localPos();
+        QPointF documentPos = localPos + QPointF(0, verticalScrollBar()->value());
+        int characterPositionClicked = document()->documentLayout()->hitTest(documentPos, Qt::ExactHit);
         
         if (characterPositionClicked == -1)     // occurs if you click between lines of text
             return;
