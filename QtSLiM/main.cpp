@@ -13,6 +13,10 @@
 #include "eidos_test_element.h"
 #include "eidos_symbol_table.h"
 
+#ifdef __APPLE__
+#include <objc/runtime.h>
+#include  <objc/message.h>
+#endif
 
 #if SLIM_LEAK_CHECKING
 static void clean_up_leak_false_positives(void)
@@ -29,6 +33,85 @@ static void clean_up_leak_false_positives(void)
 // Note that we still get some leaks reported, many of which are likely spurious.  That seems to be caused by:
 // https://stackoverflow.com/a/51553776/2752221
 // I'd like to incorporate the fix given there, but I'm not sure where I'm supposed to find <lsan_interface.h>...
+#endif
+
+
+// Force to light mode on macOS
+// To avoid having to make this a .mm file on macOS, we use the Obj-C runtime directly
+// See https://www.mikeash.com/pyblog/objc_msgsends-new-prototype.html for some background
+// This is pretty gross, but this is also why Objective-C is cool
+// FIXME of course it would be better to actually do a dark mode appearance properly!
+#ifdef __APPLE__
+static void macos_ForceLightMode(void)
+{
+    // First we need to make an NSString with value @"NSAppearanceNameAqua"; 1 is NSASCIIStringEncoding
+    Class nsstring_class = objc_lookUpClass("NSString");
+    SEL selector_stringWithCString_encoding = sel_registerName("stringWithCString:encoding:");
+    
+    if ((!nsstring_class) || (!selector_stringWithCString_encoding))
+        return;
+    
+    //std::cout << "nsstring_class == " << nsstring_class << std::endl;
+    //std::cout << "class_getName(nsstring_class) == " << class_getName(nsstring_class) << std::endl;
+    //std::cout << "selector_stringWithCString_encoding == " << sel_getName(selector_stringWithCString_encoding) << std::endl;
+    
+    id aquaString = ((id (*)(id, SEL, const char *, int))objc_msgSend)((id)nsstring_class, selector_stringWithCString_encoding, "NSAppearanceNameAqua", 1);
+    
+    if (!aquaString)
+        return;
+    
+    //std::cout << "aquaString == " << aquaString << std::endl;
+    //std::cout << std::endl;
+    
+    // Next we need to get the named appearance from NSAppearance
+    Class nsappearance_class = objc_lookUpClass("NSAppearance");
+    SEL selector_appearanceNamed = sel_registerName("appearanceNamed:");
+    
+    if ((!nsappearance_class) || (!selector_appearanceNamed))
+        return;
+    
+    //std::cout << "nsappearance_class == " << nsappearance_class << std::endl;
+    //std::cout << "class_getName(nsappearance_class) == " << class_getName(nsappearance_class) << std::endl;
+    //std::cout << "selector_appearanceNamed == " << sel_getName(selector_appearanceNamed) << std::endl;
+    
+    id aquaAppearance = ((id (*)(id, SEL, id))objc_msgSend)((id)nsappearance_class, selector_appearanceNamed, aquaString);
+    
+    if (!aquaAppearance)
+        return;
+    
+    //std::cout << "aquaAppearance == " << aquaAppearance << std::endl;
+    //std::cout << std::endl;
+    
+    // Then get the shared NSApp object
+    Class nsapp_class = objc_lookUpClass("NSApplication");
+    SEL selector_sharedApplication = sel_registerName("sharedApplication");
+    
+    if ((!nsapp_class) || (!selector_sharedApplication))
+        return;
+    
+    //std::cout << "nsapp_class == " << nsapp_class << std::endl;
+    //std::cout << "class_getName(nsapp_class) == " << class_getName(nsapp_class) << std::endl;
+    //std::cout << "selector_sharedApplication == " << sel_getName(selector_sharedApplication) << std::endl;
+    
+    id sharedApplication = ((id (*)(id, SEL))objc_msgSend)((id)nsapp_class, selector_sharedApplication);
+    
+    if (!sharedApplication)
+        return;
+    
+    //std::cout << "sharedApplication == " << sharedApplication << std::endl;
+    //std::cout << std::endl;
+    
+    // Then call setAppearance: on NSApplication to force light mode
+    SEL selector_setAppearance = sel_registerName("setAppearance:");
+    
+    if (!selector_setAppearance)
+        return;
+    
+    //std::cout << "selector_setAppearance == " << sel_getName(selector_setAppearance) << std::endl;
+    //std::cout << std::endl;
+    
+    ((void (*)(id, SEL, id))objc_msgSend)(sharedApplication, selector_setAppearance, aquaAppearance);
+}
 #endif
 
 
@@ -86,6 +169,11 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
     }
+    
+    // On macOS, force light mode appearance
+#ifdef __APPLE__
+    macos_ForceLightMode();
+#endif
     
     // Tell Qt to use high-DPI pixmaps for icons
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
