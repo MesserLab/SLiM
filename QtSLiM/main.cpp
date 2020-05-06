@@ -34,6 +34,13 @@ static void clean_up_leak_false_positives(void)
 
 int main(int argc, char *argv[])
 {
+    // Check that the run-time Qt version matches the compile-time Qt version
+    if (strcmp(qVersion(), QT_VERSION_STR) != 0)
+    {
+        std::cout << "Run-time Qt version " << qVersion() << " does not match compile-time Qt version " << QT_VERSION_STR << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    
     // Check for running under ASAN and log to confirm it is enabled; see SLiM.pro to enable it
 #if defined(__has_feature)
 #  if __has_feature(address_sanitizer)
