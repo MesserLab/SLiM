@@ -4714,7 +4714,8 @@ void SLiMSim::ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vect
 		const char *metadata = individuals_copy.metadata + individuals_copy.metadata_offset[k];
 		size_t metadata_length = individuals_copy.metadata_offset[k+1] - individuals_copy.metadata_offset[k];
 		
-		tsk_individual_table_add_row(&p_tables->individuals, flags, location, (tsk_size_t)location_length, metadata, (tsk_size_t)metadata_length);
+		ret = tsk_individual_table_add_row(&p_tables->individuals, flags, location, (tsk_size_t)location_length, metadata, (tsk_size_t)metadata_length);
+		if (ret < 0) handle_error("tsk_individual_table_add_row", ret);
 	}
 	
 	assert(p_tables->individuals.num_rows == p_individual_map.size());
@@ -5011,6 +5012,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
 	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_genome->subpop_->subpopulation_id_,
                                         TSK_NULL, metadata, (tsk_size_t)metadata_length);
+	if (offspringTSKID < 0) handle_error("tsk_node_table_add_row", offspringTSKID);
 	
 	p_new_genome->tsk_node_id_ = offspringTSKID;
 	
@@ -5039,7 +5041,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 
 		tsk_id_t parent = (tsk_id_t) (polarity ? genome1TSKID : genome2TSKID);
 		int ret = tsk_edge_table_add_row(&tables_.edges,left,right,parent,offspringTSKID);
-		if (ret < 0) handle_error("add_edge", ret);
+		if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 		
 		polarity = !polarity;
 		left = right;
@@ -5048,7 +5050,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	right = (double)chromosome_.last_position_+1;
 	tsk_id_t parent = (tsk_id_t) (polarity ? genome1TSKID : genome2TSKID);
 	int ret = tsk_edge_table_add_row(&tables_.edges,left,right,parent,offspringTSKID);
-	if (ret < 0) handle_error("add_edge", ret);
+	if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 }
 
 void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
@@ -5087,6 +5089,7 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     double tsk_position = (double) p_position;
 
     tsk_id_t site_id = tsk_site_table_add_row(&tables_.sites, tsk_position, NULL, 0, NULL, 0);
+	if (site_id < 0) handle_error("tsk_site_table_add_row", site_id);
 	
     // form derived state
 	static std::vector<slim_mutationid_t> derived_mutation_ids;
@@ -5129,7 +5132,7 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     int ret = tsk_mutation_table_add_row(&tables_.mutations, site_id, genomeTSKID, TSK_NULL, 
                     derived_muts_bytes, (tsk_size_t)derived_state_length,
                     mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
-	if (ret < 0) handle_error("add_mutation", ret);
+	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
 }
 
 void SLiMSim::CheckAutoSimplification(void)
@@ -6143,7 +6146,8 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 		// first, write out empty entries for unused subpop ids before this one
 		while (last_id_written < subpop_id - 1)
 		{
-			tsk_population_table_add_row(&p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
+			tsk_id_t tsk_population = tsk_population_table_add_row(&p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
+			if (tsk_population < 0) handle_error("tsk_population_table_add_row", tsk_population);
 			last_id_written++;
 		}
 		
@@ -6187,7 +6191,8 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 	// up to largest_subpop_id_ because there could be ancestral nodes that reference them
 	while (last_id_written < last_subpop_id)
 	{
-		tsk_population_table_add_row(&p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
+		tsk_id_t tsk_population = tsk_population_table_add_row(&p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
+		if (tsk_population < 0) handle_error("tsk_population_table_add_row", tsk_population);
 		last_id_written++;
 	}
 }
@@ -6213,7 +6218,7 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	
 	ret = tsk_provenance_table_add_row(&p_tables->provenances, buffer, strlen(buffer), provenance_str, strlen(provenance_str));
 	free(provenance_str);
-	if (ret < 0) handle_error("tsk_provenance_table_set_columns", ret);
+	if (ret < 0) handle_error("tsk_provenance_table_add_row", ret);
 #else
 	// New provenance generation code, using the JSON for Modern C++ library (json.hpp); this is file_version 0.2 (and up)
 	nlohmann::json j;
