@@ -11,6 +11,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = QtSLiM
 TEMPLATE = app
 
+# qmake defines to set up a macOS bundle application build
+QMAKE_INFO_PLIST = QtSLiM_Info.plist
+QMAKE_TARGET_BUNDLE_PREFIX = "edu.MesserLab"
+QMAKE_BUNDLE = "QtSLiM"
+VERSION = 3.3.2
+
 
 # Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
 # .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
@@ -107,6 +113,9 @@ else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PW
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/debug/eidos_zlib.lib
 else:unix: PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/libeidos_zlib.a
 
+# Objective-C runtime library dependency (macOS only), for forcing light mode in main.cpp (see macos_ForceLightMode())
+macx: LIBS += -lobjc.A
+
 
 SOURCES += \
     main.cpp \
@@ -196,3 +205,4 @@ RESOURCES += \
     icons.qrc \
     recipes.qrc \
     help.qrc
+

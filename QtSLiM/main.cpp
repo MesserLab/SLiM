@@ -39,8 +39,12 @@ static void clean_up_leak_false_positives(void)
 // Force to light mode on macOS
 // To avoid having to make this a .mm file on macOS, we use the Obj-C runtime directly
 // See https://www.mikeash.com/pyblog/objc_msgsends-new-prototype.html for some background
-// This is pretty gross, but this is also why Objective-C is cool
-// FIXME of course it would be better to actually do a dark mode appearance properly!
+// This is pretty gross, but this is also why Objective-C is cool!  :->
+// Note that we also have a custom Info.plist file that forces light mode; we try to
+// force light mode in two different ways.  This function is necessary for cmake builds,
+// which do not use the custom Info.plist at this time.  The custom Info.plist is
+// necessary because this function, for some reason, does not succeed in forcing light
+// mode when QtSLiM is built with qmake at the command line.
 #ifdef __APPLE__
 static void macos_ForceLightMode(void)
 {
