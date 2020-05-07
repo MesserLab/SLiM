@@ -20,6 +20,9 @@
 #ifndef QTSLIMINDIVIDUALSWIDGET_H
 #define QTSLIMINDIVIDUALSWIDGET_H
 
+// Silence deprecated OpenGL warnings on macOS
+#define GL_SILENCE_DEPRECATION
+
 #include <QWidget>
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>

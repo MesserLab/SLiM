@@ -20,6 +20,9 @@
 #ifndef QTSLIMHAPLOTYPEMANAGER_H
 #define QTSLIMHAPLOTYPEMANAGER_H
 
+// Silence deprecated OpenGL warnings on macOS
+#define GL_SILENCE_DEPRECATION
+
 #include <QObject>
 #include <QRect>
 #include <QString>
