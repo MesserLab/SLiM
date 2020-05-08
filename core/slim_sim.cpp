@@ -3432,6 +3432,11 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		// TREE SEQUENCE RECORDING
 		if (recording_tree_)
 		{
+#if DEBUG
+			// check the integrity of the tree sequence in every generation in Debug mode only
+			CheckTreeSeqIntegrity();
+#endif
+						
 			CheckAutoSimplification();
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
@@ -3860,6 +3865,11 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		// TREE SEQUENCE RECORDING
 		if (recording_tree_)
 		{
+#if DEBUG
+			// check the integrity of the tree sequence in every generation in Debug mode only
+			CheckTreeSeqIntegrity();
+#endif
+									
 			CheckAutoSimplification();
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
@@ -6858,6 +6868,20 @@ void SLiMSim::DumpMutationTable(void)
 	}
 }
 
+void SLiMSim::CheckTreeSeqIntegrity(void)
+{
+	// Here we call tskit to check the integrity of the tree-sequence tables themselves – not against
+	// SLiM's parallel data structures (done in CrosscheckTreeSeqIntegrity()), just on their own.
+	// At present this is commented out because tsk_table_collection_check_integrity() does checks
+	// that we always fail.  In particular, we have no population table in our table collection while
+	// we are running, so we always get a TSK_ERR_POPULATION_OUT_OF_BOUNDS error.  When tskit is
+	// made more flexible, in terms of being able to turn off checks that we do not want, we will
+	// enable this code with the appropriate flags.  See https://github.com/tskit-dev/tskit/issues/593
+	
+	/*int ret = tsk_table_collection_check_integrity(&tables_, 0);
+	if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);*/
+}
+
 void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 {
 #if DEBUG
@@ -8027,6 +8051,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	// actively working on the tree-seq code.  So let's run it only the first load, and then assume loads are valid,
 	// if we're running a Release build.  With a Debug build we still check on every load.
 #if DEBUG
+	CheckTreeSeqIntegrity();
 	CrosscheckTreeSeqIntegrity();
 #else
 	{
@@ -8034,6 +8059,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 		
 		if (!been_here) {
 			been_here = true;
+			CheckTreeSeqIntegrity();
 			CrosscheckTreeSeqIntegrity();
 		}
 	}

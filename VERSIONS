@@ -18,6 +18,8 @@ development head:
 	extended writeFile() and writeTempFile() to support writing .gz compressed files with compress=T, added zlib 1.2.11 to the project
 	add dbeta(), dexp(), and dgamma() functions to Eidos to provide probability density functions for those distributions
 	extended the compress=T option for writeFile() to support append=T as well, with internal buffering for performance
+	add QtSLiM to project!
+	fix a bug that failed to catch an overflow in the tree-sequence tables for a large model
 
 
 version 3.3.2 (build 2158; Eidos version 2.3.2):

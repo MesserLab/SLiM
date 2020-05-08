@@ -622,7 +622,8 @@ public:
 	void FreeTreeSequence(void);
 	void RecordAllDerivedStatesFromSLiM(void);
 	void DumpMutationTable(void);
-	void CrosscheckTreeSeqIntegrity(void);
+	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
+	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
 	void TSXC_Enable(void);
 	
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
