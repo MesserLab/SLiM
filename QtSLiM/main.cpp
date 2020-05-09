@@ -114,7 +114,9 @@ static void macos_ForceLightMode(void)
     //std::cout << "selector_setAppearance == " << sel_getName(selector_setAppearance) << std::endl;
     //std::cout << std::endl;
     
-    ((void (*)(id, SEL, id))objc_msgSend)(sharedApplication, selector_setAppearance, aquaAppearance);
+    // -[NSApplication setAppearance:] was added in 10.14, so we need to check availability first
+    if (class_respondsToSelector(nsapp_class, selector_setAppearance))
+        ((void (*)(id, SEL, id))objc_msgSend)(sharedApplication, selector_setAppearance, aquaAppearance);
 }
 #endif
 
