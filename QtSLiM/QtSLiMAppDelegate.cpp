@@ -257,6 +257,20 @@ bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
             //qDebug() << "REDUNDANT... event type ==" << type;
         }
     }
+    else if (type == QEvent::FileOpen)
+    {
+        // the user has requested that a file be opened; we find the currently active main window
+        // and have it service the request, so that image files become "owned" by the active main
+        // window, and so that the active main window will be reused if it's untitled and reuseable
+        QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
+        QString filePath = openEvent->file();
+        QtSLiMWindow *window = activeQtSLiMWindow();
+        
+        if (window)
+            window->eidos_openDocument(filePath);   // just calls openFile()
+        
+        return true;    // filter this event, i.e., prevent any further Qt handling of it
+    }
     
     // standard event processing
     return QObject::eventFilter(obj, event);

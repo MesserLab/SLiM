@@ -3141,6 +3141,8 @@ void QtSLiMWindow::finish_eidos_pauseExecution(void)
 
 void QtSLiMWindow::eidos_openDocument(QString path)
 {
+    // Note this is also called by QtSLiMAppDelegate::eventFilter() in response to a QFileOpenEvent,
+    // since we want the same semantics for that action as for the Eidos-triggered open action
     openFile(path);
 }
 
