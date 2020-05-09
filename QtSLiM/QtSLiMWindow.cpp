@@ -65,6 +65,7 @@
 #include <QProcess>
 #include <QDesktopServices>
 #include <QScreen>
+#include <QMetaMethod>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -534,6 +535,11 @@ QtSLiMWindow::~QtSLiMWindow()
 {
     // Do this first, in case it uses any ivars that will be freed
     setInvalidSimulation(true);
+    
+    // Disconnect our connections having to do with focus changes, since they can fire
+    // during our destruction while we are in an invalid state
+    disconnect(qApp, QMetaMethod(), this, QMetaMethod());
+    disconnect(qtSLiMAppDelegate, QMetaMethod(), this, QMetaMethod());
     
     // Then tear down the UI
     delete ui;
