@@ -12,10 +12,16 @@ TARGET = QtSLiM
 TEMPLATE = app
 
 # qmake defines to set up a macOS bundle application build
+CONFIG += app_bundle
 QMAKE_INFO_PLIST = QtSLiM_Info.plist
+ICON = QtSLiM_AppIcon.icns
 QMAKE_TARGET_BUNDLE_PREFIX = "edu.MesserLab"
 QMAKE_BUNDLE = "QtSLiM"
 VERSION = 3.3.2
+
+docIconFiles.files = $$PWD/QtSLiM_DocIcon.icns
+docIconFiles.path = Contents/Resources
+QMAKE_BUNDLE_DATA += docIconFiles
 
 
 # Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
@@ -206,4 +212,8 @@ RESOURCES += \
     icons.qrc \
     recipes.qrc \
     help.qrc
+
+DISTFILES += \
+	QtSLiM_AppIcon.icns \
+	QtSLiM_DocIcon.icns
 
