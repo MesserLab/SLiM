@@ -122,6 +122,9 @@ QtSLiMFindPanel::QtSLiMFindPanel(QWidget *parent) : QDialog(parent), ui(new Ui::
     resize(settings.value("size", QSize(width(), height())).toSize());
     move(settings.value("pos", QPoint(25, 45)).toPoint());
     settings.endGroup();
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
 QtSLiMFindPanel::~QtSLiMFindPanel(void)

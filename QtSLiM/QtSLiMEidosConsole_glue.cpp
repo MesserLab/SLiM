@@ -26,6 +26,7 @@
 #include <QDesktopServices>
 
 #include "QtSLiMWindow.h"
+#include "QtSLiMAppDelegate.h"
 
 
 void QtSLiMEidosConsole::glueUI(void)
@@ -35,7 +36,7 @@ void QtSLiMEidosConsole::glueUI(void)
     // connect all QtSLiMEidosConsole slots
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
     connect(ui->prettyprintButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
-    connect(ui->scriptHelpButton, &QPushButton::clicked, parentSLiMWindow, &QtSLiMWindow::scriptHelpClicked);
+    connect(ui->scriptHelpButton, &QPushButton::clicked, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
     connect(ui->browserButton, &QPushButton::clicked, this, [this]() { setVariableBrowserVisibility(ui->browserButton->isChecked()); });
     
     connect(ui->executeSelectionButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::executeSelectionClicked);
@@ -60,6 +61,9 @@ void QtSLiMEidosConsole::glueUI(void)
     
     connect(ui->clearOutputButton, &QPushButton::pressed, this, &QtSLiMEidosConsole::clearOutputPressed);
     connect(ui->clearOutputButton, &QPushButton::released, this, &QtSLiMEidosConsole::clearOutputReleased);
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
 

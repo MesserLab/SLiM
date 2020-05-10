@@ -30,6 +30,7 @@
 
 #include "QtSLiMWindow.h"
 #include "QtSLiMEidosConsole.h"
+#include "QtSLiMAppDelegate.h"
 
 #include "eidos_symbol_table.h"
 
@@ -276,6 +277,9 @@ QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *parent) :
     
     // initial state
     reloadBrowser(true);
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
 QtSLiMVariableBrowser::~QtSLiMVariableBrowser()

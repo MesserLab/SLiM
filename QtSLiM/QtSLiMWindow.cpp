@@ -22,7 +22,6 @@
 #include "ui_QtSLiMWindow.h"
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMEidosPrettyprinter.h"
-#include "QtSLiMAbout.h"
 #include "QtSLiMPreferences.h"
 #include "QtSLiMFindPanel.h"
 #include "QtSLiMHelpWindow.h"
@@ -531,6 +530,11 @@ void QtSLiMWindow::initializeUI(void)
     setRecentFilesVisible(QtSLiMWindow::hasRecentFiles());
 }
 
+QtSLiMScriptTextEdit *QtSLiMWindow::scriptTextEdit(void)
+{
+    return ui->scriptTextEdit;
+}
+
 QtSLiMWindow::~QtSLiMWindow()
 {
     // Do this first, in case it uses any ivars that will be freed
@@ -729,17 +733,6 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
     {
         event->ignore();
     }
-}
-
-void QtSLiMWindow::aboutQtSLiM()
-{
-    QtSLiMAbout *aboutWindow = new QtSLiMAbout(nullptr);
-    
-    aboutWindow->setAttribute(Qt::WA_DeleteOnClose);    
-    
-    aboutWindow->show();
-    aboutWindow->raise();
-    aboutWindow->activateWindow();
 }
 
 bool QtSLiMWindow::windowIsReuseable(void)
@@ -1694,6 +1687,8 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     ui->actionShowVariableBrowser->setText(!varBrowserVisible ? "Show Variable Browser" : "Hide Variable Browser");
     
     ui->actionClearOutput->setEnabled(!invalidSimulation_);
+    ui->actionExecuteAll->setEnabled(false);
+    ui->actionExecuteSelection->setEnabled(false);
     ui->actionDumpPopulationState->setEnabled(!invalidSimulation_);
     ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_ && !generationPlayOn_);
     
@@ -1865,6 +1860,9 @@ void QtSLiMWindow::displayProfileResults(void)
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     window->setWindowIcon(QIcon());
 #endif
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
     
     // Make a QTextEdit to hold the results
     QHBoxLayout *layout = new QHBoxLayout;
@@ -3508,24 +3506,6 @@ void QtSLiMWindow::showGenomicElementsToggled(void)
 	}
 }
 
-void QtSLiMWindow::showPreferences()
-{
-    QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
-    
-    prefsWindow.show();
-    prefsWindow.raise();
-    prefsWindow.activateWindow();
-}
-
-void QtSLiMWindow::scriptHelpClicked(void)
-{
-    QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
-    
-    helpWindow.show();
-    helpWindow.raise();
-    helpWindow.activateWindow();
-}
-
 void QtSLiMWindow::showConsoleClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
@@ -3535,6 +3515,9 @@ void QtSLiMWindow::showConsoleClicked(void)
         qApp->beep();
         return;
     }
+    
+    // we're about to toggle the visibility, so set our checked state accordingly
+    ui->consoleButton->setChecked(!consoleController->isVisible());
     
     ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
     
@@ -3559,6 +3542,12 @@ void QtSLiMWindow::showBrowserClicked(void)
         qApp->beep();
         return;
     }
+    
+    // we're about to toggle the visibility, so set our checked state accordingly
+    if (!consoleController->variableBrowser())
+        ui->browserButton->setChecked(true);
+    else
+        ui->browserButton->setChecked(!consoleController->variableBrowser()->isVisible());
     
     consoleController->setVariableBrowserVisibility(ui->browserButton->isChecked());
 }
@@ -3830,6 +3819,9 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     // Position the window nicely
     positionNewSubsidiaryWindow(window);
     
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
     return window;
 }
 
@@ -3872,6 +3864,9 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     
     // Position the window nicely
     positionNewSubsidiaryWindow(window);
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
     
     return window;
 }

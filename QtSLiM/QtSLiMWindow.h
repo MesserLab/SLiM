@@ -45,6 +45,7 @@ class QtSLiMTablesDrawer;
 class QItemSelection;
 class SLiMgui;
 class QtSLiMGraphView;
+class QtSLiMScriptTextEdit;
 
 
 namespace Ui {
@@ -180,6 +181,7 @@ public:
     void setGenerationPlayOn(bool p_flag);
     void setProfilePlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
+    QtSLiMScriptTextEdit *scriptTextEdit(void);
     QtSLiMEidosConsole *ConsoleController(void) { return consoleController; }
     QtSLiMTablesDrawer *TablesDrawerController(void) { return tablesDrawerController; }
     
@@ -242,7 +244,6 @@ public slots:
     void showChromosomeMapsToggled(void);
     void showGenomicElementsToggled(void);
 
-    void scriptHelpClicked(void);
     void showConsoleClicked(void);
     void showBrowserClicked(void);
 
@@ -253,24 +254,22 @@ public slots:
 
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
     
+    void newFile_WF(void);
+    void newFile_nonWF(void);
+    void open(void);
+    
     //
     //  UI glue, defined in QtSLiMWindow_glue.cpp
     //
     
 private slots:
-    void aboutQtSLiM();
-    void showPreferences();
-    
-    void newFile_WF();
-    void newFile_nonWF();
-    void open();
-    bool save();
-    bool saveAs();
-    void revert();
-    void updateRecentFileActions();
-    void openRecentFile();
-    void clearRecentFiles();
-    void documentWasModified();
+    bool save(void);
+    bool saveAs(void);
+    void revert(void);
+    void updateRecentFileActions(void);
+    void openRecentFile(void);
+    void clearRecentFiles(void);
+    void documentWasModified(void);
     
     void playOneStepPressed(void);
     void playOneStepReleased(void);

@@ -42,8 +42,10 @@
 #include "genomic_element_type.h"
 #include "individual.h"
 #include "subpopulation.h"
+
 #include "QtSLiMExtras.h"
 #include "QtSLiM_SLiMgui.h"
+#include "QtSLiMAppDelegate.h"
 
 #include <vector>
 #include <algorithm>
@@ -293,6 +295,9 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window
     checkDocumentationOfClass(gSLiM_Subpopulation_Class);
     checkDocumentationOfClass(gSLiM_Substitution_Class);
     checkDocumentationOfClass(gSLiM_SLiMgui_Class);
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
 QtSLiMHelpWindow::~QtSLiMHelpWindow()

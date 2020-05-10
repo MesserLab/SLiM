@@ -51,7 +51,7 @@ void QtSLiMWindow::glueUI(void)
 
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
     connect(ui->prettyprintButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprint);
-    connect(ui->scriptHelpButton, &QPushButton::clicked, this, &QtSLiMWindow::scriptHelpClicked);
+    connect(ui->scriptHelpButton, &QPushButton::clicked, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
     connect(ui->consoleButton, &QPushButton::clicked, this, &QtSLiMWindow::showConsoleClicked);
     connect(ui->browserButton, &QPushButton::clicked, this, &QtSLiMWindow::showBrowserClicked);
 
@@ -98,68 +98,20 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->changeDirectoryButton, &QPushButton::pressed, this, &QtSLiMWindow::changeDirectoryPressed);
     connect(ui->changeDirectoryButton, &QPushButton::released, this, &QtSLiMWindow::changeDirectoryReleased);
     
-    // fix application-level actions to know they are application-level; not sure whether/how this matters
-    ui->actionNew->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionNew_nonWF->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionOpen->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionClose->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionQtSLiMHelp->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionSLiMWorkshops->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionSendFeedback->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionMailingList_slimannounce->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionMailingList_slimdiscuss->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionSLiMHomePage->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionSLiMExtras->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionAboutMesserLab->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionAboutBenHaller->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionAboutStickSoftware->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionQuitQtSLiM->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionFindRecipe->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionAboutQtSLiM->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionPreferences->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionOpenRecent->setShortcutContext(Qt::ApplicationShortcut);
-    
-    // ok, "application-level" means they can fire even when a QtSLiMWindow is not the active window, basically,
-    // so all actions that we want to be able to fire while the Eidos console is front need to have this set as well
-    ui->actionCheckScript->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionPrettyprintScript->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionShowScriptHelp->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionShowEidosConsole->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionShowVariableBrowser->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionClearOutput->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionShiftLeft->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionShiftRight->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionCommentUncomment->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionExecuteSelection->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionExecuteAll->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionFindShow->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionFindNext->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionFindPrevious->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionReplaceAndFind->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionUseSelectionForFind->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionUseSelectionForReplace->setShortcutContext(Qt::ApplicationShortcut);
-    ui->actionJumpToSelection->setShortcutContext(Qt::ApplicationShortcut);
-    
     // this action seems to need to be added to the main window in order to function reliably;
     // I'm not sure why, maybe it is because it is connected to an object that is not a widget?
     // adding it as an action here seems to have no visible effect except that the shortcut now works
     addAction(ui->actionFindRecipe);
     
     // connect all menu items with existing slots
-    connect(ui->actionQuitQtSLiM, &QAction::triggered, qApp, &QApplication::closeAllWindows, Qt::QueuedConnection);
-    connect(ui->actionAboutQtSLiM, &QAction::triggered, this, &QtSLiMWindow::aboutQtSLiM);
-    connect(ui->actionPreferences, &QAction::triggered, this, &QtSLiMWindow::showPreferences);
-    connect(ui->actionNew, &QAction::triggered, this, &QtSLiMWindow::newFile_WF);
-    connect(ui->actionNew_nonWF, &QAction::triggered, this, &QtSLiMWindow::newFile_nonWF);
-    connect(ui->actionOpen, &QAction::triggered, this, &QtSLiMWindow::open);
-    connect(ui->actionClose, &QAction::triggered, []() {
-        // We close the "active" window, which is a bit different from the front window
-        // It can be nullptr; in that case it's hard to know what to do
-        QWidget *activeWindow = QApplication::activeWindow();
-        
-        if (activeWindow)
-            activeWindow->close();
-    });
+    connect(ui->actionPreferences, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_preferences);
+    connect(ui->actionAboutQtSLiM, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_about);
+    connect(ui->actionQtSLiMHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
+    connect(ui->actionQuitQtSLiM, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_quit);
+    connect(ui->actionNew, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF);
+    connect(ui->actionNew_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF);
+    connect(ui->actionOpen, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_open);
+    connect(ui->actionClose, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_close);
     connect(ui->actionSave, &QAction::triggered, this, &QtSLiMWindow::save);
     connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
     connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
@@ -169,92 +121,16 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
     connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
     connect(ui->actionDumpPopulationState, &QAction::triggered, this, &QtSLiMWindow::dumpPopulationClicked);
-    connect(ui->actionQtSLiMHelp, &QAction::triggered, this, &QtSLiMWindow::scriptHelpClicked);
     
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
-    connect(ui->actionCheckScript, &QAction::triggered, this, [this]() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        
-        if (slimWindow == this)
-            ui->scriptTextEdit->checkScript();
-        else if (eidosConsole)
-            eidosConsole->scriptTextEdit()->checkScript();
-    });
-    connect(ui->actionPrettyprintScript, &QAction::triggered, this, [this]() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        
-        if (slimWindow == this)
-            ui->scriptTextEdit->prettyprint();
-        else if (eidosConsole)
-            eidosConsole->scriptTextEdit()->prettyprint();
-    });
-    connect(ui->actionShowScriptHelp, &QAction::triggered, this, [this]() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        
-        if (slimWindow == this)
-            scriptHelpClicked();
-        else if (eidosConsole)
-            eidosConsole->parentSLiMWindow->scriptHelpClicked();
-    });
-    connect(ui->actionShowEidosConsole, &QAction::triggered, this, [this]() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        
-        if (slimWindow == this)
-        {
-            ui->consoleButton->toggle();
-            showConsoleClicked();
-        }
-        else if (eidosConsole)
-        {
-            eidosConsole->parentSLiMWindow->ui->consoleButton->toggle();
-            eidosConsole->parentSLiMWindow->showConsoleClicked();
-        }
-    });
-    connect(ui->actionShowVariableBrowser, &QAction::triggered, this, [this]() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWidget->window());
-        
-        if (slimWindow == this)
-        {
-            // If our QtSLiMWindow is the focus, handle this ourselves
-            ui->browserButton->toggle();
-            showBrowserClicked();
-        }
-        else if (eidosConsole)
-        {
-            // If an Eidos console window is the focus, give it to that console's QtSLiMWindow
-            eidosConsole->parentSLiMWindow->ui->browserButton->toggle();
-            eidosConsole->parentSLiMWindow->showBrowserClicked();
-        }
-        else if (varBrowser)
-        {
-            // If a variable browser is the focus, give it to the browser's console's QtSLiMWindow
-            varBrowser->parentEidosConsole->parentSLiMWindow->ui->browserButton->toggle();
-            varBrowser->parentEidosConsole->parentSLiMWindow->showBrowserClicked();
-        }
-    });
-    connect(ui->actionClearOutput, &QAction::triggered, this, [this]() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWidget->window());
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        
-        if (slimWindow == this)
-            clearOutputClicked();
-        else if (eidosConsole)
-            eidosConsole->consoleTextEdit()->clearToPrompt();
-    });
+    connect(ui->actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
+    connect(ui->actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);
+    connect(ui->actionShowScriptHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
+    connect(ui->actionShowEidosConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showEidosConsole);
+    connect(ui->actionShowVariableBrowser, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showVariableBrowser);
+    connect(ui->actionClearOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearOutput);
     
-    // connect menu items that open a URL
+    // connect menu items that open a URL; these have no shortcut, and so do not need to be delegated to qtSLiMAppDelegate
     connect(ui->actionSLiMWorkshops, &QAction::triggered, []() {
         QDesktopServices::openUrl(QUrl("http://benhaller.com/workshops/workshops.html", QUrl::TolerantMode));
     });
@@ -284,123 +160,30 @@ void QtSLiMWindow::glueUI(void)
     });
     
     // connect custom menu items
-    connect(ui->actionShiftLeft, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
-        
-        if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
-            scriptEdit->shiftSelectionLeft();
-    });
-    connect(ui->actionShiftRight, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
-        
-        if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
-            scriptEdit->shiftSelectionRight();
-    });
-    connect(ui->actionCommentUncomment, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
-        
-        if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
-            scriptEdit->commentUncommentSelection();
-    });
-    connect(ui->actionExecuteSelection, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        
-        if (eidosConsole)
-            eidosConsole->executeSelectionClicked();
-    });
-    connect(ui->actionExecuteAll, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWidget->window());
-        
-        if (eidosConsole)
-            eidosConsole->executeAllClicked();
-    });
+    connect(ui->actionShiftLeft, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftLeft);
+    connect(ui->actionShiftRight, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftRight);
+    connect(ui->actionCommentUncomment, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_commentUncomment);
+    connect(ui->actionExecuteSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_executeSelection);
+    connect(ui->actionExecuteAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_executeAll);
     
     // standard actions that need to be dispatched (I haven't found a better way to do this;
     // this is basically implementing the first responder / event dispatch mechanism)
-    connect(ui->actionUndo, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
-        
-        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
-            lineEdit->undo();
-        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
-            textEdit->undo();
-    });
-    connect(ui->actionRedo, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
-        
-        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
-            lineEdit->redo();
-        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
-            textEdit->redo();
-    });
-    connect(ui->actionCut, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
-        
-        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
-            lineEdit->cut();
-        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
-            textEdit->cut();
-    });
-    connect(ui->actionCopy, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
-        
-        if (lineEdit && lineEdit->isEnabled())
-            lineEdit->copy();
-        else if (textEdit && textEdit->isEnabled())
-            textEdit->copy();
-    });
-    connect(ui->actionPaste, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
-        
-        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
-            lineEdit->paste();
-        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
-            textEdit->paste();
-    });
-    connect(ui->actionDelete, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
-        
-        if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
-            lineEdit->insert("");
-        else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
-            textEdit->insertPlainText("");
-    });
-    connect(ui->actionSelectAll, &QAction::triggered, []() {
-        QWidget *focusWidget = QApplication::focusWidget();
-        QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
-        
-        if (lineEdit && lineEdit->isEnabled())
-            lineEdit->selectAll();
-        else if (textEdit && textEdit->isEnabled())
-            textEdit->selectAll();
-    });
+    connect(ui->actionUndo, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_undo);
+    connect(ui->actionRedo, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_redo);
+    connect(ui->actionCut, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_cut);
+    connect(ui->actionCopy, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_copy);
+    connect(ui->actionPaste, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_paste);
+    connect(ui->actionDelete, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_delete);
+    connect(ui->actionSelectAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_selectAll);
     
     // Find panel actions; these just get forwarded to QtSLiMFindPanel
-    connect(ui->actionFindShow, &QAction::triggered, []() { QtSLiMFindPanel::instance().showFindPanel(); });
-    connect(ui->actionFindNext, &QAction::triggered, []() { QtSLiMFindPanel::instance().findNext(); });
-    connect(ui->actionFindPrevious, &QAction::triggered, []() { QtSLiMFindPanel::instance().findPrevious(); });
-    connect(ui->actionReplaceAndFind, &QAction::triggered, []() { QtSLiMFindPanel::instance().replaceAndFind(); });
-    connect(ui->actionUseSelectionForFind, &QAction::triggered, []() { QtSLiMFindPanel::instance().useSelectionForFind(); });
-    connect(ui->actionUseSelectionForReplace, &QAction::triggered, []() { QtSLiMFindPanel::instance().useSelectionForReplace(); });
-    connect(ui->actionJumpToSelection, &QAction::triggered, []() { QtSLiMFindPanel::instance().jumpToSelection(); });
+    connect(ui->actionFindShow, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findShow);
+    connect(ui->actionFindNext, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findNext);
+    connect(ui->actionFindPrevious, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findPrevious);
+    connect(ui->actionReplaceAndFind, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_replaceAndFind);
+    connect(ui->actionUseSelectionForFind, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_useSelectionForFind);
+    connect(ui->actionUseSelectionForReplace, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_useSelectionForReplace);
+    connect(ui->actionJumpToSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_jumpToSelection);
 }
 
 

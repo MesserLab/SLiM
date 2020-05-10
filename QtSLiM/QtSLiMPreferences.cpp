@@ -24,6 +24,8 @@
 #include <QSettings>
 #include <QDebug>
 
+#include "QtSLiMAppDelegate.h"
+
 
 //
 //  QSettings keys for the prefs we control; these are private
@@ -240,6 +242,9 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new 
     connect(ui->syntaxHighlightOutput, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::syntaxHighlightOutputToggled);
 
     connect(ui->resetSuppressedButton, &QPushButton::clicked, notifier, &QtSLiMPreferencesNotifier::resetSuppressedClicked);
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
 QtSLiMPreferences::~QtSLiMPreferences()

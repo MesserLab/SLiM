@@ -22,6 +22,7 @@
 #include "QtSLiMHaplotypeOptions.h"
 #include "QtSLiMHaplotypeProgress.h"
 #include "QtSLiMExtras.h"
+#include "QtSLiMAppDelegate.h"
 
 #include <QOpenGLFunctions>
 #include <QDialog>
@@ -88,6 +89,9 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
             
             // The haplotype manager is owned by the graph view, as a delegate object
             haplotypeView->setDelegate(haplotypeManager);
+            
+            // make window actions for all global menu items
+            qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
             
             // Show the window
             window->show();

@@ -42,6 +42,9 @@ QtSLiMAbout::QtSLiMAbout(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMAb
     
     // fix version number; FIXME would be nice to figure out a way to get the build number on Linux...
     ui->versionLabel->setText("version " + QString(SLIM_VERSION_STRING) + " (Qt " + QT_VERSION_STR + ")");
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
 QtSLiMAbout::~QtSLiMAbout()

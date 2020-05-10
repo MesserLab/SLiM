@@ -33,6 +33,8 @@
 
 #include "QtSLiMWindow.h"
 #include "QtSLiMExtras.h"
+#include "QtSLiMAppDelegate.h"
+
 #include "mutation_type.h"
 #include "interaction_type.h"
 #include "eidos_rng.h"
@@ -455,6 +457,9 @@ void QtSLiMTablesDrawer::initializeUI(void)
         eidosBlockTableHHeader->setSectionResizeMode(2, QHeaderView::Fixed);
         eidosBlockTableHHeader->setSectionResizeMode(3, QHeaderView::Stretch);
     }
+    
+    // make window actions for all global menu items
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
 void QtSLiMTablesDrawer::closeEvent(QCloseEvent *event)

@@ -22,6 +22,14 @@
 #include "QtSLiMWindow.h"
 #include "QtSLiMFindRecipe.h"
 #include "QtSLiM_SLiMgui.h"
+#include "QtSLiMScriptTextEdit.h"
+#include "QtSLiMAbout.h"
+#include "QtSLiMPreferences.h"
+#include "QtSLiMHelpWindow.h"
+#include "QtSLiMFindPanel.h"
+#include "QtSLiMEidosConsole.h"
+#include "QtSLiMVariableBrowser.h"
+#include "QtSLiMConsoleTextEdit.h"
 
 #include <QApplication>
 #include <QOpenGLWidget>
@@ -361,6 +369,541 @@ void QtSLiMAppDelegate::openRecipe(void)
         }
      }
 }
+
+//
+//  "First responder" type dispatch for actions shared across the app
+//
+
+// Here is the problem driving this design.  We want various actions, like "Close" and "New nonWF" and so forth,
+// to work (with their shortcut) regardless of what window is frontmost; they should be global actions that
+// are, at least conceptually, handled by the app, not by any specific widget or window.  Originally I tried
+// defining these as "application" shortcuts, with Qt::ApplicationShortcut; that worked well on macOS, but on
+// Linux they were deemed "ambiguous" by Qt when more than one main window was open – Qt didn't know which
+// main window to dispatch to, for some reason.  Designating them as "window" shortcuts, with Qt::WindowShortcut,
+// therefore seems to be a forced move.  However, they then work only if a main window is the active window, on
+// Linux, unless we add them as window actions to every window in the app.  So that's what we do – add them to
+// every window.  This helper method takes a window and adds all the global actions to it.  I feel like I'm
+// maybe missing something with this design; there must be a more elegant way to do this in Qt.  But I've gone
+// around and around on the menu item dispatch mechanism, and this is the best solution I've found.
+
+// Note that it remains the case that the menu bar is owned by QtSLiMWindow, and that each QtSLiMWindow has its
+// own menu bar; on Linux that is visible to the user, on macOS it is not.  QtSLiMWindow is therefore responsible
+// for menu item enabling and validation, even for the global actions defined here.  The validation logic needs
+// to be parallel to the dispatch logic here.  Arguably, we could have QtSLiMWindow delegate the validation to
+// QtSLiMAppDelegate so that all the global action logic is together in this class, but since QtSLiMWindow owns
+// the menu items, and they are private, I left the validation code there.
+
+// Some actions added here have no shortcut.  Since they are not associated with any menu item or toolbar item,
+// they will never actually be called.  Conceptually, they are global actions, though, and if a shortcut is
+// added for them later, they will become callable here.  So they are declared here as placeholders.
+
+void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
+{
+    {
+        QAction *actionPreferences = new QAction("Preferences", this);
+        actionPreferences->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionPreferences, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_preferences);
+        window->addAction(actionPreferences);
+    }
+    {
+        QAction *actionAbout = new QAction("About", this);
+        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionAbout, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_about);
+        window->addAction(actionAbout);
+    }
+    {
+        QAction *actionHelp = new QAction("Help", this);
+        //actionHelp->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
+        window->addAction(actionHelp);
+    }
+    {
+        QAction *actionQuit = new QAction("Quit", this);
+        actionQuit->setShortcut(Qt::CTRL + Qt::Key_Q);
+        connect(actionQuit, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_quit);
+        window->addAction(actionQuit);
+    }
+    
+    {
+        QAction *actionNewWF = new QAction("New WF", this);
+        actionNewWF->setShortcut(Qt::CTRL + Qt::Key_N);
+        connect(actionNewWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF);
+        window->addAction(actionNewWF);
+    }
+    {
+        QAction *actionNewNonWF = new QAction("New nonWF", this);
+        actionNewNonWF->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_N);
+        connect(actionNewNonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF);
+        window->addAction(actionNewNonWF);
+    }
+    {
+        QAction *actionOpen = new QAction("Open", this);
+        actionOpen->setShortcut(Qt::CTRL + Qt::Key_O);
+        connect(actionOpen, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_open);
+        window->addAction(actionOpen);
+    }
+    {
+        QAction *actionClose = new QAction("Close", this);
+        actionClose->setShortcut(Qt::CTRL + Qt::Key_W);
+        connect(actionClose, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_close);
+        window->addAction(actionClose);
+    }
+    
+    {
+        QAction *actionCheckScript = new QAction("Check Script", this);
+        actionCheckScript->setShortcut(Qt::CTRL + Qt::Key_Equal);
+        connect(actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
+        window->addAction(actionCheckScript);
+    }
+    {
+        QAction *actionPrettyprintScript = new QAction("Prettyprint Script", this);
+        actionPrettyprintScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Equal);
+        connect(actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);
+        window->addAction(actionPrettyprintScript);
+    }
+    {
+        QAction *actionShowScriptHelp = new QAction("Show Script Help", this);
+        //actionShowScriptHelp->setShortcut(Qt::CTRL + Qt::Key_K);
+        connect(actionShowScriptHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
+        window->addAction(actionShowScriptHelp);
+    }
+    {
+        QAction *actionShowEidosConsole = new QAction("Show Eidos Console", this);
+        actionShowEidosConsole->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_E);
+        connect(actionShowEidosConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showEidosConsole);
+        window->addAction(actionShowEidosConsole);
+    }
+    {
+        QAction *actionShowVariableBrowser = new QAction("Show Variable Browser", this);
+        actionShowVariableBrowser->setShortcut(Qt::CTRL + Qt::Key_B);
+        connect(actionShowVariableBrowser, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showVariableBrowser);
+        window->addAction(actionShowVariableBrowser);
+    }
+    {
+        QAction *actionClearOutput = new QAction("Clear Output", this);
+        actionClearOutput->setShortcut(Qt::CTRL + Qt::Key_K);
+        connect(actionClearOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearOutput);
+        window->addAction(actionClearOutput);
+    }
+    {
+        QAction *actionExecuteSelection = new QAction("Execute Selection", this);
+        actionExecuteSelection->setShortcut(Qt::CTRL + Qt::Key_Return);
+        connect(actionExecuteSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_executeSelection);
+        window->addAction(actionExecuteSelection);
+    }
+    {
+        QAction *actionExecuteAll = new QAction("Execute All", this);
+        actionExecuteAll->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Return);
+        connect(actionExecuteAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_executeAll);
+        window->addAction(actionExecuteAll);
+    }
+    
+    {
+        QAction *actionShiftLeft = new QAction("Shift Left", this);
+        actionShiftLeft->setShortcut(Qt::CTRL + Qt::Key_BracketLeft);
+        connect(actionShiftLeft, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftLeft);
+        window->addAction(actionShiftLeft);
+    }
+    {
+        QAction *actionShiftRight = new QAction("Shift Right", this);
+        actionShiftRight->setShortcut(Qt::CTRL + Qt::Key_BracketRight);
+        connect(actionShiftRight, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftRight);
+        window->addAction(actionShiftRight);
+    }
+    {
+        QAction *actionCommentUncomment = new QAction("CommentUncomment", this);
+        actionCommentUncomment->setShortcut(Qt::CTRL + Qt::Key_Slash);
+        connect(actionCommentUncomment, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_commentUncomment);
+        window->addAction(actionCommentUncomment);
+    }
+    
+    {
+        QAction *actionUndo = new QAction("Undo", this);
+        actionUndo->setShortcut(Qt::CTRL + Qt::Key_Z);
+        connect(actionUndo, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_undo);
+        window->addAction(actionUndo);
+    }
+    {
+        QAction *actionRedo = new QAction("Redo", this);
+        actionRedo->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Z);
+        connect(actionRedo, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_redo);
+        window->addAction(actionRedo);
+    }
+    {
+        QAction *actionCut = new QAction("Cut", this);
+        actionCut->setShortcut(Qt::CTRL + Qt::Key_X);
+        connect(actionCut, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_cut);
+        window->addAction(actionCut);
+    }
+    {
+        QAction *actionCopy = new QAction("Copy", this);
+        actionCopy->setShortcut(Qt::CTRL + Qt::Key_C);
+        connect(actionCopy, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_copy);
+        window->addAction(actionCopy);
+    }
+    {
+        QAction *actionPaste = new QAction("Paste", this);
+        actionPaste->setShortcut(Qt::CTRL + Qt::Key_V);
+        connect(actionPaste, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_paste);
+        window->addAction(actionPaste);
+    }
+    {
+        QAction *actionDelete = new QAction("Delete", this);
+        //actionDelete->setShortcut(Qt::CTRL + Qt::Key_V);
+        connect(actionDelete, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_delete);
+        window->addAction(actionDelete);
+    }
+    {
+        QAction *actionSelectAll = new QAction("Select All", this);
+        actionSelectAll->setShortcut(Qt::CTRL + Qt::Key_A);
+        connect(actionSelectAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_selectAll);
+        window->addAction(actionSelectAll);
+    }
+    
+    {
+        QAction *actionFindShow = new QAction("Find...", this);
+        actionFindShow->setShortcut(Qt::CTRL + Qt::Key_F);
+        connect(actionFindShow, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findShow);
+        window->addAction(actionFindShow);
+    }
+    {
+        QAction *actionFindNext = new QAction("Find Next", this);
+        actionFindNext->setShortcut(Qt::CTRL + Qt::Key_G);
+        connect(actionFindNext, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findNext);
+        window->addAction(actionFindNext);
+    }
+    {
+        QAction *actionFindPrevious = new QAction("Find Previous", this);
+        actionFindPrevious->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_G);
+        connect(actionFindPrevious, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findPrevious);
+        window->addAction(actionFindPrevious);
+    }
+    {
+        QAction *actionReplaceAndFind = new QAction("Replace and Find", this);
+        actionReplaceAndFind->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_G);
+        connect(actionReplaceAndFind, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_replaceAndFind);
+        window->addAction(actionReplaceAndFind);
+    }
+    {
+        QAction *actionUseSelectionForFind = new QAction("Use Selection for Find", this);
+        actionUseSelectionForFind->setShortcut(Qt::CTRL + Qt::Key_E);
+        connect(actionUseSelectionForFind, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_useSelectionForFind);
+        window->addAction(actionUseSelectionForFind);
+    }
+    {
+        QAction *actionUseSelectionForReplace = new QAction("Use Selection for Replace", this);
+        actionUseSelectionForReplace->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_E);
+        connect(actionUseSelectionForReplace, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_useSelectionForReplace);
+        window->addAction(actionUseSelectionForReplace);
+    }
+    {
+        QAction *actionJumpToSelection = new QAction("Jump to Selection", this);
+        actionJumpToSelection->setShortcut(Qt::CTRL + Qt::Key_J);
+        connect(actionJumpToSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_jumpToSelection);
+        window->addAction(actionJumpToSelection);
+    }
+}
+
+void QtSLiMAppDelegate::dispatch_preferences(void)
+{
+    QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
+    
+    prefsWindow.show();
+    prefsWindow.raise();
+    prefsWindow.activateWindow();
+}
+
+void QtSLiMAppDelegate::dispatch_about(void)
+{
+    QtSLiMAbout *aboutWindow = new QtSLiMAbout(nullptr);
+    
+    aboutWindow->setAttribute(Qt::WA_DeleteOnClose);    
+    
+    aboutWindow->show();
+    aboutWindow->raise();
+    aboutWindow->activateWindow();
+}
+
+void QtSLiMAppDelegate::dispatch_help(void)
+{
+    QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
+    
+    helpWindow.show();
+    helpWindow.raise();
+    helpWindow.activateWindow();
+}
+
+void QtSLiMAppDelegate::dispatch_quit(void)
+{
+    if (qApp)
+        qApp->closeAllWindows();
+}
+
+void QtSLiMAppDelegate::dispatch_newWF(void)
+{
+    QtSLiMWindow *activeWindow = activeQtSLiMWindow();
+    if (activeWindow)
+        activeWindow->newFile_WF();
+}
+
+void QtSLiMAppDelegate::dispatch_newNonWF(void)
+{
+    QtSLiMWindow *activeWindow = activeQtSLiMWindow();
+    if (activeWindow)
+        activeWindow->newFile_nonWF();
+}
+
+void QtSLiMAppDelegate::dispatch_open(void)
+{
+    QtSLiMWindow *activeWindow = activeQtSLiMWindow();
+    if (activeWindow)
+        activeWindow->open();
+}
+
+void QtSLiMAppDelegate::dispatch_close(void)
+{
+    // We close the "active" window, which is a bit different from the front window
+    // It can be nullptr; in that case it's hard to know what to do
+    QWidget *activeWindow = QApplication::activeWindow();
+    
+    if (activeWindow)
+        activeWindow->close();
+}
+
+void QtSLiMAppDelegate::dispatch_shiftLeft(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    
+    if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+        scriptEdit->shiftSelectionLeft();
+}
+
+void QtSLiMAppDelegate::dispatch_shiftRight(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    
+    if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+        scriptEdit->shiftSelectionRight();
+}
+
+void QtSLiMAppDelegate::dispatch_commentUncomment(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    
+    if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+        scriptEdit->commentUncommentSelection();
+}
+
+void QtSLiMAppDelegate::dispatch_undo(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    
+    if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+        lineEdit->undo();
+    else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+        textEdit->undo();
+}
+
+void QtSLiMAppDelegate::dispatch_redo(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    
+    if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+        lineEdit->redo();
+    else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+        textEdit->redo();
+}
+
+void QtSLiMAppDelegate::dispatch_cut(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    
+    if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+        lineEdit->cut();
+    else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+        textEdit->cut();
+}
+
+void QtSLiMAppDelegate::dispatch_copy(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    
+    if (lineEdit && lineEdit->isEnabled())
+        lineEdit->copy();
+    else if (textEdit && textEdit->isEnabled())
+        textEdit->copy();
+}
+
+void QtSLiMAppDelegate::dispatch_paste(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    
+    if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+        lineEdit->paste();
+    else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+        textEdit->paste();
+}
+
+void QtSLiMAppDelegate::dispatch_delete(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    
+    if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
+        lineEdit->insert("");
+    else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
+        textEdit->insertPlainText("");
+}
+
+void QtSLiMAppDelegate::dispatch_selectAll(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
+    QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    
+    if (lineEdit && lineEdit->isEnabled())
+        lineEdit->selectAll();
+    else if (textEdit && textEdit->isEnabled())
+        textEdit->selectAll();
+}
+
+void QtSLiMAppDelegate::dispatch_findShow(void)
+{
+    QtSLiMFindPanel::instance().showFindPanel();
+}
+
+void QtSLiMAppDelegate::dispatch_findNext(void)
+{
+    QtSLiMFindPanel::instance().findNext();
+}
+
+void QtSLiMAppDelegate::dispatch_findPrevious(void)
+{
+    QtSLiMFindPanel::instance().findPrevious();
+}
+
+void QtSLiMAppDelegate::dispatch_replaceAndFind(void)
+{
+    QtSLiMFindPanel::instance().replaceAndFind();
+}
+
+void QtSLiMAppDelegate::dispatch_useSelectionForFind(void)
+{
+    QtSLiMFindPanel::instance().useSelectionForFind();
+}
+
+void QtSLiMAppDelegate::dispatch_useSelectionForReplace(void)
+{
+    QtSLiMFindPanel::instance().useSelectionForReplace();
+}
+
+void QtSLiMAppDelegate::dispatch_jumpToSelection(void)
+{
+    QtSLiMFindPanel::instance().jumpToSelection();
+}
+
+void QtSLiMAppDelegate::dispatch_checkScript(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->scriptTextEdit()->checkScript();
+    else if (eidosConsole)
+        eidosConsole->scriptTextEdit()->checkScript();
+}
+
+void QtSLiMAppDelegate::dispatch_prettyprintScript(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->scriptTextEdit()->prettyprint();
+    else if (eidosConsole)
+        eidosConsole->scriptTextEdit()->prettyprint();
+}
+
+void QtSLiMAppDelegate::dispatch_showEidosConsole(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->showConsoleClicked();
+    else if (eidosConsole)
+        eidosConsole->parentSLiMWindow->showConsoleClicked();
+}
+
+void QtSLiMAppDelegate::dispatch_showVariableBrowser(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->showBrowserClicked();
+    else if (eidosConsole)
+        eidosConsole->parentSLiMWindow->showBrowserClicked();
+    else if (varBrowser)
+        varBrowser->parentEidosConsole->parentSLiMWindow->showBrowserClicked();
+}
+
+void QtSLiMAppDelegate::dispatch_clearOutput(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->clearOutputClicked();
+    else if (eidosConsole)
+        eidosConsole->consoleTextEdit()->clearToPrompt();
+}
+
+void QtSLiMAppDelegate::dispatch_executeSelection(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (eidosConsole)
+        eidosConsole->executeSelectionClicked();
+}
+
+void QtSLiMAppDelegate::dispatch_executeAll(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (eidosConsole)
+        eidosConsole->executeAllClicked();
+}
+
 
 //
 //  Active QtSLiMWindow tracking
