@@ -3820,7 +3820,8 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     positionNewSubsidiaryWindow(window);
     
     // make window actions for all global menu items
-    qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
     
     return window;
 }
@@ -3866,7 +3867,8 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     positionNewSubsidiaryWindow(window);
     
     // make window actions for all global menu items
-    qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
     
     return window;
 }

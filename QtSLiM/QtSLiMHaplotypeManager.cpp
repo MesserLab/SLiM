@@ -91,7 +91,8 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
             haplotypeView->setDelegate(haplotypeManager);
             
             // make window actions for all global menu items
-            qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
+            // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
+            //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
             
             // Show the window
             window->show();
