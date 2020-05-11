@@ -17,7 +17,7 @@ QMAKE_INFO_PLIST = QtSLiM_Info.plist
 ICON = QtSLiM_AppIcon.icns
 QMAKE_TARGET_BUNDLE_PREFIX = "edu.MesserLab"
 QMAKE_BUNDLE = "QtSLiM"
-VERSION = 3.3.2
+VERSION = 3.4
 
 docIconFiles.files = $$PWD/QtSLiM_DocIcon.icns
 docIconFiles.path = Contents/Resources
