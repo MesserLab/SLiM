@@ -201,10 +201,9 @@ FORMS += \
     QtSLiMHaplotypeProgress.ui \
     QtSLiMVariableBrowser.ui
 
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: macx: target.path = /Applications
-else: unix:!android: target.path = /opt/$${TARGET}/bin
+# Deploy to /Applications on macOS, /usr/local/bin on Linux/Un*x
+macx: target.path = /Applications
+else: unix:!android: target.path = /usr/local/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
