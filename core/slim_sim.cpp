@@ -9973,6 +9973,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 				case GenomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_X));
 				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_Y));
 			}
+			EIDOS_TERMINATION << "ERROR (SLiMSim::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
 		}
 		case gID_dimensionality:
 		{

@@ -78,11 +78,14 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 	// First let's do our realloc.  We just need to note the change in value for the pointer.
 	// For now we will just double in size; we don't want to waste too much memory, but we
 	// don't want to have to realloc too often, either.
+	// BCH 11 May 2020: the realloc of gSLiM_Mutation_Block is technically problematic, because
+	// Mutation is non-trivially copyable according to C++.  But it is safe, so I cast to void*
+	// in the hopes that that will make the warning go away.
 	std::uintptr_t old_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
 	MutationIndex old_block_capacity = gSLiM_Mutation_Block_Capacity;
 	
 	gSLiM_Mutation_Block_Capacity *= 2;
-	gSLiM_Mutation_Block = (Mutation *)realloc(gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
+	gSLiM_Mutation_Block = (Mutation *)realloc((void*)gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
 	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
 	
 	std::uintptr_t new_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
@@ -308,6 +311,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				case 2:	return gStaticEidosValue_StringG;
 				case 3:	return gStaticEidosValue_StringT;
 			}
+			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_nucleotideValue:	// ACCELERATED
 		{
@@ -321,6 +325,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				case 2:	return gStaticEidosValue_Integer2;
 				case 3:	return gStaticEidosValue_Integer3;
 			}
+			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_subpopID:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));

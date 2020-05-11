@@ -1368,7 +1368,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 		if (max_arg_count <= 5)
 		{
-			EidosValue_SP (arguments_array[5]);
+			EidosValue_SP arguments_array[5];
 			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_array);
 			
 			if (function_signature->internal_function_)
@@ -1488,7 +1488,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			{
 				// We are not re-entrant, so we can use a statically allocated buffer to hold our arguments.  This is faster
 				// because the buffer doesn't need to be constructed and destructed; we just reset used indices below.
-				static EidosValue_SP (arguments_array[10]);
+				static EidosValue_SP arguments_array[10];
 				Eidos_simple_lock reentrancy_lock(reentrancy_flag);	// lock with RAII to prevent re-entrancy here
 				
 				int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
@@ -1519,7 +1519,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			{
 				// We are re-entrant, so we can't use the static buffer above; we have to allocate and deallocate a local buffer.
 				// This is identical to the dispatch code above, except for the use of the local stack-allocated argument buffer.
-				EidosValue_SP (arguments_array[10]);
+				EidosValue_SP arguments_array[10];
 				
 				int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
 				

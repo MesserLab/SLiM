@@ -1073,6 +1073,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_function));
 				case SLiMEidosBlockType::SLiMEidosNoBlockType:				return gStaticEidosValue_StringAsterisk;	// never hit
 			}
+			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): (internal error) unrecognized value for type_." << EidosTerminate();
 		}
 		case gEidosID_source:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
