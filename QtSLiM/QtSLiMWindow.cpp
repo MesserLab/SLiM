@@ -1939,7 +1939,7 @@ void QtSLiMWindow::displayProfileResults(void)
     //tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
     tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
     
-    textEdit->setTabStopWidth(tabWidth);
+    textEdit->setTabStopWidth(tabWidth);        // deprecated in 5.10
     
     // Build the report attributed string
     QString startDateString = profileStartDate_.toString("M/d/yy, h:mm:ss AP");
