@@ -118,14 +118,16 @@ public:
 			EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding column beyond the end of the sparse array." << EidosTerminate(nullptr);
 #endif
 		/* Make room for new entries*/
-        if(*(nnz + p_row) >= *(nnz_capacity + p_row))
+        if(nnz[p_row] >= nnz_capacity[p_row])
         {
             IncreaseRowCapacity(p_row);
         }
 
         //insert new entries
-        *(*(columns + p_row) + *(nnz + p_row)) = p_column;
-        *(*(distances + p_row) + *(nnz + p_row)) = p_distance;
+        columns[p_row][nnz[p_row]] = p_column;
+        distances[p_row][nnz[p_row]] = p_distance;
+        // *(*(columns + p_row) + *(nnz + p_row)) = p_column;
+        // *(*(distances + p_row) + *(nnz + p_row)) = p_distance;
 
         nnz[p_row]++;  //increment nnz for specified row
 
