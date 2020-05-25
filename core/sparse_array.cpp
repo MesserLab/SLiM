@@ -38,6 +38,7 @@ SparseArray::SparseArray(unsigned int p_nrows, unsigned int p_ncols)
 	nrows_set_ = 0;
 	nnz_ = 0;
 	nnz_capacity_ = 1024;
+	prev_nrows = 0;
 	
 	row_offsets_ = (uint32_t *)malloc((nrows_ + 1) * sizeof(uint32_t));
 	columns_ = (uint32_t *)malloc(nnz_capacity_ * sizeof(uint32_t));
@@ -49,18 +50,18 @@ SparseArray::SparseArray(unsigned int p_nrows, unsigned int p_ncols)
 	//Allocate space for 2-D vectors
     /*Columns and Distances are now ragged 2-D vectors with each row corresponding to one focal individual. 
     This negates the need for row offsets.*/
-    initial_width=100;
-    columns = (uint32_t **)malloc((nrows_) * sizeof(uint32_t *));
-    distances = (sa_distance_t **)malloc((nrows_) * sizeof(sa_distance_t *));
-    strengths = (sa_strength_t **)malloc((nrows_) * sizeof(sa_strength_t *));
-    for(int i=0; i<nrows_;i++)
-    {
-    	columns[i]= (uint32_t *)malloc(initial_width * sizeof(uint32_t));
-    	distances[i]= (sa_distance_t *)malloc(initial_width * sizeof(sa_distance_t));
-    	strengths[i]= (sa_strength_t *)malloc(initial_width * sizeof(sa_strength_t));
-    }
-    nnz = (uint32_t *)calloc((nrows_), sizeof(uint32_t));
-    nnz_capacity = (uint32_t *)calloc((nrows_), sizeof(uint32_t));
+    initial_width=1;
+    columns = (uint32_t **) calloc(nrows_, sizeof(uint32_t*));
+    distances = (sa_distance_t **) calloc(nrows_, sizeof(sa_distance_t*));
+    strengths = (sa_strength_t **) calloc(nrows_, sizeof(sa_strength_t*));
+    // for(int i=0; i<nrows_;i++)
+    // {
+    // 	columns[i]= (uint32_t *)malloc(initial_width * sizeof(uint32_t));
+    // 	distances[i]= (sa_distance_t *)malloc(initial_width * sizeof(sa_distance_t));
+    // 	strengths[i]= (sa_strength_t *)malloc(initial_width * sizeof(sa_strength_t));
+    // }
+    nnz = (uint32_t *) calloc(nrows_, sizeof(uint32_t));
+    nnz_capacity = (uint32_t *) calloc(nrows_, sizeof(uint32_t));
 }
 
 SparseArray::~SparseArray(void)
@@ -71,6 +72,7 @@ SparseArray::~SparseArray(void)
 	nnz_ = 0;
 	nnz_capacity_ = 0;
 	finished_ = false;
+	prev_nrows = 0;
 	
 	free(row_offsets_);
 	row_offsets_ = nullptr;
@@ -125,6 +127,7 @@ void SparseArray::Reset(unsigned int p_nrows, unsigned int p_ncols)
 	
 	row_offsets_[nrows_set_] = 0;
 	finished_ = false;
+	
 }
 
 void SparseArray::_ResizeToFitNNZ(void)
@@ -141,27 +144,57 @@ void SparseArray::_ResizeToFitNNZ(void)
 	}
 }
 
+void SparseArray::IncreaseNumOfRows(uint32_t p_row)
+{
+	nnz = (uint32_t *)realloc(nnz, (p_row + 1) * sizeof(uint32_t));
+	nnz_capacity = (uint32_t *)realloc(nnz_capacity, (p_row + 1) * sizeof(uint32_t));
+	//Initializing the nnz and capacity of extended rows to 0
+	uint32_t diff = p_row - prev_nrows;
+	memset((nnz + prev_nrows + 1), 0, diff * sizeof(uint32_t));
+	memset((nnz_capacity + prev_nrows + 1), 0, diff * sizeof(uint32_t));
+
+	columns = (uint32_t **)realloc(columns,  (p_row + 1)  * sizeof(uint32_t*));
+    if(columns == NULL)
+		EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseNumOfRows): Cannot realloc" << EidosTerminate(nullptr);
+
+	distances = (sa_distance_t **)realloc(distances, (p_row + 1) * sizeof(sa_distance_t*)); 
+	if(distances == NULL)
+		EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseNumOfRows): Cannot realloc" << EidosTerminate(nullptr);
+
+	strengths = (sa_strength_t **)realloc(strengths, (p_row + 1) * sizeof(sa_strength_t*));
+	if(strengths == NULL)
+		EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseNumOfRows): Cannot realloc" << EidosTerminate(nullptr);
+
+	prev_nrows = p_row;
+}
+
 void SparseArray::IncreaseRowCapacity(uint32_t p_row)
 {
-    //vectors are reallocated by doubling up each time we resize
+	if (p_row > prev_nrows)
+		EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseRowCapacity): Row not set." << EidosTerminate(nullptr);
+    
+	if(nnz[p_row] == 0)
+	{
+		//row needs to be initialized before realloc 
+		columns[p_row] = nullptr;
+		distances[p_row] = nullptr;
+		strengths[p_row] = nullptr;
+	}
 
+	//vectors are reallocated by doubling up each time we resize
     nnz_capacity[p_row]= (nnz_capacity[p_row]==0) ? initial_width : nnz_capacity[p_row] * 2; //Initialize or double the capacity 
 
-    uint32_t *temp = (uint32_t *)realloc(columns[p_row],  nnz_capacity[p_row] * sizeof(uint32_t));
-    if(temp != NULL)
-    	columns[p_row] = temp;
+    columns[p_row] = (uint32_t *)realloc(columns[p_row],  nnz_capacity[p_row] * sizeof(uint32_t));
+    if(columns[p_row] == NULL)
+    	EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseRowCapacity): Cannot realloc." << EidosTerminate(nullptr);
 
-    sa_distance_t *temp1 = (sa_distance_t *)realloc(distances[p_row], nnz_capacity[p_row] * sizeof(sa_distance_t));
-    if(temp1 != NULL)
-    	distances[p_row] = temp1;
+    distances[p_row] = (sa_distance_t *)realloc(distances[p_row], nnz_capacity[p_row] * sizeof(sa_distance_t));
+    if(distances[p_row] == NULL)
+    	EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseRowCapacity): Cannot realloc." << EidosTerminate(nullptr);
 
-    sa_strength_t *temp2 = (sa_strength_t *)realloc(strengths[p_row], nnz_capacity[p_row] * sizeof(sa_strength_t));
-    if(temp2 != NULL)
-    	strengths[p_row] = temp2;
-
-    // *(columns + p_row)=(uint32_t *)realloc(*(columns + p_row), *(nnz_capacity + p_row) * sizeof(uint32_t));  
-    // *(distances + p_row)=(sa_distance_t *)realloc(*(distances + p_row), *(nnz_capacity + p_row) * sizeof(sa_distance_t));
-    // *(strengths + p_row)=(sa_strength_t *)realloc(*(strengths + p_row), *(nnz_capacity + p_row) * sizeof(sa_strength_t));
+    strengths[p_row] = (sa_strength_t *)realloc(strengths[p_row], nnz_capacity[p_row] * sizeof(sa_strength_t));
+    if(strengths[p_row] == NULL)
+    	EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseRowCapacity): Cannot realloc." << EidosTerminate(nullptr);
 
 }
 

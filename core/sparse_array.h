@@ -70,6 +70,7 @@ private:
     sa_strength_t **strengths;
     uint32_t *nnz;
     uint32_t *nnz_capacity;
+    uint32_t prev_nrows;  //Set to the largest row encountered to make sure realloc doesn't delete rows
 	
 	void _ResizeToFitNNZ(void);
 	inline __attribute__((always_inline)) void ResizeToFitNNZ(void) { if (nnz_ > nnz_capacity_) _ResizeToFitNNZ(); };
@@ -94,6 +95,7 @@ public:
 	void AddRowDistances(uint32_t p_row, const uint32_t *p_columns, const sa_distance_t *p_distances, uint32_t p_row_nnz);
 	void AddRowInteractions(uint32_t p_row, const uint32_t *p_columns, const sa_distance_t *p_distances, const sa_strength_t *p_strengths, uint32_t p_row_nnz);
 	void IncreaseRowCapacity(uint32_t p_row);
+	void IncreaseNumOfRows(uint32_t p_row);
 	
 	inline void AddEntryDistance(uint32_t p_row, const uint32_t p_column, sa_distance_t p_distance)
 	{
@@ -118,10 +120,16 @@ public:
 			EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding column beyond the end of the sparse array." << EidosTerminate(nullptr);
 #endif
 		/* Make room for new entries*/
+		if(prev_nrows < p_row)
+		{
+			IncreaseNumOfRows(p_row);
+		}
+
         if(nnz[p_row] >= nnz_capacity[p_row])
         {
             IncreaseRowCapacity(p_row);
         }
+
 
         //insert new entries
         columns[p_row][nnz[p_row]] = p_column;
