@@ -71,6 +71,8 @@ private:
     uint32_t *nnz;
     uint32_t *nnz_capacity;
     uint32_t prev_nrows;  //Set to the largest row encountered to make sure realloc doesn't delete rows
+    uint32_t tot_ratio;
+    uint32_t avg_ratio;
 	
 	void _ResizeToFitNNZ(void);
 	inline __attribute__((always_inline)) void ResizeToFitNNZ(void) { if (nnz_ > nnz_capacity_) _ResizeToFitNNZ(); };
@@ -120,10 +122,7 @@ public:
 			EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding column beyond the end of the sparse array." << EidosTerminate(nullptr);
 #endif
 		/* Make room for new entries*/
-		if(prev_nrows < p_row)
-		{
-			IncreaseNumOfRows(p_row);
-		}
+		
 
         if(nnz[p_row] >= nnz_capacity[p_row])
         {
