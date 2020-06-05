@@ -70,9 +70,7 @@ private:
     sa_strength_t **strengths;
     uint32_t *nnz;
     uint32_t *nnz_capacity;
-    uint32_t prev_nrows;  //Set to the largest row encountered to make sure realloc doesn't delete rows
-    uint32_t tot_ratio;
-    uint32_t avg_ratio;
+    uint32_t greatest_nrows;  //Set to the largest row encountered to make sure realloc doesn't delete rows
 	
 	void _ResizeToFitNNZ(void);
 	inline __attribute__((always_inline)) void ResizeToFitNNZ(void) { if (nnz_ > nnz_capacity_) _ResizeToFitNNZ(); };

@@ -38,7 +38,7 @@ SparseArray::SparseArray(unsigned int p_nrows, unsigned int p_ncols)
 	nrows_set_ = 0;
 	nnz_ = 0;
 	nnz_capacity_ = 1024;
-	prev_nrows = 0;
+	greatest_nrows = 0;
 	
 	row_offsets_ = (uint32_t *)malloc((nrows_ + 1) * sizeof(uint32_t));
 	columns_ = (uint32_t *)malloc(nnz_capacity_ * sizeof(uint32_t));
@@ -62,8 +62,6 @@ SparseArray::SparseArray(unsigned int p_nrows, unsigned int p_ncols)
     // }
     nnz = (uint32_t *) calloc(nrows_, sizeof(uint32_t));
     nnz_capacity = (uint32_t *) calloc(nrows_, sizeof(uint32_t));
-    tot_ratio = 0;
-    avg_ratio = 0;
 }
 
 SparseArray::~SparseArray(void)
@@ -74,7 +72,7 @@ SparseArray::~SparseArray(void)
 	nnz_ = 0;
 	nnz_capacity_ = 0;
 	finished_ = false;
-	prev_nrows = 0;
+	greatest_nrows = 0;
 	
 	free(row_offsets_);
 	row_offsets_ = nullptr;
@@ -128,7 +126,7 @@ void SparseArray::Reset(unsigned int p_nrows, unsigned int p_ncols)
 	
 	row_offsets_ = (uint32_t *)realloc(row_offsets_, (nrows_ + 1) * sizeof(uint32_t));
 
-	if(prev_nrows < nrows_)
+	if(greatest_nrows < nrows_)
 		IncreaseNumOfRows(nrows_);
 	
 	row_offsets_[nrows_set_] = 0;
@@ -152,13 +150,13 @@ void SparseArray::_ResizeToFitNNZ(void)
 
 void SparseArray::IncreaseNumOfRows(uint32_t row_size)
 {
-	//std::cout<<"resizing to "<<row_size<<" "<<prev_nrows<<"\n";
+	//std::cout<<"resizing to "<<row_size<<" "<<greatest_nrows<<"\n";
 	nnz = (uint32_t *)realloc(nnz, (row_size + 1) * sizeof(uint32_t));
 	nnz_capacity = (uint32_t *)realloc(nnz_capacity, (row_size + 1) * sizeof(uint32_t));
 	//Initializing the nnz and capacity of extended rows to 0
-	uint32_t diff = row_size - prev_nrows;
-	memset((nnz + prev_nrows + 1), 0, diff * sizeof(uint32_t));
-	memset((nnz_capacity + prev_nrows + 1), 0, diff * sizeof(uint32_t));
+	uint32_t diff = row_size - greatest_nrows;
+	memset((nnz + greatest_nrows + 1), 0, diff * sizeof(uint32_t));
+	memset((nnz_capacity + greatest_nrows + 1), 0, diff * sizeof(uint32_t));
 
 	columns = (uint32_t **)realloc(columns,  (row_size + 1)  * sizeof(uint32_t*));
     if(columns == NULL)
@@ -172,12 +170,12 @@ void SparseArray::IncreaseNumOfRows(uint32_t row_size)
 	if(strengths == NULL)
 		EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseNumOfRows): Cannot realloc" << EidosTerminate(nullptr);
 
-	prev_nrows = row_size;
+	greatest_nrows = row_size;
 }
 
 void SparseArray::IncreaseRowCapacity(uint32_t p_row)
 {
-	// if (p_row > prev_nrows)
+	// if (p_row > greatest_nrows)
 	// 	EIDOS_TERMINATION << "ERROR (SparseArray::IncreaseRowCapacity): Row not set." << EidosTerminate(nullptr);
     //std::cout<<" col to "<<p_row<<" "<<nnz_capacity[p_row]<<"\n";
 	if(nnz[p_row] == 0)
