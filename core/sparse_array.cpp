@@ -109,6 +109,7 @@ void SparseArray::_ResizeToFitNNZ(void)
 	}
 }
 
+// BCH 6/6/2020: Note this method is not called from anywhere
 void SparseArray::AddRowDistances(uint32_t p_row, const uint32_t *p_columns, const sa_distance_t *p_distances, uint32_t p_row_nnz)
 {
 	// ensure that we are building sequentially, visiting each row exactly once
