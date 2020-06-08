@@ -1,0 +1,29 @@
+// Keywords: nonWF, non-Wright-Fisher, clonal, haploid
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 500);	// carrying capacity
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	subpop.addRecombinant(genome1, NULL, NULL, NULL, NULL, NULL);
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+late() {
+	// remove neutral mutations in the haploid genomes that have fixed
+	muts = sim.mutationsOfType(m1);
+	freqs = sim.mutationFrequencies(NULL, muts);
+	
+	if (any(freqs == 0.5))
+		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
+}
+50000 late() { sim.outputFixedMutations(); }

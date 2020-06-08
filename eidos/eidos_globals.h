@@ -30,9 +30,20 @@
 #include <string.h>
 #include <numeric>
 #include <algorithm>
+#include <unordered_map>
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
-#include <mach/mach_time.h>		// for mach_absolute_time(), for profiling; needed only in SLiMgui when profiling is enabled
+
+#if defined(__APPLE__) && defined(__MACH__)
+// On macOS we use mach_absolute_time() for profiling (only in SLiMgui when profiling is enabled)
+#include <mach/mach_time.h>
+#define MACH_PROFILING
+#else
+// On other platforms we use std::chrono::steady_clock (only in QtSLiM when profiling is enabled)
+#include <chrono>
+#define CHRONO_PROFILING
+#endif
+
 #endif
 
 #include "eidos_intrusive_ptr.h"
@@ -41,19 +52,30 @@ class EidosScript;
 class EidosToken;
 
 
-#define EIDOS_VERSION_STRING	("2.3.2")
-#define EIDOS_VERSION_FLOAT		(2.32)
+#define EIDOS_VERSION_STRING	("2.4")
+#define EIDOS_VERSION_FLOAT		(2.4)
 
 
 // This should be called once at startup to give Eidos an opportunity to initialize static state
 #ifdef EIDOS_SLIM_OPEN_MP
 void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads);
 #endif
+
 void Eidos_WarmUp(void);
 void Eidos_FinishWarmUp(void);
 
 // This can be called at startup, after Eidos_FinishWarmUp(), to define global constants from the command line
 void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
+
+// This should be called at the end of execution, or any other appropriate time, to flush buffered file append data
+void Eidos_FlushFiles(void);
+
+#define EIDOS_BUFFER_ZIP_APPENDS	1
+
+#if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
+extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// filename -> text
+bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring);
+#endif
 
 
 // *******************************************************************************************************************
@@ -122,6 +144,18 @@ extern bool gEidosSuppressWarnings;
 // Flags for various runtime checks that can be turned on or off; in SLiM, -x turns these off.
 extern bool eidos_do_memory_checks;
 
+// To leak-check slim, a few steps are recommended (BCH 5/1/2019):
+//
+//	- turn on Malloc Scribble so spurious pointers left over in deallocated blocks are not taken to be live references
+//	- turn on Malloc Logging so you get backtraces from every leaked allocation
+//	- use a DEBUG build of slim so the backtraces are accurate and not obfuscated by optimization
+//	- set this #define to 1 so slim cleans up a bit and then sleeps before exit, waiting for its leaks to be assessed
+//	- run "leaks slim" in Terminal; the leaks tool in Instruments seems to be very confused and reports tons of false positives
+//
+// To run slim under Valgrind, setting this flag to 1 is also recommended as it will enable some thunks that will
+// keep Valgrind from getting confused.
+#define SLIM_LEAK_CHECKING	0
+
 
 // *******************************************************************************************************************
 //
@@ -159,22 +193,34 @@ extern int gEidosProfilingClientCount;	// if non-zero, profiling is happening in
 
 // Profiling clocks; note that these can overflow, we don't care, only (t2-t1) ever matters and that is overflow-robust
 
-// This is the fastest clock, is available across OS X versions, and gives us nanoseconds.  The only disadvantage to
-// it is that it is platform-specific, so we can only use this clock in SLiMgui and Eidos_GUI.  That is OK.  This
-// returns uint64_t in CPU-specific time units; see https://developer.apple.com/library/content/qa/qa1398/_index.html
-typedef uint64_t eidos_profile_t;
-
 extern uint64_t gEidos_ProfileCounter;			// incremented by Eidos_ProfileTime() every time it is called
 extern double gEidos_ProfileOverheadTicks;		// the overhead in ticks for one profile call, in ticks
 extern double gEidos_ProfileOverheadSeconds;	// the overhead in ticks for one profile call, in seconds
 extern double gEidos_ProfileLagTicks;			// the clocked length of an empty profile block, in ticks
 extern double gEidos_ProfileLagSeconds;			// the clocked length of an empty profile block, in seconds
 
+#if defined(MACH_PROFILING)
+
+// This is the fastest clock, is available across OS X versions, and gives us nanoseconds.  The only disadvantage to
+// it is that it is platform-specific, so we can only use this clock in SLiMgui and Eidos_GUI.  That is OK.  This
+// returns uint64_t in CPU-specific time units; see https://developer.apple.com/library/content/qa/qa1398/_index.html
+typedef uint64_t eidos_profile_t;
+
 // Get a profile clock measurement, to be used as a start or end time
 inline __attribute__((always_inline)) eidos_profile_t Eidos_ProfileTime(void) { gEidos_ProfileCounter++; return mach_absolute_time(); }
 
+#elif defined(CHRONO_PROFILING)
+
+// For the <chrono> steady_clock time point representation, we will convert time points to nanoseconds since epoch
+typedef uint64_t eidos_profile_t;
+
+// Get a profile clock measurement, to be used as a start or end time
+inline __attribute__((always_inline)) eidos_profile_t Eidos_ProfileTime(void) { gEidos_ProfileCounter++; return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
+
+#endif
+
 // Convert an elapsed profiling time (the difference between two Eidos_ProfileTime() results) to seconds
-double Eidos_ElapsedProfileTime(uint64_t p_elapsed_profile_time);
+double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time);
 
 // This should be called immediately before profiling to measure the overhead and lag for profile blocks
 void Eidos_PrepareForProfiling(void);
@@ -182,16 +228,16 @@ void Eidos_PrepareForProfiling(void);
 // Macros for profile blocks
 #define	SLIM_PROFILE_BLOCK_START()																																			\
 	bool slim__condition_a = (gEidosProfilingClientCount ? true : false);																									\
-	eidos_profile_t slim__start_clock = (slim__condition_a ? Eidos_ProfileTime() : 0);																						\
+	eidos_profile_t slim__start_clock = (slim__condition_a ? Eidos_ProfileTime() : eidos_profile_t());																		\
 	uint64_t slim__start_profile_counter = (slim__condition_a ? gEidos_ProfileCounter : 0);
 
 #define	SLIM_PROFILE_BLOCK_START_NESTED()																																	\
-	eidos_profile_t slim__start_clock2 = (slim__condition_a ? Eidos_ProfileTime() : 0);																						\
+	eidos_profile_t slim__start_clock2 = (slim__condition_a ? Eidos_ProfileTime() : eidos_profile_t());																		\
 	uint64_t slim__start_profile_counter2 = (slim__condition_a ? gEidos_ProfileCounter : 0);
 
 #define	SLIM_PROFILE_BLOCK_START_CONDITION(slim__condition_param)																											\
 	bool slim__condition_b = gEidosProfilingClientCount && (slim__condition_param);																							\
-	eidos_profile_t slim__start_clock = (slim__condition_b ? Eidos_ProfileTime() : 0);																						\
+	eidos_profile_t slim__start_clock = (slim__condition_b ? Eidos_ProfileTime() : eidos_profile_t());																		\
 	uint64_t slim__start_profile_counter = (slim__condition_b ? gEidos_ProfileCounter : 0);
 
 #define SLIM_PROFILE_BLOCK_END(slim__accumulator)																															\
@@ -202,7 +248,7 @@ void Eidos_PrepareForProfiling(void);
 		eidos_profile_t slim__end_clock = Eidos_ProfileTime();																												\
 																																											\
 		uint64_t slim__uncorrected_ticks = (slim__end_clock - slim__start_clock);																							\
-		uint64_t slim__correction = (eidos_profile_t)round(gEidos_ProfileLagTicks + gEidos_ProfileOverheadTicks * slim__contained_profile_calls);							\
+		uint64_t slim__correction = static_cast<eidos_profile_t>(round(gEidos_ProfileLagTicks + gEidos_ProfileOverheadTicks * slim__contained_profile_calls));				\
 		uint64_t slim__corrected_ticks = ((slim__correction < slim__uncorrected_ticks) ? (slim__uncorrected_ticks - slim__correction) : 0);									\
 																																											\
 		(slim__accumulator) += slim__corrected_ticks;																														\
@@ -382,6 +428,39 @@ std::string EidosStringForFloat(double p_value);
 
 // Returns the number of physical cores (i.e., not counting hyperthreading)
 unsigned int Eidos_PhysicalCoreCount();
+
+// Fisher-Yates Shuffle: choose a random subset of a std::vector, without replacement.
+// see https://stackoverflow.com/questions/9345087/choose-m-elements-randomly-from-a-vector-containing-n-elements
+// see also https://ideone.com/3A3cv for demo code using this
+template<class BidiIter>
+BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
+{
+	size_t left = std::distance(begin, end);
+	
+	while (num_random--)
+	{
+		BidiIter r = begin;
+		std::advance(r, random() % left);
+		std::swap(*begin, *r);
+		++begin;
+		--left;
+	}
+	
+	return begin;
+}
+
+
+// *******************************************************************************************************************
+//
+//	SHA-256
+//
+#pragma mark -
+#pragma mark SHA-256
+#pragma mark -
+
+// from https://github.com/amosnier/sha-2 which is under the public-domain "unlicense"; see .cpp for further details
+void Eidos_calc_sha_256(uint8_t hash[32], const void *input, size_t len);	// len is the number of bytes in input
+void Eidos_hash_to_string(char string[65], const uint8_t hash[32]);
 
 
 // *******************************************************************************************************************

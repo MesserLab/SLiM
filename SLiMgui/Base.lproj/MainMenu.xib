@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14109" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14109"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -557,11 +557,17 @@ DQ
                                     <action selector="showHelp:" target="Voe-Tx-rLC" id="1Sw-II-Pnj"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="akG-Ew-mj0"/>
-                            <menuItem title="Send Feedback on SLiM" id="yub-Vr-tTZ">
+                            <menuItem title="SLiM Workshops" id="yub-Vr-tTZ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="sendFeedback:" target="Voe-Tx-rLC" id="6xx-73-aMp"/>
+                                    <action selector="slimWorkshops:" target="Voe-Tx-rLC" id="NP1-Ma-HXd"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="akG-Ew-mj0"/>
+                            <menuItem title="Send Feedback on SLiM" id="op4-ap-h8O">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="sendFeedback:" target="Voe-Tx-rLC" id="fZs-8U-H1X"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Mailing List: slim-announce" id="0z5-95-PGp">
@@ -619,16 +625,16 @@ DQ
             </items>
             <point key="canvasLocation" x="-258" y="-504"/>
         </menu>
-        <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
+        <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <rect key="contentRect" x="272" y="199" width="268" height="431"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
             <view key="contentView" id="ae8-oN-lQF">
                 <rect key="frame" x="0.0" y="0.0" width="268" height="431"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="pFc-cT-SJr">
-                        <rect key="frame" x="32" y="200" width="124" height="18"/>
+                        <rect key="frame" x="32" y="199" width="124" height="18"/>
                         <buttonCell key="cell" type="check" title="In the script area" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="9pj-Hb-YGA">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -638,7 +644,7 @@ DQ
                         </connections>
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="LNo-up-hn1">
-                        <rect key="frame" x="32" y="180" width="130" height="18"/>
+                        <rect key="frame" x="32" y="179" width="130" height="18"/>
                         <buttonCell key="cell" type="check" title="In the output area" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="ihE-H7-bQ0">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -648,7 +654,7 @@ DQ
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PHC-Yj-PFy">
-                        <rect key="frame" x="18" y="224" width="180" height="17"/>
+                        <rect key="frame" x="18" y="223" width="180" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Enable syntax highlighting:" id="oD3-D6-zvA">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -656,7 +662,7 @@ DQ
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VCf-DB-Pyy">
-                        <rect key="frame" x="18" y="291" width="115" height="17"/>
+                        <rect key="frame" x="18" y="293" width="115" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Display font size:" id="A2o-Lb-mVo">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -686,7 +692,7 @@ DQ
                         </textFieldCell>
                     </textField>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6sR-dN-vyi">
-                        <rect key="frame" x="18" y="145" width="196" height="17"/>
+                        <rect key="frame" x="18" y="145" width="196" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When checking script syntax:" id="GjS-PY-od2">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -714,7 +720,7 @@ DQ
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Yf-hO-IoP">
-                        <rect key="frame" x="18" y="394" width="143" height="17"/>
+                        <rect key="frame" x="18" y="395" width="143" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When SLiMgui starts:" id="dL6-Sg-GED">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -722,7 +728,7 @@ DQ
                         </textFieldCell>
                     </textField>
                     <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autorecalculatesCellSize="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gPW-po-YSE">
-                        <rect key="frame" x="33" y="328" width="209" height="58"/>
+                        <rect key="frame" x="33" y="329" width="209" height="58"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         <size key="cellSize" width="209" height="18"/>
                         <size key="intercellSpacing" width="4" height="2"/>
@@ -751,14 +757,14 @@ DQ
                         </connections>
                     </matrix>
                     <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fUY-QK-PRE">
-                        <rect key="frame" x="64" y="258" width="19" height="27"/>
+                        <rect key="frame" x="64" y="260" width="19" height="28"/>
                         <stepperCell key="cell" continuous="YES" alignment="left" minValue="9" maxValue="30" doubleValue="11" id="CFF-pU-pUU"/>
                         <connections>
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.DisplayFontSize" id="lde-VA-Uvc"/>
                         </connections>
                     </stepper>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KpB-tT-jSj">
-                        <rect key="frame" x="85" y="263" width="42" height="17"/>
+                        <rect key="frame" x="85" y="266" width="42" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="points" id="E9s-Wo-eYy">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -766,7 +772,7 @@ DQ
                         </textFieldCell>
                     </textField>
                     <textField verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1i1-DN-XAq">
-                        <rect key="frame" x="34" y="260" width="30" height="22"/>
+                        <rect key="frame" x="34" y="263" width="30" height="21"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="30" id="vBs-sL-kPy"/>
                         </constraints>

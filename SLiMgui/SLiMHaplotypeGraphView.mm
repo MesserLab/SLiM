@@ -133,8 +133,11 @@
 	NSRect bounds = [self bounds];
 	NSRect interior = NSInsetRect(bounds, 1, 1);
 	
-	// Update the viewport
-	glViewport(0, 0, (int)bounds.size.width, (int)bounds.size.height);
+	// Update the viewport; using backingBounds here instead of bounds makes the view hi-res-aware,
+	// while still remaining point-based since the ortho projection we use below uses bounds.
+	NSRect backingBounds = [self convertRectToBacking:bounds];
+	
+	glViewport(0, 0, (int)backingBounds.size.width, (int)backingBounds.size.height);
 	
 	// Update the projection
 	glMatrixMode(GL_PROJECTION);

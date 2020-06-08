@@ -107,6 +107,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				case 2:	return gStaticEidosValue_StringG;
 				case 3:	return gStaticEidosValue_StringT;
 			}
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_nucleotideValue:		// ACCELERATED
 		{
@@ -120,6 +121,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				case 2:	return gStaticEidosValue_Integer2;
 				case 3:	return gStaticEidosValue_Integer3;
 			}
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_subpopID:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));

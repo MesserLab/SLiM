@@ -29,6 +29,9 @@
 #import "TipsWindowController.h"
 #import <WebKit/WebKit.h>
 
+#include <stdio.h>
+#include <unistd.h>
+
 
 // User defaults keys
 NSString *defaultsLaunchActionKey = @"LaunchAction";
@@ -203,6 +206,10 @@ typedef enum SLiMLaunchAction
 
 - (void)applicationWillFinishLaunching:(NSNotification *)aNotification
 {
+	// Determine whether we were launched from a shell or from something else (Finder, Xcode, etc.)
+	launchedFromShell_ = (isatty(fileno(stdin)) == 1) && !SLiM_AmIBeingDebugged();
+	//NSLog(@"launched from %@", launchedFromShell_ ? @"shell" : @"Finder");
+	
     // Require light appearance, at least for now; supporting dark mode would require custom art etc.
     if ([NSApp respondsToSelector:@selector(setAppearance:)])
         [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
@@ -224,6 +231,7 @@ typedef enum SLiMLaunchAction
 	
 	// Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
 	app_cwd_ = Eidos_CurrentDirectory();
+	//NSLog(@"current directory == %s", app_cwd_.c_str());
 	
 	// Create the Open Recipes menu
 	[self setUpRecipesMenu];
@@ -232,6 +240,11 @@ typedef enum SLiMLaunchAction
 - (std::string &)SLiMguiCurrentWorkingDirectory
 {
 	return app_cwd_;
+}
+
+- (bool)launchedFromShell
+{
+	return launchedFromShell_;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
@@ -407,6 +420,11 @@ typedef enum SLiMLaunchAction
 - (IBAction)sendFeedback:(id)sender
 {
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"mailto:philipp.messer@gmail.com?subject=SLiM%20Feedback"]];
+}
+
+- (IBAction)slimWorkshops:(id)sender
+{
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://benhaller.com/workshops/workshops.html"]];
 }
 
 - (IBAction)mailingListAnnounce:(id)sender

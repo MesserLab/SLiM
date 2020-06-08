@@ -1,0 +1,40 @@
+// Keywords: nucleotide-based, nucleotide sequence, VCF file reading, empirical population, SNPs, 1000 Genomes Project
+
+initialize() {
+	initializeSLiMOptions(nucleotideBased=T);
+	length = initializeAncestralNucleotides("hs37d5_chr22_patched.fa");
+	defineConstant("L", length);
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeMutationTypeNuc("m2", 0.5, "f", 0.0);
+	m2.color = "red";
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(0.0));
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	sim.addSubpop("p1", 99);
+	p1.genomes.readFromVCF("chr22_filtered.recode.vcf", m1);
+	p1.setSubpopulationSize(1000);
+}
+5 late() {
+	mut = sample(sim.mutations, 1);
+	mut.setMutationType(m2);
+	mut.setSelectionCoeff(0.5);
+}
+1:2000 late() {
+	mut = sim.mutationsOfType(m2);
+	if (mut.size()) {
+		f = sim.mutationFrequencies(p1, mut);
+		catn(sim.generation + ": " + sim.mutations.size() + ", f = " + f);
+		
+		if (f == 1.0) {
+			catn("\nFIXED in generation " + sim.generation);
+			catn(sim.substitutions.size() + " substitutions.");
+			catn(paste(sim.substitutions.nucleotide));
+			sim.simulationFinished();
+		}
+	} else {
+		catn(sim.generation + ": " + sim.mutations.size());
+	}
+}

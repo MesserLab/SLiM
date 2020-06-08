@@ -1151,10 +1151,10 @@ protected:
 	// cached dispatch tables; these are lookup tables, indexed by EidosGlobalStringID property / method ids
 	bool dispatches_cached_ = false;
 	
-	EidosPropertySignature_CSP(*property_signatures_dispatch_) = nullptr;
+	EidosPropertySignature_CSP *property_signatures_dispatch_ = nullptr;
 	int32_t property_signatures_dispatch_capacity_ = 0;
 	
-	EidosMethodSignature_CSP(*method_signatures_dispatch_) = nullptr;
+	EidosMethodSignature_CSP *method_signatures_dispatch_ = nullptr;
 	int32_t method_signatures_dispatch_capacity_ = 0;
 	
 public:

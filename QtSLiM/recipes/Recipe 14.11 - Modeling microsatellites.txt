@@ -1,0 +1,99 @@
+// Keywords: 
+
+initialize() {
+	defineConstant("L", 1e6);           // chromosome length
+	defineConstant("msatCount", 10);    // number of microsats
+	defineConstant("msatMu", 0.0001);   // mutation rate per microsat
+	defineConstant("msatUnique", T);    // T = unique msats, F = lineages
+	
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);  // neutral
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+	
+	// microsatellite mutation type; also neutral, but magenta
+	initializeMutationType("m2", 0.5, "f", 0.0);
+	m2.convertToSubstitution = F;
+	m2.color = "#900090";
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	
+	// create some microsatellites at random positions
+	genomes = sim.subpopulations.genomes;
+	positions = rdunif(msatCount, 0, L-1);
+	repeats = rpois(msatCount, 20) + 5;
+	
+	for (msatIndex in 0:(msatCount-1))
+	{
+		pos = positions[msatIndex];
+		mut = genomes.addNewDrawnMutation(m2, pos);
+		mut.tag = repeats[msatIndex];
+	}
+	
+	// remember the microsat positions for later
+	defineConstant("msatPositions", positions);
+}
+modifyChild() {
+	// mutate microsatellites with rate msatMu
+	for (genome in child.genomes)
+	{
+		mutCount = rpois(1, msatMu * msatCount);
+		
+		if (mutCount)
+		{
+			mutSites = sample(msatPositions, mutCount);
+			msats = genome.mutationsOfType(m2);
+			
+			for (mutSite in mutSites)
+			{
+				msat = msats[msats.position == mutSite];
+				repeats = msat.tag;
+				
+				// modify the number of repeats by adding -1 or +1
+				repeats = repeats + (rdunif(1, 0, 1) * 2 - 1);
+				
+				if (repeats < 5)
+					next;
+				
+				// if we're uniquing microsats, do so now
+				if (msatUnique)
+				{
+					all_msats = sim.mutationsOfType(m2);
+					msatsAtSite = all_msats[all_msats.position == mutSite];
+					matchingMut = msatsAtSite[msatsAtSite.tag == repeats];
+					
+					if (matchingMut.size() == 1)
+					{
+						genome.removeMutations(msat);
+						genome.addMutations(matchingMut);
+						next;
+					}
+				}
+				
+				// make a new mutation with the new repeat count
+				genome.removeMutations(msat);
+				msat = genome.addNewDrawnMutation(m2, mutSite);
+				msat.tag = repeats;
+			}
+		}
+	}
+	
+	return T;
+}
+10000 late() {
+	// print frequency information for each microsatellite site
+	all_msats = sim.mutationsOfType(m2);
+	
+	for (pos in sort(msatPositions))
+	{
+		catn("Microsatellite at " + pos + ":");
+		
+		msatsAtPos = all_msats[all_msats.position == pos];
+		
+		for (msat in sortBy(msatsAtPos, "tag"))
+			catn("   variant with " + msat.tag + " repeats: " +
+				sim.mutationFrequencies(NULL, msat));
+	}
+}

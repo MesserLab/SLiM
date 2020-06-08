@@ -1,0 +1,27 @@
+// Keywords: fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+late() {
+	// initially, everybody lives
+	sim.subpopulations.individuals.tag = 1;
+	
+	// here be dragons
+	sample(sim.subpopulations.individuals, 100).tag = 0;
+}
+fitness(NULL) {
+	// individuals tagged for death die here
+	if (individual.tag == 1)
+		return 1.0;
+	else
+		return 0.0;
+}
+10000 late() { sim.outputFull(); }

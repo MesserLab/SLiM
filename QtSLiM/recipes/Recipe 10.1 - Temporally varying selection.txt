@@ -1,0 +1,13 @@
+// Keywords: fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);  // neutral
+	initializeMutationType("m2", 0.5, "f", 0.1);  // beneficial
+	initializeGenomicElementType("g1", c(m1,m2), c(0.995,0.005));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+2000:3999 fitness(m2) { return 1.0; }
+10000 { sim.simulationFinished(); }

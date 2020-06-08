@@ -1,0 +1,61 @@
+// Keywords: migration, dispersal, fitness()
+
+// Calculate the FST between two subpopulations
+function (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
+{
+	p1_p = sim.mutationFrequencies(subpop1);
+	p2_p = sim.mutationFrequencies(subpop2);
+	mean_p = (p1_p + p2_p) / 2.0;
+	H_t = 2.0 * mean_p * (1.0 - mean_p);
+	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
+	fst = 1.0 - H_s/H_t;
+	fst = fst[!isNAN(fst)];  // exclude muts where mean_p is 0.0 or 1.0
+	return mean(fst);
+}
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "f", 0.5);  // introduced mutation
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.setValue("FST", 0.0);
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+	p1.setMigrationRates(p2, 0.1);
+	p2.setMigrationRates(p1, 0.1);
+}
+1000 late() {
+	target = sample(p1.genomes, 1);
+	target.addNewDrawnMutation(m2, 10000);
+}
+fitness(m2, p2) { return 0.2; }
+2000: early() {
+	// tag all individuals with their m2 mutation count
+	inds = sim.subpopulations.individuals;
+	inds.tag = inds.countOfMutationsOfType(m2);
+	
+	// precalculate the mating weights vectors
+	for (subpop in c(p1,p2))
+	{
+		has_m2 = (subpop.individuals.tag > 0);
+		subpop.setValue("weights1", ifelse(has_m2, 2.0, 1.0));
+		subpop.setValue("weights2", ifelse(has_m2, 0.5, 1.0));
+	}
+}
+2000: mateChoice() {
+	if (individual.tag > 0)
+		return weights * sourceSubpop.getValue("weights1");
+	else
+		return weights * sourceSubpop.getValue("weights2");
+}
+10000: late() {
+	sim.setValue("FST", sim.getValue("FST") + calcFST(p1, p2));
+}
+19999 late() {
+	cat("Mean FST at equilibrium: " + (sim.getValue("FST") / 10000));
+	sim.simulationFinished();
+}

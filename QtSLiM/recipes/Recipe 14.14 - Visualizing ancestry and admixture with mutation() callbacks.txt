@@ -1,0 +1,49 @@
+// Keywords: mutation types, tracking, true local ancestry, admixture, introgression, mutation()
+
+initialize() {
+	initializeMutationRate(1e-8);
+	
+	// neutral and beneficial for p1
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.color = "yellow";
+	m1.colorSubstitution = "yellow";
+	
+	initializeMutationType("m2", 0.5, "f", 0.1);
+	m2.color = "red";
+	m2.colorSubstitution = "red";
+	
+	// neutral and beneficial for p2
+	initializeMutationType("m3", 0.5, "f", 0.0);
+	m3.color = "blue";
+	m3.colorSubstitution = "blue";
+	
+	initializeMutationType("m4", 0.5, "f", 0.1);
+	m4.color = "green";
+	m4.colorSubstitution = "green";
+	
+	initializeGenomicElementType("g1", c(m1, m2), c(1, 0.0001));
+	initializeGenomicElement(g1, 0, 9999999);
+	initializeRecombinationRate(1e-7);
+}
+1 {
+	sim.addSubpop("p1", 1000);
+	sim.addSubpop("p2", 1000);
+}
+mutation(m1, p2)
+{
+	// use m3 instead of m1, in p2
+	mut.setMutationType(m3);
+	return T;
+}
+mutation(m2, p2)
+{
+	// use m4 instead of m2, in p2
+	mut.setMutationType(m4);
+	return T;
+}
+10000 {
+	sim.chromosome.setMutationRate(0.0);
+	p1.setMigrationRates(p2, 0.01);
+	p2.setMigrationRates(p1, 0.01);
+}
+15000 late() { sim.outputFixedMutations(); }

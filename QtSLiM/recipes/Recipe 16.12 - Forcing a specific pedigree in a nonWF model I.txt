@@ -1,0 +1,56 @@
+// Keywords: nonWF, non-Wright-Fisher
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 10);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+	
+	// delete any existing pedigree log files
+	deleteFile("~/Desktop/mating.txt");
+	deleteFile("~/Desktop/death.txt");
+}
+reproduction() {
+	// choose a mate and generate an offspring
+	mate = subpop.sampleIndividuals(1);
+	child = subpop.addCrossed(individual, mate);
+	child.tag = sim.tag;
+	sim.tag = sim.tag + 1;
+	
+	// log the mating
+	line = paste(c(sim.generation, individual.tag, mate.tag, child.tag));
+	writeFile("~/Desktop/mating.txt", line, append=T);
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+	
+	// provide initial tags and remember the next tag value
+	p1.individuals.tag = 1:10;
+	sim.tag = 11;
+}
+early() {
+	// density-dependence
+	p1.fitnessScaling = K / p1.individualCount;
+	
+	// remember the extant individual tags
+	sim.setValue("extant", sim.subpopulations.individuals.tag);
+}
+late() {
+	// log out the individuals that died
+	oldExtant = sim.getValue("extant");
+	newExtant = sim.subpopulations.individuals.tag;
+	survived = (match(oldExtant, newExtant) >= 0);
+	died = oldExtant[!survived];
+	
+	for (indTag in died)
+	{
+		line = sim.generation + " " + indTag;
+		writeFile("~/Desktop/death.txt", line, append=T);
+	}
+}
+100 late() { sim.simulationFinished(); }

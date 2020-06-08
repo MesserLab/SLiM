@@ -96,6 +96,17 @@ static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSym
 	gEidosSymbolTable_TablePool.emplace_back(p_table);
 }
 
+void FreeSymbolTablePool(void)
+{
+    // Clean up our symbol table slot pool to avoid confusing Valgrind
+    while (gEidosSymbolTable_TablePool.size())
+	{
+		EidosSymbolTableSlot *ret = gEidosSymbolTable_TablePool.back();
+		gEidosSymbolTable_TablePool.pop_back();
+		free(ret);
+	}
+}
+
 
 //
 //	EidosSymbolTable
@@ -378,8 +389,11 @@ void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
 	
 	if (new_capacity > capacity_)
 	{
-		slots_ = (EidosSymbolTableSlot *)realloc(slots_, new_capacity * sizeof(EidosSymbolTableSlot));
-		EIDOS_BZERO(slots_ + capacity_, (new_capacity - capacity_) * sizeof(EidosSymbolTableSlot));
+		// BCH 11 May 2020: the realloc() and EIDOS_BZERO() here are technically problematic because
+		// EidosSymbolTableSlot is non-trivially copyable according to C++.  But they are safe, so
+		// I have added casts to void* in the hopes of suppressing the compiler warning.
+		slots_ = (EidosSymbolTableSlot *)realloc((void *)slots_, new_capacity * sizeof(EidosSymbolTableSlot));
+		EIDOS_BZERO((void *)(slots_ + capacity_), (new_capacity - capacity_) * sizeof(EidosSymbolTableSlot));
 		capacity_ = new_capacity;
 	}
 	else

@@ -75,6 +75,13 @@ Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individu
 	tagF_value_ = SLIM_TAGF_UNSET_VALUE;
 	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
 	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
+    
+    // Initialize x/y/z to 0.0, only when leak-checking (they show up as used before initialized in Valgrind)
+#if SLIM_LEAK_CHECKING
+    spatial_x_ = 0.0;
+    spatial_y_ = 0.0;
+    spatial_z_ = 0.0;
+#endif
 }
 
 double Individual::RelatednessToIndividual(Individual &p_ind)
@@ -971,7 +978,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	}
 }
 
-//	*********************	- (logical)containsMutations(object<Mutation> mutations)
+//	*********************	- (logical)containsMutations(object<Mutation> mutations)
 //
 EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -1006,7 +1013,7 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 	return gStaticEidosValueNULL;
 }
 
-//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
 //
 EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -1053,7 +1060,7 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
 }
 
-//	*********************	- (float$)relatedness(o<Individual>$ individuals)
+//	*********************	- (float$)relatedness(o<Individual>$ individuals)
 //
 EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -1106,7 +1113,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	return gStaticEidosValueNULL;
 }
 
-//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
 //
 EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
@@ -1176,7 +1183,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	return EidosValue_SP(float_result);
 }
 
-//	*********************	- (object<Mutation>)uniqueMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (object<Mutation>)uniqueMutationsOfType(io<MutationType>$ mutType)
 //
 EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {

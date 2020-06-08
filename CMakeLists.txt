@@ -3,10 +3,13 @@
 #
 #   cd build
 #   cmake ../SLiM
-#   make
+#   make -j10
 #
 # This will make a Release build, with optimization and without debugging symbols, by default.
-# The built executables will be placed in the build directory upon successful completion.
+# The built executables will be placed in the build directory upon successful completion. The optional
+# -j argument specifies the number of threads to use for the build, which should be a value related 
+# to the number of cores available on your machine. Typically this value does not exceed the number of cores.
+
 # 
 # You can also explicitly make a Release build; this is typically done in a directory named "Release"
 # instead of "build":
@@ -14,15 +17,23 @@
 #   mkdir Release
 #   cd Release
 #   cmake -D CMAKE_BUILD_TYPE=Release ../SLiM
-#   make
+#   make 
 #
 # Or you can make a Debug build (without optimization, with debugging symbols):
 #
 #   mkdir Debug
 #   cd Debug
 #   cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
-#   make
+#   make 
 #
+
+# To build the Qt GUI, make sure you have the Qt5 Widgets, Core, and Gui libraries installed, then 
+# configure with:
+#   cd build
+#   cmake -D BUILD_QTSLIM=ON ../SLiM
+#   make -j10
+
+
 # In all cases the concept is the same: make a build directory of some name, cd into it, run cmake
 # to set up the build (with a CMAKE_BUILD_TYPE flag if desired, otherwise Release will be used by
 # default), then run make to actually do the build.  This setup (1) keeps all build products out of
@@ -41,7 +52,9 @@
 # file has changed.
 
 
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 2.8 FATAL_ERROR)
+
+project(SLiM)
 
 
 # Make a Release build by default
@@ -49,15 +62,19 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
+# User-defined CMAKE command-line options
+option(BUILD_QTSLIM "Build the Qt5 GUI for SLiM (on Linux only)" OFF)
+
+
 # Use the flags below for [all / Debug / Release] builds; these flags are built in to cmake
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-deprecated-register -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value -Wno-pragmas")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value")
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
 
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 
 # Report the build type
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
@@ -83,6 +100,13 @@ set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${
 add_library(${TARGET_NAME} STATIC ${GSL_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES})
 
+# ZLIB
+set(TARGET_NAME eidos_zlib)
+file(GLOB_RECURSE ZLIB_SOURCES ${PROJECT_SOURCE_DIR}/eidos_zlib/*.c)
+set(ZLIB_INCLUDES ${PROJECT_SOURCE_DIR}/eidos_zlib)
+add_library(${TARGET_NAME} STATIC ${ZLIB_SOURCES})
+target_include_directories(${TARGET_NAME} PUBLIC)
+
 # KASTORE
 set(TARGET_NAME kastore)
 file(GLOB_RECURSE KASTORE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore/*.c)
@@ -102,15 +126,40 @@ set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
 add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
-target_link_libraries(${TARGET_NAME} PUBLIC gsl)
-target_link_libraries(${TARGET_NAME} PUBLIC tables)
-target_link_libraries(${TARGET_NAME} PUBLIC)
+target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
 
 set(TARGET_NAME eidos)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
-target_link_libraries(${TARGET_NAME} PUBLIC gsl)
-target_link_libraries(${TARGET_NAME} PUBLIC tables)
+target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
 
 install(TARGETS slim eidos DESTINATION bin)
+
+# QtSLiM -- this can be enabled with the -DBUILD_QTSLIM=ON option to cmake
+if(BUILD_QTSLIM)
+cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
+set(TARGET_NAME QtSLiM)
+find_package(OpenGL REQUIRED)
+find_package(Qt5 REQUIRED
+    Core
+    Gui
+    Widgets
+)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+list(REMOVE_ITEM SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/main.cpp)
+file(GLOB_RECURSE QTSLIM_SOURCES ${PROJECT_SOURCE_DIR}/QtSLiM/*.cpp ${PROJECT_SOURCE_DIR}/QtSLiM/*.qrc ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
+add_executable(${TARGET_NAME} "${QTSLIM_SOURCES}" "${SLIM_SOURCES}")
+set_target_properties( ${TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+target_compile_definitions( ${TARGET_NAME} PRIVATE EIDOSGUI=1 SLIMGUI=1)
+target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/QtSLiM" "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
+if(APPLE)
+	target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib /usr/lib/libobjc.A.dylib )
+else()
+	target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
+endif()
+install(TARGETS ${TARGET_NAME} DESTINATION bin)
+endif(BUILD_QTSLIM)
+

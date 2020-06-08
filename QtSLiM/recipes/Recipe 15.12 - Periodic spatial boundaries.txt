@@ -1,0 +1,32 @@
+// Keywords: continuous space, continuous spatial landscape, periodic boundaries
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	initializeInteractionType("i1", "xy", reciprocal=T, maxDistance=0.2);
+	i1.setInteractionFunction("n", 1.0, 0.1);
+}
+1 late() {
+	sim.addSubpop("p1", 2000);
+	p1.individuals.setSpatialPosition(p1.pointUniform(2000));
+}
+late()
+{
+	i1.evaluate();
+	focus = sample(p1.individuals, 1);
+	s = i1.strength(focus);
+	inds = p1.individuals;
+	for (i in seqAlong(s))
+		inds[i].color = rgb2color(c(1.0 - s[i], 1.0 - s[i], s[i]));
+	focus.color = "red";
+}
+modifyChild() {
+	pos = parent1.spatialPosition + rnorm(2, 0, 0.02);
+	child.setSpatialPosition(p1.pointPeriodic(pos));
+	return T;
+}
+1000 late() { sim.outputFixedMutations(); }

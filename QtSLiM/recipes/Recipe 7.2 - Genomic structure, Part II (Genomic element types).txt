@@ -1,0 +1,16 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);         // non-coding
+	initializeMutationType("m2", 0.5, "f", 0.0);         // synonymous
+	initializeMutationType("m3", 0.1, "g", -0.03, 0.2);  // deleterious
+	initializeMutationType("m4", 0.8, "e", 0.1);         // beneficial
+	initializeGenomicElementType("g1", c(m2,m3,m4), c(2,8,0.1));  // exon
+	initializeGenomicElementType("g2", c(m1,m3), c(9,1));       // intron
+	initializeGenomicElementType("g3", c(m1), 1);          // non-coding
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 5000); }
+10000 { sim.simulationFinished(); }

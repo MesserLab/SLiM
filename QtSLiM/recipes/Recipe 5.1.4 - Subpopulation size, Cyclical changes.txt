@@ -1,0 +1,15 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 1500); }
+{
+	newSize = cos((sim.generation - 1) / 100) * 500 + 1000;
+	p1.setSubpopulationSize(asInteger(newSize));
+}
+10000 late() { sim.outputFull(); }

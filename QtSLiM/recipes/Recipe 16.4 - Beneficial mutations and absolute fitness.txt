@@ -1,0 +1,36 @@
+// Keywords: nonWF, non-Wright-Fisher
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 500);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeMutationType("m2", 1.0, "f", 0.5);   // dominant beneficial
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	for (i in 1:5)
+		subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+}
+100 early() {
+	mutant = sample(p1.individuals.genomes, 10);
+	mutant.addNewDrawnMutation(m2, 10000);
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+late() {
+	inds = p1.individuals;
+	catn(sim.generation + ": " + size(inds) + " (" + max(inds.age) + ")");
+}
+2000 late() {
+	sim.outputFull(ages=T);
+}

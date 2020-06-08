@@ -1617,7 +1617,7 @@ int gsl_sf_choose_e(unsigned int n, unsigned int m, gsl_sf_result * result)
 #endif
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wabsolute-value"
-		  result->err = 2.0 * GSL_DBL_EPSILON * prod * fabs(n-m);
+		  result->err = 2.0 * GSL_DBL_EPSILON * prod * fabs(n-m);   // may produce a warning; ignore
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
         return GSL_SUCCESS;

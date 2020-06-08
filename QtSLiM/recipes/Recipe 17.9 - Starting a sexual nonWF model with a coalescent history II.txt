@@ -1,0 +1,36 @@
+// Keywords: nonWF, non-Wright-Fisher, sexual, tree-sequence recording, tree sequence recording, reproduction()
+
+// Part I of this recipe, which is a Python script, may be found in
+// the Recipes archive downloadable at https://messerlab.org/slim/
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeTreeSeq();
+	initializeSex("A");
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.1);
+	m2.convertToSubstitution=T;
+	initializeGenomicElementType("g1", m2, 1.0);
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+}
+reproduction(NULL, "F") {
+	subpop.addCrossed(individual, subpop.sampleIndividuals(1, sex="M"));
+}
+1 early() {
+	sim.readFromPopulationFile("recipe_17.9.trees");
+	target = sample(sim.subpopulations.genomes, 1);
+	target.addNewDrawnMutation(m2, 10000);
+}
+early() {
+	p0.fitnessScaling = 5000 / p0.individualCount;
+}
+1: late() {
+	if (sim.mutationsOfType(m2).size() == 0) {
+		print(sim.substitutions.size() ? "FIXED" else "LOST");
+		sim.treeSeqOutput("recipe_17.9_II.trees");
+		sim.simulationFinished();
+	}
+}
+2000 { sim.simulationFinished(); }

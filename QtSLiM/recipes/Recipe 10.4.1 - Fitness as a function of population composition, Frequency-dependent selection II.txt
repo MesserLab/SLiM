@@ -1,0 +1,15 @@
+// Keywords: fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
+	initializeMutationType("m2", 0.5, "f", 0.1);    // positive freq. dep.
+	initializeGenomicElementType("g1", c(m1,m2), c(999,1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+10000 { sim.simulationFinished(); }
+fitness(m2) {
+	return 1.0 + sim.mutationFrequencies(p1, mut);
+}

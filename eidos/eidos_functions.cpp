@@ -52,6 +52,9 @@
 #include "omp.h"
 #endif
 
+#include "../eidos_zlib/zlib.h"
+
+
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
 // builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
@@ -162,11 +165,15 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dmvnorm",			Eidos_ExecuteFunction_dmvnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mu")->AddNumeric("sigma"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dbeta",				Eidos_ExecuteFunction_dbeta,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("alpha")->AddNumeric("beta"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dexp",				Eidos_ExecuteFunction_dexp,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mu", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dgamma",			Eidos_ExecuteFunction_dgamma,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",				Eidos_ExecuteFunction_dnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pnorm",				Eidos_ExecuteFunction_pnorm,		kEidosValueMaskFloat))->AddFloat("q")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("qnorm",				Eidos_ExecuteFunction_qnorm,		kEidosValueMaskFloat))->AddFloat("p")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbeta",				Eidos_ExecuteFunction_rbeta,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("alpha")->AddNumeric("beta"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			Eidos_ExecuteFunction_rbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt("size")->AddFloat("prob"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",				Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",			Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rdunif",			Eidos_ExecuteFunction_rdunif,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt_O("min", gStaticEidosValue_Integer0)->AddInt_O("max", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
@@ -323,8 +330,8 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("fileExists",		Eidos_ExecuteFunction_fileExists,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S("filePath"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setwd",				Eidos_ExecuteFunction_setwd,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("path"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S("filePath")->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents")->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
 
 		
 		// ************************************************************************************
@@ -4701,7 +4708,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 	EidosValue *arg_quantile = p_arguments[0].get();
 	EidosValue *arg_mu = p_arguments[1].get();
 	EidosValue *arg_sigma = p_arguments[2].get();
-	int64_t num_quantiles = arg_quantile->Count();
+	int num_quantiles = arg_quantile->Count();
 	int arg_mu_count = arg_mu->Count();
 	int arg_sigma_count = arg_sigma->Count();
 	bool mu_singleton = (arg_mu_count == 1);
@@ -4730,14 +4737,14 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int64_t value_index = 0; value_index < num_quantiles; ++value_index)
+			for (int value_index = 0; value_index < num_quantiles; ++value_index)
 				float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu0, sigma0), value_index);
 		}
 	}
 	else
 	{
 		const double *float_data = arg_quantile->FloatVector()->data();
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_quantiles);
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
@@ -4754,6 +4761,80 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 	
 	return result_SP;
 }
+
+//	(float)qnorm(float p, [numeric mean = 0], [numeric sd = 1])
+EidosValue_SP Eidos_ExecuteFunction_qnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_prob = p_arguments[0].get();
+	EidosValue *arg_mu = p_arguments[1].get();
+	EidosValue *arg_sigma = p_arguments[2].get();
+	int64_t num_probs = arg_prob->Count();
+	int arg_mu_count = arg_mu->Count();
+	int arg_sigma_count = arg_sigma->Count();
+	bool mu_singleton = (arg_mu_count == 1);
+	bool sigma_singleton = (arg_sigma_count == 1);
+	
+	if (!mu_singleton && (arg_mu_count != num_probs))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires mean to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	if (!sigma_singleton && (arg_sigma_count != num_probs))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires sd to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	
+	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
+	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
+	
+	if (mu_singleton && sigma_singleton)
+	{
+		if (sigma0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_probs == 1)
+		{
+			const double float_prob = arg_prob->FloatAtIndex(0, nullptr);
+			if (float_prob < 0.0 || float_prob > 1.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires 0.0 <= p <= 1.0 (" << EidosStringForFloat(float_prob) << " supplied)." << EidosTerminate(nullptr);
+
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_cdf_gaussian_Pinv(float_prob, sigma0) + mu0));
+		}
+		else
+		{
+			const double *float_data = arg_prob->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_probs);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int64_t value_index = 0; value_index < num_probs; ++value_index) {
+				if (float_data[value_index] < 0.0 || float_data[value_index] > 1.0)
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires 0.0 <= p <= 1.0 (" << EidosStringForFloat(float_data[value_index]) << " supplied)." << EidosTerminate(nullptr);
+				float_result->set_float_no_check(gsl_cdf_gaussian_Pinv(float_data[value_index], sigma0) + mu0, value_index);
+        }
+		}
+	}
+	else
+	{
+		const double *float_data = arg_prob->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_probs);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_probs; ++value_index)
+		{
+			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
+			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
+		  if (float_data[value_index] < 0.0 || float_data[value_index] > 1.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires 0.0 <= p <= 1.0 (" << EidosStringForFloat(float_data[value_index]) << " supplied)." << EidosTerminate(nullptr);
+			
+			if (sigma <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_cdf_gaussian_Pinv(float_data[value_index], sigma) + mu, value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
 
 //	(float)pnorm(float q, [numeric mean = 0], [numeric sd = 1])
 EidosValue_SP Eidos_ExecuteFunction_pnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
@@ -4813,6 +4894,74 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const EidosValue_SP *const p_arguments
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_cdf_gaussian_P(float_data[value_index] - mu, sigma), value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(float)dbeta(float x, numeric alpha, numeric beta)
+EidosValue_SP Eidos_ExecuteFunction_dbeta(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_quantile = p_arguments[0].get();
+	EidosValue *arg_alpha = p_arguments[1].get();
+	EidosValue *arg_beta = p_arguments[2].get();
+	int num_quantiles = arg_quantile->Count();
+	int arg_alpha_count = arg_alpha->Count();
+	int arg_beta_count = arg_beta->Count();
+	bool alpha_singleton = (arg_alpha_count == 1);
+	bool beta_singleton = (arg_beta_count == 1);
+	
+	if (!alpha_singleton && (arg_alpha_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	if (!beta_singleton && (arg_beta_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	
+	double alpha0 = (arg_alpha_count ? arg_alpha->FloatAtIndex(0, nullptr) : 0.0);
+	double beta0 = (arg_beta_count ? arg_beta->FloatAtIndex(0, nullptr) : 0.0);
+	
+	if (alpha_singleton && beta_singleton)
+	{
+		if (alpha0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha0) << " supplied)." << EidosTerminate(nullptr);
+		if (beta0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta > 0.0 (" << EidosStringForFloat(beta0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_quantiles == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_beta_pdf(arg_quantile->FloatAtIndex(0, nullptr), alpha0, beta0)));
+		}
+		else
+		{
+			const double *float_data = arg_quantile->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index = 0; value_index < num_quantiles; ++value_index)
+				float_result->set_float_no_check(gsl_ran_beta_pdf(float_data[value_index], alpha0, beta0), value_index);
+		}
+	}
+	else
+	{
+		const double *float_data = arg_quantile->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double alpha = (alpha_singleton ? alpha0 : arg_alpha->FloatAtIndex(value_index, nullptr));
+			double beta = (beta_singleton ? beta0 : arg_beta->FloatAtIndex(value_index, nullptr));
+			
+			if (alpha <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha) << " supplied)." << EidosTerminate(nullptr);
+			if (beta <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta > 0.0 (" << EidosStringForFloat(beta) << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_beta_pdf(float_data[value_index], alpha, beta), value_index);
 		}
 	}
 	
@@ -5108,6 +5257,57 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 	return result_SP;
 }
 
+//	(float)dexp(float x, [numeric mu = 1])
+EidosValue_SP Eidos_ExecuteFunction_dexp(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_quantile = p_arguments[0].get();
+	EidosValue *arg_mu = p_arguments[1].get();
+	int num_quantiles = arg_quantile->Count();
+	int arg_mu_count = arg_mu->Count();
+	bool mu_singleton = (arg_mu_count == 1);
+	
+	if (!mu_singleton && (arg_mu_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dexp): function dexp() requires mu to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
+	
+	if (mu_singleton)
+	{
+		double mu0 = arg_mu->FloatAtIndex(0, nullptr);
+		
+		if (num_quantiles == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_exponential_pdf(arg_quantile->FloatAtIndex(0, nullptr), mu0)));
+		}
+		else
+		{
+			const double *float_data = arg_quantile->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index = 0; value_index < num_quantiles; ++value_index)
+				float_result->set_float_no_check(gsl_ran_exponential_pdf(float_data[value_index], mu0), value_index);
+		}
+	}
+	else
+	{
+		const double *float_data = arg_quantile->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double mu = arg_mu->FloatAtIndex(value_index, nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_exponential_pdf(float_data[value_index], mu), value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
 //	(float)rexp(integer$ n, [numeric mu = 1])
 EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -5153,6 +5353,72 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments,
 			double mu = arg_mu->FloatAtIndex(draw_index, nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_exponential(EIDOS_GSL_RNG, mu), draw_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(float)dgamma(float x, numeric mean, numeric shape)
+EidosValue_SP Eidos_ExecuteFunction_dgamma(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *arg_quantile = p_arguments[0].get();
+	EidosValue *arg_mean = p_arguments[1].get();
+	EidosValue *arg_shape = p_arguments[2].get();
+	int num_quantiles = arg_quantile->Count();
+	int arg_mean_count = arg_mean->Count();
+	int arg_shape_count = arg_shape->Count();
+	bool mean_singleton = (arg_mean_count == 1);
+	bool shape_singleton = (arg_shape_count == 1);
+	
+	if (!mean_singleton && (arg_mean_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires mean to be of length 1 or n." << EidosTerminate(nullptr);
+	if (!shape_singleton && (arg_shape_count != num_quantiles))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex(0, nullptr) : 1.0);
+	double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex(0, nullptr) : 0.0);
+	
+	if (mean_singleton && shape_singleton)
+	{
+		if (shape0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape > 0.0 (" << EidosStringForFloat(shape0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_quantiles == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gamma_pdf(arg_quantile->FloatAtIndex(0, nullptr), shape0, mean0/shape0)));
+		}
+		else
+		{
+			const double *float_data = arg_quantile->FloatVector()->data();
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+			result_SP = EidosValue_SP(float_result);
+			
+			double scale = mean0 / shape0;
+			
+			for (int64_t value_index = 0; value_index < num_quantiles; ++value_index)
+				float_result->set_float_no_check(gsl_ran_gamma_pdf(float_data[value_index], shape0, scale), value_index);
+		}
+	}
+	else
+	{
+		const double *float_data = arg_quantile->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < num_quantiles; ++value_index)
+		{
+			double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex(value_index, nullptr));
+			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(value_index, nullptr));
+			
+			if (shape <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape > 0.0 (" << EidosStringForFloat(shape) << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_gamma_pdf(float_data[value_index], shape, mean / shape), value_index);
 		}
 	}
 	
@@ -9540,7 +9806,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const EidosValue_SP *const p_arguments
 	return result_SP;
 }
 
-//	(logical$)writeFile(string$ filePath, string contents, [logical$ append = F])
+//	(logical$)writeFile(string$ filePath, string contents, [logical$ append = F], [logical$ compress = F])
 EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -9558,55 +9824,169 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 	// the third argument is an optional append flag, F by default
 	bool append = p_arguments[2]->LogicalAtIndex(0, nullptr);
 	
-	// write the contents out
-	std::ofstream file_stream(file_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
+	// and then there is a flag for optional gzip compression
+	bool do_compress = p_arguments[3]->LogicalAtIndex(0, nullptr);
 	
-	if (!file_stream.is_open())
+	if (do_compress && !Eidos_string_hasSuffix(file_path, ".gz"))
+		file_path.append(".gz");
+	
+	// write the contents out
+	if (do_compress)
 	{
-		if (!gEidosSuppressWarnings)
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
-		result_SP = gStaticEidosValue_LogicalF;
+		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
+		#if EIDOS_BUFFER_ZIP_APPENDS
+		if (append)
+		{
+			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS is true
+			auto buffer_iter = gEidosBufferedZipAppendData.find(file_path);
+			
+			if (buffer_iter == gEidosBufferedZipAppendData.end())
+				buffer_iter = gEidosBufferedZipAppendData.emplace(std::pair<std::string, std::string>(file_path, "")).first;
+			
+			std::string &buffer = buffer_iter->second;
+			
+			// append lines to the buffer; this copies bytes, which is a bit inefficient but shouldn't matter in the big picture
+			if (contents_count == 1)
+			{
+				buffer.append(contents_value->StringAtIndex(0, nullptr));
+				buffer.append(1, '\n');
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+				{
+					buffer.append(string_vec[value_index]);
+					buffer.append(1, '\n');
+				}
+			}
+			
+			// if the buffer data exceeds a (somewhat arbitrary) 128K buffer maximum, write it out and remove the buffer entry
+			bool result = true;
+			
+			if (buffer.length() > (1024L * 128L))
+			{
+				result = _Eidos_FlushZipBuffer(file_path, buffer);
+				gEidosBufferedZipAppendData.erase(buffer_iter);
+				
+				if (!result && !gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not flush zip buffer to file at path " << file_path << "." << std::endl;
+				
+			}
+			
+			result_SP = result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+		}
+		else
+		#endif
+		{
+			// this code can handle both the append and the non-append case, but the append case may generate very low-quality
+			// compression (potentially even worse than the uncompressed data) due to having an excess of gzip headers
+			gzFile gzf = z_gzopen(file_path.c_str(), append ? "ab" : "wb");
+			
+			if (!gzf)
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
+				result_SP = gStaticEidosValue_LogicalF;
+			}
+			else
+			{
+				std::ostringstream outstream;
+				
+				if (contents_count == 1)
+				{
+					outstream << contents_value->StringAtIndex(0, nullptr) << std::endl;
+				}
+				else
+				{
+					const std::vector<std::string> &string_vec = *contents_value->StringVector();
+					
+					for (int value_index = 0; value_index < contents_count; ++value_index)
+						outstream << string_vec[value_index] << std::endl;
+				}
+				
+				std::string outstring = outstream.str();
+				const char *outcstr = outstring.c_str();
+				size_t outcstr_length = strlen(outcstr);
+				
+				// do the writing with zlib
+				bool failed = true;
+				int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+				
+				if (retval != -1)
+				{
+					retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+					
+					if (retval != 0)
+					{
+						retval = gzclose_w(gzf);
+						
+						if (retval == Z_OK)
+							failed = false;
+					}
+				}
+				
+				if (failed)
+					if (!gEidosSuppressWarnings)
+						p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered zlib errors while writing to file at path " << file_path << "." << std::endl;
+				
+				result_SP = failed ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT;
+			}
+		}
 	}
 	else
 	{
-		if (contents_count == 1)
-		{
-			// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-			// Note that system() and writeTempFile() do not append this newline, to allow the user to exactly specify file contents,
-			// but with writeFile() appending seems more likely to me; we'll see if anybody squawks
-			file_stream << contents_value->StringAtIndex(0, nullptr) << std::endl;
-		}
-		else
-		{
-			const std::vector<std::string> &string_vec = *contents_value->StringVector();
-			
-			for (int value_index = 0; value_index < contents_count; ++value_index)
-			{
-				file_stream << string_vec[value_index];
-				
-				// Add newlines after all lines but the last
-				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-				//if (value_index + 1 < contents_count)
-				file_stream << std::endl;
-			}
-		}
+		// no compression
+		std::ofstream file_stream(file_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		
-		if (file_stream.bad())
+		if (!file_stream.is_open())
 		{
 			if (!gEidosSuppressWarnings)
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
 			result_SP = gStaticEidosValue_LogicalF;
 		}
 		else
 		{
-			result_SP = gStaticEidosValue_LogicalT;
+			if (contents_count == 1)
+			{
+				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+				// Note that system() and writeTempFile() do not append this newline, to allow the user to exactly specify file contents,
+				// but with writeFile() appending seems more likely to me; we'll see if anybody squawks
+				file_stream << contents_value->StringAtIndex(0, nullptr) << std::endl;
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+				{
+					file_stream << string_vec[value_index];
+					
+					// Add newlines after all lines but the last
+					// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+					//if (value_index + 1 < contents_count)
+					file_stream << std::endl;
+				}
+			}
+			
+			if (file_stream.bad())
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				result_SP = gStaticEidosValue_LogicalF;
+			}
+			else
+			{
+				result_SP = gStaticEidosValue_LogicalT;
+			}
 		}
 	}
 	
 	return result_SP;
 }
 
-//	(string$)writeTempFile(string$ prefix, string$ suffix, string contents)
+//	(string$)writeTempFile(string$ prefix, string$ suffix, string contents, [logical$ compress = F])
 EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -9620,15 +10000,23 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 	std::string prefix = prefix_value->StringAtIndex(0, nullptr);
 	EidosValue *suffix_value = p_arguments[1].get();
 	std::string suffix = suffix_value->StringAtIndex(0, nullptr);
+	
+	// the third argument is the file contents to write
+	EidosValue *contents_value = p_arguments[2].get();
+	int contents_count = contents_value->Count();
+	
+	// and then there is a flag for optional gzip compression
+	bool do_compress = p_arguments[3]->LogicalAtIndex(0, nullptr);
+	
+	if (do_compress && !Eidos_string_hasSuffix(suffix, ".gz"))
+		suffix.append(".gz");
+	
+	// generate the filename template from the prefix/suffix
 	std::string filename = prefix + "XXXXXX" + suffix;
 	std::string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
 	
 	if ((filename.find("~") != std::string::npos) || (filename.find("/") != std::string::npos))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), prefix and suffix may not contain '~' or '/'; they may specify only a filename." << EidosTerminate(nullptr);
-	
-	// the third argument is the file contents to write
-	EidosValue *contents_value = p_arguments[2].get();
-	int contents_count = contents_value->Count();
 	
 	// write the contents out; thanks to http://stackoverflow.com/questions/499636/how-to-create-a-stdofstream-to-a-temp-file for the temp file creation code
 	char *file_path_cstr = strdup(file_path_template.c_str());
@@ -9640,46 +10028,111 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) Eidos_mkstemps() failed!" << EidosTerminate(nullptr);
 	}
 	
-	std::string file_path(file_path_cstr);
-	std::ofstream file_stream(file_path.c_str(), std::ios_base::out);
-	close(fd);	// opened by Eidos_mkstemps()
-	
-	if (!file_stream.is_open())
+	if (do_compress)
 	{
-		if (!gEidosSuppressWarnings)
-			p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << std::endl;
-		result_SP = gStaticEidosValue_StringEmpty;
-	}
-	else
-	{
-		if (contents_count == 1)
-		{
-			file_stream << contents_value->StringAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
-		}
-		else
-		{
-			const std::vector<std::string> &string_vec = *contents_value->StringVector();
-			
-			for (int value_index = 0; value_index < contents_count; ++value_index)
-			{
-				file_stream << string_vec[value_index];
-				
-				// Add newlines after all lines but the last
-				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-				//if (value_index + 1 < contents_count)
-				file_stream << std::endl;
-			}
-		}
+		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
+		gzFile gzf = z_gzdopen(fd, "wb");
 		
-		if (file_stream.bad())
+		if (!gzf)
 		{
 			if (!gEidosSuppressWarnings)
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path_cstr << "." << std::endl;
 			result_SP = gStaticEidosValue_StringEmpty;
 		}
 		else
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+			std::ostringstream outstream;
+			
+			if (contents_count == 1)
+			{
+				outstream << contents_value->StringAtIndex(0, nullptr);
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+					outstream << string_vec[value_index] << std::endl;
+			}
+			
+			std::string outstring = outstream.str();
+			const char *outcstr = outstring.c_str();
+			size_t outcstr_length = strlen(outcstr);
+			
+			// do the writing with zlib
+			bool failed = true;
+			int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+			
+			if (retval != -1)
+			{
+				retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+				
+				if (retval != 0)
+				{
+					retval = gzclose_w(gzf);
+					
+					if (retval == Z_OK)
+						failed = false;
+				}
+			}
+			
+			if (failed)
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered zlib errors while writing to file at path " << file_path_cstr << "." << std::endl;
+				result_SP = gStaticEidosValue_StringEmpty;
+			}
+			else
+			{
+				std::string file_path(file_path_cstr);
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+			}
+		}
+	}
+	else
+	{
+		// no compression
+		std::string file_path(file_path_cstr);
+		std::ofstream file_stream(file_path.c_str(), std::ios_base::out);
+		close(fd);	// opened by Eidos_mkstemps()
+		
+		if (!file_stream.is_open())
+		{
+			if (!gEidosSuppressWarnings)
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() could not write to file at path " << file_path << "." << std::endl;
+			result_SP = gStaticEidosValue_StringEmpty;
+		}
+		else
+		{
+			if (contents_count == 1)
+			{
+				file_stream << contents_value->StringAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+			}
+			else
+			{
+				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				
+				for (int value_index = 0; value_index < contents_count; ++value_index)
+				{
+					file_stream << string_vec[value_index];
+					
+					// Add newlines after all lines but the last
+					// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
+					//if (value_index + 1 < contents_count)
+					file_stream << std::endl;
+				}
+			}
+			
+			if (file_stream.bad())
+			{
+				if (!gEidosSuppressWarnings)
+					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeTempFile): function writeTempFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
+				result_SP = gStaticEidosValue_StringEmpty;
+			}
+			else
+			{
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+			}
 		}
 	}
 	

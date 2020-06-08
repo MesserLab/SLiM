@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1671.6">
+  <style type="text/css">
+    p.p1 {margin: 6.0px 0.0px 3.0px 0.0px; font: 11.0px Optima}
+    p.p2 {margin: 2.0px 0.0px 2.0px 0.0px; text-indent: 13.7px; font: 11.0px Optima}
+    p.p3 {margin: 2.0px 0.0px 2.0px 27.4px; font: 2.0px 'Times New Roman'; min-height: 2.0px}
+    p.p4 {margin: 2.0px 0.0px 2.0px 27.4px; font: 9.0px Menlo; color: #1c0acf}
+    p.p5 {margin: 2.0px 0.0px 2.0px 27.4px; font: 9.0px Menlo}
+    p.p6 {margin: 2.0px 0.0px 2.0px 27.4px; font: 9.0px Menlo; color: #ff0000}
+    p.p7 {margin: 9.0px 0.0px 9.0px 27.4px; font: 9.0px Menlo; color: #1c0acf}
+    p.p8 {margin: 2.0px 0.0px 2.0px 0.0px; font: 11.0px Optima}
+    p.p9 {margin: 9.0px 0.0px 9.0px 27.4px; font: 9.0px Menlo}
+    p.p10 {margin: 9.0px 0.0px 9.0px 27.4px; font: 9.0px Menlo; color: #007400}
+    p.p11 {margin: 2.0px 0.0px 2.0px 27.4px; font: 9.0px Menlo; color: #007400}
+    p.p12 {margin: 2.0px 0.0px 2.0px 27.4px; font: 9.0px Menlo; color: #1c00cf}
+    p.p13 {margin: 2.0px 0.0px 2.0px 27.4px; font: 9.0px Menlo; color: #aa0d91}
+    p.p14 {margin: 2.0px 0.0px 2.0px 0.0px; text-indent: 13.7px; font: 11.0px Optima; min-height: 13.0px}
+    span.s1 {font: 9.0px Menlo}
+    span.s2 {color: #aa0d91}
+    span.s3 {color: #000000}
+    span.s4 {font: 9.0px 'Times New Roman'}
+    span.s5 {font: 11.0px 'Times New Roman'}
+    span.s6 {color: #1c00cf}
+    span.Apple-tab-span {white-space:pre}
+  </style>
+</head>
+<body>
+<p class="p1"><i>2.5.1<span class="Apple-converted-space">  </span>ITEM: 1. </i><span class="s1"><i>if</i></span><i> and </i><span class="s1"><i>if–else</i></span><i> statements</i></p>
+<p class="p2">As in many languages, conditional execution is provided by the <span class="s1">if</span> statement.<span class="Apple-converted-space">  </span>This statement is supplied with a <span class="s1">logical</span> condition; if the condition is <span class="s1">T</span>, the rest of the <span class="s1">if</span> statement is executed, whereas if the condition is <span class="s1">F</span>, the rest of the <span class="s1">if</span> statement is ignored.<span class="Apple-converted-space">  </span>An example:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>if (2^2^2^2^2 &gt; 10000) "exponentiation is da bomb!"</p>
+<p class="p3"><br></p>
+<p class="p5">"exponentiation is da bomb!"</p>
+<p class="p3"><br></p>
+<p class="p2">The only twist here, really, is that the condition must evaluate to a single value, i.e. a vector of <span class="s1">size() == 1</span>.<span class="Apple-converted-space">  </span>The <span class="s1">if</span> statement, in other words, is essentially a scalar operator, not a vector operator.<span class="Apple-converted-space">  </span>If you have a multivalued <span class="s1">logical</span> vector, you can use the <span class="s1">any()</span> or <span class="s1">all()</span> functions to simplify it to a single <span class="s1">logical</span> value.<span class="Apple-converted-space">  </span>Alternatively, the <span class="s1">ifelse()</span> function provides a vector conditional operation, similar to that in R.</p>
+<p class="p2">It is worth exploring this twist with an example.<span class="Apple-converted-space">  </span>Suppose you have a variable <span class="s1">x</span> which ought to be equal to <span class="s1">3</span>, and a variable <span class="s1">y</span> which ought to contain two values, <span class="s1">7</span> and <span class="s1">8</span>.<span class="Apple-converted-space">  </span>You might expect to be able to write:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>if (x == 3 &amp; y == c(7,8)) "yes!"</p>
+<p class="p3"><br></p>
+<p class="p6">ERROR (EidosInterpreter::Evaluate_If): condition has size() != 1<span class="s4">.</span></p>
+<p class="p3"><br></p>
+<p class="p2">The error informs you that the size of condition is not equal to <span class="s1">1</span> (and that that is a problem).<span class="Apple-converted-space">  </span>The expression <span class="s1">y == c(7,8)</span> produces a <span class="s1">logical</span> vector with two values, the result of testing the first and second values respectively.<span class="Apple-converted-space">  </span>The <span class="s1">&amp;</span><span class="s5"> </span>operator thus produces a two-valued <span class="s1">logical</span> vector as its result, and <span class="s1">if</span> is not happy about that.<span class="Apple-converted-space">  </span>To resolve this, you could use the <span class="s1">all()</span> function, or in many cases more appropriately, the <span class="s1">identical()</span> function.<span class="Apple-converted-space">  </span>See the Eidos manual for further discussion of this issue.</p>
+<p class="p2">It is also worth noting that the condition for <span class="s1">if</span> does not need to be a <span class="s1">logical</span> value; a value of a different type will be converted to <span class="s1">logical</span> by coercion if possible.</p>
+<p class="p2">Often you want to perform an alternative action when the condition of an <span class="s1">if</span> statement is <span class="s1">F</span>; the <span class="s1">if–else</span> statement allows this.<span class="Apple-converted-space">  </span>It is simplest to just show this with an example:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>if (2/2/2/2/2 &gt; 10000) "division is da bomb!"; else "not so much."</p>
+<p class="p3"><br></p>
+<p class="p5">"not so much."</p>
+<p class="p3"><br></p>
+<p class="p2">Super simple, right?</p>
+<p class="p1"><i>2.5.3<span class="Apple-converted-space">  </span>ITEM: 3. semicolons and "null statements", </i><span class="s1"><i>;</i></span></p>
+<p class="p2">Every statement in Eidos must end with a semicolon (except compound statements, which end with a closing brace).<span class="Apple-converted-space">  </span>However, when you’re working interactively in EidosScribe, EidosScribe will add a trailing semicolon to your statements if necessary, just to make your life simpler.<span class="Apple-converted-space">  </span>So when you type:</p>
+<p class="p7"><span class="s2">&gt;</span><span class="s3"> </span>1+1==2</p>
+<p class="p8">what is really being evaluated behind the scenes is:</p>
+<p class="p7"><span class="s2">&gt;</span><span class="s3"> </span>1+1==2;</p>
+<p class="p2">When you’re not working interactively, semicolons are required, and if you forget, you will get an error, like this:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>1+1==2</p>
+<p class="p3"><br></p>
+<p class="p6">ERROR (Parse): unexpected token 'EOF' in statement; expected ';'</p>
+<p class="p3"><br></p>
+<p class="p2">EOF stands for End Of File; it’s a standard way of referring to the end of an input buffer, in this case the line of input provided by the user for execution.</p>
+<p class="p2">The simplest and shortest possible statement in Eidos is the "null statement", which consists of nothing but a semicolon:</p>
+<p class="p9">;</p>
+<p class="p2">This is not terribly useful, since it does nothing.</p>
+<p class="p1"><i>2.5.4<span class="Apple-converted-space">  </span>ITEM: 4. compound statements with </i><span class="s1"><i>{ }</i></span></p>
+<p class="p2">The other thing you might wonder about, regarding <span class="s1">if</span> statements, is: what if I want to perform more than one action in response to the condition being <span class="s1">T</span> or <span class="s1">F</span>?<span class="Apple-converted-space">  </span>This, then, is an opportune moment to introduce the concept of compound statements.<span class="Apple-converted-space">  </span>A compound statement is a series of statements (zero or more) enclosed by braces.<span class="Apple-converted-space">  </span>An example is worth a thousand words:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>if (1+1==2)</p>
+<p class="p4">{</p>
+<p class="p4"><span class="Apple-converted-space">   </span>x = 1;</p>
+<p class="p4"><span class="Apple-converted-space">   </span>x = x + 1;</p>
+<p class="p4"><span class="Apple-converted-space">   </span>x;</p>
+<p class="p4">}</p>
+<p class="p4">else</p>
+<p class="p4">{</p>
+<p class="p4"><span class="Apple-converted-space">   </span>"whoah, I'm confused";</p>
+<p class="p4">}</p>
+<p class="p3"><br></p>
+<p class="p5">2</p>
+<p class="p3"><br></p>
+<p class="p2">Note that the input here is spread across multiple lines for clarity; all of this could be typed on a single line instead.<span class="Apple-converted-space">  </span>If entered as multiple lines, it cannot presently be entered in EidosScribe’s interactive mode because the <span class="s1">if</span> statement would stand on its own and be evaluated as soon as it was completed; instead, the full text would need to be entered in the script area on the left, selected, and executed.<span class="Apple-converted-space">  </span>All of the blue lines are user input, whereas the final line in black, <span class="s1">2</span>, shows the output of the execution of the whole <span class="s1">if–else</span> statement; the <span class="s1">if</span> clause is executed, the calculations involving <span class="s1">x</span> are performed, and the final statement <span class="s1">x;</span> produces a result which is printed to the console as usual.</p>
+<p class="p2">The way that <span class="s1">x;</span> results in output here might seem a bit surprising at first, but it is a consequence of the fact that <i>the value of a compound statement is the value of the last statement executed within the compound statement</i>; the values of the previous statements are discarded.</p>
+<p class="p2">You can use a compound statement in any context in which a single statement would be allowed.<span class="Apple-converted-space">  </span>For example, compound statements are very commonly used with looping constructs.</p>
+<p class="p1"><i>2.6.1<span class="Apple-converted-space">  </span>ITEM: 5. </i><span class="s1"><i>while</i></span><i> statements</i></p>
+<p class="p2">A <span class="s1">while</span> loop repeats a statement as long as a given condition is true.<span class="Apple-converted-space">  </span>The condition is tested before the first time that the statement is executed, so the statement will be executed zero or more times.<span class="Apple-converted-space">  </span>Here is a code snippet to compute the first twenty numbers of the Fibonacci sequence:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>fib = c(1, 1);</p>
+<p class="p4">while (size(fib) &lt; 20)</p>
+<p class="p4">{</p>
+<p class="p4"><span class="Apple-converted-space">   </span>next_fib = fib[size(fib) - 1] + fib[size(fib) - 2];</p>
+<p class="p4"><span class="Apple-converted-space">   </span>fib = c(fib, next_fib);</p>
+<p class="p4">}</p>
+<p class="p4">fib;</p>
+<p class="p3"><br></p>
+<p class="p5">1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181 6765</p>
+<p class="p3"><br></p>
+<p class="p2">Its use of a <span class="s1">while</span> loop is optimal, because it ensures that if the <span class="s1">fib</span> vector is already long enough to satisfy the length condition <span class="s1">size(fib) &lt; 20</span>, no further values of <span class="s1">fib</span> will be computed.<span class="Apple-converted-space">  </span>You could use this <span class="s1">while</span> loop to lengthen the <span class="s1">fib</span> vector on demand within a larger block of code that used the <span class="s1">fib</span> vector repeatedly.</p>
+<p class="p1"><i>2.6.2<span class="Apple-converted-space">  </span>ITEM: 6. </i><span class="s1"><i>do–while</i></span><i> statements</i></p>
+<p class="p2">A <span class="s1">do–while</span> loop repeats a statement as long as a given condition is true.<span class="Apple-converted-space">  </span>Unlike <span class="s1">while</span> loops, in this case the condition is tested at the end of the loop, and thus the loop statement is always executed at least once.<span class="Apple-converted-space">  </span>Here is a code snippet to compute a factorial:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>counter = 5;</p>
+<p class="p4">factorial = 1;</p>
+<p class="p4">do</p>
+<p class="p4">{</p>
+<p class="p4"><span class="Apple-converted-space">   </span>factorial = factorial * counter;</p>
+<p class="p4"><span class="Apple-converted-space">   </span>counter = counter - 1;</p>
+<p class="p4">}</p>
+<p class="p4">while (counter &gt; 0);</p>
+<p class="p4">"The factorial of 5 is " + factorial;</p>
+<p class="p3"><br></p>
+<p class="p5">"The factorial of 5 is 120"</p>
+<p class="p3"><br></p>
+<p class="p2">Note that this example could be rewritten using a <span class="s1">while</span> loop instead, but it might be a bit less intuitive in its operation since it would no longer embody the formal definition of the factorial as explicitly.<span class="Apple-converted-space">  </span>Note also that computing a factorial could be done much more trivially (and efficiently) using the sequence operator <span class="s1">:</span> and the <span class="s1">product()</span> function, but the code here is useful for the purpose of illustration.</p>
+<p class="p1"><i>2.6.3<span class="Apple-converted-space">  </span>ITEM: 7. </i><span class="s1"><i>for</i></span><i> statements (with </i><span class="s1"><i>in</i></span><i>)</i></p>
+<p class="p2">The <span class="s1">for</span> loop is used to loop through all of the elements in a vector.<span class="Apple-converted-space">  </span>For each value in the given vector, a given variable is set to the value, and a given statement is then executed.<span class="Apple-converted-space">  </span>For example, the following code computes squares by setting <span class="s1">element</span> to each value of <span class="s1">my_sequence</span>, one by one, and then executing the <span class="s1">print()</span> function for each value:</p>
+<p class="p3"><br></p>
+<p class="p4"><span class="s2">&gt;</span><span class="s3"> </span>my_sequence = 1:4;</p>
+<p class="p4">for (element in my_sequence)</p>
+<p class="p4"><span class="Apple-converted-space">   </span>print("The square of " + element + " is " + element^2);</p>
+<p class="p3"><br></p>
+<p class="p5">"The square of 1 is 1"</p>
+<p class="p5">"The square of 2 is 4"</p>
+<p class="p5">"The square of 3 is 9"</p>
+<p class="p5">"The square of 4 is 16"</p>
+<p class="p3"><br></p>
+<p class="p2">This looping construct is called by various names in other languages, such as the “for each” statement (PHP), the “range-based for” (C++), “fast enumeration” (Objective-C), and so forth.<span class="Apple-converted-space">  </span>It is different from the traditional <span class="s1">for</span> loop of C and related languages, which entails an initializer expression, a condition expression, and an increment/decrement expression.<span class="Apple-converted-space">  </span>That type of <span class="s1">for</span> loop does not exist in Eidos (following R); the iterator <span class="s1">for</span> of R and Eidos is a more natural and efficient choice for vector-based languages.</p>
+<p class="p1"><i>2.6.4<span class="Apple-converted-space">  </span>ITEM: 8. </i><span class="s1"><i>next</i></span><i> statements</i></p>
+<p class="p2">Sometimes you might wish to cut short the execution of a given iteration of a loop, skipping the rest of the work that would normally be done and proceeding directly to the next iteration.<span class="Apple-converted-space">  </span>This is the function of the <span class="s1">next</span> statement.<span class="Apple-converted-space">  </span>The <span class="s1">next</span> statement can be used within <span class="s1">for</span>, <span class="s1">while</span>, and <span class="s1">do–while</span> loops.</p>
+<p class="p1"><i>2.6.5<span class="Apple-converted-space">  </span>ITEM: 9. </i><span class="s1"><i>break</i></span><i> statements</i></p>
+<p class="p2">Often it is necessary to stop the execution of a loop altogether, not just to cut short the current iteration of the loop as <span class="s1">next</span> does.<span class="Apple-converted-space">  </span>To achieve this – to break out of a loop completely – use the <span class="s1">break</span> statement.<span class="Apple-converted-space">  </span>The <span class="s1">break</span> statement can be used within <span class="s1">for</span>, <span class="s1">while</span>, and <span class="s1">do–while</span> loops.</p>
+<p class="p1"><i>2.6.6<span class="Apple-converted-space">  </span>ITEM: 10. </i><span class="s1"><i>return</i></span><i> statements</i></p>
+<p class="p2">The <span class="s1">return</span> statement returns a value from a block of code, as in other languages such as C and R.<span class="Apple-converted-space">  </span>In one common case, when defining a user-defined function, <span class="s1">return</span> is used to stop execution of the function and return a given value to the caller.<span class="Apple-converted-space">  </span>Otherwise, a <span class="s1">return</span> is useful mostly when the Context within which you’re using Eidos uses the returned value.<span class="Apple-converted-space">  </span>When using Eidos in SLiM, for example, SLiM uses the value returned by Eidos scripts such as <span class="s1">fitness()</span> callbacks and <span class="s1">mateChoice()</span> callbacks, making <span class="s1">return</span> very useful in that Context.<span class="Apple-converted-space">  </span>Apart from such Context-dependent uses, <span class="s1">return</span> is mainly useful as a way to break out of nested loops regardless of the depth of nesting, as illustrated below.</p>
+<p class="p2">The <span class="s1">return</span> statement is very simple: the keyword <span class="s1">return</span>, and then, optionally, an expression.<span class="Apple-converted-space">  </span>When the <span class="s1">return</span> statement is executed, the expression is evaluated and its value is immediately returned as the value of the largest enclosing statement.<span class="Apple-converted-space">  </span>The <span class="s1">return</span> statement therefore breaks out of all conditionals, loops, and compound statements, regardless of the depth of nesting.</p>
+<p class="p2">In some circumstances a <span class="s1">return</span> statement is not necessary, because compound statements evaluate to the value of the last statement evaluated within them, and <span class="s1">if</span> statements behave similarly; as in R, therefore, a <span class="s1">return</span> statement can often be omitted.<span class="Apple-converted-space">  </span>However, using <span class="s1">return</span> makes the intentions of the programmer more explicit, and so its use is encouraged.</p>
+<p class="p2">If the expression for the <span class="s1">return</span> statement is omitted, the return value used is <span class="s1">NULL</span>.<span class="Apple-converted-space">  </span>In situations where the return value will not be used, such as Eidos events in SLiM, the return value should be omitted to make the intent of the code clear.</p>
+<p class="p1"><i>2.9.1<span class="Apple-converted-space">  </span>ITEM: 11. single-line comments with </i><span class="s1"><i>//</i></span></p>
+<p class="p2">Technically, comments are actually a type of whitespace; comments in Eidos code are completely ignored and have no effect whatsoever on the results of the execution of code, just like other kinds of whitespace in most respects.<span class="Apple-converted-space">  </span>Single-line comments begin with <span class="s1">//</span> and then may consist of any text whatsoever, up to the end of the current line of code.<span class="Apple-converted-space">  </span>A comment may occur by itself on a line, or it may follow other Eidos code.<span class="Apple-converted-space">  </span>So for example, you could write:</p>
+<p class="p10"><span class="s6">1</span><span class="s3"> + </span><span class="s6">1</span><span class="s3"> == </span><span class="s6">2</span><span class="s3">;<span class="Apple-converted-space">    </span></span>// this is true</p>
+<p class="p2">Comments are never required in Eidos, but using them to annotate your code is nevertheless a very good idea, both so that you remember what your intentions were when you come back to the code weeks or months later, and so that others who might need to understand or maintain your code have a helping hand.</p>
+<p class="p1"><i>2.9.2<span class="Apple-converted-space">  </span>ITEM: 12. block comments with </i><span class="s1"><i>/* */</i></span></p>
+<p class="p2">It is possible to comment out whole blocks of script, instead of just single lines.<span class="Apple-converted-space">  </span>This can be useful for writing longer comments that describe a section of code in more detail.<span class="Apple-converted-space">  </span>In Eidos (as in C and C++), such block comments can be written with a beginning <span class="s1">/*</span> and a terminating <span class="s1">*/</span>.<span class="Apple-converted-space">  </span>Here’s an example of this style of comment:</p>
+<p class="p11">/*</p>
+<p class="p11"><span class="Apple-converted-space">   </span>This computes the factorial x!, which is</p>
+<p class="p11"><span class="Apple-converted-space">   </span>the product of all values from 1 to x, for</p>
+<p class="p11"><span class="Apple-converted-space">   </span>any positive integer x.</p>
+<p class="p11">*/</p>
+<p class="p5">x_factorial = product(<span class="s6">1</span>:x);</p>
+<p class="p2">A nice feature of Eidos is that block comments nest properly, making it possible to use them to comment out stretches of code that already contain block comments.<span class="Apple-converted-space">  </span>For example, if the code above was no longer needed, but you didn’t want to delete it entirely because you might need it again later, you could use a block comment to disable it:</p>
+<p class="p11">/*<span class="Apple-tab-span">	</span>******* NOT NEEDED ************</p>
+<p class="p11">/*</p>
+<p class="p11"><span class="Apple-converted-space">   </span>This computes the factorial x!, which is</p>
+<p class="p11"><span class="Apple-converted-space">   </span>the product of all values from 1 to x, for</p>
+<p class="p11"><span class="Apple-converted-space">   </span>any positive integer x.</p>
+<p class="p11">*/</p>
+<p class="p11">x_factorial = product(1:x);</p>
+<p class="p11">*/</p>
+<p class="p2">The outer block comment is not terminated by the first <span class="s1">*/</span> because Eidos recognizes that that belongs to the inner block comment; the outer block comment continues until the second <span class="s1">*/</span> is encountered.</p>
+<p class="p1"><i>4.1<span class="Apple-converted-space">  </span>ITEM: 13. user-defined functions</i></p>
+<p class="p2">Suppose we wish to define a function that doubles whatever <span class="s1">float</span> value is passed to it.<span class="Apple-converted-space">  </span>This is very easy to do:</p>
+<p class="p5"><span class="s2">function</span> (float)double(float x)</p>
+<p class="p5">{</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">return</span> <span class="s6">2</span> * x;</p>
+<p class="p5">}</p>
+<p class="p2">The <span class="s1">function</span> keyword initiates the declaration of a new function.<span class="Apple-converted-space">  </span>It is followed by the full signature for the new function; here the signature declares that the function is named <span class="s1">double</span>, takes a parameter named <span class="s1">x</span> that is of type <span class="s1">float</span>, and returns type <span class="s1">float</span>.<span class="Apple-converted-space">  </span>This signature is then followed by the definition of the new function, in the form of a compound statement; here, the <span class="s1">double()</span> function is defined as returning two times the value it was passed.<span class="Apple-converted-space">  </span>Note that a <span class="s1">return</span> statement is used here to return a specified value from the function; if no <span class="s1">return</span> statement is encountered, the value of the last statement evaluated is automatically returned to the caller (as in R), but generally it is clearer to explicitly use <span class="s1">return</span><span class="s5">.</span></p>
+<p class="p2">Calling such functions works in exactly the same way as calling built-in functions:</p>
+<p class="p12"><span class="s2">&gt;</span> double(5.35)</p>
+<p class="p5">10.7</p>
+<p class="p2">Functions may be recursive; a simple <span class="s1">factorial()</span> function might be defined recursively as:</p>
+<p class="p5"><span class="s2">function</span> (integer)factorial(integer x)</p>
+<p class="p5">{</p>
+<p class="p5"><span class="Apple-tab-span">	</span><span class="s2">if</span> (x &lt;= <span class="s6">1</span>)</p>
+<p class="p13"><span class="s3"><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span></span>return<span class="s3"> </span><span class="s6">1</span><span class="s3">;</span></p>
+<p class="p13"><span class="s3"><span class="Apple-tab-span">	</span></span>else</p>
+<p class="p5"><span class="s4"><span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span></span><span class="s2">return</span> x * factorial(x - <span class="s6">1</span>);</p>
+<p class="p5">}</p>
+<p class="p2">This works well enough, as you can see:</p>
+<p class="p12"><span class="s2">&gt;</span> factorial(13)</p>
+<p class="p5">6227020800</p>
+<p class="p2">As with the built-in Eidos functions, user-defined functions may take multiple parameters, each of which may be allowed to be one of several different possible types.<span class="Apple-converted-space">  </span>Parameters to user-defined functions may also be optional, with a default value if left unsupplied.<span class="Apple-converted-space">  </span>Finally, functions are <i>scoped</i>; the code inside them executes in a private namespace in which only the parameters to the function are available, and variables defined inside a function will not persist beyond the end of the function’s execution.</p>
+<p class="p14"><br></p>
+</body>
+</html>

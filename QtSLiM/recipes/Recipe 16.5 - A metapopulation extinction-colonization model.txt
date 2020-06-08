@@ -1,0 +1,54 @@
+// Keywords: nonWF, non-Wright-Fisher, migration, dispersal
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 50);     // carrying capacity per subpop
+	defineConstant("N", 10);     // number of subpopulations
+	defineConstant("m", 0.01);   // migration rate
+	defineConstant("e", 0.1);    // subpopulation extinction rate
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+1 early() {
+	for (i in 1:N)
+		sim.addSubpop(i, (i == 1) ? 10 else 0);
+}
+early() {
+	// random migration
+	nIndividuals = sum(sim.subpopulations.individualCount);
+	nMigrants = rpois(1, nIndividuals * m);
+	migrants = sample(sim.subpopulations.individuals, nMigrants);
+	
+	for (migrant in migrants)
+	{
+		do dest = sample(sim.subpopulations, 1);
+		while (dest == migrant.subpopulation);
+		
+		dest.takeMigrants(migrant);
+	}
+	
+	// density-dependence and random extinctions
+	for (subpop in sim.subpopulations)
+	{
+		if (runif(1) < e)
+			subpop.fitnessScaling = 0.0;
+		else
+			subpop.fitnessScaling = K / subpop.individualCount;
+	}
+}
+late() {
+	if (sum(sim.subpopulations.individualCount) == 0)
+		stop("Global extinction in generation " + sim.generation + ".");
+}
+2000 late() {
+	sim.outputFixedMutations();
+}

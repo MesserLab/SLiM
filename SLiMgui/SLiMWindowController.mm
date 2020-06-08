@@ -57,6 +57,7 @@
 #include <sstream>
 #include <iterator>
 #include <stdexcept>
+#include <sys/stat.h>
 
 
 @implementation SLiMWindowController
@@ -171,8 +172,22 @@
 		
 		// We set the working directory for new windows to ~/Desktop/, since it makes no sense for them to use the location of the app.
 		// Each running simulation will track its own working directory, and the user can set it with a button in the SLiMgui window.
-		sim_working_dir = Eidos_ResolvedPath("~/Desktop");
-		sim_requested_working_dir = sim_working_dir;	// return to Desktop on recycle unless the user overrides it
+		// BCH 4/2/2020: Per request from PLR, we will now use the Desktop as the default directory only if we were launched by Finder
+		// or equivalent; if we were launched by a shell, we will use the working directory given us by that shell.  See issue #76
+		bool launchedFromShell = [(AppDelegate *)[NSApp delegate] launchedFromShell];
+		
+		if (launchedFromShell)
+			sim_working_dir = [(AppDelegate *)[NSApp delegate] SLiMguiCurrentWorkingDirectory];
+		else
+			sim_working_dir = Eidos_ResolvedPath("~/Desktop");
+		
+		// Check that our chosen working directory actually exists; if not, use ~
+		struct stat buffer;
+		
+		if (stat(sim_working_dir.c_str(), &buffer) != 0)
+			sim_working_dir = Eidos_ResolvedPath("~");
+		
+		sim_requested_working_dir = sim_working_dir;	// return to the working dir on recycle unless the user overrides it
 	}
 	
 	return self;
@@ -638,6 +653,10 @@
 			fullUpdate = YES;
 		}
 	}
+	
+	// Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
+	if (fullUpdate)
+		Eidos_FlushFiles();
 	
 	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
 	[self checkForSimulationTermination];
@@ -4108,9 +4127,6 @@
 		if (symbols)
 			symbols->AddSymbolsToTypeTable(*typeTable);
 		
-		// Ensure that the slimgui symbol is always available
-		(*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
-		
 		// Use the script text view's facility for using type-interpreting to get a "definitive" function map.  This way
 		// all functions that are defined, even if below the completion point, end up in the function map.
 		*functionMap = [scriptTextView functionMapForScriptString:[scriptTextView string] includingOptionalFunctions:NO];
@@ -4130,7 +4146,7 @@
 			// of that block, at the outer level of the script.  Detect that case and fall through to the handler for it at the end.
 			int32_t completion_block_end = completion_block->token_->token_end_;
 			
-			if ((int)(selection.location + selection.length) > completion_block_end)
+			if ((int)selection.location > completion_block_end)
 			{
 				 // Selection is after end of completion_block
 				completion_block = nullptr;
@@ -4209,6 +4225,9 @@
 							(*typeTable)->RemoveTypeForSymbol(gID_sim);
 						else
 							(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
+						
+						// The slimgui symbol is always available within a block, but not at the top level
+						(*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
 						
 						// Do the same for the zero-generation functions, which should be defined in initialization() blocks and
 						// not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
@@ -4379,7 +4398,7 @@
 		std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
 		
 		for (EidosGlobalStringID symbol_id : symbol_ids)
-			if ((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject)
+			if (((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject) || (symbol_id == gID_sim) || (symbol_id == gID_slimgui))
 				(*typeTable)->RemoveTypeForSymbol(symbol_id);
 		
 		return YES;

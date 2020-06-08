@@ -1,0 +1,32 @@
+// Keywords: quantitative trait, fitness()
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);       // neutral
+	initializeMutationType("m2", 0.5, "n", 0.0, 0.15);  // QTLs
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+fitness(m2) { return 1.0; }
+1 {
+	sim.addSubpop("p1", 500);
+	cat("Phenotypes: 0");
+}
+1: late() {
+	inds = sim.subpopulations.individuals;
+	phenotypes = inds.sumOfMutationsOfType(m2);
+	scale = dnorm(0.0, 0.0, 2.0);
+	inds.fitnessScaling = 1.5 - dnorm(phenotypes, 0.0, 2.0) / scale;
+	
+	if (sim.generation % 10 == 0)
+		cat(", " + mean(phenotypes));
+}
+5000 late() {
+	m2muts = sim.mutationsOfType(m2);
+	freqs = sim.mutationFrequencies(NULL, m2muts);
+	effects = m2muts.selectionCoeff;
+	catn();
+	print(cbind(freqs, effects));
+}

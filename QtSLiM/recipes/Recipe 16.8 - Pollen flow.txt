@@ -1,0 +1,38 @@
+// Keywords: nonWF, non-Wright-Fisher
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 200);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	// determine how many ovules were fertilized, out of the total
+	fertilizedOvules = rbinom(1, 30, 0.5);
+	
+	// determine the pollen source for each fertilized ovule
+	other = (subpop == p1) ? p2 else p1;
+	pollenSources = ifelse(runif(fertilizedOvules) < 0.99, subpop, other);
+	
+	// generate seeds from each fertilized ovule
+	// the ovule belongs to individual, the pollen comes from source
+	for (source in pollenSources)
+		subpop.addCrossed(individual, source.sampleIndividuals(1));
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+	sim.addSubpop("p2", 10);
+}
+early() {
+	for (subpop in sim.subpopulations)
+		subpop.fitnessScaling = K / subpop.individualCount;
+}
+10000 late() {
+	sim.outputFixedMutations();
+}

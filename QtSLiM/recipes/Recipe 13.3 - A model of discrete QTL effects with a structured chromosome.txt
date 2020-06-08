@@ -1,0 +1,114 @@
+// Keywords: migration, dispersal, QTL, quantitative trait loci, fitness()
+
+initialize() {
+	initializeMutationRate(1e-6);
+	
+	// neutral mutations in non-coding regions
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// mutations representing alleles in QTLs
+	scriptForQTLs = "if (runif(1) < 0.5) -1; else 1;";
+	initializeMutationType("m2", 0.5, "s", scriptForQTLs);
+	initializeGenomicElementType("g2", m2, 1.0);
+	m2.convertToSubstitution = F;
+	m2.mutationStackPolicy = "l";
+	
+	// set up our chromosome: 10 QTLs, surrounded by neutral regions
+	defineConstant("C", 10);    // number of QTLs
+	defineConstant("W", 1000);  // size of neutral buffer on each side
+	pos = 0;
+	q = NULL;
+	
+	for (i in 1:C)
+	{
+		initializeGenomicElement(g1, pos, pos + W-1);
+		pos = pos + W;
+		
+		initializeGenomicElement(g2, pos, pos);
+		q = c(q, pos);
+		pos = pos + 1;
+		
+		initializeGenomicElement(g1, pos, pos + W-1);
+		pos = pos + W;
+	}
+	
+	defineConstant("Q", q);     // remember our QTL positions
+	
+	// we want the QTLs to be unlinked; build a recombination map for that
+	rates = c(rep(c(1e-8, 0.5), C-1), 1e-8);
+	ends = (repEach(Q + W, 2) + rep(c(0,1), C))[0:(C*2 - 2)];
+	initializeRecombinationRate(rates, ends);
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+	
+	// set up migration; comment these out for zero gene flow
+	p1.setMigrationRates(p2, 0.01);
+	p2.setMigrationRates(p1, 0.01);
+	
+	// replicate the s1 event to output in generation 2 also
+	sim.registerEarlyEvent("s2", s1.source, 2, 2);
+	
+	// optional: give m2 mutations to everyone, as standing variation
+	g = sim.subpopulations.genomes;
+	
+	for (q in Q)
+	{
+		isPlus = asLogical(rbinom(size(g), 1, 0.5));
+		g[isPlus].addNewMutation(m2, 1.0, q);
+		g[!isPlus].addNewMutation(m2, -1.0, q);
+	}
+}
+fitness(m2) { return 1.0; }
+1: late() {
+	// evaluate and save the additive effects of QTLs
+	for (subpop in c(p1,p2))
+	{
+		inds = subpop.individuals;
+		phenotype = inds.sumOfMutationsOfType(m2);
+		optimum = (subpop == p1 ? 10.0 else -10.0);
+		inds.fitnessScaling = 1.0 + dnorm(optimum - phenotype, 0.0, 5.0);
+		inds.tagF = phenotype;
+	}
+}
+mateChoice() {
+	phenotype = individual.tagF;
+	others = sourceSubpop.individuals.tagF;
+	return weights * dnorm(others, phenotype, 5.0);
+}
+s1 2001 early() {
+	cat("-------------------------------\n");
+	cat("Output for end of generation " + (sim.generation - 1) + ":\n\n");
+	
+	// Output population fitness values
+	cat("p1 mean fitness = " + mean(p1.cachedFitness(NULL)) + "\n");
+	cat("p2 mean fitness = " + mean(p2.cachedFitness(NULL)) + "\n");
+	
+	// Output population additive QTL-based phenotypes
+	cat("p1 mean phenotype = " + mean(p1.individuals.tagF) + "\n");
+	cat("p2 mean phenotype = " + mean(p2.individuals.tagF) + "\n");
+	
+	// Output frequencies of +1/-1 alleles at the QTLs
+	muts = sim.mutationsOfType(m2);
+	plus = muts[muts.selectionCoeff == 1.0];
+	minus = muts[muts.selectionCoeff == -1.0];
+	
+	cat("\nOverall frequencies:\n\n");
+	for (q in Q)
+	{
+		qPlus = plus[plus.position == q];
+		qMinus = minus[minus.position == q];
+		pf = sum(sim.mutationFrequencies(NULL, qPlus));
+		mf = sum(sim.mutationFrequencies(NULL, qMinus));
+		pf1 = sum(sim.mutationFrequencies(p1, qPlus));
+		mf1 = sum(sim.mutationFrequencies(p1, qMinus));
+		pf2 = sum(sim.mutationFrequencies(p2, qPlus));
+		mf2 = sum(sim.mutationFrequencies(p2, qMinus));
+		
+		cat("   QTL " + q + ": f(+) == " + pf + ", f(-) == " + mf + "\n");
+		cat("         in p1: f(+) == " + pf1 + ", f(-) == " + mf1 + "\n");
+		cat("         in p2: f(+) == " + pf2 + ", f(-) == " + mf2 + "\n\n");
+	}
+}

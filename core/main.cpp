@@ -38,6 +38,7 @@
 #include "eidos_test.h"
 #include "slim_test.h"
 #include "eidos_test_element.h"
+#include "eidos_symbol_table.h"
 
 #ifdef EIDOS_SLIM_OPEN_MP
 #include "omp.h"
@@ -137,6 +138,7 @@ static void clean_up_leak_false_positives(void)
 	Eidos_FreeGlobalStrings();
 	EidosTestElement::FreeThunks();
 	MutationRun::DeleteMutationRunFreeList();
+	FreeSymbolTablePool();
 	Eidos_FreeRNG(gEidos_RNG);
 }
 #endif
@@ -171,7 +173,7 @@ int main(int argc, char *argv[])
 	// command-line SLiM generally terminates rather than throwing
 	gEidosTerminateThrows = false;
 	
-	// "slim" with no arguments prints uage, *unless* stdin is not a tty, in which case we're running the stdin script
+	// "slim" with no arguments prints usage, *unless* stdin is not a tty, in which case we're running the stdin script
 	if ((argc == 1) && isatty(fileno(stdin)))
 		PrintUsageAndDie(true, true);
 	
@@ -301,6 +303,7 @@ int main(int argc, char *argv[])
 			
 			int test_result = RunEidosTests();
 			
+			Eidos_FlushFiles();
 			test_exit(test_result);
 		}
 		
@@ -317,6 +320,7 @@ int main(int argc, char *argv[])
 			
 			int test_result = RunSLiMTests();
 			
+			Eidos_FlushFiles();
 			test_exit(test_result);
 		}
 		
@@ -452,7 +456,8 @@ int main(int argc, char *argv[])
 			if (retval != 0)
 				EIDOS_TERMINATION << std::endl << "ERROR (main): could not access input file: " << input_file << "." << EidosTerminate();
 			
-			if (!S_ISREG(fileInfo.st_mode))
+			// BCH 30 March 2020: adding S_ISFIFO() as a permitted file type here, to re-enable redirection of input
+			if (!S_ISREG(fileInfo.st_mode) && !S_ISFIFO(fileInfo.st_mode))
 			{
 				fclose(fp);
 				EIDOS_TERMINATION << std::endl << "ERROR (main): input file " << input_file << " is not a regular file (it might be a directory or other special file)." << EidosTerminate();
@@ -525,7 +530,9 @@ int main(int argc, char *argv[])
 #endif
 		}
 		
-		// clean up; but this is an unnecessary waste of time in the command-line context
+		// clean up; but most of this is an unnecessary waste of time in the command-line context
+		Eidos_FlushFiles();
+		
 #if SLIM_LEAK_CHECKING
 		delete sim;
 		sim = nullptr;

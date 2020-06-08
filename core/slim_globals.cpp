@@ -43,14 +43,14 @@ void TestSparseArray(void)
 		// This should succeed and contain six elements
 		SparseArray sa(5, 5);
 		uint32_t row0cols[] = {0, 3, 2};
-		double row0dists[] = {0, 3, 2};
-		double row0strengths[] = {0.05, 0.35, 0.25};
+		float row0dists[] = {0, 3, 2};
+		float row0strengths[] = {0.05f, 0.35f, 0.25f};
 		uint32_t row1cols[] = {4};
-		double row1dists[] = {4};
-		double row1strengths[] = {1.45};
+		float row1dists[] = {4};
+		float row1strengths[] = {1.45f};
 		uint32_t row3cols[] = {4, 1};
-		double row3dists[] = {4, 1};
-		double row3strengths[] = {3.45, 3.15};
+		float row3dists[] = {4, 1};
+		float row3strengths[] = {3.45f, 3.15f};
 		
 		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
 		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
@@ -67,12 +67,12 @@ void TestSparseArray(void)
 		// This should succeed and contain six elements, identical to the previous
 		SparseArray sa(5, 5);
 		
-		sa.AddEntryInteraction(0, 0, 0, 0.05);
-		sa.AddEntryInteraction(0, 3, 3, 0.35);
-		sa.AddEntryInteraction(0, 2, 2, 0.25);
-		sa.AddEntryInteraction(1, 4, 4, 1.45);
-		sa.AddEntryInteraction(3, 4, 4, 3.45);
-		sa.AddEntryInteraction(3, 1, 1, 3.15);
+		sa.AddEntryInteraction(0, 0, 0, 0.05f);
+		sa.AddEntryInteraction(0, 3, 3, 0.35f);
+		sa.AddEntryInteraction(0, 2, 2, 0.25f);
+		sa.AddEntryInteraction(1, 4, 4, 1.45f);
+		sa.AddEntryInteraction(3, 4, 4, 3.45f);
+		sa.AddEntryInteraction(3, 1, 1, 3.15f);
 		sa.Finished();
 		
 		std::cout << sa << std::endl;
@@ -84,11 +84,11 @@ void TestSparseArray(void)
 		// This should fail because row 1 is added twice
 		SparseArray sa(5, 5);
 		uint32_t row0cols[] = {0, 3, 2};
-		double row0dists[] = {0, 3, 2};
-		double row0strengths[] = {0.05, 0.35, 0.25};
+		float row0dists[] = {0, 3, 2};
+		float row0strengths[] = {0.05f, 0.35f, 0.25f};
 		uint32_t row1cols[] = {4};
-		double row1dists[] = {4};
-		double row1strengths[] = {1.45};
+		float row1dists[] = {4};
+		float row1strengths[] = {1.45f};
 		
 		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
 		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
@@ -101,11 +101,11 @@ void TestSparseArray(void)
 		// This should fail because row 0 is after row 1
 		SparseArray sa(5, 5);
 		uint32_t row0cols[] = {0, 3, 2};
-		double row0dists[] = {0, 3, 2};
-		double row0strengths[] = {0.05, 0.35, 0.25};
+		float row0dists[] = {0, 3, 2};
+		float row0strengths[] = {0.05f, 0.35f, 0.25f};
 		uint32_t row1cols[] = {4};
-		double row1dists[] = {4};
-		double row1strengths[] = {1.45};
+		float row1dists[] = {4};
+		float row1strengths[] = {1.45f};
 		
 		sa.AddRowInteractions(0, nullptr, nullptr, nullptr, 0);
 		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
@@ -118,8 +118,8 @@ void TestSparseArray(void)
 		// This should fail because row 0 is not added first
 		SparseArray sa(5, 5);
 		uint32_t row1cols[] = {4};
-		double row1dists[] = {4};
-		double row1strengths[] = {1.45};
+		float row1dists[] = {4};
+		float row1strengths[] = {1.45f};
 		
 		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
 	}
@@ -130,9 +130,9 @@ void TestSparseArray(void)
 		// This should fail because rows are added out of order
 		SparseArray sa(5, 5);
 		
-		sa.AddEntryInteraction(0, 0, 0, 0.05);
-		sa.AddEntryInteraction(1, 4, 4, 1.45);
-		sa.AddEntryInteraction(0, 3, 3, 0.35);
+		sa.AddEntryInteraction(0, 0, 0, 0.05f);
+		sa.AddEntryInteraction(1, 4, 4, 1.45f);
+		sa.AddEntryInteraction(0, 3, 3, 0.35f);
 		sa.Finished();
 		
 		std::cout << sa << std::endl;
@@ -144,7 +144,7 @@ void TestSparseArray(void)
 		// This should fail because a row is added that is beyond bounds
 		SparseArray sa(5, 5);
 		
-		sa.AddEntryInteraction(5, 0, 0, 0.05);
+		sa.AddEntryInteraction(5, 0, 0, 0.05f);
 		sa.Finished();
 		
 		std::cout << sa << std::endl;
@@ -156,7 +156,7 @@ void TestSparseArray(void)
 		// This should fail because a column is added that is beyond bounds
 		SparseArray sa(5, 5);
 		
-		sa.AddEntryInteraction(0, 5, 0, 0.05);
+		sa.AddEntryInteraction(0, 5, 0, 0.05f);
 		sa.Finished();
 		
 		std::cout << sa << std::endl;
@@ -168,8 +168,8 @@ void TestSparseArray(void)
 		// stress test by creating a large number of sparse arrays by entry and cross-checking them
 		for (int trial = 0; trial < 10000; ++trial)
 		{
-			double *distances = (double *)calloc(100 * 100, sizeof(double));
-			double *strengths = (double *)calloc(100 * 100, sizeof(double));
+			float *distances = (float *)calloc(100 * 100, sizeof(float));
+			float *strengths = (float *)calloc(100 * 100, sizeof(float));
 			int n_entries = random() % 5000;
 			
 			for (int entry = 1; entry <= n_entries; ++entry)
@@ -223,8 +223,8 @@ void TestSparseArray(void)
 		// stress test by creating a large number of sparse arrays by row and cross-checking them
 		for (int trial = 0; trial < 10000; ++trial)
 		{
-			double *distances = (double *)calloc(100 * 100, sizeof(double));
-			double *strengths = (double *)calloc(100 * 100, sizeof(double));
+			float *distances = (float *)calloc(100 * 100, sizeof(double));
+			float *strengths = (float *)calloc(100 * 100, sizeof(double));
 			int n_entries = random() % 5000;
 			
 			for (int entry = 1; entry <= n_entries; ++entry)
@@ -240,8 +240,8 @@ void TestSparseArray(void)
 			for (int row = 0; row < 100; row++)
 			{
 				std::vector<uint32_t> columns;
-				std::vector<double> row_distances;
-				std::vector<double> row_strengths;
+				std::vector<float> row_distances;
+				std::vector<float> row_strengths;
 				
 				for (int col = 0; col < 100; ++col)
 					if (*(distances + row + col * 100) != 0)

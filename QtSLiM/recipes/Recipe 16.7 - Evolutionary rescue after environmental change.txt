@@ -1,0 +1,56 @@
+// Keywords: nonWF, non-Wright-Fisher, QTL, quantitative trait loci, fitness()
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 500);
+	defineConstant("opt1", 0.0);
+	defineConstant("opt2", 10.0);
+	defineConstant("Tdelta", 10000);
+	
+	initializeMutationType("m1", 0.5, "n", 0.0, 1.0);  // QTL
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+early() {
+	// QTL-based fitness
+	inds = sim.subpopulations.individuals;
+	phenotypes = inds.sumOfMutationsOfType(m1);
+	optimum = (sim.generation < Tdelta) ? opt1 else opt2;
+	deviations = optimum - phenotypes;
+	fitnessFunctionMax = dnorm(0.0, 0.0, 5.0);
+	adaptation = dnorm(deviations, 0.0, 5.0) / fitnessFunctionMax;
+	inds.fitnessScaling = 0.1 + adaptation * 0.9;
+	inds.tagF = phenotypes;   // just for output below
+	
+	// density-dependence with a maximum benefit at low density
+	p1.fitnessScaling = min(K / p1.individualCount, 1.5);
+}
+fitness(m1) { return 1.0; }
+late() {
+	if (p1.individualCount == 0)
+	{
+		// stop at extinction
+		catn("Extinction in generation " + sim.generation + ".");
+		sim.simulationFinished();
+	}
+	else
+	{
+		// output the phenotypic mean and pop size
+		phenotypes = p1.individuals.tagF;
+		
+		cat(sim.generation + ": " + p1.individualCount + " individuals");
+		cat(", phenotype mean " + mean(phenotypes));
+		if (size(phenotypes) > 1)
+			cat(" (sd " + sd(phenotypes) + ")");
+		catn();
+	}
+}
+20000 late() { sim.simulationFinished(); }

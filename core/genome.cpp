@@ -561,6 +561,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 				case GenomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_X));
 				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_Y));
 			}
+			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): (internal error) unknown value for genome_type_." << EidosTerminate();
 		}
 		case gID_individual:
 		{
@@ -3084,7 +3085,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				}
 				else if (line.compare(0, 1, "#") == 0)
 				{
-					static const char *(header_fields[9]) = {"CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"};
+					static const char *header_fields[9] = {"CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"};
 					std::istringstream iss(line);
 					
 					iss.get();	// eat the initial #

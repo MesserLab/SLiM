@@ -2997,11 +2997,14 @@ void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_immediate, bo
 	SLiMAssertScriptStop(gen1_setup_i1_pop + "i1.unevaluate(); i1.evaluate(); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1_pop + "i1.unevaluate(); i1.unevaluate(); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.distance(ind[0], ind[2]); stop(); }", 1, 445, "interaction be spatial", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.interactionDistance(ind[0], ind[2]); stop(); }", 1, 445, "interaction be spatial", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.distanceToPoint(ind[0], 1.0); stop(); }", 1, 445, "interaction be spatial", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1_pop + "i1.drawByStrength(ind[0]); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return 2.0; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.nearestNeighbors(ind[8], 1); stop(); }", 1, 445, "interaction be spatial", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.nearestInteractingNeighbors(ind[8], 1); stop(); }", 1, 445, "interaction be spatial", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.interactingNeighborCount(ind[8]); stop(); }", 1, 445, "interaction be spatial", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.nearestNeighborsOfPoint(p1, 19.0, 1); stop(); }", 1, 445, "interaction be spatial", __LINE__);
 	if (!sex_seg_on)
 	{
@@ -3049,6 +3052,25 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.distance(ind[5]), c(15.0, 5, 4, 3, 2, 0, 2, 3, 15, 20))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.distance(ind[5], NULL), c(15.0, 5, 4, 3, 2, 0, 2, 3, 15, 20))) stop(); }", __LINE__);
 		
+		// Test InteractionType – (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+		if (!sex_seg_on)
+		{
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (i1.interactionDistance(ind[0], ind[2]) == 11.0) stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[0:1], ind[2]), c(11.0, 1.0))) stop(); }", 1, 581, "must be a singleton", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[0], ind[2:3]), c(11.0, 12.0))) stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (i1.interactionDistance(ind[0:1], ind[2:3]) == 11.0) stop(); }", 1, 571, "must be a singleton", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[5], ind[c(0, 5, 9, 8, 1)]), c(15.0, INF, 20, 15, 5))) stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[integer(0)], ind[8]), float(0))) stop(); }", 1, 581, "must be a singleton", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[5]), c(15.0, 5, 4, 3, 2, INF, 2, 3, 15, 20))) stop(); }", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[5], NULL), c(15.0, 5, 4, 3, 2, INF, 2, 3, 15, 20))) stop(); }", __LINE__);
+		}
+		else
+		{
+			// comprehensively testing all the different sex-seg cases is complicated, but we can at least test the two branches of the code against each other
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.interactionDistance(ind[5]), i1.interactionDistance(ind[5], NULL))) stop(); }", __LINE__);
+		}
+		
 		// Test InteractionType – (float)distanceToPoint(object<Individual> individuals1, float point)
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (i1.distanceToPoint(ind[0], 1.0) == 11.0) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.distanceToPoint(ind[0:1], 1.0), c(11.0, 1.0))) stop(); }", __LINE__);
@@ -3088,6 +3110,31 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+		
+		// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
+		// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 581, "requires count >= 0", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, 5.0, -1), ind[integer(0)])) stop(); }", 1, 581, "requires count >= 0", __LINE__);
@@ -3172,9 +3219,12 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.unevaluate(); i1.evaluate(); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.unevaluate(); i1.unevaluate(); stop(); }", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.distance(ind[0], ind[2]); stop(); }", 1, 584, "has been evaluated", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.interactionDistance(ind[0], ind[2]); stop(); }", 1, 584, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.distanceToPoint(ind[0], 1.0); stop(); }", 1, 584, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.drawByStrength(ind[0]); stop(); }", 1, 584, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.nearestNeighbors(ind[8], 1); stop(); }", 1, 584, "has been evaluated", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.nearestInteractingNeighbors(ind[8], 1); stop(); }", 1, 584, "has been evaluated", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.interactingNeighborCount(ind[8]); stop(); }", 1, 584, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.nearestNeighborsOfPoint(p1, 19.0, 1); stop(); }", 1, 584, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.strength(ind[0], ind[2]); stop(); }", 1, 584, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.totalOfNeighborStrengths(ind[0]); stop(); }", 1, 584, "has been evaluated", __LINE__);
@@ -3209,6 +3259,25 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.distance(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.distance(ind[5]), c(15.0, 5, 4, 3, 2, 0, 2, 3, 15, 20))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.distance(ind[5], NULL), c(15.0, 5, 4, 3, 2, 0, 2, 3, 15, 20))) stop(); }", __LINE__);
+		
+		// Test InteractionType – (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+		if (!sex_seg_on)
+		{
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (i1.interactionDistance(ind[0], ind[2]) == 11.0) stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[0:1], ind[2]), c(11.0, 1.0))) stop(); }", 1, 574, "must be a singleton", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[0], ind[2:3]), c(11.0, 12.0))) stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (i1.interactionDistance(ind[0:1], ind[2:3]) == 11.0) stop(); }", 1, 564, "must be a singleton", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[5], ind[c(0, 5, 9, 8, 1)]), c(15.0, INF, 20, 15, 5))) stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[integer(0)], ind[8]), float(0))) stop(); }", 1, 574, "must be a singleton", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[5]), c(15.0, 5, 4, 3, 2, INF, 2, 3, 15, 20))) stop(); }", __LINE__);
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[5], NULL), c(15.0, 5, 4, 3, 2, INF, 2, 3, 15, 20))) stop(); }", __LINE__);
+		}
+		else
+		{
+			// comprehensively testing all the different sex-seg cases is complicated, but we can at least test the two branches of the code against each other
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.interactionDistance(ind[5]), i1.interactionDistance(ind[5], NULL))) stop(); }", __LINE__);
+		}
 		
 		// Test InteractionType – (float)distanceToPoint(object<Individual> individuals1, float point)
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (i1.distanceToPoint(ind[0], c(" + (use_first_coordinate ? "1.0, 0.0" : "0.0, 1.0") + ")) == 11.0) stop(); }", __LINE__);
@@ -3249,6 +3318,31 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+		
+		// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
+		// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 574, "requires count >= 0", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0), -1), ind[integer(0)])) stop(); }", 1, 574, "requires count >= 0", __LINE__);
@@ -3333,9 +3427,12 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.evaluate(); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.unevaluate(); stop(); }", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.distance(ind[0], ind[2]); stop(); }", 1, 577, "has been evaluated", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.interactionDistance(ind[0], ind[2]); stop(); }", 1, 577, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.distanceToPoint(ind[0], c(1.0, 0.0)); stop(); }", 1, 577, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.drawByStrength(ind[0]); stop(); }", 1, 577, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.nearestNeighbors(ind[8], 1); stop(); }", 1, 577, "has been evaluated", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.nearestInteractingNeighbors(ind[8], 1); stop(); }", 1, 577, "has been evaluated", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.interactingNeighborCount(ind[8]); stop(); }", 1, 577, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.nearestNeighborsOfPoint(p1, 19.0, 1); stop(); }", 1, 577, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.strength(ind[0], ind[2]); stop(); }", 1, 577, "has been evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.totalOfNeighborStrengths(ind[0]); stop(); }", 1, 577, "has been evaluated", __LINE__);
@@ -3354,6 +3451,25 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.distance(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.distance(ind[5]), c(15.0, 5, 4, 3, 2, 0, 2, 3, 15, 20))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.distance(ind[5], NULL), c(15.0, 5, 4, 3, 2, 0, 2, 3, 15, 20))) stop(); }", __LINE__);
+	
+	// Test InteractionType – (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+	if (!sex_seg_on)
+	{
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (i1.interactionDistance(ind[0], ind[2]) == 11.0) stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[0:1], ind[2]), c(11.0, 1.0))) stop(); }", 1, 567, "must be a singleton", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[0], ind[2:3]), c(11.0, 12.0))) stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (i1.interactionDistance(ind[0:1], ind[2:3]) == 11.0) stop(); }", 1, 557, "must be a singleton", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[5], ind[c(0, 5, 9, 8, 1)]), c(15.0, INF, 20, 15, 5))) stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[integer(0)], ind[8]), float(0))) stop(); }", 1, 567, "must be a singleton", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[1], ind[integer(0)]), float(0))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[5]), c(15.0, 5, 4, 3, 2, INF, 2, 3, 15, 20))) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[5], NULL), c(15.0, 5, 4, 3, 2, INF, 2, 3, 15, 20))) stop(); }", __LINE__);
+	}
+	else
+	{
+		// comprehensively testing all the different sex-seg cases is complicated, but we can at least test the two branches of the code against each other
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.interactionDistance(ind[5]), i1.interactionDistance(ind[5], NULL))) stop(); }", __LINE__);
+	}
 	
 	// Test InteractionType – (float)distanceToPoint(object<Individual> individuals1, float point)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (i1.distanceToPoint(ind[0], c(1.0, 0.0, 0.0)) == 11.0) stop(); }", __LINE__);
@@ -3394,6 +3510,31 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+	
+	// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
+	// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 567, "requires count >= 0", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighborsOfPoint(p1, c(5.0, 0.0, 0.0), -1), ind[integer(0)])) stop(); }", 1, 567, "requires count >= 0", __LINE__);
@@ -3478,9 +3619,12 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.evaluate(); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.unevaluate(); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.distance(ind[0], ind[2]); stop(); }", 1, 570, "has been evaluated", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.interactionDistance(ind[0], ind[2]); stop(); }", 1, 570, "has been evaluated", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.distanceToPoint(ind[0], c(1.0, 0.0, 0.0)); stop(); }", 1, 570, "has been evaluated", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.drawByStrength(ind[0]); stop(); }", 1, 570, "has been evaluated", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.nearestNeighbors(ind[8], 1); stop(); }", 1, 570, "has been evaluated", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.nearestInteractingNeighbors(ind[8], 1); stop(); }", 1, 570, "has been evaluated", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.interactingNeighborCount(ind[8]); stop(); }", 1, 570, "has been evaluated", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.nearestNeighborsOfPoint(p1, 19.0, 1); stop(); }", 1, 570, "has been evaluated", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.strength(ind[0], ind[2]); stop(); }", 1, 570, "has been evaluated", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.totalOfNeighborStrengths(ind[0]); stop(); }", 1, 570, "has been evaluated", __LINE__);
@@ -3494,6 +3638,23 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.distance(ind[0], ind[2:3]), c(sqrt(11^2 + 14^2 + 9^2), sqrt(12^2 + 2^2 + 6^2)))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (all(i1.distance(ind[5]) - c(63.882705, 72.2979, 78.2112, 62.8728, 67.7052,  0.0, 74.2428, 78.9113, 87.6070, 72.1179) < 0.001)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (all(i1.distance(ind[5], NULL) - c(63.882705, 72.2979, 78.2112, 62.8728, 67.7052,  0.0, 74.2428, 78.9113, 87.6070, 72.1179) < 0.001)) stop(); }", __LINE__);
+	
+	// Test InteractionType – (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+	if (!sex_seg_on)
+	{
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (i1.interactionDistance(ind[0], ind[2]) - sqrt(11^2 + 14^2 + 9^2) < 0.001) stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop_full + "if (identical(i1.interactionDistance(ind[0:1], ind[2]), c(sqrt(11^2 + 14^2 + 9^2), sqrt(1^2 + 5^2 + 4^2)))) stop(); }", 1, 642, "must be a singleton", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (all(i1.interactionDistance(ind[0], ind[2:3]) - c(sqrt(11^2 + 14^2 + 9^2), sqrt(12^2 + 2^2 + 6^2)) < 0.001)) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (all(i1.interactionDistance(ind[5])[c(0:4,6:9)] - c(63.882705, 72.2979, 78.2112, 62.8728, 67.7052, 74.2428, 78.9113, 87.6070, 72.1179) < 0.001)) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (all(i1.interactionDistance(ind[5], NULL)[c(0:4,6:9)] - c(63.882705, 72.2979, 78.2112, 62.8728, 67.7052, 74.2428, 78.9113, 87.6070, 72.1179) < 0.001)) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (isInfinite(i1.interactionDistance(ind[5])[5])) stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (isInfinite(i1.interactionDistance(ind[5], NULL)[5])) stop(); }", __LINE__);
+	}
+	else
+	{
+		// comprehensively testing all the different sex-seg cases is complicated, but we can at least test the two branches of the code against each other
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.interactionDistance(ind[5]), i1.interactionDistance(ind[5], NULL))) stop(); }", __LINE__);
+	}
 	
 	// Test InteractionType – (float)distanceToPoint(object<Individual> individuals1, float point)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (i1.distanceToPoint(ind[0], c(-7.0, 12.0, 4.0)) == 5.0) stop(); }", __LINE__);
@@ -3523,6 +3684,31 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	// Test InteractionType – (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[7])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+	
+	// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
+	// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", 1, 642, "requires count >= 0", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestNeighborsOfPoint(p1, c(-7.0, 12.0, 4.0), 1), ind[0])) stop(); }", __LINE__);
@@ -4000,6 +4186,11 @@ void _RunTreeSeqTests(std::string temp_path)
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_2.trees', simplify=T, _binary=F); stop(); }", __LINE__);
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_3.trees', simplify=F, _binary=T); stop(); }", __LINE__);
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_4.trees', simplify=T, _binary=T); stop(); }", __LINE__);
+		
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_1.trees', simplify=F, includeModel=F, _binary=F); stop(); }", __LINE__);
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_2.trees', simplify=T, includeModel=F, _binary=F); stop(); }", __LINE__);
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_3.trees', simplify=F, includeModel=F, _binary=T); stop(); }", __LINE__);
+		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_4.trees', simplify=T, includeModel=F, _binary=T); stop(); }", __LINE__);
 	}
 }
 

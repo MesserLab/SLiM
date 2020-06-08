@@ -1,0 +1,18 @@
+// Keywords: 
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);    // neutral
+	initializeMutationType("m2", 1.0, "f", 0.1);    // balanced
+	initializeGenomicElementType("g1", c(m1,m2), c(999,1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+late() {
+	m2muts = sim.mutationsOfType(m2);
+	freqs = sim.mutationFrequencies(NULL, m2muts);
+	for (index in seqAlong(m2muts))
+		m2muts[index].setSelectionCoeff(0.5 - freqs[index]);
+}
+10000 { sim.simulationFinished(); }

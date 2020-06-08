@@ -1,0 +1,41 @@
+// Keywords: continuous space, continuous spatial landscape, reprising boundaries, spatial competition, fitness()
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	// Set up an interaction for spatial competition
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.3);
+	i1.setInteractionFunction("n", 3.0, 0.1);
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	
+	// initial positions are random in ([0,1], [0,1])
+	p1.individuals.x = runif(p1.individualCount);
+	p1.individuals.y = runif(p1.individualCount);
+}
+1: late() {
+	// evaluate interactions before fitness calculations
+	i1.evaluate();
+}
+fitness(NULL) {
+	// spatial competition
+	totalStrength = i1.totalOfNeighborStrengths(individual);
+	return 1.1 - totalStrength / p1.individualCount;
+}
+modifyChild() {
+	// draw a child position near the first parent, within bounds
+	do child.x = parent1.x + rnorm(1, 0, 0.02);
+	while ((child.x < 0.0) | (child.x > 1.0));
+	
+	do child.y = parent1.y + rnorm(1, 0, 0.02);
+	while ((child.y < 0.0) | (child.y > 1.0));
+	
+	return T;
+}
+2000 late() { sim.outputFixedMutations(); }

@@ -1,0 +1,33 @@
+// Keywords: tree-sequence recording, tree sequence recording, conditional sweep
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "g", -0.01, 1.0);  // deleterious
+	initializeMutationType("m3", 1.0, "f", 0.05);        // introduced
+	initializeGenomicElementType("g1", c(m1, m2), c(0.9, 0.1));
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	defineConstant("simID", getSeed());
+	sim.addSubpop("p1", 500);
+}
+1000 late() {
+	target = sample(p1.genomes, 1);
+	target.addNewDrawnMutation(m3, 10000);
+	sim.outputFull("/tmp/slim_" + simID + ".txt");
+}
+1000:100000 late() {
+	if (sim.countOfMutationsOfType(m3) == 0) {
+		if (sum(sim.substitutions.mutationType == m3) == 1) {
+			cat(simID + ": FIXED\n");
+			sim.simulationFinished();
+		} else {
+			cat(simID + ": LOST - RESTARTING\n");
+			
+			sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
+			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+		}
+	}
+}

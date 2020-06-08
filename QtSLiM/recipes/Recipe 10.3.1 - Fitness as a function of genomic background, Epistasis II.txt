@@ -1,0 +1,29 @@
+// Keywords: fitness()
+
+initialize() {
+	initializeMutationRate(1e-8);
+	initializeMutationType("m1", 0.5, "f", 0.0);  // neutral
+	initializeMutationType("m2", 0.5, "f", 0.1);  // epistatic mut 1
+	m2.convertToSubstitution = F;
+	initializeMutationType("m3", 0.5, "f", 0.1);  // epistatic mut 2
+	m3.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1);
+	initializeGenomicElementType("g2", m2, 1);    // epistatic locus 1
+	initializeGenomicElementType("g3", m3, 1);    // epistatic locus 2
+	initializeGenomicElement(g1, 0, 10000);
+	initializeGenomicElement(g2, 10001, 13000);
+	initializeGenomicElement(g1, 13001, 70000);
+	initializeGenomicElement(g3, 70001, 73000);
+	initializeGenomicElement(g1, 73001, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+10000 { sim.simulationFinished(); }
+fitness(m3) {
+	if (genome1.countOfMutationsOfType(m2))
+		return 0.5;
+	else if (genome2.countOfMutationsOfType(m2))
+		return 0.5;
+	else
+		return relFitness;
+}

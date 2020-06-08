@@ -225,7 +225,7 @@ int gsl_sf_exp_mult_e10_e(const double x, const double y, gsl_sf_result_e10 * re
 #endif
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wabsolute-value"
-		const double arg_err = 2.0 * GSL_DBL_EPSILON * (fabs(x) + fabs(ly) + M_LN10*fabs(N));
+		const double arg_err = 2.0 * GSL_DBL_EPSILON * (fabs(x) + fabs(ly) + M_LN10*fabs(N));   // may produce a warning; ignore
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 

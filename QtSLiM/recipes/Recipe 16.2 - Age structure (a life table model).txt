@@ -1,0 +1,41 @@
+// Keywords: nonWF, non-Wright-Fisher
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 30);
+	defineConstant("L", c(0.7, 0.0, 0.0, 0.0, 0.25, 0.5, 0.75, 1.0));
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	if (individual.age > 2) {
+		mate = subpop.sampleIndividuals(1, minAge=3);
+		subpop.addCrossed(individual, mate);
+	}
+}
+1 early() {
+	sim.addSubpop("p1", 10);
+	p1.individuals.age = rdunif(10, min=0, max=7);
+}
+early() {
+	// life table based individual mortality
+	inds = p1.individuals;
+	ages = inds.age;
+	mortality = L[ages];
+	survival = 1 - mortality;
+	inds.fitnessScaling = survival;
+	
+	// density-dependence, factoring in individual mortality
+	p1.fitnessScaling = K / (p1.individualCount * mean(survival));
+}
+late() {
+	// print our age distribution after mortality
+	catn(sim.generation + ": " + paste(sort(p1.individuals.age)));
+}
+2000 late() { sim.outputFixedMutations(); }
