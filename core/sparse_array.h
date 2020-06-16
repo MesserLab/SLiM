@@ -50,18 +50,7 @@ private:
 	// we store the spare array in CSR format, with an offset for each row
 	// see https://medium.com/@jmaxg3/101-ways-to-store-a-sparse-matrix-c7f2bf15a229
 	// we do not sort by column within a row; we do a linear search for the column
-	/* The old sparse array still lingers around. It is technically not being used or called by anyone 
-	so it should be safe to remove but I want to make sure there are no dependency related problems. I will remove this after verifying that it is not used*/ 
-	uint32_t *row_offsets_;			// offsets into columns/values for each row; for N rows, N+1 entries (extra end entry)
-	uint32_t *columns_;				// the column indices for the non-empty values in each row
-	sa_distance_t *distances_;		// a distance value for each non-empty entry
-	sa_strength_t *strengths_;		// a strength value for each non-empty entry
-	
 	uint32_t nrows_, ncols_;		// the number of rows and columns; determined at construction time
-	uint32_t nrows_set_;			// the number of rows that have been configured (at least partially, during building)
-	uint32_t nnz_;					// the number of non-zero entries in the sparse array (also at row_offsets[nrows_set])
-	uint32_t nnz_capacity_;			// the number of non-zero entries allocated for at present
-	
 	bool finished_;					// if true, Finished() has been called and the sparse array is ready to use
 	//Stuff for multithreading
     uint32_t initial_width;
@@ -71,10 +60,7 @@ private:
     uint32_t *nnz;
     uint32_t *nnz_capacity;
     uint32_t greatest_nrows;  //Set to the largest row encountered to make sure realloc doesn't delete rows
-	
-	void _ResizeToFitNNZ(void);
-	inline __attribute__((always_inline)) void ResizeToFitNNZ(void) { if (nnz_ > nnz_capacity_) _ResizeToFitNNZ(); };
-	
+
 public:
 	SparseArray(const SparseArray&) = delete;					// no copying
 	SparseArray& operator=(const SparseArray&) = delete;		// no copying
@@ -85,15 +71,12 @@ public:
 	void Reset(void);											// reset to a dimensionless state, keeping buffers
 	void Reset(unsigned int p_nrows, unsigned int p_ncols);		// reset to new dimensions, keeping buffers
 	
-	// Building a sparse array; has to be done in row order, and then has to be Finished().  SparseArray supports building
-	// a row at a time, or one entry at a time, but one or the other method must be chosen and used throughout the build.
-	// Similarly, you can supply just distances and then add strengths later (using InteractionsForRow() to modify the data),
-	// or you can build supplying strengths during the build, but you should choose one method or the other and stick with
-	// it.  No internal checks are done to guarantee that the build is done using only one method; that is the caller's duty.
-	// If you build without strengths, a buffer for strengths is still allocated and realloced, but no values are written
-	// to it until you do that yourself with InteractionsForRow().
-	void AddRowDistances(uint32_t p_row, const uint32_t *p_columns, const sa_distance_t *p_distances, uint32_t p_row_nnz);
-	void AddRowInteractions(uint32_t p_row, const uint32_t *p_columns, const sa_distance_t *p_distances, const sa_strength_t *p_strengths, uint32_t p_row_nnz);
+	/* Building a sparse array. Consists of three ragged 2D arrays of same shape i.e. column[][], distances[][] and strength[][] along with nnz[] and nnz_capacity[]. 
+	Each row can be built independent from each other making it parallel safe. 
+	You can supply just distances and then add strengths later (using InteractionsForRow() to modify the data), or you can build supplying strengths during the build, 
+	but you should choose one method or the other and stick with it. No internal checks are done to guarantee that the build is done using only one method; that is the caller's duty.
+	If you build without strengths, a buffer for strengths is still allocated and realloced, but no values are written to it until you do that yourself with InteractionsForRow()*/
+	
 	void IncreaseRowCapacity(uint32_t p_row);
 	void IncreaseNumOfRows(uint32_t p_row);
 	
@@ -103,22 +86,7 @@ public:
 		if (finished_)
 			EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding entry to sparse array that is finished." << EidosTerminate(nullptr);
 		
-		// ensure that we are building sequentially, visiting rows in order but potentially skipping empty rows
-		if (p_row + 1 < nrows_set_)
-		{
-			EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding entry out of order." << EidosTerminate(nullptr);
-		}
-		else if (p_row + 1 > nrows_set_)
-		{
-			// starting a new row
-			if (p_row >= nrows_)
-				EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding row beyond the end of the sparse array." << EidosTerminate(nullptr);
-		}
-		// else, adding another entry to the current row
-		
-		if (p_column >= ncols_)
-			EIDOS_TERMINATION << "ERROR (SparseArray::AddEntryDistance): (internal error) adding column beyond the end of the sparse array." << EidosTerminate(nullptr);
-#endif
+ #endif
 		/* Make room for new entries*/
 		
 
@@ -126,14 +94,9 @@ public:
         {
             IncreaseRowCapacity(p_row);
         }
-
-
         //insert new entries
         columns[p_row][nnz[p_row]] = p_column;
-        distances[p_row][nnz[p_row]] = p_distance;
-        // *(*(columns + p_row) + *(nnz + p_row)) = p_column;
-        // *(*(distances + p_row) + *(nnz + p_row)) = p_distance;
-
+        distances[p_row][nnz[p_row]] = p_distance;\
         nnz[p_row]++;  //increment nnz for specified row
 
 	}
@@ -146,10 +109,9 @@ public:
 	inline __attribute__((always_inline)) uint32_t RowCount() const { return nrows_; };
 	inline __attribute__((always_inline)) uint32_t ColumnCount() const { return ncols_; };
 	
-	inline __attribute__((always_inline)) uint32_t AddedRowCount() const { return nrows_set_; };	// the number of rows that have been (at least partially) added
 	
 	// Accessing the sparse array	
-	sa_distance_t Distance(uint32_t p_row, uint32_t p_column) const;
+	sa_distance_t Distance(uint32_t p_row, uint32_t p_column) const;	
 	sa_strength_t Strength(uint32_t p_row, uint32_t p_column) const;
 	void PatchStrength(uint32_t p_row, uint32_t p_column, sa_strength_t p_strength);	// modify a strength after the sparse array has been built
 	

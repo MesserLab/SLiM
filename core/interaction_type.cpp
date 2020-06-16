@@ -1796,7 +1796,7 @@ void InteractionType::BuildSA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 // add neighbors to the sparse array in 2D
 
 // recursive algorithm, perhaps a bit slow but the compiler seems to do a good job with it actually
-// Reverted back to recursive algorithm as it avoids explicitly maintaining a recursive stack that is concurrently written to by different threads
+// Reverted back to recursive algorithm as it avoids explicitly maintaining a recursive stack that is concurrently written to by different threads.
 void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
 {
 	double d = dist_sq2(root, nd);
@@ -1833,103 +1833,6 @@ void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 			BuildSA_2(root->left, nd, p_focal_individual_index, p_sparse_array, p_phase);
 	}
 }
-
-// non-recursive algorithm: barely a speed improvement as it turns out, and unsafe right now since it doesn't check for blowing out its stack.
-// for a test with 100,000 individuals, the recursive algorithm takes 55.61s, this takes 51.51s (only one replicate run).
-// I guess I'll use this version; I've made the stack plenty deep so it shouldn't ever run out.  So why not, it's faster.
-// But for now, I don't think I will do the same for the (less common) 1D and 3D cases, to keep the code base simple.
-// I'm a bit surprised by how slow this is – more than 50% of total runtime for that test model.  Maybe Boyana will have ideas.
-// static SLiM_kdNode *(recurse_root[1000]);
-// static int (recurse_phase[1000]);
-
-// void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
-// {
-// 	int recurse_top = 0;
-// 	double local_max_distance_sq = max_distance_sq_;	// put a few non-local things into local variables so the compiler can cache them in registers
-// 	double local_nd_0 = nd[0], local_nd_1 = nd[1];
-	
-// recurse_SA_2:
-// 	double root_x_0 = root->x[0], root_x_1 = root->x[1];
-// 	double d = (root_x_0 - local_nd_0)*(root_x_0 - local_nd_0) + (root_x_1 - local_nd_1)*(root_x_1 - local_nd_1);
-// 	double dx = (p_phase == 0) ? (root_x_0 - local_nd_0) : (root_x_1 - local_nd_1);
-// 	double dx2 = dx * dx;
-	
-// 	if ((d <= local_max_distance_sq) && (root->individual_index_ != p_focal_individual_index))
-// 		p_sparse_array->AddEntryDistance(p_focal_individual_index, root->individual_index_, (sa_distance_t)sqrt(d));
-	
-// 	if (++p_phase >= 2) p_phase = 0;
-	
-// 	if (dx > 0)
-// 	{
-// 		if ((dx2 <= local_max_distance_sq) && (root->right))
-// 		{
-// 			// We want to do root->right after root->left
-// 			if (root->left)
-// 			{
-// 				// We have root->left to do as well, so we need to push (root = root->right, phase = p_phase) for later
-// 				recurse_root[recurse_top] = root->right;
-// 				recurse_phase[recurse_top] = p_phase;
-// 				recurse_top++;
-				
-// 				// And then do root->left
-// 				root = root->left;
-// 				goto recurse_SA_2;
-// 			}
-// 			else
-// 			{
-// 				// We don't have root->left to do, so we can do root->right immediately
-// 				root = root->right;
-// 				goto recurse_SA_2;
-// 			}
-// 		}
-// 		else if (root->left)
-// 		{
-// 			// We have only root->left to do, so we can do it immediately
-// 			root = root->left;
-// 			goto recurse_SA_2;
-// 		}
-// 	}
-// 	else
-// 	{
-// 		if ((dx2 <= local_max_distance_sq) && (root->left))
-// 		{
-// 			// We want to do root->left after root->right
-// 			if (root->right)
-// 			{
-// 				// We have root->right to do as well, so we need to push (root = root->left, phase = p_phase) for later
-// 				recurse_root[recurse_top] = root->left;
-// 				recurse_phase[recurse_top] = p_phase;
-// 				recurse_top++;
-				
-// 				// And then do root->right
-// 				root = root->right;
-// 				goto recurse_SA_2;
-// 			}
-// 			else
-// 			{
-// 				// We don't have root->right to do, so we can do root->left immediately
-// 				root = root->left;
-// 				goto recurse_SA_2;
-// 			}
-// 		}
-// 		else if (root->right)
-// 		{
-// 			// We have only root->right to do, so we can do it immediately
-// 			root = root->right;
-// 			goto recurse_SA_2;
-// 		}
-// 	}
-// 	// We have finished a recursion, so we can pop a task off our stack and loop back
-// 	if (recurse_top)
-// 	{
-// 		--recurse_top;
-// 		root = recurse_root[recurse_top];
-// 		p_phase = recurse_phase[recurse_top];
-		
-// 		goto recurse_SA_2;
-// 	}
-// }
-
 
 // add neighbors to the sparse array in 3D
 void InteractionType::BuildSA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
