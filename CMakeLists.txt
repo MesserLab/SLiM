@@ -76,6 +76,15 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFI
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 
+if(Parallel MATCHES "ON")
+    add_definitions(-DParallel=1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    message("Parallel execution is ${Parallel}")
+else()
+    message("Parallel execution is OFF")
+endif(Parallel MATCHES "ON")
+
 # Report the build type
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
@@ -113,6 +122,7 @@ file(GLOB_RECURSE KASTORE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore/*.
 set(KASTORE_INCLUDES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore)
 add_library(${TARGET_NAME} STATIC ${KASTORE_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC)
+add_definitions(-Dparallel_mode=${Parallel})
 
 # TSKIT
 set(TARGET_NAME tables)
