@@ -3139,8 +3139,12 @@ void QtSLiMWindow::finish_eidos_pauseExecution(void)
 
 void QtSLiMWindow::eidos_openDocument(QString path)
 {
-    // Note this is also called by QtSLiMAppDelegate::eventFilter() in response to a QFileOpenEvent,
-    // since we want the same semantics for that action as for the Eidos-triggered open action
+    if (path.endsWith(".pdf", Qt::CaseInsensitive))
+    {
+        // Block opening PDFs; SLiMgui supported PDF but QtSLiM doesn't, so we should explicitly intercept and error out, otherwise we'll try to open the PDF as a SLiM model
+        EIDOS_TERMINATION << "ERROR (QtSLiMWindow::eidos_openDocument): opening PDF files is not supported in QtSLiM; using PNG instead is suggested." << EidosTerminate(nullptr);
+    }
+    
     openFile(path);
 }
 
