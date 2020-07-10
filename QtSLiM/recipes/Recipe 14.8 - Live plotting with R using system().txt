@@ -6,6 +6,13 @@ initialize() {
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
+	
+	if (fileExists("/usr/bin/Rscript"))
+		defineConstant("RSCRIPT", "/usr/bin/Rscript");
+	else if (fileExists("/usr/local/bin/Rscript"))
+		defineConstant("RSCRIPT", "/usr/local/bin/Rscript");
+	else
+		stop("Couldn't find Rscript.");
 }
 1 {
 	sim.addSubpop("p1", 5000);
@@ -43,7 +50,7 @@ initialize() {
 		'}'), sep="\n");
 	
 	scriptPath = writeTempFile("plot_", ".R", rstr);
-	system("/usr/bin/Rscript", args=scriptPath);
+	system(RSCRIPT, args=scriptPath);
 	deleteFile(scriptPath);
 }
 50000 late() { sim.outputFixedMutations(); }
