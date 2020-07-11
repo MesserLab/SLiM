@@ -75,6 +75,13 @@ SOURCES += \
     eidos_symbol_table.cpp \
     eidos_test_element.cpp \
     eidos_test.cpp \
+    eidos_test_functions_math.cpp \
+    eidos_test_functions_other.cpp \
+    eidos_test_functions_statistics.cpp \
+    eidos_test_functions_vector.cpp \
+    eidos_test_operators_arithmetic.cpp \
+    eidos_test_operators_comparison.cpp \
+    eidos_test_operators_other.cpp \
     eidos_token.cpp \
     eidos_type_interpreter.cpp \
     eidos_type_table.cpp \
