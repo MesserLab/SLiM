@@ -20,6 +20,8 @@
 
 #include "eidos_test.h"
 
+#include <limits>
+
 
 #pragma mark statistics
 void _RunFunctionStatisticsTests(void)

@@ -22,6 +22,8 @@
 
 #include "eidos_globals.h"
 
+#include <string>
+
 
 #pragma mark InteractionType tests
 static void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_immediate, bool p_sex_enabled, std::string p_sex_segregation);

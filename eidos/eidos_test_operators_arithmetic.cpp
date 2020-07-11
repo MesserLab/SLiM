@@ -20,6 +20,8 @@
 
 #include "eidos_test.h"
 
+#include <limits>
+
 
 #pragma mark operator +
 void _RunOperatorPlusTests1(void)

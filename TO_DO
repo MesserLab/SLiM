@@ -31,7 +31,7 @@ some valgrind commands:
 	valgrind --tool=exp-sgcheck ./slim -testSLiM	(with Debug version; not on Darwin yet)
 
 cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-pages/cpplint):
-	cd /Volumes/thimble/glide/Research/MesserLab/SLiM\ project/SLiM
+	cd /Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM 
 	python2.7 /Users/bhaller/bin/cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
 
 CR/LF issues:

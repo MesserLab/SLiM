@@ -20,6 +20,9 @@
 
 #include "eidos_test.h"
 
+#include <string>
+#include <vector>
+
 
 #pragma mark matrix and array
 void _RunFunctionMatrixArrayTests(void)
