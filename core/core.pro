@@ -91,7 +91,11 @@ SOURCES += \
     slim_functions.cpp \
     slim_globals.cpp \
     slim_sim.cpp \
+    slim_sim_eidos.cpp \
     slim_test.cpp \
+    slim_test_core.cpp \
+    slim_test_genetics.cpp \
+    slim_test_other.cpp \
     sparse_array.cpp \
     subpopulation.cpp \
     substitution.cpp
