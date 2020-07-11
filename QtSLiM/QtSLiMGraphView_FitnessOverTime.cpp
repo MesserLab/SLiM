@@ -22,6 +22,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QPixmap>
+#include <QPainterPath>
 #include <QDebug>
 
 #include "QtSLiMWindow.h"

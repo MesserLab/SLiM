@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2511
+{\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fswiss\fcharset0 Optima-Regular;\f4\fswiss\fcharset0 Optima-BoldItalic;\f5\fnil\fcharset0 Menlo-Italic;
 \f6\fnil\fcharset0 AppleSymbols;\f7\fswiss\fcharset0 Optima-Italic;\f8\froman\fcharset0 TimesNewRomanPS-ItalicMT;
@@ -2387,7 +2387,11 @@ The syntax for
 \ls2\ilvl0
 \f12\fs18 \'a5	
 \f1 0
-\f3\fs20  :	The value is left-justified with the field (as opposed to the default of right-justification)\
+\f3\fs20  :	Leading zeros are used to pad the field instead of spaces.  This flag is ignored if the left-justification flag, 
+\f1\fs18 -
+\f3\fs20 , is present.  It is also ignored for 
+\f1\fs18 integer
+\f3\fs20  values, if a precision is specified.\
 \pard\pardeftab397\li907\fi-187\ri720\sb60\sa60\partightenfactor0
 \ls3\ilvl0\cf0 \'96  An optional minimum field width, specified as an integer value.  Fields will be padded out to this minimum width.  Padding will be done with space characters by default (or with zeros, if the 
 \f1\fs18 0

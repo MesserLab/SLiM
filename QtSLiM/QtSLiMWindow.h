@@ -60,7 +60,6 @@ private:
     // basic file i/o and change count management
     void init(void);
     bool maybeSave(void);
-    void openFile(const QString &fileName);
     void loadFile(const QString &fileName);
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
@@ -226,6 +225,9 @@ public:
     //	Eidos SLiMgui method forwards
     void eidos_openDocument(QString path);
     void eidos_pauseExecution(void);
+    
+    // Requesting to open a new file
+    void openFile(const QString &fileName);
     
 signals:
     void terminationWithMessage(QString message);

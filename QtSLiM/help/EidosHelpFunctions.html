@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css">
   <title></title>
   <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="1894.3">
+  <meta name="CocoaVersion" content="1894.5">
   <style type="text/css">
     p.p1 {margin: 18.0px 0.0px 3.0px 0.0px; font: 11.0px Optima}
     p.p2 {margin: 9.0px 0.0px 3.0px 36.0px; text-indent: -22.3px; font: 9.0px Menlo}
@@ -217,7 +217,7 @@
   <li class="li6"><span class="s15">•<span class="Apple-tab-span">	</span></span><span class="s2">+</span> :<span class="Apple-tab-span">	</span>The sign of the value is always prepended, even if the value is positive (as opposed to the default of appending the sign only if the value is negative).</li>
   <li class="li6"><span class="s16">•<span class="Apple-tab-span">	</span></span><i>space</i> :<span class="Apple-tab-span">	</span>The value is prepended by a space when a sign is not prepended.<span class="Apple-converted-space">  </span>This is ignored if the <span class="s2">+</span> flag is present, since values are then always prepended by a sign.</li>
   <li class="li6"><span class="s15">•<span class="Apple-tab-span">	</span></span><span class="s2">#</span> :<span class="Apple-tab-span">	</span>An alternative format is used.<span class="Apple-converted-space">  </span>For <span class="s2">%o</span>, at least one leading zero is always produced.<span class="Apple-converted-space">  </span>For <span class="s2">%x</span> and <span class="s2">%X</span>, <span class="s2">0x</span> or <span class="s2">0X</span> (respectively) is prepended if the value is nonzero.<span class="Apple-converted-space">  </span>For <span class="s2">%f</span>, <span class="s2">%F</span>, <span class="s2">%e</span>, <span class="s2">%E</span>, <span class="s2">%g</span>, and <span class="s2">%G</span>, a decimal point is forced even if no zeros follow.</li>
-  <li class="li6"><span class="s15">•<span class="Apple-tab-span">	</span></span><span class="s2">0</span> :<span class="Apple-tab-span">	</span>The value is left-justified with the field (as opposed to the default of right-justification)</li>
+  <li class="li6"><span class="s15">•<span class="Apple-tab-span">	</span></span><span class="s2">0</span> :<span class="Apple-tab-span">	</span>Leading zeros are used to pad the field instead of spaces.<span class="Apple-converted-space">  </span>This flag is ignored if the left-justification flag, <span class="s2">-</span>, is present.<span class="Apple-converted-space">  </span>It is also ignored for <span class="s2">integer</span> values, if a precision is specified.</li>
 </ul>
 <ul class="ul1">
   <li class="li6">–<span class="Apple-converted-space">  </span>An optional minimum field width, specified as an integer value.<span class="Apple-converted-space">  </span>Fields will be padded out to this minimum width.<span class="Apple-converted-space">  </span>Padding will be done with space characters by default (or with zeros, if the <span class="s2">0</span> flag is used), on the left by default (or on the right, if the <span class="s2">-</span> flag is used).</li>

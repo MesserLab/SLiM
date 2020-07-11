@@ -275,7 +275,7 @@ bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
         QtSLiMWindow *window = activeQtSLiMWindow();
         
         if (window)
-            window->eidos_openDocument(filePath);   // just calls openFile()
+            window->openFile(filePath);
         
         return true;    // filter this event, i.e., prevent any further Qt handling of it
     }
