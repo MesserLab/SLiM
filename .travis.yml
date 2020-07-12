@@ -38,13 +38,17 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export QMAKE=/usr/local/bin/qmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH=/usr/local/opt/qt5/bin:$PATH; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "xenial" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "bionic" ]]; then sudo apt-get install -qq qt514-meta-minimal; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt512/bin/qmake; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt512/bin/:$PATH; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "xenial" ]]; then export QMAKE=/opt/qt512/bin/qmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "bionic" ]]; then export QMAKE=/opt/qt514/bin/qmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "xenial" ]]; then export PATH=/opt/qt512/bin/:$PATH; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "bionic" ]]; then export PATH=/opt/qt514/bin/:$PATH; fi
   # OpenMP
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libomp; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ln -s /usr/local/opt/libomp/include/omp.h /opt/local/include/omp.h; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ls -l /usr/local/opt/libomp/include/omp.h; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo ln -s /usr/local/opt/libomp/include/omp.h /opt/local/include/omp.h; fi
 
 # set up build directories for Release and Debug builds and run cmake in each; "make" should then work
 # note that we start out in /home/travis/build/MesserLab/SLiM here, and end in /home/travis/build/MesserLab
