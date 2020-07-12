@@ -18,17 +18,17 @@ matrix:
       compiler: gcc
 
 before_install:
-  - echo $TRAVIS_OS_NAME
-  - echo $TRAVIS_OSX_IMAGE
-  - echo $TRAVIS_DIST
+  - echo "$TRAVIS_OS_NAME"
+  - echo "$TRAVIS_OSX_IMAGE"
+  - echo "$TRAVIS_DIST"
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   # C++17
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test; fi
 
 install: 
   # C++17
-  - if [[ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_DIST" == "xenial" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.3-xenial; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" -a "$TRAVIS_DIST" == "bionic" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.14.2-bionic; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "xenial" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.12.3-xenial; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "bionic" ]]; then sudo add-apt-repository -y ppa:beineri/opt-qt-5.14.2-bionic; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qy update; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq g++-8 gcc-8; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 90; fi
