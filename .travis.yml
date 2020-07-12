@@ -47,8 +47,8 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_DIST" == "bionic" ]]; then export PATH=/opt/qt514/bin/:$PATH; fi
   # OpenMP
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libomp; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ls -l /usr/local/opt/libomp/include/omp.h; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo ln -s /usr/local/opt/libomp/include/omp.h /usr/local/include/omp.h; fi
+#  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ls -l /usr/local/opt/libomp/include/omp.h; fi
+#  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo ln -s /usr/local/opt/libomp/include/omp.h /usr/local/include/omp.h; fi
 
 # set up build directories for Release and Debug builds and run cmake in each; "make" should then work
 # note that we start out in /home/travis/build/MesserLab/SLiM here, and end in /home/travis/build/MesserLab
