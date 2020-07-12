@@ -7,8 +7,14 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       compiler: clang
+    - os: osx
+      osx_image: xcode11.6
+      compiler: clang
     - os: linux
       dist: xenial
+      compiler: gcc
+    - os: linux
+      dist: bionic
       compiler: gcc
 
 before_install:
@@ -28,11 +34,12 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force qt5; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export QMAKE=/usr/local/bin/qmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH=/usr/local/opt/qt5/bin:$PATH; fi
-  
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq qt512-meta-minimal; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -qq libx11-xcb-dev libglu1-mesa-dev; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export QMAKE=/opt/qt512/bin/qmake; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=/opt/qt512/bin/:$PATH; fi
+  # OpenMP
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libomp; fi
 
 # set up build directories for Release and Debug builds and run cmake in each; "make" should then work
 # note that we start out in /home/travis/build/MesserLab/SLiM here, and end in /home/travis/build/MesserLab
