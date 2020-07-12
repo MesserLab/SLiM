@@ -1169,6 +1169,8 @@
 		B1B2404024BA8E0E000FE69C /* zconf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zconf.h; sourceTree = "<group>"; };
 		B1B2406724BA8EC5000FE69C /* rat_eval.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rat_eval.h; path = cdf/rat_eval.h; sourceTree = "<group>"; };
 		B1B2406824BA8EC5000FE69C /* gaussinv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gaussinv.c; path = cdf/gaussinv.c; sourceTree = "<group>"; };
+		B1B2406D24BA93D3000FE69C /* slim.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = slim.entitlements; sourceTree = "<group>"; };
+		B1B2406E24BA93DC000FE69C /* eidos.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = eidos.entitlements; sourceTree = "<group>"; };
 		D05AC1EA20B47EC400FFD319 /* text_input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = text_input.h; path = treerec/tskit/text_input.h; sourceTree = "<group>"; };
 		D0A758F620A4CC9800132D2F /* text_input.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = text_input.c; path = treerec/tskit/text_input.c; sourceTree = "<group>"; };
 		D0A758F820A4CCC900132D2F /* trees.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = trees.h; path = treerec/tskit/trees.h; sourceTree = "<group>"; };
@@ -1307,6 +1309,7 @@
 		982663471A3BABD300A0CBBF = {
 			isa = PBXGroup;
 			children = (
+				B1B2406D24BA93D3000FE69C /* slim.entitlements */,
 				98E9A6B21A3CE299000AD4FC /* TO_DO */,
 				986021081A3BB504001BDCFE /* LICENSE */,
 				98AF84641CB307300030D1EB /* VERSIONS */,
@@ -1491,6 +1494,7 @@
 		9857249E1AD34B120047C223 /* eidos */ = {
 			isa = PBXGroup;
 			children = (
+				B1B2406E24BA93DC000FE69C /* eidos.entitlements */,
 				98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */,
 				98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */,
 				98321F931B406B67007337A3 /* eidos_globals.h */,
@@ -3170,6 +3174,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = eidos/eidos.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -3184,6 +3189,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = eidos/eidos.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -3336,6 +3342,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = slim.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				ENABLE_HARDENED_RUNTIME = YES;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
@@ -3348,6 +3355,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = slim.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				ENABLE_HARDENED_RUNTIME = YES;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
@@ -3406,6 +3414,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = EidosScribe/EidosScribe.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -3428,6 +3437,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = EidosScribe/EidosScribe.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -3450,6 +3460,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = SLiMgui/SLiMgui.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -3474,6 +3485,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = SLiMgui/SLiMgui.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
