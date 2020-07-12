@@ -315,7 +315,7 @@ size_t SparseArray::MemoryUsage(void)
 {
 	size_t total_usage = 0, distance_usage = 0, strength_usage = 0, columns_usage = 0, nnz_usage = 0, nnz_capacity_usage = 0;
 
-	for(int i=0; i<nrows_;i++)
+	for (uint32_t i = 0; i < nrows_;i++)
 	{
 		distance_usage += sizeof(uint32_t) * nnz[i];
 		strength_usage += sizeof(uint32_t) * nnz[i];

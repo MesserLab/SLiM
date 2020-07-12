@@ -2064,15 +2064,15 @@ std::string EidosStringForFloat(double p_value)
 	}
 }
 
-unsigned int Eidos_PhysicalCoreCount()
-{
-	size_t len;
-	unsigned int ncpu;
-	len = sizeof(ncpu);
-	//Doesn't build on Linux
-	//sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
-	return ncpu;
-}
+//unsigned int Eidos_PhysicalCoreCount()
+//{
+//	size_t len;
+//	unsigned int ncpu;
+//	len = sizeof(ncpu);
+//	//Doesn't build on Linux
+//	//sysctlbyname("hw.physicalcpu_max", &ncpu, &len, NULL, 0);
+//	return ncpu;
+//}
 
 
 // *******************************************************************************************************************

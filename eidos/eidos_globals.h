@@ -427,7 +427,7 @@ std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascend
 std::string EidosStringForFloat(double p_value);
 
 // Returns the number of physical cores (i.e., not counting hyperthreading)
-unsigned int Eidos_PhysicalCoreCount();
+//unsigned int Eidos_PhysicalCoreCount();
 
 // Fisher-Yates Shuffle: choose a random subset of a std::vector, without replacement.
 // see https://stackoverflow.com/questions/9345087/choose-m-elements-randomly-from-a-vector-containing-n-elements
