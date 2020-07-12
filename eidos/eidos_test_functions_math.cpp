@@ -20,6 +20,10 @@
 
 #include "eidos_test.h"
 
+#include "math.h"
+
+#include <limits>
+
 
 #pragma mark math
 void _RunFunctionMathTests_a_through_f(void)

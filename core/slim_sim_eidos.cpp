@@ -26,7 +26,12 @@
 #include "polymorphism.h"
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
+#include <string>
+#include <utility>
+#include <algorithm>
+#include <vector>
 
 
 static void PrintBytes(std::ostream &p_out, size_t p_bytes)

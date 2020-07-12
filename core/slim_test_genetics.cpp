@@ -22,6 +22,8 @@
 
 #include "eidos_globals.h"
 
+#include <string>
+
 
 #pragma mark MutationType tests
 void _RunMutationTypeTests(void)

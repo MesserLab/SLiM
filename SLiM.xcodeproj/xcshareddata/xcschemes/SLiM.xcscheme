@@ -109,8 +109,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&quot;/Users/bhaller/Desktop/codon_tests.slim&quot;"
+            argument = "&quot;/Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM-Benchmarks/models/turnover_nonWF.slim&quot;"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;/Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM-Benchmarks/models/turnover_WF.slim&quot;"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/bhaller/DocumentsSynced/Research/Messer lab/SLiM test suite/test scripts/009 linear island.slim&quot;"

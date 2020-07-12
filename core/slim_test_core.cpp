@@ -22,6 +22,8 @@
 
 #include "eidos_globals.h"
 
+#include <string>
+
 
 #pragma mark initialize() tests
 void _RunInitTests(void)
