@@ -85,7 +85,7 @@ int main(int argc, const char * argv[])
 		{
 			gEidosTerminateThrows = true;
 #ifdef EIDOS_SLIM_OPEN_MP
-			Eidos_WarmUpOpenMP(std::cout, changed_max_thread_count, (int)max_thread_count, true);
+			Eidos_WarmUpOpenMP(&std::cout, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
 			Eidos_FinishWarmUp();
@@ -141,7 +141,7 @@ int main(int argc, const char * argv[])
 #endif
 	
 #ifdef EIDOS_SLIM_OPEN_MP
-	Eidos_WarmUpOpenMP(std::cout, changed_max_thread_count, (int)max_thread_count, true);
+	Eidos_WarmUpOpenMP(&std::cout, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)

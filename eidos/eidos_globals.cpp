@@ -185,7 +185,7 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 
 
 #ifdef EIDOS_SLIM_OPEN_MP
-void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads)
+void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads)
 {
 	// When running under OpenMP, print a log, and also set values for the OpenMP ICV's that we want to guarantee
 	// See http://www.archer.ac.uk/training/course-material/2018/09/openmp-imp/Slides/L10-TipsTricksGotchas.pdf
@@ -210,8 +210,11 @@ void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, 
 	if (changed_max_thread_count)
 		omp_set_num_threads(new_max_thread_count);		// confusingly, sets the *max* threads as returned by omp_get_max_threads()
 	
-	outstream << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl;
-	outstream << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
+	if (outstream)
+	{
+		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl;
+		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
+	}
 	
 	// Kick OpenMP to warm up the thread pool; this was intended to make it so the first timing tests after startup provides a more accurate result
 	// However, it seems to have no effect on that, and the first timing test still logs a much longer time than subsequent tests; odd
@@ -228,7 +231,8 @@ void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, 
 		sum += float_data[value_index];
 	
 	double end = omp_get_wtime();
-	outstream << "// ********** OpenMP thread pool warmup time: " << (end - start) << " (result: " << sum << ")" << std::endl;
+	if (outstream)
+		(*outstream) << "// ********** OpenMP thread pool warmup time: " << (end - start) << " (result: " << sum << ")" << std::endl;
 	*/
 	
 #ifdef EIDOS_GUI
@@ -239,10 +243,12 @@ void Eidos_WarmUpOpenMP(std::ostream &outstream, bool changed_max_thread_count, 
 	// whenever they get suspended at all, and then waking them up again is heavyweight.  Or something.  For now,
 	// the GUI apps request to use a single thread, but still have OpenMP activated.  Using them in this
 	// configuration is not recommended, but is supported for ease of development.
-	outstream << "// ********** RUNNING SLIMGUI / EIDOSSCRIBE WITH OPENMP IS NOT RECOMMENDED!" << std::endl;
+	if (outstream)
+		(*outstream) << "// ********** RUNNING SLIMGUI / EIDOSSCRIBE WITH OPENMP IS NOT RECOMMENDED!" << std::endl;
 #endif
 	
-	outstream << std::endl;
+	if (outstream)
+		(*outstream) << std::endl;
 }
 #endif
 

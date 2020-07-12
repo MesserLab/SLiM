@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 		{
 			gEidosTerminateThrows = true;
 #ifdef EIDOS_SLIM_OPEN_MP
-			Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
 			Eidos_FinishWarmUp();
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
 		{
 			gEidosTerminateThrows = true;
 #ifdef EIDOS_SLIM_OPEN_MP
-			Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
 			SLiM_WarmUp();
@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
 			
 			if ((max_thread_count < 1) || (max_thread_count > 1024))
 			{
-				SLIM_OUTSTREAM << "The -maxthreads command-line option enforces a range of [0, 1024] (edit main.cpp to raise this arbitrary limit, if you are sure you know what you're doing)." << std::endl;
+				SLIM_OUTSTREAM << "The -maxthreads command-line option enforces a range of [1, 1024] (edit main.cpp to raise this arbitrary limit, if you are sure you know what you're doing)." << std::endl;
 				exit(0);
 			}
 			
@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
 #endif
 	
 #ifdef EIDOS_SLIM_OPEN_MP
-	Eidos_WarmUpOpenMP(SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+	Eidos_WarmUpOpenMP((SLiM_verbosity_level >= 1) ? &SLIM_ERRSTREAM : nullptr, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 	
 	if (SLiM_verbosity_level >= 2)
