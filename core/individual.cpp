@@ -805,8 +805,8 @@ void Individual::SetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_v
 		if ((source_value < 0.0) || (std::isnan(source_value)))
 			needs_raise = true;
 		
-#pragma omp parallel for default(none) shared(p_values_size, p_values, source_value) if(p_values_size >= 900)
-		// BCH 7/5/2019: Timed with test_set_fitnessScaling_1; results are in that file.
+#pragma omp parallel for schedule(static) default(none) shared(p_values_size, p_values, source_value) if(p_values_size >= 900)
+		// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_set_fitnessScaling_1
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
 	}
@@ -814,8 +814,8 @@ void Individual::SetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_v
 	{
 		const double *source_data = p_source.FloatVector()->data();
 		
-#pragma omp parallel for default(none) shared(p_values_size, p_values, source_data) reduction(||: needs_raise) if(p_values_size >= 1500)
-		// BCH 7/5/2019: Timed with test_set_fitnessScaling_2; results are in that file.
+#pragma omp parallel for schedule(static) default(none) shared(p_values_size, p_values, source_data) reduction(||: needs_raise) if(p_values_size >= 1500)
+		// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_set_fitnessScaling_2
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			double source_value = source_data[value_index];
@@ -1126,11 +1126,8 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_elements_size);
 	
-#pragma omp parallel for default(none) shared(p_elements_size, p_elements, mut_block_ptr, mutation_type_ptr, float_result) if(p_elements_size > 1)
-	// BCH 7/5/2019: Timed with test_sumOfMutationsOfType.slim; results are in that file.
-	//
-	// The amount of work per element is typically high enough that multithreading is worthwhile for any number of elements > 1
-	// When this is called with just a single element, we could try to multithread across mutruns or mutations instead; FIXME
+#pragma omp parallel for schedule(static) default(none) shared(p_elements_size, p_elements, mut_block_ptr, mutation_type_ptr, float_result) if(p_elements_size > 1)
+	// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sumOfMutationsOfType.slim
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);

@@ -3339,8 +3339,8 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const int64_t *int_data = x_value->IntVector()->data();
 			double sum_d = 0;
 			
-#pragma omp parallel for default(none) shared(int_data, x_count) reduction(+: sum_d) if(x_count >= 2000)
-			// BCH 7/5/2019: Timed with test_sum_integer.txt; results are in that file.
+#pragma omp parallel for schedule(static) default(none) shared(int_data, x_count) reduction(+: sum_d) if(x_count >= 2000)
+			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_integer.txt
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum_d += int_data[value_index];
 			
@@ -3367,37 +3367,10 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const double *float_data = x_value->FloatVector()->data();
 			double sum = 0;
 			
-#pragma omp parallel for default(none) shared(float_data, x_count) reduction(+: sum) if(x_count >= 2000)
-			// BCH 7/5/2019: Timed with test_sum_float.txt; results are in that file.
+#pragma omp parallel for schedule(static) default(none) shared(float_data, x_count) reduction(+: sum) if(x_count >= 2000)
+			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_float.txt
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
-			
-			// General conclusions from those test results:
-			//
-			// #1: An OpenMP parallel directive with num_threads(1) already adds a substantial amount of overhead
-			// compared to having no such directive at all.  So we should only parallelize spots that are expected
-			// to hit big cases often; spots that usually handle small cases should not be parallelized even with
-			// the use of an if() clause.
-			//
-			// #2: Multithreading on this platform with a team of 8 is not a win until almost 2000, so again,
-			// don't parallelize spots that will usually process smaller datasets, *and* put if() clauses on
-			// parallel statements that might be frequently called for smaller datasets if you do choose to make
-			// them parallel, because the overhead for assembling a team for a small dataset is huge.
-			//
-			// #3: Hyperthreading is a win for sufficiently large N (see the result for only 4 threads with
-			// 100000 floats), but it involves more constant overhead to set up the team, so it is actually
-			// a lose below some threshold; with 2000 floats, 4 threads is actually faster than either 1 or 8.
-			// So for maximal performance the number of threads would dynamically adjust; but that is tricky,
-			// and the effect size is not huge, and the band where this occurs is probably somewhat narrow.
-			//
-			// It is not really clear from these platform-specific results what minimum size to use for the
-			// if() clause; for now I'll set it to 2000, but that may be a poor choice on other platforms.
-			// What to do?  Is there a good way to dynamically adjust without adding substantial overhead?
-			//
-			// And note that a different loop might have a (radically) different optimum.  The overhead for
-			// assembling a team is probably pretty fixed (on a given platform), but if there is more work to
-			// do per iteration, then fewer iterations will be needed for multithreading to be worthwhile.
-			// So every loop should be speed-tested (or just left with the default behavior), I guess.
 			
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum));
 		}
@@ -3408,12 +3381,8 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 		const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
 		int64_t sum = 0;
 		
-#pragma omp parallel for default(none) shared(logical_data, x_count) reduction(+: sum) if(x_count >= 6000)
-		// BCH 7/5/2019: Timed with test_sum_logical.txt; results are in that file.
-		//
-		// Note the crossover point here is quite different; this is apparently because there is much more
-		// work to do per iteration when adding floats than when adding logicals.  This is probably mostly
-		// to do with their memory footprint – more logicals per cache line.
+#pragma omp parallel for schedule(static) default(none) shared(logical_data, x_count) reduction(+: sum) if(x_count >= 6000)
+		// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_logical.txt
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			sum += logical_data[value_index];
 		

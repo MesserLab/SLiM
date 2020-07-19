@@ -523,17 +523,20 @@ void InteractionType::CalculateAllDistances(Subpopulation *p_subpop)
 				switch (spatiality_)
 				{
 					case 1:
-						#pragma omp parallel for schedule(static)
+						#pragma omp parallel for schedule(static) default(none) shared(start_row, after_end_row, subpop_data, position_data)
+						// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllDistances1D.txt
 						for (row = start_row; row < after_end_row; row++)
 							BuildSA_1(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_);
 						break;
 					case 2:
-						#pragma omp parallel for schedule(static)
+						#pragma omp parallel for schedule(static) default(none) shared(start_row, after_end_row, subpop_data, position_data)
+						// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllDistances2D.txt
 						for (row = start_row; row < after_end_row; row++)
 							BuildSA_2(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
 						break;
 					case 3:
-						#pragma omp parallel for schedule(static)
+						#pragma omp parallel for schedule(static) default(none) shared(start_row, after_end_row, subpop_data, position_data)
+						// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllDistances3D.txt
 						for (row = start_row; row < after_end_row; row++)
 							BuildSA_3(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
 						break;
@@ -604,8 +607,10 @@ void InteractionType::CalculateAllStrengths(Subpopulation *p_subpop)
 			{
 				// No callbacks; strength calculations come from the interaction function only
 				// We do not use reciprocity here, as searching for the mirrored entry would probably take longer than just calculating twice
-				/* In general, this loop can/should also be parallelized as they are calculating strengths independently for each row*/
-				#pragma omp parallel for schedule(static)
+				#pragma omp parallel for schedule(static) default(none) shared(subpop_size, dist_str)
+				// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths1D.txt
+				// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths2D.txt
+				// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths3D.txt
 				for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 				{
 					uint32_t row_nnz, *row_columns;
