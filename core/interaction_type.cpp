@@ -1799,9 +1799,6 @@ void InteractionType::BuildSA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 }
 
 // add neighbors to the sparse array in 2D
-
-// recursive algorithm, perhaps a bit slow but the compiler seems to do a good job with it actually
-// Reverted back to recursive algorithm as it avoids explicitly maintaining a recursive stack that is concurrently written to by different threads.
 void InteractionType::BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase)
 {
 	double d = dist_sq2(root, nd);
