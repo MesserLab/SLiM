@@ -18,7 +18,7 @@ OpenMP additions:
 		set Enable Index-While-Building Functionality to NO in Build Settings
 		disable Link-Time Optimization, which appears to be incompatible with OpenMP
 		see http://antonmenshov.com/2017/09/09/clang-openmp-setup-in-xcode/
-	defined EIDOS_SLIM_OPEN_MP as a project-defined flag indicating that OpenMP is being used
+	defined EIDOS_SLIM_OPEN_MP as a project-defined flag indicating that OpenMP is being used (switched to the standard _OPENMP)
 	added a message to std::cout indicating that OpenMP is enabled
 	made sum(), -[Individual sumOfMutationsOfType] multithreaded
 	add a command-line option, -maxthreads <n>, to control the maximum number of threads used in OpenMP

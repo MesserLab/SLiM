@@ -77,7 +77,7 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 
 if(Parallel MATCHES "ON")
-    add_definitions(-DParallel=1)
+    # Use the _OPENMP define to test in code whether the build is parallel
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
     message("Parallel execution is ${Parallel}")
@@ -122,7 +122,6 @@ file(GLOB_RECURSE KASTORE_SOURCES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore/*.
 set(KASTORE_INCLUDES ${PROJECT_SOURCE_DIR}/treerec/tskit/kastore)
 add_library(${TARGET_NAME} STATIC ${KASTORE_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC)
-add_definitions(-Dparallel_mode=${Parallel})
 
 # TSKIT
 set(TARGET_NAME tables)

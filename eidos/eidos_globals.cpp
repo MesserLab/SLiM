@@ -60,9 +60,9 @@
 // #include <sys/types.h>
 // #include <sys/sysctl.h>
 
-#ifdef EIDOS_SLIM_OPEN_MP
-#include <stdlib.h>
 #include "omp.h"
+#ifdef _OPENMP
+#include <stdlib.h>
 #endif
 
 // for Eidos_calc_sha_256()
@@ -184,7 +184,7 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
 
 
-#ifdef EIDOS_SLIM_OPEN_MP
+#ifdef _OPENMP
 void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads)
 {
 	// When running under OpenMP, print a log, and also set values for the OpenMP ICV's that we want to guarantee

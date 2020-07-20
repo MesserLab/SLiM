@@ -218,7 +218,7 @@ typedef enum SLiMLaunchAction
 	Eidos_Beep = &Eidos_Beep_MACOS;
 	
 	// Warm up our back ends before anything else happens
-#ifdef EIDOS_SLIM_OPEN_MP
+#ifdef _OPENMP
 	// Right now SLiMgui is set to be single-threaded; multithreading in the GUI doesn't seem to work well, because the threads
 	// have to sleep when inactive, which seems to completely kill the performance – it ends up slower than single-threaded
 	//Eidos_WarmUpOpenMP(&std::cout, true, Eidos_PhysicalCoreCount(), false);	// avoid hyperthreading (it plays poorly with sleeping threads), let threads sleep

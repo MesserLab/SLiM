@@ -41,8 +41,9 @@
 #include "eidos_test_element.h"
 #include "eidos_symbol_table.h"
 
-#ifdef EIDOS_SLIM_OPEN_MP
 #include "omp.h"
+#ifdef _OPENMP
+#warning Building slim with OpenMP enabled
 #endif
 
 
@@ -166,7 +167,7 @@ int main(int argc, char *argv[])
 	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false;
 	std::vector<std::string> defined_constants;
 	
-#ifdef EIDOS_SLIM_OPEN_MP
+#ifdef _OPENMP
 	long max_thread_count = omp_get_max_threads();
 	bool changed_max_thread_count = false;
 #endif
@@ -296,7 +297,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
-#ifdef EIDOS_SLIM_OPEN_MP
+#ifdef _OPENMP
 			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
@@ -312,7 +313,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
 			gEidosTerminateThrows = true;
-#ifdef EIDOS_SLIM_OPEN_MP
+#ifdef _OPENMP
 			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
@@ -342,7 +343,7 @@ int main(int argc, char *argv[])
 		
 		if (strcmp(arg, "-maxthreads") == 0)
 		{
-#ifdef EIDOS_SLIM_OPEN_MP
+#ifdef _OPENMP
 			if (++arg_index == argc)
 				PrintUsageAndDie(false, true);
 			
@@ -389,7 +390,7 @@ int main(int argc, char *argv[])
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
-#ifdef EIDOS_SLIM_OPEN_MP
+#ifdef _OPENMP
 	Eidos_WarmUpOpenMP((SLiM_verbosity_level >= 1) ? &SLIM_ERRSTREAM : nullptr, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 	

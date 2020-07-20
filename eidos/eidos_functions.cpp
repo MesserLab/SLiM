@@ -48,9 +48,7 @@
 #include "gsl_errno.h"
 #include "gsl_cdf.h"
 
-#ifdef EIDOS_SLIM_OPEN_MP
 #include "omp.h"
-#endif
 
 #include "../eidos_zlib/zlib.h"
 
@@ -3297,7 +3295,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex(0, nullptr)));
 		}
 		else
-#ifndef EIDOS_SLIM_OPEN_MP
+#ifndef _OPENMP
 		{
 			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
 			const int64_t *int_data = x_value->IntVector()->data();
