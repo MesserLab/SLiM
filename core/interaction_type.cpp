@@ -607,60 +607,99 @@ void InteractionType::CalculateAllStrengths(Subpopulation *p_subpop)
 			{
 				// No callbacks; strength calculations come from the interaction function only
 				// We do not use reciprocity here, as searching for the mirrored entry would probably take longer than just calculating twice
-				#pragma omp parallel for schedule(static) default(none) shared(subpop_size, dist_str)
-				// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths1D.txt
-				// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths2D.txt
-				// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths3D.txt
-				for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
+				// CalculateStrengthNoCallbacks() is basically inlined here, moved outside the loop; see that function for comments
+				switch (if_type_)
 				{
-					uint32_t row_nnz, *row_columns;
-					sa_distance_t *row_distances;
-					sa_strength_t *row_strengths;
-					
-					dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
-					
-					// CalculateStrengthNoCallbacks() is basically inlined here, moved outside the loop; see that function for comments
-					switch (if_type_)
+					// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths1D.txt
+					// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths2D.txt
+					// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllStrengths3D.txt
+					case IFType::kFixed:
 					{
-						case IFType::kFixed:
+						#pragma omp parallel for schedule(static) default(none) shared(subpop_size, dist_str)
+						for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 						{
-							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
-								row_strengths[col_iter] = (sa_strength_t)if_param1_;
-							break;
+							uint32_t row_nnz, *row_columns;
+							sa_distance_t *row_distances;
+							sa_strength_t *row_strengths;
+							
+							dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+							
+									for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
+										row_strengths[col_iter] = (sa_strength_t)if_param1_;
 						}
-						case IFType::kLinear:
+						break;
+					}
+					case IFType::kLinear:
+					{
+						#pragma omp parallel for schedule(static) default(none) shared(subpop_size, dist_str)
+						for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 						{
+							uint32_t row_nnz, *row_columns;
+							sa_distance_t *row_distances;
+							sa_strength_t *row_strengths;
+							
+							dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+							
 							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
 							{
 								sa_distance_t distance = row_distances[col_iter];
 								
 								row_strengths[col_iter] = (sa_strength_t)(if_param1_ * (1.0 - distance / max_distance_));
 							}
-							break;
 						}
-						case IFType::kExponential:
+						break;
+					}
+					case IFType::kExponential:
+					{
+						#pragma omp parallel for schedule(static) default(none) shared(subpop_size, dist_str)
+						for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 						{
+							uint32_t row_nnz, *row_columns;
+							sa_distance_t *row_distances;
+							sa_strength_t *row_strengths;
+							
+							dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+							
 							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
 							{
 								sa_distance_t distance = row_distances[col_iter];
 								
 								row_strengths[col_iter] = (sa_strength_t)(if_param1_ * exp(-if_param2_ * distance));
 							}
-							break;
 						}
-						case IFType::kNormal:
+						break;
+					}
+					case IFType::kNormal:
+					{
+						#pragma omp parallel for schedule(static) default(none) shared(subpop_size, dist_str)
+						for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 						{
-
+							uint32_t row_nnz, *row_columns;
+							sa_distance_t *row_distances;
+							sa_strength_t *row_strengths;
+							
+							dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+							
 							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
 							{
 								sa_distance_t distance = row_distances[col_iter];
 								
 								row_strengths[col_iter] = (sa_strength_t)(if_param1_ * exp(-(distance * distance) / (2.0 * if_param2_ * if_param2_)));
 							}
-							break;
 						}
-						case IFType::kCauchy:
+						break;
+					}
+					case IFType::kCauchy:
+					{
+						#pragma omp parallel for schedule(static) default(none) shared(subpop_size, dist_str)
+						for (uint32_t row = 0; row < (uint32_t)subpop_size; ++row)
 						{
+							uint32_t row_nnz, *row_columns;
+							sa_distance_t *row_distances;
+							sa_strength_t *row_strengths;
+							
+							dist_str.InteractionsForRow(row, &row_nnz, &row_columns, &row_distances, &row_strengths);
+							
 							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
 							{
 								sa_distance_t distance = row_distances[col_iter];
@@ -668,20 +707,12 @@ void InteractionType::CalculateAllStrengths(Subpopulation *p_subpop)
 								
 								row_strengths[col_iter] = (sa_strength_t)(if_param1_ / (1.0 + temp * temp));
 							}
-							break;
 						}
-						default:
-						{
-							// should never be hit, but this is the base case
-							for (uint32_t col_iter = 0; col_iter < row_nnz; ++col_iter)
-							{
-								sa_distance_t distance = row_distances[col_iter];
-								
-								row_strengths[col_iter] = (sa_strength_t)CalculateStrengthNoCallbacks(distance);
-							}
-							
-							EIDOS_TERMINATION << "ERROR (InteractionType::CalculateAllStrengths): (internal error) unimplemented IFType case." << EidosTerminate();
-						}
+						break;
+					}
+					default:
+					{
+						EIDOS_TERMINATION << "ERROR (InteractionType::CalculateAllStrengths): (internal error) unimplemented IFType case." << EidosTerminate();
 					}
 				}
 			}
