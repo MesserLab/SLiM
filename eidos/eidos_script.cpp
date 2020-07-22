@@ -1428,7 +1428,7 @@ EidosASTNode *EidosScript::Parse_SeqExpr(void)
 	
 	try
 	{
-		left_expr = Parse_ExpExpr();
+		left_expr = Parse_UnaryExpExpr();
 		
 		if (current_token_type_ == EidosTokenType::kTokenColon)
 		{
@@ -1439,7 +1439,7 @@ EidosASTNode *EidosScript::Parse_SeqExpr(void)
 			}
 			Consume();
 			
-			node->AddChild(Parse_ExpExpr());
+			node->AddChild(Parse_UnaryExpExpr());
 		}
 	}
 	catch (...)
@@ -1462,23 +1462,34 @@ EidosASTNode *EidosScript::Parse_SeqExpr(void)
 	return (node ? node : left_expr);
 }
 
-EidosASTNode *EidosScript::Parse_ExpExpr(void)
+EidosASTNode *EidosScript::Parse_UnaryExpExpr(void)
 {
+	// this merge of unary_expr and exp_expr was suggested by https://stackoverflow.com/a/53615462/2752221
+	// it fixes a precedence problem with ^ and unary -, where -2^2 should be -(2^2) == -4 but came out as (-2)^2 == 4
 	EidosASTNode *left_expr = nullptr, *node = nullptr;
 	
 	try
 	{
-		left_expr = Parse_UnaryExpr();
-		
-		if (current_token_type_ == EidosTokenType::kTokenExp)
+		if ((current_token_type_ == EidosTokenType::kTokenPlus) || (current_token_type_ == EidosTokenType::kTokenMinus) || (current_token_type_ == EidosTokenType::kTokenNot))
 		{
-			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_, left_expr);
-			left_expr = nullptr;
-			
+			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 			Consume();
 			
-			node->AddChild(Parse_ExpExpr());		// note right-associativity
-			return node;
+			node->AddChild(Parse_UnaryExpExpr());
+		}
+		else
+		{
+			left_expr = Parse_PostfixExpr();
+			
+			if (current_token_type_ == EidosTokenType::kTokenExp)
+			{
+				node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_, left_expr);
+				left_expr = nullptr;
+				
+				Consume();
+				
+				node->AddChild(Parse_UnaryExpExpr());		// note right-associativity
+			}
 		}
 	}
 	catch (...)
@@ -1498,39 +1509,7 @@ EidosASTNode *EidosScript::Parse_ExpExpr(void)
 		throw;
 	}
 	
-	return left_expr;
-}
-
-EidosASTNode *EidosScript::Parse_UnaryExpr(void)
-{
-	EidosASTNode *node = nullptr;
-	
-	try
-	{
-		if ((current_token_type_ == EidosTokenType::kTokenPlus) || (current_token_type_ == EidosTokenType::kTokenMinus) || (current_token_type_ == EidosTokenType::kTokenNot))
-		{
-			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
-			Consume();
-			
-			node->AddChild(Parse_UnaryExpr());
-		}
-		else
-		{
-			node = Parse_PostfixExpr();
-		}
-	}
-	catch (...)
-	{
-		if (node)
-		{
-			node->~EidosASTNode();
-			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
-		}
-		
-		throw;
-	}
-	
-	return node;
+	return (node ? node : left_expr);
 }
 
 EidosASTNode *EidosScript::Parse_PostfixExpr(void)

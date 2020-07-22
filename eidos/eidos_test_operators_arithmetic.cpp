@@ -728,6 +728,18 @@ void _RunOperatorExpTests(void)
 	EidosAssertScriptRaise("identical(matrix(1:3) ^ matrix(2), matrix(c(1.0,4,9)));", 22, "non-conformable");
 	EidosAssertScriptRaise("identical(matrix(2:4,nrow=1) ^ matrix(1:3,ncol=1), matrix(c(2.0,9,64)));", 29, "non-conformable");
 	EidosAssertScriptSuccess("identical(matrix(2:4) ^ matrix(1:3), matrix(c(2.0,9,64)));", gStaticEidosValue_LogicalT);
+	
+	// operator ^ precedence and associativity tests
+	EidosAssertScriptSuccess("-2^2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-4)));
+	EidosAssertScriptSuccess("x=1:3; y=1:3; -x^y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-1, -4, -27}));
+	EidosAssertScriptSuccess("-2.0^2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-4)));
+	EidosAssertScriptSuccess("-2^2.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-4)));
+	EidosAssertScriptSuccess("-2.0^2.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-4)));
+	EidosAssertScriptSuccess("x=1.0:3; y=1:3; -x^y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-1, -4, -27}));
+	EidosAssertScriptSuccess("x=1:3; y=1.0:3; -x^y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-1, -4, -27}));
+	EidosAssertScriptSuccess("x=1.0:3; y=1.0:3; -x^y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-1, -4, -27}));
+	EidosAssertScriptSuccess("2^2^4;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(65536)));
+	EidosAssertScriptSuccess("1/(2^-2^4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(65536)));
 }
 
 

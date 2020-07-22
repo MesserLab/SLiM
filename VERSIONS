@@ -10,7 +10,8 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 	added build instructions for Windows WSL, thanks to Bernard Kim (no code change)
 	fix some issues with recipe 14.8 (live plotting in R) with platform-dependent paths, lack of PDF viewing support in QtSLiM, etc.
-	
+	fix bug with precedence for operator ^, which needs to be higher than unary - to follow standard mathematical convention (GitHub #99)
+
 
 version 3.4 (build 2438; Eidos version 2.4):
 	fix a subtle bug in which mutation IDs used by mutations read in from a .trees file could be re-used, producing a conflict, if the mutations were not ancestral to any extant genome -- biting you if you wrote a .trees file out again at the end
