@@ -1035,6 +1035,20 @@ void _RunFunctionValueInspectionManipulationTests_s_through_z(void)
 	EidosAssertScriptRaise("x=c('foo','bar','foobaz'); substr(x, 1, c(2, 4));", 27, "requires the size of");
 	EidosAssertScriptRaise("x=c('foo','bar','foobaz'); substr(x, c(1, 2), 4);", 27, "requires the size of");
 	
+	// tabulate()
+	EidosAssertScriptSuccess("tabulate(integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
+	EidosAssertScriptSuccess("tabulate(integer(0), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
+	EidosAssertScriptSuccess("tabulate(integer(0), 4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0, 0, 0}));
+	EidosAssertScriptSuccess("tabulate(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0, 1}));
+	EidosAssertScriptSuccess("tabulate(3, 4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0, 1, 0}));
+	EidosAssertScriptSuccess("tabulate(3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 0}));
+	EidosAssertScriptSuccess("tabulate(c(0, -1, 0, -5, 5, 3, 3, 3, 0, 3, 4, 5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 0, 0, 4, 1, 2}));
+	EidosAssertScriptSuccess("tabulate(c(0, -1, 0, -5, 5, 3, 3, 3, 0, 3, 4, 5), 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 0, 0, 4, 1, 2, 0, 0, 0}));
+	EidosAssertScriptSuccess("tabulate(c(0, -1, 0, -5, 5, 3, 3, 3, 0, 3, 4, 5), 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 0, 0, 4}));
+	EidosAssertScriptSuccess("sum(tabulate(rdunif(100, 5, 15)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(100)));
+	EidosAssertScriptSuccess("sum(tabulate(rdunif(100, 5, 15), 25));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(100)));
+	EidosAssertScriptRaise("tabulate(c(0, -1, 0, -5, 5, 3, 3, 3, 0, 3, 4, 5), -1);", 0, "to be greater than or equal to 0");
+	
 	// unique()
 	EidosAssertScriptSuccess("unique(NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("unique(logical(0));", gStaticEidosValue_Logical_ZeroVec);

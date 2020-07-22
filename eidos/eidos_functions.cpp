@@ -226,6 +226,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_str,		Eidos_ExecuteFunction_str,			kEidosValueMaskVOID))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("strsplit",			Eidos_ExecuteFunction_strsplit,		kEidosValueMaskString))->AddString_S("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("substr",			Eidos_ExecuteFunction_substr,		kEidosValueMaskString))->AddString("x")->AddInt("first")->AddInt_ON("last", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("tabulate",			Eidos_ExecuteFunction_tabulate,		kEidosValueMaskInt))->AddInt("bin")->AddInt_OSN("maxbin", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("unique",			Eidos_ExecuteFunction_unique,		kEidosValueMaskAny))->AddAny("x")->AddLogical_OS("preserveOrder", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("which",				Eidos_ExecuteFunction_which,		kEidosValueMaskInt))->AddLogical("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("whichMax",			Eidos_ExecuteFunction_whichMax,		kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAnyBase("x"));
@@ -8099,6 +8100,64 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 					string_result->PushString(str.substr(clamped_first, len));
 			}
 		}
+	}
+	
+	return result_SP;
+}
+
+//	(integer)tabulate(integer bin, [Ni$ maxbin = NULL])
+EidosValue_SP Eidos_ExecuteFunction_tabulate(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *bin_value = p_arguments[0].get();
+	int bin_count = bin_value->Count();
+	
+	EidosValue *maxbin_value = p_arguments[1].get();
+	EidosValueType maxbin_type = maxbin_value->Type();
+	
+	// set up to work with either a singleton or a non-singleton vector
+	int64_t singleton_value = (bin_count == 1) ? bin_value->IntAtIndex(0, nullptr) : 0;
+	const int64_t *int_data = (bin_count == 1) ? &singleton_value : bin_value->IntVector()->data();
+	
+	// determine maxbin
+	int64_t maxbin;
+	
+	if (maxbin_type == EidosValueType::kValueNULL)
+	{
+		maxbin = 0;
+		for (int value_index = 0; value_index < bin_count; ++value_index)
+		{
+			int64_t value = int_data[value_index];
+			if (value > maxbin)
+				maxbin = value;
+		}
+	}
+	else
+	{
+		maxbin = maxbin_value->IntAtIndex(0, nullptr);
+	}
+	
+	if (maxbin < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_tabulate): function tabulate() requires maxbin to be greater than or equal to 0." << EidosTerminate(nullptr);
+	
+	// set up the result vector and zero it out
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(maxbin + 1);
+	result_SP = EidosValue_SP(int_result);
+	
+	for (int result_index = 0; result_index <= maxbin; ++result_index)
+		int_result->set_int_no_check(0, result_index);
+	
+	// do the tabulation
+	int64_t *result_data = int_result->data();
+	
+	for (int value_index = 0; value_index < bin_count; ++value_index)
+	{
+		int64_t value = int_data[value_index];
+		
+		if ((value >= 0) && (value <= maxbin))
+			result_data[value]++;
 	}
 	
 	return result_SP;

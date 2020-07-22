@@ -3064,6 +3064,39 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f3\fs20 , specifying a value for each substring.
 \f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (integer)tabulate(integer\'a0bin, [Ni$\'a0maxbin\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns 
+\f0\b occurrence counts
+\f3\b0  for each non-negative integer in 
+\f1\fs18 bin
+\f3\fs20 .  Occurrence counts are tabulated into bins for each value 
+\f1\fs18 0:maxbin
+\f3\fs20  in 
+\f1\fs18 bin
+\f3\fs20 ; values outside that range are ignored.  The default value of 
+\f1\fs18 maxbin
+\f3\fs20 , 
+\f1\fs18 NULL
+\f3\fs20 , is equivalent to passing 
+\f1\fs18 maxbin=max(0, bin)
+\f3\fs20 ; in other words, by default the result vector will be exactly large enough to accommodate counts for every integer in 
+\f1\fs18 bin
+\f3\fs20 .  In any case, the result vector will contain 
+\f1\fs18 maxbin+1
+\f3\fs20  elements (some or all of which might be zero, if the occurrence count of that integer in 
+\f1\fs18 bin
+\f3\fs20  is zero).\
+Note that the semantics of this function differ slightly from the 
+\f1\fs18 tabulate()
+\f3\fs20  function in R, because R is 
+\f1\fs18 1
+\f3\fs20 -based and Eidos is 
+\f1\fs18 0
+\f3\fs20 -based.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)unique(*\'a0x, [logical$\'a0preserveOrder\'a0=\'a0T])\

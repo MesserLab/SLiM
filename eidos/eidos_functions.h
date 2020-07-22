@@ -165,6 +165,7 @@ EidosValue_SP Eidos_ExecuteFunction_sortBy(const EidosValue_SP *const p_argument
 EidosValue_SP Eidos_ExecuteFunction_str(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_strsplit(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_tabulate(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_unique(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_which(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_whichMax(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
