@@ -1426,7 +1426,8 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 		std::ios_base::fmtflags oldflags = p_out.flags();
 		std::streamsize oldprecision = p_out.precision();
 		
-		p_out << std::fixed << std::setprecision(10);	// BCH 26 Jan. 2020: increasing this from 7 to 10, so longer chromosomes work; maybe this should be a parameter?
+		p_out << std::fixed << std::setprecision(15);	// BCH 26 Jan. 2020: increasing this from 7 to 10, so longer chromosomes work; maybe this should be a parameter?
+														// BCH 23 July 2020: increasing from 10 to 15, which is the limit of double-precision floats anyway
 		
 		// Output positions
 		p_out << "positions:";
