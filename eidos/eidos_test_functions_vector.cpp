@@ -812,6 +812,12 @@ void _RunFunctionValueInspectionManipulationTests_m_through_r(void)
 	EidosAssertScriptSuccess("match(c(_Test(0), _Test(1)), c(_Test(0), _Test(1)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-1, -1}));	// different elements
 	EidosAssertScriptSuccess("x1 = _Test(1); x2 = _Test(2); x9 = _Test(9); x5 = _Test(5); match(c(x1,x2,x2,x9,x5,x1), c(x5,x1,x9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, -1, -1, 2, 0, 1}));
 	
+	// check the hash-table-based versions of match(), based on the fact that the crossover between algorithms is x_count >= 500
+	EidosAssertScriptSuccess("x = rdunif(499, 0, 1000); t = rdunif(500, 0, 1000); m1 = match(x, t); m2 = match(c(x, 2000), t); identical(c(m1, -1), m2);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = asFloat(rdunif(499, 0, 1000)); t = asFloat(rdunif(500, 0, 1000)); m1 = match(x, t); m2 = match(c(x, 2000), t); identical(c(m1, -1), m2);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = asString(rdunif(499, 0, 1000)); t = asString(rdunif(500, 0, 1000)); m1 = match(x, t); m2 = match(c(x, 2000), t); identical(c(m1, -1), m2);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("o = sapply(0:1001, '_Test(applyValue);'); x = o[rdunif(499, 0, 1000)]; t = o[rdunif(500, 0, 1000)]; m1 = match(x, t); m2 = match(c(x, o[1001]), t); identical(c(m1, -1), m2);", gStaticEidosValue_LogicalT);
+	
 	// nchar()
 	EidosAssertScriptRaise("nchar(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("nchar(T);", 0, "cannot be type");

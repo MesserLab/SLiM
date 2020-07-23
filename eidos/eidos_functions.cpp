@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 #include <utility>
 #include <numeric>
 #include <sys/stat.h>
@@ -7597,13 +7598,33 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const int64_t *int_data0 = x_value->IntVector()->data();
 			const int64_t *int_data1 = table_value->IntVector()->data();
 			
-			for (int value_index = 0; value_index < x_count; ++value_index)
+			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				for (table_index = 0; table_index < table_count; ++table_index)
-					if (int_data0[value_index] == int_data1[table_index])
-						break;
+				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				std::unordered_map<int64_t, int64_t> fromValueToIndex;
 				
-				int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				for (table_index = 0; table_index < table_count; ++table_index)
+					fromValueToIndex.insert(std::pair<int64_t, int64_t>(int_data1[table_index], table_index));	// does nothing if the key is already in the map
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					auto find_iter = fromValueToIndex.find(int_data0[value_index]);
+					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
+					
+					int_result->set_int_no_check(find_index, value_index);
+				}
+			}
+			else
+			{
+				// brute-force lookup, since the problem probably isn't big enough to merit building a hash table
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					for (table_index = 0; table_index < table_count; ++table_index)
+						if (int_data0[value_index] == int_data1[table_index])
+							break;
+					
+					int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				}
 			}
 		}
 		else if (x_type == EidosValueType::kValueFloat)
@@ -7611,13 +7632,33 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const double *float_data0 = x_value->FloatVector()->data();
 			const double *float_data1 = table_value->FloatVector()->data();
 			
-			for (int value_index = 0; value_index < x_count; ++value_index)
+			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				for (table_index = 0; table_index < table_count; ++table_index)
-					if (float_data0[value_index] == float_data1[table_index])
-						break;
+				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				std::unordered_map<double, int64_t> fromValueToIndex;
 				
-				int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				for (table_index = 0; table_index < table_count; ++table_index)
+					fromValueToIndex.insert(std::pair<double, int64_t>(float_data1[table_index], table_index));	// does nothing if the key is already in the map
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					auto find_iter = fromValueToIndex.find(float_data0[value_index]);
+					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
+					
+					int_result->set_int_no_check(find_index, value_index);
+				}
+			}
+			else
+			{
+				// brute-force lookup, since the problem probably isn't big enough to merit building a hash table
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					for (table_index = 0; table_index < table_count; ++table_index)
+						if (float_data0[value_index] == float_data1[table_index])
+							break;
+					
+					int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				}
 			}
 		}
 		else if (x_type == EidosValueType::kValueString)
@@ -7625,13 +7666,33 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const std::vector<std::string> &string_vec0 = *x_value->StringVector();
 			const std::vector<std::string> &string_vec1 = *table_value->StringVector();
 			
-			for (int value_index = 0; value_index < x_count; ++value_index)
+			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				for (table_index = 0; table_index < table_count; ++table_index)
-					if (string_vec0[value_index] == string_vec1[table_index])
-						break;
+				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				std::unordered_map<std::string, int64_t> fromValueToIndex;
 				
-				int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				for (table_index = 0; table_index < table_count; ++table_index)
+					fromValueToIndex.insert(std::pair<std::string, int64_t>(string_vec1[table_index], table_index));	// does nothing if the key is already in the map
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					auto find_iter = fromValueToIndex.find(string_vec0[value_index]);
+					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
+					
+					int_result->set_int_no_check(find_index, value_index);
+				}
+			}
+			else
+			{
+				// brute-force lookup, since the problem probably isn't big enough to merit building a hash table
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					for (table_index = 0; table_index < table_count; ++table_index)
+						if (string_vec0[value_index] == string_vec1[table_index])
+							break;
+					
+					int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				}
 			}
 		}
 		else if (x_type == EidosValueType::kValueObject)
@@ -7639,13 +7700,33 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			EidosObjectElement * const *objelement_vec0 = x_value->ObjectElementVector()->data();
 			EidosObjectElement * const *objelement_vec1 = table_value->ObjectElementVector()->data();
 			
-			for (int value_index = 0; value_index < x_count; ++value_index)
+			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				for (table_index = 0; table_index < table_count; ++table_index)
-					if (objelement_vec0[value_index] == objelement_vec1[table_index])
-						break;
+				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				std::unordered_map<EidosObjectElement *, int64_t> fromValueToIndex;
 				
-				int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				for (table_index = 0; table_index < table_count; ++table_index)
+					fromValueToIndex.insert(std::pair<EidosObjectElement *, int64_t>(objelement_vec1[table_index], table_index));	// does nothing if the key is already in the map
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					auto find_iter = fromValueToIndex.find(objelement_vec0[value_index]);
+					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
+					
+					int_result->set_int_no_check(find_index, value_index);
+				}
+			}
+			else
+			{
+				// brute-force lookup, since the problem probably isn't big enough to merit building a hash table
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					for (table_index = 0; table_index < table_count; ++table_index)
+						if (objelement_vec0[value_index] == objelement_vec1[table_index])
+							break;
+					
+					int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
+				}
 			}
 		}
 	}
