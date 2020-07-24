@@ -7598,7 +7598,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const int64_t *int_data0 = x_value->IntVector()->data();
 			const int64_t *int_data1 = table_value->IntVector()->data();
 			
-			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
+			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
 				std::unordered_map<int64_t, int64_t> fromValueToIndex;
@@ -7632,7 +7632,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const double *float_data0 = x_value->FloatVector()->data();
 			const double *float_data1 = table_value->FloatVector()->data();
 			
-			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
+			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
 				std::unordered_map<double, int64_t> fromValueToIndex;
@@ -7666,7 +7666,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const std::vector<std::string> &string_vec0 = *x_value->StringVector();
 			const std::vector<std::string> &string_vec1 = *table_value->StringVector();
 			
-			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
+			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
 				std::unordered_map<std::string, int64_t> fromValueToIndex;
@@ -7700,7 +7700,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			EidosObjectElement * const *objelement_vec0 = x_value->ObjectElementVector()->data();
 			EidosObjectElement * const *objelement_vec1 = table_value->ObjectElementVector()->data();
 			
-			if (x_count >= 500)		// a guess based on timing data; will be platform-dependent and dataset-dependent
+			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
 				std::unordered_map<EidosObjectElement *, int64_t> fromValueToIndex;

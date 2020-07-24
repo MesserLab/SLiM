@@ -12,6 +12,7 @@ development head:
 	fix some issues with recipe 14.8 (live plotting in R) with platform-dependent paths, lack of PDF viewing support in QtSLiM, etc.
 	fix bug with precedence for operator ^, which needs to be higher than unary - to follow standard mathematical convention (GitHub #99)
 	add a tabulate() function to Eidos, more or less parallel to that in R
+	speed up match() for large x vectors, using unordered_map; goes from O(N*M) to O(N+M)
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
