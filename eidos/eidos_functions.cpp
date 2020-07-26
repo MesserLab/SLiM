@@ -149,6 +149,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("min",				Eidos_ExecuteFunction_min,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmax",				Eidos_ExecuteFunction_pmax,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmin",				Eidos_ExecuteFunction_pmin,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("quantile",			Eidos_ExecuteFunction_quantile,		kEidosValueMaskFloat))->AddNumeric("x")->AddFloat_ON("probs", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",				Eidos_ExecuteFunction_range,		kEidosValueMaskNumeric))->AddNumeric("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sd",				Eidos_ExecuteFunction_sd,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",				Eidos_ExecuteFunction_ttest,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat_ON("y", gStaticEidosValueNULL)->AddFloat_OSN("mu", gStaticEidosValueNULL));
@@ -384,6 +385,114 @@ void EidosInterpreter::CacheBuiltInFunctionMap(void)
 //
 //	Executing function calls
 //
+
+bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value)
+{
+	EidosValueType x_type = x_value->Type();
+	int x_count = x_value->Count();
+	EidosValueType y_type = y_value->Type();
+	int y_count = y_value->Count();
+	
+	if ((x_type != y_type) || (x_count != y_count))
+		return false;
+	
+	if (!EidosValue::MatchingDimensions(x_value, y_value))
+		return false;
+	
+	if (x_type == EidosValueType::kValueNULL)
+		return true;
+	
+	if (x_count == 1)
+	{
+		// Handle singleton comparison separately, to allow the use of the fast vector API below
+		if (x_type == EidosValueType::kValueLogical)
+		{
+			if (x_value->LogicalAtIndex(0, nullptr) != y_value->LogicalAtIndex(0, nullptr))
+				return false;
+		}
+		else if (x_type == EidosValueType::kValueInt)
+		{
+			if (x_value->IntAtIndex(0, nullptr) != y_value->IntAtIndex(0, nullptr))
+				return false;
+		}
+		else if (x_type == EidosValueType::kValueFloat)
+		{
+			double xv = x_value->FloatAtIndex(0, nullptr);
+			double yv = y_value->FloatAtIndex(0, nullptr);
+			
+			if (!std::isnan(xv) || !std::isnan(yv))
+				if (xv != yv)
+					return false;
+		}
+		else if (x_type == EidosValueType::kValueString)
+		{
+			if (x_value->StringAtIndex(0, nullptr) != y_value->StringAtIndex(0, nullptr))
+				return false;
+		}
+		else if (x_type == EidosValueType::kValueObject)
+		{
+			if (x_value->ObjectElementAtIndex(0, nullptr) != y_value->ObjectElementAtIndex(0, nullptr))
+				return false;
+		}
+	}
+	else
+	{
+		// We have x_count != 1, so we can use the fast vector API; we want identical() to be very fast since it is a common bottleneck
+		if (x_type == EidosValueType::kValueLogical)
+		{
+			const eidos_logical_t *logical_data0 = x_value->LogicalVector()->data();
+			const eidos_logical_t *logical_data1 = y_value->LogicalVector()->data();
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				if (logical_data0[value_index] != logical_data1[value_index])
+					return false;
+		}
+		else if (x_type == EidosValueType::kValueInt)
+		{
+			const int64_t *int_data0 = x_value->IntVector()->data();
+			const int64_t *int_data1 = y_value->IntVector()->data();
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				if (int_data0[value_index] != int_data1[value_index])
+					return false;
+		}
+		else if (x_type == EidosValueType::kValueFloat)
+		{
+			const double *float_data0 = x_value->FloatVector()->data();
+			const double *float_data1 = y_value->FloatVector()->data();
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+			{
+				double xv = float_data0[value_index];
+				double yv = float_data1[value_index];
+				
+				if (!std::isnan(xv) || !std::isnan(yv))
+					if (xv != yv)
+						return false;
+			}
+		}
+		else if (x_type == EidosValueType::kValueString)
+		{
+			const std::vector<std::string> &string_vec0 = *x_value->StringVector();
+			const std::vector<std::string> &string_vec1 = *y_value->StringVector();
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				if (string_vec0[value_index] != string_vec1[value_index])
+					return false;
+		}
+		else if (x_type == EidosValueType::kValueObject)
+		{
+			EidosObjectElement * const *objelement_vec0 = x_value->ObjectElementVector()->data();
+			EidosObjectElement * const *objelement_vec1 = y_value->ObjectElementVector()->data();
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				if (objelement_vec0[value_index] != objelement_vec1[value_index])
+					return false;
+		}
+	}
+	
+	return true;
+}
 
 EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int p_argument_count, bool p_allow_null, bool p_allow_void)
 {
@@ -4254,6 +4363,110 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 	return result_SP;
 }
 
+//	(float)quantile(numeric x, [Nf probs = NULL])
+EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	int x_count = x_value->Count();
+	
+	EidosValue *probs_value = p_arguments[1].get();
+	int probs_count = probs_value->Count();
+	
+	if (x_count == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_quantile): function quantile() requires x to have length greater than 0." << EidosTerminate(nullptr);
+	
+	// get the probabilities; this is mostly so we don't have to special-case NULL below, but we also pre-check the probabilities here
+	std::vector<double> probs;
+	
+	if (probs_value->Type() == EidosValueType::kValueNULL)
+	{
+		probs.emplace_back(0.0);
+		probs.emplace_back(0.25);
+		probs.emplace_back(0.50);
+		probs.emplace_back(0.75);
+		probs.emplace_back(1.0);
+		probs_count = 5;
+	}
+	else
+	{
+		for (int probs_index = 0; probs_index < probs_count; ++probs_index)
+		{
+			double prob = probs_value->FloatAtIndex(probs_index, nullptr);
+			
+			if ((prob < 0.0) || (prob > 1.0))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_quantile): function quantile() requires probabilities to be in [0, 1]." << EidosTerminate(nullptr);
+			
+			probs.emplace_back(prob);
+		}
+	}
+	
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(probs_count);
+	result_SP = EidosValue_SP(float_result);
+	
+	if (x_count == 1)
+	{
+		// All quantiles of a singleton are the value of the singleton; the probabilities don't matter as long as they're in range (checked above)
+		double x_singleton = x_value->FloatAtIndex(0, nullptr);
+		
+		if (std::isnan(x_singleton))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_quantile): quantiles of NAN are undefined." << EidosTerminate(nullptr);
+		
+		for (int probs_index = 0; probs_index < probs_count; ++probs_index)
+			float_result->set_float_no_check(x_singleton, probs_index);
+	}
+	else
+	{
+		// Here we handle the non-singleton case, which can be done with direct access
+		// First, if x is float, we check for NANs, which are not allowed
+		EidosValueType x_type = x_value->Type();
+		
+		if (x_type == EidosValueType::kValueFloat)
+		{
+			const double *float_data = x_value->FloatVector()->data();
+			
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				if (std::isnan(float_data[value_index]))
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_quantile): quantiles of NAN are undefined." << EidosTerminate(nullptr);
+		}
+		
+		// Next we get an order vector for x, which can be integer or float
+		std::vector<int64_t> order;
+		
+		if (x_type == EidosValueType::kValueInt)
+			order = EidosSortIndexes(x_value->IntVector()->data(), x_count, true);
+		else if (x_type == EidosValueType::kValueFloat)
+			order = EidosSortIndexes(x_value->FloatVector()->data(), x_count, true);
+		
+		// Now loop over the requested probabilities and calculate them
+		for (int probs_index = 0; probs_index < probs_count; ++probs_index)
+		{
+			double prob = probs[probs_index];
+			double m = 1.0 - prob;				// R type 7
+			long j = (long)std::floor(x_count * prob + m);
+			double g = x_count * prob + m - j;
+			
+			long firstobs, obs;
+			if (j == 0) firstobs = obs = 0;
+			else if (j == x_count) firstobs = obs = x_count - 1;
+			else {
+				firstobs = j;
+				obs = j + 1;
+			}
+			
+			double quantile = (1.0 - g) * x_value->FloatAtIndex((int)order[firstobs], nullptr) +
+									  g * x_value->FloatAtIndex((int)order[obs], nullptr);
+			
+			float_result->set_float_no_check(quantile, probs_index);
+		}
+	}
+	
+	return result_SP;
+}
+
 //	(numeric)range(numeric x, ...)
 EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -7064,121 +7277,10 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 //	(logical$)identical(* x, * y)
 EidosValue_SP Eidos_ExecuteFunction_identical(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *x_value = p_arguments[0].get();
-	EidosValueType x_type = x_value->Type();
-	int x_count = x_value->Count();
 	EidosValue *y_value = p_arguments[1].get();
-	EidosValueType y_type = y_value->Type();
-	int y_count = y_value->Count();
 	
-	if ((x_type != y_type) || (x_count != y_count))
-		return gStaticEidosValue_LogicalF;
-	
-	if (!EidosValue::MatchingDimensions(x_value, y_value))
-		return gStaticEidosValue_LogicalF;
-	
-	result_SP = gStaticEidosValue_LogicalT;
-	
-	if (x_type == EidosValueType::kValueNULL)
-		return result_SP;
-	
-	if (x_count == 1)
-	{
-		// Handle singleton comparison separately, to allow the use of the fast vector API below
-		if (x_type == EidosValueType::kValueLogical)
-		{
-			if (x_value->LogicalAtIndex(0, nullptr) != y_value->LogicalAtIndex(0, nullptr))
-				result_SP = gStaticEidosValue_LogicalF;
-		}
-		else if (x_type == EidosValueType::kValueInt)
-		{
-			if (x_value->IntAtIndex(0, nullptr) != y_value->IntAtIndex(0, nullptr))
-				result_SP = gStaticEidosValue_LogicalF;
-		}
-		else if (x_type == EidosValueType::kValueFloat)
-		{
-			if (x_value->FloatAtIndex(0, nullptr) != y_value->FloatAtIndex(0, nullptr))
-				result_SP = gStaticEidosValue_LogicalF;
-		}
-		else if (x_type == EidosValueType::kValueString)
-		{
-			if (x_value->StringAtIndex(0, nullptr) != y_value->StringAtIndex(0, nullptr))
-				result_SP = gStaticEidosValue_LogicalF;
-		}
-		else if (x_type == EidosValueType::kValueObject)
-		{
-			if (x_value->ObjectElementAtIndex(0, nullptr) != y_value->ObjectElementAtIndex(0, nullptr))
-				result_SP = gStaticEidosValue_LogicalF;
-		}
-	}
-	else
-	{
-		// We have x_count != 1, so we can use the fast vector API; we want identical() to be very fast since it is a common bottleneck
-		if (x_type == EidosValueType::kValueLogical)
-		{
-			const eidos_logical_t *logical_data0 = x_value->LogicalVector()->data();
-			const eidos_logical_t *logical_data1 = y_value->LogicalVector()->data();
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				if (logical_data0[value_index] != logical_data1[value_index])
-				{
-					result_SP = gStaticEidosValue_LogicalF;
-					break;
-				}
-		}
-		else if (x_type == EidosValueType::kValueInt)
-		{
-			const int64_t *int_data0 = x_value->IntVector()->data();
-			const int64_t *int_data1 = y_value->IntVector()->data();
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				if (int_data0[value_index] != int_data1[value_index])
-				{
-					result_SP = gStaticEidosValue_LogicalF;
-					break;
-				}
-		}
-		else if (x_type == EidosValueType::kValueFloat)
-		{
-			const double *float_data0 = x_value->FloatVector()->data();
-			const double *float_data1 = y_value->FloatVector()->data();
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				if (float_data0[value_index] != float_data1[value_index])
-				{
-					result_SP = gStaticEidosValue_LogicalF;
-					break;
-				}
-		}
-		else if (x_type == EidosValueType::kValueString)
-		{
-			const std::vector<std::string> &string_vec0 = *x_value->StringVector();
-			const std::vector<std::string> &string_vec1 = *y_value->StringVector();
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				if (string_vec0[value_index] != string_vec1[value_index])
-				{
-					result_SP = gStaticEidosValue_LogicalF;
-					break;
-				}
-		}
-		else if (x_type == EidosValueType::kValueObject)
-		{
-			EidosObjectElement * const *objelement_vec0 = x_value->ObjectElementVector()->data();
-			EidosObjectElement * const *objelement_vec1 = y_value->ObjectElementVector()->data();
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				if (objelement_vec0[value_index] != objelement_vec1[value_index])
-				{
-					result_SP = gStaticEidosValue_LogicalF;
-					break;
-				}
-		}
-	}
-	
-	return result_SP;
+	return IdenticalEidosValues(x_value, y_value) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 }
 
 //	(*)ifelse(logical test, * trueValues, * falseValues)

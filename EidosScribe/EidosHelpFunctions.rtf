@@ -1053,6 +1053,40 @@
 \f2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (float)quantile(numeric\'a0x, [Nf\'a0probs\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns 
+\f0\b sample quantiles
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20  for the given probabilities.  The smallest value in 
+\f1\fs18 x
+\f3\fs20  corresponds to a probability of 
+\f1\fs18 0
+\f3\fs20 , and the largest value in 
+\f1\fs18 x
+\f3\fs20  to a probability of 
+\f1\fs18 1
+\f3\fs20 .  The 
+\f1\fs18 probs
+\f3\fs20  vector should be a vector of probabilities in 
+\f1\fs18 [0, 1]
+\f3\fs20 , or 
+\f1\fs18 NULL
+\f3\fs20 , which is equivalent to 
+\f1\fs18 c(0.0, 0.25, 0.5, 0.75, 1.0)
+\f3\fs20 , requesting sample quartiles.  There are many ways to compute quantiles; the algorithm currently supported by Eidos is R\'92s default \'93type 7\'94 algorithm.  This is a continuous function of the probability 
+\f7\i p
+\f3\i0 , so the quantile for a probability 
+\f7\i p
+\f3\i0  may not be one of the values in 
+\f1\fs18 x
+\f3\fs20 , but is guaranteed to be within the range of 
+\f1\fs18 x
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf0 (numeric)range(numeric
 \f2 \'a0
 \f1 x, ...)\

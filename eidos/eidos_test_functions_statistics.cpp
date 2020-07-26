@@ -284,6 +284,29 @@ void _RunFunctionStatisticsTests(void)
 	EidosAssertScriptRaise("identical(pmin(matrix(1:5), array(3:7, c(1,5,1))), array(c(3,4,5,5,5), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
 	EidosAssertScriptSuccess("identical(pmin(array(5:1, c(1,5,1)), array(1:5, c(1,5,1))), array(c(1,2,3,2,1), c(1,5,1)));", gStaticEidosValue_LogicalT);
 	
+	// quantile()
+//	EidosAssertScriptRaise("quantile(integer(0));", 0, "x to have length greater than 0");
+//	EidosAssertScriptRaise("quantile(float(0));", 0, "x to have length greater than 0");
+//	EidosAssertScriptSuccess("quantile(INF, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
+//	EidosAssertScriptSuccess("quantile(-INF, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-std::numeric_limits<double>::infinity())));
+//	EidosAssertScriptSuccess("quantile(0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0.0, 0.0, 0.0, 0.0, 0.0}));
+//	EidosAssertScriptSuccess("quantile(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.0, 1.0, 1.0, 1.0, 1.0}));
+//	EidosAssertScriptRaise("quantile(integer(0), float(0));", 0, "x to have length greater than 0");
+//	EidosAssertScriptSuccess("quantile(0, float(0));", gStaticEidosValue_Float_ZeroVec);
+//	EidosAssertScriptSuccess("quantile(1, float(0));", gStaticEidosValue_Float_ZeroVec);
+//	EidosAssertScriptRaise("quantile(1, -0.0000001);", 0, "requires probabilities to be in [0, 1]");
+//	EidosAssertScriptRaise("quantile(1, 1.0000001);", 0, "requires probabilities to be in [0, 1]");
+//	EidosAssertScriptRaise("quantile(NAN);", 0, "quantiles of NAN are undefined");
+//	EidosAssertScriptRaise("quantile(c(-5, 7, 2, NAN, 9));", 0, "quantiles of NAN are undefined");
+//	EidosAssertScriptRaise("quantile(c(-5, 7, 2, 8, 9), -0.0000001);", 0, "requires probabilities to be in [0, 1]");
+//	EidosAssertScriptRaise("quantile(c(-5, 7, 2, 8, 9), 1.0000001);", 0, "requires probabilities to be in [0, 1]");
+	EidosAssertScriptSuccess("quantile(0:100);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, 25, 50, 75, 100}));
+//	EidosAssertScriptSuccess("quantile(0:100, 0.27);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(27)));
+//	EidosAssertScriptSuccess("quantile(0:100, c(0.8, 0.3, 0.72, 0.0, 0.67));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{80, 30, 72, 0, 67}));
+//	EidosAssertScriptSuccess("quantile(0:10, c(0.15, 0.25, 0.5, 0.82));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.5, 2.5, 5.0, 8.2}));
+//	EidosAssertScriptSuccess("quantile(10:0, c(0.15, 0.25, 0.5, 0.82));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.5, 2.5, 5.0, 8.2}));
+//	EidosAssertScriptSuccess("quantile(c(17, 12, 4, 87, 3, 1081, 273));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3, 8, 17, 180, 1081}));
+	
 	// range()
 	EidosAssertScriptRaise("range(T);", 0, "cannot be type");
 	EidosAssertScriptSuccess("range(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 3}));

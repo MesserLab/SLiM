@@ -33,6 +33,7 @@
 
 
 // Utility functions usable by everybody
+bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value);
 EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int p_argument_count, bool p_allow_null, bool p_allow_void);
 EidosValue_SP UniqueEidosValue(const EidosValue *p_value, bool p_force_new_vector, bool p_preserve_order);
 EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments, EidosInterpreter &p_interpreter, bool p_execute_in_outer_scope);
@@ -88,6 +89,7 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments,
 EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_sd(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
