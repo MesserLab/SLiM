@@ -386,7 +386,7 @@ void EidosInterpreter::CacheBuiltInFunctionMap(void)
 //	Executing function calls
 //
 
-bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value)
+bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value, bool p_compare_dimensions)
 {
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
@@ -396,7 +396,7 @@ bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value)
 	if ((x_type != y_type) || (x_count != y_count))
 		return false;
 	
-	if (!EidosValue::MatchingDimensions(x_value, y_value))
+	if (p_compare_dimensions && !EidosValue::MatchingDimensions(x_value, y_value))
 		return false;
 	
 	if (x_type == EidosValueType::kValueNULL)

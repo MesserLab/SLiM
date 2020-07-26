@@ -123,7 +123,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	//}
 	else
 	{
-		if (!IdenticalEidosValues(result.get(), p_correct_result.get()))
+		if (!IdenticalEidosValues(result.get(), p_correct_result.get(), false))		// don't compare dimensions; we have no easy way to specify matrix/array results
 		{
 			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << std::endl;
 			return;
