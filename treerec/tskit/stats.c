@@ -39,10 +39,9 @@ tsk_ld_calc_check_state(tsk_ld_calc_t *self)
     tsk_tree_t *tA = self->outer_tree;
     tsk_tree_t *tB = self->inner_tree;
 
-	/* Suppress unused variable warnings when assert() is a no-op */
-	(void)(tA);
-	(void)(tB);
-	
+    /* Suppress unused variable warnings when assert() is a no-op */
+    (void) (tA);
+    (void) (tB);
     assert(tA->index == tB->index);
 
     /* The inner tree's mark values should all be zero. */
@@ -57,11 +56,11 @@ tsk_ld_calc_print_state(tsk_ld_calc_t *self, FILE *out)
 {
     fprintf(out, "tree_sequence = %p\n", (void *) self->tree_sequence);
     fprintf(out, "outer tree index = %d\n", (int) self->outer_tree->index);
-    fprintf(out, "outer tree interval = (%f, %f)\n",
-            self->outer_tree->left, self->outer_tree->right);
+    fprintf(out, "outer tree interval = (%f, %f)\n", self->outer_tree->left,
+        self->outer_tree->right);
     fprintf(out, "inner tree index = %d\n", (int) self->inner_tree->index);
-    fprintf(out, "inner tree interval = (%f, %f)\n",
-            self->inner_tree->left, self->inner_tree->right);
+    fprintf(out, "inner tree interval = (%f, %f)\n", self->inner_tree->left,
+        self->inner_tree->right);
     tsk_ld_calc_check_state(self);
 }
 
@@ -79,13 +78,11 @@ tsk_ld_calc_init(tsk_ld_calc_t *self, tsk_treeseq_t *tree_sequence)
         ret = TSK_ERR_NO_MEMORY;
         goto out;
     }
-    ret = tsk_tree_init(self->outer_tree, self->tree_sequence,
-            TSK_SAMPLE_COUNTS|TSK_SAMPLE_LISTS);
+    ret = tsk_tree_init(self->outer_tree, self->tree_sequence, TSK_SAMPLE_LISTS);
     if (ret != 0) {
         goto out;
     }
-    ret = tsk_tree_init(self->inner_tree, self->tree_sequence,
-            TSK_SAMPLE_COUNTS);
+    ret = tsk_tree_init(self->inner_tree, self->tree_sequence, 0);
     if (ret != 0) {
         goto out;
     }
@@ -185,7 +182,8 @@ tsk_ld_calc_overlap_within_tree(tsk_ld_calc_t *self, tsk_site_t sA, tsk_site_t s
     }
     nAB = 0;
     if (u == v) {
-        nAB = TSK_MIN(t->num_samples[sA.mutations[0].node], t->num_samples[sB.mutations[0].node]);
+        nAB = TSK_MIN(
+            t->num_samples[sA.mutations[0].node], t->num_samples[sB.mutations[0].node]);
     }
     return (double) nAB;
 }
@@ -196,15 +194,14 @@ tsk_ld_calc_set_tracked_samples(tsk_ld_calc_t *self, tsk_site_t sA)
     int ret = 0;
 
     assert(sA.mutations_length == 1);
-    ret = tsk_tree_set_tracked_samples_from_sample_list(self->inner_tree,
-            self->outer_tree, sA.mutations[0].node);
+    ret = tsk_tree_set_tracked_samples_from_sample_list(
+        self->inner_tree, self->outer_tree, sA.mutations[0].node);
     return ret;
 }
 
 static int TSK_WARN_UNUSED
 tsk_ld_calc_get_r2_array_forward(tsk_ld_calc_t *self, tsk_id_t source_index,
-        tsk_size_t max_sites, double max_distance, double *r2,
-        tsk_size_t *num_r2_values)
+    tsk_size_t max_sites, double max_distance, double *r2, tsk_size_t *num_r2_values)
 {
     int ret = TSK_ERR_GENERIC;
     tsk_site_t sA, sB;
@@ -263,7 +260,7 @@ tsk_ld_calc_get_r2_array_forward(tsk_ld_calc_t *self, tsk_id_t source_index,
                 }
             }
             if (tracked_samples_set) {
-                nAB = (double)tB->num_tracked_samples[sB.mutations[0].node];
+                nAB = (double) tB->num_tracked_samples[sB.mutations[0].node];
             } else {
                 nAB = tsk_ld_calc_overlap_within_tree(self, sA, sB);
             }
@@ -291,8 +288,7 @@ out:
 
 static int TSK_WARN_UNUSED
 tsk_ld_calc_get_r2_array_reverse(tsk_ld_calc_t *self, tsk_id_t source_index,
-        tsk_size_t max_sites, double max_distance, double *r2,
-        tsk_size_t *num_r2_values)
+    tsk_size_t max_sites, double max_distance, double *r2, tsk_size_t *num_r2_values)
 {
     int ret = TSK_ERR_GENERIC;
     tsk_site_t sA, sB;
@@ -380,8 +376,7 @@ out:
 
 int TSK_WARN_UNUSED
 tsk_ld_calc_get_r2_array(tsk_ld_calc_t *self, tsk_id_t a, int direction,
-        tsk_size_t max_sites, double max_distance,
-        double *r2, tsk_size_t *num_r2_values)
+    tsk_size_t max_sites, double max_distance, double *r2, tsk_size_t *num_r2_values)
 {
     int ret = TSK_ERR_GENERIC;
 
@@ -394,11 +389,11 @@ tsk_ld_calc_get_r2_array(tsk_ld_calc_t *self, tsk_id_t a, int direction,
         goto out;
     }
     if (direction == TSK_DIR_FORWARD) {
-        ret = tsk_ld_calc_get_r2_array_forward(self, a, max_sites, max_distance,
-                r2, num_r2_values);
+        ret = tsk_ld_calc_get_r2_array_forward(
+            self, a, max_sites, max_distance, r2, num_r2_values);
     } else if (direction == TSK_DIR_REVERSE) {
-        ret = tsk_ld_calc_get_r2_array_reverse(self, a, max_sites, max_distance,
-                r2, num_r2_values);
+        ret = tsk_ld_calc_get_r2_array_reverse(
+            self, a, max_sites, max_distance, r2, num_r2_values);
     } else {
         ret = TSK_ERR_BAD_PARAM_VALUE;
     }
@@ -417,9 +412,8 @@ tsk_ld_calc_get_r2(tsk_ld_calc_t *self, tsk_id_t a, tsk_id_t b, double *r2)
     double nAB;
     tsk_id_t tmp;
 
-    if (a < 0 || b < 0
-            || a >= (tsk_id_t) self->num_sites
-            || b >= (tsk_id_t) self->num_sites) {
+    if (a < 0 || b < 0 || a >= (tsk_id_t) self->num_sites
+        || b >= (tsk_id_t) self->num_sites) {
         ret = TSK_ERR_OUT_OF_BOUNDS;
         goto out;
     }

@@ -12,13 +12,14 @@ extern "C" {
 #endif
 
 #ifdef __GNUC__
-    #define KAS_WARN_UNUSED __attribute__ ((warn_unused_result))
-    #define KAS_UNUSED(x) KAS_UNUSED_ ## x __attribute__((__unused__))
+#define KAS_WARN_UNUSED __attribute__((warn_unused_result))
+#define KAS_UNUSED(x) KAS_UNUSED_##x __attribute__((__unused__))
 #else
-    #define KAS_WARN_UNUSED
-    #define KAS_UNUSED(x) KAS_UNUSED_ ## x
+#define KAS_WARN_UNUSED
+#define KAS_UNUSED(x) KAS_UNUSED_##x
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -29,6 +30,7 @@ extern "C" {
 @defgroup ERROR_GROUP Error return values.
 @{
 */
+// clang-format off
 /**
 Generic error thrown when no other message can be generated.
 */
@@ -38,7 +40,7 @@ An error occured during IO.
 */
 #define KAS_ERR_IO                                    -2
 /**
-A unrecognised mode string was passed to open().
+An unrecognised mode string was passed to open().
 */
 #define KAS_ERR_BAD_MODE                              -3
 /**
@@ -83,6 +85,14 @@ The requestion function cannot be called in the current mode.
 The requested type does not match the type of the stored values.
 */
 #define KAS_ERR_TYPE_MISMATCH                         -13
+/**
+End of file was reached while reading data.
+*/
+#define KAS_ERR_EOF                                   -14
+/**
+Unknown flags were provided to open.
+*/
+#define KAS_ERR_BAD_FLAGS                             -15
 /** @} */
 
 /* Flags for open */
@@ -121,7 +131,7 @@ to the file format.
 #define KAS_FILE_VERSION_MAJOR  1
 /**
 The file version minor number. Incremented when non-breaking backward-compatible
-changes are madeto the file format.
+changes are made to the file format.
 */
 #define KAS_FILE_VERSION_MINOR  0
 /** @} */
@@ -135,12 +145,12 @@ The library major version. Incremented when breaking changes to the API or ABI a
 introduced. This includes any changes to the signatures of functions and the
 sizes and types of externally visible structs.
 */
-#define KAS_VERSION_MAJOR   1
+#define KAS_VERSION_MAJOR   2
 /**
-The library major version. Incremented when non-breaking backward-compatible changes
+The library minor version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define KAS_VERSION_MINOR   1
+#define KAS_VERSION_MINOR   0
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
@@ -152,6 +162,7 @@ to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 #define KAS_ITEM_DESCRIPTOR_SIZE    64
 #define KAS_MAGIC                   "\211KAS\r\n\032\n"
 #define KAS_ARRAY_ALIGN             8
+// clang-format on
 
 typedef struct {
     int type;
@@ -173,8 +184,8 @@ typedef struct {
     size_t num_items;
     kaitem_t *items;
     FILE *file;
-    const char *filename;
     size_t file_size;
+    long file_offset;
     char *read_buffer;
 } kastore_t;
 
@@ -225,6 +236,32 @@ KAS_READ_ALL
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_open(kastore_t *self, const char *filename, const char *mode, int flags);
+
+/**
+@brief Open a store from a given FILE pointer.
+
+@rst
+Behaviour, mode and flags follow that of :c:func:`kastore_open`,
+except append mode is not supported.
+The ``file`` argument must be opened in an appropriate mode (e.g. "r"
+for a kastore in "r" mode).  Files open with other modes will result
+in KAS_ERR_IO being returned when read/write operations are attempted.
+
+The FILE will not be closed when :c:func:`kastore_close` is called.
+If the KAS_READ_ALL flag is supplied, no ``seek`` operations will be
+performed on the FILE and so streams such as stdin, FIFOs etc are
+supported. The FILE pointer will be positioned exactly at the end
+of the kastore encoded bytes once reading is completed, and reading
+multiple stores from the same FILE sequentially is fully supported.
+@endrst
+
+@param self A pointer to a kastore object.
+@param file The FILE* to read/write the store from/to.
+@param mode The open mode: can be read ("r") or write ("w").
+@param flags The open flags.
+@return Return 0 on success or a negative value on failure.
+*/
+int kastore_openf(kastore_t *self, FILE *file, const char *mode, int flags);
 
 /**
 @brief Close an opened store, freeing all resources.
@@ -278,7 +315,6 @@ the array in the specified destination pointers.
 */
 int kastore_containss(kastore_t *self, const char *key);
 
-
 /**
 @brief Get the array for the specified key.
 
@@ -305,8 +341,8 @@ in the array.
 @param type The destination pointer for the type code of the array.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_get(kastore_t *self, const char *key, size_t key_len,
-        void **array, size_t *array_len, int *type);
+int kastore_get(kastore_t *self, const char *key, size_t key_len, void **array,
+    size_t *array_len, int *type);
 
 /**
 @brief Get the array for the specified NULL-terminated key.
@@ -323,24 +359,34 @@ in the array.
 @param type The destination pointer for the type code of the array.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_gets(kastore_t *self, const char *key, void **array,
-        size_t *array_len, int *type);
+int kastore_gets(
+    kastore_t *self, const char *key, void **array, size_t *array_len, int *type);
 
 /**
 @defgroup TYPED_GETS_GROUP Typed get functions.
 @{
 */
 
-int kastore_gets_int8(kastore_t *self, const char *key, int8_t **array, size_t *array_len);
-int kastore_gets_uint8(kastore_t *self, const char *key, uint8_t **array, size_t *array_len);
-int kastore_gets_int16(kastore_t *self, const char *key, int16_t **array, size_t *array_len);
-int kastore_gets_uint16(kastore_t *self, const char *key, uint16_t **array, size_t *array_len);
-int kastore_gets_int32(kastore_t *self, const char *key, int32_t **array, size_t *array_len);
-int kastore_gets_uint32(kastore_t *self, const char *key, uint32_t **array, size_t *array_len);
-int kastore_gets_int64(kastore_t *self, const char *key, int64_t **array, size_t *array_len);
-int kastore_gets_uint64(kastore_t *self, const char *key, uint64_t **array, size_t *array_len);
-int kastore_gets_float32(kastore_t *self, const char *key, float **array, size_t *array_len);
-int kastore_gets_float64(kastore_t *self, const char *key, double **array, size_t *array_len);
+int kastore_gets_int8(
+    kastore_t *self, const char *key, int8_t **array, size_t *array_len);
+int kastore_gets_uint8(
+    kastore_t *self, const char *key, uint8_t **array, size_t *array_len);
+int kastore_gets_int16(
+    kastore_t *self, const char *key, int16_t **array, size_t *array_len);
+int kastore_gets_uint16(
+    kastore_t *self, const char *key, uint16_t **array, size_t *array_len);
+int kastore_gets_int32(
+    kastore_t *self, const char *key, int32_t **array, size_t *array_len);
+int kastore_gets_uint32(
+    kastore_t *self, const char *key, uint32_t **array, size_t *array_len);
+int kastore_gets_int64(
+    kastore_t *self, const char *key, int64_t **array, size_t *array_len);
+int kastore_gets_uint64(
+    kastore_t *self, const char *key, uint64_t **array, size_t *array_len);
+int kastore_gets_float32(
+    kastore_t *self, const char *key, float **array, size_t *array_len);
+int kastore_gets_float64(
+    kastore_t *self, const char *key, double **array, size_t *array_len);
 
 /** @} */
 
@@ -367,8 +413,8 @@ strings, it is usually more convenient to use the :ref:`typed variants
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_put(kastore_t *self, const char *key, size_t key_len,
-        const void *array, size_t array_len, int type, int flags);
+int kastore_put(kastore_t *self, const char *key, size_t key_len, const void *array,
+    size_t array_len, int type, int flags);
 /**
 @brief Insert the specified NULL terminated key and array pair into the store.
 
@@ -385,33 +431,33 @@ As for :c:func:`kastore_put` except the key must be NULL-terminated C string.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_puts(kastore_t *self, const char *key, const void *array, size_t array_len,
-        int type, int flags);
+    int type, int flags);
 
 /**
  @defgroup TYPED_PUTS_GROUP Typed put functions.
  @{
  */
 
-int kastore_puts_int8(kastore_t *self, const char *key, const int8_t *array,
-        size_t array_len, int flags);
-int kastore_puts_uint8(kastore_t *self, const char *key, const uint8_t *array,
-        size_t array_len, int flags);
-int kastore_puts_int16(kastore_t *self, const char *key, const int16_t *array,
-        size_t array_len, int flags);
+int kastore_puts_int8(
+    kastore_t *self, const char *key, const int8_t *array, size_t array_len, int flags);
+int kastore_puts_uint8(
+    kastore_t *self, const char *key, const uint8_t *array, size_t array_len, int flags);
+int kastore_puts_int16(
+    kastore_t *self, const char *key, const int16_t *array, size_t array_len, int flags);
 int kastore_puts_uint16(kastore_t *self, const char *key, const uint16_t *array,
-        size_t array_len, int flags);
-int kastore_puts_int32(kastore_t *self, const char *key, const int32_t *array,
-        size_t array_len, int flags);
+    size_t array_len, int flags);
+int kastore_puts_int32(
+    kastore_t *self, const char *key, const int32_t *array, size_t array_len, int flags);
 int kastore_puts_uint32(kastore_t *self, const char *key, const uint32_t *array,
-        size_t array_len, int flags);
-int kastore_puts_int64(kastore_t *self, const char *key, const int64_t *array,
-        size_t array_len, int flags);
+    size_t array_len, int flags);
+int kastore_puts_int64(
+    kastore_t *self, const char *key, const int64_t *array, size_t array_len, int flags);
 int kastore_puts_uint64(kastore_t *self, const char *key, const uint64_t *array,
-        size_t array_len, int flags);
-int kastore_puts_float32(kastore_t *self, const char *key, const float *array,
-        size_t array_len, int flags);
-int kastore_puts_float64(kastore_t *self, const char *key, const double *array,
-        size_t array_len, int flags);
+    size_t array_len, int flags);
+int kastore_puts_float32(
+    kastore_t *self, const char *key, const float *array, size_t array_len, int flags);
+int kastore_puts_float64(
+    kastore_t *self, const char *key, const double *array, size_t array_len, int flags);
 
 /** @} */
 
@@ -440,8 +486,8 @@ function are identical to :c:func:`kastore_put`.
 @param flags The insertion flags. Currently unused.
 @return Return 0 on success or a negative value on failure.
 */
-int kastore_oput(kastore_t *self, const char *key, size_t key_len,
-        void *array, size_t array_len, int type, int flags);
+int kastore_oput(kastore_t *self, const char *key, size_t key_len, void *array,
+    size_t array_len, int type, int flags);
 /**
 @brief Insert the specified NULL terminated key and array pair into the store,
 transferring ownership of the malloced array buffer to the store (own-put).
@@ -459,37 +505,35 @@ As for :c:func:`kastore_oput` except the key must be NULL-terminated C string.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_oputs(kastore_t *self, const char *key, void *array, size_t array_len,
-        int type, int flags);
+    int type, int flags);
 
 /**
  @defgroup TYPED_OPUTS_GROUP Typed own-and-put functions.
  @{
  */
 
-int kastore_oputs_int8(kastore_t *self, const char *key, int8_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint8(kastore_t *self, const char *key, uint8_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_int16(kastore_t *self, const char *key, int16_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint16(kastore_t *self, const char *key, uint16_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_int32(kastore_t *self, const char *key, int32_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint32(kastore_t *self, const char *key, uint32_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_int64(kastore_t *self, const char *key, int64_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_uint64(kastore_t *self, const char *key, uint64_t *array,
-        size_t array_len, int flags);
-int kastore_oputs_float32(kastore_t *self, const char *key, float *array,
-        size_t array_len, int flags);
-int kastore_oputs_float64(kastore_t *self, const char *key, double *array,
-        size_t array_len, int flags);
+int kastore_oputs_int8(
+    kastore_t *self, const char *key, int8_t *array, size_t array_len, int flags);
+int kastore_oputs_uint8(
+    kastore_t *self, const char *key, uint8_t *array, size_t array_len, int flags);
+int kastore_oputs_int16(
+    kastore_t *self, const char *key, int16_t *array, size_t array_len, int flags);
+int kastore_oputs_uint16(
+    kastore_t *self, const char *key, uint16_t *array, size_t array_len, int flags);
+int kastore_oputs_int32(
+    kastore_t *self, const char *key, int32_t *array, size_t array_len, int flags);
+int kastore_oputs_uint32(
+    kastore_t *self, const char *key, uint32_t *array, size_t array_len, int flags);
+int kastore_oputs_int64(
+    kastore_t *self, const char *key, int64_t *array, size_t array_len, int flags);
+int kastore_oputs_uint64(
+    kastore_t *self, const char *key, uint64_t *array, size_t array_len, int flags);
+int kastore_oputs_float32(
+    kastore_t *self, const char *key, float *array, size_t array_len, int flags);
+int kastore_oputs_float64(
+    kastore_t *self, const char *key, double *array, size_t array_len, int flags);
 
 /** @} */
-
-
 
 void kastore_print_state(kastore_t *self, FILE *out);
 
@@ -512,13 +556,13 @@ scheme here also takes into account ABI compatability.
 */
 kas_version_t kas_version(void);
 
-#define kas_safe_free(pointer) \
-do {\
-    if (pointer != NULL) {\
-        free(pointer);\
-        pointer = NULL;\
-    }\
-} while (0)
+#define kas_safe_free(pointer)                                                          \
+    do {                                                                                \
+        if (pointer != NULL) {                                                          \
+            free(pointer);                                                              \
+            pointer = NULL;                                                             \
+        }                                                                               \
+    } while (0)
 
 #ifdef __cplusplus
 }
