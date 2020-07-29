@@ -144,3 +144,49 @@ And, these operations have the following properties:
     maintaining order otherwise.
 6.  `compute_parents` fills in the `mutation.parent` information by using property (1).
 
+
+## Metadata schemas
+
+tskit provides methods for structured metadata decoding using [JSON schemas](https://json-schema.org/understanding-json-schema/index.html),
+to document what the metadata means.
+We don't make use of these, but write them to the tree sequence for tskit use.
+There's both top-level metadata (ie for the whole tree sequence)
+and metadata for every row in every table.
+(But, we only use some of these.)
+
+For practical purposes, the metadata schema can be any equivalent JSON.
+However, when checking for table equality,
+the code checks whether the underlying string representations are equal.
+So, we want the metadata schema as written by SLiM to match that written by pyslim (using tskit).
+The way that tskit writes out a metadata schema to a tree sequence
+is by (a) defining the schema using a dict
+and (b) creating a string using `json.dumps(schema_dict, sort_keys=True, indent=4)`.
+Happily, the resulting text matches the output of nlohmann::json dump(4),
+so - it seems - we can merrily write out JSON ourselves.
+Nonetheless, we only actually do JSON parsing and writing in SLiM's code for top-level metadata:
+for all the schemas (including the top-level metadata schema)
+we just write out the string representation, as output by tskit, saved in `slim_globals.h`.
+
+In the future we may want to *keep* whatever top-level metadata there is
+in the tree sequence already (and the associated keys in the schema).
+We've not done that yet because making things exactly match seems like a pain,
+and no-one else is using the top-level metadata yet.
+
+### Top-level metadata:
+
+Here's an example of the top-level metadata:
+```
+{
+ "SLiM" : {
+     "model_type" : "WF",
+     "generation" : 123,
+     "file_version" : "0.5",
+     "spatial_dimensionality" : "xy",
+     "spatial_periodicity" : "x",
+     "separate_sexes" : true,
+     "nucleotide_based" : false
+ }
+}
+```
+
+However, we're currently only using `model_type`, `generation`, and `file_version`.

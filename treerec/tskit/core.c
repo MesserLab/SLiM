@@ -28,6 +28,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <math.h>
 
 #include <kastore.h>
 #include <tskit/core.h>
@@ -46,7 +47,8 @@ get_random_bytes(uint8_t *buf)
     int ret = TSK_ERR_GENERATE_UUID;
     HCRYPTPROV hCryptProv = NULL;
 
-    if (!CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+    if (!CryptAcquireContext(
+            &hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
         goto out;
     }
     if (!CryptGenRandom(hCryptProv, (DWORD) UUID_NUM_BYTES, buf)) {
@@ -99,18 +101,17 @@ tsk_generate_uuid(char *dest, int TSK_UNUSED(flags))
 {
     int ret = 0;
     uint8_t buf[UUID_NUM_BYTES];
-    const char *pattern =
-        "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x";
+    const char *pattern
+        = "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x";
 
     ret = get_random_bytes(buf);
     if (ret != 0) {
         goto out;
     }
-    if (snprintf(dest, TSK_UUID_SIZE + 1, pattern,
-            buf[0], buf[1], buf[2], buf[3],
-            buf[4], buf[5], buf[6], buf[7],
-            buf[8], buf[9], buf[10], buf[11],
-            buf[12], buf[13], buf[14], buf[15]) < 0) {
+    if (snprintf(dest, TSK_UUID_SIZE + 1, pattern, buf[0], buf[1], buf[2], buf[3],
+            buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], buf[10], buf[11], buf[12],
+            buf[13], buf[14], buf[15])
+        < 0) {
         ret = TSK_ERR_GENERATE_UUID;
         goto out;
     }
@@ -153,6 +154,9 @@ tsk_strerror_internal(int err)
         case TSK_ERR_GENERATE_UUID:
             ret = "Error generating UUID";
             break;
+        case TSK_ERR_EOF:
+            ret = "End of file";
+            break;
 
         /* File format errors */
         case TSK_ERR_FILE_FORMAT:
@@ -160,11 +164,17 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_FILE_VERSION_TOO_OLD:
             ret = "tskit file version too old. Please upgrade using the "
-                "'tskit upgrade' command";
+                  "'tskit upgrade' command";
             break;
         case TSK_ERR_FILE_VERSION_TOO_NEW:
             ret = "tskit file version is too new for this instance. "
-                "Please upgrade tskit to the latest version";
+                  "Please upgrade tskit to the latest version";
+            break;
+        case TSK_ERR_REQUIRED_COL_NOT_FOUND:
+            ret = "A required column was not found in the file.";
+            break;
+        case TSK_ERR_BOTH_COLUMNS_REQUIRED:
+            ret = "Both columns in a related pair must be provided";
             break;
 
         /* Out of bounds errors */
@@ -198,6 +208,12 @@ tsk_strerror_internal(int err)
         case TSK_ERR_PROVENANCE_OUT_OF_BOUNDS:
             ret = "Provenance out of bounds";
             break;
+        case TSK_ERR_TIME_NONFINITE:
+            ret = "Times must be finite";
+            break;
+        case TSK_ERR_GENOME_COORDS_NONFINITE:
+            ret = "Genome coordinates must be finite numbers";
+            break;
 
         /* Edge errors */
         case TSK_ERR_NULL_PARENT:
@@ -208,18 +224,18 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_EDGES_NOT_SORTED_PARENT_TIME:
             ret = "Edges must be listed in (time[parent], child, left) order;"
-                " time[parent] order violated";
+                  " time[parent] order violated";
             break;
         case TSK_ERR_EDGES_NONCONTIGUOUS_PARENTS:
             ret = "All edges for a given parent must be contiguous";
             break;
         case TSK_ERR_EDGES_NOT_SORTED_CHILD:
             ret = "Edges must be listed in (time[parent], child, left) order;"
-                " child order violated";
+                  " child order violated";
             break;
         case TSK_ERR_EDGES_NOT_SORTED_LEFT:
             ret = "Edges must be listed in (time[parent], child, left) order;"
-                " left order violated";
+                  " left order violated";
             break;
         case TSK_ERR_BAD_NODE_TIME_ORDERING:
             ret = "time[parent] must be greater than time[child]";
@@ -238,7 +254,11 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_BAD_EDGES_CONTRADICTORY_CHILDREN:
             ret = "Bad edges: contradictory children for a given parent over "
-                "an interval";
+                  "an interval";
+            break;
+        case TSK_ERR_CANT_PROCESS_EDGES_WITH_METADATA:
+            ret = "Can't squash, flush, simplify or link ancestors with edges that have "
+                  "non-empty metadata";
             break;
 
         /* Site errors */
@@ -249,7 +269,7 @@ tsk_strerror_internal(int err)
             ret = "Duplicate site positions";
             break;
         case TSK_ERR_BAD_SITE_POSITION:
-            ret = "Sites positions must be between 0 and sequence_length";
+            ret = "Site positions must be between 0 and sequence_length";
             break;
 
         /* Mutation errors */
@@ -262,22 +282,33 @@ tsk_strerror_internal(int err)
         case TSK_ERR_MUTATION_PARENT_AFTER_CHILD:
             ret = "Parent mutation ID must be < current ID";
             break;
-        case TSK_ERR_TOO_MANY_ALLELES:
-            ret = "Cannot have more than 255 alleles";
-            break;
         case TSK_ERR_INCONSISTENT_MUTATIONS:
             ret = "Inconsistent mutations: state already equal to derived state";
             break;
-        case TSK_ERR_NON_SINGLE_CHAR_MUTATION:
-            ret = "Only single char mutations supported";
-            break;
         case TSK_ERR_UNSORTED_MUTATIONS:
-            ret = "Mutations must be provided in non-decreasing site order";
+            ret = "Mutations must be provided in non-decreasing site order and "
+                  "non-increasing time order within each site";
+            break;
+        case TSK_ERR_MUTATION_TIME_YOUNGER_THAN_NODE:
+            ret = "A mutation's time must be >= the node time, or be marked as "
+                  "'unknown'";
+            break;
+        case TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_MUTATION:
+            ret = "A mutation's time must be <= the parent mutation time (if known), or "
+                  "be marked as 'unknown'";
+            break;
+        case TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_NODE:
+            ret = "A mutation's time must be < the parent node of the edge on which it "
+                  "occurs, or be marked as 'unknown'";
+            break;
+        case TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN:
+            ret = "Mutation times must either be all marked 'unknown', or all be known "
+                  "values for any single site.";
             break;
 
         /* Sample errors */
         case TSK_ERR_DUPLICATE_SAMPLE:
-            ret = "Duplicate value provided in tracked leaf list";
+            ret = "Duplicate sample value";
             break;
         case TSK_ERR_BAD_SAMPLES:
             ret = "Bad sample configuration provided";
@@ -297,7 +328,13 @@ tsk_strerror_internal(int err)
             ret = "Table too large; cannot allocate more than 2**31 rows.";
             break;
         case TSK_ERR_COLUMN_OVERFLOW:
-            ret = "Table column too large; cannot be more than 2**31 bytes.";
+            ret = "Table column too large; cannot be more than 2**32 bytes.";
+            break;
+        case TSK_ERR_TREE_OVERFLOW:
+            ret = "Too many trees; cannot be more than 2**31.";
+            break;
+        case TSK_ERR_METADATA_DISABLED:
+            ret = "Metadata is disabled for this table, so cannot be set";
             break;
 
         /* Limitations */
@@ -310,12 +347,119 @@ tsk_strerror_internal(int err)
         case TSK_ERR_SORT_MIGRATIONS_NOT_SUPPORTED:
             ret = "Migrations not currently supported by sort";
             break;
+        case TSK_ERR_MIGRATIONS_NOT_SUPPORTED:
+            ret = "Migrations not currently supported by this operation";
+            break;
         case TSK_ERR_SORT_OFFSET_NOT_SUPPORTED:
-            ret = "Specifying position for mutation, sites or migrations is not supported";
+            ret = "Specifying position for mutation, sites or migrations is not "
+                  "supported";
             break;
         case TSK_ERR_NONBINARY_MUTATIONS_UNSUPPORTED:
             ret = "Only binary mutations are supported for this operation";
             break;
+        case TSK_ERR_UNION_NOT_SUPPORTED:
+            ret = "Union is not supported for cases where there is non-shared"
+                  "history older than the shared history of the two Table Collections";
+            break;
+
+        /* Stats errors */
+        case TSK_ERR_BAD_NUM_WINDOWS:
+            ret = "Must have at least one window, [0, L]";
+            break;
+        case TSK_ERR_BAD_WINDOWS:
+            ret = "Windows must be increasing list [0, ..., L]";
+            break;
+        case TSK_ERR_MULTIPLE_STAT_MODES:
+            ret = "Cannot specify more than one stats mode.";
+            break;
+        case TSK_ERR_BAD_STATE_DIMS:
+            ret = "Must have state dimension >= 1";
+            break;
+        case TSK_ERR_BAD_RESULT_DIMS:
+            ret = "Must have result dimension >= 1";
+            break;
+        case TSK_ERR_INSUFFICIENT_SAMPLE_SETS:
+            ret = "Insufficient sample sets provided.";
+            break;
+        case TSK_ERR_INSUFFICIENT_INDEX_TUPLES:
+            ret = "Insufficient sample set index tuples provided.";
+            break;
+        case TSK_ERR_BAD_SAMPLE_SET_INDEX:
+            ret = "Sample set index out of bounds";
+            break;
+        case TSK_ERR_EMPTY_SAMPLE_SET:
+            ret = "Samples cannot be empty";
+            break;
+        case TSK_ERR_UNSUPPORTED_STAT_MODE:
+            ret = "Requested statistics mode not supported for this method.";
+            break;
+
+        /* Mutation mapping errors */
+        case TSK_ERR_GENOTYPES_ALL_MISSING:
+            ret = "Must provide at least one non-missing genotype.";
+            break;
+        case TSK_ERR_BAD_GENOTYPE:
+            ret = "Bad genotype value provided";
+            break;
+
+        /* Genotype decoding errors */
+        case TSK_ERR_TOO_MANY_ALLELES:
+            ret = "Cannot have more than 127 alleles";
+            break;
+        case TSK_ERR_ZERO_ALLELES:
+            ret = "Must have at least one allele when specifying an allele map";
+            break;
+        case TSK_ERR_MUST_IMPUTE_NON_SAMPLES:
+            ret = "Cannot generate genotypes for non-samples unless missing data "
+                  "imputation is enabled";
+            break;
+        case TSK_ERR_ALLELE_NOT_FOUND:
+            ret = "An allele was not found in the user-specified allele map";
+            break;
+
+        /* Distance metric errors */
+        case TSK_ERR_SAMPLE_SIZE_MISMATCH:
+            ret = "Cannot compare trees with different numbers of samples.";
+            break;
+        case TSK_ERR_SAMPLES_NOT_EQUAL:
+            ret = "Samples must be identical in trees to compare.";
+            break;
+        case TSK_ERR_MULTIPLE_ROOTS:
+            ret = "Trees with multiple roots not supported.";
+            break;
+        case TSK_ERR_UNARY_NODES:
+            ret = "Unsimplified trees with unary nodes are not supported.";
+            break;
+        case TSK_ERR_SEQUENCE_LENGTH_MISMATCH:
+            ret = "Sequence lengths must be identical to compare.";
+            break;
+        case TSK_ERR_NO_SAMPLE_LISTS:
+            ret = "The sample_lists option must be enabled to perform this operation.";
+            break;
+
+        /* Haplotype matching errors */
+        case TSK_ERR_NULL_VITERBI_MATRIX:
+            ret = "Viterbi matrix has not filled.";
+            break;
+        case TSK_ERR_MATCH_IMPOSSIBLE:
+            ret = "No matching haplotype exists with current parameters";
+            break;
+        case TSK_ERR_BAD_COMPRESSED_MATRIX_NODE:
+            ret = "The compressed matrix contains a node that subtends no samples";
+            break;
+        case TSK_ERR_TOO_MANY_VALUES:
+            ret = "Too many values to compress";
+            break;
+
+        /* Union errors */
+        case TSK_ERR_UNION_BAD_MAP:
+            ret = "Node map contains an entry of a node not present in this table "
+                  "collection.";
+            break;
+        case TSK_ERR_UNION_DIFF_HISTORIES:
+            // histories could be equivalent, because subset does not reorder
+            // edges (if not sorted) or mutations.
+            ret = "Shared portions of the tree sequences are not equal.";
     }
     return ret;
 }
@@ -323,8 +467,14 @@ tsk_strerror_internal(int err)
 int
 tsk_set_kas_error(int err)
 {
-    /* Flip this bit. As the error is negative, this sets the bit to 0 */
-    return err ^ (1 << TSK_KAS_ERR_BIT);
+    if (err == KAS_ERR_IO) {
+        /* If we've detected an IO error, report it as TSK_ERR_IO so that we have
+         * a consistent error code covering these situtations */
+        return TSK_ERR_IO;
+    } else {
+        /* Flip this bit. As the error is negative, this sets the bit to 0 */
+        return err ^ (1 << TSK_KAS_ERR_BIT);
+    }
 }
 
 bool
@@ -345,7 +495,8 @@ tsk_strerror(int err)
 }
 
 void
-__tsk_safe_free(void **ptr) {
+__tsk_safe_free(void **ptr)
+{
     if (ptr != NULL) {
         if (*ptr != NULL) {
             free(*ptr);
@@ -353,7 +504,6 @@ __tsk_safe_free(void **ptr) {
         }
     }
 }
-
 
 /* Block allocator. Simple allocator when we lots of chunks of memory
  * and don't need to free them individually.
@@ -386,8 +536,11 @@ tsk_blkalloc_init(tsk_blkalloc_t *self, size_t chunk_size)
 {
     int ret = 0;
 
-    assert(chunk_size > 0);
     memset(self, 0, sizeof(tsk_blkalloc_t));
+    if (chunk_size < 1) {
+        ret = TSK_ERR_BAD_PARAM_VALUE;
+        goto out;
+    }
     self->chunk_size = chunk_size;
     self->top = 0;
     self->current_chunk = 0;
@@ -410,13 +563,15 @@ out:
     return ret;
 }
 
-void * TSK_WARN_UNUSED
+void *TSK_WARN_UNUSED
 tsk_blkalloc_get(tsk_blkalloc_t *self, size_t size)
 {
     void *ret = NULL;
     void *p;
 
-    assert(size < self->chunk_size);
+    if (size > self->chunk_size) {
+        goto out;
+    }
     if ((self->top + size) > self->chunk_size) {
         if (self->current_chunk == (self->num_chunks - 1)) {
             p = realloc(self->mem_chunks, (self->num_chunks + 1) * sizeof(void *));
@@ -479,6 +634,44 @@ tsk_search_sorted(const double *restrict array, size_t size, double value)
             upper = mid;
         }
     }
-    offset = (int64_t) (array[lower] < value);
-    return (size_t) (lower + offset);
+    offset = (int64_t)(array[lower] < value);
+    return (size_t)(lower + offset);
+}
+
+/* Rounds the specified double to the closest multiple of 10**-num_digits. If
+ * num_digits > 22, return value without changes. This is intended for use with
+ * small positive numbers; behaviour with large inputs has not been considered.
+ *
+ * Based on double_round from the Python standard library
+ * https://github.com/python/cpython/blob/master/Objects/floatobject.c#L985
+ */
+double
+tsk_round(double x, unsigned int ndigits)
+{
+    double pow1, y, z;
+
+    z = x;
+    if (ndigits < 22) {
+        pow1 = pow(10.0, (double) ndigits);
+        y = x * pow1;
+        z = round(y);
+        if (fabs(y - z) == 0.5) {
+            /* halfway between two integers; use round-half-even */
+            z = 2.0 * round(y / 2.0);
+        }
+        z = z / pow1;
+    }
+    return z;
+}
+
+/* As NANs are not equal, use this function to check for equality to TSK_UNKNOWN_TIME */
+bool
+tsk_is_unknown_time(double val)
+{
+    union {
+        uint64_t i;
+        double f;
+    } nan_union;
+    nan_union.f = val;
+    return nan_union.i == TSK_UNKNOWN_TIME_HEX;
 }

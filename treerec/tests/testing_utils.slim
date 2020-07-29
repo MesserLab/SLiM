@@ -42,11 +42,12 @@ function (void)outputIndividualMutations(o<Individual>$ ind,
     for(k in seqAlong(ind.genomes)){
         genome = ind.genomes[k];
         genomeID = (2 * pedID) + k;
-        ids = genome.mutations.id;
-        positions = genome.mutations.position;
-        if (!genome.isNullGenome) {
-            ids = c(ids, sim.substitutions.id);
-            positions = c(positions, sim.substitutions.position);
+        if (genome.isNullGenome) {
+            ids = c();
+            positions = c();
+        } else {
+            ids = c(genome.mutations.id, sim.substitutions.id);
+            positions = c(genome.mutations.position, sim.substitutions.position);
         }
         writeFile(outputFile, "#Genome: " + paste(genomeID) + " " + paste(ind.sex), append=T);
         writeFile(outputFile, "Mutations: " + paste(ids), append=T);
@@ -77,7 +78,7 @@ function (void)outputMutationResult([s$ outputFile="test_output/slim_mutation_ou
      * * */
     sim.treeSeqOutput("test_output", simplify=T, _binary=F);
     sim.treeSeqOutput("test_output/test_output.trees", simplify=T);
-    // sim.treeSeqOutput("test_output/test_output.unsimplified.treeseq", simplify=F);
+    sim.treeSeqOutput("test_output/test_output.unsimplified.trees", simplify=F);
     for (pop in sim.subpopulations) {
         for (ind in pop.individuals) {
             outputIndividualMutations(ind, outputFile);

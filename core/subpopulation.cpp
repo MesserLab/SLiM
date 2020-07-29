@@ -106,121 +106,120 @@ _SpatialMap::~_SpatialMap(void)
 		free(display_buffer_);
 }
 
-double _SpatialMap::ValueAtPoint(double *p_point)
+double _SpatialMap::ValueAtPoint_S1(double *p_point)
 {
 	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
-	switch (spatiality_)
-	{
-		case 1:
-		{
-			double x_fraction = p_point[0];
-			int64_t xsize = grid_size_[0];
-			
-			if (interpolate_)
-			{
-				double x_map = x_fraction * (xsize - 1);
-				int x1_map = (int)floor(x_map);
-				int x2_map = (int)ceil(x_map);
-				double fraction_x2 = x_map - x1_map;
-				double fraction_x1 = 1.0 - fraction_x2;
-				double value_x1 = values_[x1_map] * fraction_x1;
-				double value_x2 = values_[x2_map] * fraction_x2;
-				
-				return value_x1 + value_x2;
-			}
-			else
-			{
-				int x_map = (int)round(x_fraction * (xsize - 1));
-				
-				return values_[x_map];
-			}
-			break;
-		}
-		case 2:
-		{
-			double x_fraction = p_point[0];
-			double y_fraction = p_point[1];
-			int64_t xsize = grid_size_[0];
-			int64_t ysize = grid_size_[1];
-			
-			if (interpolate_)
-			{
-				double x_map = x_fraction * (xsize - 1);
-				double y_map = y_fraction * (ysize - 1);
-				int x1_map = (int)floor(x_map);
-				int y1_map = (int)floor(y_map);
-				int x2_map = (int)ceil(x_map);
-				int y2_map = (int)ceil(y_map);
-				double fraction_x2 = x_map - x1_map;
-				double fraction_x1 = 1.0 - fraction_x2;
-				double fraction_y2 = y_map - y1_map;
-				double fraction_y1 = 1.0 - fraction_y2;
-				double value_x1_y1 = values_[x1_map + y1_map * xsize] * fraction_x1 * fraction_y1;
-				double value_x2_y1 = values_[x2_map + y1_map * xsize] * fraction_x2 * fraction_y1;
-				double value_x1_y2 = values_[x1_map + y2_map * xsize] * fraction_x1 * fraction_y2;
-				double value_x2_y2 = values_[x2_map + y2_map * xsize] * fraction_x2 * fraction_y2;
-				
-				return value_x1_y1 + value_x2_y1 + value_x1_y2 + value_x2_y2;
-			}
-			else
-			{
-				int x_map = (int)round(x_fraction * (xsize - 1));
-				int y_map = (int)round(y_fraction * (ysize - 1));
-				
-				return values_[x_map + y_map * xsize];
-			}
-			break;
-		}
-		case 3:
-		{
-			double x_fraction = p_point[0];
-			double y_fraction = p_point[1];
-			double z_fraction = p_point[2];
-			int64_t xsize = grid_size_[0];
-			int64_t ysize = grid_size_[1];
-			int64_t zsize = grid_size_[2];
-			
-			if (interpolate_)
-			{
-				double x_map = x_fraction * (xsize - 1);
-				double y_map = y_fraction * (ysize - 1);
-				double z_map = z_fraction * (zsize - 1);
-				int x1_map = (int)floor(x_map);
-				int y1_map = (int)floor(y_map);
-				int z1_map = (int)floor(z_map);
-				int x2_map = (int)ceil(x_map);
-				int y2_map = (int)ceil(y_map);
-				int z2_map = (int)ceil(z_map);
-				double fraction_x2 = x_map - x1_map;
-				double fraction_x1 = 1.0 - fraction_x2;
-				double fraction_y2 = y_map - y1_map;
-				double fraction_y1 = 1.0 - fraction_y2;
-				double fraction_z2 = z_map - z1_map;
-				double fraction_z1 = 1.0 - fraction_z2;
-				double value_x1_y1_z1 = values_[x1_map + y1_map * xsize + z1_map * xsize * ysize] * fraction_x1 * fraction_y1 * fraction_z1;
-				double value_x2_y1_z1 = values_[x2_map + y1_map * xsize + z1_map * xsize * ysize] * fraction_x2 * fraction_y1 * fraction_z1;
-				double value_x1_y2_z1 = values_[x1_map + y2_map * xsize + z1_map * xsize * ysize] * fraction_x1 * fraction_y2 * fraction_z1;
-				double value_x2_y2_z1 = values_[x2_map + y2_map * xsize + z1_map * xsize * ysize] * fraction_x2 * fraction_y2 * fraction_z1;
-				double value_x1_y1_z2 = values_[x1_map + y1_map * xsize + z2_map * xsize * ysize] * fraction_x1 * fraction_y1 * fraction_z2;
-				double value_x2_y1_z2 = values_[x2_map + y1_map * xsize + z2_map * xsize * ysize] * fraction_x2 * fraction_y1 * fraction_z2;
-				double value_x1_y2_z2 = values_[x1_map + y2_map * xsize + z2_map * xsize * ysize] * fraction_x1 * fraction_y2 * fraction_z2;
-				double value_x2_y2_z2 = values_[x2_map + y2_map * xsize + z2_map * xsize * ysize] * fraction_x2 * fraction_y2 * fraction_z2;
-				
-				return value_x1_y1_z1 + value_x2_y1_z1 + value_x1_y2_z1 + value_x2_y2_z1 + value_x1_y1_z2 + value_x2_y1_z2 + value_x1_y2_z2 + value_x2_y2_z2;
-			}
-			else
-			{
-				int x_map = (int)round(x_fraction * (xsize - 1));
-				int y_map = (int)round(y_fraction * (ysize - 1));
-				int z_map = (int)round(z_fraction * (zsize - 1));
-				
-				return values_[x_map + y_map * xsize + z_map * xsize * ysize];
-			}
-			break;
-		}
-	}
+	assert (spatiality_ == 1);
 	
-	return 0.0;
+	double x_fraction = p_point[0];
+	int64_t xsize = grid_size_[0];
+	
+	if (interpolate_)
+	{
+		double x_map = x_fraction * (xsize - 1);
+		int x1_map = (int)floor(x_map);
+		int x2_map = (int)ceil(x_map);
+		double fraction_x2 = x_map - x1_map;
+		double fraction_x1 = 1.0 - fraction_x2;
+		double value_x1 = values_[x1_map] * fraction_x1;
+		double value_x2 = values_[x2_map] * fraction_x2;
+		
+		return value_x1 + value_x2;
+	}
+	else
+	{
+		int x_map = (int)round(x_fraction * (xsize - 1));
+		
+		return values_[x_map];
+	}
+}
+
+double _SpatialMap::ValueAtPoint_S2(double *p_point)
+{
+	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
+	assert (spatiality_ == 2);
+	
+	double x_fraction = p_point[0];
+	double y_fraction = p_point[1];
+	int64_t xsize = grid_size_[0];
+	int64_t ysize = grid_size_[1];
+	
+	if (interpolate_)
+	{
+		double x_map = x_fraction * (xsize - 1);
+		double y_map = y_fraction * (ysize - 1);
+		int x1_map = (int)floor(x_map);
+		int y1_map = (int)floor(y_map);
+		int x2_map = (int)ceil(x_map);
+		int y2_map = (int)ceil(y_map);
+		double fraction_x2 = x_map - x1_map;
+		double fraction_x1 = 1.0 - fraction_x2;
+		double fraction_y2 = y_map - y1_map;
+		double fraction_y1 = 1.0 - fraction_y2;
+		double value_x1_y1 = values_[x1_map + y1_map * xsize] * fraction_x1 * fraction_y1;
+		double value_x2_y1 = values_[x2_map + y1_map * xsize] * fraction_x2 * fraction_y1;
+		double value_x1_y2 = values_[x1_map + y2_map * xsize] * fraction_x1 * fraction_y2;
+		double value_x2_y2 = values_[x2_map + y2_map * xsize] * fraction_x2 * fraction_y2;
+		
+		return value_x1_y1 + value_x2_y1 + value_x1_y2 + value_x2_y2;
+	}
+	else
+	{
+		int x_map = (int)round(x_fraction * (xsize - 1));
+		int y_map = (int)round(y_fraction * (ysize - 1));
+		
+		return values_[x_map + y_map * xsize];
+	}
+}
+
+double _SpatialMap::ValueAtPoint_S3(double *p_point)
+{
+	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
+	assert (spatiality_ == 3);
+	
+	double x_fraction = p_point[0];
+	double y_fraction = p_point[1];
+	double z_fraction = p_point[2];
+	int64_t xsize = grid_size_[0];
+	int64_t ysize = grid_size_[1];
+	int64_t zsize = grid_size_[2];
+	
+	if (interpolate_)
+	{
+		double x_map = x_fraction * (xsize - 1);
+		double y_map = y_fraction * (ysize - 1);
+		double z_map = z_fraction * (zsize - 1);
+		int x1_map = (int)floor(x_map);
+		int y1_map = (int)floor(y_map);
+		int z1_map = (int)floor(z_map);
+		int x2_map = (int)ceil(x_map);
+		int y2_map = (int)ceil(y_map);
+		int z2_map = (int)ceil(z_map);
+		double fraction_x2 = x_map - x1_map;
+		double fraction_x1 = 1.0 - fraction_x2;
+		double fraction_y2 = y_map - y1_map;
+		double fraction_y1 = 1.0 - fraction_y2;
+		double fraction_z2 = z_map - z1_map;
+		double fraction_z1 = 1.0 - fraction_z2;
+		double value_x1_y1_z1 = values_[x1_map + y1_map * xsize + z1_map * xsize * ysize] * fraction_x1 * fraction_y1 * fraction_z1;
+		double value_x2_y1_z1 = values_[x2_map + y1_map * xsize + z1_map * xsize * ysize] * fraction_x2 * fraction_y1 * fraction_z1;
+		double value_x1_y2_z1 = values_[x1_map + y2_map * xsize + z1_map * xsize * ysize] * fraction_x1 * fraction_y2 * fraction_z1;
+		double value_x2_y2_z1 = values_[x2_map + y2_map * xsize + z1_map * xsize * ysize] * fraction_x2 * fraction_y2 * fraction_z1;
+		double value_x1_y1_z2 = values_[x1_map + y1_map * xsize + z2_map * xsize * ysize] * fraction_x1 * fraction_y1 * fraction_z2;
+		double value_x2_y1_z2 = values_[x2_map + y1_map * xsize + z2_map * xsize * ysize] * fraction_x2 * fraction_y1 * fraction_z2;
+		double value_x1_y2_z2 = values_[x1_map + y2_map * xsize + z2_map * xsize * ysize] * fraction_x1 * fraction_y2 * fraction_z2;
+		double value_x2_y2_z2 = values_[x2_map + y2_map * xsize + z2_map * xsize * ysize] * fraction_x2 * fraction_y2 * fraction_z2;
+		
+		return value_x1_y1_z1 + value_x2_y1_z1 + value_x1_y2_z1 + value_x2_y2_z1 + value_x1_y1_z2 + value_x2_y1_z2 + value_x1_y2_z2 + value_x2_y2_z2;
+	}
+	else
+	{
+		int x_map = (int)round(x_fraction * (xsize - 1));
+		int y_map = (int)round(y_fraction * (ysize - 1));
+		int z_map = (int)round(z_fraction * (zsize - 1));
+		
+		return values_[x_map + y_map * xsize + z_map * xsize * ysize];
+	}
 }
 
 void _SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
@@ -6397,12 +6396,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 		{
 			// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
 			// There is doubtless a way to make this code smarter, but brute force is sometimes best...
-			double point_vec[3];
+			double map_value;
 			
 			switch (map->spatiality_)
 			{
 				case 1:
 				{
+					double point_vec[1];
 					int value_offset = value_index;
 					
 					if (map->spatiality_string_ == "x")
@@ -6422,10 +6422,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					}
 					else
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+					
+					map_value = map->ValueAtPoint_S1(point_vec);
 					break;
 				}
 				case 2:
 				{
+					double point_vec[2];
 					int value_offset = value_index * 2;
 					
 					if (map->spatiality_string_ == "xy")
@@ -6454,10 +6457,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					}
 					else
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+					
+					map_value = map->ValueAtPoint_S2(point_vec);
 					break;
 				}
 				case 3:
 				{
+					double point_vec[3];
 					int value_offset = value_index * 3;
 					
 					if (map->spatiality_string_ == "xyz")
@@ -6473,11 +6479,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					}
 					else
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+					
+					map_value = map->ValueAtPoint_S3(point_vec);
 					break;
 				}
+				default:
+				{
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+				}
 			}
-			
-			double map_value = map->ValueAtPoint(point_vec);
 			
 			if (float_result)
 				float_result->set_float_no_check(map_value, value_index);

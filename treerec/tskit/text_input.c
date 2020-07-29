@@ -227,7 +227,7 @@ edge_table_load_text(tsk_edge_table_t *edge_table, FILE *file)
         }
         do {
             err = get_sep_atoi(&childs, &child, ',');
-            ret = tsk_edge_table_add_row(edge_table, left, right, parent, child);
+            ret = tsk_edge_table_add_row(edge_table, left, right, parent, child, NULL, 0);
             if (ret < 0) {
                 goto out;
             }
@@ -321,8 +321,9 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
     tsk_id_t node;
     tsk_id_t site;
     tsk_id_t parent;
+    double time;
     char *derived_state, *metadata;
-    const char *header = "id\tsite\tnode\tparent\tderived_state\tmetadata\n";
+    const char *header = "id\tsite\tnode\ttime\tparent\tderived_state\tmetadata\n";
     char *start;
 
     line = malloc(MAX_LINE);
@@ -362,6 +363,10 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
         if (err < 0) {
             goto out;
         }
+        err = get_sep_atof(&start, &time, '\t');
+        if (err < 0) {
+            goto out;
+        }
         err = get_sep_atoi(&start, &parent, '\t');
         if (err < 0) {
             goto out;
@@ -374,7 +379,7 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
         if (err < 0 || *start != '\0') {
             goto out;
         }
-        ret = tsk_mutation_table_add_row(mutation_table, site, node, parent,
+        ret = tsk_mutation_table_add_row(mutation_table, site, node, parent, time,
                 derived_state, (tsk_size_t) strlen(derived_state), metadata, (tsk_size_t) strlen(metadata));
         if (ret < 0) {
             goto out;
@@ -450,7 +455,7 @@ migration_table_load_text(tsk_migration_table_t *migration_table, FILE *file)
             goto out;
         }
         ret = tsk_migration_table_add_row(migration_table, left, right, node,
-                source, dest, time);
+                source, dest, time, NULL, 0);
         if (ret < 0) {
             goto out;
         }

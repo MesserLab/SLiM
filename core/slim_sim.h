@@ -158,7 +158,7 @@ typedef struct __attribute__((__packed__)) {
 	double bounds_y1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D models
 	double bounds_z0_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
 	double bounds_z1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
-	int32_t migration_rec_count_;			// 4 bytes (int32_t): the number of migration records, 0 in nonWF models
+	uint32_t migration_rec_count_;			// 4 bytes (int32_t): the number of migration records, 0 in nonWF models
 	// followed by migration_rec_count_ instances of SubpopulationMigrationMetadataRec
 } SubpopulationMetadataRec;
 
@@ -610,7 +610,8 @@ public:
 	void FixAliveIndividuals(tsk_table_collection_t *p_tables);
 	void WritePopulationTable(tsk_table_collection_t *p_tables);
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
-	void ReadProvenanceTable(tsk_table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
+	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables);
+	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void SimplifyTreeSequence(void);

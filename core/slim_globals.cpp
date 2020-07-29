@@ -1600,6 +1600,56 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 
 
 
+// *************************************
+//
+//	TSKIT/tree sequence tables related
+//
+#pragma mark -
+#pragma mark Tree sequences
+#pragma mark -
+
+// Metadata schemas:
+// These should be valid json strings, parseable by python's json.loads( )
+// and then turned into a valid metadata schema by tskit.MetadataSchema( ).
+// You can check these by doing, in python:
+// ```
+// t = ( <paste in everything below except final semicolon> )
+// d = json.loads(t)
+// m = tskit.MetadataSchema(d)
+// for e in d['examples']:
+//    m.encode_row(e)
+// ```
+// Furthermore, so that they match with the way python would do it,
+// we've produced these by doing :
+// ```
+// import pyslim
+// for ms in pyslim.slim_metadata_schemas:
+//   print(ms)
+//   print(str(pyslim.slim_metadata_schemas[ms]))
+// ```
+// See the pyslim code for readable versions of these.
+ 
+
+const std::string gSLiM_tsk_metadata_schema =
+"{\"$schema\":\"http://json-schema.org/schema#\",\"codec\":\"json\",\"examples\":[{\"SLiM\":{\"file_version\":\"0.5\",\"generation\":123,\"model_type\":\"WF\",\"nucleotide_based\":false,\"separate_sexes\":true,\"spatial_dimensionality\":\"xy\",\"spatial_periodicity\":\"x\"}}],\"properties\":{\"SLiM\":{\"description\":\"Top-level metadata for a SLiM tree sequence, file format version 0.5\",\"properties\":{\"file_version\":{\"description\":\"The SLiM 'file format version' of this tree sequence.\",\"type\":\"string\"},\"generation\":{\"description\":\"The 'SLiM generation' counter when this tree sequence was recorded.\",\"type\":\"integer\"},\"model_type\":{\"description\":\"The model type used for the last part of this simulation (WF or nonWF).\",\"enum\":[\"WF\",\"nonWF\"],\"type\":\"string\"},\"nucleotide_based\":{\"description\":\"Whether the simulation was nucleotide-based.\",\"type\":\"boolean\"},\"separate_sexes\":{\"description\":\"Whether the simulation had separate sexes.\",\"type\":\"boolean\"},\"spatial_dimensionality\":{\"description\":\"The spatial dimensionality of the simulation.\",\"enum\":[\"\",\"x\",\"xy\",\"xyz\"],\"type\":\"string\"},\"spatial_periodicity\":{\"description\":\"The spatial periodicity of the simulation.\",\"enum\":[\"\",\"x\",\"y\",\"z\",\"xy\",\"xz\",\"yz\",\"xyz\"],\"type\":\"string\"}},\"required\":[\"model_type\",\"generation\",\"file_version\",\"spatial_dimensionality\",\"spatial_periodicity\",\"separate_sexes\",\"nucleotide_based\"],\"type\":\"object\"}},\"required\":[\"SLiM\"],\"type\":\"object\"}";
+
+const std::string gSLiM_tsk_edge_metadata_schema = "";
+const std::string gSLiM_tsk_site_metadata_schema = "";
+
+const std::string gSLiM_tsk_mutation_metadata_schema =
+"{\"$schema\":\"http://json-schema.org/schema#\",\"additionalProperties\":false,\"codec\":\"struct\",\"description\":\"SLiM schema for mutation metadata.\",\"examples\":[{\"mutation_list\":[{\"mutation_type\":1,\"nucleotide\":3,\"selection_coeff\":-0.2,\"slim_time\":243,\"subpopulation\":0}]}],\"properties\":{\"mutation_list\":{\"items\":{\"additionalProperties\":false,\"properties\":{\"mutation_type\":{\"binaryFormat\":\"i\",\"description\":\"The index of this mutation's mutationType.\",\"index\":1,\"type\":\"integer\"},\"nucleotide\":{\"binaryFormat\":\"b\",\"description\":\"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)\",\"index\":5,\"type\":\"integer\"},\"selection_coeff\":{\"binaryFormat\":\"f\",\"description\":\"This mutation's selection coefficient.\",\"index\":2,\"type\":\"number\"},\"slim_time\":{\"binaryFormat\":\"i\",\"description\":\"The SLiM generation counter when this mutation occurred.\",\"index\":4,\"type\":\"integer\"},\"subpopulation\":{\"binaryFormat\":\"i\",\"description\":\"The ID of the subpopulation this mutation occurred in.\",\"index\":3,\"type\":\"integer\"}},\"required\":[\"mutation_type\",\"selection_coeff\",\"subpopulation\",\"slim_time\",\"nucleotide\"],\"type\":\"object\"},\"noLengthEncodingExhaustBuffer\":true,\"type\":\"array\"}},\"required\":[\"mutation_list\"],\"type\":\"object\"}";
+
+const std::string gSLiM_tsk_node_metadata_schema =
+"{\"$schema\":\"http://json-schema.org/schema#\",\"additionalProperties\":false,\"codec\":\"struct\",\"description\":\"SLiM schema for node metadata.\",\"examples\":[{\"genome_type\":0,\"is_null\":false,\"slim_id\":123}],\"properties\":{\"genome_type\":{\"binaryFormat\":\"B\",\"description\":\"The 'type' of this genome (0 for autosome, 1 for X, 2 for Y).\",\"index\":2,\"type\":\"integer\"},\"is_null\":{\"binaryFormat\":\"?\",\"description\":\"Whether this node describes a 'null' (non-existant) chromosome.\",\"index\":1,\"type\":\"boolean\"},\"slim_id\":{\"binaryFormat\":\"q\",\"description\":\"The 'pedigree ID' of this chromosome in SLiM.\",\"index\":0,\"type\":\"integer\"}},\"required\":[\"slim_id\",\"is_null\",\"genome_type\"],\"type\":[\"object\",\"null\"]}";
+
+const std::string gSLiM_tsk_individual_metadata_schema =
+"{\"$schema\":\"http://json-schema.org/schema#\",\"additionalProperties\":false,\"codec\":\"struct\",\"description\":\"SLiM schema for individual metadata.\",\"examples\":[{\"age\":-1,\"flags\":0,\"pedigree_id\":123,\"sex\":0,\"subpopulation\":0}],\"flags\":{\"SLIM_INDIVIDUAL_METADATA_MIGRATED\":{\"description\":\"Whether this individual was a migrant, either in the generation when the tree sequence was written out (if the individual was alive then), or in the generation of the last time they were Remembered (if not).\",\"value\":1}},\"properties\":{\"age\":{\"binaryFormat\":\"i\",\"description\":\"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).\",\"index\":2,\"type\":\"integer\"},\"flags\":{\"binaryFormat\":\"I\",\"description\":\"Other information about the individual: see 'flags'.\",\"index\":5,\"type\":\"integer\"},\"pedigree_id\":{\"binaryFormat\":\"q\",\"description\":\"The 'pedigree ID' of this individual in SLiM.\",\"index\":1,\"type\":\"integer\"},\"sex\":{\"binaryFormat\":\"i\",\"description\":\"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).\",\"index\":4,\"type\":\"integer\"},\"subpopulation\":{\"binaryFormat\":\"i\",\"description\":\"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).\",\"index\":3,\"type\":\"integer\"}},\"required\":[\"pedigree_id\",\"age\",\"subpopulation\",\"sex\",\"flags\"],\"type\":\"object\"}";
+
+const std::string gSLiM_tsk_population_metadata_schema = 
+"{\"$schema\":\"http://json-schema.org/schema#\",\"additionalProperties\":false,\"codec\":\"struct\",\"description\":\"SLiM schema for population metadata.\",\"examples\":[{\"bounds_x0\":0.0,\"bounds_x1\":100.0,\"bounds_y0\":0.0,\"bounds_y1\":100.0,\"bounds_z0\":0.0,\"bounds_z1\":100.0,\"female_cloning_fraction\":0.25,\"male_cloning_fraction\":0.0,\"migration_records\":[{\"migration_rate\":0.9,\"source_subpop\":1},{\"migration_rate\":0.1,\"source_subpop\":2}],\"selfing_fraction\":0.5,\"sex_ratio\":0.5,\"slim_id\":2}],\""
+"properties\":{\"bounds_x0\":{\"binaryFormat\":\"d\",\"description\":\"The minimum x-coordinate in this subpopulation.\",\"index\":6,\"type\":\"number\"},\"bounds_x1\":{\"binaryFormat\":\"d\",\"description\":\"The maximum x-coordinate in this subpopulation.\",\"index\":7,\"type\":\"number\"},\"bounds_y0\":{\"binaryFormat\":\"d\",\"description\":\"The minimum y-coordinate in this subpopulation.\",\"index\":8,\"type\":\"number\"},\"bounds_y1\":{\"binaryFormat\":\"d\",\"description\":\"The maximum y-coordinate in this subpopulation.\",\"index\":9,\"type\":\"number\"},\"bounds_z0\":{\"binaryFormat\":\"d\",\"description\":\"The minimum z-coordinate in this subpopulation.\",\"index\":10,\"type\":\"number\"},\"bounds_z1\":{\"binaryFormat\":\"d\",\"description\":\"The maximum z-coordinate in this subpopulation.\",\"index\":11,\"type\":\"number\"},\"female_cloning_fraction\":{\"binaryFormat\":\"d\",\"description\":\"The frequency with which females in this subpopulation reproduce clonally (for WF models).\",\"index\":3,\"type\":\"number\"},\"male_cloning_fraction\":{\"binaryFormat\":\"d\",\"description\":\"The frequency with which males in this subpopulation reproduce clonally (for WF models).\",\"index\":4,\"type\":\"number\"},\"migration_records\":{\"arrayLengthFormat\":\"I\",\"index\":13,\"items\":{\"additionalProperties\":false,\""
+"properties\":{\"migration_rate\":{\"binaryFormat\":\"d\",\"description\":\"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).\",\"index\":2,\"type\":\"number\"},\"source_subpop\":{\"binaryFormat\":\"i\",\"description\":\"The ID of the subpopulation migrants come from (in WF models).\",\"index\":1,\"type\":\"integer\"}},\"required\":[\"source_subpop\",\"migration_rate\"],\"type\":\"object\"},\"type\":\"array\"},\"selfing_fraction\":{\"binaryFormat\":\"d\",\"description\":\"The frequency with which individuals in this subpopulation self (for WF models).\",\"index\":2,\"type\":\"number\"},\"sex_ratio\":{\"binaryFormat\":\"d\",\"description\":\"This subpopulation's sex ratio (for WF models).\",\"index\":5,\"type\":\"number\"},\"slim_id\":{\"binaryFormat\":\"i\",\"description\":\"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.\",\"index\":1,\"type\":\"integer\"}},\"required\":[\"slim_id\",\"selfing_fraction\",\"female_cloning_fraction\",\"male_cloning_fraction\",\"sex_ratio\",\"bounds_x0\",\"bounds_x1\",\"bounds_y0\",\"bounds_y1\",\"bounds_z0\",\"bounds_z1\",\"migration_records\"],\"type\":[\"object\",\"null\"]}";
+
 
 
 
