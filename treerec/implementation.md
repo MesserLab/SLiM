@@ -144,3 +144,36 @@ And, these operations have the following properties:
     maintaining order otherwise.
 6.  `compute_parents` fills in the `mutation.parent` information by using property (1).
 
+
+## Metadata schemas
+
+tskit provides methods for structured metadata decoding using [JSON schemas](https://json-schema.org/understanding-json-schema/index.html),
+to document what the metadatameans.
+We don't make use of these, but write them to the tree sequence for tskit use.
+There's both top-level metadata (ie for the whole tree sequence)
+and metadata for every row in every table.
+(But, we only use some of these.)
+
+### Top-level metadata:
+
+Here's the current metadata schema:
+```
+{
+    "$schema": "http://json-schema.org/schema#",
+    "$id": "http://yourdomain.com/schemas/myschema.json",
+    "title": "SLiMv0.5",
+    "description": "Top-level metadata for a SLiM tree sequence, file format version 0.5"
+    "type": "object",
+    "properties": {
+        "model_type" : {
+            "type": "string"
+            "enum": ["WF", "nonWF"]
+        },
+        "generation" : {
+            "type": "integer",
+            "minimum": 1
+        }
+    }
+}
+```
+
