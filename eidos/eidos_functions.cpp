@@ -4445,20 +4445,16 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_argume
 		for (int probs_index = 0; probs_index < probs_count; ++probs_index)
 		{
 			double prob = probs[probs_index];
-			double m = 1.0 - prob;				// R type 7
-			long j = (long)std::floor(x_count * prob + m);
-			double g = x_count * prob + m - j;
+			double index = (x_count - 1) * prob;
+			double lo = (long)std::floor(index);
+			double hi = (long)std::ceil(index);
 			
-			long firstobs, obs;
-			if (j == 0) firstobs = obs = 0;
-			else if (j == x_count) firstobs = obs = x_count - 1;
-			else {
-				firstobs = j;
-				obs = j + 1;
-			}
-			
-			double quantile = (1.0 - g) * x_value->FloatAtIndex((int)order[firstobs], nullptr) +
-									  g * x_value->FloatAtIndex((int)order[obs], nullptr);
+			double quantile = x_value->FloatAtIndex((int)order[lo], nullptr);
+            if (lo != hi) {
+                double h = index - lo;
+                quantile *= (1.0 - h);
+                quantile += h * x_value->FloatAtIndex((int)order[hi], nullptr);
+            }
 			
 			float_result->set_float_no_check(quantile, probs_index);
 		}
