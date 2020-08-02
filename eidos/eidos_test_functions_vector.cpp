@@ -22,6 +22,8 @@
 
 #include "eidos_test_element.h"
 
+#include <limits>
+
 
 #pragma mark vector construction
 void _RunFunctionVectorConstructionTests(void)

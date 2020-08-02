@@ -26,6 +26,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <cmath>
 #include <float.h>
 #include <string.h>
 #include <numeric>

@@ -40,7 +40,9 @@
 #include <unordered_map>
 #include <utility>
 #include <numeric>
+#include <cmath>
 #include <functional>
+#include <limits>
 #include <sys/stat.h>
 #include <sys/param.h>
 
@@ -4474,7 +4476,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)quantile(numeric x, [Nf probs = NULL])
-EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	

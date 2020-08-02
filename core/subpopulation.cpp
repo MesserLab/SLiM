@@ -34,6 +34,7 @@
 #include <string>
 #include <map>
 #include <utility>
+#include <cmath>
 
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;		// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;	// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()

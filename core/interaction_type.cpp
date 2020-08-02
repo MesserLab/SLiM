@@ -27,6 +27,7 @@
 
 #include <utility>
 #include <algorithm>
+#include <cmath>
 
 
 // stream output for enumerations

@@ -32,6 +32,7 @@
 #include <utility>
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 
 static void PrintBytes(std::ostream &p_out, size_t p_bytes)
