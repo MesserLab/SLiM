@@ -1076,15 +1076,26 @@
 \f1\fs18 NULL
 \f3\fs20 , which is equivalent to 
 \f1\fs18 c(0.0, 0.25, 0.5, 0.75, 1.0)
-\f3\fs20 , requesting sample quartiles.  There are many ways to compute quantiles; the algorithm currently supported by Eidos is R\'92s default \'93type 7\'94 algorithm.  This is a continuous function of the probability 
-\f7\i p
-\f3\i0 , so the quantile for a probability 
-\f7\i p
-\f3\i0  may not be one of the values in 
+\f3\fs20 , requesting sample quartiles.\
+The quantile function linearly interpolates between the points of the empirical cumulative distribution function.  In other words, if 
 \f1\fs18 x
-\f3\fs20 , but is guaranteed to be within the range of 
+\f3\fs20  is a vector of length 
+\f7\i n
+\f3\i0 +1, then the quantiles with 
+\f1\fs18 probs
+\f3\fs20  equal to (0, 1/
+\f7\i n
+\f3\i0 , 2/
+\f7\i n
+\f3\i0 , ..., (
+\f7\i n
+\f3\i0 \uc0\u8722 1)/
+\f7\i n
+\f3\i0 , 1) are equal to the sorted values of 
 \f1\fs18 x
-\f3\fs20 .\
+\f3\fs20 , and the quantile is a linear function of 
+\f1\fs18 probs
+\f3\fs20  otherwise.  Note that there are many ways to compute quantiles; this algorithm corresponds to R\'92s default \'93type 7\'94 algorithm.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (numeric)range(numeric
