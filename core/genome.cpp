@@ -2112,10 +2112,26 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	if (target_size == 0)
 		return gStaticEidosValueVOID;
 	
-	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
+	// use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
+	
+	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	
+	if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && sim.RecordingTreeSequence())
+	{
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		{
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+			Individual *target_individual = target_genome->OwningIndividual();
+			
+			if (target_individual->age_ > 0)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): " << "addMutations() cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
+		}
+	}
+	
+	// check for other semantic issues
 	Population &pop = sim.ThePopulation();
 	
 	sim.CheckMutationStackPolicy();
@@ -2333,11 +2349,27 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	if (target_size == 0)
 		return gStaticEidosValueNULLInvisible;	// this is almost an error condition, since a mutation was expected to be added and none was
 	
-	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
+	// get the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	int mutrun_count = genome_0->mutrun_count_;
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
+	
+	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
 	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	
+	if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && sim.RecordingTreeSequence())
+	{
+		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		{
+			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+			Individual *target_individual = target_genome->OwningIndividual();
+			
+			if (target_individual->age_ > 0)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
+		}
+	}
+	
+	// check for other semantic issues
 	Population &pop = sim.ThePopulation();
 	bool nucleotide_based = sim.IsNucleotideBased();
 	
