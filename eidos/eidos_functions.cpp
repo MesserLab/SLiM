@@ -40,6 +40,7 @@
 #include <unordered_map>
 #include <utility>
 #include <numeric>
+#include <functional>
 #include <sys/stat.h>
 #include <sys/param.h>
 
@@ -884,7 +885,10 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 				
 				for (scan_index = 0; scan_index < value_index; ++scan_index)
 				{
-					if (value == float_data[scan_index])
+					double comp = float_data[scan_index];
+					
+					// We need NAN values to compare equal; we unique multiple NANs down to one
+					if ((std::isnan(value) && std::isnan(comp)) || (value == comp))
 						break;
 				}
 				
@@ -896,9 +900,11 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 		{
 			std::vector<double> dup_vec(float_data, float_data + x_count);
 			
-			std::sort(dup_vec.begin(), dup_vec.end());
+			// sort NANs to the end
+			std::sort(dup_vec.begin(), dup_vec.end(), [](const double& a, const double& b) { return std::isnan(b) || (a < b); });
 			
-			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end());
+			// Remove duplicates, including duplicate NANs
+			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end(), [](const double& a, const double& b) { return (std::isnan(a) && std::isnan(b)) || (a == b); });
 			size_t unique_count = unique_iter - dup_vec.begin();
 			double *dup_ptr = dup_vec.data();
 			
@@ -2032,7 +2038,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 		{
 			double float0 = x_value->FloatAtIndex(0, nullptr), float1 = y_value->FloatAtIndex(0, nullptr);
 			
-			if (float0 == float1)
+			if ((std::isnan(float0) && std::isnan(float1)) || (float0 == float1))
 				result_SP = gStaticEidosValue_Float_ZeroVec;
 			else
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
@@ -2076,8 +2082,12 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 			const double *float_data = y_value->FloatVector()->data();
 			
 			for (int value_index = 0; value_index < y_count; ++value_index)
-				if (float0 == float_data[value_index])
+			{
+				double float1 = float_data[value_index];
+				
+				if ((std::isnan(float0) && std::isnan(float1)) || (float0 == float1))
 					return gStaticEidosValue_Float_ZeroVec;
+			}
 			
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
 		}
@@ -2131,11 +2141,15 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 			double *float_data = float_vec->data();
 			
 			for (int value_index = 0; value_index < result_count; ++value_index)
-				if (float1 == float_data[value_index])
+			{
+				double float0 = float_data[value_index];
+				
+				if ((std::isnan(float1) && std::isnan(float0)) || (float1 == float0))
 				{
 					float_vec->erase_index(value_index);
 					break;
 				}
+			}
 		}
 		else if (arg_type == EidosValueType::kValueString)
 		{
@@ -2206,26 +2220,34 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
 			{
-				double value = float_data0[value_index0];
+				double value0 = float_data0[value_index0];
 				int value_index1, scan_index;
 				
 				// First check that the value does not exist in y
 				for (value_index1 = 0; value_index1 < y_count; ++value_index1)
-					if (value == float_data1[value_index1])
+				{
+					double value1 = float_data1[value_index1];
+					
+					if ((std::isnan(value0) && std::isnan(value1)) || (value0 == value1))
 						break;
+				}
 				
 				if (value_index1 < y_count)
 					continue;
 				
 				// Then check that we have not already handled the same value (uniquing)
 				for (scan_index = 0; scan_index < value_index0; ++scan_index)
-					if (value == float_data0[scan_index])
+				{
+					double value_scan = float_data0[scan_index];
+					
+					if ((std::isnan(value0) && std::isnan(value_scan)) || (value0 == value_scan))
 						break;
+				}
 				
 				if (scan_index < value_index0)
 					continue;
 				
-				float_result->push_float(value);
+				float_result->push_float(value0);
 			}
 		}
 		else if (x_type == EidosValueType::kValueString)
@@ -2418,7 +2440,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p
 		{
 			double float0 = x_value->FloatAtIndex(0, nullptr), float1 = y_value->FloatAtIndex(0, nullptr);
 			
-			if (float0 == float1)
+			if ((std::isnan(float0) && std::isnan(float1)) || (float0 == float1))
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
 			else
 				result_SP = gStaticEidosValue_Float_ZeroVec;
@@ -2468,15 +2490,19 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p
 		}
 		else if (arg_type == EidosValueType::kValueFloat)
 		{
-			double value = y_value->FloatAtIndex(0, nullptr);
+			double value0 = y_value->FloatAtIndex(0, nullptr);
 			const double *float_data = x_value->FloatVector()->data();
 			
 			for (int scan_index = 0; scan_index < x_count; ++scan_index)
-				if (value == float_data[scan_index])
+			{
+				double value1 = float_data[scan_index];
+				
+				if ((std::isnan(value0) && std::isnan(value1)) || (value0 == value1))
 				{
 					found_match = true;
 					break;
 				}
+			}
 		}
 		else if (arg_type == EidosValueType::kValueString)
 		{
@@ -2550,25 +2576,31 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
 			{
-				double value = float_data0[value_index0];
+				double value0 = float_data0[value_index0];
 				
 				// First check that the value also exists in y
 				for (int value_index1 = 0; value_index1 < y_count; ++value_index1)
-					if (value == float_data1[value_index1])
+				{
+					double value1 = float_data1[value_index1];
+					
+					if ((std::isnan(value0) && std::isnan(value1)) || (value0 == value1))
 					{
 						// Then check that we have not already handled the same value (uniquing)
 						int scan_index;
 						
 						for (scan_index = 0; scan_index < value_index0; ++scan_index)
 						{
-							if (value == float_data0[scan_index])
+							double value_scan = float_data0[scan_index];
+							
+							if ((std::isnan(value0) && std::isnan(value_scan)) || (value0 == value_scan))
 								break;
 						}
 						
 						if (scan_index == value_index0)
-							float_result->push_float(value);
+							float_result->push_float(value0);
 						break;
 					}
+				}
 			}
 		}
 		else if (x_type == EidosValueType::kValueString)
@@ -2774,7 +2806,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 		{
 			double float0 = x_value->FloatAtIndex(0, nullptr), float1 = y_value->FloatAtIndex(0, nullptr);
 			
-			if (float0 == float1)
+			if ((std::isnan(float0) && std::isnan(float1)) || (float0 == float1))
 				result_SP = gStaticEidosValue_Float_ZeroVec;
 			else
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{float0, float1});
@@ -2839,8 +2871,12 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 			int value_index;
 			
 			for (value_index = 0; value_index < result_count; ++value_index)
-				if (float1 == float_data[value_index])
+			{
+				double float0 = float_data[value_index];
+				
+				if ((std::isnan(float0) && std::isnan(float1)) || (float1 == float0))
 					break;
+			}
 			
 			if (value_index == result_count)
 				float_vec->push_float(float1);
@@ -2943,43 +2979,59 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 			
 			for (value_index0 = 0; value_index0 < x_count; ++value_index0)
 			{
-				double value = float_vec0[value_index0];
+				double value0 = float_vec0[value_index0];
 				
 				// First check that the value also exists in y
 				for (value_index1 = 0; value_index1 < y_count; ++value_index1)
-					if (value == float_vec1[value_index1])
+				{
+					double float1 = float_vec1[value_index1];
+					
+					if ((std::isnan(value0) && std::isnan(float1)) || (value0 == float1))
 						break;
+				}
 				
 				if (value_index1 == y_count)
 				{
 					// Then check that we have not already handled the same value (uniquing)
 					for (scan_index = 0; scan_index < value_index0; ++scan_index)
-						if (value == float_vec0[scan_index])
+					{
+						double value_scan = float_vec0[scan_index];
+						
+						if ((std::isnan(value0) && std::isnan(value_scan)) || (value0 == value_scan))
 							break;
+					}
 					
 					if (scan_index == value_index0)
-						float_result->push_float(value);
+						float_result->push_float(value0);
 				}
 			}
 			
 			for (value_index1 = 0; value_index1 < y_count; ++value_index1)
 			{
-				double value = float_vec1[value_index1];
+				double value1 = float_vec1[value_index1];
 				
 				// First check that the value also exists in y
 				for (value_index0 = 0; value_index0 < x_count; ++value_index0)
-					if (value == float_vec0[value_index0])
+				{
+					double value0 = float_vec0[value_index0];
+					
+					if ((std::isnan(value1) && std::isnan(value0)) || (value1 == value0))
 						break;
+				}
 				
 				if (value_index0 == x_count)
 				{
 					// Then check that we have not already handled the same value (uniquing)
 					for (scan_index = 0; scan_index < value_index1; ++scan_index)
-						if (value == float_vec1[scan_index])
+					{
+						double value_scan = float_vec1[scan_index];
+						
+						if ((std::isnan(value1) && std::isnan(value_scan)) || (value1 == value_scan))
 							break;
+					}
 					
 					if (scan_index == value_index1)
-						float_result->push_float(value);
+						float_result->push_float(value1);
 				}
 			}
 		}
@@ -3221,7 +3273,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		{
 			double float0 = x_value->FloatAtIndex(0, nullptr), float1 = y_value->FloatAtIndex(0, nullptr);
 			
-			if (float0 == float1)
+			if ((std::isnan(float0) && std::isnan(float1)) || (float0 == float1))
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float0));
 			else
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{float0, float1});
@@ -3278,18 +3330,20 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		}
 		else if (arg_type == EidosValueType::kValueFloat)
 		{
-			double value = y_value->FloatAtIndex(0, nullptr);
+			double value1 = y_value->FloatAtIndex(0, nullptr);
 			const double *float_data = result_SP->FloatVector()->data();
 			int scan_index;
 			
 			for (scan_index = 0; scan_index < result_count; ++scan_index)
 			{
-				if (value == float_data[scan_index])
+				double value0 = float_data[scan_index];
+				
+				if ((std::isnan(value1) && std::isnan(value0)) || (value1 == value0))
 					break;
 			}
 			
 			if (scan_index == result_count)
-				result_SP->FloatVector_Mutable()->push_float(value);
+				result_SP->FloatVector_Mutable()->push_float(value1);
 		}
 		else if (arg_type == EidosValueType::kValueString)
 		{
@@ -3766,6 +3820,11 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 			if (arg_count == 1)
 			{
 				double temp = arg_value->FloatAtIndex(0, nullptr);
+				
+				// if there is a NAN the result is always NAN, so we don't need to scan further
+				if (std::isnan(temp))
+					return gStaticEidosValue_FloatNAN;
+				
 				if (max < temp)
 					max = temp;
 			}
@@ -3776,6 +3835,11 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					double temp = float_data[value_index];
+					
+					// if there is a NAN the result is always NAN, so we don't need to scan further
+					if (std::isnan(temp))
+						return gStaticEidosValue_FloatNAN;
+					
 					if (max < temp)
 						max = temp;
 				}
@@ -4015,6 +4079,11 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 			if (arg_count == 1)
 			{
 				double temp = arg_value->FloatAtIndex(0, nullptr);
+				
+				// if there is a NAN the result is always NAN, so we don't need to scan further
+				if (std::isnan(temp))
+					return gStaticEidosValue_FloatNAN;
+				
 				if (min > temp)
 					min = temp;
 			}
@@ -4025,6 +4094,11 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					double temp = float_data[value_index];
+					
+					// if there is a NAN the result is always NAN, so we don't need to scan further
+					if (std::isnan(temp))
+						return gStaticEidosValue_FloatNAN;
+					
 					if (min > temp)
 						min = temp;
 				}
@@ -4105,7 +4179,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 	else if ((x_count == 1) && (y_count == 1))
 	{
 		// Handle the singleton case separately so we can handle the vector case quickly
-		if (CompareEidosValues(*x_value, 0, *y_value, 0, nullptr) == -1)
+		
+		// if there is a NAN the result is always NAN
+		if (x_type == EidosValueType::kValueFloat)
+			if (std::isnan(x_value->FloatAtIndex(0, nullptr)) || std::isnan(y_value->FloatAtIndex(0, nullptr)))
+				return gStaticEidosValue_FloatNAN;
+		
+		if (CompareEidosValues(*x_value, 0, *y_value, 0, EidosComparisonOperator::kLess, nullptr))
 			result_SP = y_value->CopyValues();
 		else
 			result_SP = x_value->CopyValues();
@@ -4150,7 +4230,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				float_result->set_float_no_check(std::max(float0_data[value_index], y_singleton_value), value_index);
+			{
+				// if there is a NAN the result is always NAN
+				if (std::isnan(float0_data[value_index]) || std::isnan(y_singleton_value))
+					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+				else
+					float_result->set_float_no_check(std::max(float0_data[value_index], y_singleton_value), value_index);
+			}
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
@@ -4194,7 +4280,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				float_result->set_float_no_check(std::max(float0_data[value_index], float1_data[value_index]), value_index);
+			{
+				// if there is a NAN the result is always NAN
+				if (std::isnan(float0_data[value_index]) || std::isnan(float1_data[value_index]))
+					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+				else
+					float_result->set_float_no_check(std::max(float0_data[value_index], float1_data[value_index]), value_index);
+			}
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
@@ -4253,7 +4345,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 	else if ((x_count == 1) && (y_count == 1))
 	{
 		// Handle the singleton case separately so we can handle the vector case quickly
-		if (CompareEidosValues(*x_value, 0, *y_value, 0, nullptr) == 1)
+		
+		// if there is a NAN the result is always NAN
+		if (x_type == EidosValueType::kValueFloat)
+			if (std::isnan(x_value->FloatAtIndex(0, nullptr)) || std::isnan(y_value->FloatAtIndex(0, nullptr)))
+				return gStaticEidosValue_FloatNAN;
+		
+		if (CompareEidosValues(*x_value, 0, *y_value, 0, EidosComparisonOperator::kGreater, nullptr))
 			result_SP = y_value->CopyValues();
 		else
 			result_SP = x_value->CopyValues();
@@ -4298,7 +4396,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				float_result->set_float_no_check(std::min(float0_data[value_index], y_singleton_value), value_index);
+			{
+				// if there is a NAN the result is always NAN
+				if (std::isnan(float0_data[value_index]) || std::isnan(y_singleton_value))
+					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+				else
+					float_result->set_float_no_check(std::min(float0_data[value_index], y_singleton_value), value_index);
+			}
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
@@ -4342,7 +4446,13 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				float_result->set_float_no_check(std::min(float0_data[value_index], float1_data[value_index]), value_index);
+			{
+				// if there is a NAN the result is always NAN
+				if (std::isnan(float0_data[value_index]) || std::isnan(float1_data[value_index]))
+					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+				else
+					float_result->set_float_no_check(std::min(float0_data[value_index], float1_data[value_index]), value_index);
+			}
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
@@ -4445,20 +4555,16 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_argume
 		for (int probs_index = 0; probs_index < probs_count; ++probs_index)
 		{
 			double prob = probs[probs_index];
-			double m = 1.0 - prob;				// R type 7
-			long j = (long)std::floor(x_count * prob + m);
-			double g = x_count * prob + m - j;
+			double index = (x_count - 1) * prob;
+			long lo = (long)std::floor(index);
+			long hi = (long)std::ceil(index);
 			
-			long firstobs, obs;
-			if (j == 0) firstobs = obs = 0;
-			else if (j == x_count) firstobs = obs = x_count - 1;
-			else {
-				firstobs = j;
-				obs = j + 1;
+			double quantile = x_value->FloatAtIndex((int)order[lo], nullptr);
+			if (lo != hi) {
+				double h = index - lo;
+				quantile *= (1.0 - h);
+				quantile += h * x_value->FloatAtIndex((int)order[hi], nullptr);
 			}
-			
-			double quantile = (1.0 - g) * x_value->FloatAtIndex((int)order[firstobs], nullptr) +
-									  g * x_value->FloatAtIndex((int)order[obs], nullptr);
 			
 			float_result->set_float_no_check(quantile, probs_index);
 		}
@@ -4559,6 +4665,15 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 			if (arg_count == 1)
 			{
 				double temp = arg_value->FloatAtIndex(0, nullptr);
+				
+				// if there is a NAN, the range is always (NAN,NAN); short-circuit
+				if (std::isnan(temp))
+				{
+					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), 0);
+					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), 1);
+					return result_SP;
+				}
+				
 				if (max < temp)
 					max = temp;
 				else if (min > temp)
@@ -4571,6 +4686,15 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					double temp = float_data[value_index];
+					
+					// if there is a NAN, the range is always (NAN,NAN); short-circuit
+					if (std::isnan(temp))
+					{
+						float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), 0);
+						float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), 1);
+						return result_SP;
+					}
+					
 					if (max < temp)
 						max = temp;
 					else if (min > temp)
@@ -4781,8 +4905,17 @@ EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_argumen
 		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
 	
 	for (int row_index = 0; row_index < d; ++row_index)
+	{
 		for (int col_index = 0; col_index < d; ++col_index)
-			gsl_matrix_set(gsl_Sigma, row_index, col_index, arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr));
+		{
+			double value = arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr);
+			
+			if (std::isnan(value))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() does not allow sigma to contain NANs." << EidosTerminate(nullptr);	// oddly, GSL does not raise an error on this!
+			
+			gsl_matrix_set(gsl_Sigma, row_index, col_index, value);
+		}
+	}
 	
 	gsl_matrix_memcpy(gsl_L, gsl_Sigma);
 	
@@ -5078,9 +5211,9 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const EidosValue_SP *const p_arguments
 	
 	if (alpha_singleton && beta_singleton)
 	{
-		if (alpha0 <= 0.0)
+		if (!(alpha0 > 0.0))	// true for NaN
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha0) << " supplied)." << EidosTerminate(nullptr);
-		if (beta0 <= 0.0)
+		if (!(beta0 > 0.0))		// true for NaN
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta > 0.0 (" << EidosStringForFloat(beta0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_quantiles == 1)
@@ -5108,9 +5241,9 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const EidosValue_SP *const p_arguments
 			double alpha = (alpha_singleton ? alpha0 : arg_alpha->FloatAtIndex(value_index, nullptr));
 			double beta = (beta_singleton ? beta0 : arg_beta->FloatAtIndex(value_index, nullptr));
 			
-			if (alpha <= 0.0)
+			if (!(alpha > 0.0))		// true for NaN
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha) << " supplied)." << EidosTerminate(nullptr);
-			if (beta <= 0.0)
+			if (!(beta > 0.0))		// true for NaN
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta > 0.0 (" << EidosStringForFloat(beta) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_beta_pdf(float_data[value_index], alpha, beta), value_index);
@@ -5537,7 +5670,7 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const EidosValue_SP *const p_argument
 	
 	if (mean_singleton && shape_singleton)
 	{
-		if (shape0 <= 0.0)
+		if (!(shape0 > 0.0))	// true for NaN
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape > 0.0 (" << EidosStringForFloat(shape0) << " supplied)." << EidosTerminate(nullptr);
 		
 		if (num_quantiles == 1)
@@ -5567,7 +5700,7 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const EidosValue_SP *const p_argument
 			double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex(value_index, nullptr));
 			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(value_index, nullptr));
 			
-			if (shape <= 0.0)
+			if (!(shape > 0.0))		// true for NaN
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape > 0.0 (" << EidosStringForFloat(shape) << " supplied)." << EidosTerminate(nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_gamma_pdf(float_data[value_index], shape, mean / shape), value_index);
@@ -5802,6 +5935,11 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const EidosValue_SP *const p_argumen
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires sigma to be a matrix." << EidosTerminate(nullptr);
 	if ((sigma_dims[0] != d) || (sigma_dims[1] != d))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() requires sigma to be a k x k matrix, where k is the number of dimensions for the multivariate Gaussian function (k must be >= 2)." << EidosTerminate(nullptr);
+	
+	for (int row_index = 0; row_index < d; ++row_index)
+		for (int col_index = 0; col_index < d; ++col_index)
+			if (std::isnan(arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr)))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() does not allow sigma to contain NANs." << EidosTerminate(nullptr);	// oddly, GSL does not raise an error on this!
 	
 	// Set up the GSL vectors
 	gsl_vector *gsl_mu = gsl_vector_calloc(d);
@@ -7553,7 +7691,10 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 		else if (x_type == EidosValueType::kValueInt)
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex(0, nullptr) == table_value->IntAtIndex(0, nullptr) ? 0 : -1));
 		else if (x_type == EidosValueType::kValueFloat)
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->FloatAtIndex(0, nullptr) == table_value->FloatAtIndex(0, nullptr) ? 0 : -1));
+		{
+			double f0 = x_value->FloatAtIndex(0, nullptr), f1 = table_value->FloatAtIndex(0, nullptr);
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(((std::isnan(f0) && std::isnan(f1)) || (f0 == f1)) ? 0 : -1));
+		}
 		else if (x_type == EidosValueType::kValueString)
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->StringAtIndex(0, nullptr) == table_value->StringAtIndex(0, nullptr) ? 0 : -1));
 		else if (x_type == EidosValueType::kValueObject)
@@ -7593,11 +7734,15 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const double *float_data1 = table_value->FloatVector()->data();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
-				if (value0 == float_data1[table_index])
+			{
+				double f1 = float_data1[table_index];
+				
+				if ((std::isnan(value0) && std::isnan(f1)) || (value0 == f1))
 				{
 					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(table_index));
 					break;
 				}
+			}
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
@@ -7654,7 +7799,11 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			const double *float_data0 = x_value->FloatVector()->data();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				int_result->set_int_no_check(float_data0[value_index] == value1 ? 0 : -1, value_index);
+			{
+				double f0 = float_data0[value_index];
+				
+				int_result->set_int_no_check(((std::isnan(f0) && std::isnan(value1)) || (f0 == value1)) ? 0 : -1, value_index);
+			}
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
@@ -7737,7 +7886,9 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
-				std::unordered_map<double, int64_t> fromValueToIndex;
+				// we have to use a custom comparator so that NAN==NAN is true, so that NAN gets matched correctly
+				auto equal = [](const double& l, const double& r) { if (std::isnan(l) && std::isnan(r)) return true; return l == r; };
+				std::unordered_map<double, int64_t, std::hash<double>, decltype(equal)> fromValueToIndex(0, std::hash<double>{}, equal);
 				
 				for (table_index = 0; table_index < table_count; ++table_index)
 					fromValueToIndex.insert(std::pair<double, int64_t>(float_data1[table_index], table_index));	// does nothing if the key is already in the map
@@ -7756,8 +7907,12 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					for (table_index = 0; table_index < table_count; ++table_index)
-						if (float_data0[value_index] == float_data1[table_index])
+					{
+						double f0 = float_data0[value_index], f1 = float_data1[table_index];
+						
+						if ((std::isnan(f0) && std::isnan(f1)) || (f0 == f1))	// need to make NAN match NAN
 							break;
+					}
 					
 					int_result->set_int_no_check(table_index == table_count ? -1 : table_index, value_index);
 				}
@@ -8346,7 +8501,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const EidosValue_SP *const p_argume
 	return result_SP;
 }
 
-//	(*)unique(* x)
+//	(*)unique(* x, [logical$ preserveOrder = T])
 EidosValue_SP Eidos_ExecuteFunction_unique(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design

@@ -76,6 +76,10 @@ void _RunOperatorPlusTests1(void)
 	EidosAssertScriptRaise("+'foo';", 0, "is not supported by");
 	EidosAssertScriptRaise("+T;", 0, "is not supported by");
 	EidosAssertScriptSuccess("3+4+5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(12)));
+	EidosAssertScriptSuccess("3.2+NAN+4.5;", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("3.5+c(5.5,NAN,2.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{9.0, std::numeric_limits<double>::quiet_NaN(), 6.0}));
+	EidosAssertScriptSuccess("c(5.5,NAN,2.5)+3.5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{9.0, std::numeric_limits<double>::quiet_NaN(), 6.0}));
+	EidosAssertScriptSuccess("c(5.5,NAN,2.5)+c(5.5,3.5,NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{11.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	
 	// operator +: raise on integer addition overflow for all code paths
 	EidosAssertScriptSuccess("5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5000000000000000000LL)));
@@ -427,6 +431,10 @@ void _RunOperatorMinusTests(void)
 	EidosAssertScriptRaise("-'foo';", 0, "is not supported by");
 	EidosAssertScriptRaise("-T;", 0, "is not supported by");
 	EidosAssertScriptSuccess("3-4-5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-6)));
+	EidosAssertScriptSuccess("3.2-NAN-4.5;", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("3.5-c(5.5,NAN,2.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, std::numeric_limits<double>::quiet_NaN(), 1.0}));
+	EidosAssertScriptSuccess("c(5.5,NAN,2.5)-3.5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2.0, std::numeric_limits<double>::quiet_NaN(), -1.0}));
+	EidosAssertScriptSuccess("c(5.5,NAN,2.5)-c(5.5,3.5,NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	
 	// operator -: raise on integer subtraction overflow for all code paths
 	EidosAssertScriptSuccess("9223372036854775807;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MAX)));
@@ -496,6 +504,10 @@ void _RunOperatorMultTests(void)
 	EidosAssertScriptRaise("*'foo';", 0, "unexpected token");
 	EidosAssertScriptRaise("*T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3*4*5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(60)));
+	EidosAssertScriptSuccess("3.0*NAN*4.5;", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("3.0*c(5.5,NAN,2.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{16.5, std::numeric_limits<double>::quiet_NaN(), 7.5}));
+	EidosAssertScriptSuccess("c(5.5,NAN,2.5)*3.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{16.5, std::numeric_limits<double>::quiet_NaN(), 7.5}));
+	EidosAssertScriptSuccess("c(5.5,NAN,2.5)*c(5.0,3.5,NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{27.5, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	
 	// operator *: raise on integer multiplication overflow for all code paths
 	EidosAssertScriptSuccess("5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5000000000000000000LL)));
@@ -558,6 +570,10 @@ void _RunOperatorDivTests(void)
 	EidosAssertScriptRaise("/T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3/4/5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.15)));
 	EidosAssertScriptSuccess("6/0;", gStaticEidosValue_FloatINF);
+	EidosAssertScriptSuccess("3.0/NAN/4.5;", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("2.0/c(5.0,NAN,2.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0.4, std::numeric_limits<double>::quiet_NaN(), 0.8}));
+	EidosAssertScriptSuccess("c(5.0,NAN,2.5)/2.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2.5, std::numeric_limits<double>::quiet_NaN(), 1.25}));
+	EidosAssertScriptSuccess("c(5.0,NAN,2.5)/c(5.0,3.5,NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	
 	// operator /: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
 	EidosAssertScriptSuccess("identical(5 / matrix(2), matrix(2.5));", gStaticEidosValue_LogicalT);
@@ -608,6 +624,10 @@ void _RunOperatorModTests(void)
 	EidosAssertScriptRaise("%'foo';", 0, "unexpected token");
 	EidosAssertScriptRaise("%T;", 0, "unexpected token");
     EidosAssertScriptSuccess("3%4%5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3)));
+	EidosAssertScriptSuccess("3.0%NAN%4.5;", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("2.0%c(5.0,NAN,2.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2.0, std::numeric_limits<double>::quiet_NaN(), 2.0}));
+	EidosAssertScriptSuccess("c(5.0,NAN,2.5)%2.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.0, std::numeric_limits<double>::quiet_NaN(), 0.5}));
+	EidosAssertScriptSuccess("c(6.0,NAN,2.5)%c(5.0,3.5,NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	
 	// operator %: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
 	EidosAssertScriptSuccess("identical(5 % matrix(2), matrix(1.0));", gStaticEidosValue_LogicalT);
@@ -718,6 +738,10 @@ void _RunOperatorExpTests(void)
 	EidosAssertScriptRaise("^T;", 0, "unexpected token");
 	EidosAssertScriptSuccess("4^(3^2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(262144)));		// right-associative!
 	EidosAssertScriptSuccess("4^3^2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(262144)));		// right-associative!
+	EidosAssertScriptSuccess("3.0^NAN^4.5;", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("4.0^c(5.0,NAN,2.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1024.0, std::numeric_limits<double>::quiet_NaN(), 32.0}));
+	EidosAssertScriptSuccess("c(5.0,NAN,2.5)^2.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{25.0, std::numeric_limits<double>::quiet_NaN(), 6.25}));
+	EidosAssertScriptSuccess("c(6.0,NAN,2.5)^c(5.0,3.5,NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{7776.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	
 	// operator ^: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
 	EidosAssertScriptSuccess("identical(5 ^ matrix(2), matrix(25.0));", gStaticEidosValue_LogicalT);

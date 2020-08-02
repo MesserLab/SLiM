@@ -337,6 +337,8 @@ void _RunColorManipulationTests(void)
 	EidosAssertScriptSuccess("rainbow(4, start=1.0/6, end=4.0/6, ccw=F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FFFF00", "#FF0000", "#FF00FF", "#0000FF"}));
 	EidosAssertScriptSuccess("rainbow(4, start=4.0/6, end=1.0/6, ccw=T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#0000FF", "#FF00FF", "#FF0000", "#FFFF00"}));
 	EidosAssertScriptSuccess("rainbow(4, start=4.0/6, end=1.0/6, ccw=F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#0000FF", "#00FFFF", "#00FF00", "#FFFF00"}));
+	EidosAssertScriptRaise("rainbow(4, start=NAN, end=1.0/6, ccw=F);", 0, "color component with value NAN");
+	EidosAssertScriptRaise("rainbow(4, start=4.0/6, end=NAN, ccw=F);", 0, "color component with value NAN");
 	
 	// hsv2rgb()
 	EidosAssertScriptRaise("hsv2rgb(c(0.0, 0.0));", 0, "must contain exactly three");

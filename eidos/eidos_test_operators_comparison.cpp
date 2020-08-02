@@ -96,6 +96,12 @@ void _RunOperatorGtTests(void)
 	EidosAssertScriptSuccess("c(5.0, 6.0) > c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	EidosAssertScriptSuccess("c('foo', 'bar') > c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
 	
+	EidosAssertScriptSuccess("NAN > NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("NAN > 5.0;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("5.0 > NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) > c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) > c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false}));
+	
 	EidosAssertScriptRaise("c(5,6) > c(5,6,7);", 7, "operator requires that either");
 	
 	// operator >: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
@@ -190,6 +196,12 @@ void _RunOperatorLtTests(void)
 	EidosAssertScriptSuccess("c(5, 6) < c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("c(5.0, 6.0) < c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("c('foo', 'bar') < c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	
+	EidosAssertScriptSuccess("NAN < NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("NAN < 5.0;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("5.0 < NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) < c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) < c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, false}));
 	
 	EidosAssertScriptRaise("c(5,6) < c(5,6,7);", 7, "operator requires that either");
 	
@@ -286,6 +298,12 @@ void _RunOperatorGtEqTests(void)
 	EidosAssertScriptSuccess("c(5.0, 6.0) >= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	EidosAssertScriptSuccess("c('foo', 'bar') >= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
+	EidosAssertScriptSuccess("NAN >= NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("NAN >= 5.0;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("5.0 >= NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) >= c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) >= c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, false}));
+	
 	EidosAssertScriptRaise("c(5,6) >= c(5,6,7);", 7, "operator requires that either");
 	
 	// operator >=: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
@@ -380,6 +398,12 @@ void _RunOperatorLtEqTests(void)
 	EidosAssertScriptSuccess("c(5, 6) <= c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptSuccess("c(5.0, 6.0) <= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
 	EidosAssertScriptSuccess("c('foo', 'bar') <= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	
+	EidosAssertScriptSuccess("NAN <= NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("NAN <= 5.0;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("5.0 <= NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) <= c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) <= c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
 	
 	EidosAssertScriptRaise("c(5,6) <= c(5,6,7);", 7, "operator requires that either");
 	
@@ -479,6 +503,12 @@ void _RunOperatorEqTests(void)
 	EidosAssertScriptSuccess("c('foo', 'bar') == c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) == c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
 	
+	EidosAssertScriptSuccess("NAN == NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("NAN == 5.0;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("5.0 == NAN;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) == c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
+	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) == c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
+	
 	EidosAssertScriptRaise("c(5,6) == c(5,6,7);", 7, "operator requires that either");
 	
 	// operator ==: test with mixed singletons, vectors, matrices, and arrays; the dimensionality code is shared across all operand types, so testing it with integer should suffice
@@ -572,6 +602,12 @@ void _RunOperatorNotEqTests(void)
 	EidosAssertScriptSuccess("c(5.0, 6.0) != c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("c('foo', 'bar') != c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
 	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) != c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	
+	EidosAssertScriptSuccess("NAN != NAN;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("NAN != 5.0;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("5.0 != NAN;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) != c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true}));
+	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) != c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true}));
 	
 	EidosAssertScriptRaise("c(5,6) != c(5,6,7);", 7, "operator requires that either");
 	

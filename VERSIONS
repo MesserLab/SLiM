@@ -14,6 +14,10 @@ development head:
 	add a tabulate() function to Eidos, more or less parallel to that in R
 	speed up match() for large x vectors, using unordered_map; goes from O(N*M) to O(N+M)
 	add a quantile() function to Eidos, parallel to R's default "type 7" quantile function
+	add new tests for the treatment of NANs, fix bugs with treatment of NANs in:
+		sort(), order(), setUnion(), setIntersection(), setDifference(), setSymmetricDifference(), dbeta(), dgamma(), dmvnorm(), rmvnorm(), identical(), match(), unique(), min(), max(), range(), pmin(), pmax(), operators >=, <=, ==, !=
+		the sort() behavior is now sorts NANs to the end of the vector; this is equivalent to R's with na.last=T set (which is not R's default!)
+		comparison operators now obey the IEEE rules for unorderability of NAN; if x is NAN, x<y, x>y, x<=y, x>=y, x==y are all F, x!=y is T
 
 
 version 3.4 (build 2438; Eidos version 2.4):

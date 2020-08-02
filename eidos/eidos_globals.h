@@ -404,6 +404,23 @@ std::vector<int64_t> EidosSortIndexes(const std::vector<T> &p_v, bool p_ascendin
 	return idx;
 }
 
+template <>
+inline std::vector<int64_t> EidosSortIndexes<double>(const std::vector<double> &p_v, bool p_ascending)
+{
+	// initialize original index locations
+	std::vector<int64_t> idx(p_v.size());
+	std::iota(idx.begin(), idx.end(), 0);
+	
+	// sort indexes based on comparing values in v
+	// this specialization for type double sorts NaNs to the end
+	if (p_ascending)
+		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] < p_v[i2]);});
+	else
+		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] > p_v[i2]);});
+	
+	return idx;
+}
+
 template <typename T>
 std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascending = true)
 {
@@ -416,6 +433,23 @@ std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascend
 		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
 	else
 		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
+	
+	return idx;
+}
+
+template <>
+inline std::vector<int64_t> EidosSortIndexes<double>(const double *p_v, size_t p_size, bool p_ascending)
+{
+	// initialize original index locations
+	std::vector<int64_t> idx(p_size);
+	std::iota(idx.begin(), idx.end(), 0);
+	
+	// sort indexes based on comparing values in v
+	// this specialization for type double sorts NaNs to the end
+	if (p_ascending)
+		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] < p_v[i2]);});
+	else
+		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] > p_v[i2]);});
 	
 	return idx;
 }

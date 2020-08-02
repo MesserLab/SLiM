@@ -174,11 +174,42 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 #pragma mark Comparing EidosValues
 #pragma mark -
 
-// returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if >, with full type promotion
-int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
+EidosValueType EidosTypeForPromotion(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token)
 {
-	EidosValueType type1 = p_value1.Type();
-	EidosValueType type2 = p_value2.Type();
+	if ((p_type1 == EidosValueType::kValueVOID) || (p_type2 == EidosValueType::kValueVOID))
+		EIDOS_TERMINATION << "ERROR (EidosTypeForPromotion): (internal error) comparison with void is illegal." << EidosTerminate(p_blame_token);
+	if ((p_type1 == EidosValueType::kValueNULL) || (p_type2 == EidosValueType::kValueNULL))
+		EIDOS_TERMINATION << "ERROR (EidosTypeForPromotion): (internal error) comparison with NULL is illegal." << EidosTerminate(p_blame_token);
+	
+	// comparing one object to another is legal, but objects cannot be compared to other types
+	// note that comparisons between objects and non-objects are not flagged here;
+	// they error out later, when the object operand is cast to the other type
+	if ((p_type1 == EidosValueType::kValueObject) && (p_type2 == EidosValueType::kValueObject))
+		return EidosValueType::kValueObject;
+	
+	// string is the highest type, so we promote to string if either operand is a string
+	if ((p_type1 == EidosValueType::kValueString) || (p_type2 == EidosValueType::kValueString))
+		return EidosValueType::kValueString;
+	
+	// float is the next highest type, so we promote to float if either operand is a float
+	if ((p_type1 == EidosValueType::kValueFloat) || (p_type2 == EidosValueType::kValueFloat))
+		return EidosValueType::kValueFloat;
+	
+	// int is the next highest type, so we promote to int if either operand is a int
+	if ((p_type1 == EidosValueType::kValueInt) || (p_type2 == EidosValueType::kValueInt))
+		return EidosValueType::kValueInt;
+	
+	// logical is the next highest type, so we promote to logical if either operand is a logical
+	if ((p_type1 == EidosValueType::kValueLogical) || (p_type2 == EidosValueType::kValueLogical))
+		return EidosValueType::kValueLogical;
+	
+	// that's the end of the road; we should never reach this point
+	EIDOS_TERMINATION << "ERROR (EidosTypeForPromotion): (internal error) promotion involving type " << p_type1 << " and type " << p_type2 << " is undefined." << EidosTerminate(p_blame_token);
+}
+
+bool CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosComparisonOperator p_operator, const EidosToken *p_blame_token)
+{
+	EidosValueType type1 = p_value1.Type(), type2 = p_value2.Type();
 	
 	if ((type1 == EidosValueType::kValueVOID) || (type2 == EidosValueType::kValueVOID))
 		EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison with void is illegal." << EidosTerminate(p_blame_token);
@@ -191,7 +222,10 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 		EidosObjectElement *element1 = p_value1.ObjectElementAtIndex(p_index1, p_blame_token);
 		EidosObjectElement *element2 = p_value2.ObjectElementAtIndex(p_index2, p_blame_token);
 		
-		return (element1 == element2) ? 0 : -1;		// no relative ordering, just equality comparison; enforced in script_interpreter
+		if (p_operator == EidosComparisonOperator::kEqual)			return (element1 == element2);
+		else if (p_operator == EidosComparisonOperator::kNotEqual)	return (element1 != element2);
+		else
+			EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) objects may only be compared with == and !=." << EidosTerminate(p_blame_token);
 	}
 	
 	// string is the highest type, so we promote to string if either operand is a string
@@ -201,7 +235,14 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 		std::string string2 = p_value2.StringAtIndex(p_index2, p_blame_token);
 		int compare_result = string1.compare(string2);		// not guaranteed to be -1 / 0 / +1, just negative / 0 / positive
 		
-		return (compare_result < 0) ? -1 : ((compare_result > 0) ? 1 : 0);
+		switch (p_operator) {
+			case EidosComparisonOperator::kLess:			return (compare_result < 0);
+			case EidosComparisonOperator::kLessOrEqual:		return (compare_result <= 0);
+			case EidosComparisonOperator::kEqual:			return (compare_result == 0);
+			case EidosComparisonOperator::kGreaterOrEqual:	return (compare_result >= 0);
+			case EidosComparisonOperator::kGreater:			return (compare_result > 0);
+			case EidosComparisonOperator::kNotEqual:		return (compare_result != 0);
+		}
 	}
 	
 	// float is the next highest type, so we promote to float if either operand is a float
@@ -210,7 +251,14 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 		double float1 = p_value1.FloatAtIndex(p_index1, p_blame_token);
 		double float2 = p_value2.FloatAtIndex(p_index2, p_blame_token);
 		
-		return (float1 < float2) ? -1 : ((float1 > float2) ? 1 : 0);
+		switch (p_operator) {
+			case EidosComparisonOperator::kLess:			return (float1 < float2);
+			case EidosComparisonOperator::kLessOrEqual:		return (float1 <= float2);
+			case EidosComparisonOperator::kEqual:			return (float1 == float2);
+			case EidosComparisonOperator::kGreaterOrEqual:	return (float1 >= float2);
+			case EidosComparisonOperator::kGreater:			return (float1 > float2);
+			case EidosComparisonOperator::kNotEqual:		return (float1 != float2);
+		}
 	}
 	
 	// int is the next highest type, so we promote to int if either operand is a int
@@ -219,7 +267,14 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 		int64_t int1 = p_value1.IntAtIndex(p_index1, p_blame_token);
 		int64_t int2 = p_value2.IntAtIndex(p_index2, p_blame_token);
 		
-		return (int1 < int2) ? -1 : ((int1 > int2) ? 1 : 0);
+		switch (p_operator) {
+			case EidosComparisonOperator::kLess:			return (int1 < int2);
+			case EidosComparisonOperator::kLessOrEqual:		return (int1 <= int2);
+			case EidosComparisonOperator::kEqual:			return (int1 == int2);
+			case EidosComparisonOperator::kGreaterOrEqual:	return (int1 >= int2);
+			case EidosComparisonOperator::kGreater:			return (int1 > int2);
+			case EidosComparisonOperator::kNotEqual:		return (int1 != int2);
+		}
 	}
 	
 	// logical is the next highest type, so we promote to logical if either operand is a logical
@@ -228,85 +283,18 @@ int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValu
 		eidos_logical_t logical1 = p_value1.LogicalAtIndex(p_index1, p_blame_token);
 		eidos_logical_t logical2 = p_value2.LogicalAtIndex(p_index2, p_blame_token);
 		
-		return (logical1 < logical2) ? -1 : ((logical1 > logical2) ? 1 : 0);
+		switch (p_operator) {
+			case EidosComparisonOperator::kLess:			return (logical1 < logical2);
+			case EidosComparisonOperator::kLessOrEqual:		return (logical1 <= logical2);
+			case EidosComparisonOperator::kEqual:			return (logical1 == logical2);
+			case EidosComparisonOperator::kGreaterOrEqual:	return (logical1 >= logical2);
+			case EidosComparisonOperator::kGreater:			return (logical1 > logical2);
+			case EidosComparisonOperator::kNotEqual:		return (logical1 != logical2);
+		}
 	}
 	
 	// that's the end of the road; we should never reach this point
 	EIDOS_TERMINATION << "ERROR (CompareEidosValues): (internal error) comparison involving type " << type1 << " and type " << type2 << " is undefined." << EidosTerminate(p_blame_token);
-	return 0;
-}
-
-int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
-{
-	EidosObjectElement *element1 = p_value1.ObjectElementAtIndex(p_index1, p_blame_token);
-	EidosObjectElement *element2 = p_value2.ObjectElementAtIndex(p_index2, p_blame_token);
-	
-	return (element1 == element2) ? 0 : -1;		// no relative ordering, just equality comparison; enforced in script_interpreter
-}
-
-int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
-{
-	std::string string1 = p_value1.StringAtIndex(p_index1, p_blame_token);
-	std::string string2 = p_value2.StringAtIndex(p_index2, p_blame_token);
-	int compare_result = string1.compare(string2);		// not guaranteed to be -1 / 0 / +1, just negative / 0 / positive
-	
-	return (compare_result < 0) ? -1 : ((compare_result > 0) ? 1 : 0);
-}
-
-int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
-{
-	double float1 = p_value1.FloatAtIndex(p_index1, p_blame_token);
-	double float2 = p_value2.FloatAtIndex(p_index2, p_blame_token);
-	
-	return (float1 < float2) ? -1 : ((float1 > float2) ? 1 : 0);
-}
-
-int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
-{
-	int64_t int1 = p_value1.IntAtIndex(p_index1, p_blame_token);
-	int64_t int2 = p_value2.IntAtIndex(p_index2, p_blame_token);
-	
-	return (int1 < int2) ? -1 : ((int1 > int2) ? 1 : 0);
-}
-
-int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token)
-{
-	eidos_logical_t logical1 = p_value1.LogicalAtIndex(p_index1, p_blame_token);
-	eidos_logical_t logical2 = p_value2.LogicalAtIndex(p_index2, p_blame_token);
-	
-	return (logical1 < logical2) ? -1 : ((logical1 > logical2) ? 1 : 0);
-}
-
-EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token)
-{
-	if ((p_type1 == EidosValueType::kValueVOID) || (p_type2 == EidosValueType::kValueVOID))
-		EIDOS_TERMINATION << "ERROR (Eidos_GetCompareFunctionForTypes): (internal error) comparison with void is illegal." << EidosTerminate(p_blame_token);
-	if ((p_type1 == EidosValueType::kValueNULL) || (p_type2 == EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Eidos_GetCompareFunctionForTypes): (internal error) comparison with NULL is illegal." << EidosTerminate(p_blame_token);
-	
-	// comparing one object to another is legal, but objects cannot be compared to other types
-	if ((p_type1 == EidosValueType::kValueObject) && (p_type2 == EidosValueType::kValueObject))
-		return &CompareEidosValues_Object;
-	
-	// string is the highest type, so we promote to string if either operand is a string
-	if ((p_type1 == EidosValueType::kValueString) || (p_type2 == EidosValueType::kValueString))
-		return &CompareEidosValues_String;
-	
-	// float is the next highest type, so we promote to float if either operand is a float
-	if ((p_type1 == EidosValueType::kValueFloat) || (p_type2 == EidosValueType::kValueFloat))
-		return &CompareEidosValues_Float;
-	
-	// int is the next highest type, so we promote to int if either operand is a int
-	if ((p_type1 == EidosValueType::kValueInt) || (p_type2 == EidosValueType::kValueInt))
-		return &CompareEidosValues_Int;
-	
-	// logical is the next highest type, so we promote to logical if either operand is a logical
-	if ((p_type1 == EidosValueType::kValueLogical) || (p_type2 == EidosValueType::kValueLogical))
-		return &CompareEidosValues_Logical;
-	
-	// that's the end of the road; we should never reach this point
-	EIDOS_TERMINATION << "ERROR (Eidos_GetCompareFunctionForTypes): (internal error) comparison involving type " << p_type1 << " and type " << p_type2 << " is undefined." << EidosTerminate(p_blame_token);
-	return 0;
 }
 
 
@@ -1815,9 +1803,9 @@ void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const Ei
 void EidosValue_Float_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
-		std::sort(values_, values_ + count_);
+		std::sort(values_, values_ + count_, [](const double& a, const double& b) { return std::isnan(b) || (a < b); });
 	else
-		std::sort(values_, values_ + count_, std::greater<double>());
+		std::sort(values_, values_ + count_, [](const double& a, const double& b) { return std::isnan(b) || (a > b); });
 }
 
 EidosValue_Float_vector *EidosValue_Float_vector::reserve(size_t p_reserved_size)
