@@ -90,20 +90,26 @@ extern EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 
 // Comparing values is a bit complex, because we want it to be as fast as possible, but there are issues involved,
 // particularly type promotion; you can compare a string to integer, or less extremely, a float to an integer, and
-// the appropriate promotion of values needs to happen.  The first function here handles the general case; the
-// other functions allow optimization in bottlenecks.  Even more optimization is possible using type-specific
-// methods.  Returns -1 if value1[index1] < value2[index2], 0 if ==, 1 if value1[index1] > value2[index2].
-int CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
+// the appropriate promotion of values needs to happen.  The other issue is orderability; we used to use a scheme
+// here with comparison functions that returned -1/0/+1 for less-than/equal/greater-than, as is common is C++, but
+// the problem is that NAN values are unorderable according to the IEEE spec; NAN < x is false, but NAN > x is also
+// false, and NAN == x is also false.  So the old design was fundamentally flawed because it couldn't return the
+// correct IEEE values for NAN values.  Now we provide a general-purpose comparison function that takes an operator
+// enum so it can do the correct comparison, and we also provide a promotion function that tells the caller what
+// type the operands in a comparison would be promoted to, so the caller can do the comparisons themselves.  The
+// type-specific comparison functions are now gone.
+enum class EidosComparisonOperator : uint8_t
+{
+	kLess = 0,
+	kLessOrEqual,
+	kEqual,
+	kGreaterOrEqual,
+	kGreater,
+	kNotEqual
+};
 
-int CompareEidosValues_Object(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_String(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_Float(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_Int(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-int CompareEidosValues_Logical(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-
-typedef int (*EidosCompareFunctionPtr)(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, const EidosToken *p_blame_token);
-
-EidosCompareFunctionPtr Eidos_GetCompareFunctionForTypes(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token);
+EidosValueType EidosTypeForPromotion(EidosValueType p_type1, EidosValueType p_type2, const EidosToken *p_blame_token);
+bool CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosValue &p_value2, int p_index2, EidosComparisonOperator p_operator, const EidosToken *p_blame_token);
 
 
 #pragma mark -

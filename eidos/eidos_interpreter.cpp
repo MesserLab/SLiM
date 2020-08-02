@@ -4229,7 +4229,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosValueType promotion_type = EidosTypeForPromotion(first_child_type, second_child_type, operator_token);
 		
 		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
 		int first_child_dimcount = first_child_value->DimensionCount();
@@ -4244,12 +4244,22 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
+				bool equal;
+				
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: equal = (first_child_value->LogicalAtIndex(0, operator_token) == second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		equal = (first_child_value->IntAtIndex(0, operator_token) == second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	equal = (first_child_value->FloatAtIndex(0, operator_token) == second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	equal = (first_child_value->StringAtIndex(0, operator_token) == second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	equal = (first_child_value->ObjectElementAtIndex(0, operator_token) == second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: equal = false; break;		// never hit
+				}
 				
 				if (!result_dim_source)
-					result_SP = (compare_result == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+					result_SP = equal ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{compare_result == 0});	// so we can modify it
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{equal});	// so we can modify it
 			}
 			else
 			{
@@ -4287,7 +4297,21 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				{
 					// General case
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						logical_result->set_logical_no_check(compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token) == 0, value_index);
+					{
+						bool equal;
+						
+						switch (promotion_type)
+						{
+							case EidosValueType::kValueLogical: equal = (first_child_value->LogicalAtIndex(value_index, operator_token) == second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueInt:		equal = (first_child_value->IntAtIndex(value_index, operator_token) == second_child_value->IntAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueFloat:	equal = (first_child_value->FloatAtIndex(value_index, operator_token) == second_child_value->FloatAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueString:	equal = (first_child_value->StringAtIndex(value_index, operator_token) == second_child_value->StringAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueObject:	equal = (first_child_value->ObjectElementAtIndex(value_index, operator_token) == second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+							default: equal = false; break;		// never hit
+						}
+						
+						logical_result->set_logical_no_check(equal, value_index);
+					}
 				}
 				
 				result_SP = std::move(logical_result_SP);
@@ -4298,7 +4322,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(second_child_count);
 			
-			if ((compareFunc == &CompareEidosValues_Float) && (second_child_type == EidosValueType::kValueFloat))
+			if ((promotion_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float1 = first_child_value->FloatAtIndex(0, operator_token);
@@ -4307,7 +4331,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(float1 == float_data[value_index], value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Int) && (second_child_type == EidosValueType::kValueInt))
+			else if ((promotion_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int1 = first_child_value->IntAtIndex(0, operator_token);
@@ -4316,7 +4340,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(int1 == int_data[value_index], value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Object) && (second_child_type == EidosValueType::kValueObject))
+			else if ((promotion_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
@@ -4329,7 +4353,21 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
-					logical_result->set_logical_no_check(compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token) == 0, value_index);
+				{
+					bool equal;
+					
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: equal = (first_child_value->LogicalAtIndex(0, operator_token) == second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueInt:		equal = (first_child_value->IntAtIndex(0, operator_token) == second_child_value->IntAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueFloat:	equal = (first_child_value->FloatAtIndex(0, operator_token) == second_child_value->FloatAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueString:	equal = (first_child_value->StringAtIndex(0, operator_token) == second_child_value->StringAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueObject:	equal = (first_child_value->ObjectElementAtIndex(0, operator_token) == second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+						default: equal = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(equal, value_index);
+				}
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4339,7 +4377,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(first_child_count);
 			
-			if ((compareFunc == &CompareEidosValues_Float) && (first_child_type == EidosValueType::kValueFloat))
+			if ((promotion_type == EidosValueType::kValueFloat) && (first_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float2 = second_child_value->FloatAtIndex(0, operator_token);
@@ -4348,7 +4386,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(float_data[value_index] == float2, value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Int) && (first_child_type == EidosValueType::kValueInt))
+			else if ((promotion_type == EidosValueType::kValueInt) && (first_child_type == EidosValueType::kValueInt))
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int2 = second_child_value->IntAtIndex(0, operator_token);
@@ -4357,7 +4395,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(int_data[value_index] == int2, value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Object) && (first_child_type == EidosValueType::kValueObject))
+			else if ((promotion_type == EidosValueType::kValueObject) && (first_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
@@ -4370,7 +4408,21 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					logical_result->set_logical_no_check(compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token) == 0, value_index);
+				{
+					bool equal;
+					
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: equal = (first_child_value->LogicalAtIndex(value_index, operator_token) == second_child_value->LogicalAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueInt:		equal = (first_child_value->IntAtIndex(value_index, operator_token) == second_child_value->IntAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueFloat:	equal = (first_child_value->FloatAtIndex(value_index, operator_token) == second_child_value->FloatAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueString:	equal = (first_child_value->StringAtIndex(value_index, operator_token) == second_child_value->StringAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueObject:	equal = (first_child_value->ObjectElementAtIndex(value_index, operator_token) == second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+						default: equal = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(equal, value_index);
+				}
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4416,7 +4468,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosValueType promotion_type = EidosTypeForPromotion(first_child_type, second_child_type, operator_token);
 		
 		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
 		int first_child_dimcount = first_child_value->DimensionCount();
@@ -4431,12 +4483,22 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
+				bool lt;
+				
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: lt = (first_child_value->LogicalAtIndex(0, operator_token) < second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		lt = (first_child_value->IntAtIndex(0, operator_token) < second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	lt = (first_child_value->FloatAtIndex(0, operator_token) < second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	lt = (first_child_value->StringAtIndex(0, operator_token) < second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	lt = (first_child_value->ObjectElementAtIndex(0, operator_token) < second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: lt = false; break;		// never hit
+				}
 				
 				if (!result_dim_source)
-					result_SP = (compare_result == -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+					result_SP = lt ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{compare_result == -1});	// so we can modify it
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{lt});	// so we can modify it
 			}
 			else
 			{
@@ -4445,9 +4507,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
+					bool lt;
 					
-					logical_result->set_logical_no_check(compare_result == -1, value_index);
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: lt = (first_child_value->LogicalAtIndex(value_index, operator_token) < second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueInt:		lt = (first_child_value->IntAtIndex(value_index, operator_token) < second_child_value->IntAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueFloat:	lt = (first_child_value->FloatAtIndex(value_index, operator_token) < second_child_value->FloatAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueString:	lt = (first_child_value->StringAtIndex(value_index, operator_token) < second_child_value->StringAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueObject:	lt = (first_child_value->ObjectElementAtIndex(value_index, operator_token) < second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+						default: lt = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(lt, value_index);
 				}
 				
 				result_SP = std::move(logical_result_SP);
@@ -4460,9 +4532,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
+				bool lt;
 				
-				logical_result->set_logical_no_check(compare_result == -1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: lt = (first_child_value->LogicalAtIndex(0, operator_token) < second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueInt:		lt = (first_child_value->IntAtIndex(0, operator_token) < second_child_value->IntAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueFloat:	lt = (first_child_value->FloatAtIndex(0, operator_token) < second_child_value->FloatAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueString:	lt = (first_child_value->StringAtIndex(0, operator_token) < second_child_value->StringAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueObject:	lt = (first_child_value->ObjectElementAtIndex(0, operator_token) < second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+					default: lt = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(lt, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4474,9 +4556,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
+				bool lt;
 				
-				logical_result->set_logical_no_check(compare_result == -1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: lt = (first_child_value->LogicalAtIndex(value_index, operator_token) < second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		lt = (first_child_value->IntAtIndex(value_index, operator_token) < second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	lt = (first_child_value->FloatAtIndex(value_index, operator_token) < second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	lt = (first_child_value->StringAtIndex(value_index, operator_token) < second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	lt = (first_child_value->ObjectElementAtIndex(value_index, operator_token) < second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: lt = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(lt, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4523,7 +4615,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosValueType promotion_type = EidosTypeForPromotion(first_child_type, second_child_type, operator_token);
 		
 		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
 		int first_child_dimcount = first_child_value->DimensionCount();
@@ -4538,12 +4630,22 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
+				bool lteq;
+				
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: lteq = (first_child_value->LogicalAtIndex(0, operator_token) <= second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		lteq = (first_child_value->IntAtIndex(0, operator_token) <= second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	lteq = (first_child_value->FloatAtIndex(0, operator_token) <= second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	lteq = (first_child_value->StringAtIndex(0, operator_token) <= second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	lteq = (first_child_value->ObjectElementAtIndex(0, operator_token) <= second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: lteq = false; break;		// never hit
+				}
 				
 				if (!result_dim_source)
-					result_SP = (compare_result != 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+					result_SP = lteq ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{compare_result != 1});	// so we can modify it
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{lteq});	// so we can modify it
 			}
 			else
 			{
@@ -4552,9 +4654,19 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
+					bool lteq;
 					
-					logical_result->set_logical_no_check(compare_result != 1, value_index);
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: lteq = (first_child_value->LogicalAtIndex(value_index, operator_token) <= second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueInt:		lteq = (first_child_value->IntAtIndex(value_index, operator_token) <= second_child_value->IntAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueFloat:	lteq = (first_child_value->FloatAtIndex(value_index, operator_token) <= second_child_value->FloatAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueString:	lteq = (first_child_value->StringAtIndex(value_index, operator_token) <= second_child_value->StringAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueObject:	lteq = (first_child_value->ObjectElementAtIndex(value_index, operator_token) <= second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+						default: lteq = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(lteq, value_index);
 				}
 				
 				result_SP = std::move(logical_result_SP);
@@ -4567,9 +4679,19 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
+				bool lteq;
 				
-				logical_result->set_logical_no_check(compare_result != 1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: lteq = (first_child_value->LogicalAtIndex(0, operator_token) <= second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueInt:		lteq = (first_child_value->IntAtIndex(0, operator_token) <= second_child_value->IntAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueFloat:	lteq = (first_child_value->FloatAtIndex(0, operator_token) <= second_child_value->FloatAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueString:	lteq = (first_child_value->StringAtIndex(0, operator_token) <= second_child_value->StringAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueObject:	lteq = (first_child_value->ObjectElementAtIndex(0, operator_token) <= second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+					default: lteq = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(lteq, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4581,9 +4703,19 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
+				bool lteq;
 				
-				logical_result->set_logical_no_check(compare_result != 1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: lteq = (first_child_value->LogicalAtIndex(value_index, operator_token) <= second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		lteq = (first_child_value->IntAtIndex(value_index, operator_token) <= second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	lteq = (first_child_value->FloatAtIndex(value_index, operator_token) <= second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	lteq = (first_child_value->StringAtIndex(value_index, operator_token) <= second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	lteq = (first_child_value->ObjectElementAtIndex(value_index, operator_token) <= second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: lteq = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(lteq, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4630,7 +4762,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosValueType promotion_type = EidosTypeForPromotion(first_child_type, second_child_type, operator_token);
 		
 		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
 		int first_child_dimcount = first_child_value->DimensionCount();
@@ -4645,12 +4777,22 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
+				bool gt;
+				
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: gt = (first_child_value->LogicalAtIndex(0, operator_token) > second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		gt = (first_child_value->IntAtIndex(0, operator_token) > second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	gt = (first_child_value->FloatAtIndex(0, operator_token) > second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	gt = (first_child_value->StringAtIndex(0, operator_token) > second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	gt = (first_child_value->ObjectElementAtIndex(0, operator_token) > second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: gt = false; break;		// never hit
+				}
 				
 				if (!result_dim_source)
-					result_SP = (compare_result == 1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+					result_SP = gt ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{compare_result == 1});	// so we can modify it
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{gt});	// so we can modify it
 			}
 			else
 			{
@@ -4659,9 +4801,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
+					bool gt;
 					
-					logical_result->set_logical_no_check(compare_result == 1, value_index);
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: gt = (first_child_value->LogicalAtIndex(value_index, operator_token) > second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueInt:		gt = (first_child_value->IntAtIndex(value_index, operator_token) > second_child_value->IntAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueFloat:	gt = (first_child_value->FloatAtIndex(value_index, operator_token) > second_child_value->FloatAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueString:	gt = (first_child_value->StringAtIndex(value_index, operator_token) > second_child_value->StringAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueObject:	gt = (first_child_value->ObjectElementAtIndex(value_index, operator_token) > second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+						default: gt = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(gt, value_index);
 				}
 				
 				result_SP = std::move(logical_result_SP);
@@ -4674,9 +4826,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
+				bool gt;
 				
-				logical_result->set_logical_no_check(compare_result == 1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: gt = (first_child_value->LogicalAtIndex(0, operator_token) > second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueInt:		gt = (first_child_value->IntAtIndex(0, operator_token) > second_child_value->IntAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueFloat:	gt = (first_child_value->FloatAtIndex(0, operator_token) > second_child_value->FloatAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueString:	gt = (first_child_value->StringAtIndex(0, operator_token) > second_child_value->StringAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueObject:	gt = (first_child_value->ObjectElementAtIndex(0, operator_token) > second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+					default: gt = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(gt, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4688,9 +4850,19 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
+				bool gt;
 				
-				logical_result->set_logical_no_check(compare_result == 1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: gt = (first_child_value->LogicalAtIndex(value_index, operator_token) > second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		gt = (first_child_value->IntAtIndex(value_index, operator_token) > second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	gt = (first_child_value->FloatAtIndex(value_index, operator_token) > second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	gt = (first_child_value->StringAtIndex(value_index, operator_token) > second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	gt = (first_child_value->ObjectElementAtIndex(value_index, operator_token) > second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: gt = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(gt, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4737,7 +4909,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosValueType promotion_type = EidosTypeForPromotion(first_child_type, second_child_type, operator_token);
 		
 		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
 		int first_child_dimcount = first_child_value->DimensionCount();
@@ -4752,12 +4924,22 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
+				bool gteq;
+				
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: gteq = (first_child_value->LogicalAtIndex(0, operator_token) >= second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		gteq = (first_child_value->IntAtIndex(0, operator_token) >= second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	gteq = (first_child_value->FloatAtIndex(0, operator_token) >= second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	gteq = (first_child_value->StringAtIndex(0, operator_token) >= second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	gteq = (first_child_value->ObjectElementAtIndex(0, operator_token) >= second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: gteq = false; break;		// never hit
+				}
 				
 				if (!result_dim_source)
-					result_SP = (compare_result != -1) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+					result_SP = gteq ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{compare_result != -1});	// so we can modify it
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{gteq});	// so we can modify it
 			}
 			else
 			{
@@ -4766,9 +4948,19 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
-					int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token);
+					bool gteq;
 					
-					logical_result->set_logical_no_check(compare_result != -1, value_index);
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: gteq = (first_child_value->LogicalAtIndex(value_index, operator_token) >= second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueInt:		gteq = (first_child_value->IntAtIndex(value_index, operator_token) >= second_child_value->IntAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueFloat:	gteq = (first_child_value->FloatAtIndex(value_index, operator_token) >= second_child_value->FloatAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueString:	gteq = (first_child_value->StringAtIndex(value_index, operator_token) >= second_child_value->StringAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueObject:	gteq = (first_child_value->ObjectElementAtIndex(value_index, operator_token) >= second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+						default: gteq = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(gteq, value_index);
 				}
 				
 				result_SP = std::move(logical_result_SP);
@@ -4781,9 +4973,19 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token);
+				bool gteq;
 				
-				logical_result->set_logical_no_check(compare_result != -1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: gteq = (first_child_value->LogicalAtIndex(0, operator_token) >= second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueInt:		gteq = (first_child_value->IntAtIndex(0, operator_token) >= second_child_value->IntAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueFloat:	gteq = (first_child_value->FloatAtIndex(0, operator_token) >= second_child_value->FloatAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueString:	gteq = (first_child_value->StringAtIndex(0, operator_token) >= second_child_value->StringAtIndex(value_index, operator_token)); break;
+					case EidosValueType::kValueObject:	gteq = (first_child_value->ObjectElementAtIndex(0, operator_token) >= second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+					default: gteq = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(gteq, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4795,9 +4997,19 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
-				int compare_result = compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token);
+				bool gteq;
 				
-				logical_result->set_logical_no_check(compare_result != -1, value_index);
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: gteq = (first_child_value->LogicalAtIndex(value_index, operator_token) >= second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		gteq = (first_child_value->IntAtIndex(value_index, operator_token) >= second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	gteq = (first_child_value->FloatAtIndex(value_index, operator_token) >= second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	gteq = (first_child_value->StringAtIndex(value_index, operator_token) >= second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	gteq = (first_child_value->ObjectElementAtIndex(value_index, operator_token) >= second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: gteq = false; break;		// never hit
+				}
+				
+				logical_result->set_logical_no_check(gteq, value_index);
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4842,7 +5054,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		// both operands are non-NULL, so we're doing a real comparison
 		int first_child_count = first_child_value->Count();
 		int second_child_count = second_child_value->Count();
-		EidosCompareFunctionPtr compareFunc = Eidos_GetCompareFunctionForTypes(first_child_type, second_child_type, operator_token);
+		EidosValueType promotion_type = EidosTypeForPromotion(first_child_type, second_child_type, operator_token);
 		
 		// matrices/arrays must be conformable, and we need to decide here which operand's dimensionality will be used for the result
 		int first_child_dimcount = first_child_value->DimensionCount();
@@ -4857,12 +5069,23 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
-				int compare_result = compareFunc(*first_child_value, 0, *second_child_value, 0, operator_token);
+				bool notequal;
+				
+				switch (promotion_type)
+				{
+					case EidosValueType::kValueLogical: notequal = (first_child_value->LogicalAtIndex(0, operator_token) != second_child_value->LogicalAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueInt:		notequal = (first_child_value->IntAtIndex(0, operator_token) != second_child_value->IntAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueFloat:	notequal = (first_child_value->FloatAtIndex(0, operator_token) != second_child_value->FloatAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueString:	notequal = (first_child_value->StringAtIndex(0, operator_token) != second_child_value->StringAtIndex(0, operator_token)); break;
+					case EidosValueType::kValueObject:	notequal = (first_child_value->ObjectElementAtIndex(0, operator_token) != second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+					default: notequal = false; break;		// never hit
+				}
+				
 				
 				if (!result_dim_source)
-					result_SP = (compare_result != 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+					result_SP = notequal ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{compare_result != 0});	// so we can modify it
+					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{notequal});	// so we can modify it
 			}
 			else
 			{
@@ -4900,7 +5123,21 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				{
 					// General case
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						logical_result->set_logical_no_check(compareFunc(*first_child_value, value_index, *second_child_value, value_index, operator_token) != 0, value_index);
+					{
+						bool notequal;
+						
+						switch (promotion_type)
+						{
+							case EidosValueType::kValueLogical: notequal = (first_child_value->LogicalAtIndex(value_index, operator_token) != second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueInt:		notequal = (first_child_value->IntAtIndex(value_index, operator_token) != second_child_value->IntAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueFloat:	notequal = (first_child_value->FloatAtIndex(value_index, operator_token) != second_child_value->FloatAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueString:	notequal = (first_child_value->StringAtIndex(value_index, operator_token) != second_child_value->StringAtIndex(value_index, operator_token)); break;
+							case EidosValueType::kValueObject:	notequal = (first_child_value->ObjectElementAtIndex(value_index, operator_token) != second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+							default: notequal = false; break;		// never hit
+						}
+						
+						logical_result->set_logical_no_check(notequal, value_index);
+					}
 				}
 				
 				result_SP = std::move(logical_result_SP);
@@ -4911,7 +5148,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(second_child_count);
 			
-			if ((compareFunc == &CompareEidosValues_Float) && (second_child_type == EidosValueType::kValueFloat))
+			if ((promotion_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float1 = first_child_value->FloatAtIndex(0, operator_token);
@@ -4920,7 +5157,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(float1 != float_data[value_index], value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Int) && (second_child_type == EidosValueType::kValueInt))
+			else if ((promotion_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int1 = first_child_value->IntAtIndex(0, operator_token);
@@ -4929,7 +5166,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(int1 != int_data[value_index], value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Object) && (second_child_type == EidosValueType::kValueObject))
+			else if ((promotion_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
@@ -4942,7 +5179,21 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
-					logical_result->set_logical_no_check(compareFunc(*first_child_value, 0, *second_child_value, value_index, operator_token) != 0, value_index);
+				{
+					bool notequal;
+					
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: notequal = (first_child_value->LogicalAtIndex(0, operator_token) != second_child_value->LogicalAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueInt:		notequal = (first_child_value->IntAtIndex(0, operator_token) != second_child_value->IntAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueFloat:	notequal = (first_child_value->FloatAtIndex(0, operator_token) != second_child_value->FloatAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueString:	notequal = (first_child_value->StringAtIndex(0, operator_token) != second_child_value->StringAtIndex(value_index, operator_token)); break;
+						case EidosValueType::kValueObject:	notequal = (first_child_value->ObjectElementAtIndex(0, operator_token) != second_child_value->ObjectElementAtIndex(value_index, operator_token)); break;
+						default: notequal = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(notequal, value_index);
+				}
 			}
 			
 			result_SP = std::move(logical_result_SP);
@@ -4952,7 +5203,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 			EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(first_child_count);
 			
-			if ((compareFunc == &CompareEidosValues_Float) && (first_child_type == EidosValueType::kValueFloat))
+			if ((promotion_type == EidosValueType::kValueFloat) && (first_child_type == EidosValueType::kValueFloat))
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float2 = second_child_value->FloatAtIndex(0, operator_token);
@@ -4961,7 +5212,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(float_data[value_index] != float2, value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Int) && (first_child_type == EidosValueType::kValueInt))
+			else if ((promotion_type == EidosValueType::kValueInt) && (first_child_type == EidosValueType::kValueInt))
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int2 = second_child_value->IntAtIndex(0, operator_token);
@@ -4970,7 +5221,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(int_data[value_index] != int2, value_index);
 			}
-			else if ((compareFunc == &CompareEidosValues_Object) && (first_child_type == EidosValueType::kValueObject))
+			else if ((promotion_type == EidosValueType::kValueObject) && (first_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObjectElement *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
@@ -4983,7 +5234,21 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// General case
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					logical_result->set_logical_no_check(compareFunc(*first_child_value, value_index, *second_child_value, 0, operator_token) != 0, value_index);
+				{
+					bool notequal;
+					
+					switch (promotion_type)
+					{
+						case EidosValueType::kValueLogical: notequal = (first_child_value->LogicalAtIndex(value_index, operator_token) != second_child_value->LogicalAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueInt:		notequal = (first_child_value->IntAtIndex(value_index, operator_token) != second_child_value->IntAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueFloat:	notequal = (first_child_value->FloatAtIndex(value_index, operator_token) != second_child_value->FloatAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueString:	notequal = (first_child_value->StringAtIndex(value_index, operator_token) != second_child_value->StringAtIndex(0, operator_token)); break;
+						case EidosValueType::kValueObject:	notequal = (first_child_value->ObjectElementAtIndex(value_index, operator_token) != second_child_value->ObjectElementAtIndex(0, operator_token)); break;
+						default: notequal = false; break;		// never hit
+					}
+					
+					logical_result->set_logical_no_check(notequal, value_index);
+				}
 			}
 			
 			result_SP = std::move(logical_result_SP);

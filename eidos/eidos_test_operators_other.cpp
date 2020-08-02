@@ -44,6 +44,8 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptRaise("x = 1:5; x[T];", 10, "operator requires that the size()");
 	EidosAssertScriptRaise("x = 1:5; x[c(T, T)];", 10, "operator requires that the size()");
 	EidosAssertScriptRaise("x = 1:5; x[c(T, F, T)];", 10, "operator requires that the size()");
+	EidosAssertScriptRaise("x = 1:5; x[NAN];", 10, "cannot be converted");
+	EidosAssertScriptRaise("x = 1:5; x[c(0.0, 2, NAN)];", 10, "cannot be converted");
 	EidosAssertScriptSuccess("x = 1:5; x[c(T, F, T, F, T)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 5}));
 	EidosAssertScriptSuccess("x = 1:5; x[c(T, T, T, T, T)];", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; x[c(F, F, F, F, F)];", gStaticEidosValue_Integer_ZeroVec);
@@ -214,6 +216,8 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x = 1:5; x[c(7,8)] = 7; x;", 10, "out-of-range index");
 	EidosAssertScriptSuccess("x = 1:5; x[c(2.0,3)] = c(9, 5); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 9, 5, 5}));
 	EidosAssertScriptRaise("x = 1:5; x[c(7.0,8)] = 7; x;", 10, "out-of-range index");
+	EidosAssertScriptRaise("x = 1:5; x[NAN] = 3;", 10, "cannot be converted");
+	EidosAssertScriptRaise("x = 1:5; x[c(0.0, 2, NAN)] = c(5, 7, 3);", 10, "cannot be converted");
 	
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0)] = 3;", 10, "matrix or array index operand is not supported");
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0:2)] = 3;", 10, "matrix or array index operand is not supported");
@@ -501,6 +505,7 @@ void _RunOperatorLogicalAndTests(void)
 	EidosAssertScriptSuccess("T&INF&F;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptRaise("T&NAN&F;", 1, "cannot be converted");
 	EidosAssertScriptRaise("NAN&T&T;", 3, "cannot be converted");
+	EidosAssertScriptRaise("c(7.0,0.0,5.0,0.0) & c(T,T,NAN,F);", 19, "cannot be converted");
 	EidosAssertScriptSuccess("'foo'&T&T;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("T&'foo'&F;", gStaticEidosValue_LogicalF);
 	EidosAssertScriptSuccess("T&F&'foo';", gStaticEidosValue_LogicalF);
@@ -617,6 +622,7 @@ void _RunOperatorLogicalOrTests(void)
 	EidosAssertScriptSuccess("T|INF|F;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("T|NAN|F;", 1, "cannot be converted");
 	EidosAssertScriptRaise("NAN|T|T;", 3, "cannot be converted");
+	EidosAssertScriptRaise("c(7.0,0.0,5.0,0.0) | c(T,T,NAN,F);", 19, "cannot be converted");
 	EidosAssertScriptSuccess("'foo'|T|T;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("T|'foo'|F;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("T|F|'foo';", gStaticEidosValue_LogicalT);
@@ -721,6 +727,7 @@ void _RunOperatorTernaryConditionalTests(void)
 	EidosAssertScriptRaise("6 == 6:9 ? 23 else 42;", 9, "condition for ternary conditional has size()");
 	EidosAssertScriptSuccess("(6 == (6:9))[0] ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
 	EidosAssertScriptSuccess("(6 == (6:9))[1] ? 23 else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	EidosAssertScriptRaise("NAN ? 23 else 42;", 4, "cannot be converted");
 	EidosAssertScriptRaise("_Test(6) ? 23 else 42;", 9, "cannot be converted");
 	EidosAssertScriptRaise("NULL ? 23 else 42;", 5, "condition for ternary conditional has size()");
 	EidosAssertScriptRaise("T ? 23; else 42;", 6, "expected 'else'");
@@ -751,6 +758,7 @@ void _RunKeywordIfTests(void)
 	EidosAssertScriptRaise("if (6 == (6:9)) 23;", 0, "condition for if statement has size()");
 	EidosAssertScriptSuccess("if ((6 == (6:9))[0]) 23;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
 	EidosAssertScriptSuccess("if ((6 == (6:9))[1]) 23;", gStaticEidosValueVOID);
+	EidosAssertScriptRaise("if (NAN) 23;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (_Test(6)) 23;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (NULL) 23;", 0, "condition for if statement has size()");
 	EidosAssertScriptSuccess("if (matrix(1)) 23;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
@@ -767,6 +775,7 @@ void _RunKeywordIfTests(void)
 	EidosAssertScriptRaise("if (6 == (6:9)) 23; else 42;", 0, "condition for if statement has size()");
 	EidosAssertScriptSuccess("if ((6 == (6:9))[0]) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
 	EidosAssertScriptSuccess("if ((6 == (6:9))[1]) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(42)));
+	EidosAssertScriptRaise("if (NAN) 23; else 42;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (_Test(6)) 23; else 42;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (NULL) 23; else 42;", 0, "condition for if statement has size()");
 	EidosAssertScriptSuccess("if (matrix(1)) 23; else 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(23)));
@@ -786,6 +795,7 @@ void _RunKeywordDoTests(void)
 	EidosAssertScriptRaise("x=200; do x=x*2; while (x < 100:102); x;", 7, "condition for do-while loop has size()");
 	EidosAssertScriptSuccess("x=1; do x=x*2; while ((x < 100:102)[0]); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(128)));
 	EidosAssertScriptSuccess("x=200; do x=x*2; while ((x < 100:102)[0]); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(400)));
+	EidosAssertScriptRaise("x=200; do x=x*2; while (NAN); x;", 7, "cannot be converted");
 	EidosAssertScriptRaise("x=200; do x=x*2; while (_Test(6)); x;", 7, "cannot be converted");
 	EidosAssertScriptRaise("x=200; do x=x*2; while (NULL); x;", 7, "condition for do-while loop has size()");
 	EidosAssertScriptSuccess("x=10; do x=x-1; while (x); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));
@@ -803,6 +813,7 @@ void _RunKeywordWhileTests(void)
 	EidosAssertScriptRaise("x=200; while (x < 100:102) x=x*2; x;", 7, "condition for while loop has size()");
 	EidosAssertScriptSuccess("x=1; while ((x < 100:102)[0]) x=x*2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(128)));
 	EidosAssertScriptSuccess("x=200; while ((x < 100:102)[0]) x=x*2; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(200)));
+	EidosAssertScriptRaise("x=200; while (NAN) x=x*2; x;", 7, "cannot be converted");
 	EidosAssertScriptRaise("x=200; while (_Test(6)) x=x*2; x;", 7, "cannot be converted");
 	EidosAssertScriptRaise("x=200; while (NULL) x=x*2; x;", 7, "condition for while loop has size()");
 	EidosAssertScriptSuccess("x=10; while (x) x=x-1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0)));

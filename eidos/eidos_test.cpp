@@ -123,14 +123,10 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	//}
 	else
 	{
-		for (int value_index = 0; value_index < result->Count(); ++value_index)
+		if (!IdenticalEidosValues(result.get(), p_correct_result.get(), false))		// don't compare dimensions; we have no easy way to specify matrix/array results
 		{
-			if (CompareEidosValues(*result, value_index, *p_correct_result, value_index, nullptr) != 0)
-			{
-				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << std::endl;
-				
-				return;
-			}
+			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : mismatched values (" << *result << "), expected (" << *p_correct_result << ")" << std::endl;
+			return;
 		}
 		
 		gEidosTestFailureCount--;	// correct for our assumption of failure above
