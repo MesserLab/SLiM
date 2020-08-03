@@ -19,6 +19,7 @@ development head:
 		the sort() behavior is now sorts NANs to the end of the vector; this is equivalent to R's with na.last=T set (which is not R's default!)
 		comparison operators now obey the IEEE rules for unorderability of NAN; if x is NAN, x<y, x>y, x<=y, x>=y, x==y are all F, x!=y is T
 	disallow adding mutations with addNewMutation() / addNewDrawnMutation() / addMutations() to individuals of age > 0 prevent tree sequence inconsistencies; see issue #102
+	extend codonsToAminoAcids() to be able to return integer codes for the amino acids, if passed long=0
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
