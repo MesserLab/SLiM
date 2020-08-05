@@ -52,7 +52,7 @@
 #include "gsl_errno.h"
 #include "gsl_cdf.h"
 
-#include "omp.h"
+#include "eidos_openmp.h"
 
 #include "../eidos_zlib/zlib.h"
 
@@ -3504,7 +3504,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const int64_t *int_data = x_value->IntVector()->data();
 			double sum_d = 0;
 			
-#pragma omp parallel for schedule(static) default(none) shared(int_data, x_count) reduction(+: sum_d) if(x_count >= 2000)
+#pragma omp parallel for schedule(static) default(none) shared(int_data, x_count) reduction(+: sum_d) if(x_count >= EIDOS_OMPMIN_SUM_INTEGER)
 			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_integer.txt
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum_d += int_data[value_index];
@@ -3532,7 +3532,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 			const double *float_data = x_value->FloatVector()->data();
 			double sum = 0;
 			
-#pragma omp parallel for schedule(static) default(none) shared(float_data, x_count) reduction(+: sum) if(x_count >= 2000)
+#pragma omp parallel for schedule(static) default(none) shared(float_data, x_count) reduction(+: sum) if(x_count >= EIDOS_OMPMIN_SUM_FLOAT)
 			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_float.txt
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
@@ -3546,7 +3546,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 		const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
 		int64_t sum = 0;
 		
-#pragma omp parallel for schedule(static) default(none) shared(logical_data, x_count) reduction(+: sum) if(x_count >= 6000)
+#pragma omp parallel for schedule(static) default(none) shared(logical_data, x_count) reduction(+: sum) if(x_count >= EIDOS_OMPMIN_SUM_LOGICAL)
 		// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_logical.txt
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			sum += logical_data[value_index];

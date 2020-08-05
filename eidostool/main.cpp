@@ -21,7 +21,7 @@
 #include "eidos_interpreter.h"
 #include "eidos_test.h"
 
-#include "omp.h"
+#include "eidos_openmp.h"
 #ifdef _OPENMP
 #warning Building eidos with OpenMP enabled
 #endif

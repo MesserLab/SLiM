@@ -73,6 +73,10 @@
 #include "eidos_test.h"
 #include "slim_test.h"
 
+#ifdef _OPENMP
+#error Building QtSLiM to run in parallel is not currently supported.
+#endif
+
 
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
 {

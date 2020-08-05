@@ -32,6 +32,9 @@
 
 #include <stdexcept>
 
+#ifdef _OPENMP
+#error Building EidosScribe to run in parallel is not currently supported.
+#endif
 
 @interface EidosAppDelegate () <NSApplicationDelegate, EidosConsoleWindowControllerDelegate>
 {
@@ -70,7 +73,8 @@
 #ifdef _OPENMP
 	// Right now EidosScribe is set to be single-threaded; multithreading in the GUI doesn't seem to work well, because the threads
 	// have to sleep when inactive, which seems to completely kill the performance – it ends up slower than single-threaded
-	//Eidos_WarmUpOpenMP(&std::cout, true, Eidos_PhysicalCoreCount(), false);	// avoid hyperthreading (it plays poorly with sleeping threads), let threads sleep
+	// BCH 4 August 2020: Note that I have disallowed building the GUI apps multithreaded at all, with #error
+	// directives in their code, so this is dead code for the time being.
 	Eidos_WarmUpOpenMP(&std::cout, true, 1, false);								// single-threaded, let threads sleep
 #endif
 	Eidos_WarmUp();

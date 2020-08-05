@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1130"
+   LastUpgradeVersion = "1150"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -32,7 +32,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9826634F1A3BABD300A0CBBF"
             BuildableName = "slim"
-            BlueprintName = "SLiM"
+            BlueprintName = "slim"
             ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -55,7 +55,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9826634F1A3BABD300A0CBBF"
             BuildableName = "slim"
-            BlueprintName = "SLiM"
+            BlueprintName = "slim"
             ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -77,12 +77,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-long"
+            argument = "-long 0"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-seed 1"
-            isEnabled = "NO">
+            argument = "-seed 0"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-mem"
@@ -109,7 +109,15 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&quot;/Users/bhaller/Desktop/codon_tests.slim&quot;"
+            argument = "&quot;/Users/bch59/Desktop/default.slim&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-maxthreads 4"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;/Users/bch59/Desktop/SLiM-Benchmarks/models/T_set_fitnessScaling_1.slim&quot;"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -138,7 +146,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9826634F1A3BABD300A0CBBF"
             BuildableName = "slim"
-            BlueprintName = "SLiM"
+            BlueprintName = "slim"
             ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

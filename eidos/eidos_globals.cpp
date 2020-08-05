@@ -60,7 +60,7 @@
 // #include <sys/types.h>
 // #include <sys/sysctl.h>
 
-#include "omp.h"
+#include "eidos_openmp.h"
 #ifdef _OPENMP
 #include <stdlib.h>
 #endif
@@ -216,25 +216,6 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
 	}
 	
-	// Kick OpenMP to warm up the thread pool; this was intended to make it so the first timing tests after startup provides a more accurate result
-	// However, it seems to have no effect on that, and the first timing test still logs a much longer time than subsequent tests; odd
-	/*
-	double float_data[1024];
-	double start = omp_get_wtime();
-	double sum = 0;
-	
-	for (int i = 0; i < 1024; ++i)
-		float_data[i] = i + 1.2;
-	
-#pragma omp parallel for default(none) shared(float_data) reduction(+: sum)
-	for (int value_index = 0; value_index < 1024; ++value_index)
-		sum += float_data[value_index];
-	
-	double end = omp_get_wtime();
-	if (outstream)
-		(*outstream) << "// ********** OpenMP thread pool warmup time: " << (end - start) << " (result: " << sum << ")" << std::endl;
-	*/
-	
 #ifdef EIDOS_GUI
 	// The SLiM_OpenMP project enabled OpenMP project-wide, so the GUI apps build with OpenMP enabled.  However,
 	// they really don't work well multithreaded.  They have to allow threads to sleep (otherwise they peg the
@@ -243,6 +224,8 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	// whenever they get suspended at all, and then waking them up again is heavyweight.  Or something.  For now,
 	// the GUI apps request to use a single thread, but still have OpenMP activated.  Using them in this
 	// configuration is not recommended, but is supported for ease of development.
+	// BCH 4 August 2020: Note that I have disallowed building the GUI apps multithreaded at all, with #error
+	// directives in their code, so this is dead code for the time being.
 	if (outstream)
 		(*outstream) << "// ********** RUNNING SLIMGUI / EIDOSSCRIBE WITH OPENMP IS NOT RECOMMENDED!" << std::endl;
 #endif

@@ -41,7 +41,7 @@
 #include "eidos_test_element.h"
 #include "eidos_symbol_table.h"
 
-#include "omp.h"
+#include "eidos_openmp.h"
 #ifdef _OPENMP
 #warning Building slim with OpenMP enabled
 #endif

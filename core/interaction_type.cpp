@@ -24,10 +24,11 @@
 #include "slim_eidos_block.h"
 #include "subpopulation.h"
 #include "slim_sim.h"
-#include <omp.h>
 #include <utility>
 #include <algorithm>
 #include <cmath>
+
+#include "eidos_openmp.h"
 
 
 // stream output for enumerations
