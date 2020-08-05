@@ -62,7 +62,18 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 {
 	if (p_print_header)
 	{
-		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl;
+#ifdef DEBUG
+		SLIM_OUTSTREAM << "This is a DEBUG build of SLiM." << std::endl;
+#else
+		SLIM_OUTSTREAM << "This is a RELEASE build of SLiM." << std::endl;
+#endif
+#ifdef _OPENMP
+		SLIM_OUTSTREAM << "This is a PARALLEL (MULTI-THREADED) build of SLiM." << std::endl;
+#else
+		SLIM_OUTSTREAM << "This is a NON-PARALLEL (SINGLE-THREADED) build of SLiM." << std::endl;
+#endif
+		SLIM_OUTSTREAM << std::endl;
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
 		SLIM_OUTSTREAM << "Copyright 2013-2020 Philipp Messer.  All rights reserved." << std::endl << std::endl;
