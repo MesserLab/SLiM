@@ -508,7 +508,7 @@ void InteractionType::CalculateAllDistances(Subpopulation *p_subpop)
 				subpop_data.dist_str_ = new SparseArray(subpop_size, subpop_size);
 			
 			double *position_data = subpop_data.positions_;
-			int start_row = 0, after_end_row = subpop_size, row;
+			int start_row = 0, after_end_row = subpop_size;
 			
 			if (receiver_sex_ == IndividualSex::kUnspecified)
 				;
@@ -527,19 +527,19 @@ void InteractionType::CalculateAllDistances(Subpopulation *p_subpop)
 					case 1:
 						#pragma omp parallel for schedule(static) default(none) shared(start_row, after_end_row, subpop_data, position_data)
 						// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllDistances1D.txt
-						for (row = start_row; row < after_end_row; row++)
+						for (int row = start_row; row < after_end_row; row++)
 							BuildSA_1(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_);
 						break;
 					case 2:
 						#pragma omp parallel for schedule(static) default(none) shared(start_row, after_end_row, subpop_data, position_data)
 						// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllDistances2D.txt
-						for (row = start_row; row < after_end_row; row++)
+						for (int row = start_row; row < after_end_row; row++)
 							BuildSA_2(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
 						break;
 					case 3:
 						#pragma omp parallel for schedule(static) default(none) shared(start_row, after_end_row, subpop_data, position_data)
 						// BCH 7/18/2019: Timed in SLiM-Benchmarks with T_CalculateAllDistances3D.txt
-						for (row = start_row; row < after_end_row; row++)
+						for (int row = start_row; row < after_end_row; row++)
 							BuildSA_3(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, 0);
 						break;
 				}
@@ -559,15 +559,15 @@ void InteractionType::CalculateAllDistances(Subpopulation *p_subpop)
 				switch (spatiality_)
 				{
 					case 1:
-						for (row = start_row; row < after_end_row; row++)
+						for (int row = start_row; row < after_end_row; row++)
 							BuildSA_SS_1(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, start_exerter, after_end_exerter);
 						break;
 					case 2:
-						for (row = start_row; row < after_end_row; row++)
+						for (int row = start_row; row < after_end_row; row++)
 							BuildSA_SS_2(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, start_exerter, after_end_exerter, 0);
 						break;
 					case 3:
-						for (row = start_row; row < after_end_row; row++)
+						for (int row = start_row; row < after_end_row; row++)
 							BuildSA_SS_3(subpop_data.kd_root_, position_data + row * SLIM_MAX_DIMENSIONALITY, row, subpop_data.dist_str_, start_exerter, after_end_exerter, 0);
 						break;
 				}
