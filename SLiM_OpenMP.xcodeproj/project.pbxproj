@@ -4009,7 +4009,7 @@
 		B1D870E424DA599500F1E32A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CC = "/opt/local/libexec/llvm-8.0/bin/clang";
+				CC = "/opt/local/libexec/llvm-9.0/bin/clang";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = slim.entitlements;
 				CODE_SIGN_IDENTITY = "-";
@@ -4025,7 +4025,7 @@
 		B1D870E524DA599500F1E32A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CC = "/opt/local/libexec/llvm-8.0/bin/clang";
+				CC = "/opt/local/libexec/llvm-9.0/bin/clang";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = slim.entitlements;
 				CODE_SIGN_IDENTITY = "-";
@@ -4041,7 +4041,7 @@
 		B1D8714A24DA59A500F1E32A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CC = "/opt/local/libexec/llvm-8.0/bin/clang";
+				CC = "/opt/local/libexec/llvm-9.0/bin/clang";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = eidos/eidos.entitlements;
 				CODE_SIGN_IDENTITY = "-";
@@ -4056,7 +4056,7 @@
 		B1D8714B24DA59A500F1E32A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CC = "/opt/local/libexec/llvm-8.0/bin/clang";
+				CC = "/opt/local/libexec/llvm-9.0/bin/clang";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = eidos/eidos.entitlements;
 				CODE_SIGN_IDENTITY = "-";
