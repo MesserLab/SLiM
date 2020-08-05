@@ -34,7 +34,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(v
 	
 	if (!sim_func_signatures_.size())
 	{
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddLogical_OS("long", gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString | kEidosValueMaskInt, "SLiM"))->AddInt("codons")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional | kEidosValueMaskSingleton, "long", nullptr, gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mm16To256", SLiM_ExecuteFunction_mm16To256, kEidosValueMaskFloat, "SLiM"))->AddFloat("mutationMatrix16"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmJukesCantor", SLiM_ExecuteFunction_mmJukesCantor, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmKimura", SLiM_ExecuteFunction_mmKimura, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha")->AddFloat_S("beta"));
@@ -182,7 +182,74 @@ static std::string codon2aa_long[64] = {
 	/* TTT */	"Phe"
 };
 
-//	(string)codonsToAminoAcids(integer codons, [logical$ long = F])
+static int codon2aa_int[64] = {
+	/* AAA */	12,
+	/* AAC */	3,
+	/* AAG */	12,
+	/* AAT */	3,
+	/* ACA */	17,
+	/* ACC */	17,
+	/* ACG */	17,
+	/* ACT */	17,
+	/* AGA */	2,
+	/* AGC */	16,
+	/* AGG */	2,
+	/* AGT */	16,
+	/* ATA */	10,
+	/* ATC */	10,
+	/* ATG */	13,
+	/* ATT */	10,
+	/* CAA */	6,
+	/* CAC */	9,
+	/* CAG */	6,
+	/* CAT */	9,
+	/* CCA */	15,
+	/* CCC */	15,
+	/* CCG */	15,
+	/* CCT */	15,
+	/* CGA */	2,
+	/* CGC */	2,
+	/* CGG */	2,
+	/* CGT */	2,
+	/* CTA */	11,
+	/* CTC */	11,
+	/* CTG */	11,
+	/* CTT */	11,
+	/* GAA */	7,
+	/* GAC */	4,
+	/* GAG */	7,
+	/* GAT */	4,
+	/* GCA */	1,
+	/* GCC */	1,
+	/* GCG */	1,
+	/* GCT */	1,
+	/* GGA */	8,
+	/* GGC */	8,
+	/* GGG */	8,
+	/* GGT */	8,
+	/* GTA */	20,
+	/* GTC */	20,
+	/* GTG */	20,
+	/* GTT */	20,
+	/* TAA */	0,
+	/* TAC */	19,
+	/* TAG */	0,
+	/* TAT */	19,
+	/* TCA */	16,
+	/* TCC */	16,
+	/* TCG */	16,
+	/* TCT */	16,
+	/* TGA */	0,
+	/* TGC */	5,
+	/* TGG */	18,
+	/* TGT */	5,
+	/* TTA */	11,
+	/* TTC */	14,
+	/* TTG */	11,
+	/* TTT */	14
+};
+
+//	(string)codonsToAminoAcids(integer codons, [li$ long = F])
 EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();
@@ -190,7 +257,16 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const
 	
 	int codons_length = codons_value->Count();
 	
-	eidos_logical_t long_strings = long_value->LogicalAtIndex(0, nullptr);
+	bool integer_result = (long_value->Type() == EidosValueType::kValueInt);
+	eidos_logical_t long_strings = (integer_result ? false : long_value->LogicalAtIndex(0, nullptr));
+	
+	if (integer_result)
+	{
+		int64_t long_intval = long_value->IntAtIndex(0, nullptr);
+		
+		if (long_intval != 0)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires 'long' to be T, F, or 0." << EidosTerminate(nullptr);
+	}
 	
 	if (codons_length == 1)
 	{
@@ -199,77 +275,24 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const
 		if ((codon < 0) || (codon > 63))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
 		
-		std::string &aa = (long_strings ? codon2aa_long[codon] : codon2aa_short[codon]);
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(aa));
-	}
-	else
-	{
-		EidosValue *paste_value = p_arguments[2].get();
-		eidos_logical_t paste = paste_value->LogicalAtIndex(0, nullptr);
-		const int64_t *int_data = codons_value->IntVector()->data();
-		
-		if (paste)
+		if (integer_result)
 		{
-			if (long_strings && (codons_length > 0))
-			{
-				// pasting: "Aaa-Bbb-Ccc"
-				EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-				std::string &aa_string = string_result->StringValue_Mutable();
-				
-				aa_string.resize(codons_length * 4 - 1);	// create space for all the amino acids we will generate, including hyphens
-				
-				char *aa_string_ptr = &aa_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
-				
-				for (int value_index = 0; value_index < codons_length; ++value_index)
-				{
-					int64_t codon = int_data[value_index];
-					
-					if ((codon < 0) || (codon > 63))
-						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
-					
-					std::string &aa = codon2aa_long[codon];
-					char *codon_aa_ptr = &aa[0];	// data() returns a const pointer, but this is safe in C++11 and later
-					
-					if (value_index > 0)
-						*(aa_string_ptr++) = '-';
-					
-					*(aa_string_ptr++) = codon_aa_ptr[0];
-					*(aa_string_ptr++) = codon_aa_ptr[1];
-					*(aa_string_ptr++) = codon_aa_ptr[2];
-				}
-				
-				return EidosValue_SP(string_result);
-			}
-			else
-			{
-				// pasting: "ABC"
-				EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-				std::string &aa_string = string_result->StringValue_Mutable();
-				
-				aa_string.resize(codons_length);	// create space for all the amino acids we will generate
-				
-				char *aa_string_ptr = &aa_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
-				
-				for (int value_index = 0; value_index < codons_length; ++value_index)
-				{
-					int64_t codon = int_data[value_index];
-					
-					if ((codon < 0) || (codon > 63))
-						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
-					
-					std::string &aa = codon2aa_short[codon];
-					
-					aa_string_ptr[value_index] = aa[0];
-				}
-				
-				return EidosValue_SP(string_result);
-			}
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(codon2aa_int[codon]));
 		}
 		else
 		{
-			// no pasting: "A" "C" "C" or "Aaa" "Bbb" "Ccc"
-			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(codons_length);
+			std::string &aa = (long_strings ? codon2aa_long[codon] : codon2aa_short[codon]);
+		
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(aa));
+		}
+	}
+	else
+	{
+		const int64_t *int_data = codons_value->IntVector()->data();
+		
+		if (integer_result)
+		{
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(codons_length);
 			
 			for (int value_index = 0; value_index < codons_length; ++value_index)
 			{
@@ -278,12 +301,92 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const
 				if ((codon < 0) || (codon > 63))
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
 				
-				std::string &aa = (long_strings ? codon2aa_long[codon] : codon2aa_short[codon]);
-				
-				string_result->PushString(aa);
+				int_result->set_int_no_check(codon2aa_int[codon], value_index);
 			}
 			
-			return EidosValue_SP(string_result);
+			return EidosValue_SP(int_result);
+		}
+		else
+		{
+			EidosValue *paste_value = p_arguments[2].get();
+			eidos_logical_t paste = paste_value->LogicalAtIndex(0, nullptr);
+			
+			if (paste)
+			{
+				if (long_strings && (codons_length > 0))
+				{
+					// pasting: "Aaa-Bbb-Ccc"
+					EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
+					std::string &aa_string = string_result->StringValue_Mutable();
+					
+					aa_string.resize(codons_length * 4 - 1);	// create space for all the amino acids we will generate, including hyphens
+					
+					char *aa_string_ptr = &aa_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
+					
+					for (int value_index = 0; value_index < codons_length; ++value_index)
+					{
+						int64_t codon = int_data[value_index];
+						
+						if ((codon < 0) || (codon > 63))
+							EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
+						
+						std::string &aa = codon2aa_long[codon];
+						char *codon_aa_ptr = &aa[0];	// data() returns a const pointer, but this is safe in C++11 and later
+						
+						if (value_index > 0)
+							*(aa_string_ptr++) = '-';
+						
+						*(aa_string_ptr++) = codon_aa_ptr[0];
+						*(aa_string_ptr++) = codon_aa_ptr[1];
+						*(aa_string_ptr++) = codon_aa_ptr[2];
+					}
+					
+					return EidosValue_SP(string_result);
+				}
+				else
+				{
+					// pasting: "ABC"
+					EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
+					std::string &aa_string = string_result->StringValue_Mutable();
+					
+					aa_string.resize(codons_length);	// create space for all the amino acids we will generate
+					
+					char *aa_string_ptr = &aa_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
+					
+					for (int value_index = 0; value_index < codons_length; ++value_index)
+					{
+						int64_t codon = int_data[value_index];
+						
+						if ((codon < 0) || (codon > 63))
+							EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
+						
+						std::string &aa = codon2aa_short[codon];
+						
+						aa_string_ptr[value_index] = aa[0];
+					}
+					
+					return EidosValue_SP(string_result);
+				}
+			}
+			else
+			{
+				// no pasting: "A" "C" "C" or "Aaa" "Bbb" "Ccc"
+				EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(codons_length);
+				
+				for (int value_index = 0; value_index < codons_length; ++value_index)
+				{
+					int64_t codon = int_data[value_index];
+					
+					if ((codon < 0) || (codon > 63))
+						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
+					
+					std::string &aa = (long_strings ? codon2aa_long[codon] : codon2aa_short[codon]);
+					
+					string_result->PushString(aa);
+				}
+				
+				return EidosValue_SP(string_result);
+			}
 		}
 	}
 }

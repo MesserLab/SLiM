@@ -1038,32 +1038,46 @@ void _RunNucleotideFunctionTests(void)
 	// codonsToAminoAcids()
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(integer(0), long=F, paste=T), '')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(integer(0), long=T, paste=T), '')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(integer(0), long=0, paste=T), integer(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(integer(0), long=F, paste=F), string(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(integer(0), long=T, paste=F), string(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(integer(0), long=0, paste=F), integer(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(0, long=F, paste=T), 'K')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(0, long=T, paste=T), 'Lys')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(0, long=0, paste=T), 12)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(0, long=F, paste=F), 'K')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(0, long=T, paste=F), 'Lys')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(0, long=0, paste=F), 12)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(c(0,1,63), long=F, paste=T), 'KNF')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(c(0,1,63), long=T, paste=T), 'Lys-Asn-Phe')) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(c(0,1,63), long=0, paste=T), c(12, 3, 14))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(c(0,1,63), long=F, paste=F), c('K','N','F'))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(c(0,1,63), long=T, paste=F), c('Lys', 'Asn', 'Phe'))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(codonsToAminoAcids(c(0,1,63), long=0, paste=F), c(12, 3, 14))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(-1, long=F, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(-1, long=T, paste=T); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(-1, long=0, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(-1, long=F, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(-1, long=T, paste=F); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(-1, long=0, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(64, long=F, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(64, long=T, paste=T); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(64, long=0, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(64, long=F, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(64, long=T, paste=F); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(64, long=0, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,-1), long=F, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,-1), long=T, paste=T); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,-1), long=0, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,-1), long=F, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,-1), long=T, paste=F); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,-1), long=0, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,64), long=F, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,64), long=T, paste=T); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,64), long=0, paste=T); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,64), long=F, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,64), long=T, paste=F); }", 1, 247, "requires codons to be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { codonsToAminoAcids(c(0,64), long=0, paste=F); }", 1, 247, "requires codons to be", __LINE__);
 	
 	// mm16To256()
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { mm16To256(rep(0.0,15)); }", 1, 247, "to be of length 16", __LINE__);

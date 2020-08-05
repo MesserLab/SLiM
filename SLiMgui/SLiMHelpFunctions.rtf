@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2511
+{\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fswiss\fcharset0 Helvetica;
 }
@@ -1039,10 +1039,10 @@ The
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
-(string)codonsToAminoAcids(integer\'a0codons, [logical$\'a0long\'a0=\'a0F], [logical$\'a0paste\'a0=\'a0T])\
+(is)codonsToAminoAcids(integer\'a0codons, [li$\'a0long\'a0=\'a0F], [logical$\'a0paste\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Returns the amino acid sequence corresponding to the codon sequence in 
+\f2\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the amino acid sequence corresponding to the codon sequence in 
 \f1\fs18 codons
 \f2\fs20 .  Codons should be represented with values in [
 \f1\fs18 0
@@ -1070,8 +1070,74 @@ The
 \f1\fs18 T
 \f2\fs20 , the standard three-letter codes will be used instead (where Serine is 
 \f1\fs18 "Ser"
-\f2\fs20 , etc.).\
+\f2\fs20 , etc.).  Beginning in SLiM 3.5, if 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 0
+\f2\fs20 , 
+\f1\fs18 integer
+\f2\fs20  codes will be used as follows (and 
+\f1\fs18 paste
+\f2\fs20  will be ignored):\
+\pard\tx3780\pardeftab720\li1080\sa60\partightenfactor0
+\cf2 stop (TAA, TAG, TGA)	
+\f1\fs18 0
+\f2\fs20 \uc0\u8232 Alanine	
+\f1\fs18 1
+\f2\fs20 \uc0\u8232 Arginine	
+\f1\fs18 2
+\f2\fs20 \uc0\u8232 Asparagine	
+\f1\fs18 3
+\f2\fs20 \uc0\u8232 Aspartic acid (Aspartate)	
+\f1\fs18 4
+\f2\fs20 \uc0\u8232 Cysteine	
+\f1\fs18 5
+\f2\fs20 \uc0\u8232 Glutamine	
+\f1\fs18 6
+\f2\fs20 \uc0\u8232 Glutamic acid (Glutamate)	
+\f1\fs18 7
+\f2\fs20 \uc0\u8232 Glycine	
+\f1\fs18 8
+\f2\fs20 \uc0\u8232 Histidine	
+\f1\fs18 9
+\f2\fs20 \uc0\u8232 Isoleucine	
+\f1\fs18 10
+\f2\fs20 \uc0\u8232 Leucine	
+\f1\fs18 11
+\f2\fs20 \uc0\u8232 Lysine	
+\f1\fs18 12
+\f2\fs20 \uc0\u8232 Methionine	
+\f1\fs18 13
+\f2\fs20 \uc0\u8232 Phenylalanine	
+\f1\fs18 14
+\f2\fs20 \uc0\u8232 Proline	
+\f1\fs18 15
+\f2\fs20 \uc0\u8232 Serine	
+\f1\fs18 16
+\f2\fs20 \uc0\u8232 Threonine	
+\f1\fs18 17
+\f2\fs20 \uc0\u8232 Tryptophan	
+\f1\fs18 18
+\f2\fs20 \uc0\u8232 Tyrosine	
+\f1\fs18 19
+\f2\fs20 \uc0\u8232 Valine	
+\f1\fs18 20
+\f2\fs20 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 There does not seem to be a widely used standard for integer coding of amino acids, so SLiM just numbers them alphabetically, making stop codons 
+\f1\fs18 0
+\f2\fs20 .  If you want a different coding, you can make your own 64-element vector and use it to convert codons to whatever integer codes you need.  Other 
+\f1\fs18 integer
+\f2\fs20  values of 
+\f1\fs18 long
+\f2\fs20  are reserved for future use (to support other codings), and will currently produce an error.\
 When 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  or 
+\f1\fs18 F
+\f2\fs20  and 
 \f1\fs18 paste
 \f2\fs20  is 
 \f1\fs18 T
@@ -1090,6 +1156,12 @@ When
 \f2\fs20  is 
 \f1\fs18 T
 \f2\fs20 ).  When 
+\f1\fs18 long
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  or 
+\f1\fs18 F
+\f2\fs20  and 
 \f1\fs18 paste
 \f2\fs20  is 
 \f1\fs18 F
@@ -1111,7 +1183,8 @@ When
 \f1\fs18 paste=T
 \f2\fs20  option is considerably faster than using 
 \f1\fs18 paste()
-\f2\fs20  in script.\
+\f2\fs20  in script.\expnd0\expndtw0\kerning0
+\
 This function interprets the supplied codon sequence as the 
 \f3\i sense
 \f2\i0  strand (i.e., the strand that is 

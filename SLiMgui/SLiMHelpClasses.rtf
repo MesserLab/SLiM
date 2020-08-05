@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2511
+{\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-BoldMT;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
@@ -811,6 +811,12 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the generation in which the individual is created (i.e., when the 
+\f3\fs18 age
+\f4\fs20  of the individual is greater than 
+\f3\fs18 0
+\f4\fs20 ), to prevent the possibility of inconsistencies in the recorded tree sequence.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 +\'a0(object<Mutation>)addNewDrawnMutation(io<MutationType>\'a0mutationType, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
@@ -908,6 +914,11 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the generation in which the individual is created (i.e., when the 
+\f3\fs18 age
+\f4\fs20  of the individual is greater than 
+\f3\fs18 0
+\f4\fs20 ), to prevent the possibility of inconsistencies in the recorded tree sequence.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 +\'a0(object<Mutation>)addNewMutation(io<MutationType>\'a0mutationType, numeric\'a0selectionCoeff, integer\'a0position, [Ni\'a0originGeneration\'a0=\'a0NULL], [Nio<Subpopulation>\'a0originSubpop\'a0=\'a0NULL]\cf2 \expnd0\expndtw0\kerning0
@@ -1006,6 +1017,11 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the generation in which the individual is created (i.e., when the 
+\f3\fs18 age
+\f4\fs20  of the individual is greater than 
+\f3\fs18 0
+\f4\fs20 ), to prevent the possibility of inconsistencies in the recorded tree sequence.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
@@ -5063,7 +5079,7 @@ Whichever way of specifying the generation set is used,
 \f3\fs18 block
 \f4\fs20  may continue to be executed during the current life cycle stage even after it has been rescheduled, unless it is made inactive using its 
 \f3\fs18 active
-\f4\fs20  property, and similarly, the block may not execute during the current life cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the generation and life cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\
+\f4\fs20  property, and similarly, the block may not execute during the current life cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the generation and life cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\cf2   Also, as mentioned in section 21.7, script blocks which are open-ended (i.e., with no specified end generation), are not used in determining whether the end of the simulation has been reached (because then the simulation would run forever); if you reschedule a block to be open-ended, and to start after the end of the last closed-ended block, the rescheduled block will therefore not run at all (just as such a block would not run at all in other circumstances, too).\cf0 \
 Note that new script blocks can also be created and scheduled using the 
 \f3\fs18 register...()
 \f4\fs20  methods of 
