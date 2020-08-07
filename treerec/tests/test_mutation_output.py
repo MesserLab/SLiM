@@ -67,7 +67,7 @@ class TestWithMutations(TestSlimOutput):
             #  indexed by position, then SLiM ID
             slim = self.read_test_mutation_output(filename="test_output/slim_mutation_output.txt")
             pos = -1
-            for var in ts.variants():
+            for var in ts.variants(impute_missing_data=True):
                 pos += 1
                 while pos < int(var.position):
                     # invariant sites: no genotypes
@@ -81,14 +81,7 @@ class TestWithMutations(TestSlimOutput):
                     if ids[j] in msp_samples:
                         sample_num = msp_samples[ids[j]]
                         geno = var.genotypes[sample_num]
-                        # HACK around missing data problems
-                        if geno >= 0:
-                            msp_genotypes = var.alleles[geno].split(",")
-                        else:
-                            msp_genotypes = [""]
-                            for m in ts.mutations():
-                                if m.node == ids[j] and m.site == var.site.id:
-                                    msp_genotypes = m.derived_state.split(",")
+                        msp_genotypes = var.alleles[geno].split(",")
                         print("msp:", msp_genotypes)
                         if (pos not in slim) or (j not in slim[pos]):
                             # no mutations at this site
