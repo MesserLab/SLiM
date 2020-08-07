@@ -6993,7 +6993,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		tsk_vargen_t *vg;
 		
 		vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-		ret = tsk_vargen_init(vg, ts, ts->samples, ts->num_samples, NULL, TSK_16_BIT_GENOTYPES);
+		ret = tsk_vargen_init(vg, ts, ts->samples, ts->num_samples, NULL, TSK_16_BIT_GENOTYPES | TSK_IMPUTE_MISSING_DATA);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_alloc()", ret);
 		
 		// crosscheck by looping through variants
@@ -7003,6 +7003,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			
 			ret = tsk_vargen_next(vg, &variant);
 			if (ret < 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_next()", ret);
+            assert(!variant->has_missing_data);
 			
 			if (ret == 1)
 			{
@@ -7663,7 +7664,7 @@ void SLiMSim::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 	tsk_vargen_t *vg;
 	
 	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-	int ret = tsk_vargen_init(vg, p_ts, p_ts->samples, p_ts->num_samples, NULL, TSK_16_BIT_GENOTYPES);
+	int ret = tsk_vargen_init(vg, p_ts, p_ts->samples, p_ts->num_samples, NULL, TSK_16_BIT_GENOTYPES | TSK_IMPUTE_MISSING_DATA);
 	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_vargen_init()", ret);
 	
 	// set up a map from sample indices in the vargen to Genome objects; the sample
@@ -7835,7 +7836,7 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	tsk_vargen_t *vg;
 	
 	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-	int ret = tsk_vargen_init(vg, p_ts, p_ts->samples, p_ts->num_samples, NULL, TSK_16_BIT_GENOTYPES);
+	int ret = tsk_vargen_init(vg, p_ts, p_ts->samples, p_ts->num_samples, NULL, TSK_16_BIT_GENOTYPES | TSK_IMPUTE_MISSING_DATA);
 	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_vargen_init()", ret);
 	
 	// set up a map from sample indices in the vargen to Genome objects; the sample
