@@ -4789,9 +4789,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 	WritePopulationTable(&tables_);
 	
 	// sort the table collection
-    int flags = TSK_NO_CHECK_INTEGRITY;
+	int flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
-    flags = 0;
+	flags = 0;
 #endif
 	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ 0, /* flags */ flags);
 	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
@@ -5320,7 +5320,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			binary_mutation_metadata_offset.push_back((tsk_size_t)(mutation_metadata_total_part_count * sizeof(MutationMetadataRec)));
 		}
 		
-		// if we have no rows, these vactors will be empty, and .data() will return NULL, which tskit doesn't like;
+		// if we have no rows, these vectors will be empty, and .data() will return NULL, which tskit doesn't like;
 		// it wants to get a non-NULL pointer even when it knows that the pointer points to zero valid bytes.  So
 		// we poke the vectors so they're non-zero-length and thus have non-NULL pointers; a harmless workaround.
 		if (binary_derived_state.size() == 0)
@@ -6609,6 +6609,9 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	
 	for (size_t node_index = 0; node_index < output_tables.nodes.num_rows; ++node_index)
 		output_tables.nodes.time[node_index] += time_adjustment;
+
+    for (size_t mut_index = 0; mut_index < output_tables.mutations.num_rows; ++mut_index)
+        output_tables.mutations.time[mut_index] += time_adjustment;
 	
 	// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
 	// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
@@ -7948,6 +7951,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	
 	for (size_t node_index = 0; node_index < tables_.nodes.num_rows; ++node_index)
 		tables_.nodes.time[node_index] -= time_adjustment;
+
+    for (size_t mut_index = 0; mut_index < tables_.mutations.num_rows; ++mut_index)
+        tables_.mutations.time[mut_index] -= time_adjustment;
 	
 	// allocate and set up the tree_sequence object that contains all the tree sequences
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
