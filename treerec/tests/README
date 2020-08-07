@@ -1,7 +1,3 @@
-IMPORTANT: These tests *do not currently work*, and are superceded by tests at the C
-level (and in pyslim).
-
-
 To add a new test:
 
 1. Put the recipe in the `testRecipes/` directory, with a filename like `test_XXX.slim`.

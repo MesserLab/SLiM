@@ -7028,6 +7028,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				{
 					GenomeWalker &genome_walker = genome_walkers[genome_index];
 					int16_t genome_variant = variant->genotypes.i16[genome_index];
+                    assert(genome_variant >= 0); // should not be 'missing data'
 					tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
 					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
@@ -7883,6 +7884,7 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 				if (genome)
 				{
 					uint16_t genome_variant = variant->genotypes.i16[sample_index];
+                    assert(genome_variant >= 0); // should not be 'missing data'
 					tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
 					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)

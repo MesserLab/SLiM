@@ -80,7 +80,15 @@ class TestWithMutations(TestSlimOutput):
                     print("slim id", j, "msp id", ids[j])
                     if ids[j] in msp_samples:
                         sample_num = msp_samples[ids[j]]
-                        msp_genotypes = [u for u in var.alleles[var.genotypes[sample_num]].split(",")]
+                        geno = var.genotypes[sample_num]
+                        # HACK around missing data problems
+                        if geno >= 0:
+                            msp_genotypes = var.alleles[geno].split(",")
+                        else:
+                            msp_genotypes = [""]
+                            for m in ts.mutations():
+                                if m.node == ids[j] and m.site == var.site.id:
+                                    msp_genotypes = m.derived_state.split(",")
                         print("msp:", msp_genotypes)
                         if (pos not in slim) or (j not in slim[pos]):
                             # no mutations at this site
