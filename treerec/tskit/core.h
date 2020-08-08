@@ -39,8 +39,9 @@ extern "C" {
 #include <stdint.h>
 #include <limits.h>
 
-#ifdef __clang__
+#if defined(__clang__) && !defined(__cplusplus)
 /* Work around bug in clang >= 6.0, https://github.com/tskit-dev/tskit/issues/721
+ * (note: fixed in clang January 2019)
  */
 #if __has_builtin(__builtin_isnan)
 #undef isnan

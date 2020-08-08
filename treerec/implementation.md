@@ -156,24 +156,19 @@ and metadata for every row in every table.
 
 ### Top-level metadata:
 
-Here's the current metadata schema:
+Here's an example of the top-level metadata:
 ```
 {
-    "$schema": "http://json-schema.org/schema#",
-    "$id": "http://yourdomain.com/schemas/myschema.json",
-    "title": "SLiMv0.5",
-    "description": "Top-level metadata for a SLiM tree sequence, file format version 0.5"
-    "type": "object",
-    "properties": {
-        "model_type" : {
-            "type": "string"
-            "enum": ["WF", "nonWF"]
-        },
-        "generation" : {
-            "type": "integer",
-            "minimum": 1
-        }
-    }
+ "SLiM" : {
+     "model_type" : "WF",
+     "generation" : 123,
+     "file_version" : "0.5",
+     "spatial_dimensionality" : "xy",
+     "spatial_periodicity" : "x",
+     "separate_sexes" : true,
+     "nucleotide_based" : false
+ }
 }
 ```
 
+However, we're currently only using `model_type` and `generation`.
