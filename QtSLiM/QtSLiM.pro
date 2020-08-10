@@ -124,6 +124,8 @@ macx: LIBS += -lobjc.A
 
 
 SOURCES += \
+    QtSLiMGraphView_PopFitnessDist.cpp \
+    QtSLiMGraphView_SubpopFitnessDists.cpp \
     main.cpp \
     QtSLiMWindow.cpp \
     QtSLiMAppDelegate.cpp \
@@ -158,6 +160,8 @@ SOURCES += \
     QtSLiMVariableBrowser.cpp
 
 HEADERS += \
+    QtSLiMGraphView_PopFitnessDist.h \
+    QtSLiMGraphView_SubpopFitnessDists.h \
     QtSLiMWindow.h \
     QtSLiMAppDelegate.h \
     QtSLiMChromosomeWidget.h \

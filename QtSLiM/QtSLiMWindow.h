@@ -116,6 +116,8 @@ private:
     QWidget *graphWindowMutationFixationTimeHistogram = nullptr;
     QWidget *graphWindowFitnessOverTime = nullptr;
     QWidget *graphWindowPopulationVisualization = nullptr;
+    QWidget *graphWindowPopFitnessDist = nullptr;
+    QWidget *graphWindowSubpopFitnessDists = nullptr;
     
     int openedGraphCount_left = 0;      // used for new graph window positioning
     int openedGraphCount_right = 0;

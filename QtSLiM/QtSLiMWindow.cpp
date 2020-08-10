@@ -39,6 +39,8 @@
 #include "QtSLiMGraphView_PopulationVisualization.h"
 #include "QtSLiMGraphView_FitnessOverTime.h"
 #include "QtSLiMGraphView_FrequencyTrajectory.h"
+#include "QtSLiMGraphView_PopFitnessDist.h"
+#include "QtSLiMGraphView_SubpopFitnessDists.h"
 #include "QtSLiMHaplotypeManager.h"
 
 #include <QCoreApplication>
@@ -1388,6 +1390,8 @@ void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID di
     QtSLiMGraphView *graphViewMutationFixationTimeHistogram = graphViewForGraphWindow(graphWindowMutationFixationTimeHistogram);
     QtSLiMGraphView *graphViewFitnessOverTime = graphViewForGraphWindow(graphWindowFitnessOverTime);
     QtSLiMGraphView *graphViewPopulationVisualization = graphViewForGraphWindow(graphWindowPopulationVisualization);
+    QtSLiMGraphView *graphViewPopFitnessDist = graphViewForGraphWindow(graphWindowPopFitnessDist);
+    QtSLiMGraphView *graphViewSubpopFitnessDists = graphViewForGraphWindow(graphWindowSubpopFitnessDists);
     
     if (graphViewMutationFreqSpectrum)              graphViewMutationFreqSpectrum->dispatch(dispatchID);
     if (graphViewMutationFreqTrajectories)          graphViewMutationFreqTrajectories->dispatch(dispatchID);
@@ -1395,6 +1399,8 @@ void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID di
     if (graphViewMutationFixationTimeHistogram)     graphViewMutationFixationTimeHistogram->dispatch(dispatchID);
     if (graphViewFitnessOverTime)                   graphViewFitnessOverTime->dispatch(dispatchID);
     if (graphViewPopulationVisualization)           graphViewPopulationVisualization->dispatch(dispatchID);
+    if (graphViewPopFitnessDist)                    graphViewPopFitnessDist->dispatch(dispatchID);
+    if (graphViewSubpopFitnessDists)                graphViewSubpopFitnessDists->dispatch(dispatchID);
     
 	/*
 	for (NSWindow *window : linkedWindows)
@@ -3903,6 +3909,12 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     contextMenu.addSeparator();
     
+    QAction *graphPopFitnessDist = contextMenu.addAction("Graph Population Fitness Distribution");
+    graphPopFitnessDist->setEnabled(!disableAll);
+    
+    QAction *graphSubpopFitnessDists = contextMenu.addAction("Graph Subpopulation Fitness Distributions");
+    graphSubpopFitnessDists->setEnabled(!disableAll);
+    
     QAction *graphFitnessVsTime = contextMenu.addAction("Graph Fitness ~ Time");
     graphFitnessVsTime->setEnabled(!disableAll);
     
@@ -3947,6 +3959,18 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             if (!graphWindowMutationFixationTimeHistogram)
                 graphWindowMutationFixationTimeHistogram = graphWindowWithView(new QtSLiMGraphView_FixationTimeHistogram(this, this));
             graphWindow = graphWindowMutationFixationTimeHistogram;
+        }
+        if (action == graphPopFitnessDist)
+        {
+            if (!graphWindowPopFitnessDist)
+                graphWindowPopFitnessDist = graphWindowWithView(new QtSLiMGraphView_PopFitnessDist(this, this));
+            graphWindow = graphWindowPopFitnessDist;
+        }
+        if (action == graphSubpopFitnessDists)
+        {
+            if (!graphWindowSubpopFitnessDists)
+                graphWindowSubpopFitnessDists = graphWindowWithView(new QtSLiMGraphView_SubpopFitnessDists(this, this));
+            graphWindow = graphWindowSubpopFitnessDists;
         }
         if (action == graphFitnessVsTime)
         {
