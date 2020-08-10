@@ -5244,11 +5244,11 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
     if (ret < 0) handle_error("read_from_ascii :: table_collection_load_text", ret);
 	
 	// Parse the provenance info just to find out the file version, which we need for mutation metadata parsing
-	slim_generation_t provenance_gen;
+	slim_generation_t metadata_gen;
 	SLiMModelType file_model_type;
 	int file_version;
 	
-	ReadTreeSequenceMetadata(&tables_, &provenance_gen, &file_model_type, &file_version);
+	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
 	
 	// We will be replacing the columns of some of the tables in tables with de-ASCII-fied versions.  That can't be
 	// done in place, so we make a copy of tables here to act as a source for the process of copying new information
@@ -8080,15 +8080,15 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	// if it is, set the generation from the provenance data
 	// note that ReadTreeSequenceMetadata() presently throws an exception if asked to read a SLiM 3.0 .trees file;
 	// the changes in the tables, metadata, etc., were just too extensive for it to be reasonable to do...
-	slim_generation_t provenance_gen;
+	slim_generation_t metadata_gen;
 	SLiMModelType file_model_type;
 	int file_version;
 	
 	if (tables_.sequence_length != chromosome_.last_position_ + 1)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population does not match the configured chromosome length." << EidosTerminate();
 	
-	ReadTreeSequenceMetadata(&tables_, &provenance_gen, &file_model_type, &file_version);
-	SetGeneration(provenance_gen);
+	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
+	SetGeneration(metadata_gen);
 	
 	// rebase the times in the nodes to be in SLiM-land; see WriteTreeSequence for the inverse operation
 	// BCH 4/4/2019: switched to using tree_seq_generation_ to avoid a parent/child timestamp conflict
@@ -8227,7 +8227,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	last_coalescence_state_ = false;
 	
 	// return the current simulation generation as reconstructed from the file
-	return provenance_gen;
+	return metadata_gen;
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter)
