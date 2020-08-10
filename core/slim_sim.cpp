@@ -71,8 +71,8 @@ extern "C" {
 static const char *SLIM_TREES_FILE_VERSION_INITIAL __attribute__((unused)) = "0.1";		// SLiM 3.0, before the Inidividual table, etc.; UNSUPPORTED
 static const char *SLIM_TREES_FILE_VERSION_PRENUC = "0.2";		// before introduction of nucleotides
 static const char *SLIM_TREES_FILE_VERSION_POSTNUC = "0.3";		// SLiM 3.3.x, with the added nucleotide field in MutationMetadataRec
-static const char *SLIM_TREES_FILE_VERSION = "0.4";				// SLiM 3.4.x, with the new model_hash key in provenance
-static const char *SLIM_TREES_FILE_VERSION_NEW = "0.5";				// SLiM 3.x.x onward, with information in metadata instead of provenance
+static const char *SLIM_TREES_FILE_VERSION_HASH = "0.4";        // SLiM 3.4.x, with the new model_hash key in provenance
+static const char *SLIM_TREES_FILE_VERSION = "0.5";				// SLiM 3.5.x onward, with information in metadata instead of provenance
 
 #pragma mark -
 #pragma mark SLiMSim
@@ -6205,10 +6205,13 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
 {
     int ret = 0;
+
+    //////
+    // Top-level (tree sequence) metadata
 	nlohmann::json j;
 	j["SLiM"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
 	j["SLiM"]["generation"] = Generation();
-	j["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION_NEW;
+	j["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
     if (spatial_dimensionality_ == 0) {
         j["SLiM"]["spatial_dimensionality"] = "";
     } else if (spatial_dimensionality_ == 1) {
@@ -6230,6 +6233,8 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
         j["SLiM"]["spatial_periodicity"] = "x";
     } else if (periodic_y_) {
         j["SLiM"]["spatial_periodicity"] = "y";
+    } else if (periodic_z_) {
+        j["SLiM"]["spatial_periodicity"] = "z";
     } else {
         j["SLiM"]["spatial_periodicity"] = "";
     }
@@ -6247,6 +6252,43 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     if (ret != 0)
         handle_error("tsk_table_collection_set_metadata_schema", ret);
 
+    ////////////
+    // Set metadata schema on each table
+    ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
+            SLIM_TSK_EDGE_METADATA_SCHEMA.c_str(),
+            SLIM_TSK_EDGE_METADATA_SCHEMA.length());
+    if (ret != 0)
+        handle_error("tsk_edge_table_set_metadata_schema", ret);
+    ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
+            SLIM_TSK_SITE_METADATA_SCHEMA.c_str(),
+            SLIM_TSK_SITE_METADATA_SCHEMA.length());
+    if (ret != 0)
+        handle_error("tsk_site_table_set_metadata_schema", ret);
+    ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
+            SLIM_TSK_MUTATION_METADATA_SCHEMA.c_str(),
+            SLIM_TSK_MUTATION_METADATA_SCHEMA.length());
+    if (ret != 0)
+        handle_error("tsk_mutation_table_set_metadata_schema", ret);
+    ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
+            SLIM_TSK_SITE_METADATA_SCHEMA.c_str(),
+            SLIM_TSK_SITE_METADATA_SCHEMA.length());
+    if (ret != 0)
+        handle_error("tsk_site_table_set_metadata_schema", ret);
+    ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
+            SLIM_TSK_NODE_METADATA_SCHEMA.c_str(),
+            SLIM_TSK_NODE_METADATA_SCHEMA.length());
+    if (ret != 0)
+        handle_error("tsk_node_table_set_metadata_schema", ret);
+    ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
+            SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA.c_str(),
+            SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA.length());
+    if (ret != 0)
+        handle_error("tsk_individual_table_set_metadata_schema", ret);
+    ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
+            SLIM_TSK_POPULATION_METADATA_SCHEMA.c_str(),
+            SLIM_TSK_POPULATION_METADATA_SCHEMA.length());
+    if (ret != 0)
+        handle_error("tsk_population_table_set_metadata_schema", ret);
 }
 
 void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model)
@@ -6256,6 +6298,10 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	size_t timestamp_size = 64;
 	char buffer[timestamp_size];
 	struct tm* tm_info;
+    // NOTE: since file version 0.5, we do *not* read information
+    // back out of the provenance table, but get it from metadata instead.
+    // But, we still want to record how the tree sequence was produced in
+    // provenance, so the code remains much the same.
 	
 #if 0
 	// Old provenance generation code, making a JSON string by hand; this is file_version 0.1
@@ -6472,16 +6518,13 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
         model_type_str = metadata["SLiM"]["model_type"];
         gen_ll = metadata["SLiM"]["generation"];
         auto file_version_03 = metadata["SLiM"]["file_version"];
-		if (file_version_03 == SLIM_TREES_FILE_VERSION_NEW)
+		if (file_version_03 == SLIM_TREES_FILE_VERSION)
 			*p_file_version = 5;
         else
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim; this file cannot be read." << EidosTerminate();
     } catch (...) {
     ///////////////////////
     // Previous formats: everything is in provenance
-        // NOTE: maybe we don't want to even throw a warning here?
-		if (!gEidosSuppressWarnings)
-			SLIM_OUTSTREAM << "#WARNING (SLiMSim::ReadTreeSequenceMetadata): this SLiM-produced tree sequence file is an older (but still supported) file format version." << std::endl;
 
         tsk_provenance_table_t &provenance_table = p_tables->provenances;
         tsk_size_t num_rows = provenance_table.num_rows;
@@ -6552,7 +6595,7 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
                 *p_file_version = 2;
             else if (file_version_02 == SLIM_TREES_FILE_VERSION_POSTNUC)
                 *p_file_version = 3;
-            else if (file_version_02 == SLIM_TREES_FILE_VERSION)
+            else if (file_version_02 == SLIM_TREES_FILE_VERSION_HASH)
                 *p_file_version = 4;
             else
                 EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim; this file cannot be read." << EidosTerminate();
@@ -6692,7 +6735,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
     WriteProvenanceTable(&output_tables, /* p_use_newlines */ p_binary, p_include_model);
 
-    // Add information to the (top-level) metadata
+    // Add top-level metadata and metadata schema
     WriteTreeSequenceMetadata(&output_tables);
 	
 	// Write out the copied tables

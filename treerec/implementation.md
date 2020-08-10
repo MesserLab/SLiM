@@ -171,4 +171,4 @@ Here's an example of the top-level metadata:
 }
 ```
 
-However, we're currently only using `model_type` and `generation`.
+However, we're currently only using `model_type`, `generation`, and `file_version`.
