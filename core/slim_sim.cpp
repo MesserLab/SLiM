@@ -6207,48 +6207,73 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     int ret = 0;
 
     //////
-    // Top-level (tree sequence) metadata
-	nlohmann::json j;
-	j["SLiM"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
-	j["SLiM"]["generation"] = Generation();
-	j["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
-    if (spatial_dimensionality_ == 0) {
-        j["SLiM"]["spatial_dimensionality"] = "";
-    } else if (spatial_dimensionality_ == 1) {
-        j["SLiM"]["spatial_dimensionality"] = "x";
-    } else if (spatial_dimensionality_ == 2) {
-        j["SLiM"]["spatial_dimensionality"] = "xy";
+    // Top-level (tree sequence) metadata:
+    // we need to *add* to the metadata *and also* the schema,
+    // leaving other keys that might already be there.
+    std::string metadata_str(p_tables->metadata, p_tables->metadata_length);
+    nlohmann::json metadata;
+    if (metadata_str.length() > 0) {
+        // Should we catch errors here? Nothing bad *should* have happened,
+        // since we already either read the metadata on loading the tree sequence,
+        // or started out with an empty tree sequence.
+        metadata = nlohmann::json::parse(metadata_str);
     } else {
-        j["SLiM"]["spatial_dimensionality"] = "xyz";
+        metadata = nlohmann::json::parse("{}");
+    }
+	metadata["SLiM"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
+	metadata["SLiM"]["generation"] = Generation();
+	metadata["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
+    if (spatial_dimensionality_ == 0) {
+        metadata["SLiM"]["spatial_dimensionality"] = "";
+    } else if (spatial_dimensionality_ == 1) {
+        metadata["SLiM"]["spatial_dimensionality"] = "x";
+    } else if (spatial_dimensionality_ == 2) {
+        metadata["SLiM"]["spatial_dimensionality"] = "xy";
+    } else {
+        metadata["SLiM"]["spatial_dimensionality"] = "xyz";
     }
     if (periodic_x_ & periodic_y_ & periodic_z_) {
-        j["SLiM"]["spatial_periodicity"] = "xyz";
+        metadata["SLiM"]["spatial_periodicity"] = "xyz";
     } else if (periodic_x_ & periodic_y_) {
-        j["SLiM"]["spatial_periodicity"] = "xy";
+        metadata["SLiM"]["spatial_periodicity"] = "xy";
     } else if (periodic_x_ & periodic_z_) {
-        j["SLiM"]["spatial_periodicity"] = "xz";
+        metadata["SLiM"]["spatial_periodicity"] = "xz";
     } else if (periodic_y_ & periodic_z_) {
-        j["SLiM"]["spatial_periodicity"] = "yz";
+        metadata["SLiM"]["spatial_periodicity"] = "yz";
     } else if (periodic_x_) {
-        j["SLiM"]["spatial_periodicity"] = "x";
+        metadata["SLiM"]["spatial_periodicity"] = "x";
     } else if (periodic_y_) {
-        j["SLiM"]["spatial_periodicity"] = "y";
+        metadata["SLiM"]["spatial_periodicity"] = "y";
     } else if (periodic_z_) {
-        j["SLiM"]["spatial_periodicity"] = "z";
+        metadata["SLiM"]["spatial_periodicity"] = "z";
     } else {
-        j["SLiM"]["spatial_periodicity"] = "";
+        metadata["SLiM"]["spatial_periodicity"] = "";
     }
-	j["SLiM"]["separate_sexes"] = sex_enabled_ ? "true" : "false";
-	j["SLiM"]["nucleotide_based"] = nucleotide_based_ ? "true" : "false";
-	std::string metadata_str;
-    metadata_str = j.dump(4);
+	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? "true" : "false";
+	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? "true" : "false";
+    metadata_str = metadata.dump(4);
 
     ret = tsk_table_collection_set_metadata(
             p_tables, metadata_str.c_str(), (tsk_size_t)metadata_str.length());
     if (ret != 0)
         handle_error("tsk_table_collection_set_metadata", ret);
+
+    // and here's where we make sure our keys are in the metadata schema,
+    // leaving alone whatever else is there, if anything
+    std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
+    std::string slim_schema_str(SLIM_TSK_METADATA_SCHEMA.c_str(), SLIM_TSK_METADATA_SCHEMA.length());
+    auto slim_schema = nlohmann::json::parse(slim_schema_str);
+    nlohmann::json schema;
+    if (metadata_schema_str.length() == 0) {
+        schema = slim_schema;
+    } else {
+        schema = nlohmann::json::parse(metadata_schema_str);
+        schema["SLiM"] = slim_schema["SLiM"];
+    }
+    metadata_schema_str = schema.dump(4);
+
     ret = tsk_table_collection_set_metadata_schema(
-            p_tables, SLIM_TSK_METADATA_SCHEMA.c_str(), SLIM_TSK_METADATA_SCHEMA.length());
+            p_tables, metadata_schema_str.c_str(), (tsk_size_t)metadata_schema_str.length());
     if (ret != 0)
         handle_error("tsk_table_collection_set_metadata_schema", ret);
 
