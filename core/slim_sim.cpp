@@ -6249,8 +6249,8 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     } else {
         metadata["SLiM"]["spatial_periodicity"] = "";
     }
-	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? "true" : "false";
-	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? "true" : "false";
+	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? true : false;
+	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? true : false;
     metadata_str = metadata.dump(4);
 
     ret = tsk_table_collection_set_metadata(
@@ -6268,7 +6268,7 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
         schema = slim_schema;
     } else {
         schema = nlohmann::json::parse(metadata_schema_str);
-        schema["SLiM"] = slim_schema["SLiM"];
+        schema["properties"]["SLiM"] = slim_schema["properties"]["SLiM"];
     }
     metadata_schema_str = schema.dump(4);
 
@@ -6555,7 +6555,7 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
         tsk_size_t num_rows = provenance_table.num_rows;
         
         if (num_rows <= 0)
-            EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): no provenance table entries; this file cannot be read." << EidosTerminate();
+            EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): no SLiM metadata; this file cannot be read." << EidosTerminate();
         
         // find the last record that is a SLiM provenance entry; we allow entries after ours, on the assumption that they have preserved SLiM-compliance
         int slim_record_index = num_rows - 1;
