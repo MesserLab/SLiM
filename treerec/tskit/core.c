@@ -303,7 +303,7 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN:
             ret = "Mutation times must either be all marked 'unknown', or all be known "
-                  "values";
+                  "values for any single site.";
             break;
 
         /* Sample errors */

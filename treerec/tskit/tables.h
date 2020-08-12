@@ -2805,7 +2805,7 @@ int tsk_table_sorter_run(struct _tsk_table_sorter_t *self, tsk_bookmark_t *start
 */
 int tsk_table_sorter_free(struct _tsk_table_sorter_t *self);
 
-/* @} */
+/** @} */
 
 int tsk_squash_edges(
     tsk_edge_t *edges, tsk_size_t num_edges, tsk_size_t *num_output_edges);

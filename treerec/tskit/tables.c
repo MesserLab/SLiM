@@ -32,6 +32,7 @@
 #include <float.h>
 #include <math.h>
 
+#define _TSK_WORKAROUND_FALSE_CLANG_WARNING
 #include <tskit/tables.h>
 
 #define DEFAULT_SIZE_INCREMENT 1024
@@ -6701,13 +6702,6 @@ tsk_table_collection_check_mutation_integrity(
                 goto out;
             }
         }
-        /* Check known/unknown times are not both present */
-        if (unknown_time) {
-            unknown_times_seen = true;
-        } else if (unknown_times_seen) {
-            ret = TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN;
-            goto out;
-        }
 
         if (check_mutation_ordering) {
             /* Check site ordering and reset time check if needed*/
@@ -6718,7 +6712,16 @@ tsk_table_collection_check_mutation_integrity(
                 }
                 if (mutations.site[j - 1] != mutations.site[j]) {
                     last_known_time = INFINITY;
+                    unknown_times_seen = false;
                 }
+            }
+
+            /* Check known/unknown times are not both present on a site*/
+            if (unknown_time) {
+                unknown_times_seen = true;
+            } else if (unknown_times_seen) {
+                ret = TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN;
+                goto out;
             }
 
             /* Check the mutation parents for ordering */

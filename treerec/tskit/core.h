@@ -39,9 +39,13 @@ extern "C" {
 #include <stdint.h>
 #include <limits.h>
 
-#if defined(__clang__) && !defined(__cplusplus)
+#if defined(_TSK_WORKAROUND_FALSE_CLANG_WARNING) && defined(__clang__)
 /* Work around bug in clang >= 6.0, https://github.com/tskit-dev/tskit/issues/721
  * (note: fixed in clang January 2019)
+ * This workaround does some nasty fiddling with builtins and is only intended to
+ * be used within the library. To turn it on, make sure
+ * _TSK_WORKAROUND_FALSE_CLANG_WARNING is defined before including any tskit
+ * headers.
  */
 #if __has_builtin(__builtin_isnan)
 #undef isnan
