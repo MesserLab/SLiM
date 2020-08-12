@@ -4790,9 +4790,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 	WritePopulationTable(&tables_);
 	
 	// sort the table collection
-	int flags = TSK_NO_CHECK_INTEGRITY;
+    int flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
-	flags = 0;
+    flags = 0;
 #endif
 	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ 0, /* flags */ flags);
 	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
@@ -5128,7 +5128,7 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
     char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
     size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
-	double time = (double) -1 * (tree_seq_generation_ + tree_seq_generation_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_generation_offset_
+	double time = -(double) (tree_seq_generation_ + tree_seq_generation_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_generation_offset_
     int ret = tsk_mutation_table_add_row(&tables_.mutations, site_id, genomeTSKID, TSK_NULL, 
                     time,
                     derived_muts_bytes, (tsk_size_t)derived_state_length,
@@ -6274,11 +6274,6 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
             SLIM_TSK_MUTATION_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_mutation_table_set_metadata_schema", ret);
-    ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
-            SLIM_TSK_SITE_METADATA_SCHEMA.c_str(),
-            SLIM_TSK_SITE_METADATA_SCHEMA.length());
-    if (ret != 0)
-        handle_error("tsk_site_table_set_metadata_schema", ret);
     ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
             SLIM_TSK_NODE_METADATA_SCHEMA.c_str(),
             SLIM_TSK_NODE_METADATA_SCHEMA.length());
@@ -8262,7 +8257,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	ret = tsk_table_collection_load(&tables_, p_file, 0);
 	if (ret != 0) handle_error("tsk_table_collection_load", ret);
 	
-	// BCH 4/25/2019: if indexes are present on table_tables we want to drop them; they are synced up
+	// BCH 4/25/2019: if indexes are present on tables_ we want to drop them; they are synced up
 	// with the edge table, but we plan to modify the edge table so they will become invalid anyway, and
 	// then they may cause a crash because of their unsynced-ness; see tskit issue #179
 	ret = tsk_table_collection_drop_index(&tables_, 0);

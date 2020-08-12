@@ -157,14 +157,15 @@ and metadata for every row in every table.
 For practical purposes, the metadata schema can be any equivalent JSON.
 However, when checking for table equality,
 the code checks whether the underlying string representations are equal.
-So, we want the metadata schema as written by SLiM to match that written by pyslim (using tskit); 
-and *this* works but (a) defining the schema using a dict
+So, we want the metadata schema as written by SLiM to match that written by pyslim (using tskit).
+The way that tskit writes out a metadata schema to a tree sequence
+is by (a) defining the schema using a dict
 and (b) creating a string using `json.dumps(schema_dict, sort_keys=True, indent=4)`.
-Happily, this matches the output of nlohmann::json dump(4),
+Happily, the resulting text matches the output of nlohmann::json dump(4),
 so - it seems - we can merrily write out JSON ourselves.
-Nonetheless, we only actually do this for top-level metadata,
-and for all the schemas (including the top-level metadata schema)
-we have the string representation as output by tskit saved in `slim_globals.h`.
+Nonetheless, we only actually do JSON parsing and writing in SLiM's code for top-level metadata:
+for all the schemas (including the top-level metadata schema)
+we just write out the string representation, as output by tskit, saved in `slim_globals.h`.
 
 In the future we may want to *keep* whatever top-level metadata there is
 in the tree sequence already (and the associated keys in the schema).
