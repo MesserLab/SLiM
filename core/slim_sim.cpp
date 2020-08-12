@@ -6208,18 +6208,10 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
 
     //////
     // Top-level (tree sequence) metadata:
-    // we need to *add* to the metadata *and also* the schema,
+    // In the future, we might need to *add* to the metadata *and also* the schema,
     // leaving other keys that might already be there.
-    std::string metadata_str(p_tables->metadata, p_tables->metadata_length);
+    // But that's being a headache, so we're skipping it.
     nlohmann::json metadata;
-    if (metadata_str.length() > 0) {
-        // Should we catch errors here? Nothing bad *should* have happened,
-        // since we already either read the metadata on loading the tree sequence,
-        // or started out with an empty tree sequence.
-        metadata = nlohmann::json::parse(metadata_str);
-    } else {
-        metadata = nlohmann::json::parse("{}");
-    }
 	metadata["SLiM"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
 	metadata["SLiM"]["generation"] = Generation();
 	metadata["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
@@ -6251,29 +6243,17 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     }
 	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? true : false;
 	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? true : false;
-    metadata_str = metadata.dump(4);
+    std::string new_metadata_str = metadata.dump(4);
 
     ret = tsk_table_collection_set_metadata(
-            p_tables, metadata_str.c_str(), (tsk_size_t)metadata_str.length());
+            p_tables, new_metadata_str.c_str(), (tsk_size_t)new_metadata_str.length());
     if (ret != 0)
         handle_error("tsk_table_collection_set_metadata", ret);
 
-    // and here's where we make sure our keys are in the metadata schema,
-    // leaving alone whatever else is there, if anything
-    std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
-    std::string slim_schema_str(SLIM_TSK_METADATA_SCHEMA.c_str(), SLIM_TSK_METADATA_SCHEMA.length());
-    auto slim_schema = nlohmann::json::parse(slim_schema_str);
-    nlohmann::json schema;
-    if (metadata_schema_str.length() == 0) {
-        schema = slim_schema;
-    } else {
-        schema = nlohmann::json::parse(metadata_schema_str);
-        schema["properties"]["SLiM"] = slim_schema["properties"]["SLiM"];
-    }
-    metadata_schema_str = schema.dump(4);
-
+    // As above, we maybe ought to edit the metadata schema adding our keys,
+    // but then comparing tables is a headache; see tskit#763
     ret = tsk_table_collection_set_metadata_schema(
-            p_tables, metadata_schema_str.c_str(), (tsk_size_t)metadata_schema_str.length());
+            p_tables, SLIM_TSK_METADATA_SCHEMA.c_str(), (tsk_size_t)SLIM_TSK_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_table_collection_set_metadata_schema", ret);
 

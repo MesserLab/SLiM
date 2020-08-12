@@ -148,11 +148,28 @@ And, these operations have the following properties:
 ## Metadata schemas
 
 tskit provides methods for structured metadata decoding using [JSON schemas](https://json-schema.org/understanding-json-schema/index.html),
-to document what the metadatameans.
+to document what the metadata means.
 We don't make use of these, but write them to the tree sequence for tskit use.
 There's both top-level metadata (ie for the whole tree sequence)
 and metadata for every row in every table.
 (But, we only use some of these.)
+
+For practical purposes, the metadata schema can be any equivalent JSON.
+However, when checking for table equality,
+the code checks whether the underlying string representations are equal.
+So, we want the metadata schema as written by SLiM to match that written by pyslim (using tskit); 
+and *this* works but (a) defining the schema using a dict
+and (b) creating a string using `json.dumps(schema_dict, sort_keys=True, indent=4)`.
+Happily, this matches the output of nlohmann::json dump(4),
+so - it seems - we can merrily write out JSON ourselves.
+Nonetheless, we only actually do this for top-level metadata,
+and for all the schemas (including the top-level metadata schema)
+we have the string representation as output by tskit saved in `slim_globals.h`.
+
+In the future we may want to *keep* whatever top-level metadata there is
+in the tree sequence already (and the associated keys in the schema).
+We've not done that yet because making things exactly match seems like a pain,
+and no-one else is using the top-level metadata yet.
 
 ### Top-level metadata:
 
