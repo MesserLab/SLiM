@@ -6261,32 +6261,32 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     // Set metadata schema on each table
     ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
             SLIM_TSK_EDGE_METADATA_SCHEMA.c_str(),
-            SLIM_TSK_EDGE_METADATA_SCHEMA.length());
+            (tsk_size_t)SLIM_TSK_EDGE_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_edge_table_set_metadata_schema", ret);
     ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
             SLIM_TSK_SITE_METADATA_SCHEMA.c_str(),
-            SLIM_TSK_SITE_METADATA_SCHEMA.length());
+            (tsk_size_t)SLIM_TSK_SITE_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_site_table_set_metadata_schema", ret);
     ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
             SLIM_TSK_MUTATION_METADATA_SCHEMA.c_str(),
-            SLIM_TSK_MUTATION_METADATA_SCHEMA.length());
+            (tsk_size_t)SLIM_TSK_MUTATION_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_mutation_table_set_metadata_schema", ret);
     ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
             SLIM_TSK_NODE_METADATA_SCHEMA.c_str(),
-            SLIM_TSK_NODE_METADATA_SCHEMA.length());
+            (tsk_size_t)SLIM_TSK_NODE_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_node_table_set_metadata_schema", ret);
     ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
             SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA.c_str(),
-            SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA.length());
+            (tsk_size_t)SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_individual_table_set_metadata_schema", ret);
     ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
             SLIM_TSK_POPULATION_METADATA_SCHEMA.c_str(),
-            SLIM_TSK_POPULATION_METADATA_SCHEMA.length());
+            (tsk_size_t)SLIM_TSK_POPULATION_METADATA_SCHEMA.length());
     if (ret != 0)
         handle_error("tsk_population_table_set_metadata_schema", ret);
 }
@@ -7825,7 +7825,7 @@ void SLiMSim::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 					int32_t allele_refs = 0;
 					
 					for (size_t sample_index = 0; sample_index < sample_count; sample_index++)
-						if ((variant->genotypes.i16[sample_index] == allele_index) && (indexToGenomeMap[sample_index] != nullptr))
+						if ((variant->genotypes.i16[sample_index] == (int16_t)allele_index) && (indexToGenomeMap[sample_index] != nullptr))
 							allele_refs++;
 					
 					// If that count is greater than zero (might be zero if only non-extant nodes reference the allele), tally it
@@ -8273,15 +8273,15 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	{
 		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
 		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
-        kastore_t *store;
+        kastore_t store;
 
-        ret = kastore_open(store, p_file, "r", 0);
+        ret = kastore_open(&store, p_file, "r", 0);
         if (ret != 0) {
-            kastore_close(store);
+            kastore_close(&store);
             handle_error("kastore_open", ret);
         }
 		
-		ret = kastore_gets_int8(store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
+		ret = kastore_gets_int8(&store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
 		if (ret != 0)
 			buffer = NULL;
 		
@@ -8293,7 +8293,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 		chromosome_.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
 		
 		// buffer is owned by kastore and is freed by closing the store
-        kastore_close(store);
+        kastore_close(&store);
 	}
 
 	// make the corresponding SLiM objects

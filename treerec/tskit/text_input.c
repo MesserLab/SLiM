@@ -379,7 +379,7 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
         if (err < 0 || *start != '\0') {
             goto out;
         }
-        ret = tsk_mutation_table_add_row(mutation_table, site, node, time, parent,
+        ret = tsk_mutation_table_add_row(mutation_table, site, node, parent, time,
                 derived_state, (tsk_size_t) strlen(derived_state), metadata, (tsk_size_t) strlen(metadata));
         if (ret < 0) {
             goto out;
