@@ -376,13 +376,13 @@ extern EidosValue_String_SP gStaticEidosValue_StringT;
 // See the pyslim code for readable versions of these.
  
 
-extern const std::string SLIM_TSK_METADATA_SCHEMA;
-extern const std::string SLIM_TSK_EDGE_METADATA_SCHEMA;
-extern const std::string SLIM_TSK_SITE_METADATA_SCHEMA;
-extern const std::string SLIM_TSK_MUTATION_METADATA_SCHEMA;
-extern const std::string SLIM_TSK_NODE_METADATA_SCHEMA;
-extern const std::string SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA;
-extern const std::string SLIM_TSK_POPULATION_METADATA_SCHEMA;
+extern const std::string gSLiM_tsk_metadata_schema;
+extern const std::string gSLiM_tsk_edge_metadata_schema;
+extern const std::string gSLiM_tsk_site_metadata_schema;
+extern const std::string gSLiM_tsk_mutation_metadata_schema;
+extern const std::string gSLiM_tsk_node_metadata_schema;
+extern const std::string gSLiM_tsk_individual_metadata_schema;
+extern const std::string gSLiM_tsk_population_metadata_schema;
 
 
 // *******************************************************************************************************************

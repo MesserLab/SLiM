@@ -6253,40 +6253,40 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     // As above, we maybe ought to edit the metadata schema adding our keys,
     // but then comparing tables is a headache; see tskit#763
     ret = tsk_table_collection_set_metadata_schema(
-            p_tables, SLIM_TSK_METADATA_SCHEMA.c_str(), (tsk_size_t)SLIM_TSK_METADATA_SCHEMA.length());
+            p_tables, gSLiM_tsk_metadata_schema.c_str(), (tsk_size_t)gSLiM_tsk_metadata_schema.length());
     if (ret != 0)
         handle_error("tsk_table_collection_set_metadata_schema", ret);
 
     ////////////
     // Set metadata schema on each table
     ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
-            SLIM_TSK_EDGE_METADATA_SCHEMA.c_str(),
-            (tsk_size_t)SLIM_TSK_EDGE_METADATA_SCHEMA.length());
+            gSLiM_tsk_edge_metadata_schema.c_str(),
+            (tsk_size_t)gSLiM_tsk_edge_metadata_schema.length());
     if (ret != 0)
         handle_error("tsk_edge_table_set_metadata_schema", ret);
     ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
-            SLIM_TSK_SITE_METADATA_SCHEMA.c_str(),
-            (tsk_size_t)SLIM_TSK_SITE_METADATA_SCHEMA.length());
+            gSLiM_tsk_site_metadata_schema.c_str(),
+            (tsk_size_t)gSLiM_tsk_site_metadata_schema.length());
     if (ret != 0)
         handle_error("tsk_site_table_set_metadata_schema", ret);
     ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
-            SLIM_TSK_MUTATION_METADATA_SCHEMA.c_str(),
-            (tsk_size_t)SLIM_TSK_MUTATION_METADATA_SCHEMA.length());
+            gSLiM_tsk_mutation_metadata_schema.c_str(),
+            (tsk_size_t)gSLiM_tsk_mutation_metadata_schema.length());
     if (ret != 0)
         handle_error("tsk_mutation_table_set_metadata_schema", ret);
     ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
-            SLIM_TSK_NODE_METADATA_SCHEMA.c_str(),
-            (tsk_size_t)SLIM_TSK_NODE_METADATA_SCHEMA.length());
+            gSLiM_tsk_node_metadata_schema.c_str(),
+            (tsk_size_t)gSLiM_tsk_node_metadata_schema.length());
     if (ret != 0)
         handle_error("tsk_node_table_set_metadata_schema", ret);
     ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
-            SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA.c_str(),
-            (tsk_size_t)SLIM_TSK_INDIVIDUAL_METADATA_SCHEMA.length());
+            gSLiM_tsk_individual_metadata_schema.c_str(),
+            (tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
     if (ret != 0)
         handle_error("tsk_individual_table_set_metadata_schema", ret);
     ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
-            SLIM_TSK_POPULATION_METADATA_SCHEMA.c_str(),
-            (tsk_size_t)SLIM_TSK_POPULATION_METADATA_SCHEMA.length());
+            gSLiM_tsk_population_metadata_schema.c_str(),
+            (tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
     if (ret != 0)
         handle_error("tsk_population_table_set_metadata_schema", ret);
 }
