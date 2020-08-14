@@ -354,28 +354,6 @@ extern EidosValue_String_SP gStaticEidosValue_StringT;
 #define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((uint32_t)(1 << 17))
 #define SLIM_TSK_INDIVIDUAL_FIRST_GEN   ((uint32_t)(1 << 18))
 
-// Metadata schemas:
-// These should be valid json strings, parseable by python's json.loads( )
-// and then turned into a valid metadata schema by tskit.MetadataSchema( ).
-// You can check these by doing, in python:
-// ```
-// t = ( <paste in everything below except final semicolon> )
-// d = json.loads(t)
-// m = tskit.MetadataSchema(d)
-// for e in d['examples']:
-//    m.encode_row(e)
-// ```
-// Furthermore, so that they match with the way python would do it,
-// we've produced these by doing :
-// ```
-// import pyslim
-// for ms in pyslim.slim_metadata_schemas:
-//   print(ms)
-//   print(str(pyslim.slim_metadata_schemas[ms]))
-// ```
-// See the pyslim code for readable versions of these.
- 
-
 extern const std::string gSLiM_tsk_metadata_schema;
 extern const std::string gSLiM_tsk_edge_metadata_schema;
 extern const std::string gSLiM_tsk_site_metadata_schema;
