@@ -158,7 +158,7 @@ typedef struct __attribute__((__packed__)) {
 	double bounds_y1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D models
 	double bounds_z0_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
 	double bounds_z1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
-	int32_t migration_rec_count_;			// 4 bytes (int32_t): the number of migration records, 0 in nonWF models
+	uint32_t migration_rec_count_;			// 4 bytes (int32_t): the number of migration records, 0 in nonWF models
 	// followed by migration_rec_count_ instances of SubpopulationMigrationMetadataRec
 } SubpopulationMetadataRec;
 

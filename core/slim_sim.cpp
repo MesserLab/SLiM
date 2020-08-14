@@ -5477,9 +5477,9 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			metarec.bounds_y1_ = std::stod(metadata_parts[8]);
 			metarec.bounds_z0_ = std::stod(metadata_parts[9]);
 			metarec.bounds_z1_ = std::stod(metadata_parts[10]);
-			metarec.migration_rec_count_ = (int32_t)std::stoll(metadata_parts[11]);
+			metarec.migration_rec_count_ = (uint32_t)std::stoll(metadata_parts[11]);
 			
-			if ((int32_t)metadata_parts.size() != (12 + metarec.migration_rec_count_ * 2))
+			if (metadata_parts.size() != (12 + metarec.migration_rec_count_ * 2))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): malformed population metadata record; this file cannot be read." << EidosTerminate();
 			
 			size_t metadata_length = sizeof(SubpopulationMetadataRec) + metarec.migration_rec_count_ * sizeof(SubpopulationMigrationMetadataRec);
@@ -6173,7 +6173,7 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 		metadata_rec->bounds_y1_ = subpop->bounds_y1_;
 		metadata_rec->bounds_z0_ = subpop->bounds_z0_;
 		metadata_rec->bounds_z1_ = subpop->bounds_z1_;
-		metadata_rec->migration_rec_count_ = (int32_t)migration_rec_count;
+		metadata_rec->migration_rec_count_ = (uint32_t)migration_rec_count;
 		
 		int migration_index = 0;
 		
@@ -7682,14 +7682,14 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			((spatial_dimensionality_ >= 3) && periodic_z_ && (subpop->bounds_z0_ != 0.0)))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): periodic bounds must have a minimum coordinate of 0.0; this file cannot be read." << EidosTerminate();
 		
-		int32_t migration_rec_count = metadata->migration_rec_count_;
+		uint32_t migration_rec_count = metadata->migration_rec_count_;
 		
 		if (metadata_length != sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): malformed migration metadata; this file cannot be read." << EidosTerminate();
 		if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (migration_rec_count > 0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): migration rates cannot be provided in a nonWF model; this file cannot be read." << EidosTerminate();
 		
-		for (int migration_index = 0; migration_index < migration_rec_count; ++migration_index)
+		for (size_t migration_index = 0; migration_index < migration_rec_count; ++migration_index)
 		{
 			slim_objectid_t source_id = migration_recs[migration_index].source_subpop_id_;
 			double rate = migration_recs[migration_index].migration_rate_;
