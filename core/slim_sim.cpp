@@ -5491,7 +5491,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			
 			*binary_metadata_subpop_rec = metarec;
 			
-			for (int migration_index = 0; migration_index < metarec.migration_rec_count_; ++migration_index)
+			for (size_t migration_index = 0; migration_index < metarec.migration_rec_count_; ++migration_index)
 			{
 				binary_metadata_migrations[migration_index].source_subpop_id_ = (slim_objectid_t)std::stoll(metadata_parts[12 + migration_index * 2]);
 				binary_metadata_migrations[migration_index].migration_rate_ = std::stod(metadata_parts[12 + migration_index * 2 + 1]);
@@ -5747,7 +5747,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 			
 			text_metadata.append(std::to_string(struct_population_metadata->migration_rec_count_));
 			
-			for (int migration_index = 0; migration_index < struct_population_metadata->migration_rec_count_; ++migration_index)
+			for (size_t migration_index = 0; migration_index < struct_population_metadata->migration_rec_count_; ++migration_index)
 			{
 				text_metadata.append(",");
 				
