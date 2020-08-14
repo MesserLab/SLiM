@@ -1230,7 +1230,7 @@ int64_t EidosValue_String_vector::IntAtIndex(int p_idx, const EidosToken *p_blam
 	double converted_value = EidosInterpreter::FloatForString(values_[p_idx], p_blame_token);
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
-	if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
+	if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): \"" << values_[p_idx] << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 	
 	return static_cast<int64_t>(converted_value);
@@ -1316,7 +1316,7 @@ int64_t EidosValue_String_singleton::IntAtIndex(int p_idx, const EidosToken *p_b
 	double converted_value = EidosInterpreter::FloatForString(value_, p_blame_token);
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
-	if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
+	if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::IntAtIndex): \"" << value_ << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 	
 	return static_cast<int64_t>(converted_value);
@@ -1757,7 +1757,7 @@ int64_t EidosValue_Float_vector::IntAtIndex(int p_idx, const EidosToken *p_blame
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): INF cannot be converted to integer type." << EidosTerminate(p_blame_token);
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
-	if ((value < INT64_MIN) || (value >= INT64_MAX))
+	if ((value < (double)INT64_MIN) || (value >= (double)INT64_MAX))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::IntAtIndex): float value " << value << " is too large to be converted to integer type." << EidosTerminate(p_blame_token);
 	
 	return static_cast<int64_t>(value);
@@ -1895,7 +1895,7 @@ int64_t EidosValue_Float_singleton::IntAtIndex(int p_idx, const EidosToken *p_bl
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::IntAtIndex): INF cannot be converted to integer type." << EidosTerminate(p_blame_token);
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
-	if ((value_ < INT64_MIN) || (value_ >= INT64_MAX))
+	if ((value_ < (double)INT64_MIN) || (value_ >= (double)INT64_MAX))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::IntAtIndex): float value " << value_ << " is too large to be converted to integer type." << EidosTerminate(p_blame_token);
 	
 	return static_cast<int64_t>(value_);
