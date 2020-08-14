@@ -254,9 +254,9 @@ void QtSLiMScriptHighlighter::highlightBlock(__attribute__((__unused__)) const Q
                 // "fitness", "initialize", etc.; it is commented out and I don't think we want it
                 else
                 {
-                    int len = static_cast<int>(token_string.length());
+                    int token_length = static_cast<int>(token_string.length());
                     
-                    if (len >= 2)
+                    if (token_length >= 2)
                     {
                         char first_ch = token_string[0];
                         
@@ -264,7 +264,7 @@ void QtSLiMScriptHighlighter::highlightBlock(__attribute__((__unused__)) const Q
                         {
                             bool is_slim_identifier = true;
                             
-                            for (int ch_index = 1; ch_index < len; ++ch_index)
+                            for (int ch_index = 1; ch_index < token_length; ++ch_index)
                             {
                                 char idx_ch = token_string[static_cast<size_t>(ch_index)];
                                 

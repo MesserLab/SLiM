@@ -1467,8 +1467,6 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
                         // - (IBAction)filterNonNeutral:(id)sender
                         display_muttypes_.clear();
                         
-                        std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
-                        
                         for (auto muttype_iter : muttypes)
                         {
                             MutationType *muttype = muttype_iter.second;
