@@ -36,10 +36,27 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 QtSLiMIndividualsWidget::QtSLiMIndividualsWidget(QWidget *parent, Qt::WindowFlags f) : QOpenGLWidget(parent, f)
 {
     displayMode = -1;	// don't know yet whether the model is spatial or not, which will determine our initial choice
+    
+    if (!glArrayVertices)
+        glArrayVertices = static_cast<float *>(malloc(kMaxVertices * 2 * sizeof(float)));		// 2 floats per vertex, kMaxVertices vertices
+    
+    if (!glArrayColors)
+        glArrayColors = static_cast<float *>(malloc(kMaxVertices * 4 * sizeof(float)));		// 4 floats per color, kMaxVertices colors
 }
 
 QtSLiMIndividualsWidget::~QtSLiMIndividualsWidget()
 {
+    if (glArrayVertices)
+	{
+		free(glArrayVertices);
+		glArrayVertices = nullptr;
+	}
+	
+	if (glArrayColors)
+	{
+		free(glArrayColors);
+		glArrayColors = nullptr;
+	}
 }
 
 void QtSLiMIndividualsWidget::initializeGL()
@@ -423,17 +440,8 @@ void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulati
 		
 		QRect individualArea(bounds.left() + offsetX, bounds.top() + offsetY, bounds.width() - offsetX, bounds.height() - offsetY);
 		
-		static float *glArrayVertices = nullptr;
-		static float *glArrayColors = nullptr;
 		int individualArrayIndex, displayListIndex;
 		float *vertices = nullptr, *colors = nullptr;
-		
-		// Set up the vertex and color arrays
-		if (!glArrayVertices)
-			glArrayVertices = static_cast<float *>(malloc(kMaxVertices * 2 * sizeof(float)));		// 2 floats per vertex, kMaxVertices vertices
-		
-		if (!glArrayColors)
-			glArrayColors = static_cast<float *>(malloc(kMaxVertices * 4 * sizeof(float)));		// 4 floats per color, kMaxVertices colors
 		
 		// Set up to draw rects
 		displayListIndex = 0;
@@ -634,17 +642,8 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 	//glColor3f(0.0, 0.0, 0.0);
 	//glRecti(bounds_x1, bounds_y1, bounds_x2, bounds_y2);
 	
-	static float *glArrayVertices = nullptr;
-	static float *glArrayColors = nullptr;
 	int displayListIndex;
 	float *vertices = nullptr, *colors = nullptr;
-	
-	// Set up the vertex and color arrays
-	if (!glArrayVertices)
-		glArrayVertices = static_cast<float *>(malloc(kMaxVertices * 2 * sizeof(float)));		// 2 floats per vertex, kMaxVertices vertices
-	
-	if (!glArrayColors)
-		glArrayColors = static_cast<float *>(malloc(kMaxVertices * 4 * sizeof(float)));		// 4 floats per color, kMaxVertices colors
 	
 	// Set up to draw rects
 	displayListIndex = 0;
@@ -1108,17 +1107,8 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
 	
 	QRect individualArea(bounds.x(), bounds.y(), bounds.width() - 1, bounds.height() - 1);
 	
-	static float *glArrayVertices = nullptr;
-	static float *glArrayColors = nullptr;
 	int individualArrayIndex, displayListIndex;
 	float *vertices = nullptr, *colors = nullptr;
-	
-	// Set up the vertex and color arrays
-	if (!glArrayVertices)
-		glArrayVertices = static_cast<float *>(malloc(kMaxVertices * 2 * sizeof(float)));		// 2 floats per vertex, kMaxVertices vertices
-	
-	if (!glArrayColors)
-		glArrayColors = static_cast<float *>(malloc(kMaxVertices * 4 * sizeof(float)));		// 4 floats per color, kMaxVertices colors
 	
 	// Set up to draw rects
 	displayListIndex = 0;

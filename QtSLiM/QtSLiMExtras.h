@@ -197,7 +197,7 @@ protected:
 template <class T>
 class BareBoneIIQS : public BareBoneIQS<T> {
 public:
-    BareBoneIIQS(T *target_ptr, std::size_t target_size);
+    BareBoneIIQS(T *p_target_ptr, std::size_t p_target_size);
     ~BareBoneIIQS();
     T next();
     std::size_t bfprt(std::size_t lhs, std::size_t rhs, std::size_t median_length);
@@ -206,12 +206,12 @@ public:
 
 /* This constructor allows in-place ordering */
 template <class T>
-BareBoneIQS<T>::BareBoneIQS(T *target_ptr, std::size_t target_size){
-    this->target_ptr = target_ptr;
-    this->target_size = target_size;
+BareBoneIQS<T>::BareBoneIQS(T *p_target_ptr, std::size_t p_target_size){
+    this->target_ptr = p_target_ptr;
+    this->target_size = p_target_size;
 
-    this->stack = (std::size_t *) std::malloc(this->target_size * sizeof(std::size_t)) ;
-    this->stack[0] = target_size - 1; // index of the last element
+    this->stack = (std::size_t *) std::malloc(p_target_size * sizeof(std::size_t)) ;
+    this->stack[0] = p_target_size - 1; // index of the last element
     this->stack_length = 1; //starts with a single element, the top
 
     this->extracted_count = 0; // this way, after adding +1, we can partition as whole

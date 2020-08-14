@@ -3766,23 +3766,23 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     // Make a file system watcher to update us when the image changes
     QFileSystemWatcher *watcher = new QFileSystemWatcher(QStringList(path), window);
     
-    connect(watcher, &QFileSystemWatcher::fileChanged, imageView, [imageView](const QString &path) {
-        QImage image(path);
+    connect(watcher, &QFileSystemWatcher::fileChanged, imageView, [imageView](const QString &watched_path) {
+        QImage watched_image(watched_path);
         
-        if (image.isNull()) {
+        if (watched_image.isNull()) {
             imageView->setText("No image data");
         } else {
-            imageView->setPixmap(QPixmap::fromImage(image));
-            imageView->window()->setFixedSize(image.width(), image.height());
+            imageView->setPixmap(QPixmap::fromImage(watched_image));
+            imageView->window()->setFixedSize(watched_image.width(), watched_image.height());
         }
     });
     
     // Set up a context menu for copy/open
     QMenu *contextMenu = new QMenu("image_menu", imageView);
     contextMenu->addAction("Copy Image", [path]() {
-        QImage image(path);     // get the current image from the filesystem
+        QImage watched_image(path);     // get the current image from the filesystem
         QClipboard *clipboard = QGuiApplication::clipboard();
-        clipboard->setImage(image);
+        clipboard->setImage(watched_image);
     });
     contextMenu->addAction("Copy File Path", [path]() {
         QClipboard *clipboard = QGuiApplication::clipboard();

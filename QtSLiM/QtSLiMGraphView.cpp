@@ -877,9 +877,8 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             }
             if (action == copyData)
             {
-                QString data = stringForData();
                 QClipboard *clipboard = QGuiApplication::clipboard();
-                clipboard->setText(data);
+                clipboard->setText(stringForData());
             }
             if (action == exportData)
             {

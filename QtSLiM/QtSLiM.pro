@@ -46,6 +46,9 @@ QMAKE_CXXFLAGS_RELEASE += -O3 -DSLIMPROFILING=1
 # get rid of warnings for deprecated declarations (not sure why commenting out QT_DEPRECATED_WARNINGS above is insufficient...)
 QMAKE_CXXFLAGS += -Wno-deprecated-declarations
 
+# other warnings we want
+QMAKE_CXXFLAGS += -Wshadow
+
 # get rid of spurious errors on Ubuntu, for now
 linux-*: {
     QMAKE_CXXFLAGS += -Wno-unknown-pragmas -Wno-attributes -Wno-unused-parameter
