@@ -89,6 +89,33 @@ get_sep_atoa(char **start, char **out, int sep)
 }
 
 
+// This reads the header line of a file into *linep, just like a call to
+// getline(linep, linecapp, stream), but also eats any metadata header
+// present, throwing it away; FIXME should do something with it
+static ssize_t
+read_text_headers(char **linep, size_t *linecapp, FILE *file)
+{
+	ssize_t err = getline(linep, linecapp, file);
+	if (err < 0)
+		return err;
+	
+	if (strcmp(*linep, "#metadata_schema#\n") == 0)
+	{
+		do {
+			err = getline(linep, linecapp, file);
+			if (err < 0)
+				return err;
+		} while (strcmp(*linep, "#end#metadata_schema\n") != 0);
+		
+		err = getline(linep, linecapp, file);
+		if (err < 0)
+			return err;
+	}
+	
+	return err;
+}
+
+
 int
 node_table_load_text(tsk_node_table_t *node_table, FILE *file)
 {
@@ -114,10 +141,10 @@ node_table_load_text(tsk_node_table_t *node_table, FILE *file)
     if (ret < 0) {
         goto out;
     }
-
+	
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) getline(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -177,7 +204,8 @@ edge_table_load_text(tsk_edge_table_t *edge_table, FILE *file)
     double left, right;
     tsk_id_t parent, child;
     int id;
-    const char *header = "id\tleft\tright\tparent\tchild\n";
+	char *metadata;
+    const char *header = "id\tleft\tright\tparent\tchild\tmetadata\n";
     char *start, *childs;
 
     line = malloc(MAX_LINE);
@@ -194,7 +222,7 @@ edge_table_load_text(tsk_edge_table_t *edge_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) getline(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -221,13 +249,18 @@ edge_table_load_text(tsk_edge_table_t *edge_table, FILE *file)
         if (err <= 0) {
             goto out;
         }
-        err = get_sep_atoa(&start, &childs, '\n');
+        err = get_sep_atoa(&start, &childs, '\t');
         if (err < 0) {
+            goto out;
+        }
+        err = get_sep_atoa(&start, &metadata, '\n');
+        if (err < 0 || *start != '\0') {
+			// require empty metadata for now
             goto out;
         }
         do {
             err = get_sep_atoi(&childs, &child, ',');
-            ret = tsk_edge_table_add_row(edge_table, left, right, parent, child, NULL, 0);
+            ret = tsk_edge_table_add_row(edge_table, left, right, parent, child, metadata, (tsk_size_t) strlen(metadata));
             if (ret < 0) {
                 goto out;
             }
@@ -269,7 +302,7 @@ site_table_load_text(tsk_site_table_t *site_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) getline(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -323,7 +356,7 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
     tsk_id_t parent;
     double time;
     char *derived_state, *metadata;
-    const char *header = "id\tsite\tnode\ttime\tparent\tderived_state\tmetadata\n";
+    const char *header = "id\tsite\tnode\tparent\ttime\tderived_state\tmetadata\n";
     char *start;
 
     line = malloc(MAX_LINE);
@@ -340,7 +373,7 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) getline(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -363,11 +396,11 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
         if (err < 0) {
             goto out;
         }
-        err = get_sep_atof(&start, &time, '\t');
+        err = get_sep_atoi(&start, &parent, '\t');
         if (err < 0) {
             goto out;
         }
-        err = get_sep_atoi(&start, &parent, '\t');
+        err = get_sep_atof(&start, &time, '\t');
         if (err < 0) {
             goto out;
         }
@@ -377,6 +410,7 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
         }
         err = get_sep_atoa(&start, &metadata, '\n');
         if (err < 0 || *start != '\0') {
+			// require empty metadata for now
             goto out;
         }
         ret = tsk_mutation_table_add_row(mutation_table, site, node, parent, time,
@@ -419,7 +453,7 @@ migration_table_load_text(tsk_migration_table_t *migration_table, FILE *file)
 
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) getline(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -494,7 +528,7 @@ individual_table_load_text(tsk_individual_table_t *individual_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) getline(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file);
     if (err < 0) {
         goto out;
     }
@@ -571,7 +605,7 @@ population_table_load_text(tsk_population_table_t *population_table, FILE *file)
 	
 	// check the header
 	ret = TSK_ERR_FILE_FORMAT;
-	err = (int) getline(&line, &k, file);
+	err = (int) read_text_headers(&line, &k, file);
 	if (err < 0) {
 		goto out;
 	}
@@ -584,6 +618,7 @@ population_table_load_text(tsk_population_table_t *population_table, FILE *file)
 		start = line;
 		err = get_sep_atoa(&start, &metadata, '\n');
 		if (err < 0 || *start != '\0') {
+			// require empty metadata for now
 			goto out;
 		}
 		ret = tsk_population_table_add_row(population_table,
@@ -625,7 +660,7 @@ provenance_table_load_text(tsk_provenance_table_t *provenance_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) getline(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file);
     if (err < 0) {
         goto out;
     }

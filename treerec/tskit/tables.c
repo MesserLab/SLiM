@@ -3732,7 +3732,7 @@ tsk_population_table_dump_text(tsk_population_table_t *self, FILE *out)
 
     err = write_metadata_schema_header(
         out, self->metadata_schema, self->metadata_schema_length);
-    if (err != 0) {
+    if (err < 0) {
         goto out;
     }
     err = fprintf(out, "metadata\n");
