@@ -4849,7 +4849,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
 #else
 	// sort the tables using our own custom edge sorter, for additional speed through inlining of the comparison function
-	// see https://github.com/tskit-dev/tskit/pull/627/files, https://github.com/tskit-dev/tskit/pull/711/files
+	// see https://github.com/tskit-dev/tskit/pull/627, https://github.com/tskit-dev/tskit/pull/711
+	// FIXME for additional speed we could perhaps be smart about only sorting the portions of the edge table
+	// that need it, but the tricky thing is that all the old stuff has to be at the bottom of the table, not the top...
 	tsk_table_sorter_t sorter;
 	int ret = tsk_table_sorter_init(&sorter, &tables_, /* flags */ flags);
 	if (ret != 0) handle_error("tsk_table_sorter_init", ret);

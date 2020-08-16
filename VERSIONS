@@ -21,7 +21,7 @@ development head:
 	disallow adding mutations with addNewMutation() / addNewDrawnMutation() / addMutations() to individuals of age > 0 prevent tree sequence inconsistencies; see issue #102
 	extend codonsToAminoAcids() to be able to return integer codes for the amino acids, if passed long=0
 	add population and subpopulation fitness distribution plots to QtSLiM
-	integrate tskit 0.3.0 into SLiM, allowing more efficient tree sequence simplification (due to faster sorting) among other things
+	integrate tskit 0.3.0 into SLiM, allowing more efficient tree sequence simplification (due to faster sorting) and new metadata schema support for interoperability
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
