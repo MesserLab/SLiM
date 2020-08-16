@@ -4728,6 +4728,54 @@ void SLiMSim::ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vect
 	}
 }
 
+struct edge_plus_time {
+	double time;
+	tsk_id_t parent, child;
+	double left, right;
+};
+
+static int
+slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
+{
+	if (sorter->tables->edges.metadata_length != 0)
+		throw std::invalid_argument("the sorter does not currently handle edge metadata");
+	if (start != 0)
+		throw std::invalid_argument("the sorter requires start==0");
+	
+	std::vector<edge_plus_time> temp;
+	temp.reserve(static_cast<std::size_t>(sorter->tables->edges.num_rows));
+	
+	auto edges = &sorter->tables->edges;
+	auto nodes = &sorter->tables->nodes;
+	
+	for (tsk_size_t i = 0; i < sorter->tables->edges.num_rows; ++i)
+		temp.push_back(edge_plus_time{ nodes->time[edges->parent[i]], edges->parent[i], edges->child[i], edges->left[i], edges->right[i] });
+	
+	std::sort(begin(temp), end(temp),
+		[](const edge_plus_time &lhs, const edge_plus_time &rhs) {
+			if (lhs.time == rhs.time) {
+				if (lhs.parent == rhs.parent) {
+					if (lhs.child == rhs.child) {
+						return lhs.left < rhs.left;
+					}
+					return lhs.child < rhs.child;
+				}
+				return lhs.parent < rhs.parent;
+			}
+			return lhs.time < rhs.time;
+		});
+	
+	for (std::size_t i = 0; i < temp.size(); ++i)
+	{
+		edges->left[i] = temp[i].left;
+		edges->right[i] = temp[i].right;
+		edges->parent[i] = temp[i].parent;
+		edges->child[i] = temp[i].child;
+	}
+	
+	return 0;
+}
+
 void SLiMSim::SimplifyTreeSequence(void)
 {
 #if DEBUG
@@ -4794,8 +4842,30 @@ void SLiMSim::SimplifyTreeSequence(void)
 #if DEBUG
     flags = 0;
 #endif
-	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ 0, /* flags */ flags);
+	
+#if 0
+	// sort the tables using tsk_table_collection_sort() to get the default behavior
+	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ NULL, /* flags */ flags);
 	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+#else
+	// sort the tables using our own custom edge sorter, for additional speed through inlining of the comparison function
+	// see https://github.com/tskit-dev/tskit/pull/627/files, https://github.com/tskit-dev/tskit/pull/711/files
+	tsk_table_sorter_t sorter;
+	int ret = tsk_table_sorter_init(&sorter, &tables_, /* flags */ flags);
+	if (ret != 0) handle_error("tsk_table_sorter_init", ret);
+	
+	sorter.sort_edges = slim_sort_edges;
+	
+	try {
+		ret = tsk_table_sorter_run(&sorter, NULL);
+	} catch (std::exception &e) {
+		EIDOS_TERMINATION << "ERROR (SLiMSim::SimplifyTreeSequence): (internal error) exception raised during tsk_table_sorter_run(): " << e.what() << "." << EidosTerminate();
+	}
+	if (ret != 0) handle_error("tsk_table_sorter_run", ret);
+	
+	tsk_table_sorter_free(&sorter);
+	if (ret != 0) handle_error("tsk_table_sorter_free", ret);
+#endif
 	
 	// remove redundant sites we added
 	ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
@@ -6676,7 +6746,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 #if DEBUG
         flags = 0;
 #endif
-		ret = tsk_table_collection_sort(&tables_, /* edge_start */ 0, /* flags */ flags);
+		ret = tsk_table_collection_sort(&tables_, /* edge_start */ NULL, /* flags */ flags);
         if (ret < 0) handle_error("tsk_table_collection_sort", ret);
 		
         // Remove redundant sites we added
@@ -7088,7 +7158,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 #if DEBUG
             flags = 0;
 #endif
-			ret = tsk_table_collection_sort(tables_copy, /* edge_start */ 0, /* flags */ flags);
+			ret = tsk_table_collection_sort(tables_copy, /* edge_start */ NULL, /* flags */ flags);
 			if (ret < 0) handle_error("tsk_table_collection_sort", ret);
 			
 			ret = tsk_table_collection_deduplicate_sites(tables_copy, 0);
