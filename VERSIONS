@@ -25,6 +25,7 @@ development head:
 	add 1D and 2D SFS plots to QtSLiM, along with a 2D frequency spectrum plot
 	improve plots in QtSLiM, particularly PDF generation
 	add colors() function to Eidos, providing several new color palettes including Turbo and Viridis
+	integrate tskit 0.3.0 into SLiM, allowing more efficient tree sequence simplification (due to faster sorting) among other things
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
