@@ -29,7 +29,7 @@
 QtSLiMGraphView_PopFitnessDist::QtSLiMGraphView_PopFitnessDist(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 50;
-    allowXAxisBinRescale_ = true;
+    allowBinCountRescale_ = true;
     
     xAxisMax_ = 2.0;
     xAxisMajorTickInterval_ = 1.0;

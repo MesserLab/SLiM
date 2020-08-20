@@ -34,6 +34,7 @@
 
 #include "QtSLiMGraphView.h"
 #include "QtSLiMGraphView_FrequencySpectra.h"
+#include "QtSLiMGraphView_2DSFS.h"
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
@@ -1385,6 +1386,7 @@ QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *window)
 void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID)
 {
     QtSLiMGraphView *graphViewMutationFreqSpectrum = graphViewForGraphWindow(graphWindowMutationFreqSpectrum);
+    QtSLiMGraphView *graphViewMutation2DSFS = graphViewForGraphWindow(graphWindowMutation2DSFS);
     QtSLiMGraphView *graphViewMutationFreqTrajectories = graphViewForGraphWindow(graphWindowMutationFreqTrajectories);
     QtSLiMGraphView *graphViewMutationLossTimeHistogram = graphViewForGraphWindow(graphWindowMutationLossTimeHistogram);
     QtSLiMGraphView *graphViewMutationFixationTimeHistogram = graphViewForGraphWindow(graphWindowMutationFixationTimeHistogram);
@@ -1394,6 +1396,7 @@ void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID di
     QtSLiMGraphView *graphViewSubpopFitnessDists = graphViewForGraphWindow(graphWindowSubpopFitnessDists);
     
     if (graphViewMutationFreqSpectrum)              graphViewMutationFreqSpectrum->dispatch(dispatchID);
+    if (graphViewMutation2DSFS)                     graphViewMutation2DSFS->dispatch(dispatchID);
     if (graphViewMutationFreqTrajectories)          graphViewMutationFreqTrajectories->dispatch(dispatchID);
     if (graphViewMutationLossTimeHistogram)         graphViewMutationLossTimeHistogram->dispatch(dispatchID);
     if (graphViewMutationFixationTimeHistogram)     graphViewMutationFixationTimeHistogram->dispatch(dispatchID);
@@ -3861,9 +3864,11 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     topLayout->addWidget(graphView);
     
     // Add a horizontal layout at the bottom, for popup buttons and such added by the graph
+    QHBoxLayout *buttonLayout = nullptr;
+    
     if (graphView->needsButtonLayout())
     {
-        QHBoxLayout *buttonLayout = new QHBoxLayout;
+        buttonLayout = new QHBoxLayout;
         
         buttonLayout->setMargin(5);
         buttonLayout->setSpacing(5);
@@ -3875,6 +3880,18 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     
     // Position the window nicely
     positionNewSubsidiaryWindow(window);
+    
+    // If we added a button layout, give it room so the graph area is still square
+    // Note this has to happen after positionNewSubsidiaryWindow(), which forces layout calculations
+    // FIXME this is not ideal, since other graph windows don't avoid the extra margin, but it's OK for now...
+    if (buttonLayout)
+    {
+        QSize contentSize = window->size();
+        int buttonLayoutHeight = buttonLayout->contentsRect().height();
+        
+        contentSize.setHeight(contentSize.height() + buttonLayoutHeight);
+        window->resize(contentSize);
+    }
     
     // make window actions for all global menu items
     // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
@@ -3895,6 +3912,9 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     QAction *graphMutFreqSpectrum = contextMenu.addAction("Graph Mutation Frequency Spectrum");
     graphMutFreqSpectrum->setEnabled(!disableAll);
+    
+    QAction *graphMut2DSFS = contextMenu.addAction("Graph Mutation 2D SFS");
+    graphMut2DSFS->setEnabled(!disableAll);
     
     QAction *graphMutFreqTrajectories = contextMenu.addAction("Graph Mutation Frequency Trajectories");
     graphMutFreqTrajectories->setEnabled(!disableAll);
@@ -3941,6 +3961,12 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             if (!graphWindowMutationFreqSpectrum)
                 graphWindowMutationFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_FrequencySpectra(this, this));
             graphWindow = graphWindowMutationFreqSpectrum;
+        }
+        if (action == graphMut2DSFS)
+        {
+            if (!graphWindowMutation2DSFS)
+                graphWindowMutation2DSFS = graphWindowWithView(new QtSLiMGraphView_2DSFS(this, this));
+            graphWindow = graphWindowMutation2DSFS;
         }
         if (action == graphMutFreqTrajectories)
         {

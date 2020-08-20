@@ -25,7 +25,7 @@
 QtSLiMGraphView_FrequencySpectra::QtSLiMGraphView_FrequencySpectra(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 10;
-    allowXAxisBinRescale_ = true;
+    allowBinCountRescale_ = true;
     
     xAxisMajorTickInterval_ = 0.2;
     xAxisMinorTickInterval_ = 0.1;
@@ -125,12 +125,15 @@ double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(int mutation
 			total += spectrum[binIndex];
 		}
 		
-		for (int bin = 0; bin < binCount; ++bin)
-		{
-			int binIndex = mutationTypeIndex + bin * mutationTypeCount;
-			
-			doubleSpectrum[binIndex] = spectrum[binIndex] / static_cast<double>(total);
-		}
+        if (total > 0)
+        {
+            for (int bin = 0; bin < binCount; ++bin)
+            {
+                int binIndex = mutationTypeIndex + bin * mutationTypeCount;
+                
+                doubleSpectrum[binIndex] = spectrum[binIndex] / static_cast<double>(total);
+            }
+        }
 	}
 	
 	// return the final tally; note this is a pointer in to our static ivar, and must not be freed!

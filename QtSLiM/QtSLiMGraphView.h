@@ -31,6 +31,7 @@
 #include "QtSLiMWindow.h"
 
 class QHBoxLayout;
+class QComboBox;
 
 
 // A quick and dirty macro to enable rounding of coordinates to the nearest pixel only when we are not generating PDF
@@ -111,6 +112,10 @@ protected:
     QtSLiMLegendSpec mutationTypeLegendKey(void);
     void drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);
     void drawBarplot(QPainter &painter, QRect interiorRect, double *buffer, int binCount, double firstBinValue, double binWidth);
+    void drawHeatmap(QPainter &painter, QRect interiorRect, double *buffer, int xBinCount, int yBinCount);
+    bool addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t &selectedSubpopID);
+    bool addMutationTypesToMenu(QComboBox *mutTypeButton, int &selectedMutIDIndex);
+    size_t tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index);
     
     // Properties; initialzed in the constructor, these defaults are just zero-fill
     bool showXAxis_ = false;
@@ -132,6 +137,7 @@ protected:
     QString yAxisLabel_;
     
     bool legendVisible_ = false;
+    bool allowGridAndBoxChanges_ = true;
     bool showHorizontalGridLines_ = false;
     bool showVerticalGridLines_ = false;
     bool showFullBox_ = false;
@@ -140,7 +146,10 @@ protected:
     
     // Prefab additions properties
     int histogramBinCount_ = 0;
-    bool allowXAxisBinRescale_ = false;
+    bool allowBinCountRescale_ = false;
+    int heatmapMargins_ = 0;
+    bool allowHeatmapMarginsChange_ = false;
+    bool rebuildingMenu_ = false;           // set to true during addSubpopulationsToMenu() / addMutationTypesToMenu()
     
     // set to YES during a copy: operation, to allow customization
 	bool generatingPDF_ = false;

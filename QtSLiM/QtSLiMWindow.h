@@ -111,6 +111,7 @@ private:
     QtSLiMTablesDrawer *tablesDrawerController = nullptr;
     
     QWidget *graphWindowMutationFreqSpectrum = nullptr;
+    QWidget *graphWindowMutation2DSFS = nullptr;
     QWidget *graphWindowMutationFreqTrajectories = nullptr;
     QWidget *graphWindowMutationLossTimeHistogram = nullptr;
     QWidget *graphWindowMutationFixationTimeHistogram = nullptr;

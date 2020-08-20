@@ -22,6 +22,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QPainterPath>
+#include <QComboBox>
 #include <QDebug>
 
 #include "QtSLiMWindow.h"
@@ -68,122 +69,25 @@ void QtSLiMGraphView_FrequencyTrajectory::addedToWindow(void)
         subpopulationButton_->setEditable(false);
         subpopulationButton_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
         layout->addWidget(subpopulationButton_);
-        connect(subpopulationButton_, QOverload<int>::of(&QComboBox::activated), this, &QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged);
+        connect(subpopulationButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged);
         
         mutationTypeButton_ = new QComboBox(this);
         mutationTypeButton_->setEditable(false);
         mutationTypeButton_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
         layout->addWidget(mutationTypeButton_);
-        connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::activated), this, &QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged);
+        connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged);
         
         QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
         layout->addItem(rightSpacer);
         
-        addSubpopulationsToMenu();
-        addMutationTypesToMenu();
+        addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
+        addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     }
 }
 
 QtSLiMGraphView_FrequencyTrajectory::~QtSLiMGraphView_FrequencyTrajectory()
 {
     invalidateCachedData();
-}
-
-bool QtSLiMGraphView_FrequencyTrajectory::addSubpopulationsToMenu(void)
-{
-	slim_objectid_t firstTag = -1;
-	
-	// Depopulate and populate the menu
-	subpopulationButton_->clear();
-
-	if (!controller_->invalidSimulation())
-	{
-		Population &population = controller_->sim->population_;
-		
-		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
-		{
-			slim_objectid_t subpopID = popIter->first;
-			QString subpopString = QString("p%1").arg(subpopID);
-			
-			subpopulationButton_->addItem(subpopString, subpopID);
-			
-			// Remember the first item we add; we will use this item's tag to make a selection if needed
-			if (firstTag == -1)
-				firstTag = subpopID;
-		}
-	}
-	
-	//[subpopulationButton slimSortMenuItemsByTag];
-	
-	// If it is empty, disable it
-	bool hasItems = (subpopulationButton_->count() >= 1);
-	
-    subpopulationButton_->setEnabled(hasItems);
-	
-	// Fix the selection and then select the chosen subpopulation
-	if (hasItems)
-	{
-		int indexOfTag = subpopulationButton_->findData(selectedSubpopulationID_);
-		
-		if (indexOfTag == -1)
-            setSelectedSubpopulationID(-1);
-		if (selectedSubpopulationID_ == -1)
-            setSelectedSubpopulationID(firstTag);
-		
-        subpopulationButton_->setCurrentIndex(subpopulationButton_->findData(selectedSubpopulationID_));
-	}
-	
-	return hasItems;	// true if we found at least one subpop to add to the menu, false otherwise
-}
-
-bool QtSLiMGraphView_FrequencyTrajectory::addMutationTypesToMenu(void)
-{
-	int firstTag = -1;
-	
-	// Depopulate and populate the menu
-	mutationTypeButton_->clear();
-	
-	if (!controller_-> invalidSimulation())
-	{
-		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller_->sim->mutation_types_;
-		
-		for (auto mutTypeIter = mutationTypes.begin(); mutTypeIter != mutationTypes.end(); ++mutTypeIter)
-		{
-			MutationType *mutationType = mutTypeIter->second;
-			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;
-			int mutationTypeIndex = mutationType->mutation_type_index_;
-			QString mutationTypeString = QString("m%1").arg(mutationTypeID);
-			
-			mutationTypeButton_->addItem(mutationTypeString, mutationTypeIndex);
-			
-			// Remember the first item we add; we will use this item's tag to make a selection if needed
-			if (firstTag == -1)
-				firstTag = mutationTypeIndex;
-		}
-	}
-	
-	//[mutationTypeButton slimSortMenuItemsByTag];
-	
-	// If it is empty, disable it
-	bool hasItems = (mutationTypeButton_->count() >= 1);
-	
-	mutationTypeButton_->setEnabled(hasItems);
-	
-	// Fix the selection and then select the chosen mutation type
-	if (hasItems)
-	{
-		int indexOfTag = mutationTypeButton_->findData(selectedMutationTypeIndex_);
-		
-		if (indexOfTag == -1)
-            setSelectedMutationTypeIndex(-1);
-		if (selectedMutationTypeIndex_ == -1)
-            setSelectedMutationTypeIndex(firstTag);
-		
-		mutationTypeButton_->setCurrentIndex(mutationTypeButton_->findData(selectedMutationTypeIndex_));
-        //qDebug() << "addMutationTypesToMenu() : selecting tag" << selectedMutationTypeIndex_ << ", index" << mutationTypeButton_->currentIndex();
-	}
-	
-	return hasItems;	// true if we found at least one muttype to add to the menu, false otherwise
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
@@ -226,22 +130,22 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 		if (subpop_pair.first == selectedSubpopulationID_)	// find our chosen subpop
 			foundSelectedSubpop = true;
 	
-	for (const std::pair<const slim_objectid_t,MutationType*> &subpop_pair : sim->mutation_types_)
-		if (subpop_pair.second->mutation_type_index_ == selectedMutationTypeIndex_)	// find our chosen muttype
+	for (const std::pair<const slim_objectid_t,MutationType*> &muttype_pair : sim->mutation_types_)
+		if (muttype_pair.second->mutation_type_index_ == selectedMutationTypeIndex_)	// find our chosen muttype
 			foundSelectedMutType = true;
 	
 	// Make sure we have a selected subpop if possible.  Our menu might not have been loaded, or our chosen subpop might have vanished.
 	if ((selectedSubpopulationID_ == -1) || !foundSelectedSubpop)
 	{
 		// Call -addSubpopulationsToMenu to reload our subpop menu and choose a subpop
-		foundSelectedSubpop = addSubpopulationsToMenu();
+		foundSelectedSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
 	}
 	
 	// Make sure we have a selected muttype if possible.  Our menu might not have been loaded, or our chosen muttype might have vanished.
 	if ((selectedMutationTypeIndex_ == -1) || !foundSelectedMutType)
 	{
 		// Call -addMutationTypesToMenu to reload our muttype menu and choose a muttype
-		foundSelectedMutType = addMutationTypesToMenu();
+		foundSelectedMutType = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
         //qDebug() << "fetchDataForFinishedGeneration() mut type invalid :" << foundSelectedMutType << "," << selectedMutationTypeIndex_;
 	}
 	
@@ -252,58 +156,14 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 	for (auto &pair_ref : frequencyHistoryDict_)
 		pair_ref.second->updated = false;
 	
-	//
-	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
-	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
-	//
-	size_t subpop_total_genome_count = 0;
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
-	
-	for (; registry_iter != registry_iter_end; ++registry_iter)
-		(mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
-	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
-	{
-		if (subpop_pair.first == selectedSubpopulationID_)	// tally only within our chosen subpop
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-			
-			for (int i = 0; i < subpop_genome_count; i++)
-			{
-				Genome &genome = *subpop_genomes[static_cast<size_t>(i)];
-				
-				if (!genome.IsNull())
-				{
-					int mutrun_count = genome.mutrun_count_;
-					
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
-					{
-						MutationRun *mutrun = genome.mutruns_[run_index].get();
-						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
-						
-						for (; genome_iter != genome_end_iter; ++genome_iter)
-						{
-							const Mutation *mutation = mut_block_ptr + *genome_iter;
-							
-							if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-								(mutation->gui_scratch_reference_count_)++;
-						}
-					}
-					
-					subpop_total_genome_count++;
-				}
-			}
-		}
-	}
+    // Tally reference counts within selectedSubpopulationID_
+    size_t subpop_total_genome_count = tallyGUIMutationReferences(selectedSubpopulationID_, selectedMutationTypeIndex_);
 	
 	// Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
+    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
+    
 	for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
 	{
 		const Mutation *mutation = mut_block_ptr + *registry_iter;
@@ -417,40 +277,40 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 	lastGeneration_ = sim->generation_;
 }
 
-void QtSLiMGraphView_FrequencyTrajectory::setSelectedSubpopulationID(slim_objectid_t newID)
-{
-	if (selectedSubpopulationID_ != newID)
-	{
-		selectedSubpopulationID_ = newID;
-		
-		invalidateCachedData();
-		fetchDataForFinishedGeneration();
-		update();
-	}
-}
-
-void QtSLiMGraphView_FrequencyTrajectory::setSelectedMutationTypeIndex(int newIndex)
-{
-	if (selectedMutationTypeIndex_ != newIndex)
-	{
-		selectedMutationTypeIndex_ = newIndex;
-		
-        invalidateCachedData();
-		fetchDataForFinishedGeneration();
-        update();
-	}
-}
-
 void QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged(int /* index */)
 {
-    setSelectedSubpopulationID(SLiMClampToObjectidType(subpopulationButton_->currentData().toInt()));
-    //qDebug() << "subpopulationPopupChanged : " << subpopulationButton_->currentText() << " – setting selectedSubpopulationID_ to" << selectedSubpopulationID_;
+    slim_objectid_t newSubpopID = SLiMClampToObjectidType(subpopulationButton_->currentData().toInt());
+    
+    // when QtSLiMGraphView rebuilds the menu we receive this signal,
+    // but we don't want to react to non-changes during rebuilds
+    if (!rebuildingMenu_ && (selectedSubpopulationID_ != newSubpopID))
+    {
+        selectedSubpopulationID_ = newSubpopID;
+        //qDebug() << "subpopulationPopupChanged : " << subpopulationButton_->currentText() << " – changing selectedSubpopulationID_ to" << selectedSubpopulationID_;
+        
+        // respond to a change in our displayed state by invalidating caches and updating
+        invalidateCachedData();
+        fetchDataForFinishedGeneration();
+        update();
+    }
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged(int /* index */)
 {
-    setSelectedMutationTypeIndex(mutationTypeButton_->currentData().toInt());
-    //qDebug() << "mutationTypePopupChanged : " << mutationTypeButton_->currentText() << " – setting selectedMutationTypeIndex_ to" << selectedMutationTypeIndex_;
+    int newMutTypeIndex = mutationTypeButton_->currentData().toInt();
+    
+    // when QtSLiMGraphView rebuilds the menu we receive this signal,
+    // but we don't want to react to non-changes during rebuilds
+    if (!rebuildingMenu_ && (selectedMutationTypeIndex_ != newMutTypeIndex))
+    {
+        selectedMutationTypeIndex_ = newMutTypeIndex;
+        //qDebug() << "mutationTypePopupChanged : " << mutationTypeButton_->currentText() << " – setting selectedMutationTypeIndex_ to" << selectedMutationTypeIndex_;
+        
+        // respond to a change in our displayed state by invalidating caches and updating
+        invalidateCachedData();
+        fetchDataForFinishedGeneration();
+        update();
+    }
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::controllerRecycled(void)
@@ -465,8 +325,8 @@ void QtSLiMGraphView_FrequencyTrajectory::controllerRecycled(void)
 	
     // Remake our popups, whether or not the controller is valid
 	invalidateCachedData();
-	addSubpopulationsToMenu();
-	addMutationTypesToMenu();
+	addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
+	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     
 	QtSLiMGraphView::controllerRecycled();
 }
@@ -497,8 +357,8 @@ void QtSLiMGraphView_FrequencyTrajectory::updateAfterTick(void)
 {
     // Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
-	addSubpopulationsToMenu();
-	addMutationTypesToMenu();
+	addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
+	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
 	
 	QtSLiMGraphView::updateAfterTick();
 }

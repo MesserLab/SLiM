@@ -127,6 +127,7 @@ macx: LIBS += -lobjc.A
 
 
 SOURCES += \
+    QtSLiMGraphView_2DSFS.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
     main.cpp \
@@ -163,6 +164,7 @@ SOURCES += \
     QtSLiMVariableBrowser.cpp
 
 HEADERS += \
+    QtSLiMGraphView_2DSFS.h \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_SubpopFitnessDists.h \
     QtSLiMWindow.h \

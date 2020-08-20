@@ -21,7 +21,6 @@
 #define QTSLIMGRAPHVIEW_FREQUENCYTRAJECTORY_H
 
 #include <QWidget>
-#include <QComboBox>
 #include <unordered_map>
 #include <vector>
 
@@ -46,8 +45,6 @@ public:
     bool providesStringForData(void) override;
     QString stringForData(void) override;
     
-    bool addSubpopulationsToMenu(void);
-    bool addMutationTypesToMenu(void);
     void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
     
 public slots:
@@ -80,9 +77,6 @@ private:
     // The subpop and mutation type selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)
     slim_objectid_t selectedSubpopulationID_;
     int selectedMutationTypeIndex_;
-    
-    void setSelectedSubpopulationID(slim_objectid_t newID);
-    void setSelectedMutationTypeIndex(int newIndex);
     
     // User-selected display prefs
     bool plotLostMutations_ = false;

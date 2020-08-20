@@ -31,8 +31,13 @@
 #include <QStandardPaths>
 #include <QPdfWriter>
 #include <QBuffer>
+#include <QComboBox>
 #include <QtGlobal>
 #include <QDebug>
+
+#include "subpopulation.h"
+#include "genome.h"
+#include "mutation_run.h"
 
 
 QFont QtSLiMGraphView::labelFontOfPointSize(double size)
@@ -81,6 +86,7 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller) : QW
     yAxisLabel_ = "This is the y-axis, yo";
     
     legendVisible_ = true;
+    allowGridAndBoxChanges_ = true;
     showHorizontalGridLines_ = false;
     showVerticalGridLines_ = false;
     showFullBox_ = false;
@@ -638,8 +644,9 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
         QAction *gridHToggle = nullptr;
         QAction *gridVToggle = nullptr;
         QAction *boxToggle = nullptr;
+        QAction *changeBinCount = nullptr;
+        QAction *changeHeatmapMargins = nullptr;
         QAction *changeXAxisScale = nullptr;
-        QAction *changeXBarCount = nullptr;
         QAction *changeYAxisScale = nullptr;
         QAction *copyGraph = nullptr;
         QAction *exportGraph = nullptr;
@@ -654,21 +661,21 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		}
 		
 		// Toggle horizontal grid line visibility
-		if (showYAxis_ && showYAxisTicks_)
+		if (allowGridAndBoxChanges_ && showYAxis_ && showYAxisTicks_)
 		{
 			gridHToggle = contextMenu.addAction(showHorizontalGridLines_ ? "Hide Horizontal Grid" : "Show Horizontal Grid");
 			addedItems = true;
 		}
 		
 		// Toggle vertical grid line visibility
-		if (showXAxis_ && showXAxisTicks_)
+		if (allowGridAndBoxChanges_ && showXAxis_ && showXAxisTicks_)
 		{
 			gridVToggle = contextMenu.addAction(showVerticalGridLines_ ? "Hide Vertical Grid" : "Show Vertical Grid");
 			addedItems = true;
 		}
 		
 		// Toggle box visibility
-		if (showXAxis_ && showYAxis_)
+		if (allowGridAndBoxChanges_ && showXAxis_ && showYAxis_)
 		{
 			boxToggle = contextMenu.addAction(showFullBox_ ? "Hide Full Box" : "Show Full Box");
 			addedItems = true;
@@ -680,14 +687,19 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		addedItems = false;
 		
 		// Rescale axes
+        if (histogramBinCount_ && allowBinCountRescale_)
+		{
+            changeBinCount = contextMenu.addAction("Change Bin Count...");
+			addedItems = true;
+		}
+        if (allowHeatmapMarginsChange_)
+        {
+            changeHeatmapMargins = contextMenu.addAction(heatmapMargins_ ? "Remove Heatmap Margins" : "Add Heatmap Margins");
+            addedItems = true;
+        }
 		if (showXAxis_ && showXAxisTicks_ && allowXAxisUserRescale_)
 		{
             changeXAxisScale = contextMenu.addAction("Change X Axis Scale...");
-			addedItems = true;
-		}
-		if (histogramBinCount_ && allowXAxisBinRescale_)
-		{
-            changeXBarCount = contextMenu.addAction("Change X Bar Count...");
 			addedItems = true;
 		}
 		if (showYAxis_ && showYAxisTicks_ && allowYAxisUserRescale_)
@@ -752,6 +764,29 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
                 showFullBox_ = !showFullBox_;
                 update();
             }
+            if (action == changeBinCount)
+            {
+                QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a bin count:", QStringList("Bin count:"), QStringList(QString::number(histogramBinCount_)));
+                
+                if (choices.length() == 1)
+                {
+                    int newBinCount = choices[0].toInt();
+                    
+                    if ((newBinCount > 1) && (newBinCount <= 500))
+                    {
+                        histogramBinCount_ = newBinCount;
+                        invalidateDrawingCache();
+                        update();
+                    }
+                    else qApp->beep();
+                }
+            }
+            if (action == changeHeatmapMargins)
+            {
+                heatmapMargins_ = 1- heatmapMargins_;   // toggle
+                invalidateDrawingCache();
+                update();
+            }
             if (action == changeXAxisScale)
             {
                 QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a configuration for the axis:",
@@ -770,23 +805,6 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
                     
                     invalidateDrawingCache();
                     update();
-                }
-            }
-            if (action == changeXBarCount)
-            {
-                QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a bar count:", QStringList("Bar count:"), QStringList(QString::number(histogramBinCount_)));
-                
-                if (choices.length() == 1)
-                {
-                    int newBinCount = choices[0].toInt();
-                    
-                    if ((newBinCount > 1) && (newBinCount <= 500))
-                    {
-                        histogramBinCount_ = newBinCount;
-                        invalidateDrawingCache();
-                        update();
-                    }
-                    else qApp->beep();
                 }
             }
             if (action == changeYAxisScale)
@@ -1039,6 +1057,208 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
 void QtSLiMGraphView::drawBarplot(QPainter &painter, QRect interiorRect, double *buffer, int binCount, double firstBinValue, double binWidth)
 {
 	drawGroupedBarplot(painter, interiorRect, buffer, 1, binCount, firstBinValue, binWidth);
+}
+
+static QColor heatColor(double value)
+{
+    // for value in [0, 1], returns a QColor; similar to Eidos_ExecuteFunction_heatColors(), but with a ramp up from black
+    if (value < 0.05)
+        return QtSLiMColorWithRGB(value / 0.05, 0.0, 0.0, 1.0);
+    else if (value < 0.3)
+        return QtSLiMColorWithRGB(1.0, (value - 0.05) / (0.3 - 0.05), 0.0, 1.0);
+    else
+        return QtSLiMColorWithRGB(1.0, 1.0, (value - 0.3) / (1.0 - 0.3), 1.0);
+}
+
+void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double *buffer, int xBinCount, int yBinCount)
+{
+    double patchWidth = (interiorRect.width() - heatmapMargins_) / (double)xBinCount;
+    double patchHeight = (interiorRect.height() - heatmapMargins_) / (double)yBinCount;
+    
+    for (int x = 0; x < xBinCount; ++x)
+    {
+        for (int y = 0; y < yBinCount; ++y)
+        {
+            double value = buffer[x + y * xBinCount];
+            int patchX1 = round(interiorRect.left() + patchWidth * x) + heatmapMargins_;
+            int patchX2 = round(interiorRect.left() + patchWidth * (x + 1));
+            int patchY1 = round(interiorRect.top() + patchHeight * y) + heatmapMargins_;
+            int patchY2 = round(interiorRect.top() + patchHeight * (y + 1));
+            QRect patchRect(patchX1, patchY1, patchX2 - patchX1, patchY2 - patchY1);
+            
+            painter.fillRect(patchRect, heatColor(value));
+        }
+    }
+}
+
+bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t &selectedSubpopID)
+{
+	slim_objectid_t firstTag = -1;
+    
+    // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
+    // allows client code to avoid (over-)reacting to those signals.
+    rebuildingMenu_ = true;
+	
+	// Depopulate and populate the menu
+	subpopButton->clear();
+
+	if (!controller_->invalidSimulation())
+	{
+		Population &population = controller_->sim->population_;
+		
+		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
+		{
+			slim_objectid_t subpopID = popIter->first;
+			QString subpopString = QString("p%1").arg(subpopID);
+			
+			subpopButton->addItem(subpopString, subpopID);
+			
+			// Remember the first item we add; we will use this item's tag to make a selection if needed
+			if (firstTag == -1)
+				firstTag = subpopID;
+		}
+	}
+	
+	//[subpopulationButton slimSortMenuItemsByTag];
+	
+	// If it is empty, disable it
+	bool hasItems = (subpopButton->count() >= 1);
+	
+    subpopButton->setEnabled(hasItems);
+	
+    // Done rebuilding the menu, resume change messages
+    rebuildingMenu_ = false;
+    
+	// Fix the selection and then select the chosen subpopulation
+	if (hasItems)
+	{
+		int indexOfTag = subpopButton->findData(selectedSubpopID);
+		
+		if (indexOfTag == -1)
+            selectedSubpopID = -1;
+		if (selectedSubpopID == -1)
+            selectedSubpopID = firstTag;
+		
+        subpopButton->setCurrentIndex(subpopButton->findData(selectedSubpopID));
+	}
+	
+	return hasItems;	// true if we found at least one subpop to add to the menu, false otherwise
+}
+
+bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int &selectedMutIDIndex)
+{
+	int firstTag = -1;
+	
+    // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
+    // allows client code to avoid (over-)reacting to those signals.
+    rebuildingMenu_ = true;
+	
+	// Depopulate and populate the menu
+	mutTypeButton->clear();
+	
+	if (!controller_-> invalidSimulation())
+	{
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller_->sim->mutation_types_;
+		
+		for (auto mutTypeIter = mutationTypes.begin(); mutTypeIter != mutationTypes.end(); ++mutTypeIter)
+		{
+			MutationType *mutationType = mutTypeIter->second;
+			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;
+			int mutationTypeIndex = mutationType->mutation_type_index_;
+			QString mutationTypeString = QString("m%1").arg(mutationTypeID);
+			
+			mutTypeButton->addItem(mutationTypeString, mutationTypeIndex);
+			
+			// Remember the first item we add; we will use this item's tag to make a selection if needed
+			if (firstTag == -1)
+				firstTag = mutationTypeIndex;
+		}
+	}
+	
+	//[mutationTypeButton slimSortMenuItemsByTag];
+	
+	// If it is empty, disable it
+	bool hasItems = (mutTypeButton->count() >= 1);
+	
+	mutTypeButton->setEnabled(hasItems);
+	
+    // Done rebuilding the menu, resume change messages
+    rebuildingMenu_ = false;
+    
+	// Fix the selection and then select the chosen mutation type
+	if (hasItems)
+	{
+		int indexOfTag = mutTypeButton->findData(selectedMutIDIndex);
+		
+		if (indexOfTag == -1)
+            selectedMutIDIndex = -1;
+		if (selectedMutIDIndex == -1)
+            selectedMutIDIndex = firstTag;
+		
+		mutTypeButton->setCurrentIndex(mutTypeButton->findData(selectedMutIDIndex));
+        //qDebug() << "addMutationTypesToMenu() : selecting tag" << selectedMutIDIndex << ", index" << mutTypeButton->currentIndex();
+	}
+	
+	return hasItems;	// true if we found at least one muttype to add to the menu, false otherwise
+}
+
+size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index)
+{
+    //
+	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
+	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+	//
+    SLiMSim *sim = controller_->sim;
+	Population &population = sim->population_;
+	MutationRun &mutationRegistry = population.mutation_registry_;
+	size_t subpop_total_genome_count = 0;
+	
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
+	
+	for (; registry_iter != registry_iter_end; ++registry_iter)
+		(mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+	{
+		if (subpop_pair.first == subpop_id)	// tally only within our chosen subpop
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+			
+			for (int i = 0; i < subpop_genome_count; i++)
+			{
+				Genome &genome = *subpop_genomes[static_cast<size_t>(i)];
+				
+				if (!genome.IsNull())
+				{
+					int mutrun_count = genome.mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						MutationRun *mutrun = genome.mutruns_[run_index].get();
+						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+						
+						for (; genome_iter != genome_end_iter; ++genome_iter)
+						{
+							const Mutation *mutation = mut_block_ptr + *genome_iter;
+							
+							if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
+								(mutation->gui_scratch_reference_count_)++;
+						}
+					}
+					
+					subpop_total_genome_count++;
+				}
+			}
+		}
+	}
+    
+    return subpop_total_genome_count;
 }
 
 

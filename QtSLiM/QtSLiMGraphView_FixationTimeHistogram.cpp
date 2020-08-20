@@ -25,7 +25,7 @@
 QtSLiMGraphView_FixationTimeHistogram::QtSLiMGraphView_FixationTimeHistogram(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 10;
-    //allowXAxisBinRescale_ = true;     // not supported yet
+    //allowBinCountRescale_ = true;     // not supported yet
     
     xAxisMax_ = 1000;
     xAxisMajorTickInterval_ = 200;
