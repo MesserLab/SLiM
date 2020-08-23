@@ -38,7 +38,7 @@ public:
     QString graphTitle(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
-    QString stringForData(void) override;
+    void appendStringForData(QString &string) override;    
     
 protected:
     QtSLiMLegendSpec legendKey(void) override;    

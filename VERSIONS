@@ -22,7 +22,8 @@ development head:
 	extend codonsToAminoAcids() to be able to return integer codes for the amino acids, if passed long=0
 	add population and subpopulation fitness distribution plots to QtSLiM
 	revise recipe 5.4 (Gravel model) thanks to Chase W. Nelson
-	add 2D SFS plot to QtSLiM
+	add 1D and 2D SFS plots to QtSLiM, along with a 2D frequency spectrum plot
+	improve plots in QtSLiM, particularly PDF generation
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

@@ -1,8 +1,8 @@
 //
-//  QtSLiMGraphView_2DSFS.h
+//  QtSLiMGraphView_1DSampleSFS.h
 //  SLiM
 //
-//  Created by Ben Haller on 8/18/2020.
+//  Created by Ben Haller on 8/20/2020.
 //  Copyright (c) 2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
@@ -17,52 +17,70 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef QTSLIMGRAPHVIEW_2DSFS_H
-#define QTSLIMGRAPHVIEW_2DSFS_H
+#ifndef QTSLIMGRAPHVIEW_1DSAMPLESFS_H
+#define QTSLIMGRAPHVIEW_1DSAMPLESFS_H
+
+#include <QWidget>
 
 #include "QtSLiMGraphView.h"
 
-class MutationType;
 
-
-class QtSLiMGraphView_2DSFS : public QtSLiMGraphView
+class QtSLiMGraphView_1DSampleSFS : public QtSLiMGraphView
 {
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_2DSFS(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_2DSFS() override;
+    QtSLiMGraphView_1DSampleSFS(QWidget *parent, QtSLiMWindow *controller);
+    ~QtSLiMGraphView_1DSampleSFS() override;
     
     QString graphTitle(void) override;
     bool needsButtonLayout(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
-    QString stringForData(void) override;
+    void appendStringForData(QString &string) override;    
+    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
     
 public slots:
     void addedToWindow(void) override;
+    void invalidateDrawingCache(void) override;
     void controllerRecycled(void) override;
     void updateAfterTick(void) override;
     void subpopulation1PopupChanged(int index);
-    void subpopulation2PopupChanged(int index);
     void mutationTypePopupChanged(int index);
+    void changeSampleSize(void);
     
 private:
     // pop-up menu buttons
     QComboBox *subpopulation1Button_ = nullptr;
-    QComboBox *subpopulation2Button_ = nullptr;
 	QComboBox *mutationTypeButton_ = nullptr;
     
-    // The subpop2 and mutation type selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)
+    // The subpop and mutation type selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)
     slim_objectid_t selectedSubpopulation1ID_;
-    slim_objectid_t selectedSubpopulation2ID_;
     int selectedMutationTypeIndex_;
     
-    double *mutation2DSFS(void);    
+    uint64_t *sfs1dbuf_ = nullptr;
+    uint64_t *mutation1DSFS(void);
 };
 
 
-#endif // QTSLIMGRAPHVIEW_2DSFS_H
+#endif // QTSLIMGRAPHVIEW_1DSAMPLESFS_H
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

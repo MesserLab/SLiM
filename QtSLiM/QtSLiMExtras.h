@@ -44,6 +44,7 @@ class QPaintEvent;
 
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter);
+void QtSLiMFrameRect(const QRectF &p_rect, const QColor &p_color, QPainter &p_painter, double p_lineWidth);
 
 QColor QtSLiMColorWithWhite(double p_white, double p_alpha);
 QColor QtSLiMColorWithRGB(double p_red, double p_green, double p_blue, double p_alpha);

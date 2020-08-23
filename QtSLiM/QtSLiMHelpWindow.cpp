@@ -97,7 +97,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
     {
         // if an item is top-level, we want to frame it to look heavier, like a "group item" on macOS
         painter->fillRect(QRect(fullRect.left(), fullRect.top(), fullRect.width(), 1), QtSLiMColorWithWhite(0.85, 1.0));        // top edge in light gray
-        painter->fillRect(QRect(fullRect.left(), fullRect.bottom(), fullRect.width(), 1), QtSLiMColorWithWhite(0.65, 1.0));     // bottom edge in medium gray
+        painter->fillRect(QRect(fullRect.left(), fullRect.top() + fullRect.height() - 1, fullRect.width(), 1), QtSLiMColorWithWhite(0.65, 1.0));     // bottom edge in medium gray
     }
     else
     {
@@ -174,7 +174,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
         
         if (draw_WF_box || draw_nonWF_box || draw_nucmut_box)
         {
-            QRect boxRect = QRect(fullRect.right() - 13, fullRect.top() + 4, 8, 8);
+            QRect boxRect = QRect(fullRect.left() + fullRect.width() - 14, fullRect.top() + 4, 8, 8);
             QColor boxColor;
             
             if (draw_WF_box)

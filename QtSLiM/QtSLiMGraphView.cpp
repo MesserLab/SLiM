@@ -73,6 +73,7 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller) : QW
     xAxisMajorTickInterval_ = 0.5;
     xAxisMinorTickInterval_ = 0.25;
     xAxisMajorTickModulus_ = 2;
+    xAxisHistogramStyle_ = false;
     xAxisTickValuePrecision_ = 1;
 
     yAxisMin_ = 0.0;
@@ -81,15 +82,20 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller) : QW
     yAxisMinorTickInterval_ = 0.25;
     yAxisMajorTickModulus_ = 2;
     yAxisTickValuePrecision_ = 1;
+    yAxisHistogramStyle_ = false;
+    yAxisLog_ = false;
     
     xAxisLabel_ = "This is the x-axis, yo";
     yAxisLabel_ = "This is the y-axis, yo";
     
     legendVisible_ = true;
-    allowGridAndBoxChanges_ = true;
     showHorizontalGridLines_ = false;
     showVerticalGridLines_ = false;
+    showGridLinesMajorOnly_ = false;
     showFullBox_ = false;
+    allowHorizontalGridChange_ = true;
+    allowVerticalGridChange_ = true;
+    allowFullBoxChange_ = true;
 }
 
 void QtSLiMGraphView::addedToWindow(void)
@@ -130,6 +136,17 @@ QHBoxLayout *QtSLiMGraphView::buttonLayout(void)
     return nullptr;
 }
 
+QComboBox *QtSLiMGraphView::newButtonInLayout(QHBoxLayout *layout)
+{
+    QComboBox *button = new QComboBox(this);
+    button->setEditable(false);
+    button->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    button->setMinimumContentsLength(2);
+    layout->addWidget(button);
+    
+    return button;
+}
+
 QRect QtSLiMGraphView::interiorRectForBounds(QRect bounds)
 {
     QRect interiorRect = bounds;
@@ -153,32 +170,64 @@ double QtSLiMGraphView::plotToDeviceX(double plotx, QRect interiorRect)
 {
 	double fractionAlongAxis = (plotx - xAxisMin_) / (xAxisMax_ - xAxisMin_);
 	
-	// We go from the center of the first pixel to the center of the last pixel
-	return (fractionAlongAxis * (interiorRect.width() - 1.0) + interiorRect.x()) + 0.5;
+    if (generatingPDF_)
+    {
+        // We go from the left edge of the first pixel to the right edge of the last pixel
+        return (fractionAlongAxis * interiorRect.width() + interiorRect.x());
+    }
+    else
+    {
+        // We go from the center of the first pixel to the center of the last pixel
+        return (fractionAlongAxis * (interiorRect.width() - 1.0) + interiorRect.x()) + 0.5;
+    }
 }
 
 double QtSLiMGraphView::plotToDeviceY(double ploty, QRect interiorRect)
 {
 	double fractionAlongAxis = (ploty - yAxisMin_) / (yAxisMax_ - yAxisMin_);
 	
-	// We go from the center of the first pixel to the center of the last pixel
-	return (fractionAlongAxis * (interiorRect.height() - 1.0) + interiorRect.y()) + 0.5;
+    if (generatingPDF_)
+    {
+        // We go from the bottom edge of the first pixel to the top edge of the last pixel
+        return (fractionAlongAxis * interiorRect.height() + interiorRect.y());
+    }
+    else
+    {
+        // We go from the center of the first pixel to the center of the last pixel
+        return (fractionAlongAxis * (interiorRect.height() - 1.0) + interiorRect.y()) + 0.5;
+    }
 }
 
 double QtSLiMGraphView::roundPlotToDeviceX(double plotx, QRect interiorRect)
 {
 	double fractionAlongAxis = (plotx - xAxisMin_) / (xAxisMax_ - xAxisMin_);
 	
-	// We go from the center of the first pixel to the center of the last pixel, rounded off to pixel midpoints
-	return SLIM_SCREEN_ROUND(fractionAlongAxis * (interiorRect.width() - 1.0) + interiorRect.x()) + 0.5;
+    if (generatingPDF_)
+    {
+        // We go from the left edge of the first pixel to the right edge of the last pixel
+        return (fractionAlongAxis * interiorRect.width() + interiorRect.x());
+    }
+    else
+    {
+        // We go from the center of the first pixel to the center of the last pixel, rounded off to pixel midpoints
+        return SLIM_SCREEN_ROUND(fractionAlongAxis * (interiorRect.width() - 1.0) + interiorRect.x()) + 0.5;
+    }
 }
 
 double QtSLiMGraphView::roundPlotToDeviceY(double ploty, QRect interiorRect)
 {
 	double fractionAlongAxis = (ploty - yAxisMin_) / (yAxisMax_ - yAxisMin_);
 	
-	// We go from the center of the first pixel to the center of the last pixel, rounded off to pixel midpoints
-	return SLIM_SCREEN_ROUND(fractionAlongAxis * (interiorRect.height() - 1.0) + interiorRect.y()) + 0.5;
+    if (generatingPDF_)
+    {
+        // We go from the bottom edge of the first pixel to the top edge of the last pixel
+        return (fractionAlongAxis * interiorRect.height() + interiorRect.y());
+    }
+    else
+    {
+        // We go from the center of the first pixel to the center of the last pixel, rounded off to pixel midpoints
+        return SLIM_SCREEN_ROUND(fractionAlongAxis * (interiorRect.height() - 1.0) + interiorRect.y()) + 0.5;
+    }
 }
 
 void QtSLiMGraphView::willDraw(QPainter & /* painter */, QRect /* interiorRect */)
@@ -190,56 +239,115 @@ void QtSLiMGraphView::drawXAxisTicks(QPainter &painter, QRect interiorRect)
     painter.setFont(QtSLiMGraphView::fontForTickLabels());
     painter.setBrush(Qt::black);
     
-	double axisMin = xAxisMin_;
-	double axisMax = xAxisMax_;
-	double minorTickInterval = xAxisMinorTickInterval_;
-	int majorTickModulus = xAxisMajorTickModulus_;
-	int tickValuePrecision = xAxisTickValuePrecision_;
-	double tickValue;
-	int tickIndex;
-	
-	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
-	{
-		bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
-		int xValueForTick = static_cast<int>(SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - axisMin) / (axisMax - axisMin))));    // left edge of pixel
-		
-		//qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", xValueForTick == " << xValueForTick;
-		
-        painter.fillRect(xValueForTick, interiorRect.y() - (isMajorTick ? 6 : 3), 1, isMajorTick ? 6 : 3, Qt::black);
+    double axisMin = xAxisMin_;
+    double axisMax = xAxisMax_;
+    int tickValuePrecision = xAxisTickValuePrecision_;
+    double tickValue;
+    
+    if (!xAxisHistogramStyle_)
+    {
+        double minorTickInterval = xAxisMinorTickInterval_;
+        int majorTickModulus = xAxisMajorTickModulus_;
+        int tickIndex;
         
-		if (isMajorTick)
-		{
-			double labelValueForTick;
-			
-			labelValueForTick = tickValue;
-			
-            QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
-            QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
-            double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
-            double labelX = xValueForTick - SLIM_SCREEN_ROUND(labelWidth / 2.0);
-            double labelY = interiorRect.y() - (labelHeight + 4);
-			
-            labelY = painter.transform().map(QPointF(labelX, labelY)).y();
+        for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
+        {
+            bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
+            double tickLength = (isMajorTick ? 6 : 3);
+            double xValueForTick;
             
-			if (tweakXAxisTickLabelAlignment_)
-			{
-				if (fabs(tickValue - axisMin) < 0.000001)
-                    labelX = xValueForTick - 2.0;
-				else if (fabs(tickValue - axisMax) < 0.000001)
-					labelX = xValueForTick - SLIM_SCREEN_ROUND(labelWidth) + 2.0;
-			}
+            if (generatingPDF_)
+                xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + interiorRect.width() * ((tickValue - axisMin) / (axisMax - axisMin)) - 0.5);    // left edge of pixel
+            else
+                xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - axisMin) / (axisMax - axisMin)));    // left edge of pixel
             
-            painter.setWorldMatrixEnabled(false);
-            painter.drawText(QPointF(labelX, labelY), labelText);
-            painter.setWorldMatrixEnabled(true);
-		}
-	}
+            //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", xValueForTick == " << xValueForTick;
+            
+            painter.fillRect(QRectF(xValueForTick, interiorRect.y() - tickLength, 1, tickLength - (generatingPDF_ ? 0.5 : 0.0)), Qt::black);
+            
+            if (isMajorTick)
+            {
+                double labelValueForTick;
+                
+                labelValueForTick = tickValue;
+                
+                QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
+                QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
+                double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
+                double labelX = xValueForTick - SLIM_SCREEN_ROUND(labelWidth / 2.0);
+                double labelY = interiorRect.y() - (labelHeight + 4);
+                
+                labelY = painter.transform().map(QPointF(labelX, labelY)).y();
+                
+                if (tweakXAxisTickLabelAlignment_)
+                {
+                    if (fabs(tickValue - axisMin) < 0.000001)
+                        labelX = xValueForTick - 2.0;
+                    else if (fabs(tickValue - axisMax) < 0.000001)
+                        labelX = xValueForTick - SLIM_SCREEN_ROUND(labelWidth) + 2.0;
+                }
+                
+                painter.setWorldMatrixEnabled(false);
+                painter.drawText(QPointF(labelX, labelY), labelText);
+                painter.setWorldMatrixEnabled(true);
+            }
+        }
+    }
+    else
+    {
+        // Histogram-style ticks are centered under each bar position, at the 0.5 positions on the axis
+        // So a histogram-style axis declared with min/max of 0/10 actually spans 1..10, with ticks at 0.5..9.5 labeled 1..10
+        double axisStart = axisMin + 1;
+        
+        for (tickValue = axisStart; tickValue <= axisMax; tickValue++)
+        {
+            bool isMajorTick = (tickValue == axisStart) || (tickValue == axisMax);
+            double tickLength = (isMajorTick ? 6 : 3);
+            double xValueForTick;
+            
+            if (generatingPDF_)
+                xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + interiorRect.width() * ((tickValue - 0.5 - axisMin) / (axisMax - axisMin)) - 0.5);    // left edge of pixel
+            else
+                xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - 0.5 - axisMin) / (axisMax - axisMin)));    // left edge of pixel
+            
+            //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", xValueForTick == " << xValueForTick;
+            
+            painter.fillRect(QRectF(xValueForTick, interiorRect.y() - tickLength, 1, tickLength - (generatingPDF_ ? 0.5 : 0.0)), Qt::black);
+            
+            if (isMajorTick)
+            {
+                double labelValueForTick;
+                
+                labelValueForTick = tickValue;
+                
+                QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
+                QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
+                double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
+                double labelX = xValueForTick - SLIM_SCREEN_ROUND(labelWidth / 2.0);
+                double labelY = interiorRect.y() - (labelHeight + 4);
+                
+                labelY = painter.transform().map(QPointF(labelX, labelY)).y();
+                
+                if (tweakXAxisTickLabelAlignment_)
+                {
+                    if (fabs(tickValue - axisStart) < 0.000001)
+                        labelX = xValueForTick - 2.0;
+                    else if (fabs(tickValue - axisMax) < 0.000001)
+                        labelX = xValueForTick - SLIM_SCREEN_ROUND(labelWidth) + 2.0;
+                }
+                
+                painter.setWorldMatrixEnabled(false);
+                painter.drawText(QPointF(labelX, labelY), labelText);
+                painter.setWorldMatrixEnabled(true);
+            }
+        }
+    }
 }
 
 void QtSLiMGraphView::drawXAxis(QPainter &painter, QRect interiorRect)
 {
-    int yAxisFudge = showYAxis_ ? 1 : 0;
-	QRect axisRect(interiorRect.x() - yAxisFudge, interiorRect.y() - 1, interiorRect.width() + yAxisFudge, 1);
+    double yAxisFudge = showYAxis_ ? 1 : (generatingPDF_ ? 0.5 : 0);
+	QRectF axisRect(interiorRect.x() - yAxisFudge, interiorRect.y() - 1, interiorRect.width() + yAxisFudge + (generatingPDF_ ? 0.5 : 0), 1);
 	
     painter.fillRect(axisRect, Qt::black);
 	
@@ -263,46 +371,120 @@ void QtSLiMGraphView::drawYAxisTicks(QPainter &painter, QRect interiorRect)
     
 	double axisMin = yAxisMin_;
 	double axisMax = yAxisMax_;
-	double minorTickInterval = yAxisMinorTickInterval_;
-	int majorTickModulus = yAxisMajorTickModulus_;
 	int tickValuePrecision = yAxisTickValuePrecision_;
 	double tickValue;
-	int tickIndex;
 	
-	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
-	{
-		bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
-		int yValueForTick = static_cast<int>(SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((tickValue - axisMin) / (axisMax - axisMin))));   // bottom edge of pixel
-		
-        //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", yValueForTick == " << yValueForTick;
-		
-        painter.fillRect(interiorRect.x() - (isMajorTick ? 6 : 3), yValueForTick, isMajorTick ? 6 : 3, 1, Qt::black);
-		
-		if (isMajorTick)
-		{
-			double labelValueForTick;
-			
-			labelValueForTick = tickValue;
-			
-            QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
-            QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
-            double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
-            double labelY = yValueForTick - SLIM_SCREEN_ROUND(labelHeight / 2.0) + 3;
-            double labelX = interiorRect.x() - (labelWidth + 8);
-			
-            labelY = painter.transform().map(QPointF(labelX, labelY)).y();
+    if (!yAxisHistogramStyle_)
+    {
+        double axisStart = (yAxisLog_ ? round(yAxisMin_) : yAxisMin_);  // with a log scale, we leave a little room at the bottom
+        double minorTickInterval = yAxisMinorTickInterval_;
+        int majorTickModulus = yAxisMajorTickModulus_;
+        int tickIndex;
+        
+        for (tickValue = axisStart, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
+        {
+            bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
+            double tickLength = (isMajorTick ? 6 : 3);
+            double transformedTickValue = tickValue;
             
-            painter.setWorldMatrixEnabled(false);
-            painter.drawText(QPointF(labelX, labelY), labelText);
-            painter.setWorldMatrixEnabled(true);
-		}
-	}
+            if (yAxisLog_ && !isMajorTick)
+            {
+                // with a log scale, adjust the tick positions so they are non-linear; this is hackish
+                double intPart = std::floor(tickValue);
+                double fractPart = tickValue - intPart;
+                double minorTickIndex = fractPart * 9.0;
+                double minorTickOffset = std::log10(minorTickIndex + 1.0);
+                transformedTickValue = intPart + minorTickOffset;
+                std::cout << intPart << " , " << fractPart << "\n";
+            }
+            
+            double yValueForTick;
+            
+            if (generatingPDF_)
+                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((transformedTickValue - axisMin) / (axisMax - axisMin)) - 0.5);   // bottom edge of pixel
+            else
+                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((transformedTickValue - axisMin) / (axisMax - axisMin)));   // bottom edge of pixel
+            
+            //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", yValueForTick == " << yValueForTick;
+            
+            painter.fillRect(QRectF(interiorRect.x() - tickLength, yValueForTick, tickLength - (generatingPDF_ ? 0.5 : 0.0), 1), Qt::black);
+            
+            if (isMajorTick)
+            {
+                double labelValueForTick;
+                
+                labelValueForTick = tickValue;
+                
+                QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
+                
+                if (yAxisLog_)
+                {
+                    if (std::abs(tickValue - 0.0) < 0.0000001)          labelText = "1";
+                    else if (std::abs(tickValue - 1.0) < 0.0000001)     labelText = "10";
+                    else if (std::abs(tickValue - 2.0) < 0.0000001)     labelText = "100";
+                    else                                                labelText = QString("10^%1").arg((int)round(tickValue));
+                }
+                
+                QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
+                double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
+                double labelY = yValueForTick - SLIM_SCREEN_ROUND(labelHeight / 2.0) + 3;
+                double labelX = interiorRect.x() - (labelWidth + 8);
+                
+                labelY = painter.transform().map(QPointF(labelX, labelY)).y();
+                
+                painter.setWorldMatrixEnabled(false);
+                painter.drawText(QPointF(labelX, labelY), labelText);
+                painter.setWorldMatrixEnabled(true);
+            }
+        }
+    }
+    else
+    {
+        // Histogram-style ticks are centered to the left of each bar position, at the 0.5 positions on the axis
+        // So a histogram-style axis declared with min/max of 0/10 actually spans 1..10, with ticks at 0.5..9.5 labeled 1..10
+        double axisStart = axisMin + 1;
+        
+        for (tickValue = axisStart; tickValue <= axisMax; tickValue++)
+        {
+            bool isMajorTick = (tickValue == axisStart) || (tickValue == axisMax);
+            double tickLength = (isMajorTick ? 6 : 3);
+            double yValueForTick;
+            
+            if (generatingPDF_)
+                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((tickValue - 0.5 - axisMin) / (axisMax - axisMin)) - 0.5);   // bottom edge of pixel
+            else
+                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((tickValue - 0.5 - axisMin) / (axisMax - axisMin)));   // bottom edge of pixel
+            
+            //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", yValueForTick == " << yValueForTick;
+            
+            painter.fillRect(QRectF(interiorRect.x() - tickLength, yValueForTick, tickLength - (generatingPDF_ ? 0.5 : 0.0), 1), Qt::black);
+            
+            if (isMajorTick)
+            {
+                double labelValueForTick;
+                
+                labelValueForTick = tickValue;
+                
+                QString labelText = QString("%1").arg(labelValueForTick, 0, 'f', tickValuePrecision);
+                QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
+                double labelWidth = labelBoundingRect.width(), labelHeight = labelBoundingRect.height();
+                double labelY = yValueForTick - SLIM_SCREEN_ROUND(labelHeight / 2.0) + 3;
+                double labelX = interiorRect.x() - (labelWidth + 8);
+                
+                labelY = painter.transform().map(QPointF(labelX, labelY)).y();
+                
+                painter.setWorldMatrixEnabled(false);
+                painter.drawText(QPointF(labelX, labelY), labelText);
+                painter.setWorldMatrixEnabled(true);
+            }
+        }
+    }
 }
 
 void QtSLiMGraphView::drawYAxis(QPainter &painter, QRect interiorRect)
 {
-    int xAxisFudge = showXAxis_ ? 1 : 0;
-	QRect axisRect(interiorRect.x() - 1, interiorRect.y() - xAxisFudge, 1, interiorRect.height() + xAxisFudge);
+    double xAxisFudge = showXAxis_ ? 1 : (generatingPDF_ ? 0.5 : 0);
+	QRectF axisRect(interiorRect.x() - 1, interiorRect.y() - xAxisFudge, 1, interiorRect.height() + xAxisFudge + (generatingPDF_ ? 0.5 : 0));
     
     painter.fillRect(axisRect, Qt::black);
     
@@ -348,18 +530,22 @@ void QtSLiMGraphView::drawVerticalGridLines(QPainter &painter, QRect interiorRec
 	double axisMax = xAxisMax_;
 	double minorTickInterval = xAxisMinorTickInterval_;
 	double tickValue;
-	int tickIndex;
 	
-	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
+	for (tickValue = axisMin; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval)
 	{
-		int xValueForTick = static_cast<int>(SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - axisMin) / static_cast<double>(axisMax - axisMin))));    // left edge of pixel
+		double xValueForTick;
+        
+        if (generatingPDF_)
+            xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + interiorRect.width() * ((tickValue - axisMin) / (axisMax - axisMin)) - 0.5);    // left edge of pixel
+        else
+            xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - axisMin) / (axisMax - axisMin)));    // left edge of pixel
 		
-		if (xValueForTick == interiorRect.x())
+		if (std::abs(xValueForTick - interiorRect.x()) < 1.25)
 			continue;
-		if ((xValueForTick == (interiorRect.x() + interiorRect.width() - 1)) && showFullBox_)
+		if ((std::abs(xValueForTick - (interiorRect.x() + interiorRect.width() - 1)) < 1.25) && showFullBox_)
 			continue;
 		
-        painter.fillRect(xValueForTick, interiorRect.y(), 1, interiorRect.height(), gridColor);
+        painter.fillRect(QRectF(xValueForTick, interiorRect.y(), 1, interiorRect.height()), gridColor);
 	}
 }
 
@@ -370,18 +556,24 @@ void QtSLiMGraphView::drawHorizontalGridLines(QPainter &painter, QRect interiorR
 	double axisMax = yAxisMax_;
 	double minorTickInterval = yAxisMinorTickInterval_;
 	double tickValue;
-	int tickIndex;
+    double axisStart = (yAxisLog_ ? round(yAxisMin_) : yAxisMin_);  // with a log scale, we leave a little room at the bottom
+    double tickValueIncrement = (showGridLinesMajorOnly_ ? yAxisMajorTickInterval_ : minorTickInterval);
 	
-	for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
+	for (tickValue = axisStart; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += tickValueIncrement)
 	{
-		int yValueForTick = static_cast<int>(SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((tickValue - axisMin) / static_cast<double>(axisMax - axisMin))));   // bottom edge of pixel
+		double yValueForTick;
+        
+        if (generatingPDF_)
+            yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((tickValue - axisMin) / (axisMax - axisMin)) - 0.5);   // bottom edge of pixel
+        else
+            yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((tickValue - axisMin) / (axisMax - axisMin)));   // bottom edge of pixel
 		
-		if (yValueForTick == interiorRect.y())
+		if (std::abs(yValueForTick - interiorRect.y()) < 1.25)
 			continue;
-		if ((yValueForTick == (interiorRect.y() + interiorRect.height() - 1)) && showFullBox_)
+		if ((std::abs(yValueForTick - (interiorRect.y() + interiorRect.height() - 1)) < 1.25) && showFullBox_)
 			continue;
 		
-        painter.fillRect(interiorRect.x(), yValueForTick, interiorRect.width(), 1, gridColor);
+        painter.fillRect(QRectF(interiorRect.x(), yValueForTick, interiorRect.width(), 1), gridColor);
 	}
 }
 
@@ -468,8 +660,8 @@ void QtSLiMGraphView::drawLegendInInteriorRect(QPainter &painter, QRect interior
 		QRect legendRect(0, 0, legendWidth + legendMargin + legendMargin, legendHeight + legendMargin + legendMargin);
 		
 		// Position the legend in the upper right, for now; this should be configurable
-		legendRect.moveLeft(interiorRect.x() + interiorRect.width() - legendRect.width());
-		legendRect.moveTop(interiorRect.y() + interiorRect.height() - legendRect.height());
+		legendRect.moveLeft(interiorRect.x() + interiorRect.width() - (legendRect.width() + 2));
+		legendRect.moveTop(interiorRect.y() + interiorRect.height() - (legendRect.height() + 2));
 		
 		// Frame the legend and erase it with a slightly translucent wash
         painter.fillRect(legendRect, QtSLiMColorWithWhite(0.95, 0.9));
@@ -522,20 +714,20 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
 		if (!cachingNow_)
 		{
 			// Overdraw axes, ticks, and axis labels, if requested
-			if (showXAxis_ && showXAxisTicks_)
-				drawXAxisTicks(painter, interiorRect);
-			
-			if (showYAxis_ && showYAxisTicks_)
-				drawYAxisTicks(painter, interiorRect);
-			
-			if (showXAxis_)
+            if (showXAxis_)
 				drawXAxis(painter, interiorRect);
 			
 			if (showYAxis_)
 				drawYAxis(painter, interiorRect);
 			
-			if (showFullBox_)
+            if (showFullBox_)
 				drawFullBox(painter,interiorRect);
+			
+			if (showXAxis_ && showXAxisTicks_)
+				drawXAxisTicks(painter, interiorRect);
+			
+			if (showYAxis_ && showYAxisTicks_)
+				drawYAxisTicks(painter, interiorRect);
 			
 			// Overdraw the legend
 			if (legendVisible_)
@@ -618,7 +810,19 @@ bool QtSLiMGraphView::providesStringForData(void)
 
 QString QtSLiMGraphView::stringForData(void)
 {
-    return QString();
+    QString string("# Graph data: ");
+	
+    string.append(graphTitle());
+    string.append("\n");
+    string.append(dateline());
+    string.append("\n\n");
+    
+    appendStringForData(string);
+    
+    // Get rid of extra commas, as a service to subclasses
+    string.replace(", \n", "\n");
+    
+    return string;
 }
 
 QString QtSLiMGraphView::dateline(void)
@@ -661,21 +865,21 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		}
 		
 		// Toggle horizontal grid line visibility
-		if (allowGridAndBoxChanges_ && showYAxis_ && showYAxisTicks_)
+		if (allowHorizontalGridChange_ && showYAxis_ && showYAxisTicks_)
 		{
 			gridHToggle = contextMenu.addAction(showHorizontalGridLines_ ? "Hide Horizontal Grid" : "Show Horizontal Grid");
 			addedItems = true;
 		}
 		
 		// Toggle vertical grid line visibility
-		if (allowGridAndBoxChanges_ && showXAxis_ && showXAxisTicks_)
+		if (allowVerticalGridChange_ && showXAxis_ && showXAxisTicks_)
 		{
 			gridVToggle = contextMenu.addAction(showVerticalGridLines_ ? "Hide Vertical Grid" : "Show Vertical Grid");
 			addedItems = true;
 		}
 		
 		// Toggle box visibility
-		if (allowGridAndBoxChanges_ && showXAxis_ && showYAxis_)
+		if (allowFullBoxChange_ && showXAxis_ && showYAxis_)
 		{
 			boxToggle = contextMenu.addAction(showFullBox_ ? "Hide Full Box" : "Show Full Box");
 			addedItems = true;
@@ -694,7 +898,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		}
         if (allowHeatmapMarginsChange_)
         {
-            changeHeatmapMargins = contextMenu.addAction(heatmapMargins_ ? "Remove Heatmap Margins" : "Add Heatmap Margins");
+            changeHeatmapMargins = contextMenu.addAction(heatmapMargins_ ? "Remove Patch Margins" : "Add Patch Margins");
             addedItems = true;
         }
 		if (showXAxis_ && showXAxisTicks_ && allowXAxisUserRescale_)
@@ -784,7 +988,6 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             if (action == changeHeatmapMargins)
             {
                 heatmapMargins_ = 1- heatmapMargins_;   // toggle
-                invalidateDrawingCache();
                 update();
             }
             if (action == changeXAxisScale)
@@ -809,22 +1012,45 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
             }
             if (action == changeYAxisScale)
             {
-                QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a configuration for the axis:",
-                                                                   QStringList{"Minimum value:", "Maximum value:", "Major tick interval:", "Minor tick divisions:", "Tick label precision:"},
-                                                                   QStringList{QString::number(yAxisMin_), QString::number(yAxisMax_), QString::number(yAxisMajorTickInterval_), QString::number(yAxisMajorTickModulus_),QString::number(yAxisTickValuePrecision_)});
-                
-                if (choices.length() == 5)
+                if (!yAxisLog_)
                 {
-                    yAxisMin_ = choices[0].toDouble();
-                    yAxisMax_ = choices[1].toDouble();
-                    yAxisMajorTickInterval_ = choices[2].toDouble();
-                    yAxisMajorTickModulus_ = choices[3].toInt();
-                    yAxisTickValuePrecision_ = choices[4].toInt();
-                    yAxisMinorTickInterval_ = yAxisMajorTickInterval_ / yAxisMajorTickModulus_;
-                    yAxisIsUserRescaled_ = true;
+                    QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a configuration for the axis:",
+                                                                       QStringList{"Minimum value:", "Maximum value:", "Major tick interval:", "Minor tick divisions:", "Tick label precision:"},
+                                                                       QStringList{QString::number(yAxisMin_), QString::number(yAxisMax_), QString::number(yAxisMajorTickInterval_), QString::number(yAxisMajorTickModulus_),QString::number(yAxisTickValuePrecision_)});
                     
-                    invalidateDrawingCache();
-                    update();
+                    if (choices.length() == 5)
+                    {
+                        yAxisMin_ = choices[0].toDouble();
+                        yAxisMax_ = choices[1].toDouble();
+                        yAxisMajorTickInterval_ = choices[2].toDouble();
+                        yAxisMajorTickModulus_ = choices[3].toInt();
+                        yAxisTickValuePrecision_ = choices[4].toInt();
+                        yAxisMinorTickInterval_ = yAxisMajorTickInterval_ / yAxisMajorTickModulus_;
+                        yAxisIsUserRescaled_ = true;
+                        
+                        invalidateDrawingCache();
+                        update();
+                    }
+                }
+                else
+                {
+                    QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a maximum log-scale power:",
+                                                                       QStringList{"Maximum value (10^x):"},
+                                                                       QStringList{QString::number(yAxisMax_)});
+                    
+                    if (choices.length() == 1)
+                    {
+                        int newPower = choices[0].toInt();
+                        
+                        if ((newPower >= 1) && (newPower <= 10))
+                        {
+                            yAxisMax_ = (double)newPower;
+                            
+                            invalidateDrawingCache();
+                            update();
+                        }
+                        else qApp->beep();
+                    }
                 }
             }
             if (action == copyGraph)
@@ -1002,41 +1228,68 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
 	else
 		drawStyle = 3;
 	
+    if (generatingPDF_ && (drawStyle == 3))
+        drawStyle = 2;
+    
 	for (int mainBinIndex = 0; mainBinIndex < mainBinCount; ++mainBinIndex)
 	{
 		double binMinValue = mainBinIndex * mainBinWidth + firstBinValue;
 		double binMaxValue = (mainBinIndex + 1) * mainBinWidth + firstBinValue;
 		double barLeft = roundPlotToDeviceX(binMinValue, interiorRect);
 		double barRight = roundPlotToDeviceX(binMaxValue, interiorRect);
+        double lineWidth = generatingPDF_ ? 0.3 : 1.0;
+        double halfLineWidth = lineWidth / 2.0;
 		
 		switch (drawStyle)
 		{
-			case 0: barLeft += 1.5; barRight -= 1.5; break;
-			case 1: barLeft += 0.5; barRight -= 0.5; break;
-			case 2: barLeft -= 0.5; barRight += 0.5; break;
-			case 3: barLeft -= 0.5; barRight += 0.5; break;
+			case 0: barLeft += (1.0 + halfLineWidth); barRight -= (1.0 + halfLineWidth); break;
+			case 1: barLeft += halfLineWidth; barRight -= halfLineWidth; break;
+			case 2: barLeft -= halfLineWidth; barRight += halfLineWidth; break;
+			case 3: barLeft -= halfLineWidth; barRight += halfLineWidth; break;
 		}
 		
 		for (int subBinIndex = 0; subBinIndex < subBinCount; ++subBinIndex)
 		{
 			int actualBinIndex = subBinIndex + mainBinIndex * subBinCount;
 			double binValue = buffer[actualBinIndex];
-			double barBottom = interiorRect.y() - 1;
-			double barTop = (fabs(binValue - 0) < 0.00000001 ? interiorRect.y() - 1 : roundPlotToDeviceY(binValue, interiorRect) + 0.5);
-			QRect barRect(qRound(barLeft), qRound(barBottom), qRound(barRight - barLeft), qRound(barTop - barBottom));
-			
+			double barBottom = interiorRect.y() - (generatingPDF_ ? 0.5 : 1.0);
+			double barTop;
+			QRectF barRect;
+            
+            if (fabs(binValue - 0) < 0.00000001)
+                continue;
+            
+            if (generatingPDF_)
+            {
+                barTop =  plotToDeviceY(binValue, interiorRect);
+                barRect = QRectF(barLeft, barBottom, barRight - barLeft, barTop - barBottom);
+            }
+            else
+            {
+                barTop = roundPlotToDeviceY(binValue, interiorRect) + 0.5;
+                barRect = QRectF(qRound(barLeft), qRound(barBottom), qRound(barRight - barLeft), qRound(barTop - barBottom));
+			}
+            
 			if (barRect.height() > 0.0)
 			{
 				// subdivide into sub-bars for each mutation type, if there is more than one
 				if (subBinCount > 1)
 				{
 					double barWidth = barRect.width();
-					double subBarWidth = (barWidth - 1) / subBinCount;
+					double subBarWidth = (barWidth - lineWidth) / subBinCount;
 					double subbarLeft = SLIM_SCREEN_ROUND(barRect.x() + subBinIndex * subBarWidth);
-					double subbarRight = SLIM_SCREEN_ROUND(barRect.x() + (subBinIndex + 1) * subBarWidth) + 1;
+					double subbarRight = SLIM_SCREEN_ROUND(barRect.x() + (subBinIndex + 1) * subBarWidth) + lineWidth;
 					
-					barRect.setX(qRound(subbarLeft));
-					barRect.setWidth(qRound(subbarRight - subbarLeft));
+                    if (generatingPDF_)
+                    {
+                        barRect.setX(subbarLeft);
+                        barRect.setWidth(subbarRight - subbarLeft);
+                    }
+                    else
+                    {
+                        barRect.setX(qRound(subbarLeft));
+                        barRect.setWidth(qRound(subbarRight - subbarLeft));
+                    }
 				}
                 
 				// fill and frame
@@ -1047,7 +1300,7 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
 				else
 				{
                     painter.fillRect(barRect, controller_->blackContrastingColorForIndex(subBinIndex));
-                    QtSLiMFrameRect(barRect, Qt::black, painter);
+                    QtSLiMFrameRect(barRect, Qt::black, painter, lineWidth);
 				}
 			}
 		}
@@ -1061,37 +1314,41 @@ void QtSLiMGraphView::drawBarplot(QPainter &painter, QRect interiorRect, double 
 
 static QColor heatColor(double value)
 {
-    // for value in [0, 1], returns a QColor; similar to Eidos_ExecuteFunction_heatColors(), but with a ramp up from black
-    if (value < 0.05)
-        return QtSLiMColorWithRGB(value / 0.05, 0.0, 0.0, 1.0);
-    else if (value < 0.3)
-        return QtSLiMColorWithRGB(1.0, (value - 0.05) / (0.3 - 0.05), 0.0, 1.0);
+    // for value in [0, 1], returns a QColor; similar to Eidos_ExecuteFunction_heatColors(), but with a ramp up from white to yellow
+    if (value < 0.25)
+        return QtSLiMColorWithRGB(1.0, 1.0, 1.0 - value / 0.25, 1.0);
+    else if (value < 0.75)
+        return QtSLiMColorWithRGB(1.0, (value - 0.25) / (1.0 - 0.25), 0.0, 1.0);
     else
-        return QtSLiMColorWithRGB(1.0, 1.0, (value - 0.3) / (1.0 - 0.3), 1.0);
+        return QtSLiMColorWithRGB(1.0 - (value - 0.75) / (1.0 - 0.75), 0.0, 0.0, 1.0);
 }
 
 void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double *buffer, int xBinCount, int yBinCount)
 {
-    double patchWidth = (interiorRect.width() - heatmapMargins_) / (double)xBinCount;
-    double patchHeight = (interiorRect.height() - heatmapMargins_) / (double)yBinCount;
+    int intHeatMapMargins = (generatingPDF_ ? 0 : heatmapMargins_);     // when generating a PDF we use an inset for accuracy
+    double patchWidth = (interiorRect.width() - intHeatMapMargins) / (double)xBinCount;
+    double patchHeight = (interiorRect.height() - intHeatMapMargins) / (double)yBinCount;
     
     for (int x = 0; x < xBinCount; ++x)
     {
         for (int y = 0; y < yBinCount; ++y)
         {
             double value = buffer[x + y * xBinCount];
-            int patchX1 = round(interiorRect.left() + patchWidth * x) + heatmapMargins_;
-            int patchX2 = round(interiorRect.left() + patchWidth * (x + 1));
-            int patchY1 = round(interiorRect.top() + patchHeight * y) + heatmapMargins_;
-            int patchY2 = round(interiorRect.top() + patchHeight * (y + 1));
-            QRect patchRect(patchX1, patchY1, patchX2 - patchX1, patchY2 - patchY1);
+            double patchX1 = SLIM_SCREEN_ROUND(interiorRect.left() + patchWidth * x) + intHeatMapMargins;
+            double patchX2 = SLIM_SCREEN_ROUND(interiorRect.left() + patchWidth * (x + 1));
+            double patchY1 = SLIM_SCREEN_ROUND(interiorRect.top() + patchHeight * y) + intHeatMapMargins;
+            double patchY2 = SLIM_SCREEN_ROUND(interiorRect.top() + patchHeight * (y + 1));
+            QRectF patchRect(patchX1, patchY1, patchX2 - patchX1, patchY2 - patchY1);
+            
+            if (generatingPDF_)
+                patchRect.adjust(0.5 * heatmapMargins_, 0.5 * heatmapMargins_, -0.5 * heatmapMargins_, -0.5 * heatmapMargins_);
             
             painter.fillRect(patchRect, heatColor(value));
         }
     }
 }
 
-bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t &selectedSubpopID)
+bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID)
 {
 	slim_objectid_t firstTag = -1;
     
@@ -1114,8 +1371,11 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 			subpopButton->addItem(subpopString, subpopID);
 			
 			// Remember the first item we add; we will use this item's tag to make a selection if needed
+            // If we have a tag to avoid, avoid it, preferring the second item if necessary
 			if (firstTag == -1)
 				firstTag = subpopID;
+            if (firstTag == avoidSubpopID)
+                firstTag = subpopID;
 		}
 	}
 	
@@ -1138,14 +1398,19 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
             selectedSubpopID = -1;
 		if (selectedSubpopID == -1)
             selectedSubpopID = firstTag;
+        if (selectedSubpopID == avoidSubpopID)
+            selectedSubpopID = firstTag;
 		
         subpopButton->setCurrentIndex(subpopButton->findData(selectedSubpopID));
+        
+        // this signal, emitted after rebuildingMenu_ is set to false, is the one that sticks
+        emit subpopButton->QComboBox::currentIndexChanged(subpopButton->currentIndex());
 	}
 	
 	return hasItems;	// true if we found at least one subpop to add to the menu, false otherwise
 }
 
-bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int &selectedMutIDIndex)
+bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex)
 {
 	int firstTag = -1;
 	
@@ -1196,7 +1461,9 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int &sele
             selectedMutIDIndex = firstTag;
 		
 		mutTypeButton->setCurrentIndex(mutTypeButton->findData(selectedMutIDIndex));
-        //qDebug() << "addMutationTypesToMenu() : selecting tag" << selectedMutIDIndex << ", index" << mutTypeButton->currentIndex();
+        
+        // this signal, emitted after rebuildingMenu_ is set to false, is the one that sticks
+        emit mutTypeButton->QComboBox::currentIndexChanged(mutTypeButton->currentIndex());
 	}
 	
 	return hasItems;	// true if we found at least one muttype to add to the menu, false otherwise
@@ -1259,6 +1526,49 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 	}
     
     return subpop_total_genome_count;
+}
+
+size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index)
+{
+    //
+	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
+	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+	//
+    SLiMSim *sim = controller_->sim;
+	Population &population = sim->population_;
+	MutationRun &mutationRegistry = population.mutation_registry_;
+	
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
+	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
+	
+	for (; registry_iter != registry_iter_end; ++registry_iter)
+		(mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
+	
+	for (const Genome *genome : genomes)
+	{
+        if (!genome->IsNull())
+        {
+            int mutrun_count = genome->mutrun_count_;
+            
+            for (int run_index = 0; run_index < mutrun_count; ++run_index)
+            {
+                MutationRun *mutrun = genome->mutruns_[run_index].get();
+                const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+                const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+                
+                for (; genome_iter != genome_end_iter; ++genome_iter)
+                {
+                    const Mutation *mutation = mut_block_ptr + *genome_iter;
+                    
+                    if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
+                        (mutation->gui_scratch_reference_count_)++;
+                }
+            }
+        }
+    }
+    
+    return genomes.size();
 }
 
 

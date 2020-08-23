@@ -125,13 +125,8 @@ bool QtSLiMGraphView_LossTimeHistogram::providesStringForData(void)
     return true;
 }
 
-QString QtSLiMGraphView_LossTimeHistogram::stringForData(void)
+void QtSLiMGraphView_LossTimeHistogram::appendStringForData(QString &string)
 {
-    QString string("# Graph data: Mutation loss time histogram\n");
-	
-    string.append(dateline());
-    string.append("\n\n");
-	
 	double *plotData = lossTimeData();
 	int binCount = histogramBinCount_;
 	SLiMSim *sim = controller_->sim;
@@ -153,11 +148,6 @@ QString QtSLiMGraphView_LossTimeHistogram::stringForData(void)
 		
         string.append("\n");
 	}
-	
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
 }
 
 

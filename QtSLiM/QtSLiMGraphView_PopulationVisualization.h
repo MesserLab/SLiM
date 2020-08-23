@@ -36,6 +36,7 @@ public:
     QString graphTitle(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    void appendStringForData(QString &string) override;
     
 public slots:
     void toggleOptimizedPositions(void);

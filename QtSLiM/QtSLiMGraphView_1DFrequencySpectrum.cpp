@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_FrequencySpectra.cpp
+//  QtSLiMGraphView_1DFrequencySpectrum.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
@@ -17,12 +17,12 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "QtSLiMGraphView_FrequencySpectra.h"
+#include "QtSLiMGraphView_1DFrequencySpectrum.h"
 
 #include "QtSLiMWindow.h"
 
 
-QtSLiMGraphView_FrequencySpectra::QtSLiMGraphView_FrequencySpectra(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_1DFrequencySpectrum::QtSLiMGraphView_1DFrequencySpectrum(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 10;
     allowBinCountRescale_ = true;
@@ -36,21 +36,21 @@ QtSLiMGraphView_FrequencySpectra::QtSLiMGraphView_FrequencySpectra(QWidget *pare
     yAxisLabel_ = "Proportion of mutations";
     
     allowXAxisUserRescale_ = false;
-    allowYAxisUserRescale_ = true;
+    allowYAxisUserRescale_ = false;
     
     showHorizontalGridLines_ = true;
 }
 
-QtSLiMGraphView_FrequencySpectra::~QtSLiMGraphView_FrequencySpectra()
+QtSLiMGraphView_1DFrequencySpectrum::~QtSLiMGraphView_1DFrequencySpectrum()
 {
 }
 
-QString QtSLiMGraphView_FrequencySpectra::graphTitle(void)
+QString QtSLiMGraphView_1DFrequencySpectrum::graphTitle(void)
 {
-    return "Mutation Frequency Spectrum";
+    return "1D Mutation Frequency Spectrum";
 }
 
-double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(int mutationTypeCount)
+double *QtSLiMGraphView_1DFrequencySpectrum::mutationFrequencySpectrum(int mutationTypeCount)
 {
     static uint32_t *spectrum = nullptr;			// used for tallying
 	static double *doubleSpectrum = nullptr;	// not used for tallying, to avoid precision issues
@@ -125,22 +125,19 @@ double *QtSLiMGraphView_FrequencySpectra::mutationFrequencySpectrum(int mutation
 			total += spectrum[binIndex];
 		}
 		
-        if (total > 0)
+        for (int bin = 0; bin < binCount; ++bin)
         {
-            for (int bin = 0; bin < binCount; ++bin)
-            {
-                int binIndex = mutationTypeIndex + bin * mutationTypeCount;
-                
-                doubleSpectrum[binIndex] = spectrum[binIndex] / static_cast<double>(total);
-            }
+            int binIndex = mutationTypeIndex + bin * mutationTypeCount;
+            
+            doubleSpectrum[binIndex] = (total > 0) ? (spectrum[binIndex] / static_cast<double>(total)) : 0.0;
         }
-	}
+    }
 	
 	// return the final tally; note this is a pointer in to our static ivar, and must not be freed!
 	return doubleSpectrum;
 }
 
-void QtSLiMGraphView_FrequencySpectra::drawGraph(QPainter &painter, QRect interiorRect)
+void QtSLiMGraphView_1DFrequencySpectrum::drawGraph(QPainter &painter, QRect interiorRect)
 {
 	int binCount = histogramBinCount_;
 	int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
@@ -173,25 +170,24 @@ void QtSLiMGraphView_FrequencySpectra::drawGraph(QPainter &painter, QRect interi
 	}
 }
 
-QtSLiMLegendSpec QtSLiMGraphView_FrequencySpectra::legendKey(void)
+QtSLiMLegendSpec QtSLiMGraphView_1DFrequencySpectrum::legendKey(void)
 {
 	return mutationTypeLegendKey();     // we use the prefab mutation type legend
 }
 
-void QtSLiMGraphView_FrequencySpectra::controllerSelectionChanged(void)
+void QtSLiMGraphView_1DFrequencySpectrum::controllerSelectionChanged(void)
 {
+    invalidateDrawingCache();
     update();
 }
 
-bool QtSLiMGraphView_FrequencySpectra::providesStringForData(void)
+bool QtSLiMGraphView_1DFrequencySpectrum::providesStringForData(void)
 {
     return true;
 }
 
-QString QtSLiMGraphView_FrequencySpectra::stringForData(void)
+void QtSLiMGraphView_1DFrequencySpectrum::appendStringForData(QString &string)
 {
-    QString string("# Graph data: Mutation frequency spectrum\n");
-    
     // get the selected chromosome range
 	bool hasSelection;
 	slim_position_t selectionFirstBase;
@@ -200,9 +196,6 @@ QString QtSLiMGraphView_FrequencySpectra::stringForData(void)
 
 	if (hasSelection)
         string.append(QString("# Selected chromosome range: %1 – %2\n").arg(selectionFirstBase).arg(selectionLastBase));
-	
-    string.append(dateline());
-    string.append("\n\n");
 	
 	int binCount = histogramBinCount_;
 	SLiMSim *sim = controller_->sim;
@@ -225,11 +218,6 @@ QString QtSLiMGraphView_FrequencySpectra::stringForData(void)
 		
         string.append("\n");
 	}
-	
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
 }
 
 

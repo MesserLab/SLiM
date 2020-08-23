@@ -45,10 +45,18 @@
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter)
 {
-    p_painter.fillRect(QRect(p_rect.left(), p_rect.top(), p_rect.width(), 1), p_color);                 // top edge
-    p_painter.fillRect(QRect(p_rect.left(), p_rect.top() + 1, 1, p_rect.height() - 2), p_color);        // left edge (without corner pixels)
-    p_painter.fillRect(QRect(p_rect.right(), p_rect.top() + 1, 1, p_rect.height() - 2), p_color);       // right edge (without corner pixels)
-    p_painter.fillRect(QRect(p_rect.left(), p_rect.bottom(), p_rect.width(), 1), p_color);              // bottom edge
+    p_painter.fillRect(QRect(p_rect.left(), p_rect.top(), p_rect.width(), 1), p_color);                                 // top edge
+    p_painter.fillRect(QRect(p_rect.left(), p_rect.top() + 1, 1, p_rect.height() - 2), p_color);                        // left edge (without corner pixels)
+    p_painter.fillRect(QRect(p_rect.left() + p_rect.width() - 1, p_rect.top() + 1, 1, p_rect.height() - 2), p_color);   // right edge (without corner pixels)
+    p_painter.fillRect(QRect(p_rect.left(), p_rect.top() + p_rect.height() - 1, p_rect.width(), 1), p_color);           // bottom edge
+}
+
+void QtSLiMFrameRect(const QRectF &p_rect, const QColor &p_color, QPainter &p_painter, double w)
+{
+    p_painter.fillRect(QRectF(p_rect.left(), p_rect.top(), p_rect.width(), w), p_color);
+    p_painter.fillRect(QRectF(p_rect.left(), p_rect.top() + w, w, p_rect.height() - 2*w), p_color);
+    p_painter.fillRect(QRectF(p_rect.left() + p_rect.width() - w, p_rect.top() + w, w, p_rect.height() - 2*w), p_color);
+    p_painter.fillRect(QRectF(p_rect.left(), p_rect.top() + p_rect.height() - w, p_rect.width(), w), p_color);
 }
 
 QColor QtSLiMColorWithWhite(double p_white, double p_alpha)
@@ -471,7 +479,7 @@ void QtSLiMPlayControlsLayout::setGeometry(const QRect &rect)
     // position the profile button; the button must lie inside the bounds of the parent widget due to clipping
     QLayoutItem *profileButton = itemAt(2);
     QSize sizeHint = profileButton->sizeHint();
-    QRect geom(playButtonRect.right() - 21, rect.y() - 6, sizeHint.width(), sizeHint.height());
+    QRect geom(playButtonRect.left() + playButtonRect.width() - 22, rect.y() - 6, sizeHint.width(), sizeHint.height());
     
     profileButton->setGeometry(geom);
 }

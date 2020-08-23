@@ -119,13 +119,8 @@ bool QtSLiMGraphView_PopFitnessDist::providesStringForData(void)
     return true;
 }
 
-QString QtSLiMGraphView_PopFitnessDist::stringForData(void)
+void QtSLiMGraphView_PopFitnessDist::appendStringForData(QString &string)
 {
-    QString string("# Graph data: Population fitness distribution histogram\n");
-	
-    string.append(dateline());
-    string.append("\n\n");
-	
 	double *plotData = populationFitnessData();
 	int binCount = histogramBinCount_;
 	
@@ -133,11 +128,6 @@ QString QtSLiMGraphView_PopFitnessDist::stringForData(void)
         string.append(QString("%1, ").arg(plotData[i], 0, 'f', 4));
     
     string.append("\n");
-    
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
 }
 
 

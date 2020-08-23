@@ -127,7 +127,10 @@ macx: LIBS += -lobjc.A
 
 
 SOURCES += \
-    QtSLiMGraphView_2DSFS.cpp \
+    QtSLiMGraphView_1DFrequencySpectrum.cpp \
+    QtSLiMGraphView_1DSampleSFS.cpp \
+    QtSLiMGraphView_2DFrequencySpectrum.cpp \
+    QtSLiMGraphView_2DSampleSFS.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
     main.cpp \
@@ -153,7 +156,6 @@ SOURCES += \
     QtSLiMFindPanel.cpp \
     QtSLiMGraphView.cpp \
     QtSLiMGraphView_FixationTimeHistogram.cpp \
-    QtSLiMGraphView_FrequencySpectra.cpp \
     QtSLiMGraphView_LossTimeHistogram.cpp \
     QtSLiMGraphView_PopulationVisualization.cpp \
     QtSLiMGraphView_FitnessOverTime.cpp \
@@ -164,7 +166,10 @@ SOURCES += \
     QtSLiMVariableBrowser.cpp
 
 HEADERS += \
-    QtSLiMGraphView_2DSFS.h \
+    QtSLiMGraphView_1DFrequencySpectrum.h \
+    QtSLiMGraphView_1DSampleSFS.h \
+    QtSLiMGraphView_2DFrequencySpectrum.h \
+    QtSLiMGraphView_2DSampleSFS.h \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_SubpopFitnessDists.h \
     QtSLiMWindow.h \
@@ -187,7 +192,6 @@ HEADERS += \
     QtSLiMFindPanel.h \
     QtSLiMGraphView.h \
     QtSLiMGraphView_FixationTimeHistogram.h \
-    QtSLiMGraphView_FrequencySpectra.h \
     QtSLiMGraphView_LossTimeHistogram.h \
     QtSLiMGraphView_PopulationVisualization.h \
     QtSLiMGraphView_FitnessOverTime.h \

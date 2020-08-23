@@ -391,17 +391,14 @@ bool QtSLiMGraphView_FitnessOverTime::providesStringForData(void)
     return true;
 }
 
-QString QtSLiMGraphView_FitnessOverTime::stringForData(void)
+void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
 {
-    QString string("# Graph data: fitness ~ generation\n");
 	SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
 	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
-    string.append(dateline());
-	
 	// Fixation events
-	string.append("\n\n# Fixation generations:\n");
+	string.append("# Fixation generations:\n");
 	
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
@@ -452,11 +449,6 @@ QString QtSLiMGraphView_FitnessOverTime::stringForData(void)
 			}
 		}
 	}
-	
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
 }
 
 QtSLiMLegendSpec QtSLiMGraphView_FitnessOverTime::legendKey(void)

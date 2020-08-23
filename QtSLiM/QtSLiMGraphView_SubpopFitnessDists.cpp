@@ -167,12 +167,8 @@ bool QtSLiMGraphView_SubpopFitnessDists::providesStringForData(void)
     return true;
 }
 
-QString QtSLiMGraphView_SubpopFitnessDists::stringForData(void)
+void QtSLiMGraphView_SubpopFitnessDists::appendStringForData(QString &string)
 {
-    QString string("# Graph data: Subpopulation fitness distributions histogram\n");
-	
-    string.append(dateline());
-	
     SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
     bool showSubpops = true;
@@ -186,29 +182,24 @@ QString QtSLiMGraphView_SubpopFitnessDists::stringForData(void)
             const Subpopulation *subpop = subpop_pair.second;
             double *plotData = subpopulationFitnessData(subpop);
             
-            string.append(QString("\n\n# Fitness distribution (subpopulation p%1):\n").arg(subpop->subpopulation_id_));
+            string.append(QString("# Fitness distribution (subpopulation p%1):\n").arg(subpop->subpopulation_id_));
             
             for (int i = 0; i < binCount; ++i)
                 string.append(QString("%1, ").arg(plotData[i], 0, 'f', 4));
                 
-            string.append("\n");
+            string.append("\n\n");
         }
 	}
 	
 	// Then add the population fitness distribution
     double *plotData = subpopulationFitnessData(nullptr);
     
-    string.append("\n\n# Fitness distribution (population):\n");
+    string.append("# Fitness distribution (population):\n");
     
     for (int i = 0; i < binCount; ++i)
         string.append(QString("%1, ").arg(plotData[i], 0, 'f', 4));
         
     string.append("\n");
-    
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
 }
 
 QtSLiMLegendSpec QtSLiMGraphView_SubpopFitnessDists::legendKey(void)

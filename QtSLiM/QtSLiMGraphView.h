@@ -97,7 +97,7 @@ protected:
     virtual void cleanup();
     virtual void willDraw(QPainter &painter, QRect interiorRect);
     virtual bool providesStringForData(void);
-    virtual QString stringForData(void);    
+    virtual void appendStringForData(QString &string) = 0;    
     virtual QtSLiMLegendSpec legendKey(void);
     virtual QSize legendSize(QPainter &painter);
     virtual void drawLegend(QPainter &painter, QRect legendRect);
@@ -105,6 +105,7 @@ protected:
     
     // Adding new widgets at the bottom of the window
     QHBoxLayout *buttonLayout(void);
+    QComboBox *newButtonInLayout(QHBoxLayout *layout);
     
     // Prefab additions
     QString dateline(void);
@@ -113,9 +114,10 @@ protected:
     void drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);
     void drawBarplot(QPainter &painter, QRect interiorRect, double *buffer, int binCount, double firstBinValue, double binWidth);
     void drawHeatmap(QPainter &painter, QRect interiorRect, double *buffer, int xBinCount, int yBinCount);
-    bool addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t &selectedSubpopID);
-    bool addMutationTypesToMenu(QComboBox *mutTypeButton, int &selectedMutIDIndex);
+    bool addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID = -1);
+    bool addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex);
     size_t tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index);
+    size_t tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index);
     
     // Properties; initialzed in the constructor, these defaults are just zero-fill
     bool showXAxis_ = false;
@@ -125,6 +127,7 @@ protected:
     double xAxisMin_ = 0.0, xAxisMax_ = 0.0;
     double xAxisMajorTickInterval_ = 0.0, xAxisMinorTickInterval_ = 0.0;
     int xAxisMajorTickModulus_ = 0, xAxisTickValuePrecision_ = 0;
+    bool xAxisHistogramStyle_ = false;
     QString xAxisLabel_;
     
     bool showYAxis_ = false;
@@ -134,13 +137,18 @@ protected:
     double yAxisMin_ = 0.0, yAxisMax_ = 0.0;
     double yAxisMajorTickInterval_ = 0.0, yAxisMinorTickInterval_ = 0.0;
     int yAxisMajorTickModulus_ = 0, yAxisTickValuePrecision_ = 0;
+    bool yAxisHistogramStyle_ = false;
+    bool yAxisLog_ = false;
     QString yAxisLabel_;
     
     bool legendVisible_ = false;
-    bool allowGridAndBoxChanges_ = true;
     bool showHorizontalGridLines_ = false;
     bool showVerticalGridLines_ = false;
+    bool showGridLinesMajorOnly_ = false;
     bool showFullBox_ = false;
+    bool allowHorizontalGridChange_ = false;
+    bool allowVerticalGridChange_ = false;
+    bool allowFullBoxChange_ = false;
     
     bool tweakXAxisTickLabelAlignment_ = false;
     
@@ -165,6 +173,8 @@ private:
     
     void resizeEvent(QResizeEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
+    
+    QString stringForData(void);    
 };
 
 

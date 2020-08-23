@@ -33,8 +33,10 @@
 #include "QtSLiM_SLiMgui.h"
 
 #include "QtSLiMGraphView.h"
-#include "QtSLiMGraphView_FrequencySpectra.h"
-#include "QtSLiMGraphView_2DSFS.h"
+#include "QtSLiMGraphView_1DFrequencySpectrum.h"
+#include "QtSLiMGraphView_1DSampleSFS.h"
+#include "QtSLiMGraphView_2DFrequencySpectrum.h"
+#include "QtSLiMGraphView_2DSampleSFS.h"
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
@@ -1385,8 +1387,10 @@ QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *window)
 
 void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID)
 {
-    QtSLiMGraphView *graphViewMutationFreqSpectrum = graphViewForGraphWindow(graphWindowMutationFreqSpectrum);
-    QtSLiMGraphView *graphViewMutation2DSFS = graphViewForGraphWindow(graphWindowMutation2DSFS);
+    QtSLiMGraphView *graphView1DFreqSpectrum = graphViewForGraphWindow(graphWindow1DFreqSpectrum);
+    QtSLiMGraphView *graphView1DSampleSFS = graphViewForGraphWindow(graphWindow1DSampleSFS);
+    QtSLiMGraphView *graphView2DFreqSpectrum = graphViewForGraphWindow(graphWindow2DFreqSpectrum);
+    QtSLiMGraphView *graphView2DSampleSFS = graphViewForGraphWindow(graphWindow2DSampleSFS);
     QtSLiMGraphView *graphViewMutationFreqTrajectories = graphViewForGraphWindow(graphWindowMutationFreqTrajectories);
     QtSLiMGraphView *graphViewMutationLossTimeHistogram = graphViewForGraphWindow(graphWindowMutationLossTimeHistogram);
     QtSLiMGraphView *graphViewMutationFixationTimeHistogram = graphViewForGraphWindow(graphWindowMutationFixationTimeHistogram);
@@ -1395,8 +1399,10 @@ void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID di
     QtSLiMGraphView *graphViewPopFitnessDist = graphViewForGraphWindow(graphWindowPopFitnessDist);
     QtSLiMGraphView *graphViewSubpopFitnessDists = graphViewForGraphWindow(graphWindowSubpopFitnessDists);
     
-    if (graphViewMutationFreqSpectrum)              graphViewMutationFreqSpectrum->dispatch(dispatchID);
-    if (graphViewMutation2DSFS)                     graphViewMutation2DSFS->dispatch(dispatchID);
+    if (graphView1DFreqSpectrum)                    graphView1DFreqSpectrum->dispatch(dispatchID);
+    if (graphView1DSampleSFS)                       graphView1DSampleSFS->dispatch(dispatchID);
+    if (graphView2DFreqSpectrum)                    graphView2DFreqSpectrum->dispatch(dispatchID);
+    if (graphView2DSampleSFS)                       graphView2DSampleSFS->dispatch(dispatchID);
     if (graphViewMutationFreqTrajectories)          graphViewMutationFreqTrajectories->dispatch(dispatchID);
     if (graphViewMutationLossTimeHistogram)         graphViewMutationLossTimeHistogram->dispatch(dispatchID);
     if (graphViewMutationFixationTimeHistogram)     graphViewMutationFixationTimeHistogram->dispatch(dispatchID);
@@ -3440,7 +3446,7 @@ void QtSLiMWindow::toggleDrawerToggled(void)
     {
         // position it to the right of the main window, with the same height
         QRect windowRect = geometry();
-        windowRect.setLeft(windowRect.right() + 10);
+        windowRect.setLeft(windowRect.left() + windowRect.width() + 9);
         windowRect.setRight(windowRect.left() + 200);   // the minimum in the nib is larger
         
         tablesDrawerController->setGeometry(windowRect);
@@ -3887,10 +3893,14 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     if (buttonLayout)
     {
         QSize contentSize = window->size();
-        int buttonLayoutHeight = buttonLayout->contentsRect().height();
+        QSize minSize = window->minimumSize();
+        int buttonLayoutHeight = buttonLayout->geometry().height();
         
         contentSize.setHeight(contentSize.height() + buttonLayoutHeight);
         window->resize(contentSize);
+        
+        minSize.setHeight(minSize.height() + buttonLayoutHeight);
+        window->setMinimumSize(minSize);
     }
     
     // make window actions for all global menu items
@@ -3910,16 +3920,24 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     QMenu contextMenu("graph_menu", this);
     
-    QAction *graphMutFreqSpectrum = contextMenu.addAction("Graph Mutation Frequency Spectrum");
-    graphMutFreqSpectrum->setEnabled(!disableAll);
+    QAction *graph1DFreqSpectrum = contextMenu.addAction("Graph 1D Mutation Frequency Spectrum");
+    graph1DFreqSpectrum->setEnabled(!disableAll);
     
-    QAction *graphMut2DSFS = contextMenu.addAction("Graph Mutation 2D SFS");
-    graphMut2DSFS->setEnabled(!disableAll);
+    QAction *graph1DSampleSFS = contextMenu.addAction("Graph 1D Sample SFS");
+    graph1DSampleSFS->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
+    
+    QAction *graph2DFreqSpectrum = contextMenu.addAction("Graph 2D Mutation Frequency Spectrum");
+    graph2DFreqSpectrum->setEnabled(!disableAll);
+    
+    QAction *graph2DSampleSFS = contextMenu.addAction("Graph 2D Sample SFS");
+    graph2DSampleSFS->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
     
     QAction *graphMutFreqTrajectories = contextMenu.addAction("Graph Mutation Frequency Trajectories");
     graphMutFreqTrajectories->setEnabled(!disableAll);
-    
-    contextMenu.addSeparator();
     
     QAction *graphMutLossTimeHist = contextMenu.addAction("Graph Mutation Loss Time Histogram");
     graphMutLossTimeHist->setEnabled(!disableAll);
@@ -3956,17 +3974,29 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     {
         QWidget *graphWindow = nullptr;
         
-        if (action == graphMutFreqSpectrum)
+        if (action == graph1DFreqSpectrum)
         {
-            if (!graphWindowMutationFreqSpectrum)
-                graphWindowMutationFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_FrequencySpectra(this, this));
-            graphWindow = graphWindowMutationFreqSpectrum;
+            if (!graphWindow1DFreqSpectrum)
+                graphWindow1DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_1DFrequencySpectrum(this, this));
+            graphWindow = graphWindow1DFreqSpectrum;
         }
-        if (action == graphMut2DSFS)
+        if (action == graph1DSampleSFS)
         {
-            if (!graphWindowMutation2DSFS)
-                graphWindowMutation2DSFS = graphWindowWithView(new QtSLiMGraphView_2DSFS(this, this));
-            graphWindow = graphWindowMutation2DSFS;
+            if (!graphWindow1DSampleSFS)
+                graphWindow1DSampleSFS = graphWindowWithView(new QtSLiMGraphView_1DSampleSFS(this, this));
+            graphWindow = graphWindow1DSampleSFS;
+        }
+        if (action == graph2DFreqSpectrum)
+        {
+            if (!graphWindow2DFreqSpectrum)
+                graphWindow2DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_2DFrequencySpectrum(this, this));
+            graphWindow = graphWindow2DFreqSpectrum;
+        }
+        if (action == graph2DSampleSFS)
+        {
+            if (!graphWindow2DSampleSFS)
+                graphWindow2DSampleSFS = graphWindowWithView(new QtSLiMGraphView_2DSampleSFS(this, this));
+            graphWindow = graphWindow2DSampleSFS;
         }
         if (action == graphMutFreqTrajectories)
         {

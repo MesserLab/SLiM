@@ -65,16 +65,10 @@ void QtSLiMGraphView_FrequencyTrajectory::addedToWindow(void)
     
     if (layout)
     {
-        subpopulationButton_ = new QComboBox(this);
-        subpopulationButton_->setEditable(false);
-        subpopulationButton_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-        layout->addWidget(subpopulationButton_);
+        subpopulationButton_ = newButtonInLayout(layout);
         connect(subpopulationButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged);
         
-        mutationTypeButton_ = new QComboBox(this);
-        mutationTypeButton_->setEditable(false);
-        mutationTypeButton_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-        layout->addWidget(mutationTypeButton_);
+        mutationTypeButton_ = newButtonInLayout(layout);
         connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged);
         
         QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -281,14 +275,10 @@ void QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged(int /* index
 {
     slim_objectid_t newSubpopID = SLiMClampToObjectidType(subpopulationButton_->currentData().toInt());
     
-    // when QtSLiMGraphView rebuilds the menu we receive this signal,
-    // but we don't want to react to non-changes during rebuilds
+    // don't react to non-changes and changes during rebuilds
     if (!rebuildingMenu_ && (selectedSubpopulationID_ != newSubpopID))
     {
         selectedSubpopulationID_ = newSubpopID;
-        //qDebug() << "subpopulationPopupChanged : " << subpopulationButton_->currentText() << " – changing selectedSubpopulationID_ to" << selectedSubpopulationID_;
-        
-        // respond to a change in our displayed state by invalidating caches and updating
         invalidateCachedData();
         fetchDataForFinishedGeneration();
         update();
@@ -299,14 +289,10 @@ void QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged(int /* index 
 {
     int newMutTypeIndex = mutationTypeButton_->currentData().toInt();
     
-    // when QtSLiMGraphView rebuilds the menu we receive this signal,
-    // but we don't want to react to non-changes during rebuilds
+    // don't react to non-changes and changes during rebuilds
     if (!rebuildingMenu_ && (selectedMutationTypeIndex_ != newMutTypeIndex))
     {
         selectedMutationTypeIndex_ = newMutTypeIndex;
-        //qDebug() << "mutationTypePopupChanged : " << mutationTypeButton_->currentText() << " – setting selectedMutationTypeIndex_ to" << selectedMutationTypeIndex_;
-        
-        // respond to a change in our displayed state by invalidating caches and updating
         invalidateCachedData();
         fetchDataForFinishedGeneration();
         update();
@@ -503,29 +489,28 @@ void QtSLiMGraphView_FrequencyTrajectory::appendEntriesToString(std::vector<Muta
     }
 }
 
-QString QtSLiMGraphView_FrequencyTrajectory::stringForData(void)
+void QtSLiMGraphView_FrequencyTrajectory::appendStringForData(QString &string)
 {
-    QString string("# Graph data: fitness trajectories\n");
 	SLiMSim *sim = controller_->sim;
 	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
-    string.append(dateline());
-	
     if (plotLostMutations_)
 	{
-		string.append("\n\n# Lost mutations:\n");
+		string.append("# Lost mutations:\n");
 		appendEntriesToString(frequencyHistoryColdStorageLost_, string, completedGenerations);
+        string.append("\n\n");
 	}
 	
 	if (plotFixedMutations_)
 	{
-		string.append("\n\n# Fixed mutations:\n");
+		string.append("# Fixed mutations:\n");
 		appendEntriesToString(frequencyHistoryColdStorageFixed_, string, completedGenerations);
+        string.append("\n\n");
 	}
 	
 	if (plotActiveMutations_)
 	{
-		string.append("\n\n# Active mutations:\n");
+		string.append("# Active mutations:\n");
         
         std::vector<MutationFrequencyHistory *> allActive;
         
@@ -533,12 +518,8 @@ QString QtSLiMGraphView_FrequencyTrajectory::stringForData(void)
             allActive.push_back(pair_ref.second);
         
 		appendEntriesToString(allActive, string, completedGenerations);
+        string.append("\n\n");
 	}
-    
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
 }
 
 

@@ -110,8 +110,10 @@ private:
     QtSLiMEidosConsole *consoleController = nullptr;
     QtSLiMTablesDrawer *tablesDrawerController = nullptr;
     
-    QWidget *graphWindowMutationFreqSpectrum = nullptr;
-    QWidget *graphWindowMutation2DSFS = nullptr;
+    QWidget *graphWindow1DFreqSpectrum = nullptr;
+    QWidget *graphWindow1DSampleSFS = nullptr;
+    QWidget *graphWindow2DFreqSpectrum = nullptr;
+    QWidget *graphWindow2DSampleSFS = nullptr;
     QWidget *graphWindowMutationFreqTrajectories = nullptr;
     QWidget *graphWindowMutationLossTimeHistogram = nullptr;
     QWidget *graphWindowMutationFixationTimeHistogram = nullptr;

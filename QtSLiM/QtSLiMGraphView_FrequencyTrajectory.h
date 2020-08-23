@@ -43,7 +43,7 @@ public:
     bool needsButtonLayout(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
-    QString stringForData(void) override;
+    void appendStringForData(QString &string) override;    
     
     void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
     

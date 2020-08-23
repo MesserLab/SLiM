@@ -125,13 +125,8 @@ bool QtSLiMGraphView_FixationTimeHistogram::providesStringForData(void)
     return true;
 }
 
-QString QtSLiMGraphView_FixationTimeHistogram::stringForData(void)
+void QtSLiMGraphView_FixationTimeHistogram::appendStringForData(QString &string)
 {
-    QString string("# Graph data: Mutation fixation time histogram\n");
-	
-    string.append(dateline());
-    string.append("\n\n");
-	
 	double *plotData = fixationTimeData();
 	int binCount = histogramBinCount_;
 	SLiMSim *sim = controller_->sim;
@@ -153,11 +148,6 @@ QString QtSLiMGraphView_FixationTimeHistogram::stringForData(void)
 		
         string.append("\n");
 	}
-	
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
 }
 
 

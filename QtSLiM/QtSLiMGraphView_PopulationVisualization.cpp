@@ -738,6 +738,11 @@ void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &cont
     menuItem->setEnabled(true);
 }
 
+void QtSLiMGraphView_PopulationVisualization::appendStringForData(QString & /* string */)
+{
+    // No data string
+}
+
 
 
 

@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_FrequencySpectra.h
+//  QtSLiMGraphView_1DFrequencySpectrum.h
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
@@ -17,27 +17,27 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef QTSLIMGRAPHVIEW_FREQUENCYSPECTRA_H
-#define QTSLIMGRAPHVIEW_FREQUENCYSPECTRA_H
+#ifndef QTSLIMGRAPHVIEW_1DFREQUENCYSPECTRUM_H
+#define QTSLIMGRAPHVIEW_1DFREQUENCYSPECTRUM_H
 
 #include <QWidget>
 
 #include "QtSLiMGraphView.h"
 
 
-class QtSLiMGraphView_FrequencySpectra : public QtSLiMGraphView
+class QtSLiMGraphView_1DFrequencySpectrum : public QtSLiMGraphView
 {
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_FrequencySpectra(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_FrequencySpectra() override;
+    QtSLiMGraphView_1DFrequencySpectrum(QWidget *parent, QtSLiMWindow *controller);
+    ~QtSLiMGraphView_1DFrequencySpectrum() override;
     
     QString graphTitle(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     QtSLiMLegendSpec legendKey(void) override;
     bool providesStringForData(void) override;
-    QString stringForData(void) override;
+    void appendStringForData(QString &string) override;    
     
 public slots:
     void controllerSelectionChanged(void) override;
@@ -47,7 +47,7 @@ private:
 };
 
 
-#endif // QTSLIMGRAPHVIEW_FREQUENCYSPECTRA_H
+#endif // QTSLIMGRAPHVIEW_1DFREQUENCYSPECTRUM_H
 
 
 

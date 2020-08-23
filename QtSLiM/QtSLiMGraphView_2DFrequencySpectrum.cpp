@@ -1,8 +1,8 @@
 //
-//  QtSLiMGraphView_2DSFS.cpp
+//  QtSLiMGraphView_2DFrequencySpectrum.cpp
 //  SLiM
 //
-//  Created by Ben Haller on 8/18/2020.
+//  Created by Ben Haller on 8/22/2020.
 //  Copyright (c) 2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
@@ -17,7 +17,7 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "QtSLiMGraphView_2DSFS.h"
+#include "QtSLiMGraphView_2DFrequencySpectrum.h"
 
 #include <QComboBox>
 #include <QDebug>
@@ -25,9 +25,9 @@
 #include "mutation_type.h"
 
 
-QtSLiMGraphView_2DSFS::QtSLiMGraphView_2DSFS(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_2DFrequencySpectrum::QtSLiMGraphView_2DFrequencySpectrum(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
-    histogramBinCount_ = 25;
+    histogramBinCount_ = 20;
     allowBinCountRescale_ = true;
     
     heatmapMargins_ = 0;
@@ -39,8 +39,12 @@ QtSLiMGraphView_2DSFS::QtSLiMGraphView_2DSFS(QWidget *parent, QtSLiMWindow *cont
     allowXAxisUserRescale_ = false;
     allowYAxisUserRescale_ = false;
     
-    allowGridAndBoxChanges_ = false;
+    showHorizontalGridLines_ = false;
+    showVerticalGridLines_ = false;
     showFullBox_ = true;
+    allowHorizontalGridChange_ = false;
+    allowVerticalGridChange_ = false;
+    allowFullBoxChange_ = false;
     
     // Default to plotting p1 against p2, with no default mutation type
     selectedSubpopulation1ID_ = 1;
@@ -48,35 +52,26 @@ QtSLiMGraphView_2DSFS::QtSLiMGraphView_2DSFS(QWidget *parent, QtSLiMWindow *cont
     selectedMutationTypeIndex_ = -1;
 }
 
-bool QtSLiMGraphView_2DSFS::needsButtonLayout(void)
+bool QtSLiMGraphView_2DFrequencySpectrum::needsButtonLayout(void)
 {
     return true;
 }
 
-void QtSLiMGraphView_2DSFS::addedToWindow(void)
+void QtSLiMGraphView_2DFrequencySpectrum::addedToWindow(void)
 {
     // Make our pop-up menu buttons
     QHBoxLayout *layout = buttonLayout();
     
     if (layout)
     {
-        subpopulation1Button_ = new QComboBox(this);
-        subpopulation1Button_->setEditable(false);
-        subpopulation1Button_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-        layout->addWidget(subpopulation1Button_);
-        connect(subpopulation1Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DSFS::subpopulation1PopupChanged);
+        subpopulation1Button_ = newButtonInLayout(layout);
+        connect(subpopulation1Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DFrequencySpectrum::subpopulation1PopupChanged);
         
-        subpopulation2Button_ = new QComboBox(this);
-        subpopulation2Button_->setEditable(false);
-        subpopulation2Button_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-        layout->addWidget(subpopulation2Button_);
-        connect(subpopulation2Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DSFS::subpopulation2PopupChanged);
+        subpopulation2Button_ = newButtonInLayout(layout);
+        connect(subpopulation2Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DFrequencySpectrum::subpopulation2PopupChanged);
         
-        mutationTypeButton_ = new QComboBox(this);
-        mutationTypeButton_->setEditable(false);
-        mutationTypeButton_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-        layout->addWidget(mutationTypeButton_);
-        connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DSFS::mutationTypePopupChanged);
+        mutationTypeButton_ = newButtonInLayout(layout);
+        connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DFrequencySpectrum::mutationTypePopupChanged);
         
         QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
         layout->addItem(rightSpacer);
@@ -87,61 +82,52 @@ void QtSLiMGraphView_2DSFS::addedToWindow(void)
     }
 }
 
-QtSLiMGraphView_2DSFS::~QtSLiMGraphView_2DSFS()
+QtSLiMGraphView_2DFrequencySpectrum::~QtSLiMGraphView_2DFrequencySpectrum()
 {
 }
 
-void QtSLiMGraphView_2DSFS::subpopulation1PopupChanged(int /* index */)
+void QtSLiMGraphView_2DFrequencySpectrum::subpopulation1PopupChanged(int /* index */)
 {
     slim_objectid_t newSubpopID = SLiMClampToObjectidType(subpopulation1Button_->currentData().toInt());
     
-    // when QtSLiMGraphView rebuilds the menu we receive this signal,
-    // but we don't want to react to non-changes during rebuilds
+    // don't react to non-changes and changes during rebuilds
     if (!rebuildingMenu_ && (selectedSubpopulation1ID_ != newSubpopID))
     {
         selectedSubpopulation1ID_ = newSubpopID;
-        //qDebug() << "subpopulationPopup1Changed : " << subpopulation1Button_->currentText() << " – changing selectedSubpopulation1ID_ to" << selectedSubpopulation1ID_;
-        
-        // respond to a change in our displayed state by invalidating caches and updating
         xAxisLabel_ = QString("Frequency in p%1").arg(selectedSubpopulation1ID_);
+        invalidateDrawingCache();
         update();
     }
 }
 
-void QtSLiMGraphView_2DSFS::subpopulation2PopupChanged(int /* index */)
+void QtSLiMGraphView_2DFrequencySpectrum::subpopulation2PopupChanged(int /* index */)
 {
     slim_objectid_t newSubpopID = SLiMClampToObjectidType(subpopulation2Button_->currentData().toInt());
     
-    // when QtSLiMGraphView rebuilds the menu we receive this signal,
-    // but we don't want to react to non-changes during rebuilds
+    // don't react to non-changes and changes during rebuilds
     if (!rebuildingMenu_ && (selectedSubpopulation2ID_ != newSubpopID))
     {
         selectedSubpopulation2ID_ = newSubpopID;
-        //qDebug() << "subpopulationPopup2Changed : " << subpopulation2Button_->currentText() << " – changing selectedSubpopulation2ID_ to" << selectedSubpopulation2ID_;
-        
-        // respond to a change in our displayed state by invalidating caches and updating
         yAxisLabel_ = QString("Frequency in p%1").arg(selectedSubpopulation2ID_);
+        invalidateDrawingCache();
         update();
     }
 }
 
-void QtSLiMGraphView_2DSFS::mutationTypePopupChanged(int /* index */)
+void QtSLiMGraphView_2DFrequencySpectrum::mutationTypePopupChanged(int /* index */)
 {
     int newMutTypeIndex = mutationTypeButton_->currentData().toInt();
     
-    // when QtSLiMGraphView rebuilds the menu we receive this signal,
-    // but we don't want to react to non-changes during rebuilds
+    // don't react to non-changes and changes during rebuilds
     if (!rebuildingMenu_ && (selectedMutationTypeIndex_ != newMutTypeIndex))
     {
         selectedMutationTypeIndex_ = newMutTypeIndex;
-        //qDebug() << "mutationTypePopupChanged : " << mutationTypeButton_->currentText() << " – setting selectedMutationTypeIndex_ to" << selectedMutationTypeIndex_;
-        
-        // respond to a change in our displayed state by invalidating caches and updating
+        invalidateDrawingCache();
         update();
     }
 }
 
-void QtSLiMGraphView_2DSFS::controllerRecycled(void)
+void QtSLiMGraphView_2DFrequencySpectrum::controllerRecycled(void)
 {
 	if (!controller_->invalidSimulation())
 		update();
@@ -154,23 +140,24 @@ void QtSLiMGraphView_2DSFS::controllerRecycled(void)
 	QtSLiMGraphView::controllerRecycled();
 }
 
-QString QtSLiMGraphView_2DSFS::graphTitle(void)
+QString QtSLiMGraphView_2DFrequencySpectrum::graphTitle(void)
 {
-    return "Mutation 2D SFS";
+    return "2D Mutation Frequency Spectrum";
 }
 
-void QtSLiMGraphView_2DSFS::updateAfterTick(void)
+void QtSLiMGraphView_2DFrequencySpectrum::updateAfterTick(void)
 {
     // Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
     addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
-    addSubpopulationsToMenu(subpopulation2Button_, selectedSubpopulation2ID_);
+    addSubpopulationsToMenu(subpopulation2Button_, selectedSubpopulation2ID_, selectedSubpopulation1ID_);
 	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
 	
+    invalidateDrawingCache();
 	QtSLiMGraphView::updateAfterTick();
 }
 
-void QtSLiMGraphView_2DSFS::drawGraph(QPainter &painter, QRect interiorRect)
+void QtSLiMGraphView_2DFrequencySpectrum::drawGraph(QPainter &painter, QRect interiorRect)
 {
     double *sfs2dbuf = mutation2DSFS();
     
@@ -181,24 +168,24 @@ void QtSLiMGraphView_2DSFS::drawGraph(QPainter &painter, QRect interiorRect)
     }
 }
 
-bool QtSLiMGraphView_2DSFS::providesStringForData(void)
+bool QtSLiMGraphView_2DFrequencySpectrum::providesStringForData(void)
 {
     return true;
 }
 
-QString QtSLiMGraphView_2DSFS::stringForData(void)
+void QtSLiMGraphView_2DFrequencySpectrum::appendStringForData(QString &string)
 {
-    QString string("# Graph data: 2D SFS\n");
+    double *plotData = mutation2DSFS();
 	
-    string.append(dateline());
-	
-	// Get rid of extra commas
-    string.replace(", \n", "\n");
-	
-	return string;
+    for (int y = 0; y < histogramBinCount_; ++y)
+    {
+        for (int x = 0; x < histogramBinCount_; ++x)
+            string.append(QString("%1, ").arg(plotData[x + y * histogramBinCount_], 0, 'f', 4));
+        string.append("\n");
+    }
 }
 
-double *QtSLiMGraphView_2DSFS::mutation2DSFS(void)
+double *QtSLiMGraphView_2DFrequencySpectrum::mutation2DSFS(void)
 {
     SLiMSim *sim = controller_->sim;
     Population &population = sim->population_;
@@ -260,6 +247,7 @@ double *QtSLiMGraphView_2DSFS::mutation2DSFS(void)
     {
         slim_refcount_t count1 = refcounts1[refcount_index];
         slim_refcount_t count2 = refcounts2[refcount_index];
+        
         double freq1 = count1 / (double)subpop1_total_genome_count;
         double freq2 = count2 / (double)subpop2_total_genome_count;
         int bin1 = static_cast<int>(round(freq1 * (histogramBinCount_ - 1)));
@@ -267,15 +255,24 @@ double *QtSLiMGraphView_2DSFS::mutation2DSFS(void)
         sfs2dbuf[bin1 + bin2 * histogramBinCount_]++;
     }
     
-    // Normalize the bin counts to [0,1]
+    // Normalize the bin counts to [0,1]; 0 is reserved for actual zero counts, the rest are on a log scale
     double maxCount = 0;
     
     for (int i = 0; i < histogramBinCount_ * histogramBinCount_; ++i)
         maxCount = std::max(maxCount, sfs2dbuf[i]);
     
     if (maxCount > 0.0)
+    {
+        double logMaxCount = std::log10(maxCount + 1);
+        
         for (int i = 0; i < histogramBinCount_ * histogramBinCount_; ++i)
-          sfs2dbuf[i] = sfs2dbuf[i] / maxCount;
+        {
+            double value = sfs2dbuf[i];
+            
+            if (value != 0.0)
+                sfs2dbuf[i] = std::log10(value + 1) / logMaxCount;
+        }
+    }
     
     return sfs2dbuf;
 }

@@ -37,7 +37,7 @@ public:
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     QtSLiMLegendSpec legendKey(void) override;
     bool providesStringForData(void) override;
-    QString stringForData(void) override;
+    void appendStringForData(QString &string) override;    
     
 private:
     double *fixationTimeData(void);    
