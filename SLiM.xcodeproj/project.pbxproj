@@ -704,6 +704,7 @@
 		98090FA11B1B8B5800791DBF /* show_browser.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_browser.pdf; sourceTree = "<group>"; };
 		98090FA41B1B978900791DBF /* EidosValueWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosValueWrapper.h; sourceTree = "<group>"; };
 		98090FA51B1B978900791DBF /* EidosValueWrapper.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosValueWrapper.mm; sourceTree = "<group>"; };
+		9809F8BD24F32B3E00D312E4 /* eidos_tinycolormap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_tinycolormap.h; sourceTree = "<group>"; };
 		980DD5191AAE42F900D5B7B8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphAxisRescaleSheet.xib; sourceTree = "<group>"; };
 		980DD51B1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationFrequencyTrajectory.h; sourceTree = "<group>"; };
 		980DD51C1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_MutationFrequencyTrajectory.mm; sourceTree = "<group>"; };
@@ -1535,6 +1536,7 @@
 				98D2C3B21F91C56E00E5EB3A /* eidos_test_builtins.h */,
 				9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */,
 				985A11861BBA07CB009EE1FF /* eidos_object_pool.h */,
+				9809F8BD24F32B3E00D312E4 /* eidos_tinycolormap.h */,
 				9893C7DC1CDA2D650029AC94 /* eidos_beep.h */,
 				9893C7DB1CDA2D650029AC94 /* eidos_beep.cpp */,
 				9893C7E21CDFCF0D0029AC94 /* eidos_type_table.h */,

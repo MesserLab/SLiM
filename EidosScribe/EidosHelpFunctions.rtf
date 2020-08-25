@@ -4312,20 +4312,96 @@ If
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Generate colors in a \'93cyan-magenta\'94 color palette
-\f3\b0 .  The number of colors desired is passed in 
-\f1\fs18 n
-\f3\fs20 , and the returned vector will contain 
-\f1\fs18 n
-\f3\fs20  color strings.  The color sequence begins with cyan, passes through white, and then ramps to magenta.  See 
-\f1\fs18 rainbow()
+\f3\b0 .  \kerning1\expnd0\expndtw0 This function is deprecated; new code should instead call 
+\f1\fs18 colors(n, "cm")
+\f3\fs20 .  See the 
+\f1\fs18 colors()
+\f3\fs20  function for further documentation.\expnd0\expndtw0\kerning0
+\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (string)colors(numeric\'a0x, string$\'a0name)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Generate colors in a standard color palette
+\f3\b0 .  If 
+\f1\fs18 x
+\f3\fs20  is a singleton 
+\f1\fs18 integer
+\f3\fs20 , the returned vector will contain 
+\f1\fs18 x
+\f3\fs20  color strings representing 
+\f1\fs18 x
+\f3\fs20  colors equidistant along the named palette, spanning its full extent.  Alternatively, if 
+\f1\fs18 x
+\f3\fs20  is a 
+\f1\fs18 float
+\f3\fs20  vector of values in [
+\f1\fs18 0
+\f3\fs20 ,
+\f1\fs18 1
+\f3\fs20 ], the returned vector will contain one color string for each value in 
+\f1\fs18 x
+\f3\fs20 , representing the color at the corresponding fraction along the named palette (values outside [
+\f1\fs18 0
+\f3\fs20 ,
+\f1\fs18 1
+\f3\fs20 ] will be clamped to that range).  (Note that the function signature states the type of 
+\f1\fs18 x
+\f3\fs20  as 
+\f1\fs18 numeric
+\f3\fs20 , but in this function the 
+\f1\fs18 integer
+\f3\fs20  and 
+\f1\fs18 float
+\f3\fs20  cases have completely different semantic meanings.)\
+The color palette specified by 
+\f1\fs18 name
+\f3\fs20  may be any of the following color palettes based upon color palettes in R: 
+\f1\fs18 "cm"
+\f3\fs20 , 
+\f1\fs18 "heat"
+\f3\fs20 , and 
+\f1\fs18 "terrain"
+\f3\fs20 .\
+It may also be one of the following color palettes based on color palettes in MATLAB (and the Turbo palette from Anton Mikhailov of the Google AI group, based upon the Jet palette provided by MATLAB): 
+\f1\fs18 "parula"
+\f3\fs20 , 
+\f1\fs18 "hot"
+\f3\fs20 , 
+\f1\fs18 "jet"
+\f3\fs20 , 
+\f1\fs18 "turbo"
+\f3\fs20 , and 
+\f1\fs18 "gray"
+\f3\fs20 .\
+Finally, it may be one of the following color palettes based upon color palettes in Matplotlib, also available in the 
+\f1\fs18 viridis
+\f3\fs20  R package: 
+\f1\fs18 "magma"
+\f3\fs20 , 
+\f1\fs18 "inferno"
+\f3\fs20 , 
+\f1\fs18 "plasma"
+\f3\fs20 , 
+\f1\fs18 "viridis"
+\f3\fs20 , and 
+\f1\fs18 "cividis"
+\f3\fs20 .  These color palettes are designed to be perceptually uniform, changing continuously and linearly.  They are also designed to perform well even for users with red-green colorblindness; the 
+\f1\fs18 "cividis"
+\f3\fs20  palette, in particular, is designed to look nearly identical to those with and without red-green colorblindness, to be perceptually uniform in both hue and brightness, and to increase linearly in brightness.\
+This function replaces the deprecated 
+\f1\fs18 cmColors()
 \f3\fs20 , 
 \f1\fs18 heatColors()
 \f3\fs20 , and 
 \f1\fs18 terrainColors()
-\f3\fs20  for other color palettes.\
+\f3\fs20  functions, and adds several several additional color palettes to Eidos.  See 
+\f1\fs18 rainbow()
+\f3\fs20  for another color palette function.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)color2rgb(string\'a0color)
+\f1\fs18 \cf0 (float)color2rgb(string\'a0color)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4351,17 +4427,12 @@ This function can also be called with a non-singleton vector of color strings in
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Generate colors in a \'93heat map\'94 color palette
-\f3\b0 .  The number of colors desired is passed in 
-\f1\fs18 n
-\f3\fs20 , and the returned vector will contain 
-\f1\fs18 n
-\f3\fs20  color strings.  The color sequence begins with red, passes through orange to yellow, and then fades up to white.  See 
-\f1\fs18 rainbow()
-\f3\fs20 , 
-\f1\fs18 cmColors()
-\f3\fs20 , and 
-\f1\fs18 terrainColors()
-\f3\fs20  for other color palettes.\
+\f3\b0 .  \kerning1\expnd0\expndtw0 This function is deprecated; new code should instead call 
+\f1\fs18 colors(n, "heat")
+\f3\fs20 .  See the 
+\f1\fs18 colors()
+\f3\fs20  function for further documentation.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)hsv2rgb(float\'a0hsv)
@@ -4484,17 +4555,12 @@ This function can also be called with a matrix of RGB values, with three columns
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Generate colors in a \'93terrain\'94 color palette
-\f3\b0 .  The number of colors desired is passed in 
-\f1\fs18 n
-\f3\fs20 , and the returned vector will contain 
-\f1\fs18 n
-\f3\fs20  color strings.  The color sequence begins with forest green, passes through dark orange, and then ramps to off-white.  See 
-\f1\fs18 rainbow()
-\f3\fs20 , 
-\f1\fs18 cmColors()
-\f3\fs20 , and 
-\f1\fs18 heatColors()
-\f3\fs20  for other color palettes.\
+\f3\b0 .  \kerning1\expnd0\expndtw0 This function is deprecated; new code should instead call 
+\f1\fs18 colors(n, "terrain")
+\f3\fs20 .  See the 
+\f1\fs18 colors()
+\f3\fs20  function for further documentation.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.10.  Miscellaneous functions\

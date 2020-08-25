@@ -62,6 +62,9 @@
 // for _Eidos_FlushZipBuffer()
 #include "../eidos_zlib/zlib.h"
 
+// for Eidos_ColorPaletteLookup()
+#include "eidos_tinycolormap.h"
+
 
 bool eidos_do_memory_checks = true;
 
@@ -3341,6 +3344,125 @@ void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, doubl
 	*p_h = h;
 	*p_s = s;
 	*p_v = v;
+}
+
+void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b)
+{
+	if (fraction < 0.0) fraction = 0.0;
+	if (fraction > 1.0) fraction = 1.0;
+	
+	switch (palette)
+	{
+		case EidosColorPalette::kPalette_cm:
+		{
+			// Note that for even n, this generates somewhat different values than R does, but I think
+			// that is a bug in their code; the space between the two central values is doubled.
+			r = (fraction >= 0.5) ? 1.0 : (fraction + 0.5);
+			g = (fraction <= 0.5) ? 1.0 : (1.5 - fraction);
+			b = 1.0;
+			break;
+		}
+		case EidosColorPalette::kPalette_heat:
+		{
+			// Note the behavior of this palette was changed slightly in Eidos 1.5, to be more consistent
+			if (fraction < 0.75)
+			{
+				r = 1.0;
+				g = fraction / 0.75;
+				b = 0.0;
+			}
+			else
+			{
+				r = 1.0;
+				g = 1.0;
+				b = (fraction - 0.75) / 0.25;
+			}
+			break;
+		}
+		case EidosColorPalette::kPalette_terrain:
+		{
+			// Note the behavior of this palette was changed slightly in Eidos 1.5, to be more consistent
+			if (fraction < 0.5)
+			{
+				double w = fraction / 0.5;
+				double h = 4/12.0 + (2/12.0 - 4/12.0) * w;
+				double s = 1.0 + (1.0 - 1.0) * w;
+				double v = 0.65 + (0.9 - 0.65) * w;
+				
+				Eidos_HSV2RGB(h, s, v, &r, &g, &b);
+			}
+			else
+			{
+				double w = (fraction - 0.5) / 0.5;
+				double h = 2/12.0 + (0/12.0 - 2/12.0) * w;
+				double s = 1.0 + (0.0 - 1.0) * w;
+				double v = 0.9 + (0.95 - 0.9) * w;
+				
+				Eidos_HSV2RGB(h, s, v, &r, &g, &b);
+			}
+			break;
+		}
+		case EidosColorPalette::kPalette_parula:
+		{
+			tinycolormap::Color color = tinycolormap::GetParulaColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_hot:
+		{
+			tinycolormap::Color color = tinycolormap::GetHotColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_jet:
+		{
+			tinycolormap::Color color = tinycolormap::GetJetColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_turbo:
+		{
+			tinycolormap::Color color = tinycolormap::GetTurboColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_gray:
+		{
+			tinycolormap::Color color = tinycolormap::GetGrayColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_magma:
+		{
+			tinycolormap::Color color = tinycolormap::GetMagmaColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_inferno:
+		{
+			tinycolormap::Color color = tinycolormap::GetInfernoColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_plasma:
+		{
+			tinycolormap::Color color = tinycolormap::GetPlasmaColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_viridis:
+		{
+			tinycolormap::Color color = tinycolormap::GetViridisColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+		case EidosColorPalette::kPalette_cividis:
+		{
+			tinycolormap::Color color = tinycolormap::GetCividisColor(fraction);
+			r = color.r(); g = color.g(); b = color.b();
+			break;
+		}
+	}
 }
 
 

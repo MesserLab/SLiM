@@ -24,6 +24,7 @@ development head:
 	revise recipe 5.4 (Gravel model) thanks to Chase W. Nelson
 	add 1D and 2D SFS plots to QtSLiM, along with a 2D frequency spectrum plot
 	improve plots in QtSLiM, particularly PDF generation
+	add colors() function to Eidos, providing several new color palettes including Turbo and Viridis
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

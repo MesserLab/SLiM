@@ -280,6 +280,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cmColors",			Eidos_ExecuteFunction_cmColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("colors",			Eidos_ExecuteFunction_colors,		kEidosValueMaskString))->AddNumeric(gEidosStr_x)->AddString_S("name"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("heatColors",		Eidos_ExecuteFunction_heatColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rainbow",			Eidos_ExecuteFunction_rainbow,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->AddFloat_OS(gEidosStr_s, gStaticEidosValue_Float1)->AddFloat_OS("v", gStaticEidosValue_Float1)->AddFloat_OS(gEidosStr_start, gStaticEidosValue_Float0)->AddFloat_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddLogical_OS("ccw", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("terrainColors",		Eidos_ExecuteFunction_terrainColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
@@ -10498,8 +10499,6 @@ EidosValue_SP Eidos_ExecuteFunction_cmColors(const EidosValue_SP *const p_argume
 	if ((n < 0) || (n > 100000))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cmColors): cmColors() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
 	
-	// Generate the color ramp.  Note that for even n, this generates somewhat different values than R does,
-	// but I think that is a bug in their code; the space between the two central values is doubled.
 	int color_count = (int)n;
 	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
 	result_SP = EidosValue_SP(string_result);
@@ -10507,10 +10506,83 @@ EidosValue_SP Eidos_ExecuteFunction_cmColors(const EidosValue_SP *const p_argume
 	for (int value_index = 0; value_index < color_count; ++value_index)
 	{
 		double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
-		double red = (fraction >= 0.5) ? 1.0 : (fraction + 0.5);
-		double green = (fraction <= 0.5) ? 1.0 : (1.5 - fraction);
-		Eidos_GetColorString(red, green, 1.0, hex_chars);
+		double red, green, blue;
+		
+		Eidos_ColorPaletteLookup(fraction, EidosColorPalette::kPalette_cm, red, green, blue);
+		Eidos_GetColorString(red, green, blue, hex_chars);
 		string_result->PushString(std::string(hex_chars));
+	}
+	
+	return result_SP;
+}
+
+//	(string)colors(numeric x, string$ name)
+EidosValue_SP Eidos_ExecuteFunction_colors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *name_value = p_arguments[1].get();
+	std::string name = name_value->StringAtIndex(0, nullptr);
+	EidosColorPalette palette;
+	char hex_chars[8];
+	
+	if (name == "cm")				palette = EidosColorPalette::kPalette_cm;
+	else if (name == "heat")		palette = EidosColorPalette::kPalette_heat;
+	else if (name == "terrain")		palette = EidosColorPalette::kPalette_terrain;
+	else if (name == "parula")		palette = EidosColorPalette::kPalette_parula;
+	else if (name == "hot")			palette = EidosColorPalette::kPalette_hot;
+	else if (name == "jet")			palette = EidosColorPalette::kPalette_jet;
+	else if (name == "turbo")		palette = EidosColorPalette::kPalette_turbo;
+	else if (name == "gray")		palette = EidosColorPalette::kPalette_gray;
+	else if (name == "magma")		palette = EidosColorPalette::kPalette_magma;
+	else if (name == "inferno")		palette = EidosColorPalette::kPalette_inferno;
+	else if (name == "plasma")		palette = EidosColorPalette::kPalette_plasma;
+	else if (name == "viridis")		palette = EidosColorPalette::kPalette_viridis;
+	else if (name == "cividis")		palette = EidosColorPalette::kPalette_cividis;
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_colors): unrecognized color palette name in colors()." << EidosTerminate(nullptr);
+	
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		if (x_value->Count() != 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_colors): colors() requires an integer x parameter value to be singleton (the number of colors to generate)." << EidosTerminate(nullptr);
+		
+		int64_t x = x_value->IntAtIndex(0, nullptr);
+		if ((x < 0) || (x > 100000))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_colors): colors() requires 0 <= x <= 100000." << EidosTerminate(nullptr);
+		
+		int color_count = (int)x;
+		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+		result_SP = EidosValue_SP(string_result);
+		
+		for (int value_index = 0; value_index < color_count; ++value_index)
+		{
+			double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
+			double red, green, blue;
+			
+			Eidos_ColorPaletteLookup(fraction, palette, red, green, blue);
+			
+			Eidos_GetColorString(red, green, blue, hex_chars);
+			string_result->PushString(std::string(hex_chars));
+		}
+	}
+	else if (x_value->Type() == EidosValueType::kValueFloat)
+	{
+		int color_count = x_value->Count();
+		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+		result_SP = EidosValue_SP(string_result);
+		
+		for (int value_index = 0; value_index < color_count; ++value_index)
+		{
+			double fraction = x_value->FloatAtIndex(value_index, nullptr);
+			double red, green, blue;
+			
+			Eidos_ColorPaletteLookup(fraction, palette, red, green, blue);
+			
+			Eidos_GetColorString(red, green, blue, hex_chars);
+			string_result->PushString(std::string(hex_chars));
+		}
 	}
 	
 	return result_SP;
@@ -10568,26 +10640,13 @@ EidosValue_SP Eidos_ExecuteFunction_heatColors(const EidosValue_SP *const p_argu
 	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
 	result_SP = EidosValue_SP(string_result);
 	
-	int saturation_ramp_length = color_count / 4;
-	int color_ramp_length = color_count - saturation_ramp_length;
-	
-	for (int value_index = 0; value_index < color_ramp_length; ++value_index)
+	for (int value_index = 0; value_index < color_count; ++value_index)
 	{
-		double g = (value_index ? value_index / (double)(color_ramp_length - 1) : 0.0);
-		Eidos_GetColorString(1.0, g, 0.0, hex_chars);
-		string_result->PushString(std::string(hex_chars));
-	}
-	
-	double end_saturation = 1.0 / (2.0 * saturation_ramp_length);
-	double start_saturation = 1.0 - end_saturation;
-	
-	for (int value_index = 0; value_index < saturation_ramp_length; ++value_index)
-	{
-		double weight_end = (value_index ? value_index / (double)(saturation_ramp_length - 1) : 0.0);
-		double weight_start = 1.0 - weight_end;
-		double s = start_saturation * weight_start + end_saturation * weight_end;
+		double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
+		double red, green, blue;
 		
-		Eidos_GetColorString(1.0, 1.0, 1.0 - s, hex_chars);
+		Eidos_ColorPaletteLookup(fraction, EidosColorPalette::kPalette_heat, red, green, blue);
+		Eidos_GetColorString(red, green, blue, hex_chars);
 		string_result->PushString(std::string(hex_chars));
 	}
 	
@@ -10799,31 +10858,13 @@ EidosValue_SP Eidos_ExecuteFunction_terrainColors(const EidosValue_SP *const p_a
 	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
 	result_SP = EidosValue_SP(string_result);
 	
-	int ramp1_length = color_count / 2;
-	int ramp2_length = (color_count - ramp1_length) + 1;	// first value is omitted
-	double r, g, b;
-	
-	for (int value_index = 0; value_index < ramp1_length; ++value_index)
+	for (int value_index = 0; value_index < color_count; ++value_index)
 	{
-		double w = (value_index ? value_index / (double)(ramp1_length - 1) : 0.0);
-		double h = 4/12.0 + (2/12.0 - 4/12.0) * w;
-		double s = 1.0 + (1.0 - 1.0) * w;
-		double v = 0.65 + (0.9 - 0.65) * w;
+		double fraction = (value_index ? value_index / (double)(color_count - 1) : 0.0);
+		double red, green, blue;
 		
-		Eidos_HSV2RGB(h, s, v, &r, &g, &b);
-		Eidos_GetColorString(r, g, b, hex_chars);
-		string_result->PushString(std::string(hex_chars));
-	}
-	
-	for (int value_index = 1; value_index < ramp2_length; ++value_index)
-	{
-		double w = (value_index ? value_index / (double)(ramp2_length - 1) : 0.0);
-		double h = 2/12.0 + (0/12.0 - 2/12.0) * w;
-		double s = 1.0 + (0.0 - 1.0) * w;
-		double v = 0.9 + (0.95 - 0.9) * w;
-		
-		Eidos_HSV2RGB(h, s, v, &r, &g, &b);
-		Eidos_GetColorString(r, g, b, hex_chars);
+		Eidos_ColorPaletteLookup(fraction, EidosColorPalette::kPalette_terrain, red, green, blue);
+		Eidos_GetColorString(red, green, blue, hex_chars);
 		string_result->PushString(std::string(hex_chars));
 	}
 	

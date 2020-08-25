@@ -301,25 +301,42 @@ void _RunColorManipulationTests(void)
 	EidosAssertScriptSuccess("cmColors(4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#D4FFFF", "#FFD5FF", "#FF80FF"}));
 	EidosAssertScriptSuccess("cmColors(7);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#AAFFFF", "#D4FFFF", "#FFFFFF", "#FFD5FF", "#FFAAFF", "#FF80FF"}));
 	
+	// colors() (we test only palettes 'cm', 'heat', and 'terrain' here)
+	EidosAssertScriptRaise("colors(-1, 'cm');", 0, "requires 0 <= x <= 100000");
+	EidosAssertScriptRaise("colors(10000000, 'cm');", 0, "requires 0 <= x <= 100000");
+	EidosAssertScriptRaise("colors(5, 'foo');", 0, "unrecognized color palette name");
+	EidosAssertScriptSuccess("colors(0, 'cm');", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("colors(1, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF"}));
+	EidosAssertScriptSuccess("colors(2, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#FF80FF"}));
+	EidosAssertScriptSuccess("colors(3, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#FFFFFF", "#FF80FF"}));
+	EidosAssertScriptSuccess("colors(4, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#D4FFFF", "#FFD5FF", "#FF80FF"}));
+	EidosAssertScriptSuccess("colors(7, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#AAFFFF", "#D4FFFF", "#FFFFFF", "#FFD5FF", "#FFAAFF", "#FF80FF"}));
+	EidosAssertScriptSuccess("colors(0.0, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF"}));
+	EidosAssertScriptSuccess("colors(-100.0, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF"}));
+	EidosAssertScriptSuccess("colors(1.0, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF80FF"}));
+	EidosAssertScriptSuccess("colors(100.0, 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF80FF"}));
+	EidosAssertScriptSuccess("colors(c(0.0,0.5,1.0), 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#80FFFF", "#FFFFFF", "#FF80FF"}));
+	EidosAssertScriptSuccess("colors(c(0.5,1.0,0.0), 'cm');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FFFFFF", "#FF80FF", "#80FFFF"}));
+	EidosAssertScriptSuccess("colors(1, 'heat');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000"}));
+	EidosAssertScriptSuccess("colors(5, 'heat');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF5500", "#FFAA00", "#FFFF00", "#FFFFFF"}));
+	EidosAssertScriptSuccess("colors(1, 'terrain');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600"}));
+	EidosAssertScriptSuccess("colors(5, 'terrain');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#63C600", "#E6E600", "#ECB176", "#F2F2F2"}));
+	
 	// heatColors()
 	EidosAssertScriptRaise("heatColors(-1);", 0, "requires 0 <= n <= 100000");
 	EidosAssertScriptRaise("heatColors(10000000);", 0, "requires 0 <= n <= 100000");
 	EidosAssertScriptSuccess("heatColors(0);", gStaticEidosValue_String_ZeroVec);
 	EidosAssertScriptSuccess("heatColors(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000"}));
-	EidosAssertScriptSuccess("heatColors(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FFFF00"}));
-	EidosAssertScriptSuccess("heatColors(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF8000", "#FFFF00"}));
-	EidosAssertScriptSuccess("heatColors(4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF8000", "#FFFF00", "#FFFF80"}));
-	EidosAssertScriptSuccess("heatColors(8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF3300", "#FF6600", "#FF9900", "#FFCC00", "#FFFF00", "#FFFF40", "#FFFFBF"}));
+	EidosAssertScriptSuccess("heatColors(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FFFFFF"}));
+	EidosAssertScriptSuccess("heatColors(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#FF0000", "#FF5500", "#FFAA00", "#FFFF00", "#FFFFFF"}));
 	
 	// terrainColors()
 	EidosAssertScriptRaise("terrainColors(-1);", 0, "requires 0 <= n <= 100000");
 	EidosAssertScriptRaise("terrainColors(10000000);", 0, "requires 0 <= n <= 100000");
 	EidosAssertScriptSuccess("terrainColors(0);", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("terrainColors(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#F2F2F2"}));
+	EidosAssertScriptSuccess("terrainColors(1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600"}));
 	EidosAssertScriptSuccess("terrainColors(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#F2F2F2"}));
-	EidosAssertScriptSuccess("terrainColors(3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#ECB176", "#F2F2F2"}));
-	EidosAssertScriptSuccess("terrainColors(4);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#E6E600", "#ECB176", "#F2F2F2"}));
-	EidosAssertScriptSuccess("terrainColors(8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#3EBB00", "#8BD000", "#E6E600", "#E9BD3A", "#ECB176", "#EFC2B3", "#F2F2F2"}));
+	EidosAssertScriptSuccess("terrainColors(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"#00A600", "#63C600", "#E6E600", "#ECB176", "#F2F2F2"}));
 	
 	// rainbow()
 	EidosAssertScriptRaise("rainbow(-1);", 0, "requires 0 <= n <= 100000");

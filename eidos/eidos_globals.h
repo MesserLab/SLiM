@@ -799,6 +799,25 @@ void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_s
 void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, double *p_b);
 void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, double *p_v);
 
+enum class EidosColorPalette : int
+{
+	kPalette_cm = 0,
+	kPalette_heat,
+	kPalette_terrain,
+	kPalette_parula,
+	kPalette_hot,
+	kPalette_jet,
+	kPalette_turbo,
+	kPalette_gray,
+	kPalette_magma,
+	kPalette_inferno,
+	kPalette_plasma,
+	kPalette_viridis,
+	kPalette_cividis,
+};
+
+void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b);
+
 
 // *******************************************************************************************************************
 //

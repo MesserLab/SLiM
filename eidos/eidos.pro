@@ -103,6 +103,7 @@ HEADERS += \
     eidos_test_builtins.h \
     eidos_test_element.h \
     eidos_test.h \
+    eidos_tinycolormap.h \
     eidos_token.h \
     eidos_type_interpreter.h \
     eidos_type_table.h \
