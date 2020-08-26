@@ -6212,7 +6212,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		// No gridSize was supplied, so values must be a matrix/array that matches the spatiality of the map
 		for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
 		{
-			int64_t dimension_size = values_dim[dimension_index];
+			int64_t dimension_size = (values_dimcount == 1) ? values->Count() : values_dim[dimension_index];	// treat a vector as a 1D matrix
 			
 			if (dimension_size < 2)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all dimensions of value must be of size >= 2." << EidosTerminate();
