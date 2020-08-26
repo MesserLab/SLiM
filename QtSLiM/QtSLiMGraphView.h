@@ -32,6 +32,7 @@
 
 class QHBoxLayout;
 class QComboBox;
+class QPushButton;
 
 
 // A quick and dirty macro to enable rounding of coordinates to the nearest pixel only when we are not generating PDF
@@ -59,7 +60,6 @@ public:
     ~QtSLiMGraphView() override;
     
     virtual QString graphTitle(void) = 0;
-    virtual bool needsButtonLayout(void);
     virtual void drawGraph(QPainter &painter, QRect interiorRect);
     
 public slots:
@@ -71,6 +71,7 @@ public slots:
     virtual void controllerSelectionChanged(void);
     virtual void controllerGenerationFinished(void);
     virtual void updateAfterTick(void);
+    void actionButtonRunMenu(QPushButton *actionButton);
     
 protected:
     QtSLiMWindow *controller_ = nullptr;
@@ -105,6 +106,7 @@ protected:
     
     // Adding new widgets at the bottom of the window
     QHBoxLayout *buttonLayout(void);
+    QPushButton *actionButton(void);
     QComboBox *newButtonInLayout(QHBoxLayout *layout);
     
     // Prefab additions

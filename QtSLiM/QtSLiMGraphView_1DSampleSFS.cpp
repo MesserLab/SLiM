@@ -65,11 +65,6 @@ QtSLiMGraphView_1DSampleSFS::QtSLiMGraphView_1DSampleSFS(QWidget *parent, QtSLiM
     selectedMutationTypeIndex_ = -1;
 }
 
-bool QtSLiMGraphView_1DSampleSFS::needsButtonLayout(void)
-{
-    return true;
-}
-
 void QtSLiMGraphView_1DSampleSFS::addedToWindow(void)
 {
     // Make our pop-up menu buttons
@@ -82,9 +77,6 @@ void QtSLiMGraphView_1DSampleSFS::addedToWindow(void)
         
         mutationTypeButton_ = newButtonInLayout(layout);
         connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_1DSampleSFS::mutationTypePopupChanged);
-        
-        QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
-        layout->addItem(rightSpacer);
         
         addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
         addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);

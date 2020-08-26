@@ -53,11 +53,6 @@ QtSLiMGraphView_FrequencyTrajectory::QtSLiMGraphView_FrequencyTrajectory(QWidget
     useColorsForPlotting_ = true;
 }
 
-bool QtSLiMGraphView_FrequencyTrajectory::needsButtonLayout(void)
-{
-    return true;
-}
-
 void QtSLiMGraphView_FrequencyTrajectory::addedToWindow(void)
 {
     // Make our pop-up menu buttons
@@ -70,9 +65,6 @@ void QtSLiMGraphView_FrequencyTrajectory::addedToWindow(void)
         
         mutationTypeButton_ = newButtonInLayout(layout);
         connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged);
-        
-        QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
-        layout->addItem(rightSpacer);
         
         addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
         addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);

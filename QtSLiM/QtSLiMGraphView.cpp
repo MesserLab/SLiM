@@ -114,11 +114,6 @@ void QtSLiMGraphView::cleanup()
     invalidateDrawingCache();
 }
 
-bool QtSLiMGraphView::needsButtonLayout(void)
-{
-    return false;
-}
-
 QHBoxLayout *QtSLiMGraphView::buttonLayout(void)
 {
     // Note this method makes assumptions about the layouts in the parent window
@@ -136,13 +131,25 @@ QHBoxLayout *QtSLiMGraphView::buttonLayout(void)
     return nullptr;
 }
 
+QPushButton *QtSLiMGraphView::actionButton(void)
+{
+    // Note this method makes assumptions about the layouts in the parent window
+    // It needs to be kept parallel to QtSLiMWindow::graphWindowWithView()
+    QHBoxLayout *layout = buttonLayout();
+    int layoutCount = layout ? layout->count() : 0;
+    QLayoutItem *buttonItem = (layoutCount > 0) ? layout->itemAt(layoutCount - 1) : nullptr;
+    QWidget *buttonWidget = buttonItem ? buttonItem->widget() : nullptr;
+    
+    return qobject_cast<QPushButton *>(buttonWidget);
+}
+
 QComboBox *QtSLiMGraphView::newButtonInLayout(QHBoxLayout *layout)
 {
     QComboBox *button = new QComboBox(this);
     button->setEditable(false);
     button->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     button->setMinimumContentsLength(2);
-    layout->addWidget(button);
+    layout->insertWidget(layout->count() - 2, button);  // left of the spacer and action button
     
     return button;
 }
@@ -682,7 +689,15 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
 		painter.fillRect(bounds, Qt::white);
 	
 	// Get our controller and test for validity, so subclasses don't have to worry about this
-	if (!controller_->invalidSimulation() && (controller_->sim->generation_ > 0))
+    if (controller_->invalidSimulation())
+    {
+        drawMessage(painter, "invalid\nsimulation", bounds);
+    }
+    else if (controller_->sim->generation_ == 0)
+    {
+        drawMessage(painter, "no\ndata", bounds);
+    }
+    else
 	{
 		QRect interiorRect = interiorRectForBounds(bounds);
         
@@ -737,11 +752,6 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
         // unflip
         painter.restore();
 	}
-	else
-	{
-		// The controller is invalid, so just draw a generic message
-        drawMessage(painter, "invalid\nsimulation", bounds);
-	}
 }
 
 void QtSLiMGraphView::paintEvent(QPaintEvent * /* event */)
@@ -786,6 +796,9 @@ void QtSLiMGraphView::controllerRecycled(void)
 {
 	invalidateDrawingCache();
     update();
+    
+    QPushButton *action = actionButton();
+    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->sim->generation_ > 0));
 }
 
 void QtSLiMGraphView::controllerSelectionChanged(void)
@@ -799,6 +812,9 @@ void QtSLiMGraphView::controllerGenerationFinished(void)
 void QtSLiMGraphView::updateAfterTick(void)
 {
 	update();
+    
+    QPushButton *action = actionButton();
+    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->sim->generation_ > 0));
 }
 
 bool QtSLiMGraphView::providesStringForData(void)
@@ -833,13 +849,21 @@ QString QtSLiMGraphView::dateline(void)
 	return QString("# %1").arg(dateTimeString);
 }
 
+void QtSLiMGraphView::actionButtonRunMenu(QPushButton *actionButton)
+{
+    contextMenuEvent(nullptr);
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    actionButton->setIcon(QIcon(":/buttons/action.png"));
+}
+
 void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */)
 {
 }
 
 void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 {
-    if (!controller_->invalidSimulation()) // && ![[controller window] attachedSheet])
+    if (!controller_->invalidSimulation() && (controller_->sim->generation_ > 0)) // && ![[controller window] attachedSheet])
 	{
 		bool addedItems = false;
         QMenu contextMenu("graph_menu", this);
@@ -943,7 +967,8 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		}
         
         // Run the context menu synchronously
-        QAction *action = contextMenu.exec(event->globalPos());
+        QPoint menuPos = (event ? event->globalPos() : QCursor::pos());
+        QAction *action = contextMenu.exec(menuPos);
         
         // Act upon the chosen action; we just do it right here instead of dealing with slots
         if (action)

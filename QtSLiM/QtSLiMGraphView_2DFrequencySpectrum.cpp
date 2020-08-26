@@ -52,11 +52,6 @@ QtSLiMGraphView_2DFrequencySpectrum::QtSLiMGraphView_2DFrequencySpectrum(QWidget
     selectedMutationTypeIndex_ = -1;
 }
 
-bool QtSLiMGraphView_2DFrequencySpectrum::needsButtonLayout(void)
-{
-    return true;
-}
-
 void QtSLiMGraphView_2DFrequencySpectrum::addedToWindow(void)
 {
     // Make our pop-up menu buttons
@@ -72,9 +67,6 @@ void QtSLiMGraphView_2DFrequencySpectrum::addedToWindow(void)
         
         mutationTypeButton_ = newButtonInLayout(layout);
         connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DFrequencySpectrum::mutationTypePopupChanged);
-        
-        QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
-        layout->addItem(rightSpacer);
         
         addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
         addSubpopulationsToMenu(subpopulation2Button_, selectedSubpopulation2ID_);

@@ -58,5 +58,7 @@
         <file>buttons/Qt_selfing_rate.png</file>
         <file>buttons/profile_R.png</file>
         <file>buttons/profile_RH.png</file>
+        <file>buttons/action_H.png</file>
+        <file>buttons/action.png</file>
     </qresource>
 </RCC>

@@ -3872,13 +3872,46 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     // Add a horizontal layout at the bottom, for popup buttons and such added by the graph
     QHBoxLayout *buttonLayout = nullptr;
     
-    if (graphView->needsButtonLayout())
     {
         buttonLayout = new QHBoxLayout;
         
         buttonLayout->setMargin(5);
         buttonLayout->setSpacing(5);
         topLayout->addLayout(buttonLayout);
+        
+        QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        buttonLayout->addItem(rightSpacer);
+        
+        // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
+        QtSLiMPushButton *actionButton = new QtSLiMPushButton(window);
+        actionButton->setObjectName(QString::fromUtf8("actionButton"));
+        actionButton->setMinimumSize(QSize(20, 20));
+        actionButton->setMaximumSize(QSize(20, 20));
+        actionButton->setFocusPolicy(Qt::NoFocus);
+        actionButton->setStyleSheet(QString::fromUtf8("QPushButton:pressed {\n"
+"	background-color: #00000000;\n"
+"	border: 0px;\n"
+"}\n"
+"QPushButton:checked {\n"
+"	background-color: #00000000;\n"
+"	border: 0px;\n"
+"}"));
+        QIcon icon4;
+        icon4.addFile(QString::fromUtf8(":/buttons/action.png"), QSize(), QIcon::Normal, QIcon::Off);
+        icon4.addFile(QString::fromUtf8(":/buttons/action_H.png"), QSize(), QIcon::Normal, QIcon::On);
+        actionButton->setIcon(icon4);
+        actionButton->setIconSize(QSize(20, 20));
+        actionButton->setCheckable(true);
+        actionButton->setFlat(true);
+#if QT_CONFIG(tooltip)
+        actionButton->setToolTip("<html><head/><body><p>configure graph</p></body></html>");
+#endif // QT_CONFIG(tooltip)
+        buttonLayout->addWidget(actionButton);
+        
+        connect(actionButton, &QPushButton::pressed, graphView, [actionButton, graphView]() { actionButton->setIcon(QIcon(":/buttons/action_H.png")); graphView->actionButtonRunMenu(actionButton); });
+        connect(actionButton, &QPushButton::released, graphView, [actionButton]() { actionButton->setIcon(QIcon(":/buttons/action.png")); });
+        
+        actionButton->setEnabled(!invalidSimulation() && (sim->generation_ > 0));
     }
     
     // Give the graph view a chance to do something with the window it's now in
