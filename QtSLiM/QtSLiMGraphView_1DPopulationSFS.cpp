@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_1DFrequencySpectrum.cpp
+//  QtSLiMGraphView_1DPopulationSFS.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
@@ -17,12 +17,12 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "QtSLiMGraphView_1DFrequencySpectrum.h"
+#include "QtSLiMGraphView_1DPopulationSFS.h"
 
 #include "QtSLiMWindow.h"
 
 
-QtSLiMGraphView_1DFrequencySpectrum::QtSLiMGraphView_1DFrequencySpectrum(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_1DPopulationSFS::QtSLiMGraphView_1DPopulationSFS(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 10;
     allowBinCountRescale_ = true;
@@ -41,16 +41,16 @@ QtSLiMGraphView_1DFrequencySpectrum::QtSLiMGraphView_1DFrequencySpectrum(QWidget
     showHorizontalGridLines_ = true;
 }
 
-QtSLiMGraphView_1DFrequencySpectrum::~QtSLiMGraphView_1DFrequencySpectrum()
+QtSLiMGraphView_1DPopulationSFS::~QtSLiMGraphView_1DPopulationSFS()
 {
 }
 
-QString QtSLiMGraphView_1DFrequencySpectrum::graphTitle(void)
+QString QtSLiMGraphView_1DPopulationSFS::graphTitle(void)
 {
-    return "1D Mutation Frequency Spectrum";
+    return "1D Population SFS";
 }
 
-double *QtSLiMGraphView_1DFrequencySpectrum::mutationFrequencySpectrum(int mutationTypeCount)
+double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 {
     static uint32_t *spectrum = nullptr;			// used for tallying
 	static double *doubleSpectrum = nullptr;	// not used for tallying, to avoid precision issues
@@ -137,11 +137,11 @@ double *QtSLiMGraphView_1DFrequencySpectrum::mutationFrequencySpectrum(int mutat
 	return doubleSpectrum;
 }
 
-void QtSLiMGraphView_1DFrequencySpectrum::drawGraph(QPainter &painter, QRect interiorRect)
+void QtSLiMGraphView_1DPopulationSFS::drawGraph(QPainter &painter, QRect interiorRect)
 {
 	int binCount = histogramBinCount_;
 	int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
-	double *spectrum = mutationFrequencySpectrum(mutationTypeCount);
+	double *spectrum = populationSFS(mutationTypeCount);
 	
 	// plot our histogram bars
 	drawGroupedBarplot(painter, interiorRect, spectrum, mutationTypeCount, binCount, 0.0, (1.0 / binCount));
@@ -170,23 +170,23 @@ void QtSLiMGraphView_1DFrequencySpectrum::drawGraph(QPainter &painter, QRect int
 	}
 }
 
-QtSLiMLegendSpec QtSLiMGraphView_1DFrequencySpectrum::legendKey(void)
+QtSLiMLegendSpec QtSLiMGraphView_1DPopulationSFS::legendKey(void)
 {
 	return mutationTypeLegendKey();     // we use the prefab mutation type legend
 }
 
-void QtSLiMGraphView_1DFrequencySpectrum::controllerSelectionChanged(void)
+void QtSLiMGraphView_1DPopulationSFS::controllerSelectionChanged(void)
 {
     invalidateDrawingCache();
     update();
 }
 
-bool QtSLiMGraphView_1DFrequencySpectrum::providesStringForData(void)
+bool QtSLiMGraphView_1DPopulationSFS::providesStringForData(void)
 {
     return true;
 }
 
-void QtSLiMGraphView_1DFrequencySpectrum::appendStringForData(QString &string)
+void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
 {
     // get the selected chromosome range
 	bool hasSelection;
@@ -200,7 +200,7 @@ void QtSLiMGraphView_1DFrequencySpectrum::appendStringForData(QString &string)
 	int binCount = histogramBinCount_;
 	SLiMSim *sim = controller_->sim;
 	int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
-	double *plotData = mutationFrequencySpectrum(mutationTypeCount);
+	double *plotData = populationSFS(mutationTypeCount);
 	
 	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
 	{

@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_2DFrequencySpectrum.h
+//  QtSLiMGraphView_2DPopulationSFS.h
 //  SLiM
 //
 //  Created by Ben Haller on 8/18/2020.
@@ -17,21 +17,21 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef QTSLIMGRAPHVIEW_2DFREQUENCYSPECTRUM_H
-#define QTSLIMGRAPHVIEW_2DFREQUENCYSPECTRUM_H
+#ifndef QTSLIMGRAPHVIEW_2DPOPULATIONSFS_H
+#define QTSLIMGRAPHVIEW_2DPOPULATIONSFS_H
 
 #include "QtSLiMGraphView.h"
 
 class MutationType;
 
 
-class QtSLiMGraphView_2DFrequencySpectrum : public QtSLiMGraphView
+class QtSLiMGraphView_2DPopulationSFS : public QtSLiMGraphView
 {
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_2DFrequencySpectrum(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_2DFrequencySpectrum() override;
+    QtSLiMGraphView_2DPopulationSFS(QWidget *parent, QtSLiMWindow *controller);
+    ~QtSLiMGraphView_2DPopulationSFS() override;
     
     QString graphTitle(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
@@ -61,7 +61,7 @@ private:
 };
 
 
-#endif // QTSLIMGRAPHVIEW_2DFREQUENCYSPECTRUM_H
+#endif // QTSLIMGRAPHVIEW_2DPOPULATIONSFS_H
 
 
 

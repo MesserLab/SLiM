@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_2DFrequencySpectrum.cpp
+//  QtSLiMGraphView_2DPopulationSFS.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 8/22/2020.
@@ -17,7 +17,7 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "QtSLiMGraphView_2DFrequencySpectrum.h"
+#include "QtSLiMGraphView_2DPopulationSFS.h"
 
 #include <QComboBox>
 #include <QDebug>
@@ -25,7 +25,7 @@
 #include "mutation_type.h"
 
 
-QtSLiMGraphView_2DFrequencySpectrum::QtSLiMGraphView_2DFrequencySpectrum(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_2DPopulationSFS::QtSLiMGraphView_2DPopulationSFS(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     histogramBinCount_ = 20;
     allowBinCountRescale_ = true;
@@ -52,7 +52,7 @@ QtSLiMGraphView_2DFrequencySpectrum::QtSLiMGraphView_2DFrequencySpectrum(QWidget
     selectedMutationTypeIndex_ = -1;
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::addedToWindow(void)
+void QtSLiMGraphView_2DPopulationSFS::addedToWindow(void)
 {
     // Make our pop-up menu buttons
     QHBoxLayout *layout = buttonLayout();
@@ -60,13 +60,13 @@ void QtSLiMGraphView_2DFrequencySpectrum::addedToWindow(void)
     if (layout)
     {
         subpopulation1Button_ = newButtonInLayout(layout);
-        connect(subpopulation1Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DFrequencySpectrum::subpopulation1PopupChanged);
+        connect(subpopulation1Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DPopulationSFS::subpopulation1PopupChanged);
         
         subpopulation2Button_ = newButtonInLayout(layout);
-        connect(subpopulation2Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DFrequencySpectrum::subpopulation2PopupChanged);
+        connect(subpopulation2Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DPopulationSFS::subpopulation2PopupChanged);
         
         mutationTypeButton_ = newButtonInLayout(layout);
-        connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DFrequencySpectrum::mutationTypePopupChanged);
+        connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DPopulationSFS::mutationTypePopupChanged);
         
         addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
         addSubpopulationsToMenu(subpopulation2Button_, selectedSubpopulation2ID_);
@@ -74,11 +74,11 @@ void QtSLiMGraphView_2DFrequencySpectrum::addedToWindow(void)
     }
 }
 
-QtSLiMGraphView_2DFrequencySpectrum::~QtSLiMGraphView_2DFrequencySpectrum()
+QtSLiMGraphView_2DPopulationSFS::~QtSLiMGraphView_2DPopulationSFS()
 {
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::subpopulation1PopupChanged(int /* index */)
+void QtSLiMGraphView_2DPopulationSFS::subpopulation1PopupChanged(int /* index */)
 {
     slim_objectid_t newSubpopID = SLiMClampToObjectidType(subpopulation1Button_->currentData().toInt());
     
@@ -92,7 +92,7 @@ void QtSLiMGraphView_2DFrequencySpectrum::subpopulation1PopupChanged(int /* inde
     }
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::subpopulation2PopupChanged(int /* index */)
+void QtSLiMGraphView_2DPopulationSFS::subpopulation2PopupChanged(int /* index */)
 {
     slim_objectid_t newSubpopID = SLiMClampToObjectidType(subpopulation2Button_->currentData().toInt());
     
@@ -106,7 +106,7 @@ void QtSLiMGraphView_2DFrequencySpectrum::subpopulation2PopupChanged(int /* inde
     }
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::mutationTypePopupChanged(int /* index */)
+void QtSLiMGraphView_2DPopulationSFS::mutationTypePopupChanged(int /* index */)
 {
     int newMutTypeIndex = mutationTypeButton_->currentData().toInt();
     
@@ -119,7 +119,7 @@ void QtSLiMGraphView_2DFrequencySpectrum::mutationTypePopupChanged(int /* index 
     }
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::controllerRecycled(void)
+void QtSLiMGraphView_2DPopulationSFS::controllerRecycled(void)
 {
 	if (!controller_->invalidSimulation())
 		update();
@@ -132,12 +132,12 @@ void QtSLiMGraphView_2DFrequencySpectrum::controllerRecycled(void)
 	QtSLiMGraphView::controllerRecycled();
 }
 
-QString QtSLiMGraphView_2DFrequencySpectrum::graphTitle(void)
+QString QtSLiMGraphView_2DPopulationSFS::graphTitle(void)
 {
-    return "2D Mutation Frequency Spectrum";
+    return "2D Population SFS";
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::updateAfterTick(void)
+void QtSLiMGraphView_2DPopulationSFS::updateAfterTick(void)
 {
     // Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
@@ -149,7 +149,7 @@ void QtSLiMGraphView_2DFrequencySpectrum::updateAfterTick(void)
 	QtSLiMGraphView::updateAfterTick();
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::drawGraph(QPainter &painter, QRect interiorRect)
+void QtSLiMGraphView_2DPopulationSFS::drawGraph(QPainter &painter, QRect interiorRect)
 {
     double *sfs2dbuf = mutation2DSFS();
     
@@ -160,12 +160,12 @@ void QtSLiMGraphView_2DFrequencySpectrum::drawGraph(QPainter &painter, QRect int
     }
 }
 
-bool QtSLiMGraphView_2DFrequencySpectrum::providesStringForData(void)
+bool QtSLiMGraphView_2DPopulationSFS::providesStringForData(void)
 {
     return true;
 }
 
-void QtSLiMGraphView_2DFrequencySpectrum::appendStringForData(QString &string)
+void QtSLiMGraphView_2DPopulationSFS::appendStringForData(QString &string)
 {
     double *plotData = mutation2DSFS();
 	
@@ -177,7 +177,7 @@ void QtSLiMGraphView_2DFrequencySpectrum::appendStringForData(QString &string)
     }
 }
 
-double *QtSLiMGraphView_2DFrequencySpectrum::mutation2DSFS(void)
+double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
 {
     SLiMSim *sim = controller_->sim;
     Population &population = sim->population_;

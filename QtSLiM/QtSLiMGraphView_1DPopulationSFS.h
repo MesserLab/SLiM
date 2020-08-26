@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_1DFrequencySpectrum.h
+//  QtSLiMGraphView_1DPopulationSFS.h
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
@@ -17,21 +17,21 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef QTSLIMGRAPHVIEW_1DFREQUENCYSPECTRUM_H
-#define QTSLIMGRAPHVIEW_1DFREQUENCYSPECTRUM_H
+#ifndef QTSLIMGRAPHVIEW_1DPOPULATIONSFS_H
+#define QTSLIMGRAPHVIEW_1DPOPULATIONSFS_H
 
 #include <QWidget>
 
 #include "QtSLiMGraphView.h"
 
 
-class QtSLiMGraphView_1DFrequencySpectrum : public QtSLiMGraphView
+class QtSLiMGraphView_1DPopulationSFS : public QtSLiMGraphView
 {
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_1DFrequencySpectrum(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_1DFrequencySpectrum() override;
+    QtSLiMGraphView_1DPopulationSFS(QWidget *parent, QtSLiMWindow *controller);
+    ~QtSLiMGraphView_1DPopulationSFS() override;
     
     QString graphTitle(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
@@ -43,11 +43,11 @@ public slots:
     void controllerSelectionChanged(void) override;
     
 private:
-    double *mutationFrequencySpectrum(int mutationTypeCount);    
+    double *populationSFS(int mutationTypeCount);    
 };
 
 
-#endif // QTSLIMGRAPHVIEW_1DFREQUENCYSPECTRUM_H
+#endif // QTSLIMGRAPHVIEW_1DPOPULATIONSFS_H
 
 
 

@@ -127,9 +127,9 @@ macx: LIBS += -lobjc.A
 
 
 SOURCES += \
-    QtSLiMGraphView_1DFrequencySpectrum.cpp \
+    QtSLiMGraphView_1DPopulationSFS.cpp \
     QtSLiMGraphView_1DSampleSFS.cpp \
-    QtSLiMGraphView_2DFrequencySpectrum.cpp \
+    QtSLiMGraphView_2DPopulationSFS.cpp \
     QtSLiMGraphView_2DSampleSFS.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
@@ -166,9 +166,9 @@ SOURCES += \
     QtSLiMVariableBrowser.cpp
 
 HEADERS += \
-    QtSLiMGraphView_1DFrequencySpectrum.h \
+    QtSLiMGraphView_1DPopulationSFS.h \
     QtSLiMGraphView_1DSampleSFS.h \
-    QtSLiMGraphView_2DFrequencySpectrum.h \
+    QtSLiMGraphView_2DPopulationSFS.h \
     QtSLiMGraphView_2DSampleSFS.h \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_SubpopFitnessDists.h \

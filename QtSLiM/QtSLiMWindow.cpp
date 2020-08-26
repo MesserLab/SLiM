@@ -33,9 +33,9 @@
 #include "QtSLiM_SLiMgui.h"
 
 #include "QtSLiMGraphView.h"
-#include "QtSLiMGraphView_1DFrequencySpectrum.h"
+#include "QtSLiMGraphView_1DPopulationSFS.h"
 #include "QtSLiMGraphView_1DSampleSFS.h"
-#include "QtSLiMGraphView_2DFrequencySpectrum.h"
+#include "QtSLiMGraphView_2DPopulationSFS.h"
 #include "QtSLiMGraphView_2DSampleSFS.h"
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
@@ -3953,7 +3953,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     QMenu contextMenu("graph_menu", this);
     
-    QAction *graph1DFreqSpectrum = contextMenu.addAction("Graph 1D Mutation Frequency Spectrum");
+    QAction *graph1DFreqSpectrum = contextMenu.addAction("Graph 1D Population SFS");
     graph1DFreqSpectrum->setEnabled(!disableAll);
     
     QAction *graph1DSampleSFS = contextMenu.addAction("Graph 1D Sample SFS");
@@ -3961,7 +3961,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     contextMenu.addSeparator();
     
-    QAction *graph2DFreqSpectrum = contextMenu.addAction("Graph 2D Mutation Frequency Spectrum");
+    QAction *graph2DFreqSpectrum = contextMenu.addAction("Graph 2D Population SFS");
     graph2DFreqSpectrum->setEnabled(!disableAll);
     
     QAction *graph2DSampleSFS = contextMenu.addAction("Graph 2D Sample SFS");
@@ -4010,7 +4010,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         if (action == graph1DFreqSpectrum)
         {
             if (!graphWindow1DFreqSpectrum)
-                graphWindow1DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_1DFrequencySpectrum(this, this));
+                graphWindow1DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_1DPopulationSFS(this, this));
             graphWindow = graphWindow1DFreqSpectrum;
         }
         if (action == graph1DSampleSFS)
@@ -4022,7 +4022,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         if (action == graph2DFreqSpectrum)
         {
             if (!graphWindow2DFreqSpectrum)
-                graphWindow2DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_2DFrequencySpectrum(this, this));
+                graphWindow2DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_2DPopulationSFS(this, this));
             graphWindow = graphWindow2DFreqSpectrum;
         }
         if (action == graph2DSampleSFS)
