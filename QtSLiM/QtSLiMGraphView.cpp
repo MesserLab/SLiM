@@ -1312,17 +1312,6 @@ void QtSLiMGraphView::drawBarplot(QPainter &painter, QRect interiorRect, double 
 	drawGroupedBarplot(painter, interiorRect, buffer, 1, binCount, firstBinValue, binWidth);
 }
 
-static QColor heatColor(double value)
-{
-    // for value in [0, 1], returns a QColor; similar to Eidos_ExecuteFunction_heatColors(), but with a ramp up from white to yellow
-    if (value < 0.25)
-        return QtSLiMColorWithRGB(1.0, 1.0, 1.0 - value / 0.25, 1.0);
-    else if (value < 0.75)
-        return QtSLiMColorWithRGB(1.0, (value - 0.25) / (1.0 - 0.25), 0.0, 1.0);
-    else
-        return QtSLiMColorWithRGB(1.0 - (value - 0.75) / (1.0 - 0.75), 0.0, 0.0, 1.0);
-}
-
 void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double *buffer, int xBinCount, int yBinCount)
 {
     int intHeatMapMargins = (generatingPDF_ ? 0 : heatmapMargins_);     // when generating a PDF we use an inset for accuracy
@@ -1343,7 +1332,10 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
             if (generatingPDF_)
                 patchRect.adjust(0.5 * heatmapMargins_, 0.5 * heatmapMargins_, -0.5 * heatmapMargins_, -0.5 * heatmapMargins_);
             
-            painter.fillRect(patchRect, heatColor(value));
+            double r, g, b;
+            Eidos_ColorPaletteLookup(1.0 - value, EidosColorPalette::kPalette_hot, r, g, b);
+            
+            painter.fillRect(patchRect, QtSLiMColorWithRGB(r, g, b, 1.0));
         }
     }
 }
