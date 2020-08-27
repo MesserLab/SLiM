@@ -51,6 +51,13 @@ QString QtSLiMGraphView_LossTimeHistogram::graphTitle(void)
     return "Mutation Loss Time";
 }
 
+QString QtSLiMGraphView_LossTimeHistogram::aboutString(void)
+{
+    return "The Mutation Loss Time graph shows a histogram of mutation loss times, for "
+           "those mutations that have been lost.  The proportions are calculated and plotted "
+           "separately for each mutation type, for comparison.";
+}
+
 double *QtSLiMGraphView_LossTimeHistogram::lossTimeData(void)
 {
     int binCount = histogramBinCount_;

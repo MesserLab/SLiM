@@ -130,6 +130,16 @@ QString QtSLiMGraphView_1DSampleSFS::graphTitle(void)
     return "1D Sample SFS";
 }
 
+QString QtSLiMGraphView_1DSampleSFS::aboutString(void)
+{
+    return "The 1D Sample SFS graph shows a Site Frequency Spectrum (SFS) for a sample of genomes taken "
+           "(with replacement) from a given subpopulation, for mutations of a given mutation type.  The x axis "
+           "here is the occurrence count of a given mutation within the sample, from 1 to the sample size.  The "
+           "y axis is the number of mutations in the sample with that specific occurrence count, on a log "
+           "scale.  The y axis range and the sample size can be customized from the action menu.  The 1D "
+           "Population SFS graph provides an alternative that might also be useful.";
+}
+
 void QtSLiMGraphView_1DSampleSFS::invalidateDrawingCache(void)
 {
     if (sfs1dbuf_)

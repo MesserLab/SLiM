@@ -51,6 +51,13 @@ QString QtSLiMGraphView_FixationTimeHistogram::graphTitle(void)
     return "Mutation Fixation Time";
 }
 
+QString QtSLiMGraphView_FixationTimeHistogram::aboutString(void)
+{
+    return "The Mutation Fixation Time graph shows a histogram of mutation fixation times, "
+           "for those mutations that have fixed.  The proportions are calculated and plotted "
+           "separately for each mutation type, for comparison.";
+}
+
 double *QtSLiMGraphView_FixationTimeHistogram::fixationTimeData(void)
 {
     int binCount = histogramBinCount_;

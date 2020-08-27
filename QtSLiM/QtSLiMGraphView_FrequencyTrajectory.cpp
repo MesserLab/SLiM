@@ -331,6 +331,20 @@ QString QtSLiMGraphView_FrequencyTrajectory::graphTitle(void)
     return "Mutation Frequency Trajectories";
 }
 
+QString QtSLiMGraphView_FrequencyTrajectory::aboutString(void)
+{
+    return "The Mutation Frequency Trajectories graph shows historical trajectories of mutation "
+           "frequencies over time, within a given subpopulation and for a given "
+           "mutation type.  Color represents whether a given mutation was "
+           "lost (red), fixed population-wide and substituted by SLiM (blue), or is "
+           "still segregating (black).  These categories can be separately enabled "
+           "or disabled in the action menu.  Because of the large amount of data "
+           "recorded for this graph, recording is only enabled when the graph is "
+           "open, and only for the selected subpopulation and mutation type; to "
+           "fill in missing data, it is necessary to recycle and run when the graph "
+           "window is already open and configured as desired.";
+}
+
 void QtSLiMGraphView_FrequencyTrajectory::updateAfterTick(void)
 {
     // Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,

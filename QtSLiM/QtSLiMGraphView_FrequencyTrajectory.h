@@ -40,6 +40,7 @@ public:
     ~QtSLiMGraphView_FrequencyTrajectory() override;
     
     QString graphTitle(void) override;
+    QString aboutString(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
     void appendStringForData(QString &string) override;    

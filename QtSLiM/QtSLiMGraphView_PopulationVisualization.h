@@ -34,6 +34,7 @@ public:
     ~QtSLiMGraphView_PopulationVisualization() override;
     
     QString graphTitle(void) override;
+    QString aboutString(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
     void appendStringForData(QString &string) override;

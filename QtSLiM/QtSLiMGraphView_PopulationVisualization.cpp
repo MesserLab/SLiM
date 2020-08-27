@@ -43,6 +43,15 @@ QString QtSLiMGraphView_PopulationVisualization::graphTitle(void)
     return "Population Visualization";
 }
 
+QString QtSLiMGraphView_PopulationVisualization::aboutString(void)
+{
+    return "The Population Visualization graph shows a visual depiction of the population structure of "
+           "the model, at the current generation.  Each subpopulation is shown as a circle, with size "
+           "proportional to the number of individuals in the subpopulation, and color representing the "
+           "mean fitness of the subpopulation.  Arrows show migration between subpopulations, with "
+           "the thickness of arrows representing the magnitude of migration.";
+}
+
 QRectF QtSLiMGraphView_PopulationVisualization::rectForSubpop(Subpopulation *subpop, QPointF center)
 {
 	// figure out the right radius, clamped to reasonable limits

@@ -55,6 +55,17 @@ QString QtSLiMGraphView_SubpopFitnessDists::graphTitle(void)
     return "Subpopulation Fitness Distributions";
 }
 
+QString QtSLiMGraphView_SubpopFitnessDists::aboutString(void)
+{
+    return "The Subpopulation Fitness Distributions graph shows the distribution of fitness "
+           "values for each subpopulation as a separate line.  The primary purpose of this "
+           "visualization is to allow the fitness distributions of many subpopulations "
+           "to be compared visually.  Fitness is 'rescaled absolute' as explained in the "
+           "Fitness ~ Time graph's about info.  The number of histogram bins can be changed "
+           "in the action menu.  The Population Fitness Distribution graph provides an "
+           "alternative that might also be useful.";
+}
+
 double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpopulation *requestedSubpop)
 {
     int binCount = histogramBinCount_;

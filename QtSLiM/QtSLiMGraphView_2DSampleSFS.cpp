@@ -156,6 +156,19 @@ QString QtSLiMGraphView_2DSampleSFS::graphTitle(void)
     return "2D Sample SFS";
 }
 
+QString QtSLiMGraphView_2DSampleSFS::aboutString(void)
+{
+    return "The 2D Sample SFS graph shows a Site Frequency Spectrum (SFS) for a sample of genomes taken "
+           "(with replacement) from two given subpopulations, for mutations of a given mutation type.  The x and y axes "
+           "here are the occurrence counts of a given mutation within the two samples, from 0 to the sample size.  The "
+           "z axis, represented with color, is the number of mutations in the samples with those specific occurrence "
+           "counts; a count of zero is represented by white, and the chosen maximum count is represented by black, "
+           "with heat colors from yellow (low) through red and up to black (high).  The lower left bin is always blue, "
+           "representing the fact that mutations not present in either sample are not included in the graph, and thus "
+           "there is no count to depict for that bin.  The z axis maximum and the sample size can be customized from "
+           "the action menu.  The 2D Population SFS graph provides an alternative that might also be useful.";
+}
+
 void QtSLiMGraphView_2DSampleSFS::invalidateDrawingCache(void)
 {
     if (sfs2dbuf_)

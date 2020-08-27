@@ -60,6 +60,7 @@ public:
     ~QtSLiMGraphView() override;
     
     virtual QString graphTitle(void) = 0;
+    virtual QString aboutString(void) = 0;
     virtual void drawGraph(QPainter &painter, QRect interiorRect);
     
 public slots:
@@ -94,11 +95,13 @@ protected:
     void drawMessage(QPainter &painter, QString messageString, QRect rect);
     void drawLegendInInteriorRect(QPainter &painter, QRect interiorRect);
     
+    // Mandatory subclass overrides
+    virtual void appendStringForData(QString &string) = 0;
+    
     // Optional subclass overrides
     virtual void cleanup();
     virtual void willDraw(QPainter &painter, QRect interiorRect);
     virtual bool providesStringForData(void);
-    virtual void appendStringForData(QString &string) = 0;    
     virtual QtSLiMLegendSpec legendKey(void);
     virtual QSize legendSize(QPainter &painter);
     virtual void drawLegend(QPainter &painter, QRect legendRect);

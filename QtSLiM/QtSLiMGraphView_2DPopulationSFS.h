@@ -34,6 +34,7 @@ public:
     ~QtSLiMGraphView_2DPopulationSFS() override;
     
     QString graphTitle(void) override;
+    QString aboutString(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
     void appendStringForData(QString &string) override;    

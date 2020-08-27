@@ -50,6 +50,16 @@ QString QtSLiMGraphView_1DPopulationSFS::graphTitle(void)
     return "1D Population SFS";
 }
 
+QString QtSLiMGraphView_1DPopulationSFS::aboutString(void)
+{
+    return "The 1D Population SFS graph shows a Site Frequency Spectrum (SFS) for the entire population.  Since "
+           "mutation occurrence counts across the whole population might be very large, the x axis here is the "
+           "frequency of a given mutation, from 0.0 to 1.0, rather than an occurrence count.  The y axis is the "
+           "proportion of all mutations that fall within a given binned frequency range.  The number of frequency "
+           "bins can be customized from the action menu.  The 1D Sample SFS graph provides an alternative that "
+           "might also be useful.";
+}
+
 double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 {
     static uint32_t *spectrum = nullptr;			// used for tallying

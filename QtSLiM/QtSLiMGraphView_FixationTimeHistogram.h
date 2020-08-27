@@ -34,6 +34,7 @@ public:
     ~QtSLiMGraphView_FixationTimeHistogram() override;
     
     QString graphTitle(void) override;
+    QString aboutString(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     QtSLiMLegendSpec legendKey(void) override;
     bool providesStringForData(void) override;

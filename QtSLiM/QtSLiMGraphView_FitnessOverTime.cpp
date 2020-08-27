@@ -98,6 +98,20 @@ QString QtSLiMGraphView_FitnessOverTime::graphTitle(void)
     return "Fitness ~ Time";
 }
 
+QString QtSLiMGraphView_FitnessOverTime::aboutString(void)
+{
+    return "The Fitness ~ Time graph shows mean fitness as a function of time.  The mean fitness "
+           "of the population is shown with a thick black line, while those of subpopulations "
+           "are shown with thinner colored lines.  Fixation events during the model run are "
+           "shown with light blue vertical lines at the generation in which they occurred.  The "
+           "fitness shown is 'rescaled absolute', meaning that it is absolute fitness, not "
+           "relative fitness, but that when non-neutral mutations fix and are 'substituted' by "
+           "SLiM they are no longer included in fitness calculations, so the y axis is 'rescaled'; "
+           "this is mainly relevant to WF models.  It is also 'rescaled' in the sense that it "
+           "excludes subpopulation fitnessScaling values (to emphasize individual fitness effects "
+           "over density-dependence); this is mainly relevant to nonWF models.";
+}
+
 void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 {
 	if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)

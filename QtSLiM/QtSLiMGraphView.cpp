@@ -33,6 +33,7 @@
 #include <QBuffer>
 #include <QComboBox>
 #include <QtGlobal>
+#include <QMessageBox>
 #include <QDebug>
 
 #include "subpopulation.h"
@@ -868,6 +869,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		bool addedItems = false;
         QMenu contextMenu("graph_menu", this);
         
+        QAction *aboutGraph = nullptr;
         QAction *legendToggle = nullptr;
         QAction *gridHToggle = nullptr;
         QAction *gridVToggle = nullptr;
@@ -880,6 +882,10 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
         QAction *exportGraph = nullptr;
         QAction *copyData = nullptr;
         QAction *exportData = nullptr;
+        
+        // Show a description of the graph
+        aboutGraph = contextMenu.addAction("About This Graph...");
+        contextMenu.addSeparator();
         
 		// Toggle legend visibility
 		if (legendKey().size() > 0)
@@ -973,6 +979,18 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
         // Act upon the chosen action; we just do it right here instead of dealing with slots
         if (action)
         {
+            if (action == aboutGraph)
+            {
+                QString title = graphTitle();
+                QString about = aboutString();
+                
+                QMessageBox messageBox(this);
+                messageBox.setText(title);
+                messageBox.setInformativeText(about);
+                messageBox.setIcon(QMessageBox::Information);
+                messageBox.setWindowModality(Qt::WindowModal);
+                messageBox.exec();
+            }
             if (action == legendToggle)
             {
                 legendVisible_ = !legendVisible_;

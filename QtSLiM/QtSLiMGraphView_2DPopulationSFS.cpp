@@ -137,6 +137,20 @@ QString QtSLiMGraphView_2DPopulationSFS::graphTitle(void)
     return "2D Population SFS";
 }
 
+QString QtSLiMGraphView_2DPopulationSFS::aboutString(void)
+{
+    return "The 2D Population SFS graph shows a Site Frequency Spectrum (SFS) for two entire subpopulations in "
+           "the population, for mutations of a given mutation type.  Since mutation occurrence counts across "
+           "whole subpopulations might be very large, the x and y axes here are the frequencies of a given mutation "
+           "in the two subpopulations, from 0.0 to 1.0 on each axis, rather than occurrence counts.  The z axis, "
+           "represented with color, is the proportion of mutations (among those present in either of the two "
+           "subpopulations) that fall within a binned range of frequencies in the two subpopulations; a proportion "
+           "of zero is represented by white, and the maximum observed proportion is represented by black (rescaled each "
+           "time the graph redisplays), with heat colors from yellow (low) through red and up to black (high).  The "
+           "number of frequency bins can be customized from the action menu.  The 2D Sample SFS graph provides an "
+           "alternative that might also be useful.";
+}
+
 void QtSLiMGraphView_2DPopulationSFS::updateAfterTick(void)
 {
     // Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
@@ -242,11 +256,15 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
         slim_refcount_t count1 = refcounts1[refcount_index];
         slim_refcount_t count2 = refcounts2[refcount_index];
         
-        double freq1 = count1 / (double)subpop1_total_genome_count;
-        double freq2 = count2 / (double)subpop2_total_genome_count;
-        int bin1 = static_cast<int>(round(freq1 * (histogramBinCount_ - 1)));
-        int bin2 = static_cast<int>(round(freq2 * (histogramBinCount_ - 1)));
-        sfs2dbuf[bin1 + bin2 * histogramBinCount_]++;
+        // exclude mutations that are not present in either subpopulation
+        if ((count1 > 0) || (count2 > 0))
+        {
+            double freq1 = count1 / (double)subpop1_total_genome_count;
+            double freq2 = count2 / (double)subpop2_total_genome_count;
+            int bin1 = static_cast<int>(round(freq1 * (histogramBinCount_ - 1)));
+            int bin2 = static_cast<int>(round(freq2 * (histogramBinCount_ - 1)));
+            sfs2dbuf[bin1 + bin2 * histogramBinCount_]++;
+        }
     }
     
     // Normalize the bin counts to [0,1]; 0 is reserved for actual zero counts, the rest are on a log scale
