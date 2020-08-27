@@ -299,12 +299,19 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
             return nullptr;
         
         // Get frequencies for a sample taken from subpop1
-        std::vector<slim_refcount_t> refcounts1;
-        std::vector<Genome *> sample1Genomes = subpop1->CurrentGenomes();
-        Eidos_random_unique(sample1Genomes.begin(), sample1Genomes.end(), histogramBinCount_ - 1);
-        sample1Genomes.resize(histogramBinCount_ - 1);
+        {
+            std::vector<Genome *> sample1Genomes;
+            std::vector<Genome *> &subpopGenomes = subpop1->CurrentGenomes();
+            size_t subpopGenomeCount = subpopGenomes.size();
+            
+            if (subpopGenomeCount)
+                for (int i = 0; i < histogramBinCount_ - 1; ++i)
+                    sample1Genomes.push_back(subpopGenomes[random() % subpopGenomeCount]);
+            
+            tallyGUIMutationReferences(sample1Genomes, selectedMutationTypeIndex_);
+        }
         
-        tallyGUIMutationReferences(sample1Genomes, selectedMutationTypeIndex_);
+        std::vector<slim_refcount_t> refcounts1;
         
         for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
         {
@@ -314,12 +321,19 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         }
         
         // Get frequencies for a sample taken from subpop2
-        std::vector<slim_refcount_t> refcounts2;
-        std::vector<Genome *> sample2Genomes = subpop2->CurrentGenomes();
-        Eidos_random_unique(sample2Genomes.begin(), sample2Genomes.end(), histogramBinCount_ - 1);
-        sample2Genomes.resize(histogramBinCount_ - 1);
+        {
+            std::vector<Genome *> sample2Genomes;
+            std::vector<Genome *> &subpopGenomes = subpop2->CurrentGenomes();
+            size_t subpopGenomeCount = subpopGenomes.size();
+            
+            if (subpopGenomeCount)
+                for (int i = 0; i < histogramBinCount_ - 1; ++i)
+                    sample2Genomes.push_back(subpopGenomes[random() % subpopGenomeCount]);
+            
+            tallyGUIMutationReferences(sample2Genomes, selectedMutationTypeIndex_);
+        }
         
-        tallyGUIMutationReferences(sample2Genomes, selectedMutationTypeIndex_);
+        std::vector<slim_refcount_t> refcounts2;
         
         for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
         {
@@ -342,7 +356,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         }
     }
     
-    // Return the final tally; note that we retain ownership of this buffer and the caller should not free it!
+    // Return the final tally; note that we retain ownership of this buffer and only free it when we want to force a recache
     return sfs2dbuf_;
 }
 

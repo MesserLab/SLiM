@@ -175,6 +175,8 @@ void QtSLiMGraphView_2DPopulationSFS::appendStringForData(QString &string)
             string.append(QString("%1, ").arg(plotData[x + y * histogramBinCount_], 0, 'f', 4));
         string.append("\n");
     }
+    
+    free(plotData);
 }
 
 double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
@@ -266,6 +268,7 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
         }
     }
     
+    // return the final tally; note the caller takes responsibility for freeing this buffer!
     return sfs2dbuf;
 }
 

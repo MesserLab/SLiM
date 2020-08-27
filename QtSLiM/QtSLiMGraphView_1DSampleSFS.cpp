@@ -237,12 +237,18 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         if (!subpop1 || !muttype)
             return nullptr;
         
-        // Get frequencies for a sample taken from subpop1
-        std::vector<Genome *> sampleGenomes = subpop1->CurrentGenomes();
-        Eidos_random_unique(sampleGenomes.begin(), sampleGenomes.end(), histogramBinCount_);
-        sampleGenomes.resize(histogramBinCount_);
-        
-        tallyGUIMutationReferences(sampleGenomes, selectedMutationTypeIndex_);
+        // Get frequencies for a sample taken (with replacement) from subpop1
+        {
+            std::vector<Genome *> sampleGenomes;
+            std::vector<Genome *> &subpopGenomes = subpop1->CurrentGenomes();
+            size_t subpopGenomeCount = subpopGenomes.size();
+            
+            if (subpopGenomeCount)
+                for (int i = 0; i < histogramBinCount_ - 1; ++i)
+                    sampleGenomes.push_back(subpopGenomes[random() % subpopGenomeCount]);
+            
+            tallyGUIMutationReferences(sampleGenomes, selectedMutationTypeIndex_);
+        }
         
         // Tally into our bins
         sfs1dbuf_ = static_cast<uint64_t *>(calloc(histogramBinCount_, sizeof(uint64_t)));
@@ -261,7 +267,7 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         }
     }
     
-    // Return the final tally; note that we retain ownership of this buffer and the caller should not free it!
+    // Return the final tally; note that we retain ownership of this buffer and only free it when we want to force a recache
 	return sfs1dbuf_;
 }
 
