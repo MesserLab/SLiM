@@ -3917,12 +3917,14 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     // Give the graph view a chance to do something with the window it's now in
     graphView->addedToWindow();
     
-    // Position the window nicely
-    positionNewSubsidiaryWindow(window);
+    // force geometry calculation, which is lazy
+    window->setAttribute(Qt::WA_DontShowOnScreen, true);
+    window->show();
+    window->hide();
+    window->setAttribute(Qt::WA_DontShowOnScreen, false);
     
     // If we added a button layout, give it room so the graph area is still square
-    // Note this has to happen after positionNewSubsidiaryWindow(), which forces layout calculations
-    // FIXME this is not ideal, since other graph windows don't avoid the extra margin, but it's OK for now...
+    // Note this has to happen after forcing layout calculations
     if (buttonLayout)
     {
         QSize contentSize = window->size();
@@ -3935,6 +3937,9 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         minSize.setHeight(minSize.height() + buttonLayoutHeight);
         window->setMinimumSize(minSize);
     }
+    
+    // Position the window nicely
+    positionNewSubsidiaryWindow(window);
     
     // make window actions for all global menu items
     // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
