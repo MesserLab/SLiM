@@ -189,12 +189,13 @@ void QtSLiMGraphView_2DSampleSFS::drawGraph(QPainter &painter, QRect interiorRec
         double *sfsTransformed = (double *)calloc(histogramBinCount_ * histogramBinCount_, sizeof(double));
         double logZMax = log10(zAxisMax_);
         
-        for (int i = 0; i < histogramBinCount_ * histogramBinCount_; ++i)
+        for (int i = 1; i < histogramBinCount_ * histogramBinCount_; ++i)
         {
             uint64_t value = sfs2dbuf[i];
             
             sfsTransformed[i] = (value == 0) ? -1000 : (log10(value) / logZMax);
         }
+        sfsTransformed[0] = -10000; // a special value that assigns a "no value" color to this square
         
         drawHeatmap(painter, interiorRect, sfsTransformed, histogramBinCount_, histogramBinCount_);
         
