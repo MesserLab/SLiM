@@ -192,6 +192,26 @@ void QtSLiMGraphView_2DSampleSFS::updateAfterTick(void)
 	QtSLiMGraphView::updateAfterTick();
 }
 
+void QtSLiMGraphView_2DSampleSFS::willDraw(QPainter &painter, QRect /* interiorRect */)
+{
+    QRect bounds = rect();
+    
+    if (!cachingNow_)
+    {
+        painter.setFont(QtSLiMGraphView::fontForTickLabels());
+        painter.setBrush(Qt::black);
+        
+        QString rangeString = QString("z ∈ [0, %1]").arg((long)zAxisMax_);
+        QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, rangeString);
+        QPoint drawPoint(bounds.x() + 10, bounds.y() + 10);
+        
+        drawPoint = painter.transform().map(drawPoint);
+        painter.setWorldMatrixEnabled(false);
+        painter.drawText(drawPoint, rangeString);
+        painter.setWorldMatrixEnabled(true);
+    }
+}
+
 void QtSLiMGraphView_2DSampleSFS::drawGraph(QPainter &painter, QRect interiorRect)
 {
     uint64_t *sfs2dbuf = mutation2DSFS();

@@ -35,6 +35,7 @@ public:
     
     QString graphTitle(void) override;
     QString aboutString(void) override;
+    void willDraw(QPainter &painter, QRect interiorRect) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
     void appendStringForData(QString &string) override;    
