@@ -117,7 +117,7 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
     for (int i = 0; i < binCount; ++i)
         bins[i] = bins[i] / totalCount;
     
-	return bins;
+    return bins;
 }
 
 void QtSLiMGraphView_SubpopFitnessDists::drawGraph(QPainter &painter, QRect interiorRect)

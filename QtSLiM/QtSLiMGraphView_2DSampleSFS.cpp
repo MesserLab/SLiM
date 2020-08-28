@@ -202,7 +202,6 @@ void QtSLiMGraphView_2DSampleSFS::willDraw(QPainter &painter, QRect /* interiorR
         painter.setBrush(Qt::black);
         
         QString rangeString = QString("z ∈ [0, %1]").arg((long)zAxisMax_);
-        QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, rangeString);
         QPoint drawPoint(bounds.x() + 10, bounds.y() + 10);
         
         drawPoint = painter.transform().map(drawPoint);

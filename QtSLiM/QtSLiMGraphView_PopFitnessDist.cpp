@@ -112,7 +112,7 @@ double *QtSLiMGraphView_PopFitnessDist::populationFitnessData(void)
     for (int i = 0; i < binCount; ++i)
         bins[i] = bins[i] / totalCount;
     
-	return bins;
+    return bins;
 }
 
 void QtSLiMGraphView_PopFitnessDist::drawGraph(QPainter &painter, QRect interiorRect)

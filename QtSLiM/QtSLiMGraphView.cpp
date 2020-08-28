@@ -1274,8 +1274,8 @@ void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, 
     if (generatingPDF_ && (drawStyle == 3))
         drawStyle = 2;
     
-	for (int mainBinIndex = 0; mainBinIndex < mainBinCount; ++mainBinIndex)
-	{
+    for (int mainBinIndex = 0; mainBinIndex < mainBinCount; ++mainBinIndex)
+    {
 		double binMinValue = mainBinIndex * mainBinWidth + firstBinValue;
 		double binMaxValue = (mainBinIndex + 1) * mainBinWidth + firstBinValue;
 		double barLeft = roundPlotToDeviceX(binMinValue, interiorRect);
