@@ -351,8 +351,9 @@ tsk_strerror_internal(int err)
             ret = "Migrations not currently supported by this operation";
             break;
         case TSK_ERR_SORT_OFFSET_NOT_SUPPORTED:
-            ret = "Specifying position for mutation, sites or migrations is not "
-                  "supported";
+            ret = "Sort offsets for sites and mutations must be either 0 "
+                  "or the length of the respective tables. Intermediate values "
+                  "are not supported";
             break;
         case TSK_ERR_NONBINARY_MUTATIONS_UNSUPPORTED:
             ret = "Only binary mutations are supported for this operation";
@@ -410,8 +411,8 @@ tsk_strerror_internal(int err)
             ret = "Must have at least one allele when specifying an allele map";
             break;
         case TSK_ERR_MUST_IMPUTE_NON_SAMPLES:
-            ret = "Cannot generate genotypes for non-samples unless missing data "
-                  "imputation is enabled";
+            ret = "Cannot generate genotypes for non-samples when isolated nodes are "
+                  "considered as missing";
             break;
         case TSK_ERR_ALLELE_NOT_FOUND:
             ret = "An allele was not found in the user-specified allele map";

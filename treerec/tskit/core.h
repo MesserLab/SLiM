@@ -128,7 +128,7 @@ to the API or ABI are introduced, i.e., the addition of a new function.
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   4
+#define TSK_VERSION_PATCH   5
 /** @} */
 
 /* Node flags */

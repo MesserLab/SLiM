@@ -4547,6 +4547,7 @@ tsk_table_sorter_run(tsk_table_sorter_t *self, tsk_bookmark_t *start)
 {
     int ret = 0;
     tsk_size_t edge_start = 0;
+    bool skip_sites = false;
 
     if (start != NULL) {
         if (start->edges > self->tables->edges.num_rows) {
@@ -4555,10 +4556,17 @@ tsk_table_sorter_run(tsk_table_sorter_t *self, tsk_bookmark_t *start)
         }
         edge_start = start->edges;
 
-        /* For now, if migrations, sites or mutations are non-zero we get an error.
-         * This should be fixed: https://github.com/tskit-dev/tskit/issues/101
-         */
-        if (start->migrations != 0 || start->sites != 0 || start->mutations != 0) {
+        if (start->migrations != 0) {
+            ret = TSK_ERR_MIGRATIONS_NOT_SUPPORTED;
+            goto out;
+        }
+        /* We only allow sites and mutations to be specified as a way to
+         * skip sorting them entirely. Both sites and mutations must be
+         * equal to the number of rows */
+        if (start->sites == self->tables->sites.num_rows
+            && start->mutations == self->tables->mutations.num_rows) {
+            skip_sites = true;
+        } else if (start->sites != 0 || start->mutations != 0) {
             ret = TSK_ERR_SORT_OFFSET_NOT_SUPPORTED;
             goto out;
         }
@@ -4574,13 +4582,15 @@ tsk_table_sorter_run(tsk_table_sorter_t *self, tsk_bookmark_t *start)
             goto out;
         }
     }
-    ret = tsk_table_sorter_sort_sites(self);
-    if (ret != 0) {
-        goto out;
-    }
-    ret = tsk_table_sorter_sort_mutations(self);
-    if (ret != 0) {
-        goto out;
+    if (!skip_sites) {
+        ret = tsk_table_sorter_sort_sites(self);
+        if (ret != 0) {
+            goto out;
+        }
+        ret = tsk_table_sorter_sort_mutations(self);
+        if (ret != 0) {
+            goto out;
+        }
     }
 out:
     return ret;
@@ -4697,6 +4707,7 @@ typedef struct {
     /* When reducing topology, we need a map positions to their corresponding
      * sites.*/
     double *position_lookup;
+    int64_t edge_sort_offset;
 } simplifier_t;
 
 static int
@@ -5434,11 +5445,13 @@ simplifier_print_state(simplifier_t *self, FILE *out)
 
     fprintf(out, "--simplifier state--\n");
     fprintf(out, "options:\n");
-    fprintf(
-        out, "\tfilter_unreferenced_sites: %d\n", !!(self->options & TSK_FILTER_SITES));
-    fprintf(out, "\treduce_to_site_topology  : %d\n",
+    fprintf(out, "\tfilter_unreferenced_sites   : %d\n",
+        !!(self->options & TSK_FILTER_SITES));
+    fprintf(out, "\treduce_to_site_topology : %d\n",
         !!(self->options & TSK_REDUCE_TO_SITE_TOPOLOGY));
-    fprintf(out, "\tkeep_unary  : %d\n", !!(self->options & TSK_KEEP_UNARY));
+    fprintf(out, "\tkeep_unary              : %d\n", !!(self->options & TSK_KEEP_UNARY));
+    fprintf(out, "\tkeep_input_roots        : %d\n",
+        !!(self->options & TSK_KEEP_INPUT_ROOTS));
 
     fprintf(out, "===\nInput tables\n==\n");
     tsk_table_collection_print_state(&self->input_tables, out);
@@ -5740,6 +5753,25 @@ out:
     return ret;
 }
 
+static void
+simplifier_map_mutations(
+    simplifier_t *self, tsk_id_t input_id, double left, double right, tsk_id_t output_id)
+{
+    mutation_id_list_t *m_node;
+    double position;
+    tsk_id_t site;
+
+    m_node = self->node_mutation_list_map_head[input_id];
+    while (m_node != NULL) {
+        site = self->input_tables.mutations.site[m_node->mutation];
+        position = self->input_tables.sites.position[site];
+        if (left <= position && position < right) {
+            self->mutation_node_map[m_node->mutation] = output_id;
+        }
+        m_node = m_node->next;
+    }
+}
+
 static int TSK_WARN_UNUSED
 simplifier_add_ancestry(
     simplifier_t *self, tsk_id_t input_id, double left, double right, tsk_id_t output_id)
@@ -5770,6 +5802,7 @@ simplifier_add_ancestry(
             self->ancestor_map_tail[input_id] = x;
         }
     }
+    simplifier_map_mutations(self, input_id, left, right, output_id);
 out:
     return ret;
 }
@@ -5881,11 +5914,11 @@ simplifier_init(simplifier_t *self, tsk_id_t *samples, size_t num_samples,
     }
     memset(
         self->node_id_map, 0xff, self->input_tables.nodes.num_rows * sizeof(tsk_id_t));
-    ret = simplifier_init_samples(self, samples);
+    ret = simplifier_init_sites(self);
     if (ret != 0) {
         goto out;
     }
-    ret = simplifier_init_sites(self);
+    ret = simplifier_init_samples(self, samples);
     if (ret != 0) {
         goto out;
     }
@@ -5895,6 +5928,7 @@ simplifier_init(simplifier_t *self, tsk_id_t *samples, size_t num_samples,
             goto out;
         }
     }
+    self->edge_sort_offset = TSK_NULL;
 out:
     return ret;
 }
@@ -6058,13 +6092,78 @@ out:
     return ret;
 }
 
+/* Extract the ancestry for the specified input node over the specified
+ * interval and queue it up for merging.
+ */
+static int TSK_WARN_UNUSED
+simplifier_extract_ancestry(
+    simplifier_t *self, double left, double right, tsk_id_t input_id)
+{
+    int ret = 0;
+    tsk_segment_t *x = self->ancestor_map_head[input_id];
+    tsk_segment_t y; /* y is the segment that has been removed */
+    tsk_segment_t *x_head, *x_prev, *seg_left, *seg_right;
+
+    x_head = NULL;
+    x_prev = NULL;
+    while (x != NULL) {
+        if (x->right > left && right > x->left) {
+            y.left = TSK_MAX(x->left, left);
+            y.right = TSK_MIN(x->right, right);
+            y.node = x->node;
+            ret = simplifier_enqueue_segment(self, y.left, y.right, y.node);
+            if (ret != 0) {
+                goto out;
+            }
+            seg_left = NULL;
+            seg_right = NULL;
+            if (x->left != y.left) {
+                seg_left = simplifier_alloc_segment(self, x->left, y.left, x->node);
+                if (seg_left == NULL) {
+                    ret = TSK_ERR_NO_MEMORY;
+                    goto out;
+                }
+                if (x_prev == NULL) {
+                    x_head = seg_left;
+                } else {
+                    x_prev->next = seg_left;
+                }
+                x_prev = seg_left;
+            }
+            if (x->right != y.right) {
+                x->left = y.right;
+                seg_right = x;
+            } else {
+                seg_right = x->next;
+                // TODO free x
+            }
+            if (x_prev == NULL) {
+                x_head = seg_right;
+            } else {
+                x_prev->next = seg_right;
+            }
+            x = seg_right;
+        } else {
+            if (x_prev == NULL) {
+                x_head = x;
+            }
+            x_prev = x;
+            x = x->next;
+        }
+    }
+
+    self->ancestor_map_head[input_id] = x_head;
+    self->ancestor_map_tail[input_id] = x_prev;
+out:
+    return ret;
+}
+
 static int TSK_WARN_UNUSED
 simplifier_process_parent_edges(
     simplifier_t *self, tsk_id_t parent, size_t start, size_t end)
 {
     int ret = 0;
     size_t j;
-    tsk_segment_t *x;
     const tsk_edge_table_t *input_edges = &self->input_tables.edges;
     tsk_id_t child;
     double left, right;
@@ -6076,15 +6175,9 @@ simplifier_process_parent_edges(
         child = input_edges->child[j];
         left = input_edges->left[j];
         right = input_edges->right[j];
-        // printf("C: %i, L: %f, R: %f\n", child, left, right);
-        for (x = self->ancestor_map_head[child]; x != NULL; x = x->next) {
-            if (x->right > left && right > x->left) {
-                ret = simplifier_enqueue_segment(
-                    self, TSK_MAX(x->left, left), TSK_MIN(x->right, right), x->node);
-                if (ret != 0) {
-                    goto out;
-                }
-            }
+        ret = simplifier_extract_ancestry(self, left, right, child);
+        if (ret != 0) {
+            goto out;
         }
     }
     /* We can now merge the ancestral segments for the parent */
@@ -6093,38 +6186,6 @@ simplifier_process_parent_edges(
         goto out;
     }
 out:
-    return ret;
-}
-
-static int TSK_WARN_UNUSED
-simplifier_map_mutation_nodes(simplifier_t *self)
-{
-    int ret = 0;
-    tsk_segment_t *seg;
-    mutation_id_list_t *m_node;
-    size_t input_node;
-    tsk_id_t site;
-    double position;
-
-    for (input_node = 0; input_node < self->input_tables.nodes.num_rows; input_node++) {
-        seg = self->ancestor_map_head[input_node];
-        m_node = self->node_mutation_list_map_head[input_node];
-        /* Co-iterate over the segments and mutations; mutations must be listed
-         * in increasing order of site position */
-        while (seg != NULL && m_node != NULL) {
-            site = self->input_tables.mutations.site[m_node->mutation];
-            position = self->input_tables.sites.position[site];
-            if (seg->left <= position && position < seg->right) {
-                self->mutation_node_map[m_node->mutation] = seg->node;
-                m_node = m_node->next;
-            } else if (position >= seg->right) {
-                seg = seg->next;
-            } else {
-                assert(position < seg->left);
-                m_node = m_node->next;
-            }
-        }
-    }
     return ret;
 }
 
@@ -6339,6 +6400,81 @@ out:
     return ret;
 }
 
+static void
+simplifier_set_edge_sort_offset(simplifier_t *self, double youngest_root_time)
+{
+    const tsk_edge_table_t edges = self->tables->edges;
+    const double *node_time = self->tables->nodes.time;
+    tsk_size_t offset;
+
+    for (offset = 0; offset < edges.num_rows; offset++) {
+        if (node_time[edges.parent[offset]] >= youngest_root_time) {
+            break;
+        }
+    }
+    self->edge_sort_offset = offset;
+}
+
+static int TSK_WARN_UNUSED
+simplifier_sort_edges(simplifier_t *self)
+{
+    /* designated initialisers are guaranteed to set any missing fields to
+     * zero, so we don't need to set the rest of them. */
+    tsk_bookmark_t bookmark = {
+        .edges = (tsk_size_t) self->edge_sort_offset,
+        .sites = self->tables->sites.num_rows,
+        .mutations = self->tables->mutations.num_rows,
+    };
+    assert(self->edge_sort_offset >= 0);
+    return tsk_table_collection_sort(self->tables, &bookmark, 0);
+}
+
+static int TSK_WARN_UNUSED
+simplifier_insert_input_roots(simplifier_t *self)
+{
+    int ret = 0;
+    tsk_id_t input_id, output_id;
+    tsk_segment_t *x;
+    size_t num_flushed_edges;
+    double youngest_root_time = DBL_MAX;
+    const double *node_time = self->tables->nodes.time;
+
+    for (input_id = 0; input_id < (tsk_id_t) self->input_tables.nodes.num_rows;
+         input_id++) {
+        x = self->ancestor_map_head[input_id];
+        if (x != NULL) {
+            output_id = self->node_id_map[input_id];
+            if (output_id == TSK_NULL) {
+                ret = simplifier_record_node(self, input_id, false);
+                if (ret < 0) {
+                    goto out;
+                }
+                output_id = ret;
+            }
+            youngest_root_time = TSK_MIN(youngest_root_time, node_time[output_id]);
+            while (x != NULL) {
+                if (x->node != output_id) {
+                    ret = simplifier_record_edge(self, x->left, x->right, x->node);
+                    if (ret != 0) {
+                        goto out;
+                    }
+                    simplifier_map_mutations(self, input_id, x->left, x->right, x->node);
+                }
+                x = x->next;
+            }
+            ret = simplifier_flush_edges(self, output_id, &num_flushed_edges);
+            if (ret != 0) {
+                goto out;
+            }
+        }
+    }
+    if (youngest_root_time != DBL_MAX) {
+        simplifier_set_edge_sort_offset(self, youngest_root_time);
+    }
+out:
+    return ret;
+}
+
 static int TSK_WARN_UNUSED
 simplifier_run(simplifier_t *self, tsk_id_t *node_map)
 {
@@ -6367,9 +6503,11 @@ simplifier_run(simplifier_t *self, tsk_id_t *node_map)
             goto out;
         }
     }
-    ret = simplifier_map_mutation_nodes(self);
-    if (ret != 0) {
-        goto out;
+    if (self->options & TSK_KEEP_INPUT_ROOTS) {
+        ret = simplifier_insert_input_roots(self);
+        if (ret != 0) {
+            goto out;
+        }
     }
     ret = simplifier_output_sites(self);
     if (ret != 0) {
@@ -6383,6 +6521,13 @@ simplifier_run(simplifier_t *self, tsk_id_t *node_map)
         /* Finally, output the new IDs for the nodes, if required. */
         memcpy(node_map, self->node_id_map,
             self->input_tables.nodes.num_rows * sizeof(tsk_id_t));
+    }
+    if (self->edge_sort_offset != TSK_NULL) {
+        assert(self->options & TSK_KEEP_INPUT_ROOTS);
+        ret = simplifier_sort_edges(self);
+        if (ret != 0) {
+            goto out;
+        }
     }
 out:
     return ret;
