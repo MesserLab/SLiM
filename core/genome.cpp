@@ -2181,6 +2181,27 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			 (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called from within a recombination() or mutation() callback." << EidosTerminate();
 	
+	// check that the same genome is not included more than once as a target, which we don't allow; we use patch_pointer as scratch
+	for (int target_index = 0; target_index < target_size; ++target_index)
+	{
+		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
+		
+		if (target_genome->IsNull())
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null genome." << EidosTerminate();
+		
+		target_genome->patch_pointer_ = target_genome;
+	}
+	
+	for (int target_index = 0; target_index < target_size; ++target_index)
+	{
+		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
+		
+		if (target_genome->patch_pointer_ != target_genome)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
+		
+		target_genome->patch_pointer_ = nullptr;
+	}
+	
 	// Construct a vector of mutations to add that is sorted by position
 	int mutations_count = mutations_value->Count();
 	std::vector<Mutation *> mutations_to_add;
@@ -2273,9 +2294,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
-			
-			if (target_genome->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null genome." << EidosTerminate();
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
@@ -2513,6 +2531,27 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		}
 	}
 	
+	// check that the same genome is not included more than once as a target, which we don't allow; we use patch_pointer as scratch
+	for (int target_index = 0; target_index < target_size; ++target_index)
+	{
+		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
+		
+		if (target_genome->IsNull())
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called on a null genome." << EidosTerminate();
+		
+		target_genome->patch_pointer_ = target_genome;
+	}
+	
+	for (int target_index = 0; target_index < target_size; ++target_index)
+	{
+		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
+		
+		if (target_genome->patch_pointer_ != target_genome)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
+		
+		target_genome->patch_pointer_ = nullptr;
+	}
+	
 	// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
 	std::vector<slim_mutrun_index_t> mutrun_indexes;
 	
@@ -2687,9 +2726,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		for (int target_index = 0; target_index < target_size; ++target_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
-			
-			if (target_genome->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called on a null genome." << EidosTerminate();
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
