@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "98D4C1B21A6F537B00FFB083"
-               BuildableName = "SLiMgui.app"
-               BlueprintName = "SLiMgui"
+               BuildableName = "SLiMguiLegacy.app"
+               BlueprintName = "SLiMguiLegacy"
                ReferencedContainer = "container:SLiM.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,8 +46,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "98D4C1B21A6F537B00FFB083"
-            BuildableName = "SLiMgui.app"
-            BlueprintName = "SLiMgui"
+            BuildableName = "SLiMguiLegacy.app"
+            BlueprintName = "SLiMguiLegacy"
             ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -79,8 +79,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "98D4C1B21A6F537B00FFB083"
-            BuildableName = "SLiMgui.app"
-            BlueprintName = "SLiMgui"
+            BuildableName = "SLiMguiLegacy.app"
+            BlueprintName = "SLiMguiLegacy"
             ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -106,8 +106,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "98D4C1B21A6F537B00FFB083"
-            BuildableName = "SLiMgui.app"
-            BlueprintName = "SLiMgui"
+            BuildableName = "SLiMguiLegacy.app"
+            BlueprintName = "SLiMguiLegacy"
             ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

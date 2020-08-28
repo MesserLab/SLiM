@@ -1071,7 +1071,7 @@
 		98D218C31B2E213200156FC3 /* EidosTextView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosTextView.h; sourceTree = "<group>"; };
 		98D218C41B2E213200156FC3 /* EidosTextView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosTextView.mm; sourceTree = "<group>"; };
 		98D2C3B21F91C56E00E5EB3A /* eidos_test_builtins.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_test_builtins.h; sourceTree = "<group>"; };
-		98D4C1B31A6F537B00FFB083 /* SLiMgui.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SLiMgui.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		98D4C1B31A6F537B00FFB083 /* SLiMguiLegacy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SLiMguiLegacy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		98D4C1B61A6F537B00FFB083 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		98D4C1B71A6F537B00FFB083 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		98D4C1B81A6F537B00FFB083 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
@@ -1340,7 +1340,7 @@
 			isa = PBXGroup;
 			children = (
 				982663501A3BABD300A0CBBF /* slim */,
-				98D4C1B31A6F537B00FFB083 /* SLiMgui.app */,
+				98D4C1B31A6F537B00FFB083 /* SLiMguiLegacy.app */,
 				985724AF1AD478630047C223 /* EidosScribe.app */,
 				982556A91BA8E77B0054CB3F /* eidos */,
 				984D5FA81E3AF0D200473719 /* EidosSLiMTests.xctest */,
@@ -2047,9 +2047,9 @@
 			productReference = 985724AF1AD478630047C223 /* EidosScribe.app */;
 			productType = "com.apple.product-type.application";
 		};
-		98D4C1B21A6F537B00FFB083 /* SLiMgui */ = {
+		98D4C1B21A6F537B00FFB083 /* SLiMguiLegacy */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 98D4C1CD1A6F537C00FFB083 /* Build configuration list for PBXNativeTarget "SLiMgui" */;
+			buildConfigurationList = 98D4C1CD1A6F537C00FFB083 /* Build configuration list for PBXNativeTarget "SLiMguiLegacy" */;
 			buildPhases = (
 				98D4C1AF1A6F537B00FFB083 /* Sources */,
 				98D4C1B01A6F537B00FFB083 /* Frameworks */,
@@ -2060,9 +2060,9 @@
 			);
 			dependencies = (
 			);
-			name = SLiMgui;
+			name = SLiMguiLegacy;
 			productName = SLiMgui;
-			productReference = 98D4C1B31A6F537B00FFB083 /* SLiMgui.app */;
+			productReference = 98D4C1B31A6F537B00FFB083 /* SLiMguiLegacy.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -2118,7 +2118,7 @@
 			projectRoot = "";
 			targets = (
 				9826634F1A3BABD300A0CBBF /* SLiM */,
-				98D4C1B21A6F537B00FFB083 /* SLiMgui */,
+				98D4C1B21A6F537B00FFB083 /* SLiMguiLegacy */,
 				985724AE1AD478630047C223 /* EidosScribe */,
 				982556A81BA8E77B0054CB3F /* eidos */,
 				984D5FA71E3AF0D200473719 /* EidosSLiMTests */,
@@ -2850,7 +2850,7 @@
 /* Begin PBXTargetDependency section */
 		984D5FAE1E3AF0D200473719 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 98D4C1B21A6F537B00FFB083 /* SLiMgui */;
+			target = 98D4C1B21A6F537B00FFB083 /* SLiMguiLegacy */;
 			targetProxy = 984D5FAD1E3AF0D200473719 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -3500,7 +3500,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		98D4C1CD1A6F537C00FFB083 /* Build configuration list for PBXNativeTarget "SLiMgui" */ = {
+		98D4C1CD1A6F537C00FFB083 /* Build configuration list for PBXNativeTarget "SLiMguiLegacy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				98D4C1CE1A6F537C00FFB083 /* Debug */,

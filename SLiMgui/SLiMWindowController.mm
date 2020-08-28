@@ -3807,7 +3807,7 @@
 	NSString *bundleVersionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
 	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
 	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
-	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"Connected to SLiMgui simulation.\nSLiM version %@.\n", versionString] attributes:outputAttrs];	// SLIM VERSION
+	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"Connected to SLiMguiLegacy simulation.\nSLiM version %@.\n", versionString] attributes:outputAttrs];	// SLIM VERSION
 	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
 	
 	[ts beginEditing];

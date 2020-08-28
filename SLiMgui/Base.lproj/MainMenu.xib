@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="16096" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="16096"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -22,11 +22,11 @@
         <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
         <menu title="Main Menu" systemMenu="main" id="AYu-sK-qS6">
             <items>
-                <menuItem title="SLiMgui" id="1Xt-HY-uBw">
+                <menuItem title="SLiMguiLegacy" id="1Xt-HY-uBw">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="SLiMgui" systemMenu="apple" id="uQy-DD-JDr">
+                    <menu key="submenu" title="SLiMguiLegacy" systemMenu="apple" id="uQy-DD-JDr">
                         <items>
-                            <menuItem title="About SLiMgui" id="5kV-Vb-QxS">
+                            <menuItem title="About SLiMguiLegacy" id="5kV-Vb-QxS">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="showAboutWindow:" target="Voe-Tx-rLC" id="F92-YX-t7y"/>
@@ -44,7 +44,7 @@
                                 <menu key="submenu" title="Services" systemMenu="services" id="hz9-B4-Xy5"/>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="4je-JR-u6R"/>
-                            <menuItem title="Hide SLiMgui" keyEquivalent="h" id="Olw-nP-bQN">
+                            <menuItem title="Hide SLiMguiLegacy" keyEquivalent="h" id="Olw-nP-bQN">
                                 <connections>
                                     <action selector="hide:" target="-1" id="PnN-Uc-m68"/>
                                 </connections>
@@ -62,7 +62,7 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="kCx-OE-vgT"/>
-                            <menuItem title="Quit SLiMgui" keyEquivalent="q" id="4sb-4s-VLi">
+                            <menuItem title="Quit SLiMguiLegacy" keyEquivalent="q" id="4sb-4s-VLi">
                                 <connections>
                                     <action selector="terminate:" target="-1" id="Te7-pn-YzF"/>
                                 </connections>
@@ -552,7 +552,7 @@ DQ
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Help" systemMenu="help" id="F2S-fz-NVQ">
                         <items>
-                            <menuItem title="SLiMgui Help" keyEquivalent="?" id="FKE-Sm-Kum">
+                            <menuItem title="SLiMguiLegacy Help" keyEquivalent="?" id="FKE-Sm-Kum">
                                 <connections>
                                     <action selector="showHelp:" target="Voe-Tx-rLC" id="1Sw-II-Pnj"/>
                                 </connections>
@@ -625,7 +625,7 @@ DQ
             </items>
             <point key="canvasLocation" x="-258" y="-504"/>
         </menu>
-        <window title="SLiMgui Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
+        <window title="SLiMguiLegacy Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <rect key="contentRect" x="272" y="199" width="268" height="431"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
@@ -720,8 +720,8 @@ DQ
                         </connections>
                     </button>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Yf-hO-IoP">
-                        <rect key="frame" x="18" y="395" width="143" height="16"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When SLiMgui starts:" id="dL6-Sg-GED">
+                        <rect key="frame" x="18" y="395" width="189" height="16"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When SLiMguiLegacy starts:" id="dL6-Sg-GED">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
