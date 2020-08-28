@@ -4874,7 +4874,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 	if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 	
 	// simplify
-	ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS, NULL);
+	ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS | TSK_KEEP_INPUT_ROOTS, NULL);
 	if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 	
 	// update map of remembered_genomes_, which are now the first n entries in the node table
@@ -5955,17 +5955,13 @@ void SLiMSim::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 
 void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, uint32_t p_flags)
 {
-    // We use currently use this function in three ways, depending on p_flags:
-	//  (SLIM_TSK_INDIVIDUAL_FIRST_GEN) to mark the first generation of
-	//		individuals to be forever remembered but unmarked as samples before output, or
-    //  (SLIM_TSK_INDIVIDUAL_REMEMBERED) to retain individuals to be forever remembered, or
-    //  (SLIM_TSK_INDIVIDUAL_ALIVE) to retain the final generation in the tree sequence.
-    // So, in case (0) we set the FIRST_GEN flag in the individual table, 
-    // and in case (1) we set the REMEMBERED flag,
+    // We use currently use this function in two ways, depending on p_flags:
+    //  1. (SLIM_TSK_INDIVIDUAL_REMEMBERED) to retain individuals to be forever remembered, or
+    //  2. (SLIM_TSK_INDIVIDUAL_ALIVE) to retain the final generation in the tree sequence.
+    // So, in case (1) we set the REMEMBERED flag,
     // and in case (2) we set the ALIVE flag.  Individuals who are permanently
     // remembered but still alive when the tree sequence is written out will
-    // have this method called on them twice, first (1), then (2), so they get both flags set;
-	// simliarly for individuals who are in the first generation but are also later remembered.
+    // have this method called on them twice, first (1), then (2), so they get both flags set.
 
 	// do this so that we can access the internal tables from outside, by passing in nullptr
 	if (p_tables == nullptr)
@@ -6052,33 +6048,26 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		
 		tsk_id_t tsk_individual;
 		
-		if (p_flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
-		{
-			tsk_individual = TSK_NULL;	// not in the table already
-		}
-		else
-		{
-			if (using_std_vector)
-			{
-				// this case has a slow lookup (linear search), but the vector is fast to build
-				auto ind_pos = std::find(remembered_individuals.begin(), remembered_individuals.end(), ped_id);
-				
-				if (ind_pos == remembered_individuals.end())
-					tsk_individual = TSK_NULL;	// not in the table already
-				else
-					tsk_individual = (tsk_id_t)std::distance(remembered_individuals.begin(), ind_pos);
-			}
-			else
-			{
-				// this case has a fash search (hash table), but the unordered_map is slow to build
-				auto ind_pos = remembered_individuals_lookup.find(ped_id);
-				
-				if (ind_pos == remembered_individuals_lookup.end())
-					tsk_individual = TSK_NULL;	// not in the table already
-				else
-					tsk_individual = ind_pos->second;
-			}
-		}
+        if (using_std_vector)
+        {
+            // this case has a slow lookup (linear search), but the vector is fast to build
+            auto ind_pos = std::find(remembered_individuals.begin(), remembered_individuals.end(), ped_id);
+            
+            if (ind_pos == remembered_individuals.end())
+                tsk_individual = TSK_NULL;	// not in the table already
+            else
+                tsk_individual = (tsk_id_t)std::distance(remembered_individuals.begin(), ind_pos);
+        }
+        else
+        {
+            // this case has a fast search (hash table), but the unordered_map is slow to build
+            auto ind_pos = remembered_individuals_lookup.find(ped_id);
+            
+            if (ind_pos == remembered_individuals_lookup.end())
+                tsk_individual = TSK_NULL;	// not in the table already
+            else
+                tsk_individual = ind_pos->second;
+        }
 		
         if (tsk_individual == TSK_NULL) {
             // This individual is not already in the tables.
@@ -6094,7 +6083,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
             p_tables->nodes.individual[ind->genome2_->tsk_node_id_] = tsk_individual;
 
             // update remembered genomes
-            if (p_flags & (SLIM_TSK_INDIVIDUAL_REMEMBERED | SLIM_TSK_INDIVIDUAL_FIRST_GEN))
+            if (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
             {
                 remembered_genomes_.push_back(ind->genome1_->tsk_node_id_);
                 remembered_genomes_.push_back(ind->genome2_->tsk_node_id_);
@@ -6145,50 +6134,6 @@ void SLiMSim::AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables
 	for (auto subpop_iter : population_.subpops_)
 	{
         AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(), subpop_iter.second->parent_individuals_.size(), p_tables, SLIM_TSK_INDIVIDUAL_ALIVE);
-	}
-}
-
-void SLiMSim::UnmarkFirstGenerationSamples(tsk_table_collection_t *p_tables)
-{
-	// remove the "is sample" flag from first-generation individuals that were
-	// retained in the individuals table (for recapitation, ancestry, etc.)
-	for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
-	{
-		if (p_tables->nodes.flags[j] & TSK_NODE_IS_SAMPLE)
-		{
-			tsk_id_t ind = p_tables->nodes.individual[j];
-			
-			// nodes may be samples and yet not have an indiviual, if we have not called simplify() before writing out (simplify=F)
-			if (ind >= 0)
-			{
-				assert((tsk_size_t)ind < p_tables->individuals.num_rows);
-				if ((p_tables->individuals.flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
-					&& !(p_tables->individuals.flags[ind] & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-					&& !(p_tables->individuals.flags[ind] & SLIM_TSK_INDIVIDUAL_ALIVE))
-				{
-					p_tables->nodes.flags[j] = (p_tables->nodes.flags[j] & !TSK_NODE_IS_SAMPLE);
-				}
-			}
-		}
-	}
-}
-
-void SLiMSim::RemarkFirstGenerationSamples(tsk_table_collection_t *p_tables)
-{
-	// add an "is sample" flag to first-generation individuals, re-marking them after
-	// reading individuals in; undoes the effect of UnmarkFirstGenerationSamples() on load
-	// this needs to be performed because otherwise tskit complains that nodes in the sample are not marked with TSK_NODE_IS_SAMPLE
-	for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
-	{
-		tsk_id_t ind = p_tables->nodes.individual[j];
-		if (ind != TSK_NULL)
-		{
-			assert((ind >= 0) && ((tsk_size_t)ind < p_tables->individuals.num_rows));
-			if (p_tables->individuals.flags[ind] & SLIM_TSK_INDIVIDUAL_FIRST_GEN)
-			{
-				p_tables->nodes.flags[j] = (p_tables->nodes.flags[j] | TSK_NODE_IS_SAMPLE);
-			}
-		}
 	}
 }
 
@@ -6284,8 +6229,25 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     // leaving other keys that might already be there.
     // But that's being a headache, so we're skipping it.
     nlohmann::json metadata;
-	metadata["SLiM"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
-	metadata["SLiM"]["generation"] = Generation();
+    if (ModelType() == SLiMModelType::kModelTypeWF) {
+        metadata["SLiM"]["model_type"] = "WF";
+        if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+            metadata["SLiM"]["stage"] = "early";
+        } else {
+            assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
+            metadata["SLiM"]["stage"] = "late";
+        }
+    } else {
+        assert(ModelType() == SLiMModelType::kModelTypeNonWF);
+        metadata["SLiM"]["model_type"] = "nonWF";
+        if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+            metadata["SLiM"]["stage"] = "early";
+        } else {
+            assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+            metadata["SLiM"]["stage"] = "late";
+        }
+    }
+    metadata["SLiM"]["generation"] = Generation();
 	metadata["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
     if (spatial_dimensionality_ == 0) {
         metadata["SLiM"]["spatial_dimensionality"] = "";
@@ -6434,8 +6396,6 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	j["metadata"]["individuals"]["flags"]["16"]["description"] = "the individual was alive at the time the file was written";
 	j["metadata"]["individuals"]["flags"]["17"]["name"] = "SLIM_TSK_INDIVIDUAL_REMEMBERED";
 	j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be remembered";
-	j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_FIRST_GEN";
-	j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was in the first generation of a new population";
 	
 	std::string provenance_str;
 	
@@ -6791,9 +6751,6 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 
 	// all other individuals in the table will be retained, at the end
 	ReorderIndividualTable(&output_tables, individual_map, true);
-	
-	// Unmark "first generation" nodes as samples (but, retaining their information!)
-	UnmarkFirstGenerationSamples(&output_tables);
 	
 	// Rebase the times in the nodes to be in tskit-land; see _InstantiateSLiMObjectsFromTables() for the inverse operation
 	// BCH 4/4/2019: switched to using tree_seq_generation_ to avoid a parent/child timestamp conflict
@@ -7166,7 +7123,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			ret = tsk_table_collection_deduplicate_sites(tables_copy, 0);
 			if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 			
-			ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS, NULL);
+			ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS | TSK_KEEP_INPUT_ROOTS, NULL);
 			if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
             
 		// must build indexes before compute mutation parents
@@ -8194,7 +8151,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	for (tsk_id_t j = 0; (size_t) j < tables_.individuals.num_rows; j++)
 	{
 		uint32_t flags = tables_.individuals.flags[j];
-		if (flags & (SLIM_TSK_INDIVIDUAL_REMEMBERED | SLIM_TSK_INDIVIDUAL_FIRST_GEN))
+		if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 			remembered_genome_count += 2;
 	}
 	
@@ -8215,7 +8172,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 		tsk_id_t ind = tables_.nodes.individual[i];
 		assert((ind >= 0) && ((tsk_size_t)ind < tables_.individuals.num_rows));
 		tsk_flags_t __attribute__((__unused__)) ind_flags = tables_.individuals.flags[ind];
-		assert((ind_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) || (ind_flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN));
+		assert(ind_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED);
 	}
 	
 	// ... and then we should sort them to match the order of the individual table, so that they satisfy
@@ -8228,18 +8185,15 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 		return l < r;
 	});
 	
-    // Re-mark the FIRST_GEN individuals as samples so they persist through simplify
-    RemarkFirstGenerationSamples(&tables_);
-	
 	// Clear ALIVE flags
 	FixAliveIndividuals(&tables_);
 	
-	// Remove individuals that are !(rememebered | first_gen)
+	// Remove individuals that are not remembered
     std::vector<tsk_id_t> individual_map;
     for (tsk_id_t j = 0; (size_t) j < tables_.individuals.num_rows; j++)
     {
         uint32_t flags = tables_.individuals.flags[j];
-        if ((flags & SLIM_TSK_INDIVIDUAL_REMEMBERED) || (flags & SLIM_TSK_INDIVIDUAL_FIRST_GEN))
+        if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
             individual_map.push_back(j);
     }
     ReorderIndividualTable(&tables_, individual_map, false);
