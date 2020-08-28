@@ -367,7 +367,7 @@ T BareBoneIQS<T>::next() {
 
 /* This constructor allows in-place ordering */
 template <class T>
-BareBoneIIQS<T>::BareBoneIIQS(T *target_ptr, std::size_t target_size): BareBoneIQS<T>(target_ptr, target_size){
+BareBoneIIQS<T>::BareBoneIIQS(T *p_target_ptr, std::size_t p_target_size): BareBoneIQS<T>(p_target_ptr, p_target_size){
 }
 template <class T>
 BareBoneIIQS<T>::~BareBoneIIQS() {
