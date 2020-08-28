@@ -100,7 +100,9 @@ struct _SpatialMap
 	_SpatialMap(std::string p_spatiality_string, int p_spatiality, int64_t *p_grid_sizes, bool p_interpolate, double p_min_value, double p_max_value, int p_num_colors);
 	~_SpatialMap(void);
 	
-	double ValueAtPoint(double *p_point);
+	double ValueAtPoint_S1(double *p_point);
+	double ValueAtPoint_S2(double *p_point);
+	double ValueAtPoint_S3(double *p_point);
 	void ColorForValue(double p_value, double *p_rgb_ptr);
 	void ColorForValue(double p_value, float *p_rgb_ptr);
 };

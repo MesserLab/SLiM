@@ -354,6 +354,14 @@ extern EidosValue_String_SP gStaticEidosValue_StringT;
 #define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((uint32_t)(1 << 17))
 #define SLIM_TSK_INDIVIDUAL_FIRST_GEN   ((uint32_t)(1 << 18))
 
+extern const std::string gSLiM_tsk_metadata_schema;
+extern const std::string gSLiM_tsk_edge_metadata_schema;
+extern const std::string gSLiM_tsk_site_metadata_schema;
+extern const std::string gSLiM_tsk_mutation_metadata_schema;
+extern const std::string gSLiM_tsk_node_metadata_schema;
+extern const std::string gSLiM_tsk_individual_metadata_schema;
+extern const std::string gSLiM_tsk_population_metadata_schema;
+
 
 // *******************************************************************************************************************
 //

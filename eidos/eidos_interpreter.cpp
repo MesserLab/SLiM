@@ -5296,7 +5296,7 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
-		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
+		if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
 		return static_cast<int64_t>(converted_value);
@@ -5359,7 +5359,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
-		if ((converted_value < INT64_MIN) || (converted_value >= INT64_MAX))
+		if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(static_cast<int64_t>(converted_value)));

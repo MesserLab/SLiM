@@ -32,12 +32,12 @@ class TestNoMutations(TestSlimOutput):
             print("******* Text input.")
             yield text_ts
         # and binary
-        bin_ts = pyslim.load("test_output/test_output.trees", slim_format=True)
+        bin_ts = pyslim.load("test_output/test_output.trees")
         print("******** Binary input.")
         yield bin_ts
         # and nonsimplified binary
         print("******** Unsimplified binary.")
-        bin_nonsip_ts = pyslim.load("test_output/test_output.unsimplified.trees", slim_format=True)
+        bin_nonsip_ts = pyslim.load("test_output/test_output.unsimplified.trees")
         yield bin_nonsip_ts
 
     def check_consistency(self, x, y):
@@ -67,8 +67,6 @@ class TestNoMutations(TestSlimOutput):
             pos = 0
             for t in ts.trees():
                 # get partition of leaves from this tree, using SLiM IDs
-                print(t.draw(format="unicode",height = 200))
-                print("left:", t.interval[0], "right:", t.interval[1])
                 fams = {}
                 for x in t.nodes():
                     u = x

@@ -29,40 +29,45 @@ class TestWithMutations(TestSlimOutput):
         return slim
 
     def get_ts(self):
-        # TODO include more tables so text input/output works
         if False:
             # read in from text
             node_file = open("test_output/NodeTable.txt", "r")
             edge_file = open("test_output/EdgeTable.txt", "r")
             site_file = open("test_output/SiteTable.txt", "r")
             mutation_file = open("test_output/MutationTable.txt", "r")
+            individual_file = open("test_output/IndividualTable.txt", "r")
+            population_file = open("test_output/PopulationTable.txt", "r")
             text_ts = msprime.load_text(nodes=node_file, edges=edge_file, 
                                    sites=site_file, mutations=mutation_file,
+                                   individuals=individual_file,
+                                   populations=population_file,
                                    base64_metadata=False)
+
             print("******* Text input.")
             yield text_ts
         # and binary
-        bin_ts = pyslim.load("test_output/test_output.trees", slim_format=True)
+        bin_ts = pyslim.load("test_output/test_output.trees")
         print("******** Binary input.")
         yield bin_ts
         # and nonsimplified binary
         print("******** Unsimplified binary.")
-        bin_nonsip_ts = pyslim.load("test_output/test_output.unsimplified.trees", slim_format=True)
+        bin_nonsip_ts = pyslim.load("test_output/test_output.unsimplified.trees")
         yield bin_nonsip_ts
 
     def test_ts_slim_consistency(self):
         # load tree sequence
         for ts in self.get_ts():
-            # this is a dictionary of SLiM -> msprime ID (from metadata in nodes)
+            # this is a dictionary of SLiM -> tskit ID (from metadata in nodes)
             ids = self.get_slim_ids(ts)
-            slim_ids = list(ids.keys())
-            msp_ids = list(ids.values())
-            msp_samples = ts.samples()
+            # this is a dict of tskit ID -> index in samples
+            msp_samples = {}
+            for k, u in enumerate(ts.samples()):
+                msp_samples[u] = k
             # this contains the genotype information output by SLiM:
             #  indexed by position, then SLiM ID
             slim = self.read_test_mutation_output(filename="test_output/slim_mutation_output.txt")
             pos = -1
-            for var in ts.variants():
+            for var in ts.variants(impute_missing_data=True):
                 pos += 1
                 while pos < int(var.position):
                     # invariant sites: no genotypes
@@ -71,15 +76,17 @@ class TestWithMutations(TestSlimOutput):
                 print("-----------------")
                 print("pos:", pos)
                 print(var)
-                for j in slim_ids:
+                for j in ids:
                     print("slim id", j, "msp id", ids[j])
                     if ids[j] in msp_samples:
-                        msp_genotypes = [u for u in var.alleles[var.genotypes[ids[j]]].split(",")]
+                        sample_num = msp_samples[ids[j]]
+                        geno = var.genotypes[sample_num]
+                        msp_genotypes = var.alleles[geno].split(",")
                         print("msp:", msp_genotypes)
                         if (pos not in slim) or (j not in slim[pos]):
                             # no mutations at this site
                             self.assertEqual(msp_genotypes, [''])
                         else:
                             print("slim:", slim[pos][j])
-                            self.assertEqual(set(msp_genotypes), set([str(u) for u in slim[pos][j]]))
+                            self.assertEqual(set(msp_genotypes), set([str(x) for x in slim[pos][j]]))
 
