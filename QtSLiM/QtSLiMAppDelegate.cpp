@@ -53,7 +53,7 @@
 // Check the Qt version and display an error if it is unacceptable
 // We enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled
 #if (QT_VERSION < 0x050905)
-#error "QtSLiM requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS recommended)."
+#error "SLiMgui requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS recommended)."
 #endif
 
 
@@ -73,7 +73,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     // Let Qt know who we are, for QSettings configuration
     QCoreApplication::setOrganizationName("MesserLab");
     QCoreApplication::setOrganizationDomain("MesserLab.edu");   // Qt expects the domain in the standard order, and reverses it to form "edu.messerlab.QtSLiM.plist" as per Apple's usage
-    QCoreApplication::setApplicationName("QtSLiM");
+    QCoreApplication::setApplicationName("QtSLiM");             // This governs the location of our prefs, which we keep under edu.MesserLab.QtSLiM
     QCoreApplication::setApplicationVersion(SLIM_VERSION_STRING);
     
     // Warm up our back ends before anything else happens

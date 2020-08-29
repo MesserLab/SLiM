@@ -103,7 +103,7 @@ void QtSLiMConsoleTextEdit::showWelcome(void)
     welcomeMessage += "documentation, examples, and other information." + NEWLINE + NEWLINE;
     welcomeMessage += "Welcome to Eidos!" + NEWLINE + NEWLINE;
     welcomeMessage += "---------------------------------------------------------" + NEWLINE + NEWLINE;
-    welcomeMessage += "Connected to QtSLiM simulation." + NEWLINE;
+    welcomeMessage += "Connected to SLiMgui simulation." + NEWLINE;
     welcomeMessage = welcomeMessage + "SLiM version " + SLIM_VERSION_STRING + "." + NEWLINE + NEWLINE;      // SLIM VERSION
     welcomeMessage += "---------------------------------------------------------" + NEWLINE + NEWLINE;
     

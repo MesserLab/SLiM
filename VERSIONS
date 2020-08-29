@@ -27,6 +27,8 @@ development head:
 	add colors() function to Eidos, providing several new color palettes including Turbo and Viridis
 	integrate tskit 0.3.0 into SLiM, allowing more efficient tree sequence simplification (due to faster sorting) and new metadata schema support for interoperability
 	rename SLiMgui to SLiMguiLegacy
+	rename QtSLiM to SLiMgui, including cmake and qmake build targets and flags (BUILD_SLIMGUI=ON instead of BUILD_QTSLIM=ON, SLiMgui target instead of QtSLiM)
+	revise recipes 13.5 and 14.8 to generate PNG images, not PDF, since the new SLiMgui requires that
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

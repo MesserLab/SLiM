@@ -5,9 +5,9 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>QtSLiM</string>
+	<string>SLiMgui</string>
 	<key>CFBundleName</key>
-	<string>QtSLiM</string>
+	<string>SLiMgui</string>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleVersion</key>

@@ -27,10 +27,10 @@
 #   make 
 #
 
-# To build the Qt GUI, make sure you have the Qt5 Widgets, Core, and Gui libraries installed, then 
+# To build the Qt5-based GUI, make sure you have the Qt5 Widgets, Core, and Gui libraries installed, then 
 # configure with:
 #   cd build
-#   cmake -D BUILD_QTSLIM=ON ../SLiM
+#   cmake -D BUILD_SLIMGUI=ON ../SLiM
 #   make -j10
 
 
@@ -63,7 +63,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # User-defined CMAKE command-line options
-option(BUILD_QTSLIM "Build the Qt5 GUI for SLiM (on Linux only)" OFF)
+option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
 
 
 # Use the flags below for [all / Debug / Release] builds; these flags are built in to cmake
@@ -136,10 +136,10 @@ target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
 
 install(TARGETS slim eidos DESTINATION bin)
 
-# QtSLiM -- this can be enabled with the -DBUILD_QTSLIM=ON option to cmake
-if(BUILD_QTSLIM)
+# SLiMgui -- this can be enabled with the -DBUILD_SLIMGUI=ON option to cmake
+if(BUILD_SLIMGUI)
 cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
-set(TARGET_NAME QtSLiM)
+set(TARGET_NAME SLiMgui)
 find_package(OpenGL REQUIRED)
 find_package(Qt5 REQUIRED
     Core
@@ -161,5 +161,5 @@ else()
 	target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
 endif()
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
-endif(BUILD_QTSLIM)
+endif(BUILD_SLIMGUI)
 

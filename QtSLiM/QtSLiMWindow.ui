@@ -1732,7 +1732,7 @@ QPushButton:checked {
   </action>
   <action name="actionQtSLiMHelp">
    <property name="text">
-    <string>QtSLiM Help</string>
+    <string>SLiMgui Help</string>
    </property>
   </action>
   <action name="actionSendFeedback">
@@ -1786,7 +1786,7 @@ QPushButton:checked {
   </action>
   <action name="actionAboutQtSLiM">
    <property name="text">
-    <string>About QtSLiM</string>
+    <string>About SLiMgui</string>
    </property>
    <property name="menuRole">
     <enum>QAction::AboutRole</enum>
@@ -1794,7 +1794,7 @@ QPushButton:checked {
   </action>
   <action name="actionQuitQtSLiM">
    <property name="text">
-    <string>Quit QtSLiM</string>
+    <string>Quit SLiMgui</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
@@ -1897,6 +1897,11 @@ QPushButton:checked {
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
+   <class>QtSLiMPushButton</class>
+   <extends>QPushButton</extends>
+   <header>QtSLiMExtras.h</header>
+  </customwidget>
+  <customwidget>
    <class>QtSLiMChromosomeWidget</class>
    <extends>QOpenGLWidget</extends>
    <header>QtSLiMChromosomeWidget.h</header>
@@ -1920,11 +1925,6 @@ QPushButton:checked {
    <class>QtSLiMTextEdit</class>
    <extends>QTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>QtSLiMPushButton</class>
-   <extends>QPushButton</extends>
-   <header>QtSLiMExtras.h</header>
   </customwidget>
   <customwidget>
    <class>QtSLiMStatusBar</class>

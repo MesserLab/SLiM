@@ -914,7 +914,7 @@ void QtSLiMWindow::revert()
     }
     else
     {
-        const QMessageBox::StandardButton ret = QMessageBox::warning(this, "QtSLiM", "Are you sure you want to revert?  All changes will be lost.", QMessageBox::Yes | QMessageBox::Cancel);
+        const QMessageBox::StandardButton ret = QMessageBox::warning(this, "SLiMgui", "Are you sure you want to revert?  All changes will be lost.", QMessageBox::Yes | QMessageBox::Cancel);
         
         switch (ret) {
         case QMessageBox::Yes:
@@ -934,7 +934,7 @@ bool QtSLiMWindow::maybeSave()
     if (!isWindowModified())
         return true;
     
-    const QMessageBox::StandardButton ret = QMessageBox::warning(this, "QtSLiM", "The document has been modified.\nDo you want to save your changes?", QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+    const QMessageBox::StandardButton ret = QMessageBox::warning(this, "SLiMgui", "The document has been modified.\nDo you want to save your changes?", QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
     
     switch (ret) {
     case QMessageBox::Save:
@@ -952,7 +952,7 @@ void QtSLiMWindow::loadFile(const QString &fileName)
     QFile file(fileName);
     
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, "QtSLiM", QString("Cannot read file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
+        QMessageBox::warning(this, "SLiMgui", QString("Cannot read file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
         return;
     }
     
@@ -981,7 +981,7 @@ bool QtSLiMWindow::saveFile(const QString &fileName)
 {
     QFile file(fileName);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        QMessageBox::warning(this, "QtSLiM", QString("Cannot write file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
+        QMessageBox::warning(this, "SLiMgui", QString("Cannot write file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
         return false;
     }
 
@@ -2691,7 +2691,7 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText(attributedStringForByteCount(mem_tot.subpopulationSpatialMapsDisplay / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
 			tc.insertText(attributedStringForByteCount(mem_last.subpopulationSpatialMapsDisplay, final_total, colored_menlo), colored_menlo);
-			tc.insertText(" : spatial map display (QtSLiM only)\n", optima13_d);
+			tc.insertText(" : spatial map display (SLiMgui only)\n", optima13_d);
 		}
 		
 		// Substitution
@@ -3014,7 +3014,7 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		
         QMessageBox messageBox(this);
         messageBox.setText("Release build required");
-        messageBox.setInformativeText("In order to obtain accurate timing information that is relevant to the actual runtime of a model, profiling requires that you are running a Release build of QtSLiM.");
+        messageBox.setInformativeText("In order to obtain accurate timing information that is relevant to the actual runtime of a model, profiling requires that you are running a Release build of SLiMgui.");
         messageBox.setIcon(QMessageBox::Warning);
         messageBox.setWindowModality(Qt::WindowModal);
         messageBox.exec();
@@ -3031,7 +3031,7 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		
         QMessageBox messageBox(this);
         messageBox.setText("Profiling disabled");
-        messageBox.setInformativeText("Profiling has been disabled in this build of QtSLiM.  Please change the definition of SLIMPROFILING to 1 in the project's .pro files.");
+        messageBox.setInformativeText("Profiling has been disabled in this build of SLiMgui.  Please change the definition of SLIMPROFILING to 1 in the project's .pro files.");
         messageBox.setIcon(QMessageBox::Warning);
         messageBox.setWindowModality(Qt::WindowModal);
         messageBox.exec();
@@ -3157,7 +3157,7 @@ void QtSLiMWindow::eidos_openDocument(QString path)
     if (path.endsWith(".pdf", Qt::CaseInsensitive))
     {
         // Block opening PDFs; SLiMgui supported PDF but QtSLiM doesn't, so we should explicitly intercept and error out, otherwise we'll try to open the PDF as a SLiM model
-        EIDOS_TERMINATION << "ERROR (QtSLiMWindow::eidos_openDocument): opening PDF files is not supported in QtSLiM; using PNG instead is suggested." << EidosTerminate(nullptr);
+        EIDOS_TERMINATION << "ERROR (QtSLiMWindow::eidos_openDocument): opening PDF files is not supported in SLiMgui; using PNG instead is suggested." << EidosTerminate(nullptr);
     }
     
     openFile(path);

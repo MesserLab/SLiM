@@ -8,7 +8,8 @@ QT       += core gui opengl
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = QtSLiM
+# Note that the target is SLiMgui now, but the old QtSLiM name lives on throughout the project
+TARGET = SLiMgui
 TEMPLATE = app
 
 # qmake defines to set up a macOS bundle application build
@@ -16,7 +17,7 @@ CONFIG += app_bundle
 QMAKE_INFO_PLIST = QtSLiM_Info.plist
 ICON = QtSLiM_AppIcon.icns
 QMAKE_TARGET_BUNDLE_PREFIX = "edu.MesserLab"
-QMAKE_BUNDLE = "QtSLiM"
+QMAKE_BUNDLE = "QtSLiM"		# This governs the location of our prefs, which we keep under edu.MesserLab.QtSLiM
 VERSION = 3.4
 
 docIconFiles.files = $$PWD/QtSLiM_DocIcon.icns

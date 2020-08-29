@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>QtSLiM Preferences</string>
+   <string>SLiMgui Preferences</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -35,7 +35,7 @@
       <string notr="true">QGroupBox { font-weight: bold; }</string>
      </property>
      <property name="title">
-      <string>When QtSLiM starts:</string>
+      <string>When SLiMgui starts:</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="spacing">
@@ -313,7 +313,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:11pt; font-style:italic;&quot;&gt;This resets all of the &amp;quot;do not show this&lt;br/&gt;message again&amp;quot; flags across QtSLiM.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:11pt; font-style:italic;&quot;&gt;This resets all of the &amp;quot;do not show this&lt;br/&gt;message again&amp;quot; flags across SLiMgui.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
    </item>

@@ -796,7 +796,7 @@ QVariant QtSLiMGETypeTypeTableModel::headerData(int section,
         switch (section)
         {
         case 0: return QVariant("the ID for the genomic element type");
-        case 1: return QVariant("the color used in QtSLiM");
+        case 1: return QVariant("the color used in SLiMgui");
         case 2: return QVariant("the mutation types drawn from");
         default: return QVariant("");
         }

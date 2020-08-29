@@ -914,6 +914,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the generation in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1017,6 +1018,7 @@ Calling this will normally affect the fitness values calculated at the end of th
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the generation in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -3864,15 +3866,13 @@ pid => (integer$)\
 \'96\'a0(void)openDocument(string$\'a0filePath)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Open the document at 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Open the document at 
 \f3\fs18 filePath
 \f4\fs20  in SLiMgui, if possible.  Supported document types include SLiM model files (typically with a 
 \f3\fs18 .slim
 \f4\fs20  path extension), text files (typically with a 
 \f3\fs18 .txt
-\f4\fs20  path extension, and opened as untitled model files), and PDF files (typically with a 
-\f3\fs18 .pdf
-\f4\fs20  path extension); in QtSLiM PNG, JPG/JPEG, BMP, and GIF are supported (typically 
+\f4\fs20  path extension, and opened as untitled model files), and PNG, JPG/JPEG, BMP, and GIF image file formats (typically 
 \f3\fs18 .png
 \f4\fs20  / 
 \f3\fs18 .jpg
@@ -3882,7 +3882,10 @@ pid => (integer$)\
 \f3\fs18 .bmp
 \f4\fs20  / 
 \f3\fs18 .gif
-\f4\fs20 , respectively) but PDF is not.  This method can be particularly useful for opening images created by the simulation itself, often by sublaunching a plotting process in R or another environment.\
+\f4\fs20 , respectively).  (Note that in SLiMguiLegacy, PDF files (
+\f3\fs18 .pdf
+\f4\fs20 ) are supported but these other image file formats are not.)  This method can be particularly useful for opening images created by the simulation itself, often by sublaunching a plotting process in R or another environment.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)pauseExecution(void)\

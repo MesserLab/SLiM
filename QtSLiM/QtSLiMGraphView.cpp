@@ -1111,7 +1111,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
                     QPageSize pageSize = QPageSize(graphSize, QString(), QPageSize::ExactMatch);
                     QMarginsF margins(0, 0, 0, 0);
                     
-                    pdfwriter.setCreator("QtSLiM");
+                    pdfwriter.setCreator("SLiMgui");
                     pdfwriter.setResolution(72);    // match the screen?
                     pdfwriter.setPageSize(pageSize);
                     pdfwriter.setPageMargins(margins);
@@ -1151,7 +1151,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
                     QPageSize pageSize = QPageSize(graphSize, QString(), QPageSize::ExactMatch);
                     QMarginsF margins(0, 0, 0, 0);
                     
-                    pdfwriter.setCreator("QtSLiM");
+                    pdfwriter.setCreator("SLiMgui");
                     pdfwriter.setResolution(72);    // match the screen?
                     pdfwriter.setPageSize(pageSize);
                     pdfwriter.setPageMargins(margins);

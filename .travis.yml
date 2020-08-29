@@ -44,11 +44,11 @@ before_script:
   - cd ..
   - mkdir Release
   - cd Release
-  - cmake -D BUILD_QTSLIM=ON -D CMAKE_BUILD_TYPE=Release ../SLiM
+  - cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Release ../SLiM
   - cd ..
   - mkdir Debug
   - cd Debug
-  - cmake -D BUILD_QTSLIM=ON -D CMAKE_BUILD_TYPE=Debug ../SLiM
+  - cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Debug ../SLiM
   - cd ..
 
 # build using make, then run Eidos and SLiM tests; do for each of Release and Debug
@@ -57,14 +57,14 @@ script:
   - cd Release
   - travis_wait make VERBOSE=1 -j 5 eidos
   - travis_wait make VERBOSE=1 -j 5 slim
-  - travis_wait make VERBOSE=1 -j 5 QtSLiM
+  - travis_wait make VERBOSE=1 -j 5 SLiMgui
   - ./eidos -testEidos
   - ./slim -testEidos
   - ./slim -testSLiM
   - cd ../Debug
   - travis_wait make VERBOSE=1 -j 5 eidos
   - travis_wait make VERBOSE=1 -j 5 slim
-  - travis_wait make VERBOSE=1 -j 5 QtSLiM
+  - travis_wait make VERBOSE=1 -j 5 SLiMgui
   - ./eidos -testEidos
   - ./slim -testEidos
   - ./slim -testSLiM
