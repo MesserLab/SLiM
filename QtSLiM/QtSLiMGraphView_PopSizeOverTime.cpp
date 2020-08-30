@@ -1,8 +1,8 @@
 //
-//  QtSLiMGraphView_FitnessOverTime.cpp
+//  QtSLiMGraphView_PopSizeOverTime.cpp
 //  SLiM
 //
-//  Created by Ben Haller on 3/30/2020.
+//  Created by Ben Haller on 8/30/2020.
 //  Copyright (c) 2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
@@ -17,7 +17,7 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "QtSLiMGraphView_FitnessOverTime.h"
+#include "QtSLiMGraphView_PopSizeOverTime.h"
 
 #include <QAction>
 #include <QMenu>
@@ -29,13 +29,13 @@
 #include "subpopulation.h"
 
 
-QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_PopSizeOverTime::QtSLiMGraphView_PopSizeOverTime(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
     setXAxisRangeFromGeneration();
     setDefaultYAxisRange();
     
     xAxisLabel_ = "Generation";
-    yAxisLabel_ = "Fitness (rescaled absolute)";
+    yAxisLabel_ = "Number of individuals";
     
     allowXAxisUserRescale_ = true;
     allowYAxisUserRescale_ = true;
@@ -49,28 +49,28 @@ QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *parent
     updateAfterTick();
 }
 
-void QtSLiMGraphView_FitnessOverTime::setDefaultYAxisRange(void)
+void QtSLiMGraphView_PopSizeOverTime::setDefaultYAxisRange(void)
 {
-    yAxisMin_ = 0.9;
-	yAxisMax_ = 1.1;		// dynamic
-	yAxisMajorTickInterval_ = 0.1;
-	yAxisMinorTickInterval_ = 0.02;
+    yAxisMin_ = 0.0;
+	yAxisMax_ = 100.0;		// dynamic
+	yAxisMajorTickInterval_ = 50;
+	yAxisMinorTickInterval_ = 10;
 	yAxisMajorTickModulus_ = 5;
-	yAxisTickValuePrecision_ = 1;
+	yAxisTickValuePrecision_ = 0;
 }
 
-QtSLiMGraphView_FitnessOverTime::~QtSLiMGraphView_FitnessOverTime()
+QtSLiMGraphView_PopSizeOverTime::~QtSLiMGraphView_PopSizeOverTime()
 {
 }
 
-void QtSLiMGraphView_FitnessOverTime::invalidateDrawingCache(void)
+void QtSLiMGraphView_PopSizeOverTime::invalidateDrawingCache(void)
 {
     delete drawingCache_;
 	drawingCache_ = nullptr;
 	drawingCacheGeneration_ = 0;
 }
 
-void QtSLiMGraphView_FitnessOverTime::controllerRecycled(void)
+void QtSLiMGraphView_PopSizeOverTime::controllerRecycled(void)
 {
 	if (!controller_->invalidSimulation())
 	{
@@ -85,7 +85,7 @@ void QtSLiMGraphView_FitnessOverTime::controllerRecycled(void)
 	QtSLiMGraphView::controllerRecycled();
 }
 
-void QtSLiMGraphView_FitnessOverTime::controllerSelectionChanged(void)
+void QtSLiMGraphView_PopSizeOverTime::controllerSelectionChanged(void)
 {
     invalidateDrawingCache();
     update();
@@ -93,89 +93,85 @@ void QtSLiMGraphView_FitnessOverTime::controllerSelectionChanged(void)
 	QtSLiMGraphView::controllerSelectionChanged();
 }
 
-QString QtSLiMGraphView_FitnessOverTime::graphTitle(void)
+QString QtSLiMGraphView_PopSizeOverTime::graphTitle(void)
 {
-    return "Fitness ~ Time";
+    return "Population Size ~ Time";
 }
 
-QString QtSLiMGraphView_FitnessOverTime::aboutString(void)
+QString QtSLiMGraphView_PopSizeOverTime::aboutString(void)
 {
-    return "The Fitness ~ Time graph shows mean fitness as a function of time.  The mean fitness "
-           "of the population is shown with a thick black line, while those of subpopulations "
-           "are shown with thinner colored lines.  Fixation events during the model run are "
-           "shown with light blue vertical lines at the generation in which they occurred.  The "
-           "fitness shown is 'rescaled absolute', meaning that it is absolute fitness, not "
-           "relative fitness, but that when non-neutral mutations fix and are 'substituted' by "
-           "SLiM they are no longer included in fitness calculations, so the y axis is 'rescaled'; "
-           "this is mainly relevant to WF models.  It is also 'rescaled' in the sense that it "
-           "excludes subpopulation fitnessScaling values (to emphasize individual fitness effects "
-           "over density-dependence); this is mainly relevant to nonWF models.";
+    return "The Population Size ~ Time graph shows population (and subpopulation) size as a "
+           "function of time.  The size of the population is shown with a thick black line, "
+           "while those of subpopulations are shown with thinner colored lines.";
 }
 
-void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
+void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 {
 	if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)
 	{
 		SLiMSim *sim = controller_->sim;
 		Population &pop = sim->population_;
-		double minHistory = std::numeric_limits<double>::infinity();
-		double maxHistory = -std::numeric_limits<double>::infinity();
-		bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
+		slim_popsize_t maxHistory = 0;
+		bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
 		
-		for (auto history_record_iter : pop.fitness_histories_)
+		for (auto history_record_iter : pop.subpop_size_histories_)
 		{
 			if (showSubpops || (history_record_iter.first == -1))
 			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
+				SubpopSizeHistory &history_record = history_record_iter.second;
+				slim_popsize_t *history = history_record.history_;
 				slim_generation_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
 				for (int i = 0; i < historyLength; ++i)
-				{
-					double historyEntry = history[i];
-					
-					if (!std::isnan(historyEntry))
-					{
-						if (historyEntry > maxHistory)
-							maxHistory = historyEntry;
-						if (historyEntry < minHistory)
-							minHistory = historyEntry;
-					}
-				}
+                    maxHistory = std::max(maxHistory, history[i]);
 			}
 		}
 		
 		// set axis range to encompass the data
-		if (!std::isinf(minHistory) && !std::isinf(maxHistory))
-		{
-			if ((minHistory < 0.9) || (maxHistory > 1.1))	// if we're outside our original axis range...
-			{
-				double axisMin = (minHistory < 0.5 ? 0.0 : 0.5);	// either 0.0 or 0.5
-				double axisMax = ceil(maxHistory * 2.0) / 2.0;		// 1.5, 2.0, 2.5, ...
-				
-				if (axisMax < 1.5)
-					axisMax = 1.5;
-				
-				if ((fabs(axisMin - yAxisMin_) > 0.0000001) || (fabs(axisMax - yAxisMax_) > 0.0000001))
-				{
-					yAxisMin_ = axisMin;
-					yAxisMax_ = axisMax;
-					yAxisMajorTickInterval_ = 0.5;
-					yAxisMinorTickInterval_ = 0.25;
-					yAxisMajorTickModulus_ = 2;
-					yAxisTickValuePrecision_ = 1;
-					
-					invalidateDrawingCache();
-				}
-			}
-		}
-	}
+        if (maxHistory > yAxisMax_)
+        {
+            if (maxHistory <= 1000)
+            {
+                maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 100.0) * 100.0);
+                yAxisMax_ = maxHistory;
+                yAxisMajorTickInterval_ = 200;
+                yAxisMinorTickInterval_ = 100;
+                yAxisMajorTickModulus_ = 2;
+            }
+            else if (maxHistory <= 10000)
+            {
+                maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 1000.0) * 1000.0);
+                yAxisMax_ = maxHistory;
+                yAxisMajorTickInterval_ = 2000;
+                yAxisMinorTickInterval_ = 1000;
+                yAxisMajorTickModulus_ = 2;
+            }
+            else if (maxHistory <= 100000)
+            {
+                maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 10000.0) * 10000.0);
+                yAxisMax_ = maxHistory;
+                yAxisMajorTickInterval_ = 20000;
+                yAxisMinorTickInterval_ = 10000;
+                yAxisMajorTickModulus_ = 2;
+            }
+            else
+            {
+                maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 100000.0) * 100000.0);
+                yAxisMax_ = maxHistory;
+                yAxisMajorTickInterval_ = 200000;
+                yAxisMinorTickInterval_ = 100000;
+                yAxisMajorTickModulus_ = 2;
+            }
+            
+            invalidateDrawingCache();
+        }
+    }
 	
 	QtSLiMGraphView::updateAfterTick();
 }
 
-void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect interiorRect)
+void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect interiorRect)
 {
     SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
@@ -215,53 +211,36 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
         painter.drawPixmap(interiorRect, *drawingCache_, drawingCache_->rect());
     }
     
-	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
+	// Draw the size history as a scatter plot; better suited to caching of the image
+    bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
+	bool drawSubpopsGray = (showSubpops && (pop.subpop_size_histories_.size() > 8));	// 7 subpops + pop
 	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
-		
-		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
-		if (!cachingNow_ && (fixation_gen < drawingCacheGeneration_))
-			continue;
-		
-        double substitutionX = plotToDeviceX(fixation_gen, interiorRect);
-		QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
-		
-        painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
-	}
-	
-	// Draw the fitness history as a scatter plot; better suited to caching of the image
-    bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
-	bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
-	
-	// First draw subpops, then draw the mean population fitness
+	// First draw subpops, then draw the population size
     for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
     {
         QColor pointColor = ((iter == 0) ? QtSLiMColorWithWhite(0.5, 1.0) : Qt::black);
         
-        for (auto history_record_iter : pop.fitness_histories_)
+        for (auto history_record_iter : pop.subpop_size_histories_)
         {
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
-                FitnessHistory &history_record = history_record_iter.second;
-                double *history = history_record.history_;
+                SubpopSizeHistory &history_record = history_record_iter.second;
+                slim_popsize_t *history = history_record.history_;
                 slim_generation_t historyLength = history_record.history_length_;
+                
+                if ((iter == 0) && !drawSubpopsGray)
+                    pointColor = controller_->whiteContrastingColorForIndex(history_record_iter.first);
                 
                 // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
                 slim_generation_t firstHistoryEntryToDraw = (cachingNow_ ? 0 : (drawingCache_ ? drawingCacheGeneration_ : 0));
                 
                 for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
                 {
-                    double historyEntry = history[i];
+                    slim_popsize_t historyEntry = history[i];
                     
-                    if (!std::isnan(historyEntry))
+                    if (historyEntry != 0)
                     {
                         QPointF historyPoint(plotToDeviceX(i, interiorRect), plotToDeviceY(historyEntry, interiorRect));
-                        
-                        if ((iter == 0) && !drawSubpopsGray)
-                            pointColor = controller_->whiteContrastingColorForIndex(history_record_iter.first);
                         
                         painter.fillRect(QRectF(historyPoint.x() - 0.5, historyPoint.y() - 0.5, 1.0, 1.0), pointColor);
                     }
@@ -271,49 +250,37 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
     }
 }
 
-void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect interiorRect)
+void QtSLiMGraphView_PopSizeOverTime::drawLineGraph(QPainter &painter, QRect interiorRect)
 {
     SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
 	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
-	// Draw fixation events
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
+	// Draw the size history as a line plot
+	bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
+	bool drawSubpopsGray = (showSubpops && (pop.subpop_size_histories_.size() > 8));	// 7 subpops + pop
 	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
-        double substitutionX = plotToDeviceX(fixation_gen, interiorRect);
-		QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
-		
-        painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
-	}
-	
-	// Draw the fitness history as a line plot
-	bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
-	bool drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
-	
-    // First draw subpops, then draw the mean population fitness
+    // First draw subpops, then draw the population size
     for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
     {
         QColor lineColor = (iter == 0) ? QtSLiMColorWithWhite(0.5, 1.0) : Qt::black;
         double lineWidth = (iter == 0) ? 1.0 : 1.5;
         
-        for (auto history_record_iter : pop.fitness_histories_)
+        for (auto history_record_iter : pop.subpop_size_histories_)
         {
             if (((iter == 0) && (history_record_iter.first != -1)) || ((iter == 1) && (history_record_iter.first == -1)))
             {
-                FitnessHistory &history_record = history_record_iter.second;
-                double *history = history_record.history_;
+                SubpopSizeHistory &history_record = history_record_iter.second;
+                slim_popsize_t *history = history_record.history_;
                 slim_generation_t historyLength = history_record.history_length_;
                 QPainterPath linePath;
                 bool startedLine = false;
                 
                 for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
                 {
-                    double historyEntry = history[i];
+                    slim_popsize_t historyEntry = history[i];
                     
-                    if (std::isnan(historyEntry))
+                    if (historyEntry == 0)
                     {
                         startedLine = false;
                     }
@@ -337,7 +304,7 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
     }
 }
 
-void QtSLiMGraphView_FitnessOverTime::drawGraph(QPainter &painter, QRect interiorRect)
+void QtSLiMGraphView_PopSizeOverTime::drawGraph(QPainter &painter, QRect interiorRect)
 {
     if (drawLines_)
 		drawLineGraph(painter, interiorRect);
@@ -345,87 +312,75 @@ void QtSLiMGraphView_FitnessOverTime::drawGraph(QPainter &painter, QRect interio
 		drawPointGraph(painter, interiorRect);
 }
 
-bool QtSLiMGraphView_FitnessOverTime::providesStringForData(void)
+bool QtSLiMGraphView_PopSizeOverTime::providesStringForData(void)
 {
     return true;
 }
 
-void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
+void QtSLiMGraphView_PopSizeOverTime::appendStringForData(QString &string)
 {
 	SLiMSim *sim = controller_->sim;
 	Population &pop = sim->population_;
 	slim_generation_t completedGenerations = sim->generation_ - 1;
 	
-	// Fixation events
-	string.append("# Fixation generations:\n");
-	
-	std::vector<Substitution*> &substitutions = pop.substitutions_;
-	
-	for (const Substitution *substitution : substitutions)
-	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
-		
-		string.append(QString("%1, ").arg(fixation_gen));
-	}
-	
-	// Fitness history
-    bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
+    // Size history
+    bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
     
-	string.append("\n\n# Fitness history:\n");
+	string.append("\n\n# Size history:\n");
 	
     for (int iter = 0; iter <= (showSubpops ? 1 : 0); ++iter)
     {
-        for (auto history_record_iter : pop.fitness_histories_)
+        for (auto history_record_iter : pop.subpop_size_histories_)
         {
             if (((iter == 0) && (history_record_iter.first == -1)) || ((iter == 1) && (history_record_iter.first != -1)))
             {
-                FitnessHistory &history_record = history_record_iter.second;
-                double *history = history_record.history_;
+                SubpopSizeHistory &history_record = history_record_iter.second;
+                slim_popsize_t *history = history_record.history_;
                 slim_generation_t historyLength = history_record.history_length_;
                 
                 if (iter == 1)
-                    string.append(QString("\n\n# Fitness history (subpopulation p%1):\n").arg(history_record_iter.first));
+                    string.append(QString("\n\n# Size history (subpopulation p%1):\n").arg(history_record_iter.first));
                 
                 for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
-                    string.append(QString("%1, ").arg(history[i], 0, 'f', 4));
+                    string.append(QString("%1, ").arg(history[i]));
                 
                 string.append("\n");
-			}
-		}
-	}
+            }
+        }
+    }
 }
 
-QtSLiMLegendSpec QtSLiMGraphView_FitnessOverTime::legendKey(void)
+QtSLiMLegendSpec QtSLiMGraphView_PopSizeOverTime::legendKey(void)
 {
     if (!showSubpopulations_)
 		return QtSLiMLegendSpec();
     
     std::vector<slim_objectid_t> subpopsToDisplay;
     
-    for (auto history_record_iter : controller_->sim->population_.fitness_histories_)
+    for (auto history_record_iter : controller_->sim->population_.subpop_size_histories_)
         subpopsToDisplay.push_back(history_record_iter.first);
 	
 	return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);
 }
 
-void QtSLiMGraphView_FitnessOverTime::toggleShowSubpopulations(void)
+void QtSLiMGraphView_PopSizeOverTime::toggleShowSubpopulations(void)
 {
     showSubpopulations_ = !showSubpopulations_;
     invalidateDrawingCache();
     update();
 }
 
-void QtSLiMGraphView_FitnessOverTime::toggleDrawLines(void)
+void QtSLiMGraphView_PopSizeOverTime::toggleDrawLines(void)
 {
     drawLines_ = !drawLines_;
     invalidateDrawingCache();
     update();
 }
 
-void QtSLiMGraphView_FitnessOverTime::subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent * /* event */)
+void QtSLiMGraphView_PopSizeOverTime::subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent * /* event */)
 {
-    contextMenu.addAction(showSubpopulations_ ? "Hide Subpopulations" : "Show Subpopulations", this, &QtSLiMGraphView_FitnessOverTime::toggleShowSubpopulations);
-    contextMenu.addAction(drawLines_ ? "Draw Points (Faster)" : "Draw Lines (Slower)", this, &QtSLiMGraphView_FitnessOverTime::toggleDrawLines);
+    contextMenu.addAction(showSubpopulations_ ? "Hide Subpopulations" : "Show Subpopulations", this, &QtSLiMGraphView_PopSizeOverTime::toggleShowSubpopulations);
+    contextMenu.addAction(drawLines_ ? "Draw Points (Faster)" : "Draw Lines (Slower)", this, &QtSLiMGraphView_PopSizeOverTime::toggleDrawLines);
 }
 
 

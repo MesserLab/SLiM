@@ -1,5 +1,5 @@
 //
-//  QtSLiMGraphView_AgeDistribution.h
+//  QtSLiMGraphView_PopSizeOverTime.h
 //  SLiM
 //
 //  Created by Ben Haller on 8/30/2020.
@@ -17,47 +17,57 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef QTSLIMGRAPHVIEW_AGEDISTRIBUTION_H
-#define QTSLIMGRAPHVIEW_AGEDISTRIBUTION_H
+#ifndef QTSLIMGRAPHVIEW_POPSIZEOVERTIME_H
+#define QTSLIMGRAPHVIEW_POPSIZEOVERTIME_H
 
 #include <QWidget>
 
 #include "QtSLiMGraphView.h"
 
+class QPixmap;
 
-class QtSLiMGraphView_AgeDistribution : public QtSLiMGraphView
+
+class QtSLiMGraphView_PopSizeOverTime : public QtSLiMGraphView
 {
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_AgeDistribution(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_AgeDistribution() override;
+    QtSLiMGraphView_PopSizeOverTime(QWidget *parent, QtSLiMWindow *controller);
+    ~QtSLiMGraphView_PopSizeOverTime() override;
     
     QString graphTitle(void) override;
     QString aboutString(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
     void appendStringForData(QString &string) override;    
-    QString disableMessage(void) override;
+    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
     
 public slots:
-    void addedToWindow(void) override;
+    void invalidateDrawingCache(void) override;
     void controllerRecycled(void) override;
+    void controllerSelectionChanged(void) override;
     void updateAfterTick(void) override;
-    void subpopulation1PopupChanged(int index);
+    void toggleShowSubpopulations(void);
+    void toggleDrawLines(void);
+    
+protected:
+    QtSLiMLegendSpec legendKey(void) override;    
     
 private:
-    // pop-up menu buttons
-    QComboBox *subpopulation1Button_ = nullptr;
+    bool showSubpopulations_ = false;
+    bool drawLines_ = false;
     
-    // The subpop selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)
-    slim_objectid_t selectedSubpopulation1ID_;
+    QPixmap *drawingCache_ = nullptr;
+	slim_generation_t drawingCacheGeneration_ = 0;
     
-    double *ageDistribution(int *binCount);
+    void setDefaultYAxisRange(void);
+    
+    void drawPointGraph(QPainter &painter, QRect interiorRect);
+    void drawLineGraph(QPainter &painter, QRect interiorRect);
 };
 
 
-#endif // QTSLIMGRAPHVIEW_AGEDISTRIBUTION_H
+#endif // QTSLIMGRAPHVIEW_POPSIZEOVERTIME_H
 
 
 

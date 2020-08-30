@@ -30,6 +30,7 @@ development head:
 	rename QtSLiM to SLiMgui, including cmake and qmake build targets and flags (BUILD_SLIMGUI=ON instead of BUILD_QTSLIM=ON, SLiMgui target instead of QtSLiM)
 	revise recipes 13.5 and 14.8 to generate PNG images, not PDF, since the new SLiMgui requires that
 	add Age Distribution graph to QtSLiM
+	add Population Size ~ Time graph to QtSLiM
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

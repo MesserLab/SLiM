@@ -52,8 +52,14 @@ class Genome;
 // we want to remember their histories and display them even after they're gone.
 typedef struct {
 	double *history_ = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
-	slim_generation_t history_length_ = 0;			// the number of entries in the fitness_history buffer
+	slim_generation_t history_length_ = 0;			// the number of entries in the history_ buffer
 } FitnessHistory;
+
+// This struct similarly holds observed subpopulation sizes observed during a run, for QtSLiMGraphView_PopSizeOverTime
+typedef struct {
+    slim_popsize_t *history_ = nullptr;             // subpop size, recorded per generation; generation 1 goes at index 0
+	slim_generation_t history_length_ = 0;			// the number of entries in the history_ buffer
+} SubpopSizeHistory;
 #endif
 
 
@@ -100,6 +106,7 @@ public:
 	uint32_t mutation_fixation_gen_slots_ = 0;				// the number of generation-sized slots (with bins per mutation-type) presently allocated
 	
 	std::map<slim_objectid_t,FitnessHistory> fitness_histories_;	// fitness histories indexed by subpopulation id (or by -1, for the Population history)
+    std::map<slim_objectid_t,SubpopSizeHistory> subpop_size_histories_;	// size histories indexed by subpopulation id (or by -1, for the Population history)
 	
 	// true if gui_selected_ is set for all subpops, otherwise false; must be kept in synch with subpop flags!
 	bool gui_all_selected_ = true;
@@ -209,6 +216,7 @@ public:
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
 	void RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value);
+    void RecordSubpopSize(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size);
 	void SurveyPopulation(void);
 	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins);
 #endif

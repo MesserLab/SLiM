@@ -42,6 +42,7 @@
 #include "QtSLiMGraphView_AgeDistribution.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
 #include "QtSLiMGraphView_FitnessOverTime.h"
+#include "QtSLiMGraphView_PopSizeOverTime.h"
 #include "QtSLiMGraphView_FrequencyTrajectory.h"
 #include "QtSLiMGraphView_PopFitnessDist.h"
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
@@ -1397,6 +1398,7 @@ void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID di
     QtSLiMGraphView *graphViewMutationFixationTimeHistogram = graphViewForGraphWindow(graphWindowMutationFixationTimeHistogram);
     QtSLiMGraphView *graphViewFitnessOverTime = graphViewForGraphWindow(graphWindowFitnessOverTime);
     QtSLiMGraphView *graphViewAgeDistribution = graphViewForGraphWindow(graphWindowAgeDistribution);
+    QtSLiMGraphView *graphViewPopSizeOverTime = graphViewForGraphWindow(graphWindowPopSizeOverTime);
     QtSLiMGraphView *graphViewPopulationVisualization = graphViewForGraphWindow(graphWindowPopulationVisualization);
     QtSLiMGraphView *graphViewPopFitnessDist = graphViewForGraphWindow(graphWindowPopFitnessDist);
     QtSLiMGraphView *graphViewSubpopFitnessDists = graphViewForGraphWindow(graphWindowSubpopFitnessDists);
@@ -1410,6 +1412,7 @@ void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID di
     if (graphViewMutationFixationTimeHistogram)     graphViewMutationFixationTimeHistogram->dispatch(dispatchID);
     if (graphViewFitnessOverTime)                   graphViewFitnessOverTime->dispatch(dispatchID);
     if (graphViewAgeDistribution)                   graphViewAgeDistribution->dispatch(dispatchID);
+    if (graphViewPopSizeOverTime)                   graphViewPopSizeOverTime->dispatch(dispatchID);
     if (graphViewPopulationVisualization)           graphViewPopulationVisualization->dispatch(dispatchID);
     if (graphViewPopFitnessDist)                    graphViewPopFitnessDist->dispatch(dispatchID);
     if (graphViewSubpopFitnessDists)                graphViewSubpopFitnessDists->dispatch(dispatchID);
@@ -4002,6 +4005,9 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     QAction *graphAgeDistribution = contextMenu.addAction("Graph Age Distribution");
     graphAgeDistribution->setEnabled(!disableAll);
     
+    QAction *graphPopSizeVsTime = contextMenu.addAction("Graph Population Size ~ Time");
+    graphPopSizeVsTime->setEnabled(!disableAll);
+    
     QAction *graphPopVisualization = contextMenu.addAction("Graph Population Visualization");
     graphPopVisualization->setEnabled(!disableAll);
     
@@ -4083,6 +4089,12 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             if (!graphWindowAgeDistribution)
                 graphWindowAgeDistribution = graphWindowWithView(new QtSLiMGraphView_AgeDistribution(this, this));
             graphWindow = graphWindowAgeDistribution;
+        }
+        if (action == graphPopSizeVsTime)
+        {
+            if (!graphWindowPopSizeOverTime)
+                graphWindowPopSizeOverTime = graphWindowWithView(new QtSLiMGraphView_PopSizeOverTime(this, this));
+            graphWindow = graphWindowPopSizeOverTime;
         }
         if (action == graphPopVisualization)
         {

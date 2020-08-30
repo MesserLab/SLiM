@@ -134,6 +134,7 @@ SOURCES += \
     QtSLiMGraphView_2DSampleSFS.cpp \
     QtSLiMGraphView_AgeDistribution.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
+    QtSLiMGraphView_PopSizeOverTime.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
     main.cpp \
     QtSLiMWindow.cpp \
@@ -174,6 +175,7 @@ HEADERS += \
     QtSLiMGraphView_2DSampleSFS.h \
     QtSLiMGraphView_AgeDistribution.h \
     QtSLiMGraphView_PopFitnessDist.h \
+    QtSLiMGraphView_PopSizeOverTime.h \
     QtSLiMGraphView_SubpopFitnessDists.h \
     QtSLiMWindow.h \
     QtSLiMAppDelegate.h \

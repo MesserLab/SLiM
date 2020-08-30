@@ -1233,6 +1233,34 @@ void QtSLiMGraphView::setXAxisRangeFromGeneration(void)
 	}
 }
 
+QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray)
+{
+    QtSLiMLegendSpec legendKey;
+    
+    // put "All" first, if it occurs in subpopsToDisplay
+    if (std::find(subpopsToDisplay.begin(), subpopsToDisplay.end(), -1) != subpopsToDisplay.end())
+        legendKey.push_back(QtSLiMLegendEntry("All", Qt::black));
+	
+	if (drawSubpopsGray)
+	{
+        legendKey.push_back(QtSLiMLegendEntry("pX", QtSLiMColorWithWhite(0.5, 1.0)));
+	}
+	else
+	{
+		for (auto subpop_id : subpopsToDisplay)
+		{
+			if (subpop_id != -1)
+			{
+				QString labelString = QString("p%1").arg(subpop_id);
+				
+                legendKey.push_back(QtSLiMLegendEntry(labelString, controller_->whiteContrastingColorForIndex(subpop_id)));
+			}
+		}
+	}
+	
+	return legendKey;
+}
+
 QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 {
 	SLiMSim *sim = controller_->sim;

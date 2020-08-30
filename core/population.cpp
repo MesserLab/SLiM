@@ -58,6 +58,18 @@ Population::~Population(void)
 			history_record.history_length_ = 0;
 		}
 	}
+    
+    for (auto history_record_iter : subpop_size_histories_)
+	{
+		SubpopSizeHistory &history_record = history_record_iter.second;
+		
+		if (history_record.history_)
+		{
+			free(history_record.history_);
+			history_record.history_ = nullptr;
+			history_record.history_length_ = 0;
+		}
+	}
 #endif
 	
 	// dispose of any freed subpops
@@ -4199,6 +4211,55 @@ void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_
 	}
 }
 
+void Population::RecordSubpopSize(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size)
+{
+    SubpopSizeHistory *history_rec_ptr = nullptr;
+	
+	// Find the existing history record, if it exists
+	auto history_iter = subpop_size_histories_.find(p_subpop_id);
+	
+	if (history_iter != subpop_size_histories_.end())
+		history_rec_ptr = &(history_iter->second);
+	
+	// If not, create a new history record and add it to our vector
+	if (!history_rec_ptr)
+	{
+		SubpopSizeHistory history_record;
+		
+		history_record.history_ = nullptr;
+		history_record.history_length_ = 0;
+		
+		auto emplace_rec = subpop_size_histories_.emplace(std::pair<slim_objectid_t,SubpopSizeHistory>(p_subpop_id, std::move(history_record)));
+		
+		if (emplace_rec.second)
+			history_rec_ptr = &(emplace_rec.first->second);
+	}
+	
+	// Assuming we now have a record, resize it as needed and insert the new value
+	if (history_rec_ptr)
+	{
+		slim_popsize_t *history = history_rec_ptr->history_;
+		slim_generation_t history_length = history_rec_ptr->history_length_;
+		
+		if (p_history_index >= history_length)
+		{
+			slim_generation_t oldHistoryLength = history_length;
+			
+			history_length = p_history_index + 1000;			// give some elbow room for expansion
+			history = (slim_popsize_t *)realloc(history, history_length * sizeof(slim_popsize_t));
+			
+			for (slim_generation_t i = oldHistoryLength; i < history_length; ++i)
+				history[i] = 0;
+			
+			// Copy the new values back into the history record
+			history_rec_ptr->history_ = history;
+			history_rec_ptr->history_length_ = history_length;
+		}
+		
+		history[p_history_index] = p_subpop_size;
+	}
+}
+
 // This method is used to record population statistics that are kept per generation for SLiMgui
 void Population::SurveyPopulation(void)
 {
@@ -4207,6 +4268,7 @@ void Population::SurveyPopulation(void)
 	slim_popsize_t individualCount = 0;
 	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
 	
+	slim_popsize_t totalPopSize = 0;
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
@@ -4229,9 +4291,15 @@ void Population::SurveyPopulation(void)
 		individualCount += subpop->parent_subpop_size_;
 		
 		RecordFitness(historyIndex, subpop_pair.first, rescaled_fitness / subpop->parent_subpop_size_);
+        
+        // Tally the subpop's size as well
+        RecordSubpopSize(historyIndex, subpop_pair.first, subpop->parent_subpop_size_);
+        
+        totalPopSize += subpop->parent_subpop_size_;
 	}
 	
 	RecordFitness(historyIndex, -1, totalFitness / individualCount);
+    RecordSubpopSize(historyIndex, -1, totalPopSize);
 }
 #endif
 
