@@ -8148,8 +8148,8 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	for (size_t node_index = 0; node_index < tables_.nodes.num_rows; ++node_index)
 		tables_.nodes.time[node_index] -= time_adjustment;
 
-    for (size_t mut_index = 0; mut_index < tables_.mutations.num_rows; ++mut_index)
-        tables_.mutations.time[mut_index] -= time_adjustment;
+	for (size_t mut_index = 0; mut_index < tables_.mutations.num_rows; ++mut_index)
+		tables_.mutations.time[mut_index] -= time_adjustment;
 	
 	// allocate and set up the tree_sequence object that contains all the tree sequences
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
