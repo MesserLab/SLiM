@@ -698,6 +698,10 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
     {
         drawMessage(painter, "no\ndata", bounds);
     }
+    else if (disableMessage().length() > 0)
+    {
+        drawMessage(painter, disableMessage(), bounds);
+    }
     else
 	{
 		QRect interiorRect = interiorRectForBounds(bounds);
@@ -860,6 +864,11 @@ void QtSLiMGraphView::actionButtonRunMenu(QPushButton *actionButton)
 
 void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */)
 {
+}
+
+QString QtSLiMGraphView::disableMessage(void)
+{
+    return "";
 }
 
 void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)

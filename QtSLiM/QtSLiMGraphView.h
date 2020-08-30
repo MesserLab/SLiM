@@ -106,6 +106,7 @@ protected:
     virtual QSize legendSize(QPainter &painter);
     virtual void drawLegend(QPainter &painter, QRect legendRect);
     virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event);
+    virtual QString disableMessage(void);
     
     // Adding new widgets at the bottom of the window
     QHBoxLayout *buttonLayout(void);

@@ -132,6 +132,7 @@ SOURCES += \
     QtSLiMGraphView_1DSampleSFS.cpp \
     QtSLiMGraphView_2DPopulationSFS.cpp \
     QtSLiMGraphView_2DSampleSFS.cpp \
+    QtSLiMGraphView_AgeDistribution.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
     main.cpp \
@@ -171,6 +172,7 @@ HEADERS += \
     QtSLiMGraphView_1DSampleSFS.h \
     QtSLiMGraphView_2DPopulationSFS.h \
     QtSLiMGraphView_2DSampleSFS.h \
+    QtSLiMGraphView_AgeDistribution.h \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_SubpopFitnessDists.h \
     QtSLiMWindow.h \

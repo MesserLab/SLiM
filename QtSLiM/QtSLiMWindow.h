@@ -118,6 +118,7 @@ private:
     QWidget *graphWindowMutationLossTimeHistogram = nullptr;
     QWidget *graphWindowMutationFixationTimeHistogram = nullptr;
     QWidget *graphWindowFitnessOverTime = nullptr;
+    QWidget *graphWindowAgeDistribution = nullptr;
     QWidget *graphWindowPopulationVisualization = nullptr;
     QWidget *graphWindowPopFitnessDist = nullptr;
     QWidget *graphWindowSubpopFitnessDists = nullptr;
