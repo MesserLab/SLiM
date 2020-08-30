@@ -76,8 +76,14 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFI
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 
-# Report the build type
+# Report the build type and SLiMgui build status
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+
+if(BUILD_SLIMGUI)
+	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}")
+else()
+	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}; use -DBUILD_SLIMGUI=ON to enable building SLiMgui")
+endif()
 
 # Test for -flto support
 # BCH 4/4/2019: I am disabling this LTO stuff for now.  It made only a very small performance
