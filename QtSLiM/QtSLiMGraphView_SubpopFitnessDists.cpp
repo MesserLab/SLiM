@@ -25,6 +25,7 @@
 #include "subpopulation.h"
 #include "individual.h"
 
+#include <QPainterPath>
 
 QtSLiMGraphView_SubpopFitnessDists::QtSLiMGraphView_SubpopFitnessDists(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
 {
