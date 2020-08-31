@@ -37,8 +37,8 @@ void QtSLiMWindow::glueUI(void)
 {
     // connect all QtSLiMWindow slots
     //connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);   // done in playOneStepPressed() now!
-    connect(ui->playButton, &QPushButton::clicked, this, [this]() { playOrProfile(true); });
-    connect(ui->profileButton, &QPushButton::clicked, this, [this]() { playOrProfile(false); });
+    connect(ui->playButton, &QPushButton::clicked, this, [this]() { playOrProfile(generationPlayOn_ ? PlayType::kGenerationPlay : PlayType::kNormalPlay); });
+    connect(ui->profileButton, &QPushButton::clicked, this, [this]() { playOrProfile(PlayType::kProfilePlay); });
     connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
@@ -116,8 +116,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
     connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
     connect(ui->actionStep, &QAction::triggered, this, &QtSLiMWindow::playOneStepClicked);
-    connect(ui->actionPlay, &QAction::triggered, this, [this]() { playOrProfile(true); });
-    connect(ui->actionProfile, &QAction::triggered, this, [this]() { playOrProfile(false); });
+    connect(ui->actionPlay, &QAction::triggered, this, [this]() { playOrProfile(generationPlayOn_ ? PlayType::kGenerationPlay : PlayType::kNormalPlay); });
+    connect(ui->actionProfile, &QAction::triggered, this, [this]() { playOrProfile(PlayType::kProfilePlay); });
     connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
     connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
     connect(ui->actionDumpPopulationState, &QAction::triggered, this, &QtSLiMWindow::dumpPopulationClicked);

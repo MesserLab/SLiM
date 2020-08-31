@@ -85,15 +85,14 @@ private:
     std::string sim_working_dir;			// the current working dir that we will return to when executing SLiM/Eidos code
     std::string sim_requested_working_dir;	// the last working dir set by the user with the SLiMgui button/menu; we return to it on recycle
 
-    // play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
-    // and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib
+    // play-related variables; note that continuousPlayOn covers profiling play, generation play, and normal play, whereas profilePlayOn,
+    // generationPlayOn_, and nonProfilePlayOn_ cover those cases individually; this is for simplicity in enable bindings in the nib
     bool invalidSimulation_ = true, continuousPlayOn_ = false, profilePlayOn_ = false, nonProfilePlayOn_ = false;
     bool generationPlayOn_ = false, reachedSimulationEnd_ = false, hasImported_ = false;
     slim_generation_t targetGeneration_ = 0;
     QElapsedTimer continuousPlayElapsedTimer_;
     QTimer continuousPlayInvocationTimer_;
     uint64_t continuousPlayGenerationsCompleted_ = 0;
-    QTimer generationPlayInvocationTimer_;
     QTimer continuousProfileInvocationTimer_;
     QTimer playOneStepInvocationTimer_;
     int partialUpdateCount_ = 0;
@@ -219,9 +218,14 @@ public:
     bool runSimOneGeneration(void);
     void _continuousPlay(void);
     void _continuousProfile(void);
-    void playOrProfile(bool isPlayAction);
-    void _generationPlay(void);
     void _playOneStep(void);
+    
+    enum PlayType {
+        kNormalPlay = 0,
+        kProfilePlay,
+        kGenerationPlay,
+    };
+    void playOrProfile(PlayType playType);
     
     bool windowIsReuseable(void);   // requires isUntitled, !isRecipe, isTransient, and other conditions
     void updateChangeCount(void);

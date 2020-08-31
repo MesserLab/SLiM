@@ -144,7 +144,6 @@ void QtSLiMWindow::init(void)
     
     // wire up our continuous play and generation play timers
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
-    connect(&generationPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_generationPlay);
     connect(&continuousProfileInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousProfile);
     connect(&playOneStepInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_playOneStep);
     
@@ -1629,13 +1628,13 @@ void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
 void QtSLiMWindow::updateUIEnabling(void)
 {
     // First we update all the UI that belongs exclusively to ourselves: buttons, labels, etc.
-    ui->playOneStepButton->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
-    ui->playButton->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_ && !generationPlayOn_);
+    ui->playOneStepButton->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
+    ui->playButton->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_);
     ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
-    ui->recycleButton->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->recycleButton->setEnabled(!continuousPlayOn_);
     
-    ui->playSpeedSlider->setEnabled(!generationPlayOn_ && !invalidSimulation_);
-    ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
+    ui->playSpeedSlider->setEnabled(!invalidSimulation_);
+    ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
 
     ui->toggleDrawerButton->setEnabled(true);
     ui->showMutationsButton->setEnabled(!invalidSimulation_);
@@ -1643,8 +1642,8 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->showGenomicElementsButton->setEnabled(!invalidSimulation_);
     ui->showFixedSubstitutionsButton->setEnabled(!invalidSimulation_);
     
-    ui->checkScriptButton->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
-    ui->prettyprintButton->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->checkScriptButton->setEnabled(!continuousPlayOn_);
+    ui->prettyprintButton->setEnabled(!continuousPlayOn_);
     ui->scriptHelpButton->setEnabled(true);
     ui->consoleButton->setEnabled(true);
     ui->browserButton->setEnabled(true);
@@ -1652,9 +1651,9 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
     ui->graphPopupButton->setEnabled(!invalidSimulation_);
-    ui->changeDirectoryButton->setEnabled(!invalidSimulation_ && !continuousPlayOn_ && !generationPlayOn_);
+    ui->changeDirectoryButton->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
     
-    ui->scriptTextEdit->setReadOnly(continuousPlayOn_ || generationPlayOn_);
+    ui->scriptTextEdit->setReadOnly(continuousPlayOn_);
     ui->outputTextEdit->setReadOnly(true);
     
     ui->generationLabel->setEnabled(!invalidSimulation_);
@@ -1662,7 +1661,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     // Tell the console controller to enable/disable its buttons
     if (consoleController)
-        consoleController->setInterfaceEnabled(!continuousPlayOn_ && !generationPlayOn_);
+        consoleController->setInterfaceEnabled(!continuousPlayOn_);
     
     // Then, if we are the active window, we update the menus to reflect our state
     // If there's an active window but it isn't us, we reflect that situation with a different method
@@ -1687,16 +1686,16 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     ui->actionRevertToSaved->setEnabled(!isUntitled);
     
     //ui->menuSimulation->setEnabled(true);     // commented out these menu-level enable/disables; they flash weirdly and are distracting
-    ui->actionStep->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_ && !generationPlayOn_);
-    ui->actionPlay->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_ && !generationPlayOn_);
+    ui->actionStep->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
+    ui->actionPlay->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_);
     ui->actionPlay->setText(nonProfilePlayOn_ ? "Stop" : "Play");
     ui->actionProfile->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
     ui->actionProfile->setText(profilePlayOn_ ? "Stop" : "Profile");
-    ui->actionRecycle->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->actionRecycle->setEnabled(!continuousPlayOn_);
     
     //ui->menuScript->setEnabled(true);
-    ui->actionCheckScript->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
-    ui->actionPrettyprintScript->setEnabled(!continuousPlayOn_ && !generationPlayOn_);
+    ui->actionCheckScript->setEnabled(!continuousPlayOn_);
+    ui->actionPrettyprintScript->setEnabled(!continuousPlayOn_);
     ui->actionShowScriptHelp->setEnabled(true);
     ui->actionShowEidosConsole->setEnabled(true);
     ui->actionShowEidosConsole->setText(!consoleController->isVisible() ? "Show Eidos Console" : "Hide Eidos Console");
@@ -1712,7 +1711,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     ui->actionExecuteAll->setEnabled(false);
     ui->actionExecuteSelection->setEnabled(false);
     ui->actionDumpPopulationState->setEnabled(!invalidSimulation_);
-    ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_ && !generationPlayOn_);
+    ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
     
     updateMenuEnablingSHARED(focusWidget);
 }
@@ -1735,7 +1734,7 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *foc
     // controller, or (b) is disabled, if a console controller is not active
     QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
     bool consoleFocused = (eidosConsole != nullptr);
-    bool consoleFocusedAndEditable = ((eidosConsole != nullptr) && !continuousPlayOn_ && !generationPlayOn_);
+    bool consoleFocusedAndEditable = ((eidosConsole != nullptr) && !continuousPlayOn_);
     QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWindow);
     bool varBrowserFocused = (varBrowser != nullptr);
     bool varBrowserVisible = false;
@@ -2941,6 +2940,9 @@ void QtSLiMWindow::_continuousPlay(void)
 			if (continuousPlayGenerationsCompleted_ / intervalSinceStarting >= maxGenerationsPerSecond)
 				break;
 			
+            if (generationPlayOn_ && (sim->generation_ >= targetGeneration_))
+                break;
+            
             reachedEnd = !runSimOneGeneration();
 			
 			continuousPlayGenerationsCompleted_++;
@@ -2949,7 +2951,7 @@ void QtSLiMWindow::_continuousPlay(void)
 		
 		setReachedSimulationEnd(reachedEnd);
 		
-		if (!reachedSimulationEnd_)
+		if (!reachedSimulationEnd_ && (!generationPlayOn_ || !(sim->generation_ >= targetGeneration_)))
 		{
             updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
 			continuousPlayInvocationTimer_.start(0);
@@ -2958,7 +2960,11 @@ void QtSLiMWindow::_continuousPlay(void)
 		{
 			// stop playing
 			updateAfterTickFull(true);
-			playOrProfile(true);    // click the Play button
+            
+            if (nonProfilePlayOn_)
+                playOrProfile(PlayType::kNormalPlay);       // click the Play button
+            else if (generationPlayOn_)
+                playOrProfile(PlayType::kGenerationPlay);   // click the Play button
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
 			//[NSApp requestUserAttention:NSInformationalRequest];
@@ -3001,7 +3007,7 @@ void QtSLiMWindow::_continuousProfile(void)
 		{
 			// stop profiling
             updateAfterTickFull(true);
-			playOrProfile(false);   // click the Profile button
+			playOrProfile(PlayType::kProfilePlay);   // click the Profile button
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
 			//[NSApp requestUserAttention:NSInformationalRequest];
@@ -3009,12 +3015,10 @@ void QtSLiMWindow::_continuousProfile(void)
 	}
 }
 
-void QtSLiMWindow::playOrProfile(bool isPlayAction)
+void QtSLiMWindow::playOrProfile(PlayType playType)
 {
-    bool isProfileAction = !isPlayAction;	// to avoid having to think in negatives
-    
 #ifdef DEBUG
-	if (isProfileAction)
+	if (playType == PlayType::kProfilePlay)
 	{
         ui->profileButton->setChecked(false);
         updateProfileButtonIcon(false);
@@ -3031,7 +3035,7 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 #endif
     
 #if (SLIMPROFILING == 0)
-	if (isProfileAction)
+	if (playType == PlayType::kProfilePlay)
 	{
         ui->profileButton->setChecked(false);
         updateProfileButtonIcon(false);
@@ -3054,18 +3058,20 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		continuousPlayGenerationsCompleted_ = 0;
         
 		setContinuousPlayOn(true);
-		if (isProfileAction)
+		if (playType == PlayType::kProfilePlay)
             setProfilePlayOn(true);
-        else
+        else if (playType == PlayType::kNormalPlay)
             setNonProfilePlayOn(true);
+        else if (playType == PlayType::kGenerationPlay)
+            setGenerationPlayOn(true);
 		
 		// keep the button on; this works for the button itself automatically, but when the menu item is chosen this is needed
-		if (isProfileAction)
+		if (playType == PlayType::kProfilePlay)
 		{
             ui->profileButton->setChecked(true);
             updateProfileButtonIcon(false);
 		}
-		else
+		else    // kNormalPlay and kGenerationPlay
 		{
             ui->playButton->setChecked(true);
             updatePlayButtonIcon(false);
@@ -3078,7 +3084,7 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// prepare profiling information if necessary
-		if (isProfileAction)
+		if (playType == PlayType::kProfilePlay)
 		{
 			gEidosProfilingClientCount++;
 			startProfiling();
@@ -3087,16 +3093,16 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 #endif
 		
 		// start playing/profiling
-		if (isPlayAction)
-            continuousPlayInvocationTimer_.start(0);
-		else
+		if (playType == PlayType::kProfilePlay)
             continuousProfileInvocationTimer_.start(0);
+        else    // kNormalPlay and kGenerationPlay
+            continuousPlayInvocationTimer_.start(0);
 	}
 	else
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// close out profiling information if necessary
-		if (isProfileAction && sim && !invalidSimulation_)
+		if ((playType == PlayType::kProfilePlay) && sim && !invalidSimulation_)
 		{
 			endProfiling();
 			gEidosProfilingClientCount--;
@@ -3104,24 +3110,26 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 #endif
 		
         // stop our recurring perform request
-		if (isPlayAction)
-            continuousPlayInvocationTimer_.stop();
-		else
+		if (playType == PlayType::kProfilePlay)
             continuousProfileInvocationTimer_.stop();
+        else
+            continuousPlayInvocationTimer_.stop();
 		
         setContinuousPlayOn(false);
-        if (isProfileAction)
+        if (playType == PlayType::kProfilePlay)
             setProfilePlayOn(false);
-        else
+        else if (playType == PlayType::kNormalPlay)
             setNonProfilePlayOn(false);
+        else if (playType == PlayType::kGenerationPlay)
+            setGenerationPlayOn(false);
 		
 		// keep the button off; this works for the button itself automatically, but when the menu item is chosen this is needed
-		if (isProfileAction)
+		if (playType == PlayType::kProfilePlay)
 		{
             ui->profileButton->setChecked(false);
             updateProfileButtonIcon(false);
 		}
-		else
+		else    // kNormalPlay and kGenerationPlay
 		{
             ui->playButton->setChecked(false);
             updatePlayButtonIcon(false);
@@ -3136,7 +3144,7 @@ void QtSLiMWindow::playOrProfile(bool isPlayAction)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// If we just finished profiling, display a report
-		if (isProfileAction && sim && !invalidSimulation_)
+		if ((playType == PlayType::kProfilePlay) && sim && !invalidSimulation_)
 			displayProfileResults();
 #endif
 	}
@@ -3152,7 +3160,7 @@ void QtSLiMWindow::finish_eidos_pauseExecution(void)
 	// if the simulation has already ended, or is invalid, or is not in continuous play, it does nothing
 	if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !generationPlayOn_)
 	{
-		playOrProfile(true);	// this will simulate a press of the play button to stop continuous play
+		playOrProfile(PlayType::kNormalPlay);	// this will simulate a press of the play button to stop continuous play
 		
 		// bounce our icon; if we are not the active app, to signal that the run is done
 		//[NSApp requestUserAttention:NSInformationalRequest];
@@ -3267,47 +3275,6 @@ void QtSLiMWindow::playOneStepReleased(void)
     playOneStepInvocationTimer_.stop();
 }
 
-void QtSLiMWindow::_generationPlay(void)
-{
-	// FIXME would be nice to have a way to stop this prematurely, if an inccorect generation is entered or whatever... BCH 2 Nov. 2017
-	if (!invalidSimulation_)
-	{
-        QElapsedTimer startTimer;
-        startTimer.start();
-		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
-		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
-		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
-        bool reachedEnd = reachedSimulationEnd_;
-		
-		do
-		{
-			if (sim->generation_ >= targetGeneration_)
-				break;
-			
-            reachedEnd = !runSimOneGeneration();
-		}
-        while (!reachedEnd && (startTimer.nsecsElapsed() / 1000000000.0) < 0.02);
-		
-        setReachedSimulationEnd(reachedEnd);
-		
-		if (!reachedSimulationEnd_ && !(sim->generation_ >= targetGeneration_))
-		{
-            updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
-            generationPlayInvocationTimer_.start(0);
-		}
-		else
-		{
-			// stop playing
-            updateAfterTickFull(true);
-            generationChanged();
-			
-			// bounce our icon; if we are not the active app, to signal that the run is done
-			//[NSApp requestUserAttention:NSInformationalRequest];
-		}
-	}
-}
-
 void QtSLiMWindow::generationChanged(void)
 {
 	if (!generationPlayOn_)
@@ -3343,34 +3310,16 @@ void QtSLiMWindow::generationChanged(void)
 			return;
 		}
 		
-		// update UI
-		//[generationProgressIndicator startAnimation:nil];
-		setGenerationPlayOn(true);
-		
-		// invalidate the console symbols, and don't validate them until we are done
-		if (consoleController)
-            consoleController->invalidateSymbolTableAndFunctionMap();
-		
 		// get the first responder out of the generation textfield
         ui->generationLineEdit->clearFocus();
 		
 		// start playing
-        generationPlayInvocationTimer_.start(0);
+        playOrProfile(PlayType::kGenerationPlay);
 	}
 	else
 	{
-		// stop our recurring perform request
-        generationPlayInvocationTimer_.stop();
-		
-		setGenerationPlayOn(false);
-		//[generationProgressIndicator stopAnimation:nil];
-		
-		if (consoleController)
-            consoleController->validateSymbolTableAndFunctionMap();
-		
-		// Work around a bug that when the simulation ends during menu tracking, menus do not update until menu tracking finishes
-		//if (reachedSimulationEnd_)
-		//	forceImmediateMenuUpdate();
+		// stop our recurring perform request; I don't think this is hit any more
+        playOrProfile(PlayType::kGenerationPlay);
 	}
 }
 
@@ -4033,7 +3982,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     contextMenu.addSeparator();
     
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && !generationPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size());
+    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size());
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
@@ -4123,7 +4072,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
         }
         if (action == createHaplotypePlot)
         {
-            if (!continuousPlayOn_ && !generationPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
+            if (!continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
