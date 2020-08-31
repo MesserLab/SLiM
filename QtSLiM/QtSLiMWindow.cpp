@@ -146,6 +146,7 @@ void QtSLiMWindow::init(void)
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
     connect(&generationPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_generationPlay);
     connect(&continuousProfileInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousProfile);
+    connect(&playOneStepInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_playOneStep);
     
     // wire up deferred display of script errors and termination messages
     connect(this, &QtSLiMWindow::terminationWithMessage, this, &QtSLiMWindow::showTerminationMessage, Qt::QueuedConnection);
@@ -3246,6 +3247,24 @@ void QtSLiMWindow::playOneStepClicked(void)
         ui->generationLineEdit->clearFocus();
         updateAfterTickFull(true);
     }
+}
+
+void QtSLiMWindow::_playOneStep(void)
+{
+    playOneStepClicked();
+    playOneStepInvocationTimer_.start(350); // milliseconds
+}
+
+void QtSLiMWindow::playOneStepPressed(void)
+{
+    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step_H.png"));
+    _playOneStep();
+}
+
+void QtSLiMWindow::playOneStepReleased(void)
+{
+    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step.png"));
+    playOneStepInvocationTimer_.stop();
 }
 
 void QtSLiMWindow::_generationPlay(void)

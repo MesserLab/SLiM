@@ -95,6 +95,7 @@ private:
     uint64_t continuousPlayGenerationsCompleted_ = 0;
     QTimer generationPlayInvocationTimer_;
     QTimer continuousProfileInvocationTimer_;
+    QTimer playOneStepInvocationTimer_;
     int partialUpdateCount_ = 0;
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
@@ -220,6 +221,7 @@ public:
     void _continuousProfile(void);
     void playOrProfile(bool isPlayAction);
     void _generationPlay(void);
+    void _playOneStep(void);
     
     bool windowIsReuseable(void);   // requires isUntitled, !isRecipe, isTransient, and other conditions
     void updateChangeCount(void);

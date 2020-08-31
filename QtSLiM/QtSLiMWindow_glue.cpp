@@ -36,7 +36,7 @@
 void QtSLiMWindow::glueUI(void)
 {
     // connect all QtSLiMWindow slots
-    connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);
+    //connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);   // done in playOneStepPressed() now!
     connect(ui->playButton, &QPushButton::clicked, this, [this]() { playOrProfile(true); });
     connect(ui->profileButton, &QPushButton::clicked, this, [this]() { playOrProfile(false); });
     connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);
@@ -191,14 +191,6 @@ void QtSLiMWindow::glueUI(void)
 //  private slots
 //
 
-void QtSLiMWindow::playOneStepPressed(void)
-{
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step_H.png"));
-}
-void QtSLiMWindow::playOneStepReleased(void)
-{
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step.png"));
-}
 void QtSLiMWindow::playPressed(void)
 {
     updatePlayButtonIcon(true);
