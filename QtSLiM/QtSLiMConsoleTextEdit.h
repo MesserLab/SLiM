@@ -47,7 +47,6 @@ public:
     void showPrompt(void);
     void showContinuationPrompt(void);
     void clearToPrompt(void);
-    void appendSpacer(void);
     
     // Commands and history
     void appendExecution(QString result, QString errorString, QString tokenString, QString parseString, QString executionString);

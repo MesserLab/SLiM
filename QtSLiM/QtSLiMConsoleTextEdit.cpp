@@ -165,28 +165,23 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
     moveCursor(QTextCursor::End);
     insertPlainText(NEWLINE);
     
-    appendSpacer();
-    
     if (tokenString.length())
     {
         moveCursor(QTextCursor::End);
         setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(100/255.0, 56/255.0, 32/255.0, 1.0)));
         insertPlainText(tokenString);
-        appendSpacer();
     }
     if (parseString.length())
     {
         moveCursor(QTextCursor::End);
         setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(0/255.0, 116/255.0, 0/255.0, 1.0)));
         insertPlainText(parseString);
-        appendSpacer();
     }
     if (executionString.length())
     {
         moveCursor(QTextCursor::End);
         setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(63/255.0, 110/255.0, 116/255.0, 1.0)));
         insertPlainText(executionString);
-        appendSpacer();
     }
     if (result.length())
     {
@@ -196,7 +191,6 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(0/255.0, 0/255.0, 0/255.0, 1.0)));
         textCursor().setBlockFormat(plainBlockFormat);
         insertPlainText(result);
-        appendSpacer();
     }
     if (errorString.length())
     {
@@ -208,7 +202,6 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(196/255.0, 26/255.0, 22/255.0, 1.0)));
         textCursor().setBlockFormat(marginBlockFormat);
         insertPlainText(errorString);
-        appendSpacer();
         
         if (!gEidosExecutingRuntimeScript &&
                 (gEidosCharacterStartOfErrorUTF16 >= 0) &&
@@ -258,42 +251,6 @@ void QtSLiMConsoleTextEdit::clearToPrompt(void)
     
     // Clearing the console is not undoable, and it clears the undo/redo history
     document()->clearUndoRedoStacks();
-}
-
-void QtSLiMConsoleTextEdit::appendSpacer(void)
-{
-    // With Qt, we do not use spacers the way we do in SLiMgui; I think the
-    // HTML-based nature of Qt's text editing is making it difficult for
-    // that to work.  Instead, we use block formats to set up spacing around
-    // command lines, which is probably a better design anyway.  I've left
-    // the calls to appendSpacer() intact, and just commented out this code,
-    // for now since I'm still experimenting with this.
-    
-    /*
-    QTextCharFormat spacerAttrs(textFormatForColor(Qt::black));
-    spacerAttrs.setFontPointSize(BLOCK_MARGIN);
-    
-    QTextCursor lastCharCursor(document());
-    lastCharCursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
-    lastCharCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);
-    QString lastChar = lastCharCursor.selectedText();
-    
-    // we only add a spacer newline if the current contents already end in a newline; we don't introduce new breaks
-    if ((lastChar == "\n") || (lastChar == QChar::ParagraphSeparator) || (lastChar == QChar::LineSeparator))
-    {
-        moveCursor(QTextCursor::End);
-        insertPlainText(NEWLINE);
-        moveCursor(QTextCursor::End);
-        
-        // we set the line height not only for the newline we just added, but for the
-        // preceding newline as well; Qt seems to require this for it to have visible effect
-        // FIXME this is still not working perfectly for the first execution, for some reason!
-        QTextCursor spacerCursor(document());
-        lastCharCursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
-        lastCharCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 2);
-        lastCharCursor.setCharFormat(spacerAttrs);
-    }
-    */
 }
 
 QString QtSLiMConsoleTextEdit::currentCommandAtPrompt(void)

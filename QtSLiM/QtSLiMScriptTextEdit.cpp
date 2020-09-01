@@ -77,7 +77,7 @@ void QtSLiMTextEdit::selfInit(void)
     connect(this, &QTextEdit::selectionChanged, this, [this]() { setPalette(style()->standardPalette()); });
     connect(this, &QTextEdit::cursorPositionChanged, this, [this]() { setPalette(style()->standardPalette()); });
     
-    // clear the status bar on a selection change; FIXME upgrade this to updateStatusFieldFromSelection() eventually...
+    // clear the status bar on a selection change
     connect(this, &QTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
     connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
     
@@ -1026,7 +1026,6 @@ void QtSLiMTextEdit::insertCompletion(const QString& completionOriginal)
         tc.insertText(completion);
         
         // If the completion is multiline, put the insertion point inside the braces of the completion
-        // FIXME note SLiMgui is not this smart; this logic should be moved there as well
         if (multilineCompletion)
             tc.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 3);
         

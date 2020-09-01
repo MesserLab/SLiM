@@ -1416,15 +1416,6 @@ void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID di
     if (graphViewPopulationVisualization)           graphViewPopulationVisualization->dispatch(dispatchID);
     if (graphViewPopFitnessDist)                    graphViewPopFitnessDist->dispatch(dispatchID);
     if (graphViewSubpopFitnessDists)                graphViewSubpopFitnessDists->dispatch(dispatchID);
-    
-	/*
-	for (NSWindow *window : linkedWindows)
-	{
-		NSView *contentView = [window contentView];
-		
-		if ([contentView respondsToSelector:selector])
-			[contentView performSelector:selector];
-	}*/
 }
 
 void QtSLiMWindow::updateOutputTextView(void)
