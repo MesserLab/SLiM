@@ -1479,6 +1479,7 @@
 		double elapsedStage4Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[4]);
 		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
 		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
+		double elapsedStage7Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[7]);
 		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1486,6 +1487,7 @@
 		double percentStage4 = (elapsedStage4Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage5 = (elapsedStage5Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage6 = (elapsedStage6Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage7 = (elapsedStage7Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4;
 		
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage0Time))));
@@ -1495,6 +1497,7 @@
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage4Time))));
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage5Time))));
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage6Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage7Time))));
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"Generation stage breakdown\n" attributes:optima14b_d];
@@ -1520,6 +1523,9 @@
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage6Time, percentStage6] attributes:menlo11_d];
 		[content eidosAppendString:(isWF ? @" : stage 6 – fitness calculation\n" : @" : stage 6 – late() event execution\n") attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage7Time, percentStage7] attributes:menlo11_d];
+		[content eidosAppendString:(isWF ? @" : stage 7 – tree sequence auto-simplification\n" : @" : stage 7 – tree sequence auto-simplification\n") attributes:optima13_d];
 	}
 	
 	//
@@ -2262,13 +2268,8 @@
 	sim->CollectSLiMguiMutationProfileInfo();
 	
 	// zero out profile counts for generation stages
-	sim->profile_stage_totals_[0] = 0;
-	sim->profile_stage_totals_[1] = 0;
-	sim->profile_stage_totals_[2] = 0;
-	sim->profile_stage_totals_[3] = 0;
-	sim->profile_stage_totals_[4] = 0;
-	sim->profile_stage_totals_[5] = 0;
-	sim->profile_stage_totals_[6] = 0;
+	for (int i = 0; i < 8; ++i)
+		sim->profile_stage_totals_[i] = 0;
 	
 	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;

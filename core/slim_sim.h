@@ -293,7 +293,7 @@ public:
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 	// PROFILING
-	eidos_profile_t profile_stage_totals_[7];										// profiling clocks; index 0 is initialize(), the rest follow SLiMGenerationStage
+	eidos_profile_t profile_stage_totals_[8];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [7] is TS simplification
 	eidos_profile_t profile_callback_totals_[11];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
 	
 	SLiM_MemoryUsage profile_last_memory_usage_;

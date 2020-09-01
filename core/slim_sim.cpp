@@ -3438,7 +3438,17 @@ bool SLiMSim::_RunOneGenerationWF(void)
 			CheckTreeSeqIntegrity();
 #endif
 						
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			SLIM_PROFILE_BLOCK_START();
+#endif
+			
 			CheckAutoSimplification();
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
+#endif
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
 			if (running_treeseq_crosschecks_ && (generation_ % treeseq_crosschecks_interval_ == 0))
@@ -3871,7 +3881,17 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 			CheckTreeSeqIntegrity();
 #endif
 									
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			SLIM_PROFILE_BLOCK_START();
+#endif
+			
 			CheckAutoSimplification();
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
+#endif
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
 			if (running_treeseq_crosschecks_ && (generation_ % treeseq_crosschecks_interval_ == 0))

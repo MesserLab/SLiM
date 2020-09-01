@@ -33,6 +33,7 @@ development head:
 	add Population Size ~ Time graph to QtSLiM
 	make the Step button step continuously when held down, in QtSLiM
 	make "generation play" (entering a new generation in the generation counter textfield) use the Play button, and be stoppable
+	add tree sequence simplification to SLiMgui/QtSLiM profiles
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
