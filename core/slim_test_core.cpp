@@ -609,6 +609,79 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 { stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.simulationFinished(); } 11 { stop(); }", __LINE__);
 	
+	// Test sim - (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
+	// unusually, we do this with custom SLiM scripts that check the API stochastically, since it would be difficult
+	// to test all the possible parameter combinations otherwise; we do a non-nucleotide test and a nucleotide test
+	SLiMAssertScriptSuccess(R"(
+	initialize() {
+		initializeMutationRate(1e-2);
+		initializeMutationType('m1', 0.5, 'f', 0.0);
+		initializeMutationType('m2', 0.5, 'f', 0.0);
+		initializeGenomicElementType('g1', c(m1,m2), c(1,1));
+		initializeGenomicElement(g1, 0, 99);
+		initializeRecombinationRate(1e-8);
+		m2.color="red";
+	}
+	1 { sim.addSubpop('p1', 10); }
+	50 {
+		m=sim.mutations;
+		m.tag=rdunif(m.size(), max=5);
+		for (i in 1:10000) {
+			ex=(runif(1)<0.8) ? NULL else sample(m,1);
+			mt=(runif(1)<0.8) ? NULL else ((runif(1) < 0.5) ? m1 else m2);
+			pos=(runif(1)<0.8) ? NULL else rdunif(1, max=99);
+			tag=(runif(1)<0.8) ? NULL else rdunif(1, max=5);
+			id=(runif(1)<0.8) ? NULL else sample(m.id, 1);
+			method1=sim.subsetMutations(exclude=ex, mutType=mt, position=pos,
+				tag=tag, id=id);
+			method2=m;
+			if (!isNULL(ex)) method2=method2[method2!=ex];
+			if (!isNULL(mt)) method2=method2[method2.mutationType==mt];
+			if (!isNULL(pos)) method2=method2[method2.position==pos];
+			if (!isNULL(tag)) method2=method2[method2.tag==tag];
+			if (!isNULL(id)) method2=method2[method2.id==id];
+			
+			if (!identical(method1,method2)) stop();
+		}
+	}
+	)", __LINE__);
+	SLiMAssertScriptSuccess(R"(
+	initialize() {
+		initializeSLiMOptions(nucleotideBased=T);
+		initializeAncestralNucleotides(randomNucleotides(100));
+		initializeMutationTypeNuc('m1', 0.5, 'f', 0.0);
+		initializeMutationTypeNuc('m2', 0.5, 'f', 0.0);
+		initializeGenomicElementType('g1', c(m1,m2), c(1,1), mmJukesCantor(1e-2 / 3));
+		initializeGenomicElement(g1, 0, 99);
+		initializeRecombinationRate(1e-8);
+		m2.color="red";
+	}
+	1 { sim.addSubpop('p1', 10); }
+	50 {
+		m=sim.mutations;
+		m.tag=rdunif(m.size(), max=5);
+		for (i in 1:10000) {
+			ex=(runif(1)<0.8) ? NULL else sample(m,1);
+			mt=(runif(1)<0.8) ? NULL else ((runif(1) < 0.5) ? m1 else m2);
+			pos=(runif(1)<0.8) ? NULL else rdunif(1, max=99);
+			nuc=(runif(1)<0.8) ? NULL else rdunif(1, max=3);
+			tag=(runif(1)<0.8) ? NULL else rdunif(1, max=5);
+			id=(runif(1)<0.8) ? NULL else sample(m.id, 1);
+			method1=sim.subsetMutations(exclude=ex, mutType=mt, position=pos,
+				nucleotide=nuc, tag=tag, id=id);
+			method2=m;
+			if (!isNULL(ex)) method2=method2[method2!=ex];
+			if (!isNULL(mt)) method2=method2[method2.mutationType==mt];
+			if (!isNULL(pos)) method2=method2[method2.position==pos];
+			if (!isNULL(nuc)) method2=method2[method2.nucleotideValue==nuc];
+			if (!isNULL(tag)) method2=method2[method2.tag==tag];
+			if (!isNULL(id)) method2=method2[method2.id==id];
+			
+			if (!identical(method1,method2)) stop();
+		}
+	}
+	)", __LINE__);
+	
 	// Test sim SLiMEidosDictionary functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.setValue('foo', 7:9); sim.setValue('bar', 'baz'); } 10 { if (identical(sim.getValue('foo'), 7:9) & identical(sim.getValue('bar'), 'baz')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.setValue('foo', 3:5); sim.setValue('foo', 'foobar'); } 10 { if (identical(sim.getValue('foo'), 'foobar')) stop(); }", __LINE__);

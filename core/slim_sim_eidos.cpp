@@ -3589,7 +3589,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 		{
 			Mutation *mut = mut_block_ptr + mutation_registry[registry_index];
 			
-			if (exclude && (mut != exclude))											continue;
+			if (exclude && (mut == exclude))											continue;
 			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
 			if ((position != -1) && (mut->position_ != position))						continue;
 			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
