@@ -1,0 +1,30 @@
+// Keywords: IBS, identity by state, IBD, identity by descent, unique down
+
+initialize() {
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(100));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(1e-4 / 3));
+	initializeGenomicElement(g1, 0, 99);
+	initializeRecombinationRate(1e-3);
+}
+1 {
+	sim.addSubpop("p1", 500);
+}
+mutation(m1) {
+	m = sim.subsetMutations(position=mut.position, nucleotide=mut.nucleotide);
+	if (m.length())
+		return m;
+	return T;
+}
+1000 late() {
+	for (pos in 0:99)
+	{
+		muts = sim.subsetMutations(position=pos);
+		nucs = muts.nucleotide;
+		cat(pos + " : " + paste(nucs));
+		if (size(nucs) != size(unique(nucs)))
+			cat("     DUPLICATES!");
+		catn();
+	}
+}

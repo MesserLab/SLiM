@@ -38,6 +38,7 @@ development head:
 	extend mutation() callbacks to allow returning an existing mutation
 	policy change: mutation positions, when generating a gamete, are now uniqued
 	add subsetMutations() method on SLiMSim for fast lookup of specific mutations
+	add new recipe 18.14: "modeling identity by state (IBS): uniquing new mutations down with a mutation() callback"
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
