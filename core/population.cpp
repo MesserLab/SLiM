@@ -2476,15 +2476,18 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		p_child_genome.check_cleared_to_nullptr();
 #endif
 		
-		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
-		int mutrun_count = p_child_genome.mutrun_count_;
+		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
 		
-		// create vector with the mutations to be added
-		bool use_extended_draw_mutation = (sim_.IsNucleotideBased() || p_mutation_callbacks);
+		mut_positions.clear();
+		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
+		
+		// Create vector with the mutations to be added
+		// Note that DrawNewMutation[Extended]() sets mutation->scratch_ to 0 for "not in registry", 1 for "in registry"; we use that below
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		try {
-			if (use_extended_draw_mutation)
+			if (sim_.IsNucleotideBased() || p_mutation_callbacks)
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -2492,33 +2495,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
+					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_source_subpop->subpopulation_id_, sim_.Generation(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
 					
 					if (new_mutation != -1)
-						mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
 					// see further comments below, in the non-nucleotide case; they apply here as well
 				}
-				
-				// FIXME: Note that there is a little issue here.  Two nucleotide-based mutations can arise at the same position during the same
-				// gamete-generation.  If the ancestral position is A, the first might be drawn as an A->G mutation.  The second will be drawn
-				// on the background of A again, and could again be an A->G mutation, for example.  A mutation() callback will see this as two
-				// A->G mutations in a row with the same parental genome, but tree-seq recording will (more correctly, really) record it as an
-				// A->G and then a G->G.  The second mutation should have used the G background, but that is very hard to achieve with this design.
-				// I think the best fix might be to draw positions for all mutations and unique them, and *then* generate mutations at those
-				// positions, preventing two mutations at the same position during a single gamete-genesis (which kind of doesn't make biological
-				// sense anyway – either the copying enzyme makes a mistake or it doesn't).  But I'm not going to make that fix right now, as it
-				// is complicated, risky, and has potential impact of performance.  It is an extreme edge case anyway, for realistic mutation
-				// rates.  BCH 5/14/2019
 			}
 			else
 			{
 				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_source_subpop->subpopulation_id_, sim_.Generation());
+					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_source_subpop->subpopulation_id_, sim_.Generation());
 					
-					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
 					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
 					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
@@ -2526,7 +2518,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				}
 			}
 		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise
+			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
 			MutationRun::FreeMutationRun(&mutations_to_add);
 			throw;
 		}
@@ -2546,6 +2538,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			mutation_iter_pos = SLIM_INF_BASE_POSITION;
 		}
 		
+		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
+		int mutrun_count = p_child_genome.mutrun_count_;
 		slim_mutrun_index_t mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 		
 		Genome *parent_genome = parent_genome_1;
@@ -2602,18 +2596,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 					{
 						// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
-						mutation_registry_.emplace_back(mutation_iter_mutation_index);
 						
+						if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+						{
+							mutation_registry_.emplace_back(mutation_iter_mutation_index);
+							
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-						if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-							new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
 							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
-					else
+					else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to dispose of it
 						// We no longer delete mutation objects; instead, we remove them from our shared pool
@@ -2749,18 +2747,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									{
 										// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 										child_mutrun->emplace_back(mutation_iter_mutation_index);
-										mutation_registry_.emplace_back(mutation_iter_mutation_index);
 										
+										if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+										{
+											mutation_registry_.emplace_back(mutation_iter_mutation_index);
+											
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-										if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-											new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+											if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+												new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+										}
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
 											sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 									}
-									else
+									else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 									{
 										// The mutation was rejected by the stacking policy, so we have to dispose of it
 										// We no longer delete mutation objects; instead, we remove them from our shared pool
@@ -2795,18 +2797,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 								{
 									// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
-									mutation_registry_.emplace_back(mutation_iter_mutation_index);
 									
+									if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+									{
+										mutation_registry_.emplace_back(mutation_iter_mutation_index);
+										
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-									if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-										new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+										if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+											new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+									}
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
 										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
-								else
+								else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to dispose of it
 									// We no longer delete mutation objects; instead, we remove them from our shared pool
@@ -2942,18 +2948,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 							child_mutrun->emplace_back(mutation_iter_mutation_index);
-							mutation_registry_.emplace_back(mutation_iter_mutation_index);
 							
+							if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+							{
+								mutation_registry_.emplace_back(mutation_iter_mutation_index);
+								
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+								if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+									new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+							}
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
 								sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 						}
-						else
+						else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to dispose of it
 							// We no longer delete mutation objects; instead, we remove them from our shared pool
@@ -3522,15 +3532,17 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		p_child_genome.check_cleared_to_nullptr();
 #endif
 		
-		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
-		int mutrun_count = p_child_genome.mutrun_count_;
+		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
 		
-		// create vector with the mutations to be added
-		bool use_extended_draw_mutation = (sim_.IsNucleotideBased() || p_mutation_callbacks);
+		mut_positions.clear();
+		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
+		
+		// Create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		try {
-			if (use_extended_draw_mutation)
+			if (sim_.IsNucleotideBased() || p_mutation_callbacks)
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -3538,33 +3550,22 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
+					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
 					
 					if (new_mutation != -1)
-						mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
 					// see further comments below, in the non-nucleotide case; they apply here as well
 				}
-				
-				// FIXME: Note that there is a little issue here.  Two nucleotide-based mutations can arise at the same position during the same
-				// gamete-generation.  If the ancestral position is A, the first might be drawn as an A->G mutation.  The second will be drawn
-				// on the background of A again, and could again be an A->G mutation, for example.  A mutation() callback will see this as two
-				// A->G mutations in a row with the same parental genome, but tree-seq recording will (more correctly, really) record it as an
-				// A->G and then a G->G.  The second mutation should have used the G background, but that is very hard to achieve with this design.
-				// I think the best fix might be to draw positions for all mutations and unique them, and *then* generate mutations at those
-				// positions, preventing two mutations at the same position during a single gamete-genesis (which kind of doesn't make biological
-				// sense anyway – either the copying enzyme makes a mistake or it doesn't).  But I'm not going to make that fix right now, as it
-				// is complicated, risky, and has potential impact of performance.  It is an extreme edge case anyway, for realistic mutation
-				// rates.  BCH 5/14/2019
 			}
 			else
 			{
 				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(p_parent_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());
+					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation());
 					
-					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
 					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
 					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
@@ -3572,7 +3573,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 				}
 			}
 		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise
+			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
 			MutationRun::FreeMutationRun(&mutations_to_add);
 			throw;
 		}
@@ -3592,6 +3593,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 			mutation_iter_pos = SLIM_INF_BASE_POSITION;
 		}
 		
+		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
+		int mutrun_count = p_child_genome.mutrun_count_;
 		slim_mutrun_index_t mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
 		
 		Genome *parent_genome = p_parent_genome_1;
@@ -3694,18 +3697,22 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 								{
 									// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
-									mutation_registry_.emplace_back(mutation_iter_mutation_index);
 									
+									if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+									{
+										mutation_registry_.emplace_back(mutation_iter_mutation_index);
+										
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-									if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-										new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+										if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+											new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+									}
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
 										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
-								else
+								else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to dispose of it
 									// We no longer delete mutation objects; instead, we remove them from our shared pool
@@ -3740,18 +3747,22 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 							{
 								// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 								child_mutrun->emplace_back(mutation_iter_mutation_index);
-								mutation_registry_.emplace_back(mutation_iter_mutation_index);
 								
+								if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+								{
+									mutation_registry_.emplace_back(mutation_iter_mutation_index);
+									
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-								if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-									new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+									if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+										new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+								}
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence_mutations)
 									sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 							}
-							else
+							else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 							{
 								// The mutation was rejected by the stacking policy, so we have to dispose of it
 								// We no longer delete mutation objects; instead, we remove them from our shared pool
@@ -3887,18 +3898,22 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 					{
 						// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
-						mutation_registry_.emplace_back(mutation_iter_mutation_index);
 						
+						if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+						{
+							mutation_registry_.emplace_back(mutation_iter_mutation_index);
+							
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-						if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-							new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
 							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
-					else
+					else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to dispose of it
 						// We no longer delete mutation objects; instead, we remove them from our shared pool
@@ -3988,12 +4003,17 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		p_child_genome.check_cleared_to_nullptr();
 #endif
 		
-		// create vector with the mutations to be added
-		bool use_extended_draw_mutation = (sim_.IsNucleotideBased() || p_mutation_callbacks);
+		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+		
+		mut_positions.clear();
+		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_child_sex, mut_positions);
+		
+		// Create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		try {
-			if (use_extended_draw_mutation)
+			if (sim_.IsNucleotideBased() || p_mutation_callbacks)
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -4001,24 +4021,13 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
+					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
 					
 					if (new_mutation != -1)
-						mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
 					// see further comments below, in the non-nucleotide case; they apply here as well
 				}
-				
-				// FIXME: Note that there is a little issue here.  Two nucleotide-based mutations can arise at the same position during the same
-				// gamete-generation.  If the ancestral position is A, the first might be drawn as an A->G mutation.  The second will be drawn
-				// on the background of A again, and could again be an A->G mutation, for example.  A mutation() callback will see this as two
-				// A->G mutations in a row with the same parental genome, but tree-seq recording will (more correctly, really) record it as an
-				// A->G and then a G->G.  The second mutation should have used the G background, but that is very hard to achieve with this design.
-				// I think the best fix might be to draw positions for all mutations and unique them, and *then* generate mutations at those
-				// positions, preventing two mutations at the same position during a single gamete-genesis (which kind of doesn't make biological
-				// sense anyway – either the copying enzyme makes a mistake or it doesn't).  But I'm not going to make that fix right now, as it
-				// is complicated, risky, and has potential impact of performance.  It is an extreme edge case anyway, for realistic mutation
-				// rates.  BCH 5/14/2019
 				
 				// if there are no mutations, the child genome is just a copy of the parental genome
 				// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
@@ -4034,9 +4043,9 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(p_child_sex, p_mutorigin_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
+					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
 					
-					mutations_to_add.insert_sorted_mutation(new_mutation);	// keeps it sorted; since few mutations are expected, this is fast
+					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
 					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
 					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
@@ -4044,7 +4053,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				}
 			}
 		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise
+			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
 			MutationRun::FreeMutationRun(&mutations_to_add);
 			throw;
 		}
@@ -4102,18 +4111,22 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 						{
 							// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 							child_run->emplace_back(mutation_iter_mutation_index);
-							mutation_registry_.emplace_back(mutation_iter_mutation_index);
 							
+							if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
+							{
+								mutation_registry_.emplace_back(mutation_iter_mutation_index);
+								
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
+								if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
+									new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
 #endif
+							}
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
 								sim_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
 						}
-						else
+						else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to dispose of it
 							// We no longer delete mutation objects; instead, we remove them from our shared pool

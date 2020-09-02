@@ -34,6 +34,9 @@ development head:
 	make the Step button step continuously when held down, in QtSLiM
 	make "generation play" (entering a new generation in the generation counter textfield) use the Play button, and be stoppable
 	add tree sequence simplification to SLiMgui/QtSLiM profiles
+	remove the first generation flag from SLiM .trees files, switch to the new simplify algorithm that preserves ancestors that are referenced
+	extend mutation() callbacks to allow returning an existing mutation
+	policy change: mutation positions, when generating a gamete, are now uniqued
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

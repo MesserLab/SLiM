@@ -1,5 +1,5 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf400
-{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
+{\rtf1\ansi\ansicpg1252\cocoartf2513
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\froman\fcharset0 TimesNewRomanPSMT;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red28\green0\blue207;\red63\green110\blue116;
 \red20\green0\blue196;\red181\green0\blue19;}
@@ -1052,7 +1052,8 @@ As with the other callback types, multiple
 \pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\i0 \cf2 \expnd0\expndtw0\kerning0
-SLiM auto-generates new mutations according to the current mutation rate (or rate map) and the genetic structure defined by genomic elements, their genomic element types, the mutation types those genomic element types draw from, and the distribution of fitness effects defined by those mutation types.  In nucleotide-based models, the nucleotide sequence and the mutation matrix also play a role in determining both the rate of mutation and the nucleotide mutated to.  In some models it can be desirable to modify these dynamics in some way \'96 altering the selection coefficients of new mutations in some way, changing the mutation type used, dictating the nucleotide to be used, or even suppressing the proposed mutation altogether.  To achieve this, one may define a 
+SLiM auto-generates new mutations according to the current mutation rate (or rate map) and the genetic structure defined by genomic elements, their genomic element types, the mutation types those genomic element types draw from, and the distribution of fitness effects defined by those mutation types.  In nucleotide-based models, the nucleotide sequence and the mutation matrix also play a role in determining both the rate of mutation and the nucleotide mutated to.  \kerning1\expnd0\expndtw0 In some models it can be desirable to modify these dynamics in some way \'96 altering the selection coefficients of new mutations in some way, changing the mutation type used, dictating the nucleotide to be used, replacing the proposed mutation with a pre-existing mutation at the same position, or even suppressing the proposed mutation altogether.\expnd0\expndtw0\kerning0
+  To achieve this, one may define a 
 \f3\fs18 mutation()
 \f2\fs22  callback.\
 A 
@@ -1075,7 +1076,7 @@ A
 \f3\fs18 <subpop-id>
 \f2\fs22  specifier; this should be a subpopulation specifier such as 
 \f3\fs18 p1
-\f2\fs22 .\cf2 \
+\f2\fs22 .\
 When a 
 \f3\fs18 mutation()
 \f2\fs22  callback is called, a focal mutation (provided to the callback as an object of type 
@@ -1130,15 +1131,28 @@ In addition to the standard SLiM globals, then, a
 \f3\fs18 \
 \pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 The 
+\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 The 
 \f3\fs18 mutation()
-\f2\fs22  callback may return one of two values: 
+\f2\fs22  callback has three possible returns: 
 \f3\fs18 T
-\f2\fs22  to indicate that the mutation should be used in generating the offspring genome (perhaps with modifications made by the callback), or 
+\f2\fs22 , 
 \f3\fs18 F
-\f2\fs22  to indicate that the mutation should be suppressed.  If a proposed mutation is suppressed, SLiM will not try again; one fewer mutations will be generated during reproduction than would otherwise have been true.  Returning 
+\f2\fs22 , or (beginning in SLiM 3.5) a singleton object of type 
+\f3\fs18 Mutation
+\f2\fs22 .  A return of 
+\f3\fs18 T
+\f2\fs22  indicates that the proposed mutation should be used in generating the offspring genome (perhaps with modifications made by the callback).  Conversely, a return of 
 \f3\fs18 F
-\f2\fs22  will therefore mean that the realized mutation rate in the model will be lower than the expected mutation rate.\
+\f2\fs22  indicates that the proposed mutation should be suppressed.  If a proposed mutation is suppressed, SLiM will not try again; one fewer mutations will be generated during reproduction than would otherwise have been true.  Returning 
+\f3\fs18 F
+\f2\fs22  will therefore mean that the realized mutation rate in the model will be lower than the expected mutation rate.  Finally, a return of an object of type 
+\f3\fs18 Mutation
+\f2\fs22  replaces the proposed mutation (
+\f3\fs18 mut
+\f2\fs22 ) with the mutation returned; the offspring genomes being generated will contain the returned mutation.  The returned mutation must match the proposed mutation in position, mutation type, and nucleotide.  This provides a mechanism for a 
+\f3\fs18 mutation()
+\f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
+\expnd0\expndtw0\kerning0
 The callback may perform a variety of actions related to the generated mutation.  The selection coefficient of the mutation can be changed with 
 \f3\fs18 setSelectionCoefficient()
 \f2\fs22 , and the mutation type of the mutation can be changed with 
@@ -1176,7 +1190,7 @@ The proposed mutation will not appear in the
 \f2\fs22  callback, the proposed mutation may not be used by SLiM at all.  It may therefore be unwise to assume, in a 
 \f3\fs18 mutation()
 \f2\fs22  callback, that the focal mutation will ultimately be added to the simulation, depending upon the rest of the model\'92s script.\
-\cf2 There is one subtlety to be mentioned here, having to do with subpopulations.  The 
+There is one subtlety to be mentioned here, having to do with subpopulations.  The 
 \f3\fs18 subpop
 \f2\fs22  pseudo-parameter discussed above is always the subpopulation of the parent which possesses the genome that is being copied and is mutating; there is no ambiguity about that whatsoever.  The 
 \f3\fs18 <subpop-id>
@@ -1185,24 +1199,24 @@ The proposed mutation will not appear in the
 \f2\fs22  callback declaration, however, is a bit more subtle; above it was said that it restricts the callback \'93to individuals generated by a specified subpopulation\'94, and that is usually true but requires some explanation.  In WF models, recall that migrants are generated in a source subpopulation and placed in a target subpopulation, as a model of juvenile migration; in that context, the 
 \f3\fs18 <subpop-id>
 \f2\fs22  specifies the 
-\f0\i \cf2 source
-\f2\i0 \cf2  subpopulation to which the 
+\f0\i source
+\f2\i0  subpopulation to which the 
 \f3\fs18 mutation()
 \f2\fs22  callback will be restricted.  In nonWF models, offspring are generated by the 
 \f3\fs18 add...()
 \f2\fs22  family of 
-\f3\fs18 \cf2 Subpopulation
-\f2\fs22 \cf2  methods, which can cross individuals from two different subpopulations and place the result in a third target subpopulation; in that context, in general, the 
+\f3\fs18 Subpopulation
+\f2\fs22  methods, which can cross individuals from two different subpopulations and place the result in a third target subpopulation; in that context, in general, the 
 \f3\fs18 <subpop-id>
 \f2\fs22  specifies the source subpopulation that is generating the particular 
-\f0\i \cf2 gamete
-\f2\i0 \cf2  that is sustaining a mutation during its production.  The exception to this rule is 
+\f0\i gamete
+\f2\i0  that is sustaining a mutation during its production.  The exception to this rule is 
 \f3\fs18 addRecombinant()
 \f2\fs22 ; since there are four different source subpopulations potentially in play there, it was deemed simpler in that case for the 
 \f3\fs18 <subpop-id>
 \f2\fs22  to specify the 
-\f0\i \cf2 target
-\f2\i0 \cf2  subpopulation to which the 
+\f0\i target
+\f2\i0  subpopulation to which the 
 \f3\fs18 mutation()
 \f2\fs22  callback will be restricted.  If restriction to the source subpopulation is needed with 
 \f3\fs18 addRecombinant()
@@ -1211,9 +1225,9 @@ The proposed mutation will not appear in the
 \f2\fs22  pseudo-parameter may be consulted rather than using 
 \f3\fs18 <subpop-id>
 \f2\fs22 .\
-\cf2 Note that 
+Note that 
 \f3\fs18 mutation()
-\f2\fs22  callbacks are only called for mutations that are auto-generated by SLiM, as a consequence of the mutation rate and the genetic structure defined.  Mutations that are created by the model script, using 
+\f2\fs22  callbacks are only called for mutations that are auto-generated by SLiM, as a consequence of the mutation rate and the genetic structure defined.  Mutations that are created in script, using 
 \f3\fs18 addNewMutation()
 \f2\fs22  or 
 \f3\fs18 addNewDrawnMutation()

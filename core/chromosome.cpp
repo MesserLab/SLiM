@@ -572,10 +572,17 @@ void Chromosome::RecombinationMapConfigError(void) const
 	EIDOS_TERMINATION << "ERROR (Chromosome::RecombinationMapConfigError): (internal error) an error occurred in the configuration of recombination maps." << EidosTerminate();
 }
 
-
-// draw a new mutation, based on the genomic element types present and their mutational proclivities
-MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
+int Chromosome::DrawSortedUniquedMutationPositions(int p_count, IndividualSex p_sex, std::vector<std::pair<slim_position_t, GenomicElement *>> &p_positions)
 {
+	// BCH 1 September 2020: This method generates a vector of positions, sorted and uniqued for the caller.  This avoid various issues
+	// with two mutations occurring at the same position in the same gamete.  For example, nucleotide states in the tree-seq tables could
+	// end up in a state that would normally be illegal, such as an A->G mutation followed by a G->G mutation, because SLiM's code wouldn't
+	// understand that the second mutation occurred on the background of the first; it would think that both mutations were A->G, erroneously.
+	// This also messed up uniquing of mutations with a mutation() callback in SLiM 3.5; you might want all mutations representing a given
+	// nucleotide at a given position to share the same mutation object (IBS instead of IBD), but if two mutations occurred at the same
+	// position in the same gamete, the first might be accepted, and then second – which should unique down to the first – would also be
+	// accepted.  The right fix seems to be to unique the drawn mutation positions before creating mutations, avoiding all these issues;
+	// multiple mutations at the same position in the same gamete seems unbiological anyway.
 	gsl_ran_discrete_t *lookup;
 	const std::vector<GESubrange> *subranges;
 	
@@ -604,15 +611,48 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 		}
 	}
 	
-	int mut_subrange_index = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
-	const GESubrange &subrange = (*subranges)[mut_subrange_index];
-	const GenomicElement &source_element = *(subrange.genomic_element_ptr_);
-	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
-	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
+	// draw all the positions, and keep track of the genomic element type for each
+	for (int i = 0; i < p_count; ++i)
+	{
+		int mut_subrange_index = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
+		const GESubrange &subrange = (*subranges)[mut_subrange_index];
+		GenomicElement *source_element = subrange.genomic_element_ptr_;
+		
+		// Draw the position along the chromosome for the mutation, within the genomic element
+		slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(subrange.end_position_ - subrange.start_position_ + 1));
+		// old 32-bit position not MT64 code:
+		//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
+		
+		p_positions.emplace_back(std::pair<slim_position_t, GenomicElement *>(position, source_element));
+	}
 	
-	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(subrange.end_position_ - subrange.start_position_ + 1));
-	// old 32-bit position not MT64 code:
-	//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
+	// sort and unique by position; 1 and 2 mutations are particularly common, so try to speed those up
+	if (p_count > 1)
+	{
+		if (p_count == 2)
+		{
+			if (p_positions[0].first > p_positions[1].first)
+				std::swap(p_positions[0], p_positions[1]);
+			else if (p_positions[0].first == p_positions[1].first)
+				p_positions.resize(1);
+		}
+		else
+		{
+			std::sort(p_positions.begin(), p_positions.end(), [](const std::pair<slim_position_t, GenomicElement *> &p1, const std::pair<slim_position_t, GenomicElement *> &p2) { return p1.second < p2.second; });
+			auto unique_iter = std::unique(p_positions.begin(), p_positions.end(), [](const std::pair<slim_position_t, GenomicElement *> &p1, const std::pair<slim_position_t, GenomicElement *> &p2) { return p1.second == p2.second; });
+			p_positions.resize(std::distance(p_positions.begin(), unique_iter));
+		}
+	}
+	
+	return (int)p_positions.size();
+}
+
+// draw a new mutation, based on the genomic element types present and their mutational proclivities
+MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_generation_t p_generation) const
+{
+	const GenomicElement &source_element = *(p_position.second);
+	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
+	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
@@ -620,15 +660,18 @@ MutationIndex Chromosome::DrawNewMutation(IndividualSex p_sex, slim_objectid_t p
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 	
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
-	new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, -1);
+	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	
+	new (mutation) Mutation(mutation_type_ptr, p_position.first, selection_coeff, p_subpop_index, p_generation, -1);
+	mutation->scratch_ = 0;		// for the caller, we set this to signify "not in registry"; these semantics are local only!
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
 	return new_mut_index;
 }
 
-// apply mutation() to a generated mutation; a return of T means accept, F means reject
-bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
+// apply mutation() to a generated mutation; we might return nullptr (proposed mutation rejected), the original proposed mutation (it was accepted), or a replacement Mutation *
+Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -641,7 +684,7 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, Genom
 	SLiMEidosBlockType old_executing_block_type = sim_->executing_block_type_;
 	sim_->executing_block_type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
 	
-	bool mutation_accepted = true;
+	bool mutation_accepted = true, mutation_replaced = false;
 	
 	for (SLiMEidosBlock *mutation_callback : p_mutation_callbacks)
 	{
@@ -691,14 +734,44 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, Genom
 					
 					try
 					{
-						// Interpret the script; the result from the interpretation must be a singleton logical, T if breakpoints have been changed, F otherwise
+						// Interpret the script; the result from the interpretation must be a singleton logical, T if the mutation is accepted, F if it is rejected, or a Mutation object
 						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(mutation_callback->script_);
 						EidosValue *result = result_SP.get();
+						EidosValueType resultType = result->Type();
+						int resultCount = result->Count();
 						
-						if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): mutation() callbacks must provide a logical singleton return value." << EidosTerminate(mutation_callback->identifier_token_);
-						
-						mutation_accepted = result->LogicalAtIndex(0, nullptr);
+						if ((resultType == EidosValueType::kValueLogical) && (resultCount == 1))
+						{
+							mutation_accepted = result->LogicalAtIndex(0, nullptr);
+						}
+						else if ((resultType == EidosValueType::kValueObject) && (((EidosValue_Object *)result)->Class() == gSLiM_Mutation_Class) && (resultCount == 1))
+						{
+							Mutation *replacementMutation = (Mutation *)result->ObjectElementAtIndex(0, mutation_callback->identifier_token_);
+							
+							if (replacementMutation == p_mut)
+							{
+								// returning the proposed mutation is the same as accepting it
+								mutation_accepted = true;
+							}
+							else
+							{
+								// First, check that the mutation fits the requirements: position, mutation type, nucleotide; we are already set up for the mutation type and can't change in
+								// mid-stream (would we switch to running mutation() callbacks for the new type??), and we have already chosen the nucleotide for consistency with the background
+								if (replacementMutation->position_ != p_mut->position_)
+									EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the position of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
+								if (replacementMutation->mutation_type_ptr_ != p_mut->mutation_type_ptr_)
+									EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the mutation type of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
+								if (replacementMutation->nucleotide_ != p_mut->nucleotide_)
+									EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the nucleotide of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
+								
+								// It fits the bill, so replace the original proposed mutation with this new mutation; note we don't fix local_mut, it's about to go out of scope anyway
+								p_mut = replacementMutation;
+								mutation_replaced = true;
+								mutation_accepted = true;
+							}
+						}
+						else
+							EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): mutation() callbacks must provide a return value that is either a singleton logical or a singleton Mutation object." << EidosTerminate(mutation_callback->identifier_token_);
 						
 						// Output generated by the interpreter goes to our output stream
 						interpreter.FlushExecutionOutputToStream(SLIM_OUTSTREAM);
@@ -718,6 +791,13 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, Genom
 		}
 	}
 	
+	// If a replacement mutation has been accepted at this point, we now check that it is not already present in the background genome; if it is present, the mutation is a no-op (implemented as a rejection)
+	if (mutation_replaced && mutation_accepted)
+	{
+		if (p_genome->contains_mutation(p_mut->BlockIndex()))
+			mutation_accepted = false;
+	}
+	
 	sim_->executing_block_type_ = old_executing_block_type;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -725,48 +805,15 @@ bool Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, Genom
 	SLIM_PROFILE_BLOCK_END(sim_->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)]);
 #endif
 	
-	return mutation_accepted;
+	return (mutation_accepted ? p_mut : nullptr);
 }
 
 // draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
-MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
+MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
 {
-	gsl_ran_discrete_t *lookup;
-	const std::vector<GESubrange> *subranges;
-	
-	if (single_mutation_map_)
-	{
-		// With a single map, we don't care what sex we are passed; same map for all, and sex may be enabled or disabled
-		lookup = lookup_mutation_H_;
-		subranges = &mutation_subranges_H_;
-	}
-	else
-	{
-		// With sex-specific maps, we treat males and females separately, and the individual we're given better be one of the two
-		if (p_sex == IndividualSex::kMale)
-		{
-			lookup = lookup_mutation_M_;
-			subranges = &mutation_subranges_M_;
-		}
-		else if (p_sex == IndividualSex::kFemale)
-		{
-			lookup = lookup_mutation_F_;
-			subranges = &mutation_subranges_F_;
-		}
-		else
-		{
-			MutationMapConfigError();
-		}
-	}
-	
-	int mut_subrange_index = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
-	const GESubrange &subrange = (*subranges)[mut_subrange_index];
-	GenomicElement &source_element = *(subrange.genomic_element_ptr_);
-	
-	// Draw the position along the chromosome for the mutation, within the genomic element
-	slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(subrange.end_position_ - subrange.start_position_ + 1));
-	// old 32-bit position not MT64 code:
-	//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
+	slim_position_t position = p_position.first;
+	GenomicElement &source_element = *(p_position.second);
+	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	
 	// Determine which parental genome the mutation will be atop (so we can get the genetic context for it)
 	bool on_first_genome = true;
@@ -785,7 +832,6 @@ MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_obje
 	Genome *background_genome = (on_first_genome ? parent_genome_1 : parent_genome_2);
 	
 	// Determine whether the mutation will be created at all, and if it is, what nucleotide to use
-	const GenomicElementType &genomic_element_type = *source_element.genomic_element_type_ptr_;
 	int8_t original_nucleotide = -1, nucleotide = -1;
 	
 	if (genomic_element_type.mutation_matrix_)
@@ -924,18 +970,39 @@ MutationIndex Chromosome::DrawNewMutationExtended(IndividualSex p_sex, slim_obje
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
+	mutation->scratch_ = 0;		// for the caller, we set this to signify "not in registry"; these semantics are local only!
 	
-	new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, nucleotide);
+	new (mutation) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, nucleotide);
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
 	{
-		bool callback_result = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_genome, &source_element, original_nucleotide, *p_mutation_callbacks);
+		Mutation *post_callback_mut = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_genome, &source_element, original_nucleotide, *p_mutation_callbacks);
 		
-		if (!callback_result)
+		// If the callback didn't return the proposed mutation, it will not be used; dispose of it
+		if (post_callback_mut != mutation)
 		{
+			//std::cout << "proposed mutation not used, disposing..." << std::endl;
 			SLiM_DisposeMutationToBlock(new_mut_index);
+		}
+		
+		// If it returned nullptr, the mutation event was rejected
+		if (post_callback_mut == nullptr)
+		{
+			//std::cout << "mutation rejected..." << std::endl;
 			return -1;
+		}
+		
+		// Otherwise, we will request the addition of whatever mutation it returned (which might be the proposed mutation).
+		// Note that if an existing mutation was returned, ApplyMutationCallbacks() guarantees that it is not already present in the background genome.
+		MutationIndex post_callback_mut_index = post_callback_mut->BlockIndex();
+		
+		if (new_mut_index != post_callback_mut_index)
+		{
+			//std::cout << "replacing mutation!" << std::endl;
+			post_callback_mut->scratch_ = 1;		// for the caller, we set this to signify "in registry"; these semantics are local only!
+			new_mut_index = post_callback_mut_index;
 		}
 	}
 	
