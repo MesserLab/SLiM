@@ -2046,6 +2046,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_registerReproductionCallback:	return ExecuteMethod_registerReproductionCallback(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_subsetMutations:				return ExecuteMethod_subsetMutations(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_treeSeqCoalesced:				return ExecuteMethod_treeSeqCoalesced(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_treeSeqSimplify:				return ExecuteMethod_treeSeqSimplify(p_method_id, p_arguments, p_argument_count, p_interpreter);
 		case gID_treeSeqRememberIndividuals:	return ExecuteMethod_treeSeqRememberIndividuals(p_method_id, p_arguments, p_argument_count, p_interpreter);
@@ -3473,6 +3474,155 @@ EidosValue_SP SLiMSim::ExecuteMethod_simulationFinished(EidosGlobalStringID p_me
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
+//
+EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+	EidosValue *exclude_value = p_arguments[0].get();
+	EidosValue *mutType_value = p_arguments[1].get();
+	EidosValue *position_value = p_arguments[2].get();
+	EidosValue *nucleotide_value = p_arguments[3].get();
+	EidosValue *tag_value = p_arguments[4].get();
+	EidosValue *id_value = p_arguments[5].get();
+	
+	// parse our arguments
+	Mutation *exclude = (exclude_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Mutation *)exclude_value->ObjectElementAtIndex(0, nullptr);
+	MutationType *mutation_type_ptr = (mutType_value->Type() == EidosValueType::kValueNULL) ? nullptr : SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, *this, "subsetMutations()");
+	slim_position_t position = (position_value->Type() == EidosValueType::kValueNULL) ? -1 : SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex(0, nullptr));
+	int8_t nucleotide = -1;
+	bool has_tag = !(tag_value->Type() == EidosValueType::kValueNULL);
+	slim_usertag_t tag = (has_tag ? tag_value->IntAtIndex(0, nullptr) : 0);
+	bool has_id = !(id_value->Type() == EidosValueType::kValueNULL);
+	slim_mutationid_t id = (has_id ? id_value->IntAtIndex(0, nullptr) : 0);
+	
+	if (nucleotide_value->Type() == EidosValueType::kValueInt)
+	{
+		int64_t nuc_int = nucleotide_value->IntAtIndex(0, nullptr);
+		
+		if ((nuc_int < 0) || (nuc_int > 3))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_subsetMutations): subsetMutations() requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+		
+		nucleotide = (int8_t)nuc_int;
+	}
+	else if (nucleotide_value->Type() == EidosValueType::kValueString)
+	{
+		std::string nuc_string = nucleotide_value->StringAtIndex(0, nullptr);
+		
+		if (nuc_string == "A")		nucleotide = 0;
+		else if (nuc_string == "C")	nucleotide = 1;
+		else if (nuc_string == "G")	nucleotide = 2;
+		else if (nuc_string == "T")	nucleotide = 3;
+		else EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_subsetMutations): subsetMutations() requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+	}
+	
+	// We will scan forward looking for a match, and will keep track of the first match we find.  If we only find one, we return
+	// a singleton; if we find a second, we will start accumulating a vector result.
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	MutationRun &mutation_registry = population_.mutation_registry_;
+	int registry_count = mutation_registry.size();
+	int match_count = 0, registry_index;
+	Mutation *first_match = nullptr;
+	EidosValue_Object_vector *vec = nullptr;
+	
+	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag)
+	{
+		// id-only search; nice for this to be fast since people will use it to look up a specific mutation
+		for (registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			Mutation *mut = mut_block_ptr + mutation_registry[registry_index];
+			
+			if (mut->mutation_id_ != id)
+				continue;
+			
+			match_count++;
+			
+			if (match_count == 1)
+			{
+				first_match = mut;
+			}
+			else if (match_count == 2)
+			{
+				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+				vec->push_object_element(first_match);
+				vec->push_object_element(mut);
+			}
+			else
+			{
+				vec->push_object_element(mut);
+			}
+		}
+	}
+	else if (!exclude && !has_tag && !has_id)
+	{
+		// no exclude, tag, or id; this is expected to be the common case, for the usage patterns I anticipate
+		for (registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			Mutation *mut = mut_block_ptr + mutation_registry[registry_index];
+			
+			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
+			if ((position != -1) && (mut->position_ != position))						continue;
+			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
+			
+			match_count++;
+			
+			if (match_count == 1)
+			{
+				first_match = mut;
+			}
+			else if (match_count == 2)
+			{
+				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+				vec->push_object_element(first_match);
+				vec->push_object_element(mut);
+			}
+			else
+			{
+				vec->push_object_element(mut);
+			}
+		}
+	}
+	else
+	{
+		// GENERAL CASE
+		for (registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			Mutation *mut = mut_block_ptr + mutation_registry[registry_index];
+			
+			if (exclude && (mut != exclude))											continue;
+			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
+			if ((position != -1) && (mut->position_ != position))						continue;
+			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
+			if (has_tag && (mut->tag_value_ != tag))									continue;
+			if (has_id && (mut->mutation_id_ != id))									continue;
+			
+			match_count++;
+			
+			if (match_count == 1)
+			{
+				first_match = mut;
+			}
+			else if (match_count == 2)
+			{
+				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+				vec->push_object_element(first_match);
+				vec->push_object_element(mut);
+			}
+			else
+			{
+				vec->push_object_element(mut);
+			}
+		}
+	}
+	
+	if (match_count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+	else if (match_count == 1)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
+	else
+		return EidosValue_SP(vec);
+}
+
 // TREE SEQUENCE RECORDING
 //	*********************	- (logical$)treeSeqCoalesced(void)
 //
@@ -3669,6 +3819,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S("source")->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));

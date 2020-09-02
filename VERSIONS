@@ -37,6 +37,7 @@ development head:
 	remove the first generation flag from SLiM .trees files, switch to the new simplify algorithm that preserves ancestors that are referenced
 	extend mutation() callbacks to allow returning an existing mutation
 	policy change: mutation positions, when generating a gamete, are now uniqued
+	add subsetMutations() method on SLiMSim for fast lookup of specific mutations
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

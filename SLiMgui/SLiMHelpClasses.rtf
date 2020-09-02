@@ -5125,6 +5125,67 @@ Note that new script blocks can also be created and scheduled using the
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(object<Mutation>)subsetMutations([No<Mutation>$\'a0exclude\'a0=\'a0NULL], [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL], [Ni$\'a0position\'a0=\'a0NULL], [Nis$\'a0nucleotide\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0id\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of mutations subset from the list of all active mutations in the simulation (as would be provided by the 
+\f3\fs18 mutations
+\f4\fs20  property).  The parameters specify constraints upon the subset of mutations that will be returned.  Parameter 
+\f3\fs18 exclude
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a specific mutation that should not be included (typically the focal mutation in some operation).  Parameter 
+\f3\fs18 mutType
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a mutation type for the mutations to be returned (as either a 
+\f3\fs18 MutationType
+\f4\fs20  object or an 
+\f3\fs18 integer
+\f4\fs20  identifier).  Parameter 
+\f3\fs18 position
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a base position for the mutations to be returned.  Parameter 
+\f3\fs18 nucleotide
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a nucleotide for the mutations to be returned (either as a string, 
+\f3\fs18 "A"
+\f4\fs20  / 
+\f3\fs18 "C"
+\f4\fs20  / 
+\f3\fs18 "G"
+\f4\fs20  / 
+\f3\fs18 "T"
+\f4\fs20 , or as an integer, 
+\f3\fs18 0
+\f4\fs20  / 
+\f3\fs18 1
+\f4\fs20  / 
+\f3\fs18 2
+\f4\fs20  / 
+\f3\fs18 3
+\f4\fs20  respectively).  Parameter 
+\f3\fs18 tag
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a tag value for the mutations to be returned.  Parameter 
+\f3\fs18 id
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a required value for the 
+\f3\fs18 id
+\f4\fs20  property of the mutations to be returned.\
+This method is shorthand for getting the 
+\f3\fs18 mutations
+\f4\fs20  property of the subpopulation, and then using operator 
+\f3\fs18 []
+\f4\fs20  to select only mutations with the desired properties; besides being much simpler than the equivalent Eidos code, it is also much faster.  Note that if you only need to select on mutation type, the 
+\f3\fs18 mutationsOfType()
+\f4\fs20  method will be even faster.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 \'96\'a0(logical$)treeSeqCoalesced(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -6338,9 +6399,7 @@ Returns a vector of individuals, of size less than or equal to parameter
 \f3\fs18 tag
 \f4\fs20 , if non-
 \f3\fs18 NULL
-\f4\fs20 , may specify a tag value for the individuals to be drawn; only individuals whose 
-\f3\fs18 tag
-\f4\fs20  property matches this value will be candidates.  Parameters 
+\f4\fs20 , may specify a tag value for the individuals to be drawn.  Parameters 
 \f3\fs18 minAge
 \f4\fs20  and 
 \f3\fs18 maxAge
@@ -6613,9 +6672,7 @@ Returns a vector of individuals subset from the individuals in the target subpop
 \f3\fs18 tag
 \f4\fs20 , if non-
 \f3\fs18 NULL
-\f4\fs20 , may specify a tag value for the individuals to be returned; only individuals whose 
-\f3\fs18 tag
-\f4\fs20  property matches this value will be returned.  Parameters 
+\f4\fs20 , may specify a tag value for the individuals to be returned.  Parameters 
 \f3\fs18 minAge
 \f4\fs20  and 
 \f3\fs18 maxAge
