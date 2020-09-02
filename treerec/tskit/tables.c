@@ -6458,7 +6458,7 @@ simplifier_insert_input_roots(simplifier_t *self)
                     if (ret != 0) {
                         goto out;
                     }
-                    simplifier_map_mutations(self, input_id, x->left, x->right, x->node);
+                    simplifier_map_mutations(self, input_id, x->left, x->right, output_id);
                 }
                 x = x->next;
             }
