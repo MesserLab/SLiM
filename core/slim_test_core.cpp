@@ -1899,14 +1899,19 @@ void _RunSLiMEidosBlockTests(void)
 	
 	// mutation() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { return mut; } 100 { stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { stop(); } 100 { ; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation() { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation() { return mut; } 100 { stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation() { stop(); } 100 { ; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL) { return mut; } 100 { stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL) { stop(); } 100 { ; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1, p1) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1, p1) { return mut; } 100 { stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1, p1) { stop(); } 100 { ; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL, p1) { return T; } 100 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL, p1) { return mut; } 100 { stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(NULL, p1) { stop(); } 100 { ; }", __LINE__);
 	
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutation(m2) { stop(); } 100 { ; }", __LINE__);
@@ -1929,14 +1934,12 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return 1; } 100 { ; }", 1, 293, "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return 1.0; } 100 { ; }", 1, 293, "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return 'a'; } 100 { ; }", 1, 293, "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return mut; } 100 { ; }", 1, 293, "return value", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; ; } 100 { ; }", 1, 293, "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return NULL; } 100 { ; }", 1, 293, "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 1; } 100 { ; }", 1, 293, "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 1.0; } 100 { ; }", 1, 293, "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 'a'; } 100 { ; }", 1, 293, "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return mut; } 100 { ; }", 1, 293, "return value", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { mut; genome; element; originalNuc; parent; subpop; return T; } 100 { stop(); }", __LINE__);
 }
