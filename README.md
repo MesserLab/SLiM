@@ -7,7 +7,7 @@ It is strongly recommended that all end users of SLiM use the current release ve
 License
 ----------
 
-Copyright (c) 2016-2018 Philipp Messer.  All rights reserved.
+Copyright (c) 2016-2020 Philipp Messer.  All rights reserved.
 
 SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -38,29 +38,24 @@ To compile the development version from this repository, do:
 	cmake -DCMAKE_BUILD_TYPE=Release ../SLiM
 	make
 
-The resulting binaries (`slim` and `eidos`) will be located in the `SLiM_build` directory.
-You can name the build directory anything you wish; there is nothing magical about the name `SLiM_build`.
-Running `make install` will then attempt to install these to the default system directories,
-but this will probably fail unless you run it with root permissions (e.g., by doing `sudo make install`). 
-To explicitly tell cmake where to install the binaries, run:
+(You might do `make -j 10` or some such to speed up the build process by building with ten threads simultaneously.)  The resulting binaries (`slim` and `eidos`) will be located in the `SLiM_build` directory.  You can name the build directory anything you wish; there is nothing magical about the name `SLiM_build`.  Running `make install` will then attempt to install these to the default system directories, but this will probably fail unless you run it with root permissions (e.g., by doing `sudo make install`).   To explicitly tell cmake where to install the binaries, run:
 
 	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/path/to/install ../SLiM
 	make
 	make install
 
-where `/path/to/install` is the path where you want `slim` and `eidos` installed below 
-(they would be put in `/path/to/install/bin` in this example, analogous to the `--user` flag).
+where `/path/to/install` is the path where you want `slim` and `eidos` installed below (they would be put in `/path/to/install/bin` in this example, analogous to the `--user` flag).
 
-To update the build, in the `SLiM_build` directory run:
+To update the build (after a `git pull`, for example), in the `SLiM_build` directory run:
 
 	cmake -DCMAKE_BUILD_TYPE=Release ../SLiM
 	make
 
-To build the code with debug flags turned on (i.e., optimization turned off, debugging symbols turned on, and extra runtime checking enabled), run instead:
+To build a debug version of the code (i.e., optimization turned off, debugging symbols turned on, and extra runtime checking enabled), run instead:
 
 	cmake -DCMAKE_BUILD_TYPE=Debug ../SLiM
 	make
 
-This could be done in a separate directory to retain both versions of the build.
+This could be done in a separate build directory to retain both versions of the build.
 
-See the SLiM manual for more information about building and installing, including instructions on building SLiMgui under Xcode.  The manual and other SLiM stuff can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+See the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM stuff can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
