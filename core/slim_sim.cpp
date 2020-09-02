@@ -6297,7 +6297,7 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     }
 	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? true : false;
 	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? true : false;
-    std::string new_metadata_str = metadata.dump(4);
+    std::string new_metadata_str = metadata.dump();
 
     ret = tsk_table_collection_set_metadata(
             p_tables, new_metadata_str.c_str(), (tsk_size_t)new_metadata_str.length());
