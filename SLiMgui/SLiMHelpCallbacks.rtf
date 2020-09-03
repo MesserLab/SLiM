@@ -1149,10 +1149,11 @@ In addition to the standard SLiM globals, then, a
 \f3\fs18 Mutation
 \f2\fs22  replaces the proposed mutation (
 \f3\fs18 mut
-\f2\fs22 ) with the mutation returned; the offspring genomes being generated will contain the returned mutation.  The returned mutation must match the proposed mutation in position, mutation type, and nucleotide.  This provides a mechanism for a 
+\f2\fs22 ) with the mutation returned; the offspring genomes being generated will contain the returned mutation.  The returned mutation must match the proposed mutation in position and nucleotide.  This provides a mechanism for a 
 \f3\fs18 mutation()
 \f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The callback may perform a variety of actions related to the generated mutation.  The selection coefficient of the mutation can be changed with 
 \f3\fs18 setSelectionCoefficient()
 \f2\fs22 , and the mutation type of the mutation can be changed with 
