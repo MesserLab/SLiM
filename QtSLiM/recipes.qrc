@@ -63,7 +63,7 @@
         <file>recipes/Recipe 10.4.2 - Fitness as a function of population composition, Cultural effects on fitness.txt</file>
         <file>recipes/Recipe 10.4.3 - Fitness as a function of population composition, Kin selection and the green-beard effect.txt</file>
         <file>recipes/Recipe 10.5 - Changing selection coefficients with setSelectionCoeff().txt</file>
-        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations.txt</file>
+        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations I.txt</file>
         <file>recipes/Recipe 11.1 - Assortative mating.txt</file>
         <file>recipes/Recipe 11.2 - Sequential mate search I.txt</file>
         <file>recipes/Recipe 11.2 - Sequential mate search II.txt</file>
@@ -170,5 +170,6 @@
         <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models II.py</file>
         <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models III.py</file>
         <file>recipes/Recipe 18.14 - Modeling identity by state (IBS) (uniquing mutations with a mutation() callback).txt</file>
+        <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations II.txt</file>
     </qresource>
 </RCC>
