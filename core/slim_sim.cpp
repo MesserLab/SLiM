@@ -6406,7 +6406,55 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	//std::cout << "script hash: " << scriptHashString << std::endl;
 	
 	j["parameters"]["command"] = cli_params_;
-	j["parameters"]["model_type"] = (ModelType() == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF";
+
+    // note high overlap with WriteTreeSequenceMetadata
+    if (ModelType() == SLiMModelType::kModelTypeWF) {
+        j["parameters"]["model_type"] = "WF";
+        if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+            j["parameters"]["stage"] = "early";
+        } else {
+            assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
+            j["parameters"]["stage"] = "late";
+        }
+    } else {
+        assert(ModelType() == SLiMModelType::kModelTypeNonWF);
+        j["parameters"]["model_type"] = "nonWF";
+        if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+            j["parameters"]["stage"] = "early";
+        } else {
+            assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+            j["parameters"]["stage"] = "late";
+        }
+    }
+    if (spatial_dimensionality_ == 0) {
+        j["parameters"]["spatial_dimensionality"] = "";
+    } else if (spatial_dimensionality_ == 1) {
+        j["parameters"]["spatial_dimensionality"] = "x";
+    } else if (spatial_dimensionality_ == 2) {
+        j["parameters"]["spatial_dimensionality"] = "xy";
+    } else {
+        j["parameters"]["spatial_dimensionality"] = "xyz";
+    }
+    if (periodic_x_ & periodic_y_ & periodic_z_) {
+        j["parameters"]["spatial_periodicity"] = "xyz";
+    } else if (periodic_x_ & periodic_y_) {
+        j["parameters"]["spatial_periodicity"] = "xy";
+    } else if (periodic_x_ & periodic_z_) {
+        j["parameters"]["spatial_periodicity"] = "xz";
+    } else if (periodic_y_ & periodic_z_) {
+        j["parameters"]["spatial_periodicity"] = "yz";
+    } else if (periodic_x_) {
+        j["parameters"]["spatial_periodicity"] = "x";
+    } else if (periodic_y_) {
+        j["parameters"]["spatial_periodicity"] = "y";
+    } else if (periodic_z_) {
+        j["parameters"]["spatial_periodicity"] = "z";
+    } else {
+        j["parameters"]["spatial_periodicity"] = "";
+    }
+	j["parameters"]["separate_sexes"] = sex_enabled_ ? true : false;
+	j["parameters"]["nucleotide_based"] = nucleotide_based_ ? true : false;
+
 	if (p_include_model)
 		j["parameters"]["model"] = scriptString;				// made model optional in file_version 0.4
 	j["parameters"]["model_hash"] = scriptHashString;			// added model_hash in file_version 0.4
