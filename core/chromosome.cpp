@@ -762,6 +762,9 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 								// generation process into multiple mutation types on the other side (perhaps with different dominance coefficients, for example).  So I have relaxed the
 								// mutation type requirement here.  If the mutation type is changed in the replacement, we switch to running callbacks for the new mutation type, but we do not
 								// go back to the beginning; we're running callbacks in the order they were declared, and just switching which type we're running, mid-stream.
+								// BCH 4 September 2020: Peter has persuaded me to relax the nucleotide restriction as well.  If the user changes the nucleotide, it may produce surprising
+								// results (a mutation that doesn't change the nucleotide, like G->G, or a deviation from requested mutation-matrix probabilities), but that's the user's
+								// responsibility to deal with; it can be a useful thing to do, Peter thinks.
 								if (replacementMutation->position_ != p_mut->position_)
 									EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the position of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
 								if (replacementMutation->mutation_type_ptr_ != p_mut->mutation_type_ptr_)
@@ -769,8 +772,8 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 									//EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the mutation type of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
 									mutation_type_id = p_mut->mutation_type_ptr_->mutation_type_id_;
 								}
-								if (replacementMutation->nucleotide_ != p_mut->nucleotide_)
-									EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the nucleotide of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
+								//if (replacementMutation->nucleotide_ != p_mut->nucleotide_)
+								//	EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the nucleotide of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
 								
 								// It fits the bill, so replace the original proposed mutation with this new mutation; note we don't fix local_mut, it's about to go out of scope anyway
 								p_mut = replacementMutation;
