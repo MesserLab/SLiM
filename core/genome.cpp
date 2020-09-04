@@ -548,9 +548,6 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomePedigreeID:		// ACCELERATED
 		{
-			if (!subpop_->population_.sim_.PedigreesEnabled())
-				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
-			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genome_id_));
 		}
 		case gID_genomeType:
@@ -616,9 +613,6 @@ EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObjectElement 
 	if (value_index < p_values_size)
 	{
 		Genome *value = (Genome *)(p_values[value_index]);
-		
-		if (!value->subpop_->population_.sim_.PedigreesEnabled())
-			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->genome_id_, value_index);
 		++value_index;
@@ -1537,19 +1531,14 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	// vector of genomes there is no guarantee that the pairs of genomes here come from the same individuals.
 	if (p_genomes.size() > 0)
 	{
-		Genome *genome0 = p_genomes[0];
-		
-		if (genome0->subpop_->population_.sim_.PedigreesEnabled())
+		p_out << "##slimGenomePedigreeIDs=";
+		for (slim_popsize_t index = 0; index < (slim_popsize_t)p_genomes.size(); index++)
 		{
-			p_out << "##slimGenomePedigreeIDs=";
-			for (slim_popsize_t index = 0; index < (slim_popsize_t)p_genomes.size(); index++)
-			{
-				if (index > 0)
-					p_out << ",";
-				p_out << p_genomes[index]->genome_id_;
-			}
-			p_out << std::endl;
+			if (index > 0)
+				p_out << ",";
+			p_out << p_genomes[index]->genome_id_;
 		}
+		p_out << std::endl;
 	}
 	
 	// BCH 6 March 2019: Note that all of the INFO fields that provide per-mutation information have been

@@ -710,19 +710,16 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
 genomePedigreeID => (integer$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 If pedigree tracking is turned on with 
-\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , 
-\f3\fs18 genomePedigreeID
-\f4\fs20  is a unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 A unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
 \f3\fs18 genomePedigreeID
 \f4\fs20  of a given genome will be equal to either 
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
+\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomeType => (string$)\
@@ -1936,42 +1933,30 @@ In nonWF models, this flag is
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeID => (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-If pedigree tracking is turned on with 
-\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , 
-\f3\fs18 pedigreeID
-\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\
+\f4\fs20 \cf2 A unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeParentIDs => (integer)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-If pedigree tracking is turned on with 
-\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , 
-\f3\fs18 pedigreeParentIDs
-\f4\fs20  contains the values of 
+\f4\fs20 \cf2 Contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  If pedigree tracking is not on, this property is unavailable.  Parental values may be 
+\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  Parental values may be 
 \f3\fs18 -1
-\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\
+\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeGrandparentIDs => (integer)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-If pedigree tracking is turned on with 
-\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , 
-\f3\fs18 pedigreeGrandparentIDs
-\f4\fs20  contains the values of 
+\f4\fs20 \cf2 Contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  If pedigree tracking is not on, this property is unavailable.  Grandparental values may be 
+\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  Grandparental values may be 
 \f3\fs18 -1
-\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\
+\f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 sex => (string$)\
@@ -2268,12 +2253,11 @@ See the description of the
 \f5 \'a0
 \f3 individuals)
 \f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns a vector containing the degrees of relatedness between the receiver and each of the individuals in 
+\f4\fs20 \cf2 Returns a vector containing the degrees of relatedness between the receiver and each of the individuals in 
 \f3\fs18 individuals
-\f5\fs20 .
-\f4   The relatedness between 
+\f4\fs20 .  The relatedness between 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
@@ -2283,11 +2267,7 @@ See the description of the
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
-\f4\fs20  are actually the same individual; this facility works even if SLiM\'92s optional pedigree tracking is turned off (in which case all other relatedness values will be 
-\f3\fs18 0.0
-\f4\fs20 ).  Otherwise, if pedigree tracking is turned on with 
-\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , this method will use the pedigree information to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
+\f4\fs20  are actually the same individual.  Otherwise, this method will use the pedigree information described in section 24.6.1 to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
@@ -2305,15 +2285,15 @@ See the description of the
 \f3\fs18 0.5
 \f4\fs20 .  If even parental information is unavailable, then the relatedness is assumed to be 
 \f3\fs18 0.0
-\f5\fs20 .
-\f4   Again, however, if 
+\f4\fs20 .  Again, however, if 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
 \f4\fs20  are the same individual, the relatedness will be 
 \f3\fs18 1.0
-\f4\fs20  in all cases.\
-Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
+\f4\fs20  in all cases.\cf0 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

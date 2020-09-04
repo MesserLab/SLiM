@@ -226,16 +226,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 #endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabled())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
-			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
 		case gID_pedigreeParentIDs:
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeParentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
-			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
 			
 			vec->set_int_no_check(pedigree_p1_, 0);
@@ -245,9 +239,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_pedigreeGrandparentIDs:
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeGrandparentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
-			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
 			
 			vec->set_int_no_check(pedigree_g1_, 0);
@@ -497,9 +488,6 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObjectElement **
 	if (value_index < p_values_size)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
-		
-		if (!value->subpopulation_.population_.sim_.PedigreesEnabled())
-			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because neither pedigree recording nor tree-sequence recording has been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->pedigree_id_, value_index);
 		++value_index;
@@ -1061,17 +1049,11 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	EidosValue *individuals_value = p_arguments[0].get();
 	
 	int individuals_count = individuals_value->Count();
-	bool pedigree_tracking_enabled = subpopulation_.population_.sim_.PedigreesEnabledByUser();
 	
 	if (individuals_count == 1)
 	{
 		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(0, nullptr));
-		double relatedness;
-		
-		if (pedigree_tracking_enabled)
-			relatedness = RelatednessToIndividual(*ind);
-		else
-			relatedness = (ind == this) ? 1.0 : 0.0;
+		double relatedness = RelatednessToIndividual(*ind);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(relatedness));
 	}
@@ -1079,25 +1061,12 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(individuals_count);
 		
-		if (pedigree_tracking_enabled)
+		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			for (int value_index = 0; value_index < individuals_count; ++value_index)
-			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
-				double relatedness = RelatednessToIndividual(*ind);
-				
-				float_result->set_float_no_check(relatedness, value_index);
-			}
-		}
-		else
-		{
-			for (int value_index = 0; value_index < individuals_count; ++value_index)
-			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
-				double relatedness = (ind == this) ? 1.0 : 0.0;
-				
-				float_result->set_float_no_check(relatedness, value_index);
-			}
+			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+			double relatedness = RelatednessToIndividual(*ind);
+			
+			float_result->set_float_no_check(relatedness, value_index);
 		}
 		
 		return EidosValue_SP(float_result);

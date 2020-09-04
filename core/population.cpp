@@ -876,7 +876,6 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
 {
-	bool pedigrees_enabled = sim_.PedigreesEnabled();
 	bool recording_tree_sequence = sim_.RecordingTreeSequence();
 	bool prevent_incidental_selfing = sim_.PreventIncidentalSelfing();
 	bool sex_enabled = p_subpop.sex_enabled_;
@@ -1167,8 +1166,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						if (pedigrees_enabled)
-							new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1236,8 +1234,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						if (pedigrees_enabled)
-							new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1315,8 +1312,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_count];
 					new_child->migrant_ = false;
 					
-					if (pedigrees_enabled)
-						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+					new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1595,8 +1591,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					if (pedigrees_enabled)
-						new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
+					new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1664,8 +1659,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					if (pedigrees_enabled)
-						new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+					new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1794,8 +1788,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								if (pedigrees_enabled)
-									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1823,8 +1816,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								if (pedigrees_enabled)
-									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1866,8 +1858,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								if (pedigrees_enabled)
-									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1921,8 +1912,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								if (pedigrees_enabled)
-									new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)

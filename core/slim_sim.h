@@ -368,9 +368,7 @@ private:
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
-	bool pedigrees_enabled_ = false;
-	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
-	bool pedigrees_enabled_by_tree_seq_ = false;	// pedigree tracking has been forced on by tree-seq recording, which is not user-visible
+	//bool pedigrees_enabled_ = false;				// BCH 3 Sept. 2020: this flag is deprecated; pedigree tracking is now ALWAYS ENABLED
 	
 	// continuous space support
 	int spatial_dimensionality_ = 0;
@@ -564,8 +562,6 @@ public:
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &InteractionTypes(void)			{ return interaction_types_; }
 	
 	inline __attribute__((always_inline)) bool SexEnabled(void) const														{ return sex_enabled_; }
-	inline __attribute__((always_inline)) bool PedigreesEnabled(void) const													{ return pedigrees_enabled_; }
-	inline __attribute__((always_inline)) bool PedigreesEnabledByUser(void) const											{ return pedigrees_enabled_by_user_; }
 	inline __attribute__((always_inline)) bool PreventIncidentalSelfing(void) const											{ return prevent_incidental_selfing_; }
 	inline __attribute__((always_inline)) GenomeType ModeledChromosomeType(void) const										{ return modeled_chromosome_type_; }
 	inline __attribute__((always_inline)) double XDominanceCoefficient(void) const											{ return x_chromosome_dominance_coeff_; }

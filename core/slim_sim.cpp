@@ -7415,9 +7415,6 @@ void SLiMSim::TSXC_Enable(void)
 	running_treeseq_crosschecks_ = true;
 	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
 	
-	pedigrees_enabled_ = true;
-	pedigrees_enabled_by_tree_seq_ = true;
-	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
 

@@ -1130,7 +1130,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_argument_count, p_interpreter)
-	EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
+	//EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
 	EidosValue *arg_dimensionality_value = p_arguments[1].get();
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
 	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
@@ -1145,29 +1145,9 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions except initializeSLiMModelType()." << EidosTerminate();
 	
 	{
+		// BCH 3 Sept. 2020: this flag is deprecated; pedigree tracking is now ALWAYS ENABLED
 		// [logical$ keepPedigrees = F]
-		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
-		
-		if (keep_pedigrees)
-		{
-			// pedigree recording can always be turned on by the user
-			pedigrees_enabled_ = true;
-			pedigrees_enabled_by_user_ = true;
-		}
-		else	// !keep_pedigrees
-		{
-			if (pedigrees_enabled_by_tree_seq_)
-			{
-				// if pedigrees were forced on by tree-seq recording, they stay on, but we remember that the user wanted them off
-				pedigrees_enabled_by_user_ = false;
-			}
-			else
-			{
-				// otherwise, the user can turn them off if so desired
-				pedigrees_enabled_ = false;
-				pedigrees_enabled_by_user_ = false;
-			}
-		}
+		//bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
 	}
 	
 	{
@@ -1250,13 +1230,6 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		output_stream << "initializeSLiMOptions(";
 		
 		bool previous_params = false;
-		
-		if (pedigrees_enabled_by_user_)
-		{
-			if (previous_params) output_stream << ", ";
-			output_stream << "keepPedigrees = " << (pedigrees_enabled_by_user_ ? "T" : "F");
-			previous_params = true;
-		}
 		
 		if (spatial_dimensionality_ != 0)
 		{
@@ -1381,11 +1354,6 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 		if (simplification_interval_ <= 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires simplificationInterval to be > 0." << EidosTerminate();
 	}
-	
-	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
-	// have unique identifiers for every individual; pedigree recording does that for us
-	pedigrees_enabled_ = true;
-	pedigrees_enabled_by_tree_seq_ = true;
 	
 	if (SLiM_verbosity_level >= 1)
 	{
