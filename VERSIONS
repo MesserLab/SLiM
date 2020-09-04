@@ -40,6 +40,7 @@ development head:
 	add subsetMutations() method on SLiMSim for fast lookup of specific mutations
 	add new recipe 18.14: "modeling identity by state (IBS): uniquing new mutations down with a mutation() callback"
 	add new recipe 10.6 II - Varying the dominance coefficient among mutations II
+	policy change: originGeneration can no longer be used as scratch; it must be set to the current generation when a mutation is created
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

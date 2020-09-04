@@ -2584,7 +2584,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	if (arg_origin_gen->Type() == EidosValueType::kValueNULL)
 		singleton_origin_generation = sim.Generation();
 	else
+	{
 		singleton_origin_generation = SLiMCastToGenerationTypeOrRaise(arg_origin_gen->IntAtIndex(0, nullptr));
+		
+		// BCH 3 Sept. 2020: We now require that originGeneration equal the current generation, for time consistency when tree-seq recording; it cannot be used as scratch space
+		if (singleton_origin_generation != sim.Generation())
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " now requires that originGeneration be equal to the current generation (or NULL); it may no longer be used as scratch space." << EidosTerminate();
+	}
 	
 	slim_objectid_t singleton_origin_subpop_id;
 	
@@ -2657,7 +2663,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				}
 				
 				if (origin_gen_count != 1)
+				{
 					origin_generation = SLiMCastToGenerationTypeOrRaise(arg_origin_gen->IntAtIndex(mut_parameter_index, nullptr));
+					
+					// BCH 3 Sept. 2020: We now require that originGeneration equal the current generation, for time consistency when tree-seq recording; it cannot be used as scratch space
+					if (origin_generation != sim.Generation())
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " now requires that originGeneration be equal to the current generation (or NULL); it may no longer be used as scratch space." << EidosTerminate();
+				}
 				
 				if (origin_subpop_count != 1)
 				{
