@@ -638,8 +638,8 @@ int Chromosome::DrawSortedUniquedMutationPositions(int p_count, IndividualSex p_
 		}
 		else
 		{
-			std::sort(p_positions.begin(), p_positions.end(), [](const std::pair<slim_position_t, GenomicElement *> &p1, const std::pair<slim_position_t, GenomicElement *> &p2) { return p1.second < p2.second; });
-			auto unique_iter = std::unique(p_positions.begin(), p_positions.end(), [](const std::pair<slim_position_t, GenomicElement *> &p1, const std::pair<slim_position_t, GenomicElement *> &p2) { return p1.second == p2.second; });
+			std::sort(p_positions.begin(), p_positions.end(), [](const std::pair<slim_position_t, GenomicElement *> &p1, const std::pair<slim_position_t, GenomicElement *> &p2) { return p1.first < p2.first; });
+			auto unique_iter = std::unique(p_positions.begin(), p_positions.end(), [](const std::pair<slim_position_t, GenomicElement *> &p1, const std::pair<slim_position_t, GenomicElement *> &p2) { return p1.first == p2.first; });
 			p_positions.resize(std::distance(p_positions.begin(), unique_iter));
 		}
 	}
