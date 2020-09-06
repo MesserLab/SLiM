@@ -121,8 +121,8 @@ void _RunInitTests(void)
 	// Test (void)initializeMutationRate(numeric$ rate)
 	SLiMAssertScriptStop("initialize() { initializeMutationRate(0.0); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationRate(); stop(); }", 1, 15, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationRate(-0.0000001); stop(); }", 1, 15, "requires rates to be >= 0", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeMutationRate(10000000); stop(); }", __LINE__);														// legal; no maximum rate
+	SLiMAssertScriptRaise("initialize() { initializeMutationRate(-0.0000001); stop(); }", 1, 15, "requires rates to be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationRate(10000000); stop(); }", 1, 15, "requires rates to be", __LINE__);	// no longer legal, in SLiM 3.5
 	
 	// Test (void)initializeRecombinationRate(numeric rates, [integer ends])
 	SLiMAssertScriptStop("initialize() { initializeRecombinationRate(0.0); stop(); }", __LINE__);														// legal: singleton rate, no end

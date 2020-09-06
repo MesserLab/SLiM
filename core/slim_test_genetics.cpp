@@ -388,7 +388,7 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(0.0); stop(); }", __LINE__);														// legal: singleton rate, no end
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(); stop(); }", 1, 240, "missing required argument", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(-0.00001); stop(); }", 1, 240, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(10000); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(10000); stop(); }", 1, 240, "rate is >= 1.0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(c(0.0, 0.1), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(c(0.0, 0.001), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { ch = sim.chromosome; ch.setMutationRate(c(0.0, 0.1)); stop(); }", 1, 240, "to be a singleton if", __LINE__);
@@ -415,7 +415,7 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(0.0); stop(); }", __LINE__);														// legal: singleton rate, no end
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(); stop(); }", 1, 260, "missing required argument", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(-0.00001); stop(); }", 1, 260, "out of range", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(10000); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(10000); stop(); }", 1, 260, "rate is >= 1.0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(c(0.0, 0.1), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(c(0.0, 0.001), c(1000, 99999)); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { ch = sim.chromosome; ch.setMutationRate(c(0.0, 0.1)); stop(); }", 1, 260, "to be a singleton if", __LINE__);

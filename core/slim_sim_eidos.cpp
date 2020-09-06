@@ -981,8 +981,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 		double mutation_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
-		if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
+		if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0.0 and < 1.0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -1008,8 +1008,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
-			if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
+			if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0.0 and < 1.0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
 		}
 		
 		// then adopt them
