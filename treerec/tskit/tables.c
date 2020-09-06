@@ -602,16 +602,10 @@ tsk_individual_table_print_state(tsk_individual_table_t *self, FILE *out)
     }
 }
 
-int
-tsk_individual_table_get_row(
+static inline void
+tsk_individual_table_get_row_unsafe(
     tsk_individual_table_t *self, tsk_id_t index, tsk_individual_t *row)
 {
-    int ret = 0;
-
-    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
-        ret = TSK_ERR_INDIVIDUAL_OUT_OF_BOUNDS;
-        goto out;
-    }
     row->id = (tsk_id_t) index;
     row->flags = self->flags[index];
     row->location_length
@@ -624,6 +618,19 @@ tsk_individual_table_get_row(
      * See also site. */
     row->nodes_length = 0;
     row->nodes = NULL;
+}
+
+int
+tsk_individual_table_get_row(
+    tsk_individual_table_t *self, tsk_id_t index, tsk_individual_t *row)
+{
+    int ret = 0;
+
+    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
+        ret = TSK_ERR_INDIVIDUAL_OUT_OF_BOUNDS;
+        goto out;
+    }
+    tsk_individual_table_get_row_unsafe(self, index, row);
 out:
     return ret;
 }
@@ -1172,6 +1179,19 @@ tsk_node_table_equals(tsk_node_table_t *self, tsk_node_table_t *other)
     return ret;
 }
 
+static inline void
+tsk_node_table_get_row_unsafe(tsk_node_table_t *self, tsk_id_t index, tsk_node_t *row)
+{
+    row->id = (tsk_id_t) index;
+    row->flags = self->flags[index];
+    row->time = self->time[index];
+    row->population = self->population[index];
+    row->individual = self->individual[index];
+    row->metadata_length
+        = self->metadata_offset[index + 1] - self->metadata_offset[index];
+    row->metadata = self->metadata + self->metadata_offset[index];
+}
+
 int
 tsk_node_table_get_row(tsk_node_table_t *self, tsk_id_t index, tsk_node_t *row)
 {
@@ -1181,14 +1201,7 @@ tsk_node_table_get_row(tsk_node_table_t *self, tsk_id_t index, tsk_node_t *row)
         ret = TSK_ERR_NODE_OUT_OF_BOUNDS;
         goto out;
     }
-    row->id = (tsk_id_t) index;
-    row->flags = self->flags[index];
-    row->time = self->time[index];
-    row->population = self->population[index];
-    row->individual = self->individual[index];
-    row->metadata_length
-        = self->metadata_offset[index + 1] - self->metadata_offset[index];
-    row->metadata = self->metadata + self->metadata_offset[index];
+    tsk_node_table_get_row_unsafe(self, index, row);
 out:
     return ret;
 }
@@ -1576,6 +1589,38 @@ tsk_edge_table_free(tsk_edge_table_t *self)
     return 0;
 }
 
+static inline void
+tsk_edge_table_get_row_unsafe(tsk_edge_table_t *self, tsk_id_t index, tsk_edge_t *row)
+{
+    row->id = (tsk_id_t) index;
+    row->left = self->left[index];
+    row->right = self->right[index];
+    row->parent = self->parent[index];
+    row->child = self->child[index];
+    if (tsk_edge_table_has_metadata(self)) {
+        row->metadata_length
+            = self->metadata_offset[index + 1] - self->metadata_offset[index];
+        row->metadata = self->metadata + self->metadata_offset[index];
+    } else {
+        row->metadata_length = 0;
+        row->metadata = NULL;
+    }
+}
+
+int
+tsk_edge_table_get_row(tsk_edge_table_t *self, tsk_id_t index, tsk_edge_t *row)
+{
+    int ret = 0;
+
+    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
+        ret = TSK_ERR_EDGE_OUT_OF_BOUNDS;
+        goto out;
+    }
+    tsk_edge_table_get_row_unsafe(self, index, row);
+out:
+    return ret;
+}
+
 void
 tsk_edge_table_print_state(tsk_edge_table_t *self, FILE *out)
 {
@@ -1620,7 +1665,7 @@ tsk_edge_table_dump_text(tsk_edge_table_t *self, FILE *out)
         goto out;
     }
     for (j = 0; j < (tsk_id_t) self->num_rows; j++) {
-        tsk_edge_table_get_row(self, j, &row);
+        tsk_edge_table_get_row_unsafe(self, j, &row);
         err = fprintf(out, "%d\t%.3f\t%.3f\t%d\t%d\t%.*s\n", j, row.left, row.right,
             row.parent, row.child, row.metadata_length, row.metadata);
         if (err < 0) {
@@ -1667,32 +1712,6 @@ tsk_edge_table_equals(tsk_edge_table_t *self, tsk_edge_table_t *other)
                      self->metadata_schema_length * sizeof(char))
                      == 0;
     }
-    return ret;
-}
-
-int
-tsk_edge_table_get_row(tsk_edge_table_t *self, tsk_id_t index, tsk_edge_t *row)
-{
-    int ret = 0;
-
-    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
-        ret = TSK_ERR_EDGE_OUT_OF_BOUNDS;
-        goto out;
-    }
-    row->id = (tsk_id_t) index;
-    row->left = self->left[index];
-    row->right = self->right[index];
-    row->parent = self->parent[index];
-    row->child = self->child[index];
-    if (tsk_edge_table_has_metadata(self)) {
-        row->metadata_length
-            = self->metadata_offset[index + 1] - self->metadata_offset[index];
-        row->metadata = self->metadata + self->metadata_offset[index];
-    } else {
-        row->metadata_length = 0;
-        row->metadata = NULL;
-    }
-out:
     return ret;
 }
 
@@ -2221,15 +2240,9 @@ tsk_site_table_print_state(tsk_site_table_t *self, FILE *out)
     assert(self->metadata_length == self->metadata_offset[self->num_rows]);
 }
 
-int
-tsk_site_table_get_row(tsk_site_table_t *self, tsk_id_t index, tsk_site_t *row)
+static inline void
+tsk_site_table_get_row_unsafe(tsk_site_table_t *self, tsk_id_t index, tsk_site_t *row)
 {
-    int ret = 0;
-
-    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
-        ret = TSK_ERR_SITE_OUT_OF_BOUNDS;
-        goto out;
-    }
     row->id = (tsk_id_t) index;
     row->position = self->position[index];
     row->ancestral_state_length
@@ -2242,6 +2255,18 @@ tsk_site_table_get_row(tsk_site_table_t *self, tsk_id_t index, tsk_site_t *row)
      * structs for this (tsk_site_table_row_t?) */
     row->mutations_length = 0;
     row->mutations = NULL;
+}
+
+int
+tsk_site_table_get_row(tsk_site_table_t *self, tsk_id_t index, tsk_site_t *row)
+{
+    int ret = 0;
+
+    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
+        ret = TSK_ERR_SITE_OUT_OF_BOUNDS;
+        goto out;
+    }
+    tsk_site_table_get_row_unsafe(self, index, row);
 out:
     return ret;
 }
@@ -2796,16 +2821,10 @@ tsk_mutation_table_print_state(tsk_mutation_table_t *self, FILE *out)
     assert(self->metadata_length == self->metadata_offset[self->num_rows]);
 }
 
-int
-tsk_mutation_table_get_row(
+static inline void
+tsk_mutation_table_get_row_unsafe(
     tsk_mutation_table_t *self, tsk_id_t index, tsk_mutation_t *row)
 {
-    int ret = 0;
-
-    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
-        ret = TSK_ERR_MUTATION_OUT_OF_BOUNDS;
-        goto out;
-    }
     row->id = (tsk_id_t) index;
     row->site = self->site[index];
     row->node = self->node[index];
@@ -2817,6 +2836,19 @@ tsk_mutation_table_get_row(
     row->metadata_length
         = self->metadata_offset[index + 1] - self->metadata_offset[index];
     row->metadata = self->metadata + self->metadata_offset[index];
+}
+
+int
+tsk_mutation_table_get_row(
+    tsk_mutation_table_t *self, tsk_id_t index, tsk_mutation_t *row)
+{
+    int ret = 0;
+
+    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
+        ret = TSK_ERR_MUTATION_OUT_OF_BOUNDS;
+        goto out;
+    }
+    tsk_mutation_table_get_row_unsafe(self, index, row);
 out:
     return ret;
 }
@@ -3257,16 +3289,10 @@ tsk_migration_table_print_state(tsk_migration_table_t *self, FILE *out)
     assert(ret == 0);
 }
 
-int
-tsk_migration_table_get_row(
+static inline void
+tsk_migration_table_get_row_unsafe(
     tsk_migration_table_t *self, tsk_id_t index, tsk_migration_t *row)
 {
-    int ret = 0;
-
-    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
-        ret = TSK_ERR_MIGRATION_OUT_OF_BOUNDS;
-        goto out;
-    }
     row->id = (tsk_id_t) index;
     row->left = self->left[index];
     row->right = self->right[index];
@@ -3277,6 +3303,19 @@ tsk_migration_table_get_row(
     row->metadata_length
         = self->metadata_offset[index + 1] - self->metadata_offset[index];
     row->metadata = self->metadata + self->metadata_offset[index];
+}
+
+int
+tsk_migration_table_get_row(
+    tsk_migration_table_t *self, tsk_id_t index, tsk_migration_t *row)
+{
+    int ret = 0;
+
+    if (index < 0 || index >= (tsk_id_t) self->num_rows) {
+        ret = TSK_ERR_MIGRATION_OUT_OF_BOUNDS;
+        goto out;
+    }
+    tsk_migration_table_get_row_unsafe(self, index, row);
 out:
     return ret;
 }
@@ -3696,6 +3735,16 @@ tsk_population_table_print_state(tsk_population_table_t *self, FILE *out)
     assert(self->metadata_offset[self->num_rows] == self->metadata_length);
 }
 
+static inline void
+tsk_population_table_get_row_unsafe(
+    tsk_population_table_t *self, tsk_id_t index, tsk_population_t *row)
+{
+    row->id = (tsk_id_t) index;
+    row->metadata_length
+        = self->metadata_offset[index + 1] - self->metadata_offset[index];
+    row->metadata = self->metadata + self->metadata_offset[index];
+}
+
 int
 tsk_population_table_get_row(
     tsk_population_table_t *self, tsk_id_t index, tsk_population_t *row)
@@ -3706,10 +3755,7 @@ tsk_population_table_get_row(
         ret = TSK_ERR_POPULATION_OUT_OF_BOUNDS;
         goto out;
     }
-    row->id = (tsk_id_t) index;
-    row->metadata_length
-        = self->metadata_offset[index + 1] - self->metadata_offset[index];
-    row->metadata = self->metadata + self->metadata_offset[index];
+    tsk_population_table_get_row_unsafe(self, index, row);
 out:
     return ret;
 }
@@ -4177,6 +4223,18 @@ tsk_provenance_table_print_state(tsk_provenance_table_t *self, FILE *out)
     assert(self->record_offset[self->num_rows] == self->record_length);
 }
 
+static inline void
+tsk_provenance_table_get_row_unsafe(
+    tsk_provenance_table_t *self, tsk_id_t index, tsk_provenance_t *row)
+{
+    row->id = (tsk_id_t) index;
+    row->timestamp_length
+        = self->timestamp_offset[index + 1] - self->timestamp_offset[index];
+    row->timestamp = self->timestamp + self->timestamp_offset[index];
+    row->record_length = self->record_offset[index + 1] - self->record_offset[index];
+    row->record = self->record + self->record_offset[index];
+}
+
 int
 tsk_provenance_table_get_row(
     tsk_provenance_table_t *self, tsk_id_t index, tsk_provenance_t *row)
@@ -4187,12 +4245,7 @@ tsk_provenance_table_get_row(
         ret = TSK_ERR_PROVENANCE_OUT_OF_BOUNDS;
         goto out;
     }
-    row->id = (tsk_id_t) index;
-    row->timestamp_length
-        = self->timestamp_offset[index + 1] - self->timestamp_offset[index];
-    row->timestamp = self->timestamp + self->timestamp_offset[index];
-    row->record_length = self->record_offset[index + 1] - self->record_offset[index];
-    row->record = self->record + self->record_offset[index];
+    tsk_provenance_table_get_row_unsafe(self, index, row);
 out:
     return ret;
 }
@@ -4451,10 +4504,7 @@ tsk_table_sorter_sort_sites(tsk_table_sorter_t *self)
         goto out;
     }
     for (j = 0; j < num_sites; j++) {
-        ret = tsk_site_table_get_row(&copy, (tsk_id_t) j, sorted_sites + j);
-        if (ret != 0) {
-            goto out;
-        }
+        tsk_site_table_get_row_unsafe(&copy, (tsk_id_t) j, sorted_sites + j);
     }
 
     /* Sort the sites by position */
@@ -4501,10 +4551,7 @@ tsk_table_sorter_sort_mutations(tsk_table_sorter_t *self)
     }
 
     for (j = 0; j < num_mutations; j++) {
-        ret = tsk_mutation_table_get_row(&copy, (tsk_id_t) j, sorted_mutations + j);
-        if (ret != 0) {
-            goto out;
-        }
+        tsk_mutation_table_get_row_unsafe(&copy, (tsk_id_t) j, sorted_mutations + j);
         sorted_mutations[j].site = self->site_id_map[sorted_mutations[j].site];
     }
     ret = tsk_mutation_table_clear(mutations);
@@ -5556,10 +5603,7 @@ simplifier_record_node(simplifier_t *self, tsk_id_t input_id, bool is_sample)
     tsk_node_t node;
     tsk_flags_t flags;
 
-    ret = tsk_node_table_get_row(&self->input_tables.nodes, (tsk_id_t) input_id, &node);
-    if (ret != 0) {
-        goto out;
-    }
+    tsk_node_table_get_row_unsafe(&self->input_tables.nodes, (tsk_id_t) input_id, &node);
     /* Zero out the sample bit */
     flags = node.flags & (tsk_flags_t) ~TSK_NODE_IS_SAMPLE;
     if (is_sample) {
@@ -5568,7 +5612,6 @@ simplifier_record_node(simplifier_t *self, tsk_id_t input_id, bool is_sample)
     self->node_id_map[input_id] = (tsk_id_t) self->tables->nodes.num_rows;
     ret = tsk_node_table_add_row(&self->tables->nodes, flags, node.time, node.population,
         node.individual, node.metadata, node.metadata_length);
-out:
     return ret;
 }
 
@@ -6207,11 +6250,8 @@ simplifier_output_sites(simplifier_t *self)
     input_mutation = 0;
     num_output_mutations = 0;
     for (input_site = 0; input_site < num_input_sites; input_site++) {
-        ret = tsk_site_table_get_row(
+        tsk_site_table_get_row_unsafe(
             &self->input_tables.sites, (tsk_id_t) input_site, &site);
-        if (ret != 0) {
-            goto out;
-        }
         site_start = input_mutation;
         num_output_site_mutations = 0;
         while (input_mutation < num_input_mutations
@@ -6247,11 +6287,8 @@ simplifier_output_sites(simplifier_t *self)
                     if (mapped_parent != TSK_NULL) {
                         mapped_parent = self->mutation_id_map[mapped_parent];
                     }
-                    ret = tsk_mutation_table_get_row(&self->input_tables.mutations,
+                    tsk_mutation_table_get_row_unsafe(&self->input_tables.mutations,
                         (tsk_id_t) input_mutation, &mutation);
-                    if (ret != 0) {
-                        goto out;
-                    }
                     ret = tsk_mutation_table_add_row(&self->tables->mutations,
                         (tsk_id_t) self->tables->sites.num_rows, mapped_node,
                         mapped_parent, mutation.time, mutation.derived_state,
@@ -6334,11 +6371,8 @@ simplifier_finalise_references(simplifier_t *self)
         }
     }
     for (j = 0; j < num_populations; j++) {
-        ret = tsk_population_table_get_row(
+        tsk_population_table_get_row_unsafe(
             &self->input_tables.populations, (tsk_id_t) j, &pop);
-        if (ret != 0) {
-            goto out;
-        }
         keep = true;
         if (filter_populations && !population_referenced[j]) {
             keep = false;
@@ -6355,11 +6389,8 @@ simplifier_finalise_references(simplifier_t *self)
     }
 
     for (j = 0; j < num_individuals; j++) {
-        ret = tsk_individual_table_get_row(
+        tsk_individual_table_get_row_unsafe(
             &self->input_tables.individuals, (tsk_id_t) j, &ind);
-        if (ret != 0) {
-            goto out;
-        }
         keep = true;
         if (filter_individuals && !individual_referenced[j]) {
             keep = false;
@@ -6458,7 +6489,8 @@ simplifier_insert_input_roots(simplifier_t *self)
                     if (ret != 0) {
                         goto out;
                     }
-                    simplifier_map_mutations(self, input_id, x->left, x->right, output_id);
+                    simplifier_map_mutations(
+                        self, input_id, x->left, x->right, output_id);
                 }
                 x = x->next;
             }
@@ -8045,10 +8077,7 @@ tsk_table_collection_deduplicate_sites(
     last_row.position = -1;
     site_id_map[0] = 0;
     for (j = 0; j < copy.num_rows; j++) {
-        ret = tsk_site_table_get_row(&copy, (tsk_id_t) j, &row);
-        if (ret != 0) {
-            goto out;
-        }
+        tsk_site_table_get_row_unsafe(&copy, (tsk_id_t) j, &row);
         if (row.position != last_row.position) {
             ret = tsk_site_table_add_row(&self->sites, row.position, row.ancestral_state,
                 row.ancestral_state_length, row.metadata, row.metadata_length);
@@ -8404,7 +8433,11 @@ tsk_table_collection_add_and_remap_node(tsk_table_collection_t *self,
     new_ind = TSK_NULL;
     if (node.individual != TSK_NULL) {
         if (individual_map[node.individual] == TSK_NULL) {
-            tsk_individual_table_get_row(&other->individuals, node.individual, &ind);
+            ret = tsk_individual_table_get_row(
+                &other->individuals, node.individual, &ind);
+            if (ret < 0) {
+                goto out;
+            }
             ret = tsk_individual_table_add_row(&self->individuals, ind.flags,
                 ind.location, ind.location_length, ind.metadata, ind.metadata_length);
             if (ret < 0) {
@@ -8421,7 +8454,11 @@ tsk_table_collection_add_and_remap_node(tsk_table_collection_t *self,
             population_map[node.population] = node.population;
         }
         if (population_map[node.population] == TSK_NULL) {
-            tsk_population_table_get_row(&other->populations, node.population, &pop);
+            ret = tsk_population_table_get_row(
+                &other->populations, node.population, &pop);
+            if (ret < 0) {
+                goto out;
+            }
             ret = tsk_population_table_add_row(
                 &self->populations, pop.metadata, pop.metadata_length);
             if (ret < 0) {
@@ -8498,7 +8535,7 @@ tsk_table_collection_subset(
 
     // edges
     for (k = 0; k < (tsk_id_t) tables.edges.num_rows; k++) {
-        tsk_edge_table_get_row(&tables.edges, k, &edge);
+        tsk_edge_table_get_row_unsafe(&tables.edges, k, &edge);
         new_parent = node_map[edge.parent];
         new_child = node_map[edge.child];
         if ((new_parent != TSK_NULL) && (new_child != TSK_NULL)) {
@@ -8513,10 +8550,10 @@ tsk_table_collection_subset(
     // mutations and sites
     i = 0;
     for (k = 0; k < (tsk_id_t) tables.sites.num_rows; k++) {
-        tsk_site_table_get_row(&tables.sites, k, &site);
+        tsk_site_table_get_row_unsafe(&tables.sites, k, &site);
         while ((i < (tsk_id_t) tables.mutations.num_rows)
                && (tables.mutations.site[i] == site.id)) {
-            tsk_mutation_table_get_row(&tables.mutations, i, &mut);
+            tsk_mutation_table_get_row_unsafe(&tables.mutations, i, &mut);
             new_node = node_map[mut.node];
             if (new_node != TSK_NULL) {
                 if (site_map[site.id] == TSK_NULL) {
@@ -8710,7 +8747,7 @@ tsk_table_collection_union(tsk_table_collection_t *self, tsk_table_collection_t 
 
     // edges
     for (k = 0; k < (tsk_id_t) other->edges.num_rows; k++) {
-        tsk_edge_table_get_row(&other->edges, k, &edge);
+        tsk_edge_table_get_row_unsafe(&other->edges, k, &edge);
         if ((other_node_mapping[edge.parent] == TSK_NULL)
             || (other_node_mapping[edge.child] == TSK_NULL)) {
             /* TODO: union does not support case where non-shared bits of
@@ -8735,10 +8772,10 @@ tsk_table_collection_union(tsk_table_collection_t *self, tsk_table_collection_t 
     // mutations and sites
     i = 0;
     for (k = 0; k < (tsk_id_t) other->sites.num_rows; k++) {
-        tsk_site_table_get_row(&other->sites, k, &site);
+        tsk_site_table_get_row_unsafe(&other->sites, k, &site);
         while ((i < (tsk_id_t) other->mutations.num_rows)
                && (other->mutations.site[i] == site.id)) {
-            tsk_mutation_table_get_row(&other->mutations, i, &mut);
+            tsk_mutation_table_get_row_unsafe(&other->mutations, i, &mut);
             if (other_node_mapping[mut.node] == TSK_NULL) {
                 if (site_map[site.id] == TSK_NULL) {
                     ret = tsk_site_table_add_row(&self->sites, site.position,
