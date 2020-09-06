@@ -552,6 +552,10 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 				slim_position_t subrange_end = std::min(end_of_mutrange, ge.end_position_);
 				slim_position_t subrange_length = subrange_end - subrange_start + 1;
 				double requested_rate = p_rates[mutrange_index];
+				
+				if (requested_rate >= 1.0)
+					EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): requested mutation rate is >= 1.0." << EidosTerminate();
+				
 				double adjusted_rate = -log1p(-requested_rate);
 				double requested_subrange_weight = requested_rate * subrange_length;
 				double adjusted_subrange_weight = adjusted_rate * subrange_length;
