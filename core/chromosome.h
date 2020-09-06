@@ -135,6 +135,10 @@ public:
 	double overall_mutation_rate_M_;						// overall mutation rate
 	double overall_mutation_rate_F_;						// overall mutation rate
 	
+	double overall_mutation_rate_H_userlevel_;				// requested (un-adjusted) overall mutation rate (AFTER intersection with GEs)
+	double overall_mutation_rate_M_userlevel_;				// requested (un-adjusted) overall mutation rate
+	double overall_mutation_rate_F_userlevel_;				// requested (un-adjusted) overall mutation rate
+	
 	double overall_recombination_rate_H_;					// overall recombination rate (reparameterized; see _InitializeOneRecombinationMap)
 	double overall_recombination_rate_M_;					// overall recombination rate (reparameterized; see _InitializeOneRecombinationMap)
 	double overall_recombination_rate_F_;					// overall recombination rate (reparameterized; see _InitializeOneRecombinationMap)
@@ -180,7 +184,7 @@ public:
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void InitializeDraws(void);
 	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel);
-	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges);
+	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_requested_overall_rate, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges);
 	void ChooseMutationRunLayout(int p_preferred_count);
 	
 	inline bool UsingSingleRecombinationMap(void) const { return single_recombination_map_; }

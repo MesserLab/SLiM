@@ -76,6 +76,7 @@ Chromosome::Chromosome(SLiMSim *p_sim) :
 	
 	last_position_(0),
 	overall_mutation_rate_H_(0.0), overall_mutation_rate_M_(0.0), overall_mutation_rate_F_(0.0),
+	overall_mutation_rate_H_userlevel_(0.0), overall_mutation_rate_M_userlevel_(0.0), overall_mutation_rate_F_userlevel_(0.0),
 	overall_recombination_rate_H_(0.0), overall_recombination_rate_M_(0.0), overall_recombination_rate_F_(0.0),
 	overall_recombination_rate_H_userlevel_(0.0), overall_recombination_rate_M_userlevel_(0.0), overall_recombination_rate_F_userlevel_(0.0),
 	using_DSB_model_(false), non_crossover_fraction_(0.0), gene_conversion_avg_length_(0.0), gene_conversion_inv_half_length_(0.0), simple_conversion_fraction_(0.0), mismatch_repair_bias_(0.0),
@@ -203,16 +204,17 @@ void Chromosome::InitializeDraws(void)
 	// Now remake our mutation map info, which we delegate to _InitializeOneMutationMap()
 	if (single_mutation_map_)
 	{
-		_InitializeOneMutationMap(lookup_mutation_H_, mutation_end_positions_H_, mutation_rates_H_, overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_, mutation_subranges_H_);
+		_InitializeOneMutationMap(lookup_mutation_H_, mutation_end_positions_H_, mutation_rates_H_, overall_mutation_rate_H_userlevel_, overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_, mutation_subranges_H_);
 		
 		// Copy the H rates into the M and F ivars, so that they can be used by DrawMutationAndBreakpointCounts() if needed
+		overall_mutation_rate_M_userlevel_ = overall_mutation_rate_F_userlevel_ = overall_mutation_rate_H_userlevel_;
 		overall_mutation_rate_M_ = overall_mutation_rate_F_ = overall_mutation_rate_H_;
 		exp_neg_overall_mutation_rate_M_ = exp_neg_overall_mutation_rate_F_ = exp_neg_overall_mutation_rate_H_;
 	}
 	else
 	{
-		_InitializeOneMutationMap(lookup_mutation_M_, mutation_end_positions_M_, mutation_rates_M_, overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_, mutation_subranges_M_);
-		_InitializeOneMutationMap(lookup_mutation_F_, mutation_end_positions_F_, mutation_rates_F_, overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_, mutation_subranges_F_);
+		_InitializeOneMutationMap(lookup_mutation_M_, mutation_end_positions_M_, mutation_rates_M_, overall_mutation_rate_M_userlevel_, overall_mutation_rate_M_, exp_neg_overall_mutation_rate_M_, mutation_subranges_M_);
+		_InitializeOneMutationMap(lookup_mutation_F_, mutation_end_positions_F_, mutation_rates_F_, overall_mutation_rate_F_userlevel_, overall_mutation_rate_F_, exp_neg_overall_mutation_rate_F_, mutation_subranges_F_);
 	}
 	
 	// Now remake our recombination map info, which we delegate to _InitializeOneRecombinationMap()
@@ -475,7 +477,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, s
 }
 
 // initialize one mutation map, used internally by InitializeDraws() to avoid code duplication
-void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges)
+void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_requested_overall_rate, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges)
 {
 	// Patch the mutation interval end vector if it is empty; see setMutationRate() and initializeMutationRate().
 	// Basically, the length of the chromosome might not have been known yet when the user set the rate.
@@ -509,7 +511,20 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 	
 	std::sort(sorted_ge_vec.begin(), sorted_ge_vec.end(), [](GenomicElement *ge1, GenomicElement *ge2) {return ge1->start_position_ < ge2->start_position_;});
 	
-	std::vector<double> B;
+	// This code deals in two different currencies: *requested* mutation rates and *adjusted* mutation rates.
+	// This stems from the fact that, beginning in SLiM 3.5, we unique mutation positions as we're generating
+	// gametes.  This uniquing means that some drawn positions may be filtered out, resulting in a realized
+	// mutation rate that is lower than the requested rate (see section 22.2.3 in the manual for discussion).
+	// We want to compensate for this effect, so that the realized rate is equal to the requested rate.  To do
+	// that, we calculate adjusted rates that, after uniquing, will result in the requested rate.  However, we
+	// want to hide this implementation detail from the user; the rate they see in Eidos from Chromosome should
+	// be the same as the rate they requested originally, not the adjusted rate.  So we do calculations with
+	// both, so that we can satisfy that requirement.  The adjustment is done piecewise, so that the adjusted
+	// rate for each GESubrange is correct.  If we have a nucleotide-based matation matrix that leads to some
+	// rejection sampling, that will be based on the ratios of the original rates, but it will be done *after*
+	// positions have been drawn and uniqued, so that should also be correct, I think.  BCH 5 Sep. 2020
+	std::vector<double> A;	// a vector of requested subrange weights
+	std::vector<double> B;	// a vector of adjusted subrange weights
 	unsigned int mutrange_index = 0;
 	slim_position_t end_of_previous_mutrange = -1;
 	
@@ -536,9 +551,13 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 				slim_position_t subrange_start = std::max(end_of_previous_mutrange + 1, ge.start_position_);
 				slim_position_t subrange_end = std::min(end_of_mutrange, ge.end_position_);
 				slim_position_t subrange_length = subrange_end - subrange_start + 1;
-				double subrange_weight = p_rates[mutrange_index] * subrange_length;
+				double requested_rate = p_rates[mutrange_index];
+				double adjusted_rate = -log1p(-requested_rate);
+				double requested_subrange_weight = requested_rate * subrange_length;
+				double adjusted_subrange_weight = adjusted_rate * subrange_length;
 				
-				B.emplace_back(subrange_weight);
+				A.emplace_back(requested_subrange_weight);
+				B.emplace_back(adjusted_subrange_weight);
 				p_subranges.emplace_back(&ge, subrange_start, subrange_end);
 				
 				// Now we need to decide whether to advance ge_index or not; advancing mutrange_index here is not needed
@@ -550,6 +569,7 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 		}
 	}
 	
+	p_requested_overall_rate = Eidos_ExactSum(A.data(), A.size());
 	p_overall_rate = Eidos_ExactSum(B.data(), B.size());
 	
 #ifndef USE_GSL_POISSON
@@ -1496,7 +1516,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_H_userlevel_));
 		}
 		case gID_overallMutationRateM:
 		{
@@ -1504,7 +1524,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_M_userlevel_));
 		}
 		case gID_overallMutationRateF:
 		{
@@ -1512,7 +1532,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_F_userlevel_));
 		}
 			
 		case gID_overallRecombinationRate:
