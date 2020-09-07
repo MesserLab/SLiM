@@ -1113,6 +1113,19 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 	}
 #endif	// SLIM_WF_ONLY
+	
+	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	{
+		// OK, so.  When reading a nonWF tree-seq file, we get passed in a sex ratio that is the sex ratio of the individuals in the file.
+		// That's good, so the individuals that get created have the correct sex.  However, we want the sex ratio ivars in the subpop
+		// to have their default value of 0.0, ultimately; those variables are not supposed to be updated/accurate in nonWF models.  This
+		// fell through the cracks because, who cares if an undefined/unused variable has the wrong value?  But then we write out that
+		// non-zero value to the .trees file, and that was confusing Peter's test code.  So now we explicitly set the ivars to 0.0 here,
+		// now that we're done using the value.  This might also occur when a new subpop is created in a nonWF model; the initial sex ratio
+		// value might have been sticking around permanently in the ivar, even though it would not be accurate any more.  BCH 9/7/2020
+		parent_sex_ratio_ = 0.0;
+		child_sex_ratio_ = 0.0;
+	}
 }
 
 
