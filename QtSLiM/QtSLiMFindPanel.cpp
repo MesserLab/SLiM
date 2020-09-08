@@ -25,6 +25,7 @@
 #include <QApplication>
 #include <QSettings>
 #include <QClipboard>
+#include <QTextBlock>
 #include <QDebug>
 
 #include "QtSLiMAppDelegate.h"
@@ -400,6 +401,33 @@ void QtSLiMFindPanel::jumpToSelection(void)
     
     // restore the user's selection
     target->setTextCursor(savedCursor);
+}
+
+void QtSLiMFindPanel::jumpToLine(void)
+{
+    QTextEdit *target = targetTextEditRequireModifiable(false);
+    
+    int lineIndex = target->textCursor().block().blockNumber();
+    
+    QStringList choices = QtSLiMRunLineEditArrayDialog(target->window(), "Jump to Line:",
+                                                       QStringList{"Line number:"},
+                                                       QStringList{QString::number(lineIndex)});
+    
+    if (choices.length() == 1)
+    {
+        lineIndex = choices[0].toInt();
+        
+        if (lineIndex < 1) { lineIndex = 1; qApp->beep(); }
+        if (lineIndex > target->document()->blockCount()) { lineIndex = target->document()->blockCount(); qApp->beep(); }
+        
+        QTextCursor lineCursor(target->document());
+        
+        lineCursor.setPosition(0);
+        lineCursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor, lineIndex - 1);
+        
+        target->setTextCursor(lineCursor);
+        target->ensureCursorVisible();
+    }
 }
 
 void QtSLiMFindPanel::findBufferChanged(void)

@@ -1807,6 +1807,7 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *focusWidget)
     ui->actionUseSelectionForFind->setEnabled(hasFindTarget);
     ui->actionUseSelectionForReplace->setEnabled(hasFindTarget);
     ui->actionJumpToSelection->setEnabled(hasFindTarget);
+    ui->actionJumpToLine->setEnabled(hasFindTarget);
     
     findPanelInstance.fixEnableState();   // give it a chance to update its buttons whenever we update
 }

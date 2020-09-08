@@ -35,6 +35,7 @@
 #include <QCompleter>
 #include <QStringListModel>
 #include <QScrollBar>
+#include <QTextDocument>
 #include <QDebug>
 
 #include "QtSLiMPreferences.h"
@@ -44,6 +45,7 @@
 #include "QtSLiMHelpWindow.h"
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMWindow.h"
+#include "QtSLiMExtras.h"
 #include "QtSLiM_SLiMgui.h"
 
 #include "eidos_script.h"
@@ -2313,8 +2315,61 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 
 
 //
+//  LineNumberArea
+//
+
+// This provides line numbers in QtSLiMScriptTextEdit
+// This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
+class LineNumberArea : public QWidget
+{
+public:
+    LineNumberArea(QtSLiMScriptTextEdit *editor) : QWidget(editor), codeEditor(editor) {}
+
+    QSize sizeHint() const override { return QSize(codeEditor->lineNumberAreaWidth(), 0); }
+
+protected:
+    void paintEvent(QPaintEvent *event) override { codeEditor->lineNumberAreaPaintEvent(event); }
+
+private:
+    QtSLiMScriptTextEdit *codeEditor;
+};
+
+
+//
 //  QtSLiMScriptTextEdit
 //
+
+QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(const QString &text, QWidget *parent) : QtSLiMTextEdit(text, parent)
+{
+    initializeLineNumbers();
+}
+
+QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(QWidget *parent) : QtSLiMTextEdit(parent)
+{
+    initializeLineNumbers();
+}
+
+void QtSLiMScriptTextEdit::initializeLineNumbers(void)
+{
+    // This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
+    lineNumberArea = new LineNumberArea(this);
+    
+    connect(this->document(), SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
+    connect(this->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(updateLineNumberArea(int)));
+    connect(this, SIGNAL(textChanged()), this, SLOT(updateLineNumberArea()));
+    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(updateLineNumberArea()));
+    
+    connect(this, &QtSLiMScriptTextEdit::cursorPositionChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
+    
+    // Watch prefs for line numbering and highlighting
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::showLineNumbersPrefChanged, this, [this]() { updateLineNumberArea(); });
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::highlightCurrentLinePrefChanged, this, [this]() { highlightCurrentLine(); });
+    
+    updateLineNumberAreaWidth(0);
+    highlightCurrentLine();
+}
 
 QtSLiMScriptTextEdit::~QtSLiMScriptTextEdit()
 {
@@ -2459,6 +2514,127 @@ void QtSLiMScriptTextEdit::commentUncommentSelection(void)
 	}
 }
 
+// From here down is the machinery for providing line nunbers with LineNumberArea
+// This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
+// adaptations from QPlainTextEdit to QTextEdit were used from https://stackoverflow.com/a/24596246/2752221
+
+int QtSLiMScriptTextEdit::lineNumberAreaWidth()
+{
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    if (!prefsNotifier.showLineNumbersPref())
+        return 0;
+    
+    int digits = 1;
+    int max = qMax(1, document()->blockCount());
+    while (max >= 10) {
+        max /= 10;
+        ++digits;
+    }
+
+    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
+
+    return space;
+}
+
+void QtSLiMScriptTextEdit::displayFontPrefChanged()
+{
+    QtSLiMTextEdit::displayFontPrefChanged();
+    updateLineNumberArea();
+}
+
+void QtSLiMScriptTextEdit::updateLineNumberAreaWidth(int /* newBlockCount */)
+{
+    setViewportMargins(lineNumberAreaWidth(), 0, 0, 0);
+}
+
+void QtSLiMScriptTextEdit::updateLineNumberArea(void)
+{
+    QRect rect = contentsRect();
+    lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
+    updateLineNumberAreaWidth(0);
+    
+    int dy = verticalScrollBar()->sliderPosition();
+    if (dy > -1)
+        lineNumberArea->scroll(0, dy);
+}
+
+void QtSLiMScriptTextEdit::resizeEvent(QResizeEvent *e)
+{
+    QTextEdit::resizeEvent(e);
+
+    QRect cr = contentsRect();
+    lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
+}
+
+// standard blue highlight
+static QColor lineHighlightColor = QtSLiMColorWithHSV(3.6/6.0, 0.1, 1.0, 1.0);
+
+// alternate yellow highlight
+//static QColor lineHighlightColor = QtSLiMColorWithHSV(1/6.0, 0.2, 1.0, 1.0);
+
+void QtSLiMScriptTextEdit::highlightCurrentLine()
+{
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    QList<QTextEdit::ExtraSelection> extraSelections;
+    
+    if (!isReadOnly() && prefsNotifier.highlightCurrentLinePref()) {
+        QTextEdit::ExtraSelection selection;
+        
+        selection.format.setBackground(lineHighlightColor);
+        selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+        selection.cursor = textCursor();
+        selection.cursor.clearSelection();
+        extraSelections.append(selection);
+    }
+    
+    setExtraSelections(extraSelections);
+}
+
+// standard light appearance
+static QColor lineAreaBackground = QtSLiMColorWithWhite(0.92, 1.0);
+static QColor lineAreaNumber = QtSLiMColorWithWhite(0.75, 1.0);
+static QColor lineAreaNumber_Current = QtSLiMColorWithWhite(0.4, 1.0);
+
+// alternate darker appearance
+//static QColor lineAreaBackground = Qt::lightGray;
+//static QColor lineAreaNumber = QtSLiMColorWithHSV(0.0, 0.0, 0.4, 1.0);
+//static QColor lineAreaNumber_Current = QtSLiMColorWithHSV(1/6.0, 0.7, 1.0, 1.0);
+
+void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
+{
+    if (contentsRect().width() <= 0)
+        return;
+    
+    QPainter painter(lineNumberArea);
+    painter.fillRect(event->rect(), lineAreaBackground);
+    int blockNumber = 0;
+    QTextBlock block = document()->findBlockByNumber(blockNumber);
+    int cursorBlockNumber = textCursor().blockNumber();
+
+    int translate_y = -verticalScrollBar()->sliderPosition();
+    
+    // Draw the numbers (displaying the current line number in col_1)
+    painter.setPen(lineAreaNumber);
+    
+    while (block.isValid())
+    {
+        if (block.isVisible())
+        {
+            if (cursorBlockNumber == blockNumber) painter.setPen(lineAreaNumber_Current);
+            
+            QRectF blockBounds = this->document()->documentLayout()->blockBoundingRect(block);
+            
+            QString number = QString::number(blockNumber + 1);
+            painter.drawText(-7, blockBounds.top() + translate_y, lineNumberArea->width(), fontMetrics().height(), Qt::AlignRight, number);
+            
+            if (cursorBlockNumber == blockNumber) painter.setPen(lineAreaNumber);
+        }
+
+        block = block.next();
+        ++blockNumber;
+    }
+}
 
 
 

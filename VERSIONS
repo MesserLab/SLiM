@@ -42,6 +42,8 @@ development head:
 	add new recipe 10.6 II - Varying the dominance coefficient among mutations II
 	policy change: originGeneration can no longer be used as scratch; it must be set to the current generation when a mutation is created
 	policy change: pedigree tracking is now always enabled, and the keepPedigrees flag to initializeSLiMOptions() does nothing
+	add line numbers and highlighting of the current line in SLiMgui, controllable in the preferences
+	add "Jump to Line..." menu item under Edit > Find (command-L) in SLiMgui
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

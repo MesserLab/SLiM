@@ -38,6 +38,8 @@ public:
     QFont displayFontPref(int *tabWidth = nullptr);
     bool scriptSyntaxHighlightPref(void);
     bool outputSyntaxHighlightPref(void);
+    bool showLineNumbersPref(void);
+    bool highlightCurrentLinePref(void);
     
 signals:
     // Get notified when a pref value changes
@@ -45,6 +47,8 @@ signals:
     void displayFontPrefChanged(void);
     void scriptSyntaxHighlightPrefChanged(void);
     void outputSyntaxHighlightPrefChanged(void);
+    void showLineNumbersPrefChanged(void);
+    void highlightCurrentLinePrefChanged(void);
     
 private:
     // singleton pattern
@@ -59,6 +63,8 @@ private slots:
     void fontSizeChanged(int newSize);
     void syntaxHighlightScriptToggled();
     void syntaxHighlightOutputToggled();
+    void showLineNumbersToggled();
+    void highlightCurrentLineToggled();
     void resetSuppressedClicked();
     
     friend class QtSLiMPreferences;

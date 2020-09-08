@@ -36,6 +36,8 @@ static const char *QtSLiMDisplayFontFamily = "QtSLiMDisplayFontFamily";
 static const char *QtSLiMDisplayFontSize = "QtSLiMDisplayFontSize";
 static const char *QtSLiMSyntaxHighlightScript = "QtSLiMSyntaxHighlightScript";
 static const char *QtSLiMSyntaxHighlightOutput = "QtSLiMSyntaxHighlightOutput";
+static const char *QtSLiMShowLineNumbers = "QtSLiMShowLineNumbers";
+static const char *QtSLiMHighlightCurrentLine = "QtSLiMHighlightCurrentLine";
 
 
 static QFont &defaultDisplayFont(void)
@@ -127,6 +129,20 @@ bool QtSLiMPreferencesNotifier::outputSyntaxHighlightPref(void)
     return settings.value(QtSLiMSyntaxHighlightOutput, QVariant(true)).toBool();
 }
 
+bool QtSLiMPreferencesNotifier::showLineNumbersPref(void)
+{
+    QSettings settings;
+    
+    return settings.value(QtSLiMShowLineNumbers, QVariant(true)).toBool();
+}
+
+bool QtSLiMPreferencesNotifier::highlightCurrentLinePref(void)
+{
+    QSettings settings;
+    
+    return settings.value(QtSLiMHighlightCurrentLine, QVariant(true)).toBool();
+}
+
 // slots; these update the settings and then emit new signals
 
 void QtSLiMPreferencesNotifier::startupRadioChanged()
@@ -181,6 +197,26 @@ void QtSLiMPreferencesNotifier::syntaxHighlightOutputToggled()
     emit outputSyntaxHighlightPrefChanged();
 }
 
+void QtSLiMPreferencesNotifier::showLineNumbersToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMShowLineNumbers, QVariant(prefsUI.ui->showLineNumbers->isChecked()));
+    
+    emit showLineNumbersPrefChanged();
+}
+
+void QtSLiMPreferencesNotifier::highlightCurrentLineToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMHighlightCurrentLine, QVariant(prefsUI.ui->highlightCurrentLine->isChecked()));
+    
+    emit highlightCurrentLinePrefChanged();
+}
+
 void QtSLiMPreferencesNotifier::resetSuppressedClicked()
 {
     // All "do not show this again" settings should be removed here
@@ -229,6 +265,9 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new 
     ui->syntaxHighlightScript->setChecked(prefsNotifier.scriptSyntaxHighlightPref());
     ui->syntaxHighlightOutput->setChecked(prefsNotifier.outputSyntaxHighlightPref());
     
+    ui->showLineNumbers->setChecked(prefsNotifier.showLineNumbersPref());
+    ui->highlightCurrentLine->setChecked(prefsNotifier.highlightCurrentLinePref());
+    
     // connect the UI elements to QtSLiMPreferencesNotifier
     QtSLiMPreferencesNotifier *notifier = &QtSLiMPreferencesNotifier::instance();
     
@@ -240,6 +279,9 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new 
 
     connect(ui->syntaxHighlightScript, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::syntaxHighlightScriptToggled);
     connect(ui->syntaxHighlightOutput, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::syntaxHighlightOutputToggled);
+
+    connect(ui->showLineNumbers, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::showLineNumbersToggled);
+    connect(ui->highlightCurrentLine, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::highlightCurrentLineToggled);
 
     connect(ui->resetSuppressedButton, &QPushButton::clicked, notifier, &QtSLiMPreferencesNotifier::resetSuppressedClicked);
     

@@ -111,6 +111,7 @@ public slots:
     void dispatch_useSelectionForFind(void);
     void dispatch_useSelectionForReplace(void);
     void dispatch_jumpToSelection(void);
+    void dispatch_jumpToLine(void);
     
     void dispatch_checkScript(void);
     void dispatch_prettyprintScript(void);

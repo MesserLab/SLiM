@@ -1435,6 +1435,7 @@ QPushButton:checked {
      <addaction name="actionUseSelectionForFind"/>
      <addaction name="actionUseSelectionForReplace"/>
      <addaction name="actionJumpToSelection"/>
+     <addaction name="actionJumpToLine"/>
     </widget>
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
@@ -1891,6 +1892,14 @@ QPushButton:checked {
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+E</string>
+   </property>
+  </action>
+  <action name="actionJumpToLine">
+   <property name="text">
+    <string>Jump to Line</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
    </property>
   </action>
  </widget>

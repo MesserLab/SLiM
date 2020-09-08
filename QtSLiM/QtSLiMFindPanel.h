@@ -49,6 +49,7 @@ public slots:
     void useSelectionForFind(void);
     void useSelectionForReplace(void);
     void jumpToSelection(void);
+    void jumpToLine(void);
     void fixEnableState(void);
     
 private:

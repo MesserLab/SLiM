@@ -602,6 +602,12 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         connect(actionJumpToSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_jumpToSelection);
         window->addAction(actionJumpToSelection);
     }
+    {
+        QAction *actionJumpToLine = new QAction("Jump to Line", this);
+        actionJumpToLine->setShortcut(Qt::CTRL + Qt::Key_L);
+        connect(actionJumpToLine, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_jumpToLine);
+        window->addAction(actionJumpToLine);
+    }
 }
 
 void QtSLiMAppDelegate::dispatch_preferences(void)
@@ -814,6 +820,11 @@ void QtSLiMAppDelegate::dispatch_useSelectionForReplace(void)
 void QtSLiMAppDelegate::dispatch_jumpToSelection(void)
 {
     QtSLiMFindPanel::instance().jumpToSelection();
+}
+
+void QtSLiMAppDelegate::dispatch_jumpToLine(void)
+{
+    QtSLiMFindPanel::instance().jumpToLine();
 }
 
 void QtSLiMAppDelegate::dispatch_checkScript(void)

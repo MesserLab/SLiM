@@ -154,7 +154,7 @@ protected:
     virtual void scriptStringAndSelection(QString &scriptString, int &pos, int &len);
     
 protected slots:
-    void displayFontPrefChanged();
+    virtual void displayFontPrefChanged();
     void scriptSyntaxHighlightPrefChanged();
     void outputSyntaxHighlightPrefChanged();
     bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);
@@ -171,8 +171,8 @@ class QtSLiMScriptTextEdit : public QtSLiMTextEdit
     Q_OBJECT
     
 public:
-    QtSLiMScriptTextEdit(const QString &text, QWidget *parent = nullptr) : QtSLiMTextEdit(text, parent) {}
-    QtSLiMScriptTextEdit(QWidget *parent = nullptr) : QtSLiMTextEdit(parent) {}
+    QtSLiMScriptTextEdit(const QString &text, QWidget *parent = nullptr);
+    QtSLiMScriptTextEdit(QWidget *parent = nullptr);
     ~QtSLiMScriptTextEdit() override;
     
 public slots:
@@ -182,6 +182,29 @@ public slots:
     
 protected:
     QStringList linesForRoundedSelection(QTextCursor &cursor, bool &movedBack);
+    
+    // From here down is the machinery for providing line numbers
+    // This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
+public:
+    void lineNumberAreaPaintEvent(QPaintEvent *event);
+    int lineNumberAreaWidth(void);
+
+protected:
+    void initializeLineNumbers(void);
+    void resizeEvent(QResizeEvent *event) override;
+
+protected slots:
+    void displayFontPrefChanged() override;
+    
+private slots:
+    void updateLineNumberAreaWidth(int newBlockCount);
+    void highlightCurrentLine(void);
+    void updateLineNumberArea(QRectF /*rect_f*/) { updateLineNumberArea(); }
+    void updateLineNumberArea(int /*slider_pos*/) { updateLineNumberArea(); }
+    void updateLineNumberArea(void);
+
+private:
+    QWidget *lineNumberArea;
 };
 
 
