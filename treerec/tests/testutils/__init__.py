@@ -8,6 +8,6 @@ class TestSlimOutput(unittest.TestCase):
         # get SLiM ID -> msprime ID map from metadata
         ids = {}
         for n in ts.nodes():
-            ids[n.metadata.slim_id] = n.id
+            ids[n.metadata["slim_id"]] = n.id
         return ids
 
