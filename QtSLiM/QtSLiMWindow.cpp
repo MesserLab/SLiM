@@ -1389,33 +1389,13 @@ QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *window)
 
 void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID)
 {
-    QtSLiMGraphView *graphView1DFreqSpectrum = graphViewForGraphWindow(graphWindow1DFreqSpectrum);
-    QtSLiMGraphView *graphView1DSampleSFS = graphViewForGraphWindow(graphWindow1DSampleSFS);
-    QtSLiMGraphView *graphView2DFreqSpectrum = graphViewForGraphWindow(graphWindow2DFreqSpectrum);
-    QtSLiMGraphView *graphView2DSampleSFS = graphViewForGraphWindow(graphWindow2DSampleSFS);
-    QtSLiMGraphView *graphViewMutationFreqTrajectories = graphViewForGraphWindow(graphWindowMutationFreqTrajectories);
-    QtSLiMGraphView *graphViewMutationLossTimeHistogram = graphViewForGraphWindow(graphWindowMutationLossTimeHistogram);
-    QtSLiMGraphView *graphViewMutationFixationTimeHistogram = graphViewForGraphWindow(graphWindowMutationFixationTimeHistogram);
-    QtSLiMGraphView *graphViewFitnessOverTime = graphViewForGraphWindow(graphWindowFitnessOverTime);
-    QtSLiMGraphView *graphViewAgeDistribution = graphViewForGraphWindow(graphWindowAgeDistribution);
-    QtSLiMGraphView *graphViewPopSizeOverTime = graphViewForGraphWindow(graphWindowPopSizeOverTime);
-    QtSLiMGraphView *graphViewPopulationVisualization = graphViewForGraphWindow(graphWindowPopulationVisualization);
-    QtSLiMGraphView *graphViewPopFitnessDist = graphViewForGraphWindow(graphWindowPopFitnessDist);
-    QtSLiMGraphView *graphViewSubpopFitnessDists = graphViewForGraphWindow(graphWindowSubpopFitnessDists);
-    
-    if (graphView1DFreqSpectrum)                    graphView1DFreqSpectrum->dispatch(dispatchID);
-    if (graphView1DSampleSFS)                       graphView1DSampleSFS->dispatch(dispatchID);
-    if (graphView2DFreqSpectrum)                    graphView2DFreqSpectrum->dispatch(dispatchID);
-    if (graphView2DSampleSFS)                       graphView2DSampleSFS->dispatch(dispatchID);
-    if (graphViewMutationFreqTrajectories)          graphViewMutationFreqTrajectories->dispatch(dispatchID);
-    if (graphViewMutationLossTimeHistogram)         graphViewMutationLossTimeHistogram->dispatch(dispatchID);
-    if (graphViewMutationFixationTimeHistogram)     graphViewMutationFixationTimeHistogram->dispatch(dispatchID);
-    if (graphViewFitnessOverTime)                   graphViewFitnessOverTime->dispatch(dispatchID);
-    if (graphViewAgeDistribution)                   graphViewAgeDistribution->dispatch(dispatchID);
-    if (graphViewPopSizeOverTime)                   graphViewPopSizeOverTime->dispatch(dispatchID);
-    if (graphViewPopulationVisualization)           graphViewPopulationVisualization->dispatch(dispatchID);
-    if (graphViewPopFitnessDist)                    graphViewPopFitnessDist->dispatch(dispatchID);
-    if (graphViewSubpopFitnessDists)                graphViewSubpopFitnessDists->dispatch(dispatchID);
+    for (QWidget *graphWindow : graphWindows)
+    {
+        QtSLiMGraphView *graphView = graphViewForGraphWindow(graphWindow);
+        
+        if (graphView)
+            graphView->dispatch(dispatchID);
+    }
 }
 
 void QtSLiMWindow::updateOutputTextView(void)
@@ -3912,6 +3892,8 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
     //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
     
+    window->setAttribute(Qt::WA_DeleteOnClose, true);
+    
     return window;
 }
 
@@ -3983,86 +3965,34 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     if (action && !invalidSimulation_)
     {
-        QWidget *graphWindow = nullptr;
+        QtSLiMGraphView *graphView = nullptr;
         
         if (action == graph1DFreqSpectrum)
-        {
-            if (!graphWindow1DFreqSpectrum)
-                graphWindow1DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_1DPopulationSFS(this, this));
-            graphWindow = graphWindow1DFreqSpectrum;
-        }
+            graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
         if (action == graph1DSampleSFS)
-        {
-            if (!graphWindow1DSampleSFS)
-                graphWindow1DSampleSFS = graphWindowWithView(new QtSLiMGraphView_1DSampleSFS(this, this));
-            graphWindow = graphWindow1DSampleSFS;
-        }
+            graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
         if (action == graph2DFreqSpectrum)
-        {
-            if (!graphWindow2DFreqSpectrum)
-                graphWindow2DFreqSpectrum = graphWindowWithView(new QtSLiMGraphView_2DPopulationSFS(this, this));
-            graphWindow = graphWindow2DFreqSpectrum;
-        }
+            graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
         if (action == graph2DSampleSFS)
-        {
-            if (!graphWindow2DSampleSFS)
-                graphWindow2DSampleSFS = graphWindowWithView(new QtSLiMGraphView_2DSampleSFS(this, this));
-            graphWindow = graphWindow2DSampleSFS;
-        }
+            graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
         if (action == graphMutFreqTrajectories)
-        {
-            if (!graphWindowMutationFreqTrajectories)
-                graphWindowMutationFreqTrajectories = graphWindowWithView(new QtSLiMGraphView_FrequencyTrajectory(this, this));
-            graphWindow = graphWindowMutationFreqTrajectories;
-        }
+            graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
         if (action == graphMutLossTimeHist)
-        {
-            if (!graphWindowMutationLossTimeHistogram)
-                graphWindowMutationLossTimeHistogram = graphWindowWithView(new QtSLiMGraphView_LossTimeHistogram(this, this));
-            graphWindow = graphWindowMutationLossTimeHistogram;
-        }
+            graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
         if (action == graphMutFixTimeHist)
-        {
-            if (!graphWindowMutationFixationTimeHistogram)
-                graphWindowMutationFixationTimeHistogram = graphWindowWithView(new QtSLiMGraphView_FixationTimeHistogram(this, this));
-            graphWindow = graphWindowMutationFixationTimeHistogram;
-        }
+            graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
         if (action == graphPopFitnessDist)
-        {
-            if (!graphWindowPopFitnessDist)
-                graphWindowPopFitnessDist = graphWindowWithView(new QtSLiMGraphView_PopFitnessDist(this, this));
-            graphWindow = graphWindowPopFitnessDist;
-        }
+            graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
         if (action == graphSubpopFitnessDists)
-        {
-            if (!graphWindowSubpopFitnessDists)
-                graphWindowSubpopFitnessDists = graphWindowWithView(new QtSLiMGraphView_SubpopFitnessDists(this, this));
-            graphWindow = graphWindowSubpopFitnessDists;
-        }
+            graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
         if (action == graphFitnessVsTime)
-        {
-            if (!graphWindowFitnessOverTime)
-                graphWindowFitnessOverTime = graphWindowWithView(new QtSLiMGraphView_FitnessOverTime(this, this));
-            graphWindow = graphWindowFitnessOverTime;
-        }
+            graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
         if (action == graphAgeDistribution)
-        {
-            if (!graphWindowAgeDistribution)
-                graphWindowAgeDistribution = graphWindowWithView(new QtSLiMGraphView_AgeDistribution(this, this));
-            graphWindow = graphWindowAgeDistribution;
-        }
+            graphView = new QtSLiMGraphView_AgeDistribution(this, this);
         if (action == graphPopSizeVsTime)
-        {
-            if (!graphWindowPopSizeOverTime)
-                graphWindowPopSizeOverTime = graphWindowWithView(new QtSLiMGraphView_PopSizeOverTime(this, this));
-            graphWindow = graphWindowPopSizeOverTime;
-        }
+            graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
         if (action == graphPopVisualization)
-        {
-            if (!graphWindowPopulationVisualization)
-                graphWindowPopulationVisualization = graphWindowWithView(new QtSLiMGraphView_PopulationVisualization(this, this));
-            graphWindow = graphWindowPopulationVisualization;
-        }
+            graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == createHaplotypePlot)
         {
             if (!continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
@@ -4080,11 +4010,23 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             }
         }
         
-        if (graphWindow)
+        if (graphView)
         {
-            graphWindow->show();
-            graphWindow->raise();
-            graphWindow->activateWindow();
+            QWidget *graphWindow = graphWindowWithView(graphView);
+            
+            if (graphWindow)
+            {
+                graphWindows.push_back(graphWindow);
+                connect(graphWindow, &QObject::destroyed, this, [this](QObject *obj) {
+                    auto window_iter = std::find(graphWindows.begin(), graphWindows.end(), obj);
+                    if (window_iter != graphWindows.end())
+                        graphWindows.erase(window_iter);
+                });
+                
+                graphWindow->show();
+                graphWindow->raise();
+                graphWindow->activateWindow();
+            }
         }
     }
     

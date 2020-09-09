@@ -110,19 +110,7 @@ private:
     QtSLiMEidosConsole *consoleController = nullptr;
     QtSLiMTablesDrawer *tablesDrawerController = nullptr;
     
-    QWidget *graphWindow1DFreqSpectrum = nullptr;
-    QWidget *graphWindow1DSampleSFS = nullptr;
-    QWidget *graphWindow2DFreqSpectrum = nullptr;
-    QWidget *graphWindow2DSampleSFS = nullptr;
-    QWidget *graphWindowMutationFreqTrajectories = nullptr;
-    QWidget *graphWindowMutationLossTimeHistogram = nullptr;
-    QWidget *graphWindowMutationFixationTimeHistogram = nullptr;
-    QWidget *graphWindowFitnessOverTime = nullptr;
-    QWidget *graphWindowAgeDistribution = nullptr;
-    QWidget *graphWindowPopSizeOverTime = nullptr;
-    QWidget *graphWindowPopulationVisualization = nullptr;
-    QWidget *graphWindowPopFitnessDist = nullptr;
-    QWidget *graphWindowSubpopFitnessDists = nullptr;
+    std::vector<QWidget *> graphWindows;
     
     int openedGraphCount_left = 0;      // used for new graph window positioning
     int openedGraphCount_right = 0;
