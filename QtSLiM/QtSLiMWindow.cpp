@@ -535,6 +535,9 @@ void QtSLiMWindow::initializeUI(void)
     recentMenu->addAction("Clear Menu", this, &QtSLiMWindow::clearRecentFiles);
     
     setRecentFilesVisible(QtSLiMWindow::hasRecentFiles());
+    
+    // Set up the Window menu, which updates on demand
+    connect(ui->menuWindow, &QMenu::aboutToShow, this, &QtSLiMWindow::updateWindowMenu);
 }
 
 QtSLiMScriptTextEdit *QtSLiMWindow::scriptTextEdit(void)
@@ -1797,6 +1800,101 @@ void QtSLiMWindow::updateVariableBrowserButtonState(bool visible)
     // Should only be called by QtSLiMEidosConsole::updateVariableBrowserButtonStates() so state is synced
     ui->browserButton->setChecked(visible);
     showBrowserReleased();
+}
+
+void QtSLiMWindow::updateWindowMenu(void)
+{
+    // Clear out old actions, up to the separator
+    do
+    {
+        QAction *lastAction = ui->menuWindow->actions().last();
+        
+        if (!lastAction)
+            break;
+        if ((lastAction->objectName().length() == 0) || (lastAction->objectName() == "action"))
+            break;
+        
+        ui->menuWindow->removeAction(lastAction);
+    }
+    while (true);
+    
+    // Get the main windows, in sorted order
+    const QList<QWidget *> allWidgets = QApplication::allWidgets();
+    std::vector<std::pair<std::string, QtSLiMWindow *>> windows;
+    
+    for (QWidget *widget : allWidgets)
+    {
+        QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
+        
+        if (mainWin)
+        {
+            QString title = mainWin->windowTitle();
+            
+            if (title.endsWith("[*]"))
+                title.chop(3);
+            
+            windows.emplace_back(title.toStdString(), mainWin);
+        }
+    }
+    
+    std::sort(windows.begin(), windows.end(), [](const std::pair<std::string, QtSLiMWindow *> &l, const std::pair<std::string, QtSLiMWindow *> &r) { return l.first < r.first; });
+    
+    // Make new actions
+    QWidget *activeWindow = qtSLiMAppDelegate->activeWindow();
+    
+    for (const auto &pair : windows)
+    {
+        QString title = QString::fromStdString(pair.first);
+        QtSLiMWindow *mainWin = pair.second;
+        
+        if (mainWin)
+        {
+            QAction *action = ui->menuWindow->addAction(title, mainWin, [mainWin]() { mainWin->raise(); mainWin->activateWindow(); });
+            action->setCheckable(true);
+            action->setChecked(mainWin == activeWindow);
+            action->setObjectName("__QtSLiM_window__");
+            
+            // Get the subwindows, in sorted order
+            std::vector<std::pair<std::string, QWidget *>> subwindows;
+            
+            for (QWidget *widget : allWidgets)
+            {
+                QWidget *finalParent = widget->parentWidget();
+                
+                while (finalParent && (finalParent != mainWin))
+                    finalParent = finalParent->parentWidget();
+                
+                if ((qobject_cast<QtSLiMWindow *>(widget) == nullptr) &&
+                        (finalParent == mainWin) &&
+                        (widget->isVisible()) &&
+                        (((widget->windowFlags() & Qt::Window) == Qt::Window) || ((widget->windowFlags() & Qt::Tool) == Qt::Tool)))
+                {
+                    QString subwindowTitle = widget->windowTitle();
+                    
+                    if (subwindowTitle.length())
+                    {
+                        if (graphViewForGraphWindow(widget))
+                            subwindowTitle.prepend("Graph: ");
+                        subwindows.emplace_back(subwindowTitle.toStdString(), widget);
+                    }
+                }
+            }
+            
+            std::sort(subwindows.begin(), subwindows.end(), [](const std::pair<std::string, QWidget *> &l, const std::pair<std::string, QWidget *> &r) { return l.first < r.first; });
+            
+            // Add indented subitems for windows owned by this main window
+            for (const auto &subpair : subwindows)
+            {
+                QString subwindowTitle = QString::fromStdString(subpair.first);
+                QWidget *subwindow = subpair.second;
+                
+                QAction *subwindowAction = ui->menuWindow->addAction(subwindowTitle.prepend("    "), subwindow, [subwindow]() { subwindow->raise(); subwindow->activateWindow(); });
+                subwindowAction->setCheckable(true);
+                subwindowAction->setChecked(subwindow == activeWindow);
+                subwindowAction->setObjectName("__QtSLiM_subwindow__");
+            }
+        }
+    }
 }
 
 

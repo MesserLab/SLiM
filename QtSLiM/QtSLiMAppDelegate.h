@@ -120,6 +120,9 @@ public slots:
     void dispatch_clearOutput(void);
     void dispatch_executeSelection(void);
     void dispatch_executeAll(void);
+
+    void dispatch_minimize(void);
+    void dispatch_zoom(void);
     
 signals:
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);

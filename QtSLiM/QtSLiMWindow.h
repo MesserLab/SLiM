@@ -195,6 +195,7 @@ public:
     void updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *focusWindow);
     void updateMenuEnablingSHARED(QWidget *focusWidget);
     void updateVariableBrowserButtonState(bool visible);
+    void updateWindowMenu(void);
 
     void colorScriptWithProfileCountsFromNode(const EidosASTNode *node, double elapsedTime, int32_t baseIndex, QTextDocument *doc, QTextCharFormat &baseFormat);
     void displayProfileResults(void);

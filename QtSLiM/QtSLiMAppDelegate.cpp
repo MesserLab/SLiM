@@ -608,6 +608,19 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         connect(actionJumpToLine, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_jumpToLine);
         window->addAction(actionJumpToLine);
     }
+    
+    {
+        QAction *actionMinimize = new QAction("Minimize", this);
+        actionMinimize->setShortcut(Qt::CTRL + Qt::Key_M);
+        connect(actionMinimize, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_minimize);
+        window->addAction(actionMinimize);
+    }
+    {
+        QAction *actionZoom = new QAction("Zoom", this);
+        //actionZoom->setShortcut(Qt::CTRL + Qt::Key_M);
+        connect(actionZoom, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_zoom);
+        window->addAction(actionZoom);
+    }
 }
 
 void QtSLiMAppDelegate::dispatch_preferences(void)
@@ -674,6 +687,8 @@ void QtSLiMAppDelegate::dispatch_close(void)
     
     if (activeWindow)
         activeWindow->close();
+    else
+        qApp->beep();
 }
 
 void QtSLiMAppDelegate::dispatch_shiftLeft(void)
@@ -913,6 +928,44 @@ void QtSLiMAppDelegate::dispatch_executeAll(void)
     
     if (eidosConsole)
         eidosConsole->executeAllClicked();
+}
+
+void QtSLiMAppDelegate::dispatch_minimize(void)
+{
+    // We minimize the "active" window, which is a bit different from the front window
+    // It can be nullptr; in that case it's hard to know what to do
+    QWidget *activeWindow = QApplication::activeWindow();
+    
+    if (activeWindow)
+    {
+        bool isMinimized = activeWindow->windowState() & Qt::WindowMinimized;
+        
+        if (isMinimized)
+            activeWindow->setWindowState((activeWindow->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+        else
+            activeWindow->setWindowState(activeWindow->windowState() | Qt::WindowMinimized);    // Qt refuses to minimize Qt::Tool windows; see https://bugreports.qt.io/browse/QTBUG-86520
+    }
+    else
+        qApp->beep();
+}
+
+void QtSLiMAppDelegate::dispatch_zoom(void)
+{
+    // We zoom the "active" window, which is a bit different from the front window
+    // It can be nullptr; in that case it's hard to know what to do
+    QWidget *activeWindow = QApplication::activeWindow();
+    
+    if (activeWindow)
+    {
+        bool isZoomed = activeWindow->windowState() & Qt::WindowMaximized;
+        
+        if (isZoomed)
+            activeWindow->setWindowState((activeWindow->windowState() & ~Qt::WindowMaximized) | Qt::WindowActive);
+        else
+            activeWindow->setWindowState((activeWindow->windowState() | Qt::WindowMaximized) | Qt::WindowActive);
+    }
+    else
+        qApp->beep();
 }
 
 

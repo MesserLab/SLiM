@@ -121,6 +121,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
     connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
     connect(ui->actionDumpPopulationState, &QAction::triggered, this, &QtSLiMWindow::dumpPopulationClicked);
+    connect(ui->actionMinimize, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_minimize);
+    connect(ui->actionZoom, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_zoom);
     
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
     connect(ui->actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
