@@ -8,12 +8,12 @@ import numpy as np
 
 # Run the SLiM model and load the resulting .trees file
 subprocess.check_output(["slim", "-m", "-s", "0", "./recipe_17.5.slim"])
-ts = pyslim.load("./recipe_17.5.trees").simplify()
+ts = pyslim.load("./recipe_17.5.trees")
 
 # Load the .trees file and assess true local ancestry
 breaks = np.zeros(ts.num_trees + 1)
 ancestry = np.zeros(ts.num_trees + 1)
-for tree in ts.trees(sample_counts=True):
+for tree in ts.trees():
     subpop_sum, subpop_weights = 0, 0
     for root in tree.roots:
         leaves_count = tree.num_samples(root) - 1  # subtract one for the root, which is a sample

@@ -7,15 +7,16 @@ ts = pyslim.load("recipe_nucleotides.trees")
 
 M = [[0 for _ in pyslim.NUCLEOTIDES] for _ in pyslim.NUCLEOTIDES]
 for mut in ts.mutations():
-    k = np.argmax([u.slim_time for u in mut.metadata])
-    derived_nuc = mut.metadata[k].nucleotide
+    mut_list = mut.metadata["mutation_list"]
+    k = np.argmax([u["slim_time"] for u in mut_list])
+    derived_nuc = mut_list[k]["nucleotide"]
     if mut.parent == -1:
         acgt = ts.reference_sequence[int(mut.position)]
         parent_nuc = pyslim.NUCLEOTIDES.index(acgt)
     else:
         parent_mut = ts.mutation(mut.parent)
         assert(parent_mut.site == mut.site)
-        parent_nuc = parent_mut.metadata[0].nucleotide
+        parent_nuc = parent_mut.metadata["mutation_list"][0]["nucleotide"]
     M[parent_nuc][derived_nuc] += 1
 
 print("{}\t{}\t{}".format('ancestral', 'derived', 'count'))

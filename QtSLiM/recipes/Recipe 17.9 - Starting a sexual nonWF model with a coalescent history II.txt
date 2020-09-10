@@ -20,8 +20,6 @@ reproduction(NULL, "F") {
 }
 1 early() {
 	sim.readFromPopulationFile("recipe_17.9.trees");
-	target = sample(sim.subpopulations.genomes, 1);
-	target.addNewDrawnMutation(m2, 10000);
 }
 early() {
 	p0.fitnessScaling = 5000 / p0.individualCount;

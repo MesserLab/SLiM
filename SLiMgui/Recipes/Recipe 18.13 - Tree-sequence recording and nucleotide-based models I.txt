@@ -11,4 +11,4 @@ initialize() {
 	initializeRecombinationRate(1e-6);
 }
 1 { sim.addSubpop("p1", 1000); }
-1000 { sim.treeSeqOutput("recipe_nucleotides.trees"); }
+1000 late() { sim.treeSeqOutput("recipe_nucleotides.trees"); }

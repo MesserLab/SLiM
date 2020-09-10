@@ -2,13 +2,13 @@
 
 import msprime, pyslim
 
-ts = pyslim.load("recipe_17.7.trees").simplify()
+ts = pyslim.load("recipe_17.7.trees")
 
-# selection coefficients and locations of all selected mutations
+# selection coefficients of all selected mutations
 coeffs = []
 for mut in ts.mutations():
-    md = pyslim.decode_mutation(mut.metadata)
-    sel = [x.selection_coeff for x in md]
+    md = mut.metadata
+    sel = [x["selection_coeff"] for x in md["mutation_list"]]
     if any([s != 0 for s in sel]):
         coeffs += sel
 
