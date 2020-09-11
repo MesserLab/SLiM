@@ -2532,8 +2532,9 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
         ++digits;
     }
 
-    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
-
+    //int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
+    int space = 13 + fontMetrics().width("9") * digits;                 // deprecated (in 5.11, I assume)
+    
     return space;
 }
 
