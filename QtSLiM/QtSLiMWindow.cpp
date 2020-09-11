@@ -1850,7 +1850,7 @@ void QtSLiMWindow::updateWindowMenu(void)
         if (mainWin)
         {
             QAction *action = ui->menuWindow->addAction(title, mainWin, [mainWin]() { mainWin->raise(); mainWin->activateWindow(); });
-            action->setCheckable(true);
+            action->setCheckable(mainWin == activeWindow);  // only set checkable if checked, to avoid the empty checkbox on Ubuntu
             action->setChecked(mainWin == activeWindow);
             action->setObjectName("__QtSLiM_window__");
             
@@ -1889,7 +1889,7 @@ void QtSLiMWindow::updateWindowMenu(void)
                 QWidget *subwindow = subpair.second;
                 
                 QAction *subwindowAction = ui->menuWindow->addAction(subwindowTitle.prepend("    "), subwindow, [subwindow]() { subwindow->raise(); subwindow->activateWindow(); });
-                subwindowAction->setCheckable(true);
+                subwindowAction->setCheckable(subwindow == activeWindow);  // only set checkable if checked, to avoid the empty checkbox on Ubuntu
                 subwindowAction->setChecked(subwindow == activeWindow);
                 subwindowAction->setObjectName("__QtSLiM_subwindow__");
             }
