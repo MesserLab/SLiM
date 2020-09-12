@@ -1407,16 +1407,16 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptSuccess("c(NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("c(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
 	EidosAssertScriptSuccess("c(1, 2, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
-	EidosAssertScriptRaise("c(x=2);", 0, "named argument x in ellipsis argument section");
-	EidosAssertScriptRaise("c(x=1, 2, 3);", 0, "named argument x in ellipsis argument section");
-	EidosAssertScriptRaise("c(1, x=2, 3);", 0, "named argument x in ellipsis argument section");
-	EidosAssertScriptRaise("c(1, 2, x=3);", 0, "named argument x in ellipsis argument section");
+	EidosAssertScriptRaise("c(x=2);", 0, "unrecognized named argument x");
+	EidosAssertScriptRaise("c(x=1, 2, 3);", 0, "unrecognized named argument x");
+	EidosAssertScriptRaise("c(1, x=2, 3);", 0, "unrecognized named argument x");
+	EidosAssertScriptRaise("c(1, 2, x=3);", 0, "unrecognized named argument x");
 	
 	EidosAssertScriptSuccess("doCall('abs', -10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
 	EidosAssertScriptSuccess("doCall(functionName='abs', -10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
 	EidosAssertScriptRaise("doCall(x='abs', -10);", 0, "skipped over required argument");
-	EidosAssertScriptRaise("doCall('abs', x=-10);", 0, "named argument x in ellipsis argument section");
-	EidosAssertScriptRaise("doCall('abs', functionName=-10);", 0, "named argument functionName in ellipsis argument section");
+	EidosAssertScriptRaise("doCall('abs', x=-10);", 0, "unrecognized named argument x");
+	EidosAssertScriptRaise("doCall('abs', functionName=-10);", 0, "could not be matched");
 	EidosAssertScriptRaise("doCall(x='abs');", 0, "skipped over required argument");
 	EidosAssertScriptRaise("doCall(functionName='abs');", 0, "requires 1 argument(s), but 0 are supplied");
 	

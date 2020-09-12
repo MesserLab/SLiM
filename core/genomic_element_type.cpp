@@ -353,21 +353,21 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 	}
 }
 
-EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	switch (p_method_id)
 	{
-		case gID_setMutationFractions:	return ExecuteMethod_setMutationFractions(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setMutationMatrix:		return ExecuteMethod_setMutationMatrix(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:						return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setMutationFractions:	return ExecuteMethod_setMutationFractions(p_method_id, p_arguments, p_interpreter);
+		case gID_setMutationMatrix:		return ExecuteMethod_setMutationMatrix(p_method_id, p_arguments, p_interpreter);
+		default:						return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
 //	*********************	- (void)setMutationFractions(io<MutationType> mutationTypes, numeric proportions)
 //
-EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	EidosValue *mutationTypes_value = p_arguments[0].get();
 	EidosValue *proportions_value = p_arguments[1].get();
@@ -415,9 +415,9 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 
 //	*********************	- (void)setMutationMatrix(float mutationMatrix)
 //
-EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	SLiMSim *sim = (SLiMSim *)p_interpreter.Context();
 	
 	if (!sim->IsNucleotideBased())

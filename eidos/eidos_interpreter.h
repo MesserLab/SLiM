@@ -124,9 +124,64 @@ public:
 	void _ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node);
 	void _AssignRValueToLValue(EidosValue_SP p_rvalue, const EidosASTNode *p_lvalue_node);
 	EidosValue_SP _Evaluate_RangeExpr_Internal(const EidosASTNode *p_node, const EidosValue &p_first_child_value, const EidosValue &p_second_child_value);
-	int _ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, EidosValue_SP *p_arg_buffer);
 	
-	EidosValue_SP DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count);
+	// These process the arguments for a call node (either a function call or a method call), ignoring the first child
+	// node since that is the call name node, not an argument node.  Named arguments and default arguments are handled
+	// here, and a final argument list is placed into the argument_cache_'s argument_buffer_, in the node, for use.
+	// Note that recursion in Eidos code will end up re-using the same argument buffer for all of the levels of
+	// recursion; this might seem dangerous, but is in fact safe, since by the time _ProcessArgumentList() gets called
+	// for a recursive call all of the arguments to the higher-level call will have been placed into a symbol name,
+	// and the argument buffer will no longer be used or needed by the higher-level call for any purpose at all,
+	// including keeping a retain on the values – the symbol table will do that.  However, this design will need to be
+	// revisited if we ever parallelize execution of Eidos code itself, to use separate argument buffers per thread.
+	void _CreateArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature);
+	
+	void _ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
+	{
+			EidosASTNode_ArgumentCache *argument_cache_ = p_node->argument_cache_;	// the argument cache lives on the call node itself, conventionally
+			
+			// Allocate and configure an argument cache struct if we don't already have one
+			if (!argument_cache_)
+			{
+				_CreateArgumentList(p_node, p_call_signature);
+				argument_cache_ = p_node->argument_cache_;
+			}
+			
+			std::vector<EidosValue_SP> &arg_buffer = argument_cache_->argument_buffer_;
+			std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache_->fill_info_;
+			
+			// Now our argument cache is all ready to use; we just need to fill and type-check arguments
+			for (const EidosASTNode_ArgumentFill &fill : fill_info)
+			{
+				// Get the argument value by evaluating the AST node responsible for providing it
+				EidosValue_SP arg_value = FastEvaluateNode(fill.fill_node_);
+				
+				// Type-check the value; note that default/constant arguments are type-checked during signature construction
+				p_call_signature->CheckArgument(arg_value.get(), fill.signature_index_);
+				
+				// Move the argument value into the argument buffer
+				arg_buffer[fill.fill_index_] = std::move(arg_value);
+			}
+			
+			// call CheckArguments() to double-check for errors when in DEBUG; this can be removed eventually, it's just for the transition to the new argument buffers
+		#if DEBUG
+			p_call_signature->CheckArguments(arg_buffer);
+		#endif
+	}
+	
+	inline void _DeprocessArgumentList(const EidosASTNode *p_node)
+	{
+		EidosASTNode_ArgumentCache *argument_cache_ = p_node->argument_cache_;
+		std::vector<EidosValue_SP> &arg_buffer = argument_cache_->argument_buffer_;
+		std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache_->fill_info_;
+		
+		// Loop through the fill indices and reset the shared pointers so the EidosValues get released in a timely fashion
+		// Note that we leave the non-fill indices alone; they are default values and constants that will get reused next time
+		for (const EidosASTNode_ArgumentFill &fill : fill_info)
+			arg_buffer[fill.fill_index_].reset();
+	}
+	
+	EidosValue_SP DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments);
 	
 	void NullReturnRaiseForNode(const EidosASTNode *p_node);
 	EidosValue_SP EvaluateNode(const EidosASTNode *p_node);

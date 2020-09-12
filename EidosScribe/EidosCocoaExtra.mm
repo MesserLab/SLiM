@@ -62,8 +62,7 @@
 		
 		if (arg_mask_count == 0)
 		{
-			if (!signature->has_ellipsis_)
-				[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"void" attributes:typeAttrs] autorelease]];
+			[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"void" attributes:typeAttrs] autorelease]];
 		}
 		else
 		{
@@ -85,6 +84,12 @@
 				//	Note this logic is paralleled in the function StringForEidosValueMask().
 				//	These two should be kept in synch so the user-visible format of signatures is consistent.
 				//
+				if (arg_name == gEidosStr_ELLIPSIS)
+				{
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"..." attributes:plainAttrs] autorelease]];
+					continue;
+				}
+				
 				bool is_optional = !!(type_mask & kEidosValueMaskOptional);
 				bool requires_singleton = !!(type_mask & kEidosValueMaskSingleton);
 				EidosValueMask stripped_mask = type_mask & kEidosValueMaskFlagStrip;
@@ -172,14 +177,6 @@
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"]" attributes:plainAttrs] autorelease]];
 				}
 			}
-		}
-		
-		if (signature->has_ellipsis_)
-		{
-			if (arg_mask_count > 0)
-				[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@", " attributes:plainAttrs] autorelease]];
-			
-			[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"..." attributes:typeAttrs] autorelease]];
 		}
 		
 		[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@")" attributes:plainAttrs] autorelease]];

@@ -656,21 +656,21 @@ void MutationType::SetProperty_Accelerated_tag(EidosObjectElement **p_values, si
 	}
 }
 
-EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	switch (p_method_id)
 	{
-		case gID_drawSelectionCoefficient:	return ExecuteMethod_drawSelectionCoefficient(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setDistribution:			return ExecuteMethod_setDistribution(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_drawSelectionCoefficient:	return ExecuteMethod_drawSelectionCoefficient(p_method_id, p_arguments, p_interpreter);
+		case gID_setDistribution:			return ExecuteMethod_setDistribution(p_method_id, p_arguments, p_interpreter);
+		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
 //	*********************	- (float)drawSelectionCoefficient([integer$ n = 1])
 //
-EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue_SP result_SP(nullptr);
 	EidosValue *n_value = p_arguments[0].get();
 	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
@@ -696,9 +696,9 @@ EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalSt
 
 //	*********************	- (void)setDistribution(string$ distributionType, ...)
 //
-EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *distributionType_value = p_arguments[0].get();
 	std::string dfe_type_string = distributionType_value->StringAtIndex(0, nullptr);
 	
@@ -707,7 +707,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 	std::vector<double> dfe_parameters;
 	std::vector<std::string> dfe_strings;
 	
-	MutationType::ParseDFEParameters(dfe_type_string, p_arguments + 1, p_argument_count - 1, &dfe_type, &dfe_parameters, &dfe_strings);
+	MutationType::ParseDFEParameters(dfe_type_string, p_arguments.data() + 1, (int)p_arguments.size() - 1, &dfe_type, &dfe_parameters, &dfe_strings);
 	
 	// Everything seems to be in order, so replace our distribution info with the new info
 	dfe_type_ = dfe_type;

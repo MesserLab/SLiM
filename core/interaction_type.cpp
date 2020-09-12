@@ -2689,32 +2689,32 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 	}
 }
 
-EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	switch (p_method_id)
 	{
-		case gID_distance:					return ExecuteMethod_distance(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_distanceToPoint:			return ExecuteMethod_distanceToPoint(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_drawByStrength:			return ExecuteMethod_drawByStrength(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_evaluate:					return ExecuteMethod_evaluate(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_interactingNeighborCount:	return ExecuteMethod_interactingNeighborCount(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_interactionDistance:		return ExecuteMethod_interactionDistance(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_nearestInteractingNeighbors:	return ExecuteMethod_nearestInteractingNeighbors(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_nearestNeighbors:			return ExecuteMethod_nearestNeighbors(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_nearestNeighborsOfPoint:	return ExecuteMethod_nearestNeighborsOfPoint(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_setInteractionFunction:	return ExecuteMethod_setInteractionFunction(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gID_unevaluate:				return ExecuteMethod_unevaluate(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_distance:					return ExecuteMethod_distance(p_method_id, p_arguments, p_interpreter);
+		case gID_distanceToPoint:			return ExecuteMethod_distanceToPoint(p_method_id, p_arguments, p_interpreter);
+		case gID_drawByStrength:			return ExecuteMethod_drawByStrength(p_method_id, p_arguments, p_interpreter);
+		case gID_evaluate:					return ExecuteMethod_evaluate(p_method_id, p_arguments, p_interpreter);
+		case gID_interactingNeighborCount:	return ExecuteMethod_interactingNeighborCount(p_method_id, p_arguments, p_interpreter);
+		case gID_interactionDistance:		return ExecuteMethod_interactionDistance(p_method_id, p_arguments, p_interpreter);
+		case gID_nearestInteractingNeighbors:	return ExecuteMethod_nearestInteractingNeighbors(p_method_id, p_arguments, p_interpreter);
+		case gID_nearestNeighbors:			return ExecuteMethod_nearestNeighbors(p_method_id, p_arguments, p_interpreter);
+		case gID_nearestNeighborsOfPoint:	return ExecuteMethod_nearestNeighborsOfPoint(p_method_id, p_arguments, p_interpreter);
+		case gID_setInteractionFunction:	return ExecuteMethod_setInteractionFunction(p_method_id, p_arguments, p_interpreter);
+		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_interpreter);
+		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_interpreter);
+		case gID_unevaluate:				return ExecuteMethod_unevaluate(p_method_id, p_arguments, p_interpreter);
+		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
 //
 //	*********************	– (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
-EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individuals1_value = p_arguments[0].get();
 	EidosValue *individuals2_value = p_arguments[1].get();
 	
@@ -2818,9 +2818,9 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 
 //	*********************	– (float)distanceToPoint(object<Individual> individuals1, float point)
 //
-EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individuals1_value = p_arguments[0].get();
 	EidosValue *point_value = p_arguments[1].get();
 	
@@ -2983,9 +2983,9 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 
 //	*********************	– (object<Individual>)drawByStrength(object<Individual>$ individual, [integer$ count = 1])
 //
-EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individual_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	
@@ -3116,9 +3116,9 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 
 //	*********************	- (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
 //
-EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *subpops_value = p_arguments[0].get();
 	EidosValue *immediate_value = p_arguments[1].get();
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
@@ -3148,9 +3148,9 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 
 //	*********************	– (integer)interactingNeighborCount(object<Individual> individual)
 //
-EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individual_value = p_arguments[0].get();
 	int individual_count = individual_value->Count();
 	
@@ -3243,9 +3243,9 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 
 //
 //	*********************	– (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
-EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *receiver_value = p_arguments[0].get();
 	EidosValue *exerters_value = p_arguments[1].get();
 	
@@ -3330,9 +3330,9 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 
 //	*********************	– (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
 //
-EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individual_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	
@@ -3432,9 +3432,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 
 //	*********************	– (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
 //
-EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individual_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	
@@ -3484,9 +3484,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 
 //	*********************	– (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
 //
-EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *subpop_value = p_arguments[0].get();
 	EidosValue *point_value = p_arguments[1].get();
 	EidosValue *count_value = p_arguments[2].get();
@@ -3538,9 +3538,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 
 //	*********************	- (void)setInteractionFunction(string$ functionType, ...)
 //
-EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *functionType_value = p_arguments[0].get();
 	
 	std::string if_type_string = functionType_value->StringAtIndex(0, nullptr);
@@ -3586,7 +3586,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	if ((spatiality_ == 0) && (if_type != IFType::kFixed))
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires functionType 'f' for non-spatial interactions." << EidosTerminate();
 	
-	if (p_argument_count != 1 + expected_if_param_count)
+	if ((int)p_arguments.size() != 1 + expected_if_param_count)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type << "\" requires exactly " << expected_if_param_count << " DFE parameter" << (expected_if_param_count == 1 ? "" : "s") << "." << EidosTerminate();
 	
 	for (int if_param_index = 0; if_param_index < expected_if_param_count; ++if_param_index)
@@ -3639,9 +3639,9 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 
 //	*********************	– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL])
 //
-EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *receiver_value = p_arguments[0].get();
 	EidosValue *exerters_value = p_arguments[1].get();
 	
@@ -3815,9 +3815,9 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 
 //	*********************	– (float)totalOfNeighborStrengths(object<Individual> individuals)
 //
-EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individuals_value = p_arguments[0].get();
 	
 	if (spatiality_ == 0)
@@ -3906,9 +3906,9 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 
 //	*********************	– (void)unevaluate(void)
 //
-EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	
 	Invalidate();
 	

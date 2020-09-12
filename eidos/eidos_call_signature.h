@@ -30,7 +30,7 @@ class EidosValue;
 
 
 // Prototype for a function handler that is internal to Eidos.
-typedef EidosValue_SP (*EidosInternalFunctionPtr)(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+typedef EidosValue_SP (*EidosInternalFunctionPtr)(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
 // This typedef is for an "accelerated method implementation"  These are static member functions on a class, designed to provide
 // a whole vector of results given a buffer of EidosObjectElements.  The imp is expected to return the correct type for the method.
@@ -39,7 +39,7 @@ typedef EidosValue_SP (*EidosInternalFunctionPtr)(const EidosValue_SP *const p_a
 // a method a class method, but class methods are conceptually called just once and produce one result from the whole call,
 // whereas accelerated method implementations are conceptually called once per element and produce one result per element; they
 // are just implemented internally in a vectorized fashion.
-typedef EidosValue_SP (*Eidos_AcceleratedMethodImp)(EidosObjectElement **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+typedef EidosValue_SP (*Eidos_AcceleratedMethodImp)(EidosObjectElement **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
 
 #pragma mark -
@@ -58,13 +58,13 @@ public:
 	const EidosObjectClass *return_class_;				// optional type-check for object returns; used only if the return is an object and this is not nullptr
 	
 	std::vector<EidosValueMask> arg_masks_;				// the expected types for each argument, as a mask
-	std::vector<std::string> arg_names_;				// the argument names as std::strings
-	std::vector<EidosGlobalStringID> arg_name_IDs_;		// the argument names as EidosGlobalStringIDs, allowing fast argument list processing
+	std::vector<std::string> arg_names_;				// the argument names as std::strings; will be gEidosStr_ELLIPSIS for an ellipsis argument
+	std::vector<EidosGlobalStringID> arg_name_IDs_;		// the argument names as EidosGlobalStringIDs, allowing fast argument list processing; will be gEidosID_ELLIPSIS for an ellipsis argument
 	std::vector<const EidosObjectClass *> arg_classes_;	// the expected object classes for each argument; nullptr unless the argument is object type and specified an element type
 	std::vector<EidosValue_SP> arg_defaults_;			// default values for each argument; will be nullptr for required arguments
 	
 	bool has_optional_args_ = false;					// if true, at least one optional argument has been added
-	bool has_ellipsis_ = false;							// if true, the function accepts arbitrary varargs after the specified arguments
+	bool has_ellipsis_ = false;							// if true, the function accepts arbitrary varargs at some point in its signature (given in the arg vectors above)
 	
 	
 	EidosCallSignature(const EidosCallSignature&) = delete;					// no copying
@@ -178,7 +178,8 @@ public:
 	EidosCallSignature *AddLogicalEquiv_OSN(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	
 	// check arguments and returns
-	void CheckArguments(const EidosValue_SP *const p_arguments, unsigned int p_argument_count) const;
+	void CheckArgument(EidosValue *p_argument, int p_signature_index) const;
+	void CheckArguments(const std::vector<EidosValue_SP> &p_arguments) const;
 	void CheckReturn(const EidosValue &p_result) const;
 	void CheckAggregateReturn(const EidosValue &p_result, size_t p_expected_size) const;
 	

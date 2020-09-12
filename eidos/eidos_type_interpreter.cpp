@@ -297,6 +297,10 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 {
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
+	// BCH 9/12/2020: This is no longer very parallel to _ProcessArgumentList(), because it doesn't involve the argument
+	// buffer cache.  It could be brought back up to date, with its own private argument buffer, if necessary, but
+	// really this function doesn't have to be very accurate, for our present purposes.
+	
 	// Run through the argument nodes, evaluate them, and put the resulting pointers into the arguments buffer,
 	// interleaving default arguments and handling named arguments as we go.
 	auto node_children_end = node_children.end();
@@ -321,7 +325,7 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 				// That token should be at or after the script end (if it is a bad token it may be immediately after, since
 				// it may have gotten its position from an EOF at the end of the token stream).
 				// BCH 6 April 2019: We may also be completing off of what appears to be a language keyword, such as "for"
-				// trying to complete to "format=".  We want to treat language keywords like identifiers here,
+				// trying to complete to "format=".  We want to treat language keywords like identifiers here.
 				if (argument_completions_ && (script_length_ <= (size_t)child->token_->token_end_ + 1))
 				{
 					if ((child->token_->token_type_ == EidosTokenType::kTokenIdentifier) || (child->token_->token_type_ == EidosTokenType::kTokenBad) || (child->token_->token_type_ >= EidosTokenType::kFirstIdentifierLikeToken))
@@ -329,17 +333,18 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 						// Check each argument in the signature as a possibility for completion
 						for (int sig_arg_match_index = sig_arg_index; sig_arg_match_index < sig_arg_count; ++sig_arg_match_index)
 						{
-							EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_match_index];
-							const std::string &arg_name = Eidos_StringForGlobalStringID(arg_name_ID);
+							const std::string &arg_name = p_call_signature->arg_names_[sig_arg_match_index];
+							bool is_ellipsis = (arg_name == "...");
 							
-							// To be a completion match, the name must not be private API ('_' prefix)
+							// To be a completion match, the name must not be private API ('_' prefix) or an ellipsis ('...')
 							// Whether it is an acceptable completion in other respects will be checked by the completion engine
-							if (arg_name[0] != '_')
+							if ((arg_name[0] != '_') && !is_ellipsis)
 								argument_completions_->push_back(arg_name);
 							
 							// If the argument we just examined is non-optional, we don't want to offer any further suggestions
 							// since they would not be legal to supply in this position in the function/method call.
-							if (!(p_call_signature->arg_masks_[sig_arg_match_index] & kEidosValueMaskOptional))
+							// The exception is an ellipsis, which should be treated as optional since it can be skipped over.
+							if (!(p_call_signature->arg_masks_[sig_arg_match_index] & kEidosValueMaskOptional) && !is_ellipsis)
 								break;
 						}
 					}
@@ -379,7 +384,9 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 						// In EidosInterpreter it is an error if an optional argument has no default; here we ignore that
 						
 						// arguments that receive the default value are represented in the argument list here with nullptr, since we have no node for them
-						p_arguments.emplace_back(nullptr);
+						// if the signature argument is an ellipsis, however, skip over it with no default value
+						if (arg_name_ID != gEidosID_ELLIPSIS)
+							p_arguments.emplace_back(nullptr);
 						
 						// Move to the next signature argument
 						sig_arg_index++;
@@ -408,7 +415,11 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 		// In EidosInterpreter it is an error if an optional argument has no default; here we ignore that
 		
 		// arguments that receive the default value are represented in the argument list here with nullptr, since we have no node for them
-		p_arguments.emplace_back(nullptr);
+		// if the signature argument is an ellipsis, however, skip over it with no default value
+		EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_index];
+		
+		if (arg_name_ID != gEidosID_ELLIPSIS)
+			p_arguments.emplace_back(nullptr);
 		
 		sig_arg_index++;
 	}

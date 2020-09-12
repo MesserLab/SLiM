@@ -1076,21 +1076,21 @@ EidosValue_SP EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 	return result_SP;
 }
 
-// This processes the arguments for a call node (either a function call or a method call), ignoring the first child
-// node since that is the call name node, not an argument node.  Named arguments and default arguments are handled
-// here, and a final argument list is placed into the buffer passed in by the caller (guaranteed to be large enough).
-// The final number of arguments for the call is returned.
-int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, EidosValue_SP *p_arg_buffer)
+void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
 {
+	EidosASTNode_ArgumentCache *argument_cache = new EidosASTNode_ArgumentCache();
+	p_node->argument_cache_ = argument_cache;
+	
+	std::vector<EidosValue_SP> &arg_buffer = argument_cache->argument_buffer_;
+	std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
-	// Run through the argument nodes, evaluate them, and put the resulting pointers into the arguments buffer,
-	// interleaving default arguments and handling named arguments as we go.
-	int processed_arg_count = 0;
+	// Run through the argument nodes, reserve space for them in the arguments buffer, and evaluate default/constant values once for all calls
 	auto node_children_end = node_children.end();
 	int sig_arg_index = 0;
 	int sig_arg_count = (int)p_call_signature->arg_name_IDs_.size();
 	bool had_named_argument = false;
+	bool in_ellipsis = (sig_arg_count > 0) && (p_call_signature->arg_name_IDs_[0] == gEidosID_ELLIPSIS);
 	
 	for (auto child_iter = node_children.begin() + 1; child_iter != node_children_end; ++child_iter)
 	{
@@ -1102,15 +1102,43 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) named argument node child count != 2." << EidosTerminate(nullptr);
 #endif
 		
+		if (in_ellipsis)
+		{
+			// While in an ellipsis, all arguments get consumed without type-checking; this ends when we hit a named argument, or run out of arguments
+			if (is_named_argument)
+			{
+				// We have a named argument, so it doesn't go in the ellipsis section
+				in_ellipsis = false;
+				sig_arg_index++;
+			}
+			else
+			{
+				// Unnamed ellipsis argument; make a fill entry for it and move on
+				if (child->cached_literal_value_)
+				{
+					// if a cached literal value is available for the node, we don't need to evaluate it at runtime, we can use the cached value forever
+					p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
+					arg_buffer.push_back(child->cached_literal_value_);
+				}
+				else
+				{
+					fill_info.emplace_back(child, arg_buffer.size(), sig_arg_index, false, kEidosValueMaskAny);
+					arg_buffer.emplace_back(nullptr);
+				}
+				continue;
+			}
+		}
+		
 		if (sig_arg_index < sig_arg_count)
 		{
+			bool sig_arg_is_singleton = !!(p_call_signature->arg_masks_[sig_arg_index] & kEidosValueMaskSingleton);
+			EidosValueMask sig_arg_type_mask = p_call_signature->arg_masks_[sig_arg_index];
+			
 			if (!is_named_argument)
 			{
 				// We have a non-named argument; it will go into the next argument slot from the signature
 				if (had_named_argument)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unnamed argument may not follow after named arguments; once named arguments begin, all arguments must be named arguments (or ellipsis arguments)." << EidosTerminate(nullptr);
-				
-				sig_arg_index++;
 			}
 			else
 			{
@@ -1132,35 +1160,33 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 					EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_arg_index];
 					
 					if (named_arg_nameID == arg_name_ID)
-					{
-						sig_arg_index++;
 						break;
-					}
 					
-					EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
-					
-					if (!(arg_mask & kEidosValueMaskOptional))
+					// An ellipsis argument may be omitted; it is optional, but gets no default value
+					if (p_call_signature->arg_name_IDs_[sig_arg_index] != gEidosID_ELLIPSIS)
 					{
-						const std::string &named_arg = named_arg_name_node->token_->token_string_;
+						if (!(sig_arg_type_mask & kEidosValueMaskOptional))
+						{
+							const std::string &named_arg = named_arg_name_node->token_->token_string_;
+							
+							// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
+							if ((p_call_signature->call_name_ == "apply") && ((named_arg == "lambdaSource") || (named_arg == "simplify")))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+							
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+						}
 						
-						// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
-						if ((p_call_signature->call_name_ == "apply") && ((named_arg == "lambdaSource") || (named_arg == "simplify")))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+						EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
 						
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+#if DEBUG
+						if (!default_value)
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
+#endif
+						
+						arg_buffer.emplace_back(default_value);
 					}
 					
-					EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
-					
-#if DEBUG
-					if (!default_value)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
-#endif
-					
-					p_arg_buffer[processed_arg_count] = std::move(default_value);
-					processed_arg_count++;
-					
-					// Move to the next signature argument; if we have run out of them, then treat this argument is illegal
+					// Move to the next signature argument; if we have run out of them, then treat this argument as illegal
 					sig_arg_index++;
 					if (sig_arg_index == sig_arg_count)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg_name_node->token_->token_string_ << "." << EidosTerminate(nullptr);
@@ -1169,83 +1195,88 @@ int EidosInterpreter::_ProcessArgumentList(const EidosASTNode *p_node, const Eid
 				
 				had_named_argument = true;
 			}
+			
+			// This argument will need to be evaluated at dispatch time; place a nullptr in the arguments buffer for now, and create a fill info entry for it
+			if (child->cached_literal_value_)
+			{
+				// if a cached literal value is available for the node, we don't need to evaluate it at runtime, we can use the cached value forever
+				p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
+				arg_buffer.push_back(child->cached_literal_value_);
+			}
+			else
+			{
+				fill_info.emplace_back(child, arg_buffer.size(), sig_arg_index, sig_arg_is_singleton, sig_arg_type_mask & kEidosValueMaskFlagStrip);
+				arg_buffer.emplace_back(nullptr);
+			}
+			
+			// Move to the next signature argument, and check whether it is an ellipsis
+			sig_arg_index++;
+			if (sig_arg_index < sig_arg_count)
+				in_ellipsis = (p_call_signature->arg_name_IDs_[sig_arg_index] == gEidosID_ELLIPSIS);
 		}
 		else
 		{
-			// We're beyond the end of the signature's arguments; check whether this argument can qualify as an ellipsis argument
-			if (!p_call_signature->has_ellipsis_)
+			// this argument is illegal; check whether it is a named argument that is out of order, or just an excess argument
+			if (is_named_argument)
 			{
-				// OK, this argument is definitely illegal; check whether it is a named argument that is out of order, or just an excess argument
-				if (is_named_argument)
+				// We have a named argument; get information on it from its children
+				EidosASTNode *named_arg_name_node = child->children_[0];
+				EidosGlobalStringID named_arg_nameID = named_arg_name_node->cached_stringID_;
+				const std::string &named_arg = named_arg_name_node->token_->token_string_;
+				
+				// Look for a named parameter in the call signature that matches
+				for (int sig_check_index = 0; sig_check_index < sig_arg_count; ++sig_check_index)
 				{
-					// We have a named argument; get information on it from its children
-					EidosASTNode *named_arg_name_node = child->children_[0];
-					EidosGlobalStringID named_arg_nameID = named_arg_name_node->cached_stringID_;
-					const std::string &named_arg = named_arg_name_node->token_->token_string_;
+					EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_check_index];
 					
-					// Look for a named parameter in the call signature that matches
-					for (int sig_check_index = 0; sig_check_index < sig_arg_count; ++sig_check_index)
-					{
-						EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_check_index];
-						
-						if (named_arg_nameID == arg_name_ID)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to function " << p_call_signature->call_name_ << " could not be matched; probably supplied out of order or supplied more than once." << EidosTerminate(nullptr);
-					}
-					
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
+					if (named_arg_nameID == arg_name_ID)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to function " << p_call_signature->call_name_ << " could not be matched; probably supplied out of order or supplied more than once." << EidosTerminate(nullptr);
 				}
-				else
-				{
-					if (had_named_argument)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << " (after handling named arguments, which might have filled in default values for previous arguments)." << EidosTerminate(nullptr);
-					else
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
-				}
+				
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
 			}
-			
-			if (child->token_->token_type_ == EidosTokenType::kTokenAssign)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << child->children_[0]->token_->token_string_ << " in ellipsis argument section (after the last explicit argument)." << EidosTerminate(nullptr);
+			else
+			{
+				if (had_named_argument)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << " (after handling named arguments, which might have filled in default values for previous arguments)." << EidosTerminate(nullptr);
+				else
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
+			}
 		}
-		
-		// Evaluate the child and emplace it in the arguments buffer
-		p_arg_buffer[processed_arg_count] = FastEvaluateNode(child);
-		processed_arg_count++;
 	}
 	
 	// Handle any remaining arguments in the signature
 	while (sig_arg_index < sig_arg_count)
 	{
-		EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
-		
-		if (!(arg_mask & kEidosValueMaskOptional))
+		// An ellipsis argument may be omitted; it is optional, but gets no default value
+		if (p_call_signature->arg_name_IDs_[sig_arg_index] != gEidosID_ELLIPSIS)
 		{
-			// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
-			if ((p_call_signature->call_name_ == "apply") && (p_call_signature->arg_names_[sig_arg_index] == "lambdaSource"))
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+			EidosValueMask arg_mask = p_call_signature->arg_masks_[sig_arg_index];
 			
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
-		}
-		
-		EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
-		
+			if (!(arg_mask & kEidosValueMaskOptional))
+			{
+				// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
+				if ((p_call_signature->call_name_ == "apply") && (p_call_signature->arg_names_[sig_arg_index] == "lambdaSource"))
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+				
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+			}
+			
+			EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
+			
 #if DEBUG
-		if (!default_value)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
+			if (!default_value)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
 #endif
-		
-		p_arg_buffer[processed_arg_count] = std::move(default_value);
-		processed_arg_count++;
+			
+			arg_buffer.emplace_back(default_value);
+		}
 		
 		sig_arg_index++;
 	}
-	
-	// Now that we have a fully assembled argument list, check it
-	p_call_signature->CheckArguments(p_arg_buffer, processed_arg_count);
-	
-	return processed_arg_count;
 }
 
-EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const EidosValue_SP *const p_arguments, int p_argument_count)
+EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1254,10 +1285,10 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	
 	// Set up variables for the function's parameters; they have already been type-checked and had default
 	// values substituted and so forth, by the Eidos function call dispatch code.
-	if ((int)p_function_signature.arg_name_IDs_.size() != p_argument_count)
+	if (p_function_signature.arg_name_IDs_.size() != p_arguments.size())
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::DispatchUserDefinedFunction): (internal error) parameter count does not match argument count." << EidosTerminate(nullptr);
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (size_t arg_index = 0; arg_index < p_arguments.size(); ++arg_index)
 		new_symbols.SetValueForSymbol(p_function_signature.arg_name_IDs_[arg_index], std::move(p_arguments[arg_index]));
 	
 	// Errors in functions should be reported for the function's script, not for the calling script,
@@ -1364,58 +1395,27 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
-		int max_arg_count = (function_signature->has_ellipsis_ ? ((int)(node_children.size() - 1)) + 1 : (int)function_signature->arg_name_IDs_.size() + 1);
+		_ProcessArgumentList(p_node, function_signature);
 		
-		if (max_arg_count <= 5)
+		if (function_signature->internal_function_)
 		{
-			EidosValue_SP arguments_array[5];
-			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_array);
-			
-			if (function_signature->internal_function_)
-			{
-				result_SP = function_signature->internal_function_(arguments_array, processed_arg_count, *this);
-			}
-			else if (!function_signature->delegate_name_.empty())
-			{
-				if (eidos_context_)
-					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_array, processed_arg_count, *this);
-				else
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
-			}
-			else if (function_signature->body_script_)
-			{
-				result_SP = DispatchUserDefinedFunction(*function_signature, arguments_array, processed_arg_count);
-			}
+			result_SP = function_signature->internal_function_(p_node->argument_cache_->argument_buffer_, *this);
+		}
+		else if (!function_signature->delegate_name_.empty())
+		{
+			if (eidos_context_)
+				result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, p_node->argument_cache_->argument_buffer_, *this);
 			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
+		}
+		else if (function_signature->body_script_)
+		{
+			result_SP = DispatchUserDefinedFunction(*function_signature, p_node->argument_cache_->argument_buffer_);
 		}
 		else
-		{
-			std::vector<EidosValue_SP> arguments;
-			
-			arguments.resize(max_arg_count);
-			
-			EidosValue_SP *arguments_ptr = arguments.data();
-			int processed_arg_count = _ProcessArgumentList(p_node, function_signature, arguments_ptr);
-			
-			if (function_signature->internal_function_)
-			{
-				result_SP = function_signature->internal_function_(arguments_ptr, processed_arg_count, *this);
-			}
-			else if (!function_signature->delegate_name_.empty())
-			{
-				if (eidos_context_)
-					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, arguments_ptr, processed_arg_count, *this);
-				else
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
-			}
-			else if (function_signature->body_script_)
-			{
-				result_SP = DispatchUserDefinedFunction(*function_signature, arguments_ptr, processed_arg_count);
-			}
-			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
-		}
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
+		
+		_DeprocessArgumentList(p_node);
 		
 		// If the code above supplied no return value, raise when in debug.  Not in debug, we crash.
 #ifdef DEBUG
@@ -1471,96 +1471,23 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
-		int max_arg_count = (method_signature->has_ellipsis_ ? ((int)(node_children.size() - 1)) + 1 : (int)method_signature->arg_name_IDs_.size() + 1);
+		_ProcessArgumentList(p_node, method_signature);
 		
-		if (max_arg_count <= 10)
+		// If the method is a class method, dispatch it to the class object
+		if (method_signature->is_class_method)
 		{
-			// This flag is used to prevent re-entrancy below.  Note that re-entrancy applies to this whole section of code,
-			// including both argument processing and call execution.  If the user writes Eidos code like f(g()), that will
-			// re-enter here, because g() will be called as a side effect of argument processing while managing the f() call;
-			// the call to g() is finished before the call to f() begins, but Evaluate_Call() is re-entered nevertheless.
-			// It would be nice to be able to use a static argument buffer in the re-entrant case too, but I guess that would
-			// require a stack of buffers, which seems excessively complex.  Maybe this is already excessively complex, but
-			// the argument buffer construction/destruction did show up significantly in profiling.  BCH 1/18/2018
-			static bool reentrancy_flag = false;
+			// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
+			// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
+			result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), p_node->argument_cache_->argument_buffer_, *this);
 			
-			if (!reentrancy_flag)
-			{
-				// We are not re-entrant, so we can use a statically allocated buffer to hold our arguments.  This is faster
-				// because the buffer doesn't need to be constructed and destructed; we just reset used indices below.
-				static EidosValue_SP arguments_array[10];
-				Eidos_simple_lock reentrancy_lock(reentrancy_flag);	// lock with RAII to prevent re-entrancy here
-				
-				int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
-				
-				// If the method is a class method, dispatch it to the class object
-				if (method_signature->is_class_method)
-				{
-					// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
-					// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
-					result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_array, processed_arg_count, *this);
-					
-					method_signature->CheckReturn(*result_SP);
-				}
-				else
-				{
-					result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_array, processed_arg_count, *this);
-				}
-				
-				// Clean up the entries of arguments_array that were used.  Using a static buffer this way means that we avoid
-				// constructing/destructing the buffer every time; we just reset the values we use back to nullptr each time.
-				// A throw will blow past this, but it doesn't really matter; that just means a few EidosValues will get held
-				// longer than they otherwise would be, but they'll get throw out eventually and it shouldn't matter.  They
-				// might have invalid pointers in them by then, if they're of type object, but nobody will use them.
-				for (int arg_index = 0; arg_index < processed_arg_count; ++arg_index)
-					arguments_array[arg_index].reset();
-			}
-			else
-			{
-				// We are re-entrant, so we can't use the static buffer above; we have to allocate and deallocate a local buffer.
-				// This is identical to the dispatch code above, except for the use of the local stack-allocated argument buffer.
-				EidosValue_SP arguments_array[10];
-				
-				int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_array);
-				
-				// If the method is a class method, dispatch it to the class object
-				if (method_signature->is_class_method)
-				{
-					// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
-					// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
-					result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_array, processed_arg_count, *this);
-					
-					method_signature->CheckReturn(*result_SP);
-				}
-				else
-				{
-					result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_array, processed_arg_count, *this);
-				}
-			}
+			method_signature->CheckReturn(*result_SP);
 		}
 		else
 		{
-			std::vector<EidosValue_SP> arguments;
-			
-			arguments.resize(max_arg_count);
-			
-			EidosValue_SP *arguments_ptr = arguments.data();
-			int processed_arg_count = _ProcessArgumentList(p_node, method_signature, arguments_ptr);
-			
-			// If the method is a class method, dispatch it to the class object
-			if (method_signature->is_class_method)
-			{
-				// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
-				// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
-				result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), arguments_ptr, processed_arg_count, *this);
-				
-				method_signature->CheckReturn(*result_SP);
-			}
-			else
-			{
-				result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, arguments_ptr, processed_arg_count, *this);
-			}
+			result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, p_node->argument_cache_->argument_buffer_, *this);
 		}
+		
+		_DeprocessArgumentList(p_node);
 		
 		// Forget the function token, since it is not responsible for any future errors
 		EidosScript::RestoreErrorPosition(error_pos_save);

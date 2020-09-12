@@ -128,10 +128,10 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("abs(atan2(0.0, 1.0) - 0) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("abs(atan2(0.0, -1.0) - PI) < 0.000001;", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("sum(abs(atan2(c(0.0, 0.0, -1.0), c(1.0, -1.0, 0.0)) - c(0, PI, -PI/2))) < 0.000001;", gStaticEidosValue_LogicalT);
-	EidosAssertScriptRaise("atan2(T);", 0, "missing required argument");
-	EidosAssertScriptRaise("atan2('foo');", 0, "missing required argument");
+	EidosAssertScriptRaise("atan2(T);", 0, "cannot be type");
+	EidosAssertScriptRaise("atan2('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("atan2(_Test(7));", 0, "missing required argument");
-	EidosAssertScriptRaise("atan2(NULL);", 0, "missing required argument");
+	EidosAssertScriptRaise("atan2(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("atan2(0, T);", 0, "cannot be type");
 	EidosAssertScriptRaise("atan2(0, 'foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("atan2(0, _Test(7));", 0, "cannot be type");

@@ -498,8 +498,10 @@ bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value, bool p_compa
 	return true;
 }
 
-EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int p_argument_count, bool p_allow_null, bool p_allow_void)
+EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_arguments, bool p_allow_null, bool p_allow_void)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// This function expects an error range to be set bracketing it externally,
 	// so no blame token is needed here.
 	
@@ -509,7 +511,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 	int reserve_size = 0;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		EidosValueType arg_type = arg_value->Type();
@@ -580,7 +582,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		EidosValue_Logical_SP result_SP = EidosValue_Logical_SP(result);
 		int result_set_index = 0;
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			
@@ -619,7 +621,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		EidosValue_Int_vector_SP result_SP = EidosValue_Int_vector_SP(result);
 		int result_set_index = 0;
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
@@ -660,7 +662,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		EidosValue_Float_vector_SP result_SP = EidosValue_Float_vector_SP(result);
 		int result_set_index = 0;
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
@@ -700,7 +702,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		EidosValue_String_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(reserve_size);
 		EidosValue_String_vector_SP result_SP = EidosValue_String_vector_SP(result);
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
@@ -735,7 +737,7 @@ EidosValue_SP ConcatenateEidosValues(const EidosValue_SP *const p_arguments, int
 		EidosValue_Object_vector_SP result_SP = EidosValue_Object_vector_SP(result);
 		int result_set_index = 0;
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_value_count = arg_value->Count();
@@ -1009,7 +1011,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 
 
 //	(numeric)abs(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_abs(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_abs(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1082,7 +1084,7 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float)acos(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_acos(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_acos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1108,7 +1110,7 @@ EidosValue_SP Eidos_ExecuteFunction_acos(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)asin(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_asin(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_asin(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1134,7 +1136,7 @@ EidosValue_SP Eidos_ExecuteFunction_asin(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)atan(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_atan(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_atan(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1160,7 +1162,7 @@ EidosValue_SP Eidos_ExecuteFunction_atan(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)atan2(numeric x, numeric y)
-EidosValue_SP Eidos_ExecuteFunction_atan2(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_atan2(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1200,7 +1202,7 @@ EidosValue_SP Eidos_ExecuteFunction_atan2(const EidosValue_SP *const p_arguments
 }
 
 //	(float)ceil(float x)
-EidosValue_SP Eidos_ExecuteFunction_ceil(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_ceil(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1228,7 +1230,7 @@ EidosValue_SP Eidos_ExecuteFunction_ceil(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)cos(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_cos(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1254,7 +1256,7 @@ EidosValue_SP Eidos_ExecuteFunction_cos(const EidosValue_SP *const p_arguments, 
 }
 
 //	(numeric)cumProduct(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_cumProduct(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cumProduct(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1317,7 +1319,7 @@ EidosValue_SP Eidos_ExecuteFunction_cumProduct(const EidosValue_SP *const p_argu
 }
 
 //	(numeric)cumSum(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_cumSum(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cumSum(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1380,7 +1382,7 @@ EidosValue_SP Eidos_ExecuteFunction_cumSum(const EidosValue_SP *const p_argument
 }
 
 //	(float)exp(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_exp(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1406,7 +1408,7 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float)floor(float x)
-EidosValue_SP Eidos_ExecuteFunction_floor(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_floor(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1434,7 +1436,7 @@ EidosValue_SP Eidos_ExecuteFunction_floor(const EidosValue_SP *const p_arguments
 }
 
 //	(integer)integerDiv(integer x, integer y)
-EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_integerDiv(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1535,7 +1537,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const EidosValue_SP *const p_argu
 }
 
 //	(integer)integerMod(integer x, integer y)
-EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_integerMod(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1636,7 +1638,7 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const EidosValue_SP *const p_argu
 }
 
 //	(logical)isFinite(float x)
-EidosValue_SP Eidos_ExecuteFunction_isFinite(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isFinite(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1668,7 +1670,7 @@ EidosValue_SP Eidos_ExecuteFunction_isFinite(const EidosValue_SP *const p_argume
 }
 
 //	(logical)isInfinite(float x)
-EidosValue_SP Eidos_ExecuteFunction_isInfinite(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isInfinite(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1700,7 +1702,7 @@ EidosValue_SP Eidos_ExecuteFunction_isInfinite(const EidosValue_SP *const p_argu
 }
 
 //	(logical)isNAN(float x)
-EidosValue_SP Eidos_ExecuteFunction_isNAN(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isNAN(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1732,7 +1734,7 @@ EidosValue_SP Eidos_ExecuteFunction_isNAN(const EidosValue_SP *const p_arguments
 }
 
 //	(float)log(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_log(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1758,7 +1760,7 @@ EidosValue_SP Eidos_ExecuteFunction_log(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float)log10(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_log10(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1784,7 +1786,7 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const EidosValue_SP *const p_arguments
 }
 
 //	(float)log2(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_log2(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1810,7 +1812,7 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const EidosValue_SP *const p_arguments,
 }
 
 //	(numeric$)product(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_product(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_product(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1883,7 +1885,7 @@ EidosValue_SP Eidos_ExecuteFunction_product(const EidosValue_SP *const p_argumen
 }
 
 //	(float)round(float x)
-EidosValue_SP Eidos_ExecuteFunction_round(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_round(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -1911,7 +1913,7 @@ EidosValue_SP Eidos_ExecuteFunction_round(const EidosValue_SP *const p_arguments
 }
 
 //	(*)setDifference(* x, * y)
-EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -2321,7 +2323,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const EidosValue_SP *const p_a
 }
 
 //	(*)setIntersection(* x, * y)
-EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -2672,7 +2674,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const EidosValue_SP *const p
 }
 
 //	(*)setSymmetricDifference(* x, * y)
-EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -3142,7 +3144,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const EidosValue_SP *
 }
 
 //	(*)setUnion(* x, * y)
-EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -3385,7 +3387,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 		// a new EidosValue containing all elements from both arguments, and then call UniqueEidosValue() to unique it.
 		// This code might look slow, but really the uniquing is O(N^2) and everything else is O(N), so since
 		// we are in the vector/vector case here, it really isn't worth worrying about optimizing the O(N) part.
-		result_SP = ConcatenateEidosValues(p_arguments, 2, false, false);	// no NULL, no VOID
+		result_SP = ConcatenateEidosValues(p_arguments, false, false);	// no NULL, no VOID
 		result_SP = UniqueEidosValue(result_SP.get(), false, true);
 	}
 	
@@ -3393,7 +3395,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const EidosValue_SP *const p_argume
 }
 
 //	(float)sin(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_sin(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sin(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3419,7 +3421,7 @@ EidosValue_SP Eidos_ExecuteFunction_sin(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float)sqrt(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_sqrt(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sqrt(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3445,7 +3447,7 @@ EidosValue_SP Eidos_ExecuteFunction_sqrt(const EidosValue_SP *const p_arguments,
 }
 
 //	(numeric$)sum(lif x)
-EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3529,7 +3531,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float$)sumExact(float x)
-EidosValue_SP Eidos_ExecuteFunction_sumExact(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sumExact(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3553,7 +3555,7 @@ EidosValue_SP Eidos_ExecuteFunction_sumExact(const EidosValue_SP *const p_argume
 }
 
 //	(float)tan(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_tan(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_tan(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3579,7 +3581,7 @@ EidosValue_SP Eidos_ExecuteFunction_tan(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float)trunc(float x)
-EidosValue_SP Eidos_ExecuteFunction_trunc(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_trunc(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3617,7 +3619,7 @@ EidosValue_SP Eidos_ExecuteFunction_trunc(const EidosValue_SP *const p_arguments
 
 
 //	(float$)cor(numeric x, numeric y)
-EidosValue_SP Eidos_ExecuteFunction_cor(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3671,7 +3673,7 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float$)cov(numeric x, numeric y)
-EidosValue_SP Eidos_ExecuteFunction_cov(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -3720,8 +3722,10 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const EidosValue_SP *const p_arguments, 
 }
 
 //	(+$)max(+ x, ...)
-EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
@@ -3731,7 +3735,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	// check the types of ellipsis arguments and find the first nonempty argument
 	int first_nonempty_argument = -1;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		EidosValueType arg_type = arg_value->Type();
@@ -3759,7 +3763,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	else if (x_type == EidosValueType::kValueLogical)
 	{
 		// For logical, we can just scan for a T, in which the result is T, otherwise it is F
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -3785,7 +3789,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	{
 		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -3815,7 +3819,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	{
 		double max = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -3855,7 +3859,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 	{
 		std::string max = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -3886,7 +3890,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const EidosValue_SP *const p_arguments, 
 }
 
 //	(float$)mean(lif x)
-EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_mean(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -3979,8 +3983,10 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const EidosValue_SP *const p_arguments,
 }
 
 //	(+$)min(+ x, ...)
-EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
@@ -3990,7 +3996,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	// check the types of ellipsis arguments and find the first nonempty argument
 	int first_nonempty_argument = -1;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		EidosValueType arg_type = arg_value->Type();
@@ -4018,7 +4024,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	else if (x_type == EidosValueType::kValueLogical)
 	{
 		// For logical, we can just scan for a F, in which the result is F, otherwise it is T
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -4044,7 +4050,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	{
 		int64_t min = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -4074,7 +4080,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	{
 		double min = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -4114,7 +4120,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 	{
 		std::string min = p_arguments[first_nonempty_argument]->StringAtIndex(0, nullptr);
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -4145,7 +4151,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const EidosValue_SP *const p_arguments, 
 }
 
 //	(+)pmax(+ x, + y)
-EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -4311,7 +4317,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const EidosValue_SP *const p_arguments,
 }
 
 //	(+)pmin(+ x, + y)
-EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -4477,7 +4483,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)quantile(numeric x, [Nf probs = NULL])
-EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -4577,8 +4583,10 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const EidosValue_SP *const p_argume
 }
 
 //	(numeric)range(numeric x, ...)
-EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
@@ -4588,7 +4596,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 	// check the types of ellipsis arguments and find the first nonempty argument
 	int first_nonempty_argument = -1;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		EidosValueType arg_type = arg_value->Type();
@@ -4621,7 +4629,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
 		int64_t min = max;
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -4660,7 +4668,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 		double max = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
 		double min = max;
 		
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
@@ -4714,7 +4722,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const EidosValue_SP *const p_arguments
 }
 
 //	(float$)sd(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_sd(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sd(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -4751,7 +4759,7 @@ EidosValue_SP Eidos_ExecuteFunction_sd(const EidosValue_SP *const p_arguments, _
 }
 
 //	(float$)ttest(float x, [Nf y = NULL], [Nf$ mu = NULL])
-EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_ttest(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -4801,7 +4809,7 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const EidosValue_SP *const p_arguments
 }
 
 //	(float$)var(numeric x)
-EidosValue_SP Eidos_ExecuteFunction_var(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -4852,7 +4860,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const EidosValue_SP *const p_arguments, 
 
 
 //	(float)dmvnorm(float x, numeric mu, numeric sigma)
-EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -4987,7 +4995,7 @@ EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const EidosValue_SP *const p_argumen
 }
 
 //	(float)dnorm(float x, [numeric mean = 0], [numeric sd = 1])
-EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5051,7 +5059,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const EidosValue_SP *const p_arguments
 }
 
 //	(float)qnorm(float p, [numeric mean = 0], [numeric sd = 1])
-EidosValue_SP Eidos_ExecuteFunction_qnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_qnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5125,7 +5133,7 @@ EidosValue_SP Eidos_ExecuteFunction_qnorm(const EidosValue_SP *const p_arguments
 
 
 //	(float)pnorm(float q, [numeric mean = 0], [numeric sd = 1])
-EidosValue_SP Eidos_ExecuteFunction_pnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_pnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5189,7 +5197,7 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const EidosValue_SP *const p_arguments
 }
 
 //	(float)dbeta(float x, numeric alpha, numeric beta)
-EidosValue_SP Eidos_ExecuteFunction_dbeta(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_dbeta(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5257,7 +5265,7 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const EidosValue_SP *const p_arguments
 }
 
 //	(float)rbeta(integer$ n, numeric alpha, numeric beta)
-EidosValue_SP Eidos_ExecuteFunction_rbeta(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rbeta(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5325,7 +5333,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbeta(const EidosValue_SP *const p_arguments
 }
 
 //	(integer)rbinom(integer$ n, integer size, float prob)
-EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5404,7 +5412,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const EidosValue_SP *const p_argument
 }
 
 //	(float)rcauchy(integer$ n, [numeric location = 0], [numeric scale = 1])
-EidosValue_SP Eidos_ExecuteFunction_rcauchy(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rcauchy(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5468,7 +5476,7 @@ EidosValue_SP Eidos_ExecuteFunction_rcauchy(const EidosValue_SP *const p_argumen
 }
 
 //	(integer)rdunif(integer$ n, [integer min = 0], [integer max = 1])
-EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5546,7 +5554,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const EidosValue_SP *const p_argument
 }
 
 //	(float)dexp(float x, [numeric mu = 1])
-EidosValue_SP Eidos_ExecuteFunction_dexp(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_dexp(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5597,7 +5605,7 @@ EidosValue_SP Eidos_ExecuteFunction_dexp(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)rexp(integer$ n, [numeric mu = 1])
-EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5648,7 +5656,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const EidosValue_SP *const p_arguments,
 }
 
 //	(float)dgamma(float x, numeric mean, numeric shape)
-EidosValue_SP Eidos_ExecuteFunction_dgamma(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_dgamma(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5714,7 +5722,7 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const EidosValue_SP *const p_argument
 }
 
 //	(float)rgamma(integer$ n, numeric mean, numeric shape)
-EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rgamma(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5780,7 +5788,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const EidosValue_SP *const p_argument
 }
 
 //	(integer)rgeom(integer$ n, float p)
-EidosValue_SP Eidos_ExecuteFunction_rgeom(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5857,7 +5865,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const EidosValue_SP *const p_arguments
 }
 
 //	(float)rlnorm(integer$ n, [numeric meanlog = 0], [numeric sdlog = 1])
-EidosValue_SP Eidos_ExecuteFunction_rlnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -5915,7 +5923,7 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const EidosValue_SP *const p_argument
 }
 
 // (float)rmvnorm(integer$ n, numeric mu, numeric sigma)
-EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -6022,7 +6030,7 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const EidosValue_SP *const p_argumen
 }
 
 //	(float)rnorm(integer$ n, [numeric mean = 0], [numeric sd = 1])
-EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6086,7 +6094,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const EidosValue_SP *const p_arguments
 }
 
 //	(integer)rpois(integer$ n, numeric lambda)
-EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6147,7 +6155,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const EidosValue_SP *const p_arguments
 }
 
 //	(float)runif(integer$ n, [numeric min = 0], [numeric max = 1])
-EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6233,7 +6241,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const EidosValue_SP *const p_arguments
 }
 
 //	(float)rweibull(integer$ n, numeric lambda, numeric k)
-EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rweibull(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6310,22 +6318,22 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const EidosValue_SP *const p_argume
 
 
 //	(*)c(...)
-EidosValue_SP Eidos_ExecuteFunction_c(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_c(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	if (p_argument_count == 0)
+	if (p_arguments.size() == 0)
 		result_SP = gStaticEidosValueNULL;	// c() returns NULL, by definition
 	else
-		result_SP = ConcatenateEidosValues(p_arguments, p_argument_count, true, false);	// allow NULL but not VOID
+		result_SP = ConcatenateEidosValues(p_arguments, true, false);	// allow NULL but not VOID
 	
 	return result_SP;
 }
 
 //	(float)float(integer$ length)
-EidosValue_SP Eidos_ExecuteFunction_float(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_float(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6350,7 +6358,7 @@ EidosValue_SP Eidos_ExecuteFunction_float(const EidosValue_SP *const p_arguments
 }
 
 //	(integer)integer(integer$ length, [integer$ fill1 = 0], [integer$ fill2 = 1], [Ni fill2Indices = NULL])
-EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_integer(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6410,7 +6418,7 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const EidosValue_SP *const p_argumen
 }
 
 //	(logical)logical(integer$ length)
-EidosValue_SP Eidos_ExecuteFunction_logical(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_logical(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6435,7 +6443,7 @@ EidosValue_SP Eidos_ExecuteFunction_logical(const EidosValue_SP *const p_argumen
 }
 
 //	(object<undefined>)object(void)
-EidosValue_SP Eidos_ExecuteFunction_object(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_object(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6447,7 +6455,7 @@ EidosValue_SP Eidos_ExecuteFunction_object(__attribute__((unused)) const EidosVa
 }
 
 //	(*)rep(* x, integer$ count)
-EidosValue_SP Eidos_ExecuteFunction_rep(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rep(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6474,7 +6482,7 @@ EidosValue_SP Eidos_ExecuteFunction_rep(const EidosValue_SP *const p_arguments, 
 }
 
 //	(*)repEach(* x, integer count)
-EidosValue_SP Eidos_ExecuteFunction_repEach(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_repEach(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6522,7 +6530,7 @@ EidosValue_SP Eidos_ExecuteFunction_repEach(const EidosValue_SP *const p_argumen
 }
 
 //	(*)sample(* x, integer$ size, [logical$ replace = F], [Nif weights = NULL])
-EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6843,7 +6851,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const EidosValue_SP *const p_argument
 }
 
 //	(numeric)seq(numeric$ from, numeric$ to, [Nif$ by = NULL], [Ni$ length = NULL])
-EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -6993,7 +7001,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const EidosValue_SP *const p_arguments, 
 }
 
 //	(integer)seqAlong(* x)
-EidosValue_SP Eidos_ExecuteFunction_seqAlong(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_seqAlong(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	// That might seem like an odd policy, since the sequence doesn't match the reality of the value,
@@ -7014,7 +7022,7 @@ EidosValue_SP Eidos_ExecuteFunction_seqAlong(const EidosValue_SP *const p_argume
 }
 
 //	(integer)seqLen(integer$ length)
-EidosValue_SP Eidos_ExecuteFunction_seqLen(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_seqLen(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -7034,7 +7042,7 @@ EidosValue_SP Eidos_ExecuteFunction_seqLen(const EidosValue_SP *const p_argument
 }
 
 //	(string)string(integer$ length)
-EidosValue_SP Eidos_ExecuteFunction_string(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_string(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -7069,15 +7077,17 @@ EidosValue_SP Eidos_ExecuteFunction_string(const EidosValue_SP *const p_argument
 
 
 //	(logical$)all(logical x, ...)
-EidosValue_SP Eidos_ExecuteFunction_all(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_all(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
 	
 	result_SP = gStaticEidosValue_LogicalT;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		
@@ -7099,15 +7109,17 @@ EidosValue_SP Eidos_ExecuteFunction_all(const EidosValue_SP *const p_arguments, 
 }
 
 //	(logical$)any(logical x, ...)
-EidosValue_SP Eidos_ExecuteFunction_any(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_any(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
 	
 	result_SP = gStaticEidosValue_LogicalF;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg_value = p_arguments[arg_index].get();
 		
@@ -7129,7 +7141,7 @@ EidosValue_SP Eidos_ExecuteFunction_any(const EidosValue_SP *const p_arguments, 
 }
 
 //	(void)cat(* x, [string$ sep = " "])
-EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cat(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -7155,7 +7167,7 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const EidosValue_SP *const p_arguments, 
 }
 
 //	(void)catn([* x = ""], [string$ sep = " "])
-EidosValue_SP Eidos_ExecuteFunction_catn(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_catn(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -7183,7 +7195,7 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const EidosValue_SP *const p_arguments,
 }
 
 //	(string)format(string$ format, numeric x)
-EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_format(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -7416,7 +7428,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const EidosValue_SP *const p_argument
 }
 
 //	(logical$)identical(* x, * y)
-EidosValue_SP Eidos_ExecuteFunction_identical(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_identical(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue *y_value = p_arguments[1].get();
@@ -7425,7 +7437,7 @@ EidosValue_SP Eidos_ExecuteFunction_identical(const EidosValue_SP *const p_argum
 }
 
 //	(*)ifelse(logical test, * trueValues, * falseValues)
-EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -7664,7 +7676,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const EidosValue_SP *const p_argument
 }
 
 //	(integer)match(* x, * table)
-EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -7995,7 +8007,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const EidosValue_SP *const p_arguments
 }
 
 //	(integer)nchar(string x)
-EidosValue_SP Eidos_ExecuteFunction_nchar(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -8023,7 +8035,7 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const EidosValue_SP *const p_arguments
 }
 
 //	(integer)order(+ x, [logical$ ascending = T])
-EidosValue_SP Eidos_ExecuteFunction_order(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_order(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8066,7 +8078,7 @@ EidosValue_SP Eidos_ExecuteFunction_order(const EidosValue_SP *const p_arguments
 }
 
 //	(string$)paste(* x, [string$ sep = " "])
-EidosValue_SP Eidos_ExecuteFunction_paste(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8102,7 +8114,7 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const EidosValue_SP *const p_arguments
 }
 
 //	(string$)paste0(* x)
-EidosValue_SP Eidos_ExecuteFunction_paste0(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_paste0(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8134,7 +8146,7 @@ EidosValue_SP Eidos_ExecuteFunction_paste0(const EidosValue_SP *const p_argument
 }
 
 //	(void)print(* x)
-EidosValue_SP Eidos_ExecuteFunction_print(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_print(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
 	
@@ -8144,7 +8156,7 @@ EidosValue_SP Eidos_ExecuteFunction_print(const EidosValue_SP *const p_arguments
 }
 
 //	(*)rev(* x)
-EidosValue_SP Eidos_ExecuteFunction_rev(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rev(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8164,7 +8176,7 @@ EidosValue_SP Eidos_ExecuteFunction_rev(const EidosValue_SP *const p_arguments, 
 
 //	(integer$)size(* x)
 //	(integer$)length(* x)
-EidosValue_SP Eidos_ExecuteFunction_size_length(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_size_length(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8178,7 +8190,7 @@ EidosValue_SP Eidos_ExecuteFunction_size_length(const EidosValue_SP *const p_arg
 }
 
 //	(+)sort(+ x, [logical$ ascending = T])
-EidosValue_SP Eidos_ExecuteFunction_sort(const EidosValue_SP *const p_arguments, int __attribute__((unused)) p_argument_count, EidosInterpreter __attribute__((unused)) &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sort(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8199,7 +8211,7 @@ EidosValue_SP Eidos_ExecuteFunction_sort(const EidosValue_SP *const p_arguments,
 }
 
 //	(object)sortBy(object x, string$ property, [logical$ ascending = T])
-EidosValue_SP Eidos_ExecuteFunction_sortBy(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sortBy(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8219,7 +8231,7 @@ EidosValue_SP Eidos_ExecuteFunction_sortBy(const EidosValue_SP *const p_argument
 }
 
 //	(void)str(* x)
-EidosValue_SP Eidos_ExecuteFunction_str(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_str(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValueType x_type = x_value->Type();
@@ -8281,7 +8293,7 @@ EidosValue_SP Eidos_ExecuteFunction_str(const EidosValue_SP *const p_arguments, 
 }
 
 //	(string)strsplit(string$ x, [string$ sep = " "])
-EidosValue_SP Eidos_ExecuteFunction_strsplit(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_strsplit(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8325,7 +8337,7 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const EidosValue_SP *const p_argume
 }
 
 //	(string)substr(string x, integer first, [Ni last = NULL])
-EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8447,7 +8459,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const EidosValue_SP *const p_argument
 }
 
 //	(integer)tabulate(integer bin, [Ni$ maxbin = NULL])
-EidosValue_SP Eidos_ExecuteFunction_tabulate(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	EidosValue_SP result_SP(nullptr);
@@ -8505,7 +8517,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const EidosValue_SP *const p_argume
 }
 
 //	(*)unique(* x, [logical$ preserveOrder = T])
-EidosValue_SP Eidos_ExecuteFunction_unique(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_unique(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8513,7 +8525,7 @@ EidosValue_SP Eidos_ExecuteFunction_unique(const EidosValue_SP *const p_argument
 }
 
 //	(integer)which(logical x)
-EidosValue_SP Eidos_ExecuteFunction_which(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_which(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8533,7 +8545,7 @@ EidosValue_SP Eidos_ExecuteFunction_which(const EidosValue_SP *const p_arguments
 }
 
 //	(integer$)whichMax(+ x)
-EidosValue_SP Eidos_ExecuteFunction_whichMax(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8623,7 +8635,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const EidosValue_SP *const p_argume
 }
 
 //	(integer$)whichMin(+ x)
-EidosValue_SP Eidos_ExecuteFunction_whichMin(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8723,7 +8735,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const EidosValue_SP *const p_argume
 
 
 //	(float)asFloat(+ x)
-EidosValue_SP Eidos_ExecuteFunction_asFloat(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_asFloat(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -8749,7 +8761,7 @@ EidosValue_SP Eidos_ExecuteFunction_asFloat(const EidosValue_SP *const p_argumen
 }
 
 //	(integer)asInteger(+ x)
-EidosValue_SP Eidos_ExecuteFunction_asInteger(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_asInteger(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -8775,7 +8787,7 @@ EidosValue_SP Eidos_ExecuteFunction_asInteger(const EidosValue_SP *const p_argum
 }
 
 //	(logical)asLogical(+ x)
-EidosValue_SP Eidos_ExecuteFunction_asLogical(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_asLogical(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -8802,7 +8814,7 @@ EidosValue_SP Eidos_ExecuteFunction_asLogical(const EidosValue_SP *const p_argum
 }
 
 //	(string)asString(+ x)
-EidosValue_SP Eidos_ExecuteFunction_asString(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_asString(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -8832,7 +8844,7 @@ EidosValue_SP Eidos_ExecuteFunction_asString(const EidosValue_SP *const p_argume
 }
 
 //	(string$)elementType(* x)
-EidosValue_SP Eidos_ExecuteFunction_elementType(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_elementType(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8846,7 +8858,7 @@ EidosValue_SP Eidos_ExecuteFunction_elementType(const EidosValue_SP *const p_arg
 }
 
 //	(logical$)isFloat(* x)
-EidosValue_SP Eidos_ExecuteFunction_isFloat(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isFloat(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8861,7 +8873,7 @@ EidosValue_SP Eidos_ExecuteFunction_isFloat(const EidosValue_SP *const p_argumen
 }
 
 //	(logical$)isInteger(* x)
-EidosValue_SP Eidos_ExecuteFunction_isInteger(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isInteger(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8876,7 +8888,7 @@ EidosValue_SP Eidos_ExecuteFunction_isInteger(const EidosValue_SP *const p_argum
 }
 
 //	(logical$)isLogical(* x)
-EidosValue_SP Eidos_ExecuteFunction_isLogical(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isLogical(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8891,7 +8903,7 @@ EidosValue_SP Eidos_ExecuteFunction_isLogical(const EidosValue_SP *const p_argum
 }
 
 //	(logical$)isNULL(* x)
-EidosValue_SP Eidos_ExecuteFunction_isNULL(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isNULL(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8906,7 +8918,7 @@ EidosValue_SP Eidos_ExecuteFunction_isNULL(const EidosValue_SP *const p_argument
 }
 
 //	(logical$)isObject(* x)
-EidosValue_SP Eidos_ExecuteFunction_isObject(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isObject(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8921,7 +8933,7 @@ EidosValue_SP Eidos_ExecuteFunction_isObject(const EidosValue_SP *const p_argume
 }
 
 //	(logical$)isString(* x)
-EidosValue_SP Eidos_ExecuteFunction_isString(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_isString(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8936,7 +8948,7 @@ EidosValue_SP Eidos_ExecuteFunction_isString(const EidosValue_SP *const p_argume
 }
 
 //	(string$)type(* x)
-EidosValue_SP Eidos_ExecuteFunction_type(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_type(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -8961,7 +8973,7 @@ EidosValue_SP Eidos_ExecuteFunction_type(const EidosValue_SP *const p_arguments,
 
 
 //	(*)apply(* x, integer margin, string$ lambdaSource)
-EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9157,7 +9169,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 		// Assemble all the individual results together, just as c() does
 		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
 		
-		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL but not VOID
+		result_SP = ConcatenateEidosValues(results, true, false);	// allow NULL but not VOID
 		
 		// Set the dimensions of the result.  If the returns from the lambda were not consistent in their
 		// length and dimensions, we just return the plain vector without dimensions; we can't do anything
@@ -9233,7 +9245,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const EidosValue_SP *const p_arguments
 }
 
 // (*)array(* data, integer dim)
-EidosValue_SP Eidos_ExecuteFunction_array(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_array(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9270,13 +9282,15 @@ EidosValue_SP Eidos_ExecuteFunction_array(const EidosValue_SP *const p_arguments
 }
 
 // (*)cbind(...)
-EidosValue_SP Eidos_ExecuteFunction_cbind(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// First check the type and class of the result; NULL may be mixed in, but otherwise all arguments must be the same type and class
 	EidosValueType result_type = EidosValueType::kValueNULL;
 	const EidosObjectClass *result_class = gEidos_UndefinedClassObject;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg = p_arguments[arg_index].get();
 		EidosValueType arg_type = arg->Type();
@@ -9310,7 +9324,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const EidosValue_SP *const p_arguments
 	int64_t result_cols = 0;
 	int64_t result_length = 0;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg = p_arguments[arg_index].get();
 		int64_t arg_length = arg->Count();
@@ -9353,7 +9367,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const EidosValue_SP *const p_arguments
 	
 	EidosValue *result = result_SP.get();
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg = p_arguments[arg_index].get();
 		int64_t arg_length = arg->Count();
@@ -9374,7 +9388,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const EidosValue_SP *const p_arguments
 }
 
 // (integer)dim(* x)
-EidosValue_SP Eidos_ExecuteFunction_dim(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_dim(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9396,7 +9410,7 @@ EidosValue_SP Eidos_ExecuteFunction_dim(const EidosValue_SP *const p_arguments, 
 }
 
 // (*)drop(* x)
-EidosValue_SP Eidos_ExecuteFunction_drop(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_drop(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	EidosValue *x_value = p_arguments[0].get();
@@ -9451,7 +9465,7 @@ EidosValue_SP Eidos_ExecuteFunction_drop(const EidosValue_SP *const p_arguments,
 }
 
 // (*)matrix(* data, [integer$ nrow = 1], [integer$ ncol = 1], [logical$ byrow = F])
-EidosValue_SP Eidos_ExecuteFunction_matrix(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_matrix(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9539,7 +9553,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const EidosValue_SP *const p_argument
 }
 
 // (numeric)matrixMult(numeric x, numeric y)
-EidosValue_SP Eidos_ExecuteFunction_matrixMult(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue *y_value = p_arguments[1].get();
@@ -9753,7 +9767,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const EidosValue_SP *const p_argu
 }
 
 // (integer$)ncol(* x)
-EidosValue_SP Eidos_ExecuteFunction_ncol(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_ncol(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *data_value = p_arguments[0].get();
 	int dim_count = data_value->DimensionCount();
@@ -9767,7 +9781,7 @@ EidosValue_SP Eidos_ExecuteFunction_ncol(const EidosValue_SP *const p_arguments,
 }
 
 // (integer$)nrow(* x)
-EidosValue_SP Eidos_ExecuteFunction_nrow(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_nrow(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *data_value = p_arguments[0].get();
 	int dim_count = data_value->DimensionCount();
@@ -9781,13 +9795,15 @@ EidosValue_SP Eidos_ExecuteFunction_nrow(const EidosValue_SP *const p_arguments,
 }
 
 // (*)rbind(...)
-EidosValue_SP Eidos_ExecuteFunction_rbind(const EidosValue_SP *const p_arguments, int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// First check the type and class of the result; NULL may be mixed in, but otherwise all arguments must be the same type and class
 	EidosValueType result_type = EidosValueType::kValueNULL;
 	const EidosObjectClass *result_class = gEidos_UndefinedClassObject;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg = p_arguments[arg_index].get();
 		EidosValueType arg_type = arg->Type();
@@ -9821,7 +9837,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const EidosValue_SP *const p_arguments
 	int64_t result_cols = 0;
 	int64_t result_length = 0;
 	
-	for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
 		EidosValue *arg = p_arguments[arg_index].get();
 		int64_t arg_length = arg->Count();
@@ -9866,7 +9882,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const EidosValue_SP *const p_arguments
 	
 	for (int col_index = 0; col_index < result_cols; ++col_index)
 	{
-		for (int arg_index = 0; arg_index < p_argument_count; ++arg_index)
+		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
 			EidosValue *arg = p_arguments[arg_index].get();
 			int64_t arg_length = arg->Count();
@@ -9902,7 +9918,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const EidosValue_SP *const p_arguments
 }
 
 // (*)t(* x)
-EidosValue_SP Eidos_ExecuteFunction_t(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_t(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	EidosValue *x_value = p_arguments[0].get();
@@ -9948,7 +9964,7 @@ EidosValue_SP Eidos_ExecuteFunction_t(const EidosValue_SP *const p_arguments, __
 
 
 //	(logical$)createDirectory(string$ path)
-EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_createDirectory(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -9966,7 +9982,7 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const EidosValue_SP *const p
 }
 
 //	(logical$)deleteFile(string$ filePath)
-EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_deleteFile(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -9982,7 +9998,7 @@ EidosValue_SP Eidos_ExecuteFunction_deleteFile(const EidosValue_SP *const p_argu
 }
 
 //	(logical$)fileExists(string$ filePath)
-EidosValue_SP Eidos_ExecuteFunction_fileExists(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_fileExists(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10001,7 +10017,7 @@ EidosValue_SP Eidos_ExecuteFunction_fileExists(const EidosValue_SP *const p_argu
 }
 
 //	(string)filesAtPath(string$ path, [logical$ fullPaths = F])
-EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10067,7 +10083,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const EidosValue_SP *const p_arg
 }
 
 //	(string$)getwd(void)
-EidosValue_SP Eidos_ExecuteFunction_getwd(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_getwd(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	std::string cwd = Eidos_CurrentDirectory();
@@ -10078,7 +10094,7 @@ EidosValue_SP Eidos_ExecuteFunction_getwd(__attribute__((unused)) const EidosVal
 }
 
 //	(string)readFile(string$ filePath)
-EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_readFile(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10119,7 +10135,7 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const EidosValue_SP *const p_argume
 }
 
 //	(string$)setwd(string$ path)
-EidosValue_SP Eidos_ExecuteFunction_setwd(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10144,7 +10160,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const EidosValue_SP *const p_arguments
 }
 
 //	(logical$)writeFile(string$ filePath, string contents, [logical$ append = F], [logical$ compress = F])
-EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10324,7 +10340,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const EidosValue_SP *const p_argum
 }
 
 //	(string$)writeTempFile(string$ prefix, string$ suffix, string contents, [logical$ compress = F])
-EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10488,7 +10504,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const EidosValue_SP *const p_a
 
 
 //	(string)cmColors(integer$ n)
-EidosValue_SP Eidos_ExecuteFunction_cmColors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_cmColors(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10517,7 +10533,7 @@ EidosValue_SP Eidos_ExecuteFunction_cmColors(const EidosValue_SP *const p_argume
 }
 
 //	(string)colors(numeric x, string$ name)
-EidosValue_SP Eidos_ExecuteFunction_colors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_colors(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10589,7 +10605,7 @@ EidosValue_SP Eidos_ExecuteFunction_colors(const EidosValue_SP *const p_argument
 }
 
 //	(float)color2rgb(string color)
-EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_color2rgb(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10625,7 +10641,7 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const EidosValue_SP *const p_argum
 }
 
 //	(string)heatColors(integer$ n)
-EidosValue_SP Eidos_ExecuteFunction_heatColors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_heatColors(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10654,7 +10670,7 @@ EidosValue_SP Eidos_ExecuteFunction_heatColors(const EidosValue_SP *const p_argu
 }
 
 //	(float)hsv2rgb(float hsv)
-EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10689,7 +10705,7 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const EidosValue_SP *const p_argumen
 }
 
 //	(string)rainbow(integer$ n, [float$ s = 1], [float$ v = 1], [float$ start = 0], [Nf$ end = NULL], [logical$ ccw = T])
-EidosValue_SP Eidos_ExecuteFunction_rainbow(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rainbow(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10758,7 +10774,7 @@ EidosValue_SP Eidos_ExecuteFunction_rainbow(const EidosValue_SP *const p_argumen
 }
 
 //	(string)rgb2color(float rgb)
-EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rgb2color(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10808,7 +10824,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const EidosValue_SP *const p_argum
 }
 
 //	(float)rgb2hsv(float rgb)
-EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10843,7 +10859,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const EidosValue_SP *const p_argumen
 }
 
 //	(string)terrainColors(integer$ n)
-EidosValue_SP Eidos_ExecuteFunction_terrainColors(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_terrainColors(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -10881,7 +10897,7 @@ EidosValue_SP Eidos_ExecuteFunction_terrainColors(const EidosValue_SP *const p_a
 
 
 //	(void)beep([Ns$ soundName = NULL])
-EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_beep(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10904,7 +10920,7 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const EidosValue_SP *const p_arguments,
 }
 
 //	(void)citation(void)
-EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10926,7 +10942,7 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const Eidos
 //	(float$)clock([string$ type = "cpu"])
 static std::chrono::steady_clock::time_point timebase = std::chrono::steady_clock::now();	// start at launch
 
-EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10956,7 +10972,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const EidosVal
 }
 
 //	(string$)date(void)
-EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10976,7 +10992,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const EidosValu
 }
 
 //	(void)defineConstant(string$ symbol, + x)
-EidosValue_SP Eidos_ExecuteFunction_defineConstant(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -10991,15 +11007,21 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const EidosValue_SP *const p_
 }
 
 //	(*)doCall(string$ functionName, ...)
-EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_doCall(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+	int argument_count = (int)p_arguments.size();
+	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_SP result_SP(nullptr);
 	
 	std::string function_name = p_arguments[0]->StringAtIndex(0, nullptr);
-	const EidosValue_SP *const arguments = p_arguments + 1;
-	int argument_count = p_argument_count - 1;
+	
+	// Copy the argument list; this is a little slow, but not a big deal, and it provides protection against re-entrancy
+	std::vector<EidosValue_SP> arguments;
+	
+	for (int argument_index = 1; argument_index < argument_count; argument_index++)
+		arguments.push_back(p_arguments[argument_index]);
 	
 	// Look up the signature for this function dynamically
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
@@ -11011,25 +11033,25 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 	const EidosFunctionSignature *function_signature = signature_iter->second.get();
 	
 	// Check the function's arguments
-	function_signature->CheckArguments(arguments, argument_count);
+	function_signature->CheckArguments(arguments);
 	
 	// BEWARE!  Since the function called here could be a function, like executeLambda() or apply() or sapply(),
 	// that causes re-entrancy into the Eidos engine, this call is rather dangerous.  See the comments on those
 	// functions for further details.
 	if (function_signature->internal_function_)
-		result_SP = function_signature->internal_function_(arguments, argument_count, p_interpreter);
+		result_SP = function_signature->internal_function_(arguments, p_interpreter);
 	else if (!function_signature->delegate_name_.empty())
 	{
 		EidosContext *context = p_interpreter.Context();
 		
 		if (context)
-			result_SP = context->ContextDefinedFunctionDispatch(function_name, arguments, argument_count, p_interpreter);
+			result_SP = context->ContextDefinedFunctionDispatch(function_name, arguments, p_interpreter);
 		else
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): (internal error) function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
 	}
 	else if (function_signature->body_script_)
 	{
-		result_SP = p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments, argument_count);
+		result_SP = p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments);
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): (internal error) unbound function " << function_name << "." << EidosTerminate(nullptr);
@@ -11048,7 +11070,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const EidosValue_SP *const p_argument
 // that by passing true here for p_execute_in_outer_scope.  Yes, this is a hack; an end-user could
 // not implement source() themselves as a user-defined function without using private API.  That's
 // OK, though; many Eidos built-in functions could not be implemented in Eidos themselves.
-EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments, EidosInterpreter &p_interpreter, bool p_execute_in_outer_scope)
+EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter, bool p_execute_in_outer_scope)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -11239,7 +11261,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const EidosValue_SP *const p_arguments
 }
 
 //	(*)executeLambda(string$ lambdaSource, [ls$ timed = F])
-EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_executeLambda(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11247,7 +11269,7 @@ EidosValue_SP Eidos_ExecuteFunction_executeLambda(const EidosValue_SP *const p_a
 }
 
 //	(*)_executeLambda_OUTER(string$ lambdaSource, [ls$ timed = F])
-EidosValue_SP Eidos_ExecuteFunction__executeLambda_OUTER(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction__executeLambda_OUTER(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11255,7 +11277,7 @@ EidosValue_SP Eidos_ExecuteFunction__executeLambda_OUTER(const EidosValue_SP *co
 }
 
 //	(logical)exists(string symbol)
-EidosValue_SP Eidos_ExecuteFunction_exists(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_exists(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -11289,7 +11311,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const EidosValue_SP *const p_argument
 }
 
 //	(void)functionSignature([Ns$ functionName = NULL])
-EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11331,7 +11353,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const EidosValue_SP *const
 }
 
 //	(integer$)getSeed(void)
-EidosValue_SP Eidos_ExecuteFunction_getSeed(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_getSeed(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11343,7 +11365,7 @@ EidosValue_SP Eidos_ExecuteFunction_getSeed(__attribute__((unused)) const EidosV
 }
 
 //	(void)license(void)
-EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11375,7 +11397,7 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const EidosV
 }
 
 //	(void)ls(void)
-EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11385,7 +11407,7 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const EidosValue_
 }
 
 //	(void)rm([Ns variableNames = NULL], [logical$ removeConstants = F])
-EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11416,7 +11438,7 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const EidosValue_SP *const p_arguments, _
 }
 
 //	(*)sapply(* x, string$ lambdaSource, [string$ simplify = "vector"])
-EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -11550,7 +11572,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_argument
 		
 		// Assemble all the individual results together, just as c() does
 		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
-		result_SP = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL but not VOID
+		result_SP = ConcatenateEidosValues(results, true, false);	// allow NULL but not VOID
 		
 		// Finally, we restructure the results:
 		//
@@ -11619,7 +11641,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const EidosValue_SP *const p_argument
 }
 
 //	(void)setSeed(integer$ seed)
-EidosValue_SP Eidos_ExecuteFunction_setSeed(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_setSeed(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11631,7 +11653,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSeed(const EidosValue_SP *const p_argumen
 }
 
 //	(void)stop([Ns$ message = NULL])
-EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11657,7 +11679,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const EidosValue_SP *const p_arguments,
 }
 
 //	(logical$)suppressWarnings(logical$ suppress)
-EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *suppress_value = p_arguments[0].get();
 	eidos_logical_t new_suppress = suppress_value->LogicalAtIndex(0, nullptr);
@@ -11669,7 +11691,7 @@ EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const EidosValue_SP *const 
 }
 
 //	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F], [logical$ wait = T])
-EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11805,7 +11827,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const EidosValue_SP *const p_argument
 }
 
 //	(string$)time(void)
-EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11825,7 +11847,7 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const EidosValu
 }
 
 //	(float$)usage([logical$ peak = F])
-EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11842,7 +11864,7 @@ EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const EidosVal
 }
 
 //	(void)version([logical$ print = T])
-EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -11887,7 +11909,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const EidosV
 
 
 //	(object<_TestElement>$)_Test(integer$ yolk)
-EidosValue_SP Eidos_ExecuteFunction__Test(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction__Test(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	

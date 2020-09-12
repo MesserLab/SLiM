@@ -250,7 +250,7 @@ static int codon2aa_int[64] = {
 };
 
 //	(string)codonsToAminoAcids(integer codons, [li$ long = F])
-EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();
 	EidosValue *long_value = p_arguments[1].get();
@@ -392,7 +392,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const
 }
 
 //	(integer)nucleotidesToCodons(is sequence)
-EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *sequence_value = p_arguments[0].get();
 	EidosValueType sequence_type = sequence_value->Type();
@@ -576,7 +576,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 }
 
 //	(float)mm16To256(float mutationMatrix16)
-EidosValue_SP SLiM_ExecuteFunction_mm16To256(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_mm16To256(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *mutationMatrix16_value = p_arguments[0].get();
 	
@@ -603,7 +603,7 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const EidosValue_SP *const p_argume
 }
 
 //	(float)mmJukesCantor(float$ alpha)
-EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *alpha_value = p_arguments[0].get();
 	double alpha = alpha_value->FloatAtIndex(0, nullptr);
@@ -642,7 +642,7 @@ EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const EidosValue_SP *const p_ar
 }
 
 //	(float)mmKimura(float$ alpha, float$ beta)
-EidosValue_SP SLiM_ExecuteFunction_mmKimura(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_mmKimura(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *alpha_value = p_arguments[0].get();
 	EidosValue *beta_value = p_arguments[1].get();
@@ -686,7 +686,7 @@ EidosValue_SP SLiM_ExecuteFunction_mmKimura(const EidosValue_SP *const p_argumen
 }
 
 //	(integer)nucleotideCounts(is sequence)
-EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *sequence_value = p_arguments[0].get();
 	int64_t total_ACGT[4] = {0, 0, 0, 0};
@@ -704,7 +704,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const EidosValue_SP *const p
 }
 
 //	(float)nucleotideFrequencies(is sequence)
-EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *sequence_value = p_arguments[0].get();
 	int64_t total_ACGT[4] = {0, 0, 0, 0};
@@ -723,7 +723,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const EidosValue_SP *co
 }
 
 //	(is)randomNucleotides(i$ length, [Nif basis = NULL], [s$ format = "string"])
-EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -865,7 +865,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const 
 }
 
 // (is)codonsToNucleotides(integer codons, [string$ format = "string"])
-EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const EidosValue_SP *const p_arguments, __attribute__((unused)) int p_argument_count, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();
 	EidosValue *format_value = p_arguments[1].get();

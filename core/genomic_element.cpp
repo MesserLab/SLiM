@@ -175,20 +175,20 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	}
 }
 
-EidosValue_SP GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	switch (p_method_id)
 	{
-		case gID_setGenomicElementType: return ExecuteMethod_setGenomicElementType(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_setGenomicElementType: return ExecuteMethod_setGenomicElementType(p_method_id, p_arguments, p_interpreter);
+		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
 //	*********************	- (void)setGenomicElementType(io<GenomicElementType>$ genomicElementType)
 //
-EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *genomicElementType_value = p_arguments[0].get();
 	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	GenomicElementType *getype_ptr = SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, sim, "setGenomicElementType()");

@@ -291,12 +291,9 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     
     if (arg_mask_count == 0)
     {
-        if (!call_signature->has_ellipsis_)
-        {
-            // colorize "void"
-            scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
-            scanCursor.setCharFormat(typeAttrs);
-        }
+        // colorize "void"
+        scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
+        scanCursor.setCharFormat(typeAttrs);
     }
     else
     {
@@ -317,6 +314,12 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
             //	Note this logic is paralleled in the function StringForEidosValueMask().
             //	These two should be kept in synch so the user-visible format of signatures is consistent.
             //
+            if (arg_name == gEidosStr_ELLIPSIS)
+            {
+                scanCursor.setPosition(scanCursor.position() + 3, QTextCursor::MoveAnchor);     // "..."
+                continue;
+            }
+            
             bool is_optional = !!(type_mask & kEidosValueMaskOptional);
             bool requires_singleton = !!(type_mask & kEidosValueMaskSingleton);
             EidosValueMask stripped_mask = type_mask & kEidosValueMaskFlagStrip;
@@ -387,17 +390,6 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
                 scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 1);    // "]"
             }
         }
-    }
-    
-    if (call_signature->has_ellipsis_)
-    {
-        scanCursor.setPosition(scanCursor.position(), QTextCursor::MoveAnchor);
-        
-        if (arg_mask_count > 0)
-            scanCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, 2);    // ", "
-        
-        scanCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 3);
-        scanCursor.setCharFormat(typeAttrs);
     }
 }
 

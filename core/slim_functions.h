@@ -30,15 +30,15 @@
 
 // SLiM built-in functions; the signatures for these are declared in SLiMSim::SLiMFunctionSignatures()
 
-EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_mm16To256(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_mmKimura(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
-EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_mm16To256(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_mmKimura(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
 
 #endif /* slim_functions_h */

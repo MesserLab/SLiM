@@ -56,21 +56,21 @@ const EidosObjectClass *SLiMEidosDictionary::Class(void) const
 	return gSLiM_SLiMEidosDictionary_Class;
 }
 
-EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMEidosDictionary::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	switch (p_method_id)
 	{
-		case gID_getValue:		return ExecuteMethod_getValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		//case gID_setValue:	return ExecuteMethod_Accelerated_setValue(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:				return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gID_getValue:		return ExecuteMethod_getValue(p_method_id, p_arguments, p_interpreter);
+		//case gID_setValue:	return ExecuteMethod_Accelerated_setValue(p_method_id, p_arguments, p_interpreter);
+		default:				return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
 //	*********************	- (+)getValue(string $key)
 //
-EidosValue_SP SLiMEidosDictionary::ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMEidosDictionary::ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *key_value = p_arguments[0].get();
 	
 	std::string key = key_value->StringAtIndex(0, nullptr);
@@ -92,9 +92,9 @@ EidosValue_SP SLiMEidosDictionary::ExecuteMethod_getValue(EidosGlobalStringID p_
 
 //	*********************	- (void)setValue(string $key, + value)
 //
-EidosValue_SP SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMEidosDictionary::ExecuteMethod_Accelerated_setValue(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *key_value = p_arguments[0].get();
 	std::string key = key_value->StringAtIndex(0, nullptr);
 	EidosValue_SP value = p_arguments[1];

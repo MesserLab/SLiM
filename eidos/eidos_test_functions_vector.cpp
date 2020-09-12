@@ -970,11 +970,11 @@ void _RunFunctionValueInspectionManipulationTests_s_through_z(void)
 	EidosAssertScriptSuccess("x = c(5, 0, NAN, 17, NAN, -17); sort(x, ascending=F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{17, 5, 0, -17, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
 	
 	// sortBy()
-	EidosAssertScriptRaise("sortBy(NULL);", 0, "missing required argument");
-	EidosAssertScriptRaise("sortBy(T);", 0, "missing required argument");
-	EidosAssertScriptRaise("sortBy(5);", 0, "missing required argument");
-	EidosAssertScriptRaise("sortBy(9.1);", 0, "missing required argument");
-	EidosAssertScriptRaise("sortBy('foo');", 0, "missing required argument");
+	EidosAssertScriptRaise("sortBy(NULL);", 0, "cannot be type");
+	EidosAssertScriptRaise("sortBy(T);", 0, "cannot be type");
+	EidosAssertScriptRaise("sortBy(5);", 0, "cannot be type");
+	EidosAssertScriptRaise("sortBy(9.1);", 0, "cannot be type");
+	EidosAssertScriptRaise("sortBy('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sortBy(NULL, 'foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sortBy(T, 'foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sortBy(5, 'foo');", 0, "cannot be type");

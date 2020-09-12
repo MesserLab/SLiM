@@ -692,6 +692,7 @@ extern const std::string gEidosStr_float;
 extern const std::string gEidosStr_object;
 extern const std::string gEidosStr_numeric;
 
+extern const std::string gEidosStr_ELLIPSIS;
 extern const std::string gEidosStr_size;
 extern const std::string gEidosStr_length;
 extern const std::string gEidosStr_methodSignature;
@@ -745,6 +746,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_INF,
 	gEidosID_NAN,
 	
+	gEidosID_ELLIPSIS,
 	gEidosID_methodSignature,
 	gEidosID_size,
 	gEidosID_length,

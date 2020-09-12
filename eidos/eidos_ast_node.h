@@ -42,6 +42,25 @@ extern EidosObjectPool *gEidosASTNodePool;
 typedef EidosValue_SP (EidosInterpreter::*EidosEvaluationMethod)(const EidosASTNode *p_node);
 
 
+// runtime caching for argument list processing; these caches are filled and used ONLY by EidosInterpreter::Evaluate_Call() / EidosInterpreter::_ProcessArgumentList() to accelerate function/method dispatch
+// note that unlike the caches above, this caching is not done at optimization time; it is done lazily at runtime, the first time a given function/method call is hit during interpreted execution
+struct EidosASTNode_ArgumentFill
+{
+	EidosASTNode *fill_node_;				// the AST node that should be evaluated to get a fill value for the given index
+	uint8_t fill_index_;					// the index of the argument that needs evaluation (i.e., not default/constant)
+	uint8_t signature_index_;				// the index of the corresponding argument in the signature (may differ due to an intermediate ellipsis)
+	bool fill_singleton_;					// true if the argument is required to be a singleton, derived from the signature's arg_masks_
+	EidosValueMask fill_mask_;				// the stripped type mask for the argument, derived from the signature's arg_masks_
+	
+	inline EidosASTNode_ArgumentFill(EidosASTNode *p_node, uint8_t p_index, uint8_t p_signature_index, bool p_singleton, EidosValueMask p_mask) : fill_node_(p_node), fill_index_(p_index), signature_index_(p_signature_index), fill_singleton_(p_singleton), fill_mask_(p_mask) {};
+};
+
+struct EidosASTNode_ArgumentCache
+{
+	std::vector<EidosValue_SP> argument_buffer_;						// a buffer big enough to hold all arguments, pre-filled with all default/constant argument values
+	std::vector<EidosASTNode_ArgumentFill> fill_info_;					// a buffer of information about arguments in argument_buffer_ needing to be filled at dispatch time
+};
+
 // A class representing a node in a parse tree for a script
 class EidosASTNode
 {
@@ -55,7 +74,7 @@ public:
 	mutable EidosValue_SP cached_literal_value_;						// an optional pre-cached EidosValue for numbers, strings, and constant identifiers
 	mutable EidosValue_SP cached_range_value_;							// an optional pre-cached EidosValue for constant range-operator expressions
 	mutable EidosValue_SP cached_return_value_;							// an optional pre-cached EidosValue for constant return statements and constant-return blocks
-	mutable EidosFunctionSignature_CSP cached_signature_ = nullptr;		// a cached pointer to the function signature corresponding to the token
+	mutable EidosFunctionSignature_CSP cached_signature_ = nullptr;		// a cached pointer to the function signature corresponding to the token, on the call name node
 	mutable EidosEvaluationMethod cached_evaluator_ = nullptr;			// a pre-cached pointer to method to evaluate this node; shorthand for EvaluateNode()
 	mutable EidosGlobalStringID cached_stringID_ = gEidosID_none;		// a pre-cached identifier for the token string, for fast property/method lookup
 	
@@ -66,6 +85,8 @@ public:
 	
 	mutable EidosTypeSpecifier typespec_;								// only valid for type-specifier nodes inside function declarations
 	mutable bool hit_eof_in_tolerant_parse_ = false;					// only valid for compound statement nodes; used by the type-interpreter to handle scoping
+	
+	mutable EidosASTNode_ArgumentCache *argument_cache_ = nullptr;		// OWNED POINTER: an argument cache struct, allocated on demand for function/method call nodes
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING

@@ -104,6 +104,9 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObje
 	//	These two should be kept in synch so the user-visible format of signatures is consistent.
 	//
 	
+	if (p_name == gEidosStr_ELLIPSIS)
+		return gEidosStr_ELLIPSIS;
+	
 	std::string out_string;
 	bool is_optional = !!(p_mask & kEidosValueMaskOptional);
 	bool requires_singleton = !!(p_mask & kEidosValueMaskSingleton);
@@ -2553,7 +2556,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 #endif
 		
 		// concatenate the results using ConcatenateEidosValues()
-		EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL, don't allow VOID
+		EidosValue_SP result = ConcatenateEidosValues(results, true, false);	// allow NULL, don't allow VOID
 		
 		// Access of singleton properties retains the matrix/array structure of the target
 		if (signature->value_mask_ & kEidosValueMaskSingleton)
@@ -2621,7 +2624,7 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << EidosTerminate(nullptr);
 }
 
-EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_method_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_method_signature, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// This is an instance method, so it gets dispatched to all of our elements
 	auto values_size = size();
@@ -2658,7 +2661,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 	{
 		// the method is accelerated, so call through its accelerated imp; note we do this for singletons too,
 		// because accelerated methods have no non-accelerated implementation, unlike accelerated properties
-		EidosValue_SP result = p_method_signature->accelerated_imper_(values_, values_size, p_method_id, p_arguments, p_argument_count, p_interpreter);
+		EidosValue_SP result = p_method_signature->accelerated_imper_(values_, values_size, p_method_id, p_arguments, p_interpreter);
 		
 		p_method_signature->CheckAggregateReturn(*result, values_size);
 		return result;
@@ -2667,7 +2670,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 	{
 		// The singleton case is very common, so it should be special-cased for speed
 		EidosObjectElement *value = values_[0];
-		EidosValue_SP result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		EidosValue_SP result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 		
 		p_method_signature->CheckReturn(*result);
 		return result;
@@ -2703,7 +2706,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			// No need to gather results at all, since they should all be void.
 			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
-				EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+				EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 				p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2719,7 +2722,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			
 			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
-				EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+				EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 				p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2739,7 +2742,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2756,7 +2759,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			{
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2789,7 +2792,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2807,7 +2810,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			{
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2843,7 +2846,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2861,7 +2864,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			{
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2901,7 +2904,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2919,7 +2922,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			{
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
 					p_method_signature->CheckReturn(*temp_result);
 #endif
@@ -2954,7 +2957,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				// with small objects, we check every value
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 					
 					p_method_signature->CheckReturn(*temp_result);
 					results.emplace_back(temp_result);
@@ -2967,7 +2970,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				
 				for (size_t value_index = 0; value_index < values_size; ++value_index)
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 					
 					if (!checked_multivalued)
 					{
@@ -2980,7 +2983,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 			}
 			
 			// concatenate the results using ConcatenateEidosValues()
-			EidosValue_SP result = ConcatenateEidosValues(results.data(), (int)results.size(), true, false);	// allow NULL, don't allow VOID
+			EidosValue_SP result = ConcatenateEidosValues(results, true, false);	// allow NULL, don't allow VOID
 			
 			return result;
 		}
@@ -3214,13 +3217,13 @@ void EidosValue_Object_singleton::SetPropertyOfElements(EidosGlobalStringID p_pr
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << EidosTerminate(nullptr);
 }
 
-EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_method_signature, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_method_signature, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// This is an instance method, so it gets dispatched to our element
 	if (p_method_signature->accelerated_imp_)
 	{
 		// the method is accelerated, so call through its accelerated imp
-		EidosValue_SP result = p_method_signature->accelerated_imper_(&value_, 1, p_method_id, p_arguments, p_argument_count, p_interpreter);
+		EidosValue_SP result = p_method_signature->accelerated_imper_(&value_, 1, p_method_id, p_arguments, p_interpreter);
 		
 		p_method_signature->CheckReturn(*result);
 		return result;
@@ -3228,7 +3231,7 @@ EidosValue_SP EidosValue_Object_singleton::ExecuteMethodCall(EidosGlobalStringID
 	else
 	{
 		// not accelerated, so ExecuteInstanceMethod() handles it
-		EidosValue_SP result = value_->ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		EidosValue_SP result = value_->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 		
 		p_method_signature->CheckReturn(*result);
 		return result;
@@ -3284,12 +3287,12 @@ void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const Ei
 		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): (internal error) setting a new value for read-write property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
-EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused(p_arguments, p_argument_count, p_interpreter)
+#pragma unused(p_arguments, p_interpreter)
 	switch (p_method_id)
 	{
-		case gEidosID_str:	return ExecuteMethod_str(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID_str:	return ExecuteMethod_str(p_method_id, p_arguments, p_interpreter);
 			
 		default:
 		{
@@ -3309,9 +3312,9 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 
 //	*********************	– (void)str(void)
 //
-EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -3407,9 +3410,9 @@ EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method
 	return gStaticEidosValueVOID;
 }
 
-EidosValue_SP EidosObjectElement::ContextDefinedFunctionDispatch(const std::string &p_function_name, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosObjectElement::ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused(p_function_name, p_arguments, p_argument_count, p_interpreter)
+#pragma unused(p_function_name, p_arguments, p_interpreter)
 	EIDOS_TERMINATION << "ERROR (EidosObjectElement::ContextDefinedFunctionDispatch for " << Class()->ElementType() << "): (internal error) unimplemented Context function dispatch." << EidosTerminate(nullptr);
 }
 
@@ -3575,14 +3578,14 @@ const std::vector<EidosMethodSignature_CSP> *EidosObjectClass::Methods(void) con
 	return methods;
 }
 
-EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 	switch (p_method_id)
 	{
-		case gEidosID_propertySignature:	return ExecuteMethod_propertySignature(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
-		case gEidosID_methodSignature:		return ExecuteMethod_methodSignature(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
-		case gEidosID_size:					return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
-		case gEidosID_length:				return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_argument_count, p_interpreter);
+		case gEidosID_propertySignature:	return ExecuteMethod_propertySignature(p_method_id, p_target, p_arguments, p_interpreter);
+		case gEidosID_methodSignature:		return ExecuteMethod_methodSignature(p_method_id, p_target, p_arguments, p_interpreter);
+		case gEidosID_size:					return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_interpreter);
+		case gEidosID_length:				return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_interpreter);
 			
 		default:
 		{
@@ -3602,9 +3605,9 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 
 //	*********************	+ (void)propertySignature([Ns$ propertyName = NULL])
 //
-EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
-#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
@@ -3632,9 +3635,9 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStrin
 
 //	*********************	+ (void)methodSignature([Ns$ methodName = NULL])
 //
-EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
-#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
@@ -3681,9 +3684,9 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringI
 //	*********************	+ (integer$)size(void)
 //	*********************	+ (integer$)length(void)
 //
-EidosValue_SP EidosObjectClass::ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter) const
+EidosValue_SP EidosObjectClass::ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
-#pragma unused (p_method_id, p_target, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
 }

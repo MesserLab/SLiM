@@ -63,12 +63,6 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 			return this;
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add a required argument after an optional argument has been added." << EidosTerminate(nullptr);
 	}
-	if (has_ellipsis_)
-	{
-		if (p_fault_tolerant)
-			return this;
-		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) cannot add an argument after an ellipsis." << EidosTerminate(nullptr);
-	}
 	if (p_argument_name.size() == 0)
 	{
 		if (p_fault_tolerant)
@@ -167,6 +161,12 @@ EidosCallSignature *EidosCallSignature::AddEllipsis(void)
 	if (has_ellipsis_)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add more than one ellipsis." << EidosTerminate(nullptr);
 	
+	arg_masks_.emplace_back(kEidosValueMaskAny);
+	arg_names_.push_back(gEidosStr_ELLIPSIS);
+	arg_name_IDs_.emplace_back(gEidosID_ELLIPSIS);
+	arg_classes_.emplace_back(nullptr);
+	arg_defaults_.emplace_back(nullptr);
+	
 	has_ellipsis_ = true;
 	
 	return this;
@@ -260,44 +260,20 @@ EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OSN(const std::string &p
 EidosCallSignature *EidosCallSignature::AddIntObject_OSN(const std::string &p_argument_name, const EidosObjectClass *p_argument_class, EidosValue_SP p_default_value)		{ return AddArgWithDefault(kEidosValueMaskInt | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class, std::move(p_default_value)); }
 EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argument_name, const EidosObjectClass *p_argument_class, EidosValue_SP p_default_value)		{ return AddArgWithDefault(kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class, std::move(p_default_value)); }
 
-void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, unsigned int p_argument_count) const
+void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_index) const
 {
-	size_t arg_masks_size = arg_masks_.size();
+	EidosValueType arg_type = p_argument->Type();
 	
-	// Check the number of arguments supplied; note that now our function dispatch code guarantees that every argument is present, including optional arguments
-	if (!has_ellipsis_)
+	if (has_ellipsis_ && (arg_name_IDs_[p_signature_index] == gEidosID_ELLIPSIS))
 	{
-		if (p_argument_count != arg_masks_size)
-		{
-			if (p_argument_count > arg_masks_size)
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires at most " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
-			
-			if (p_argument_count < arg_masks_size)
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires " << arg_masks_.size() << " argument(s), but " << p_argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
-		}
+		// If we're checking against the ellipsis argument, the only rule is that it can't be void
+		if (arg_type == EidosValueType::kValueVOID)
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 	}
-	else	// has_ellipsis_
+	else
 	{
-		// Check for void in any ellipsis arguments; we do this first since we've already checked the has_ellipsis_ flag, to avoid an unnecessary branch
-		for (unsigned int arg_index = (unsigned int)arg_masks_size; arg_index < p_argument_count; ++arg_index)
-		{
-			EidosValue *argument = p_arguments[arg_index].get();
-			EidosValueType arg_type = argument->Type();
-			
-			if (arg_type == EidosValueType::kValueVOID)
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): ellipsis argument cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
-		}
-	}
-	
-	// Check the types of all arguments specified in the signature
-	for (unsigned int arg_index = 0; arg_index < arg_masks_size; ++arg_index)
-	{
-		EidosValueMask type_mask_unstripped = arg_masks_[arg_index];
+		EidosValueMask type_mask_unstripped = arg_masks_[p_signature_index];
 		EidosValueMask type_mask = (type_mask_unstripped & kEidosValueMaskFlagStrip);
-		//bool is_optional = !!(type_mask & kEidosValueMaskOptional);		// at this stage, optional arguments are now required; they should have been filled by the function dispatch code
-		
-		EidosValue *argument = p_arguments[arg_index].get();
-		EidosValueType arg_type = argument->Type();
 		bool type_ok;
 		
 		switch (arg_type)
@@ -306,7 +282,7 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 			case EidosValueType::kValueNULL:
 			{
 				if (type_mask & kEidosValueMaskNULL)
-					continue;
+					return;
 				
 				type_ok = false;
 				break;
@@ -321,19 +297,19 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 				
 				// If the argument is object type, and is allowed to be object type, and an object element type was specified
 				// in the signature, check the object element type of the argument.  Note this uses pointer equality!
-				const EidosObjectClass *signature_class = arg_classes_[arg_index];
+				const EidosObjectClass *signature_class = arg_classes_[p_signature_index];
 				
 				if (type_ok && signature_class)
 				{
-					const EidosObjectClass *argument_class = ((EidosValue_Object *)argument)->Class();
+					const EidosObjectClass *argument_class = ((EidosValue_Object *)p_argument)->Class();
 					
 					if (argument_class != signature_class)
 					{
 						// Empty object vectors of undefined class are allowed to be passed for type-specified parameters; such vectors are generic
-						if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
+						if ((argument_class == gEidos_UndefinedClassObject) && (p_argument->Count() == 0))
 							break;
 						
-						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " cannot be object element type " << argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
 					}
 				}
 				break;
@@ -345,14 +321,51 @@ void EidosCallSignature::CheckArguments(const EidosValue_SP *const p_arguments, 
 		{
 			// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
 			if ((call_name_ == "apply") && (arg_type == EidosValueType::kValueString))
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
 			
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 		}
 		
 		// if the argument is NULL, this singleton check is skipped by the continue statement above
-		if ((type_mask_unstripped & kEidosValueMaskSingleton) && (argument->Count() != 1))
-			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): argument " << arg_index + 1 << " (" << arg_names_[arg_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << argument->Count() << "." << EidosTerminate(nullptr);
+		if ((type_mask_unstripped & kEidosValueMaskSingleton) && (p_argument->Count() != 1))
+			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") must be a singleton (size() == 1) for " << CallType() << " " << call_name_ << "(), but size() == " << p_argument->Count() << "." << EidosTerminate(nullptr);
+	}
+}
+
+void EidosCallSignature::CheckArguments(const std::vector<EidosValue_SP> &p_arguments) const
+{
+	size_t argument_count = p_arguments.size();
+	size_t arg_masks_size = arg_masks_.size();
+	size_t minimum_arg_count = (has_ellipsis_ ? arg_masks_size - 1 : arg_masks_size);	// if there is an ellipsis, it is optional, but it occupies one argument slot
+	
+	// Check the number of arguments supplied; note that now our function dispatch code guarantees that every argument is present, including optional arguments
+	if (!has_ellipsis_ && (argument_count > arg_masks_size))
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires at most " << minimum_arg_count << " argument(s), but " << argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
+	
+	if (argument_count < minimum_arg_count)
+		EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArguments): " << CallType() << " " << call_name_ << "() requires " << minimum_arg_count << " argument(s), but " << argument_count << " are supplied (after incorporating default arguments)." << EidosTerminate(nullptr);
+	
+	// Check the types of all arguments specified in the signature
+	int signature_index = 0;
+	
+	for (unsigned int arg_index = 0; arg_index < argument_count; ++arg_index, ++signature_index)
+	{
+		// If the current signature index is an ellipsis, deal with it completely here; just check the ellipsis arguments for void
+		if (arg_name_IDs_[signature_index] == gEidosID_ELLIPSIS)
+		{
+			int first_ellipsis = arg_index;
+			int last_ellipsis = first_ellipsis + (int)(argument_count - minimum_arg_count) - 1;
+			
+			for (int ellipsis_index = first_ellipsis; ellipsis_index <= last_ellipsis; ++ellipsis_index)
+				CheckArgument(p_arguments[ellipsis_index].get(), signature_index);
+			
+			++signature_index;
+			arg_index = last_ellipsis + 1;
+			if (arg_index == argument_count)
+				break;
+		}
+		
+		CheckArgument(p_arguments[arg_index].get(), signature_index);
 	}
 }
 
@@ -501,8 +514,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_
 	
 	if (arg_mask_count == 0)
 	{
-		if (!p_signature.has_ellipsis_)
-			p_outstream << gEidosStr_void;
+		p_outstream << gEidosStr_void;
 	}
 	else
 	{
@@ -523,9 +535,6 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosCallSignature &p_
 			p_outstream << StringForEidosValueMask(type_mask, arg_obj_class, arg_name, arg_default.get());
 		}
 	}
-	
-	if (p_signature.has_ellipsis_)
-		p_outstream << ((arg_mask_count > 0) ? ", ..." : "...");
 	
 	p_outstream << ")";
 	

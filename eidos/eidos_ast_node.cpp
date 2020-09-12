@@ -44,6 +44,12 @@ EidosASTNode::~EidosASTNode(void)
 		delete token_;
 		token_ = nullptr;
 	}
+	
+	if (argument_cache_)
+	{
+		delete argument_cache_;
+		argument_cache_ = nullptr;
+	}
 }
 
 void EidosASTNode::AddChild(EidosASTNode *p_child_node)

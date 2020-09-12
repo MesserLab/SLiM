@@ -607,7 +607,7 @@ void _RunFunctionMiscTests_apply_sapply(void)
 	EidosAssertScriptSuccess("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1; else NULL;'), c(2,4,6));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1; else NULL;', simplify='vector'), c(2,4,6));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1; else NULL;', simplify='matrix'), matrix(c(2,4,6), nrow=1));", gStaticEidosValue_LogicalT);
-	EidosAssertScriptRaise("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1; else NULL;', simplify='match'), 2,4,6);", 10, "included NULL");
+	EidosAssertScriptRaise("identical(sapply(1:6, 'if (applyValue % 2) applyValue+1; else NULL;', simplify='match'), c(2,4,6));", 10, "included NULL");
 	
 	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'if (applyValue % 2) applyValue+1; else NULL;'), c(2,4,6));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("identical(sapply(matrix(1:6, nrow=1), 'if (applyValue % 2) applyValue+1; else NULL;', simplify='vector'), c(2,4,6));", gStaticEidosValue_LogicalT);

@@ -141,20 +141,20 @@ void EidosTestElement::SetProperty_Accelerated__yolk(EidosObjectElement **p_elem
 	}
 }
 
-EidosValue_SP EidosTestElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosTestElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_method_id)
 	{
-		//case gEidosID__cubicYolk:	return ExecuteMethod_Accelerated_cubicYolk(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		case gEidosID__squareTest:	return ExecuteMethod_squareTest(p_method_id, p_arguments, p_argument_count, p_interpreter);
-		default:					return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_argument_count, p_interpreter);
+		//case gEidosID__cubicYolk:	return ExecuteMethod_Accelerated_cubicYolk(p_method_id, p_arguments, p_interpreter);
+		case gEidosID__squareTest:	return ExecuteMethod_squareTest(p_method_id, p_arguments, p_interpreter);
+		default:					return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
-EidosValue_SP EidosTestElement::ExecuteMethod_Accelerated_cubicYolk(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosTestElement::ExecuteMethod_Accelerated_cubicYolk(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
 	
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
@@ -167,9 +167,9 @@ EidosValue_SP EidosTestElement::ExecuteMethod_Accelerated_cubicYolk(EidosObjectE
 	return EidosValue_SP(int_result);
 }
 
-EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const EidosValue_SP *const p_arguments, int p_argument_count, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_argument_count, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	// The way we handle the squareTest property is extremely questionable; we create a new
 	// EidosTestElement object that is not owned by anyone, so it ends up as a leak in
 	// Instruments.  This doesn't matter, since EidosTestElement is only used in test code,

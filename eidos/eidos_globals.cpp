@@ -2314,6 +2314,7 @@ const std::string gEidosStr_object = "object";
 const std::string gEidosStr_numeric = "numeric";
 
 // Eidos function names, property names, and method names
+const std::string gEidosStr_ELLIPSIS = "...";
 const std::string gEidosStr_size = "size";
 const std::string gEidosStr_length = "length";
 const std::string gEidosStr_methodSignature = "methodSignature";
@@ -2398,6 +2399,7 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 	{
 		been_here = true;
 		
+		Eidos_RegisterStringForGlobalID(gEidosStr_ELLIPSIS, gEidosID_ELLIPSIS);
 		Eidos_RegisterStringForGlobalID(gEidosStr_size, gEidosID_size);
 		Eidos_RegisterStringForGlobalID(gEidosStr_length, gEidosID_length);
 		Eidos_RegisterStringForGlobalID(gEidosStr_methodSignature, gEidosID_methodSignature);
