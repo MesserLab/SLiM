@@ -8087,6 +8087,21 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_ar
 	std::string separator = p_arguments[argument_count - 1]->StringAtIndex(0, nullptr);
 	std::string result_string;
 	
+	// SLiM 3.5 breaks backward compatibility for paste() because the second argument, which would have been interpreted as "sep="
+	// before, now gets eaten by the ellipsis unless it is explicitly named.  Here we try to issue a useful warning about this,
+	// for the strings that seem like the most likely to be used as separators.
+	if ((argument_count == 3) && (separator == " ") &&
+		((p_arguments[1]->Type() == EidosValueType::kValueString) && (p_arguments[1]->Count() == 1)))
+	{
+		std::string pseudosep = p_arguments[1]->StringAtIndex(0, nullptr);	// perhaps intended as sep, and now sep=" " has been used as a default?
+		
+		if ((pseudosep == "") || (pseudosep == " ") || (pseudosep == "\t") || (pseudosep == "\n") || (pseudosep == ",") || (pseudosep == ", ") || (pseudosep == " , ") || (pseudosep == ";") || (pseudosep == "; ") || (pseudosep == " ; "))
+		{
+			if (!gEidosSuppressWarnings)
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_paste): function paste() changed its semantics in Eidos 2.5 (SLiM 3.5).  The second argument here is no longer interpreted to be a separator string; if you want those semantics, use 'sep=' to name the second argument, as in 'paste(1:5, sep=\",\");'.  That is the way to regain backward compatibility.  If, on the other hand, you do not intend the second argument here to be a separator string, you can get rid of this warning by appending the second argument using the + operator instead.  For example, you would transform 'x = paste(1:5, \",\");' into 'x = paste(1:5) + \" ,\";'.  You can also use suppressWarnings() to avoid this warning message." << std::endl;
+		}
+	}
+	
 	for (size_t argument_index = 0; argument_index < argument_count - 1; ++argument_index)
 	{
 		EidosValue *x_value = p_arguments[argument_index].get();
