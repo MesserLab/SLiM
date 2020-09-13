@@ -36,7 +36,7 @@ initialize() {
 	
 	y = sim.getValue("fixed");
 	
-	rstr = paste(c('{',
+	rstr = paste('{',
 		'x <- (1:' + size(y) + ') * 10',
 		'y <- c(' + paste(y, sep=", ") + ')',
 		'quartz(width=4, height=4, type="pdf", file="' + pdfPath + '")',
@@ -47,7 +47,7 @@ initialize() {
 			'xaxp=c(0, 50000, 2))',
 		'box()',
 		'dev.off()',
-		'}'), sep="\n");
+		'}', sep="\n");
 	
 	scriptPath = writeTempFile("plot_", ".R", rstr);
 	system(RSCRIPT, args=scriptPath);

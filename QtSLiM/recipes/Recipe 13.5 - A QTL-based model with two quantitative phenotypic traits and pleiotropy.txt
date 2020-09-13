@@ -95,7 +95,7 @@ late() {
 	history = rbind(history, c(p0_mean, p1_mean));
 	sim.setValue("history", history);
 	
-	rstr = paste(c('{',
+	rstr = paste('{',
 		'x <- c(' + paste(history[,0], sep=", ") + ')',
 		'y <- c(' + paste(history[,1], sep=", ") + ')',
 		'png(width=4, height=4, units="in", res=72, file="' + pngPath + '")',
@@ -106,7 +106,7 @@ late() {
 		'points(x=x, y=y, col="black", pch=19, cex=0.5)',
 		'lines(x=x, y=y)',
 		'dev.off()',
-		'}'), sep="\n");
+		'}', sep="\n");
 	
 	scriptPath = writeTempFile("plot_", ".R", rstr);
 	system("/usr/bin/Rscript", args=scriptPath);
