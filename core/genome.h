@@ -122,6 +122,7 @@ public:
 	~Genome(void);
 	
 	inline __attribute__((always_inline)) slim_genomeid_t GenomeID(void)			{ return genome_id_; }
+	inline __attribute__((always_inline)) void SetGenomeID(slim_genomeid_t p_new_id){ genome_id_ = p_new_id; }	// should basically never be called
 	inline __attribute__((always_inline)) Subpopulation *OwningSubpopulation(void)	{ return subpop_; }
 	inline __attribute__((always_inline)) Individual *OwningIndividual(void)		{ return individual_; }
 	

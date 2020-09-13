@@ -6029,7 +6029,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			
 			// BCH 9/13/2020: adding individual pedigree IDs, for SLiM 3.5, format version 5/6
 			if (p_output_pedigree_ids)
-				p_out << " " << individual.pedigree_id_;
+				p_out << " " << individual.PedigreeID();
 			
 			if (subpop->sex_enabled_)
 				p_out << ((i < first_male_index) ? " F " : " M ");		// sex: SEX ONLY
@@ -6212,6 +6212,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int32_t slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);											// Added in version 2
 		int32_t slim_age_t_size = sizeof(slim_age_t);																// Added in version 6
 		int32_t slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);													// Added in version 6
+		int32_t slim_genomeid_t_size = sizeof(slim_genomeid_t);														// Added in version 6
 		
 		p_out.write(reinterpret_cast<char *>(&slim_generation_t_size), sizeof slim_generation_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_position_t_size), sizeof slim_position_t_size);
@@ -6223,6 +6224,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&slim_polymorphismid_t_size), sizeof slim_polymorphismid_t_size);		// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_age_t_size), sizeof slim_age_t_size);							// Added in version 6
 		p_out.write(reinterpret_cast<char *>(&slim_pedigreeid_t_size), sizeof slim_pedigreeid_t_size);				// Added in version 6
+		p_out.write(reinterpret_cast<char *>(&slim_genomeid_t_size), sizeof slim_genomeid_t_size);					// Added in version 6
 		
 		// Write the generation
 		slim_generation_t generation = sim_.Generation();
@@ -6396,8 +6398,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			{
 				int individual_index = i / 2;
 				Individual &individual = *(subpop->CurrentIndividuals()[individual_index]);
+				slim_pedigreeid_t pedigree_id = individual.PedigreeID();
 				
-				p_out.write(reinterpret_cast<char *>(&individual.pedigree_id_), sizeof individual.pedigree_id_);
+				p_out.write(reinterpret_cast<char *>(&pedigree_id), sizeof pedigree_id);
 			}
 			
 #ifdef SLIM_NONWF_ONLY

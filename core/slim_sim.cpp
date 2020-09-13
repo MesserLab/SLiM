@@ -685,11 +685,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				// If pedigree IDs are present use them; if not, we'll get whatever the default IDs are from the subpop construction
 				iss >> sub;
 				int64_t pedigree_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+				slim_pedigreeid_t pedigree_id = SLiMCastToPedigreeIDOrRaise(pedigree_long);
 				
-				individual.pedigree_id_ = SLiMCastToPedigreeIDOrRaise(pedigree_long);
-				individual.genome1_->genome_id_ = individual.pedigree_id_ * 2;
-				individual.genome2_->genome_id_ = individual.pedigree_id_ * 2 + 1;
-				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, individual.pedigree_id_ + 1);
+				individual.SetPedigreeID(pedigree_id);
+				individual.genome1_->SetGenomeID(pedigree_id * 2);
+				individual.genome1_->SetGenomeID(pedigree_id * 2 + 1);
+				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 			}
 			
 			iss >> sub;			// individual sex identifier (F/M/H) – added in SLiM 2.1, so we need to be robust if it is missing
@@ -979,14 +980,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	{
 		int32_t double_size;
 		double double_test;
-		int32_t slim_generation_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size;
+		int32_t slim_generation_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_genomeid_t_size;
 		int64_t flags = 0;
 		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(slim_generation_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(file_generation) + sizeof(section_end_tag);
 		
 		if (file_version >= 2)
 			header_length += sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size);
 		if (file_version >= 6)
-			header_length += sizeof(slim_pedigreeid_t_size);
+			header_length += sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_genomeid_t);
 		if (file_version >= 5)
 			header_length += sizeof(flags);
 		
@@ -1051,12 +1052,16 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			
 			slim_pedigreeid_t_size = *(int32_t *)p;
 			p += sizeof(slim_pedigreeid_t_size);
+			
+			slim_genomeid_t_size = *(int32_t *)p;
+			p += sizeof(slim_genomeid_t_size);
 		}
 		else
 		{
 			// Version <= 5 file; backfill correct values
 			slim_age_t_size = sizeof(slim_age_t);
 			slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);
+			slim_genomeid_t_size = sizeof(slim_genomeid_t);
 		}
 		
 		file_generation = *(slim_generation_t *)p;
@@ -1093,7 +1098,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)) ||
 			(slim_age_t_size != sizeof(slim_age_t)) ||
-			(slim_pedigreeid_t_size != sizeof(slim_pedigreeid_t)))
+			(slim_pedigreeid_t_size != sizeof(slim_pedigreeid_t)) ||
+			(slim_genomeid_t_size != sizeof(slim_genomeid_t)))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << EidosTerminate();
 		if ((spatial_output_count < 0) || (spatial_output_count > 3))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
@@ -1392,11 +1398,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			
 			int individual_index = genome_index / 2;
 			Individual &individual = *subpop.parent_individuals_[individual_index];
+			slim_pedigreeid_t pedigree_id = *(slim_pedigreeid_t *)p;
 			
-			individual.pedigree_id_ = *(slim_pedigreeid_t *)p;
-			individual.genome1_->genome_id_ = individual.pedigree_id_ * 2;
-			individual.genome2_->genome_id_ = individual.pedigree_id_ * 2 + 1;
-			gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, individual.pedigree_id_ + 1);
+			individual.SetPedigreeID(pedigree_id);
+			individual.genome1_->SetGenomeID(pedigree_id * 2);
+			individual.genome1_->SetGenomeID(pedigree_id * 2 + 1);
+			gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 			p += sizeof(slim_pedigreeid_t);
 		}
 		
