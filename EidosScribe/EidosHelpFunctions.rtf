@@ -2826,48 +2826,42 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 object
 \f3\fs20  vectors respectively.
 \f2 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string$)paste(*\'a0x, [string$
-\f2 \'a0
-\f1 sep
-\f2 \'a0
-\f1 =\'a0" "])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf2 (string$)paste(..., [string$\'a0sep\'a0=\'a0" "])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf0 Returns a 
+\f3\fs20 \cf2 Returns a 
 \f0\b joined string
 \f3\b0  composed from the 
 \f1\fs18 string
-\f3\fs20  representations of the elements of 
-\f1\fs18 x
-\f3\fs20 , joined together by 
+\f3\fs20  representations of the elements of the parameters passed in, taken in order, joined together by 
 \f1\fs18 sep
-\f3\fs20 .  Although this function is based upon the R function of the same name, note that it is much simpler and less powerful; in particular, only the elements of a single vector may be joined, rather than the var-args functionality of the R 
+\f3\fs20 .  Although this function is based upon the R 
 \f1\fs18 paste()
-\f2\fs20 .
-\f3   The string representation used by 
+\f3\fs20  function of the same name, note that it is much simpler and less powerful; in particular, the result is always a singleton 
+\f1\fs18 string
+\f3\fs20 , rather than returning a non-singleton 
+\f1\fs18 string
+\f3\fs20  vector when one of the parameters is a non-singleton.  The string representation used by 
 \f1\fs18 paste()
 \f3\fs20  is the same as that emitted by 
 \f1\fs18 cat()
-\f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (string$)paste
-\f2 0
-\f1 (*\'a0x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf2 (string$)paste0(...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf0 Returns a 
+\f3\fs20 \cf2 Returns a 
 \f0\b joined string
 \f3\b0  composed from the 
 \f1\fs18 string
-\f3\fs20  representations of the elements of 
-\f1\fs18 x
-\f3\fs20 , joined together with no separator.  This function is identical to 
+\f3\fs20  representations of the elements of the parameters passed in, taken in order, joined together with no separator.  This function is identical to 
 \f1\fs18 paste()
-\f3\fs20 , except that no separator is used.
-\f2 \
+\f3\fs20 , except that no separator is used.  Note that this differs from the semantics of 
+\f1\fs18 paste0()
+\f3\fs20  in R.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)print(*

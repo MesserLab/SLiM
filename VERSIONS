@@ -47,6 +47,8 @@ development head:
 	allow multiple copies of the same graph type to be opened in SLiMgui
 	update tree-seq recipes for new tskit/pyslim APIs: 17.2, 17.4, 17.5, 17.7, 17.9, 18.13
 	implement pre-processing of function/method argument lists (optimization), and extend function/method signature syntax to allow arguments following an ellipsis (the named argument syntax must be used to assign them)
+	extend paste() and paste0() to take multiple arguments, with new signatures (string$)paste(..., [string$ sep = " "]) and (string$)paste0(...), to encourage avoidance of the evil paste(c(...)) pattern
+		note this change is not completely backward-compatible, if you were passing in a sep= argument to paste() without the named argument syntax
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

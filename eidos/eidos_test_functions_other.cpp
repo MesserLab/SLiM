@@ -549,7 +549,7 @@ void _RunFunctionMiscTests_apply_sapply(void)
 	EidosAssertScriptSuccess("x=1:5; sapply(x, 'applyValue^2;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, 4, 9, 16, 25}));
 	EidosAssertScriptSuccess("x=1:5; sapply(x, 'product(1:applyValue);');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 6, 24, 120}));
 	EidosAssertScriptSuccess("x=1:3; sapply(x, \"rep(''+applyValue, applyValue);\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1", "2", "2", "3", "3", "3"}));
-	EidosAssertScriptSuccess("x=1:5; sapply(x, \"paste(rep(''+applyValue, applyValue), '');\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1", "22", "333", "4444", "55555"}));
+	EidosAssertScriptSuccess("x=1:5; sapply(x, \"paste(rep(''+applyValue, applyValue), sep='');\");", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"1", "22", "333", "4444", "55555"}));
 	EidosAssertScriptSuccess("x=1:10; sapply(x, 'if (applyValue % 2) applyValue; else NULL;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 5, 7, 9}));
 	EidosAssertScriptSuccess("x=1:5; sapply(x, 'y=applyValue; NULL;'); y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
 	EidosAssertScriptSuccess("x=1:5; sapply(x, 'y=applyValue; y;');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));

@@ -220,8 +220,8 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("match",				Eidos_ExecuteFunction_match,		kEidosValueMaskInt))->AddAny("x")->AddAny("table"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nchar",				Eidos_ExecuteFunction_nchar,		kEidosValueMaskInt))->AddString("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("order",				Eidos_ExecuteFunction_order,		kEidosValueMaskInt))->AddAnyBase("x")->AddLogical_OS("ascending", gStaticEidosValue_LogicalT));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",				Eidos_ExecuteFunction_paste,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x")->AddString_OS("sep", gStaticEidosValue_StringSpace));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste0",			Eidos_ExecuteFunction_paste0,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddAny("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",				Eidos_ExecuteFunction_paste,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddEllipsis()->AddString_OS("sep", gStaticEidosValue_StringSpace));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste0",			Eidos_ExecuteFunction_paste0,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",				Eidos_ExecuteFunction_print,		kEidosValueMaskVOID))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				Eidos_ExecuteFunction_rev,			kEidosValueMaskAny))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_size,		Eidos_ExecuteFunction_size_length,	kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
@@ -8077,72 +8077,74 @@ EidosValue_SP Eidos_ExecuteFunction_order(const std::vector<EidosValue_SP> &p_ar
 	return result_SP;
 }
 
-//	(string$)paste(* x, [string$ sep = " "])
+//	(string$)paste(..., [string$ sep = " "])
 EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	// SYNCH WITH paste0() BELOW!
-	EidosValue_SP result_SP(nullptr);
-	
-	EidosValue *x_value = p_arguments[0].get();
-	int x_count = x_value->Count();
-	EidosValueType x_type = x_value->Type();
-	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
+	size_t argument_count = p_arguments.size();
+	std::string separator = p_arguments[argument_count - 1]->StringAtIndex(0, nullptr);
 	std::string result_string;
 	
-	for (int value_index = 0; value_index < x_count; ++value_index)
+	for (size_t argument_index = 0; argument_index < argument_count - 1; ++argument_index)
 	{
-		if (value_index > 0)
-			result_string.append(separator);
+		EidosValue *x_value = p_arguments[argument_index].get();
+		int x_count = x_value->Count();
+		EidosValueType x_type = x_value->Type();
 		
-		if (x_type == EidosValueType::kValueObject)
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			std::ostringstream oss;
+			if (!((value_index == 0) && (argument_index == 0)))
+				result_string.append(separator);
 			
-			oss << *x_value->ObjectElementAtIndex(value_index, nullptr);
-			
-			result_string.append(oss.str());
+			if (x_type == EidosValueType::kValueObject)
+			{
+				std::ostringstream oss;
+				
+				oss << *x_value->ObjectElementAtIndex(value_index, nullptr);
+				
+				result_string.append(oss.str());
+			}
+			else
+				result_string.append(x_value->StringAtIndex(value_index, nullptr));
 		}
-		else
-			result_string.append(x_value->StringAtIndex(value_index, nullptr));
 	}
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(result_string));
-	
-	return result_SP;
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(result_string));
 }
 
-//	(string$)paste0(* x)
+//	(string$)paste0(...)
 EidosValue_SP Eidos_ExecuteFunction_paste0(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	// SYNCH WITH paste() ABOVE!
-	EidosValue_SP result_SP(nullptr);
-	
-	EidosValue *x_value = p_arguments[0].get();
-	int x_count = x_value->Count();
-	EidosValueType x_type = x_value->Type();
+	size_t argument_count = p_arguments.size();
 	std::string result_string;
 	
-	for (int value_index = 0; value_index < x_count; ++value_index)
+	for (size_t argument_index = 0; argument_index < argument_count; ++argument_index)
 	{
-		if (x_type == EidosValueType::kValueObject)
+		EidosValue *x_value = p_arguments[argument_index].get();
+		int x_count = x_value->Count();
+		EidosValueType x_type = x_value->Type();
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			std::ostringstream oss;
-			
-			oss << *x_value->ObjectElementAtIndex(value_index, nullptr);
-			
-			result_string.append(oss.str());
+			if (x_type == EidosValueType::kValueObject)
+			{
+				std::ostringstream oss;
+				
+				oss << *x_value->ObjectElementAtIndex(value_index, nullptr);
+				
+				result_string.append(oss.str());
+			}
+			else
+				result_string.append(x_value->StringAtIndex(value_index, nullptr));
 		}
-		else
-			result_string.append(x_value->StringAtIndex(value_index, nullptr));
 	}
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(result_string));
-	
-	return result_SP;
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(result_string));
 }
 
 //	(void)print(* x)

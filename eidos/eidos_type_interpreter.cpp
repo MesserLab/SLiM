@@ -297,9 +297,8 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 {
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
-	// BCH 9/12/2020: This is no longer very parallel to _ProcessArgumentList(), because it doesn't involve the argument
-	// buffer cache.  It could be brought back up to date, with its own private argument buffer, if necessary, but
-	// really this function doesn't have to be very accurate, for our present purposes.
+	// BCH 9/12/2020: This is no longer very parallel to _ProcessArgumentList(), because it doesn't involve the argument buffer
+	// cache.  It could be brought back up to date, with its own private argument buffer, if necessary, but it seems to work.
 	
 	// Run through the argument nodes, evaluate them, and put the resulting pointers into the arguments buffer,
 	// interleaving default arguments and handling named arguments as we go.
@@ -350,8 +349,9 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 					}
 				}
 				
-				// Advance to the next argument slot
-				sig_arg_index++;
+				// Advance to the next argument slot unless we're in the ellipsis; only a named argument pops us out of the ellipsis
+				if (p_call_signature->arg_name_IDs_[sig_arg_index] != gEidosID_ELLIPSIS)
+					sig_arg_index++;
 			}
 			else
 			{
