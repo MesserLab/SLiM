@@ -50,6 +50,7 @@ development head:
 	extend paste() and paste0() to take multiple arguments, with new signatures (string$)paste(..., [string$ sep = " "]) and (string$)paste0(...), to encourage avoidance of the evil paste(c(...)) pattern
 		note this change is not completely backward-compatible; if you were passing in a sep= argument to paste() without the named argument syntax, you need to add sep=
 	update recipes 4.2.5, 13.5, 14.8, and 16.12 (I) to use the new paste()/paste0() syntax – use "sep=" explicitly, avoid paste(c(...))
+	add individual pedigree IDs to outputFull() for both text and binary formats if pedigreeIDs=T is specified, read/use them in readFromPopulationFile()
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

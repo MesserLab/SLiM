@@ -5875,7 +5875,7 @@ void Population::CheckMutationRegistry(void)
 }
 
 // print all mutations and all genomes to a stream
-void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs) const
+void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
 	// This method is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
@@ -5901,10 +5901,15 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	// field indicating whether ages and nucleotides are present.  In text we can detect whether the nucleotides are
 	// present or not, so I did not increment the version number or add a flags field at this time.  If the format gets
 	// even more complicated in future, though, then the flags scheme used in binary should be adopted.  BCH 3/23/2019
+	// BCH 9/13/2020: So, in SLiM <3.5 we used version 3/4 to indicate the file version without/with ages.  For SLiM 3.5
+	// with pedigree ID output, I have incremented this but kept the same basic scheme: we now use version 5/6 for
+	// without/with ages *with* individual pedigree IDs (genome pedigree IDs can be derived from the individual IDs),
+	// and stick with version 3/4 for without/with ages *without* individual pedigree IDs, preserving backward compatibility.
+	// The version number field is therefore a four-way switch, 3/4/5/6; obviously this design leaves something to be desired.
 	if (age_output_count)
-		p_out << "Version: 4" << std::endl;		// version 4 indicates that ages are included in the output
+		p_out << (p_output_pedigree_ids ? "Version: 6" : "Version: 4") << std::endl;
 	else
-		p_out << "Version: 3" << std::endl;
+		p_out << (p_output_pedigree_ids ? "Version: 5" : "Version: 3") << std::endl;
 	
 	// Output populations first
 	p_out << "Populations:" << std::endl;
@@ -6018,7 +6023,13 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		
 		for (slim_popsize_t i = 0; i < subpop_size; i++)				// go through all children
 		{
+			Individual &individual = *(subpop->CurrentIndividuals()[i]);
+			
 			p_out << "p" << subpop_id << ":i" << i;						// individual identifier
+			
+			// BCH 9/13/2020: adding individual pedigree IDs, for SLiM 3.5, format version 5/6
+			if (p_output_pedigree_ids)
+				p_out << " " << individual.pedigree_id_;
 			
 			if (subpop->sex_enabled_)
 				p_out << ((i < first_male_index) ? " F " : " M ");		// sex: SEX ONLY
@@ -6032,7 +6043,6 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			if (spatial_output_count)
 			{
 				static char double_buf[40];
-				Individual &individual = *(subpop->CurrentIndividuals()[i]);
 				
 				if (spatial_output_count >= 1)
 				{
@@ -6054,11 +6064,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 #ifdef SLIM_NONWF_ONLY
 			// output ages if requested
 			if (age_output_count)
-			{
-				Individual &individual = *(subpop->CurrentIndividuals()[i]);
-				
 				p_out << " " << individual.age_;
-			}
 #endif  // SLIM_NONWF_ONLY
 			
 			p_out << std::endl;
@@ -6139,7 +6145,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 }
 
 // print all mutations and all genomes to a stream in binary, for maximum reading speed
-void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs) const
+void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
 	// This function is written to be able to print the population whether child_generation_valid is true or false.
 	// This is a little tricky, so be careful when modifying this code!
@@ -6150,6 +6156,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	
 	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
 	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
+	
+	// Figure out pedigree ID output
+	int pedigree_output_count = (p_output_pedigree_ids ? 1 : 0);
 	
 	// We will output nucleotides for all mutations, and an ancestral sequence at the end, if we are nucleotide-based.
 	bool has_nucleotides = sim_.IsNucleotideBased();
@@ -6164,10 +6173,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = 5;													// version 2 started with SLiM 2.1
+		int32_t version_tag = 6;													// version 2 started with SLiM 2.1
 																					// version 3 started with SLiM 2.3
 																					// version 4 started with SLiM 3.0, only when individual age is output
 																					// version 5 started with SLiM 3.3, adding a "flags" field and nucleotide support
+																					// version 6 started with SLiM 3.5, adding optional pedigree ID output with a new flag
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
 		// Write the size of a double
@@ -6186,6 +6196,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			
 			if (age_output_count)		flags |= 0x01;
 			if (has_nucleotides)		flags |= 0x02;
+			if (pedigree_output_count)	flags |= 0x04;	// new in SLiM 3.5, version 6
 			
 			p_out.write(reinterpret_cast<char *>(&flags), sizeof flags);
 		}
@@ -6199,6 +6210,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int32_t slim_selcoeff_t_size = sizeof(slim_selcoeff_t);
 		int32_t slim_mutationid_t_size = sizeof(slim_mutationid_t);													// Added in version 2
 		int32_t slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);											// Added in version 2
+		int32_t slim_age_t_size = sizeof(slim_age_t);																// Added in version 6
+		int32_t slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);													// Added in version 6
 		
 		p_out.write(reinterpret_cast<char *>(&slim_generation_t_size), sizeof slim_generation_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_position_t_size), sizeof slim_position_t_size);
@@ -6208,6 +6221,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&slim_selcoeff_t_size), sizeof slim_selcoeff_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_mutationid_t_size), sizeof slim_mutationid_t_size);				// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_polymorphismid_t_size), sizeof slim_polymorphismid_t_size);		// Added in version 2
+		p_out.write(reinterpret_cast<char *>(&slim_age_t_size), sizeof slim_age_t_size);							// Added in version 6
+		p_out.write(reinterpret_cast<char *>(&slim_pedigreeid_t_size), sizeof slim_pedigreeid_t_size);				// Added in version 6
 		
 		// Write the generation
 		slim_generation_t generation = sim_.Generation();
@@ -6374,6 +6389,15 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 					p_out.write(reinterpret_cast<char *>(&individual.spatial_y_), sizeof individual.spatial_y_);
 				if (spatial_output_count >= 3)
 					p_out.write(reinterpret_cast<char *>(&individual.spatial_z_), sizeof individual.spatial_z_);
+			}
+			
+			// Output individual pedigree ID information.  Added in version 5.
+			if (pedigree_output_count && ((i % 2) == 0))
+			{
+				int individual_index = i / 2;
+				Individual &individual = *(subpop->CurrentIndividuals()[individual_index]);
+				
+				p_out.write(reinterpret_cast<char *>(&individual.pedigree_id_), sizeof individual.pedigree_id_);
 			}
 			
 #ifdef SLIM_NONWF_ONLY

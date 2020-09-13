@@ -3631,7 +3631,7 @@ void QtSLiMWindow::dumpPopulationClicked(void)
 	{
 		// dump the population
 		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false);	// output spatial positions and ages if available, but not ancestral sequence
+		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;

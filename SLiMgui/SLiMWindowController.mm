@@ -3049,7 +3049,7 @@
 	{
 		// dump the population
 		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false);	// output spatial positions and ages if available, but not ancestral sequence
+		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
@@ -3330,7 +3330,7 @@
 //				outstring << input_parameters[i] << std::endl;
 			
 			outstring << "#OUT: " << sim->generation_ << " A " << std::endl;
-			sim->population_.PrintAll(outstring, true, true, true);	// include spatial positions, ages, and ancestral sequence, if available
+			sim->population_.PrintAll(outstring, true, true, true, false);	// include spatial positions, ages, and ancestral sequence, if available
 			
 			std::string &&population_dump = outstring.str();
 			NSString *populationDump = [NSString stringWithUTF8String:population_dump.c_str()];

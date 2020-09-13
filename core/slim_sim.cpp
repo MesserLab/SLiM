@@ -422,6 +422,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	std::string line, sub; 
 	std::ifstream infile(p_file);
 	int age_output_count = 0;
+	bool has_individual_pedigree_IDs = false;
 	
 	if (!infile.is_open())
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
@@ -459,6 +460,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			iss >> sub;		// version number
 			
 			file_version = (int64_t)EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			
+			// version 5/6 are the same as 3/4 but have individual pedigree IDs; added in SLiM 3.5
+			if (file_version >= 5)
+			{
+				has_individual_pedigree_IDs = true;
+				file_version -= 2;
+			}
 			
 			// version 4 is the same as version 3 but with an age value for each individual
 			if (file_version == 4)
@@ -632,6 +640,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	population_.cached_tally_genome_count_ = 0;
 	
 	// If there is an Individuals section (added in SLiM 2.0), we now need to parse it since it might contain spatial positions
+	if (has_individual_pedigree_IDs)
+		gSLiM_next_pedigree_id = 0;
+	
 	if (line.find("Individuals") != std::string::npos)
 	{
 		while (!infile.eof()) 
@@ -668,6 +679,18 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << EidosTerminate();
 			
 			Individual &individual = *subpop.parent_individuals_[individual_index];
+			
+			if (has_individual_pedigree_IDs)
+			{
+				// If pedigree IDs are present use them; if not, we'll get whatever the default IDs are from the subpop construction
+				iss >> sub;
+				int64_t pedigree_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+				
+				individual.pedigree_id_ = SLiMCastToPedigreeIDOrRaise(pedigree_long);
+				individual.genome1_->genome_id_ = individual.pedigree_id_ * 2;
+				individual.genome2_->genome_id_ = individual.pedigree_id_ * 2 + 1;
+				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, individual.pedigree_id_ + 1);
+			}
 			
 			iss >> sub;			// individual sex identifier (F/M/H) – added in SLiM 2.1, so we need to be robust if it is missing
 			
@@ -891,6 +914,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	slim_generation_t file_generation;
 	int32_t spatial_output_count;
 	int age_output_count = 0;
+	int pedigree_output_count = 0;
 	bool has_nucleotides = false;
 	
 	// Read file into buf
@@ -945,7 +969,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			version_tag = 3;
 		}
 		
-		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3) && (version_tag != 5))
+		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3) && (version_tag != 5) && (version_tag != 6))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unrecognized version." << EidosTerminate();
 		
 		file_version = version_tag;
@@ -955,12 +979,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	{
 		int32_t double_size;
 		double double_test;
-		int32_t slim_generation_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size;
+		int32_t slim_generation_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size;
 		int64_t flags = 0;
 		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(slim_generation_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(file_generation) + sizeof(section_end_tag);
 		
 		if (file_version >= 2)
 			header_length += sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size);
+		if (file_version >= 6)
+			header_length += sizeof(slim_pedigreeid_t_size);
 		if (file_version >= 5)
 			header_length += sizeof(flags);
 		
@@ -980,6 +1006,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			
 			if (flags & 0x01) age_output_count = 1;
 			if (flags & 0x02) has_nucleotides = true;
+			
+			if (file_version >= 6)
+				if (flags & 0x04) pedigree_output_count = 1;
 		}
 		
 		slim_generation_t_size = *(int32_t *)p;
@@ -1015,6 +1044,21 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);
 		}
 		
+		if (file_version >= 6)
+		{
+			slim_age_t_size = *(int32_t *)p;
+			p += sizeof(slim_age_t_size);
+			
+			slim_pedigreeid_t_size = *(int32_t *)p;
+			p += sizeof(slim_pedigreeid_t_size);
+		}
+		else
+		{
+			// Version <= 5 file; backfill correct values
+			slim_age_t_size = sizeof(slim_age_t);
+			slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);
+		}
+		
 		file_generation = *(slim_generation_t *)p;
 		p += sizeof(file_generation);
 		
@@ -1047,7 +1091,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			(slim_refcount_t_size != sizeof(slim_refcount_t)) ||
 			(slim_selcoeff_t_size != sizeof(slim_selcoeff_t)) ||
 			(slim_mutationid_t_size != sizeof(slim_mutationid_t)) ||
-			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)))
+			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)) ||
+			(slim_age_t_size != sizeof(slim_age_t)) ||
+			(slim_pedigreeid_t_size != sizeof(slim_pedigreeid_t)))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << EidosTerminate();
 		if ((spatial_output_count < 0) || (spatial_output_count > 3))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
@@ -1268,6 +1314,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	}
 	
 	// Genomes section
+	if (pedigree_output_count)
+		gSLiM_next_pedigree_id = 0;
+	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
 	std::unique_ptr<MutationIndex[]> raii_genomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
@@ -1334,19 +1383,36 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			}
 		}
 		
+		// Read in individual pedigree ID information.  Added in version 6.
+		if (pedigree_output_count  && ((genome_index % 2) == 0))
+		{
+			// do another buffer length check
+			if (p + sizeof(slim_pedigreeid_t) + sizeof(total_mutations) > buf_end)
+				break;
+			
+			int individual_index = genome_index / 2;
+			Individual &individual = *subpop.parent_individuals_[individual_index];
+			
+			individual.pedigree_id_ = *(slim_pedigreeid_t *)p;
+			individual.genome1_->genome_id_ = individual.pedigree_id_ * 2;
+			individual.genome2_->genome_id_ = individual.pedigree_id_ * 2 + 1;
+			gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, individual.pedigree_id_ + 1);
+			p += sizeof(slim_pedigreeid_t);
+		}
+		
 #ifdef SLIM_NONWF_ONLY
 		// Read in individual age information.  Added in version 4.
 		if (age_output_count && ((genome_index % 2) == 0))
 		{
 			// do another buffer length check
-			if (p + sizeof(slim_generation_t) + sizeof(total_mutations) > buf_end)
+			if (p + sizeof(slim_age_t) + sizeof(total_mutations) > buf_end)
 				break;
 			
 			int individual_index = genome_index / 2;
 			Individual &individual = *subpop.parent_individuals_[individual_index];
 			
 			individual.age_ = *(slim_age_t *)p;
-			p += sizeof(slim_generation_t);
+			p += sizeof(slim_age_t);
 		}
 #endif  // SLIM_NONWF_ONLY
 		

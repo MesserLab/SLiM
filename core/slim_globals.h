@@ -137,6 +137,7 @@ typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-
 #define SLIM_MAX_GENERATION		(1000000000L)	// generation ranges from 0 (init time) to this; SLIM_MAX_GENERATION + 1 is an "infinite" marker value
 #define SLIM_MAX_BASE_POSITION	(1000000000000000L)	// base positions in the chromosome can range from 0 to 1e15; see above
 #define SLIM_INF_BASE_POSITION	(1100000000000000L)	// used to represent a base position infinitely beyond the end of the chromosome
+#define SLIM_MAX_PEDIGREE_ID	(1000000000000000000L)	// pedigree IDs for individuals can range from 0 to 1e18 (~2^60)
 #define SLIM_MAX_ID_VALUE		(1000000000L)	// IDs for subpops, genomic elements, etc. can range from 0 to this
 #define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
 #define SLIM_TAG_UNSET_VALUE	(INT64_MIN)		// for tags of type slim_usertag_t, the flag value for "unset"
@@ -146,6 +147,7 @@ typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-
 void SLiM_RaiseGenerationRangeError(int64_t p_long_value);
 void SLiM_RaiseAgeRangeError(int64_t p_long_value);
 void SLiM_RaisePositionRangeError(int64_t p_long_value);
+void SLiM_RaisePedigreeIDRangeError(int64_t p_long_value);
 void SLiM_RaiseObjectidRangeError(int64_t p_long_value);
 void SLiM_RaisePopsizeRangeError(int64_t p_long_value);
 void SLiM_RaiseUsertagRangeError(int64_t p_long_value);
@@ -173,6 +175,14 @@ inline __attribute__((always_inline)) slim_position_t SLiMCastToPositionTypeOrRa
 		SLiM_RaisePositionRangeError(p_long_value);
 	
 	return static_cast<slim_position_t>(p_long_value);
+}
+
+inline __attribute__((always_inline)) slim_pedigreeid_t SLiMCastToPedigreeIDOrRaise(int64_t p_long_value)
+{
+	if ((p_long_value < 0) || (p_long_value > SLIM_MAX_PEDIGREE_ID))
+		SLiM_RaisePedigreeIDRangeError(p_long_value);
+	
+	return static_cast<slim_pedigreeid_t>(p_long_value);
 }
 
 inline __attribute__((always_inline)) slim_objectid_t SLiMCastToObjectidTypeOrRaise(int64_t p_long_value)

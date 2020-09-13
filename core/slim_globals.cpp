@@ -346,6 +346,11 @@ void SLiM_RaisePositionRangeError(int64_t p_long_value)
 	EIDOS_TERMINATION << "ERROR (SLiM_RaisePositionRangeError): value " << p_long_value << " for a chromosome position or length is out of range." << EidosTerminate();
 }
 
+void SLiM_RaisePedigreeIDRangeError(int64_t p_long_value)
+{
+	EIDOS_TERMINATION << "ERROR (SLiM_RaisePedigreeIDRangeError): value " << p_long_value << " for an individual pedigree ID is out of range." << EidosTerminate();
+}
+
 void SLiM_RaiseObjectidRangeError(int64_t p_long_value)
 {
 	EIDOS_TERMINATION << "ERROR (SLiM_RaiseObjectidRangeError): value " << p_long_value << " for a SLiM object identifier value is out of range." << EidosTerminate();
