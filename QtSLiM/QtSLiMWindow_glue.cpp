@@ -54,6 +54,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->scriptHelpButton, &QPushButton::clicked, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
     connect(ui->consoleButton, &QPushButton::clicked, this, &QtSLiMWindow::showConsoleClicked);
     connect(ui->browserButton, &QPushButton::clicked, this, &QtSLiMWindow::showBrowserClicked);
+    //connect(ui->jumpToPopupButton, &QPushButton::clicked, this, &QtSLiMWindow::jumpToPopupButtonClicked); // this button runs when it is pressed
 
     connect(ui->clearOutputButton, &QPushButton::clicked, this, &QtSLiMWindow::clearOutputClicked);
     connect(ui->dumpPopulationButton, &QPushButton::clicked, this, &QtSLiMWindow::dumpPopulationClicked);
@@ -89,6 +90,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->consoleButton, &QPushButton::released, this, &QtSLiMWindow::showConsoleReleased);
     connect(ui->browserButton, &QPushButton::pressed, this, &QtSLiMWindow::showBrowserPressed);
     connect(ui->browserButton, &QPushButton::released, this, &QtSLiMWindow::showBrowserReleased);
+    connect(ui->jumpToPopupButton, &QPushButton::pressed, this, &QtSLiMWindow::jumpToPopupButtonPressed);
+    connect(ui->jumpToPopupButton, &QPushButton::released, this, &QtSLiMWindow::jumpToPopupButtonReleased);
     connect(ui->clearOutputButton, &QPushButton::pressed, this, &QtSLiMWindow::clearOutputPressed);
     connect(ui->clearOutputButton, &QPushButton::released, this, &QtSLiMWindow::clearOutputReleased);
     connect(ui->dumpPopulationButton, &QPushButton::pressed, this, &QtSLiMWindow::dumpPopulationPressed);
@@ -297,6 +300,15 @@ void QtSLiMWindow::showBrowserPressed(void)
 void QtSLiMWindow::showBrowserReleased(void)
 {
     ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser_H.png" : ":/buttons/show_browser.png"));
+}
+void QtSLiMWindow::jumpToPopupButtonPressed(void)
+{
+    ui->jumpToPopupButton->setIcon(QIcon(":/buttons/jump_to_H.png"));
+    jumpToPopupButtonRunMenu();  // this button runs its menu when it is pressed, so make that call here
+}
+void QtSLiMWindow::jumpToPopupButtonReleased(void)
+{
+    ui->jumpToPopupButton->setIcon(QIcon(":/buttons/jump_to.png"));
 }
 void QtSLiMWindow::clearOutputPressed(void)
 {

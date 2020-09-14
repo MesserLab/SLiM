@@ -60,5 +60,7 @@
         <file>buttons/profile_RH.png</file>
         <file>buttons/action_H.png</file>
         <file>buttons/action.png</file>
+        <file>buttons/jump_to_H.png</file>
+        <file>buttons/jump_to.png</file>
     </qresource>
 </RCC>

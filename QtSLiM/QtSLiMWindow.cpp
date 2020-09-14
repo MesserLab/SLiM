@@ -1621,6 +1621,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->scriptHelpButton->setEnabled(true);
     ui->consoleButton->setEnabled(true);
     ui->browserButton->setEnabled(true);
+    ui->jumpToPopupButton->setEnabled(true);
     
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
@@ -3614,6 +3615,118 @@ void QtSLiMWindow::showBrowserClicked(void)
         ui->browserButton->setChecked(!consoleController->variableBrowser()->isVisible());
     
     consoleController->setVariableBrowserVisibility(ui->browserButton->isChecked());
+}
+
+void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
+{
+    QMenu contextMenu("jump_to_menu", this);
+    
+    QTextEdit *scriptTE = ui->scriptTextEdit;
+    QString currentScriptString = scriptTE->toPlainText();
+    QByteArray utf8bytes = currentScriptString.toUtf8();
+	const char *cstr = utf8bytes.constData();
+    bool failedParse = true;
+    
+    if (cstr)
+    {
+        SLiMEidosScript script(cstr);
+        
+        try {
+            script.Tokenize(true, false);            // make bad tokens as needed, do not keep nonsignificant tokens
+            script.ParseSLiMFileToAST(true);        // make bad nodes as needed (i.e. never raise, and produce a correct tree)
+            
+            // Extract SLiMEidosBlocks from the parse tree
+            const EidosASTNode *root_node = script.AST();
+            
+            for (EidosASTNode *script_block_node : root_node->children_)
+            {
+                // Create the block and use it to find the string from the start of its declaration to the start of its code
+                SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
+                int32_t decl_start = new_script_block->root_node_->token_->token_UTF16_start_;
+                int32_t code_start = new_script_block->compound_statement_node_->token_->token_UTF16_start_;
+                QString decl = currentScriptString.mid(decl_start, code_start - decl_start);
+                
+                qDebug() << "decl == " << decl;
+                
+                // Remove everything including and after the first newline
+                if (decl.indexOf(QChar::LineFeed) != -1)
+                    decl.truncate(decl.indexOf(QChar::LineFeed));
+                if (decl.indexOf(QChar::FormFeed) != -1)
+                    decl.truncate(decl.indexOf(QChar::FormFeed));
+                if (decl.indexOf(QChar::CarriageReturn) != -1)
+                    decl.truncate(decl.indexOf(QChar::CarriageReturn));
+                if (decl.indexOf(QChar::ParagraphSeparator) != -1)
+                    decl.truncate(decl.indexOf(QChar::ParagraphSeparator));
+                if (decl.indexOf(QChar::LineSeparator) != -1)
+                    decl.truncate(decl.indexOf(QChar::LineSeparator));
+                
+                // Extract a comment at the end and put it after a em-dash in the string
+                int simpleCommentStart = decl.indexOf("//");
+                int blockCommentStart = decl.indexOf("/*");
+                QString comment;
+                
+                if ((simpleCommentStart != -1) && ((blockCommentStart == -1) || (simpleCommentStart < blockCommentStart)))
+                {
+                    // extract a simple comment
+                    comment = decl.right(decl.length() - simpleCommentStart - 2);
+                    decl.truncate(simpleCommentStart);
+                }
+                else if ((blockCommentStart != -1) && ((simpleCommentStart == -1) || (blockCommentStart < simpleCommentStart)))
+                {
+                    // extract a block comment
+                    comment = decl.right(decl.length() - blockCommentStart - 2);
+                    decl.truncate(blockCommentStart);
+                    
+                    int blockCommentEnd = comment.indexOf("*/");
+                    
+                    if (blockCommentEnd != -1)
+                        comment.truncate(blockCommentEnd);
+                }
+                
+                // Calculate the end of the declaration string; trim off whitespace at the end
+                decl = decl.trimmed();
+                
+                int32_t decl_end = decl_start + decl.length();
+                
+                // Remove trailing whitespace, replace tabs with spaces, etc.
+                decl = decl.simplified();
+                comment = comment.trimmed();
+                
+                qDebug() << "   decl == " << decl;
+                qDebug() << "   comment == " << comment;
+                
+                if (comment.length() > 0)
+                    decl = decl + "  —  " + comment;
+                
+                // Make a menu item with the final string, and annotate it with the range to select
+                contextMenu.addAction(decl, scriptTE, [scriptTE, decl_start, decl_end]() {
+                    QTextCursor cursor = scriptTE->textCursor();
+                    cursor.setPosition(decl_start, QTextCursor::MoveAnchor);
+                    cursor.setPosition(decl_end, QTextCursor::KeepAnchor);
+                    scriptTE->setTextCursor(cursor);
+                });
+                failedParse = false;
+                
+                delete new_script_block;
+            }
+        }
+        catch (...)
+        {
+        }
+    }
+    
+    if (failedParse)
+    {
+        QAction *parseErrorItem = contextMenu.addAction("No symbols");
+        parseErrorItem->setEnabled(false);
+    }
+    
+    // Run the context menu synchronously
+    QPoint mousePos = QCursor::pos();
+    contextMenu.exec(mousePos);
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    jumpToPopupButtonReleased();
 }
 
 void QtSLiMWindow::clearOutputClicked(void)

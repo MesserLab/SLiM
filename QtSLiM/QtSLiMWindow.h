@@ -250,6 +250,7 @@ public slots:
 
     void showConsoleClicked(void);
     void showBrowserClicked(void);
+    void jumpToPopupButtonRunMenu(void);
 
     void clearOutputClicked(void);
     void dumpPopulationClicked(void);
@@ -305,6 +306,8 @@ private slots:
     void showConsoleReleased(void);
     void showBrowserPressed(void);
     void showBrowserReleased(void);
+    void jumpToPopupButtonPressed(void);
+    void jumpToPopupButtonReleased(void);
 
     void clearOutputPressed(void);
     void clearOutputReleased(void);
