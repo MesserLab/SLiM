@@ -3651,8 +3651,8 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 // Remove everything including and after the first newline
                 if (decl.indexOf(QChar::LineFeed) != -1)
                     decl.truncate(decl.indexOf(QChar::LineFeed));
-                if (decl.indexOf(QChar::FormFeed) != -1)
-                    decl.truncate(decl.indexOf(QChar::FormFeed));
+                if (decl.indexOf(0x0C) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
+                    decl.truncate(decl.indexOf(0x0C));
                 if (decl.indexOf(QChar::CarriageReturn) != -1)
                     decl.truncate(decl.indexOf(QChar::CarriageReturn));
                 if (decl.indexOf(QChar::ParagraphSeparator) != -1)
