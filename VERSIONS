@@ -52,6 +52,7 @@ development head:
 	update recipes 4.2.5, 13.5, 14.8, and 16.12 (I) to use the new paste()/paste0() syntax – use "sep=" explicitly, avoid paste(c(...))
 	add individual pedigree IDs to outputFull() for both text and binary formats if pedigreeIDs=T is specified, read/use them in readFromPopulationFile()
 	add a "jump to event/callback" button to QtSLiM
+	optimize sample() for the full shuffle case, and for better performance with large N; optimize sampleIndividuals() a bit for simple cases; may break backward compatibility for users of sample()
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

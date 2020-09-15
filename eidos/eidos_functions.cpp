@@ -6814,6 +6814,33 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				result->PushValueFromIndexOfEidosValue((int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, x_count), *x_value, nullptr);
 		}
+		else if ((sample_size == x_count) && (x_value->Type() != EidosValueType::kValueString))
+		{
+			// full shuffle; optimized case for everything but std::string, which is difficult as usual
+			result_SP = x_value->CopyValues();
+			EidosValue *result = result_SP.get();
+			
+			switch (x_value->Type())
+			{
+				case EidosValueType::kValueVOID: break;
+				case EidosValueType::kValueNULL: break;
+				case EidosValueType::kValueLogical:
+					gsl_ran_shuffle(EIDOS_GSL_RNG, result->LogicalVector_Mutable()->data(), x_count, sizeof(eidos_logical_t));
+					break;
+				case EidosValueType::kValueInt:
+					gsl_ran_shuffle(EIDOS_GSL_RNG, result->IntVector_Mutable()->data(), x_count, sizeof(int64_t));
+					break;
+				case EidosValueType::kValueFloat:
+					gsl_ran_shuffle(EIDOS_GSL_RNG, result->FloatVector_Mutable()->data(), x_count, sizeof(double));
+					break;
+				case EidosValueType::kValueString:
+					// handled below, because gsl_ran_shuffle() can't move std::string safely
+					break;
+				case EidosValueType::kValueObject:
+					gsl_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count, sizeof(EidosObjectElement *));
+					break;
+			}
+		}
 		else
 		{
 			// get indices of x; we sample from this vector and then look up the corresponding EidosValue element
@@ -6834,15 +6861,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				
 				result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
 				
-				index_vector.erase(index_vector.begin() + rose_index);
-				--contender_count;
-				
-				// this would be faster than the two lines above, but breaks backward compatibility; not worth it right now
-				//index_vector[rose_index] = index_vector.back();
-				//index_vector.resize(--contender_count);
-				
-				// also note that if you decide to break backward compatibility at some point, it would be good to separately
-				// handle the case where a full sample without replacement – i.e. a shuffle – is requested; no index_vector needed
+				index_vector[rose_index] = index_vector.back();
+				index_vector.resize(--contender_count);
 			}
 		}
 	}

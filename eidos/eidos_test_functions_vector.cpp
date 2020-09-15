@@ -226,7 +226,7 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptRaise("sample(1:5, 2, T, c(1,2,NAN,4,5));", 0, "requires all weights to be");
 	EidosAssertScriptRaise("sample(5, 2, F);", 0, "insufficient elements");
 	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 1, 2}));
-	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 2, 4}));
+	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 5, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 5, 2, 4, 1}));
 	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 6, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 5, 3, 1, 2, 3}));
 	EidosAssertScriptRaise("setSeed(0); sample(1:5, 6, F);", 12, "insufficient elements");
 	EidosAssertScriptSuccess("setSeed(0); sample(1:5, 1, T, (1:5)*(1:5)*(1:5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4}));

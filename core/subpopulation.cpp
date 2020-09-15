@@ -5932,24 +5932,43 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
 		std::vector<int> index_vector;
 		
-		for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
+		if (!tag_specified && !ageMin_specified && !ageMax_specified && !migrant_specified)
 		{
-			Individual *candidate = parent_individuals_[value_index];
-			
-			if (tag_specified && (candidate->tag_value_ != tag))
-				continue;
-			if (migrant_specified && (candidate->migrant_ != migrant))
-				continue;
+			if (excluded_index == -1)
+			{
+				for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
+					index_vector.emplace_back(value_index);
+			}
+			else
+			{
+				for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
+				{
+					if (value_index != excluded_index)
+						index_vector.emplace_back(value_index);
+				}
+			}
+		}
+		else
+		{
+			for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
+			{
+				Individual *candidate = parent_individuals_[value_index];
+				
+				if (tag_specified && (candidate->tag_value_ != tag))
+					continue;
+				if (migrant_specified && (candidate->migrant_ != migrant))
+					continue;
 #ifdef SLIM_NONWF_ONLY
-			if (ageMin_specified && (candidate->age_ < ageMin))
-				continue;
-			if (ageMax_specified && (candidate->age_ > ageMax))
-				continue;
+				if (ageMin_specified && (candidate->age_ < ageMin))
+					continue;
+				if (ageMax_specified && (candidate->age_ > ageMax))
+					continue;
 #endif  // SLIM_NONWF_ONLY
-			if (value_index == excluded_index)
-				continue;
-			
-			index_vector.emplace_back(value_index);
+				if (value_index == excluded_index)
+					continue;
+				
+				index_vector.emplace_back(value_index);
+			}
 		}
 		
 		candidate_count = (int)index_vector.size();
