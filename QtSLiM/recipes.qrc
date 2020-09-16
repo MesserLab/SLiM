@@ -24,7 +24,6 @@
         <file>recipes/Recipe 5.3.3 - Migration and admixture, A two-dimensional subpopulation matrix.txt</file>
         <file>recipes/Recipe 5.3.4 - Migration and admixture, A random, sparse spatial metapopulation.txt</file>
         <file>recipes/Recipe 5.3.5 - Migration and admixture, Reading a migration matrix from a file.txt</file>
-        <file>recipes/Recipe 5.4 - The Gravel et al. (2011) model of human evolution.txt</file>
         <file>recipes/Recipe 5.5 - Rescaling population sizes to improve simulation performance I.txt</file>
         <file>recipes/Recipe 5.5 - Rescaling population sizes to improve simulation performance II.txt</file>
         <file>recipes/Recipe 6.1.1 - Recombination, Crossing over (Making a random recombination map).txt</file>
@@ -171,5 +170,7 @@
         <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models III.py</file>
         <file>recipes/Recipe 18.14 - Modeling identity by state (IBS) (uniquing mutations with a mutation() callback).txt</file>
         <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations II.txt</file>
+        <file>recipes/Recipe 5.4 - The Gravel et al. (2011) model of human evolution I.txt</file>
+        <file>recipes/Recipe 5.4 - The Gravel et al. (2011) model of human evolution II.txt</file>
     </qresource>
 </RCC>
