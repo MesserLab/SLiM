@@ -3619,14 +3619,82 @@ void QtSLiMWindow::showBrowserClicked(void)
 
 void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
 {
-    QMenu contextMenu("jump_to_menu", this);
-    
     QTextEdit *scriptTE = ui->scriptTextEdit;
     QString currentScriptString = scriptTE->toPlainText();
     QByteArray utf8bytes = currentScriptString.toUtf8();
 	const char *cstr = utf8bytes.constData();
     bool failedParse = true;
     
+    // Collect actions, with associated script positions
+    std::vector<std::pair<int32_t, QAction *>> jumpActions;
+    
+    // First we scan for comments of the form /** comment */ or /// comment, which are taken to be section headers
+    if (cstr)
+    {
+        SLiMEidosScript script(cstr);
+        
+        script.Tokenize(true, true);            // make bad tokens as needed, keep nonsignificant tokens
+        
+        const std::vector<EidosToken> &tokens = script.Tokens();
+        size_t token_count = tokens.size();
+        QString comment;
+        
+        for (size_t token_index = 0; token_index < token_count; ++token_index)
+        {
+            const EidosToken &token = tokens[token_index];
+            
+            if ((token.token_type_ == EidosTokenType::kTokenComment) && (token.token_string_.rfind("///", 0) == 0))
+            {
+                comment = QString::fromStdString(token.token_string_);
+                comment = comment.mid(3);
+            }
+            else if (token.token_type_ == EidosTokenType::kTokenCommentLong && (token.token_string_.rfind("/**", 0) == 0))
+            {
+                comment = QString::fromStdString(token.token_string_);
+                comment = comment.mid(3, comment.length() - 5);
+            }
+            else
+                continue;
+            
+            // Exclude comments that contain newlines and similar characters
+            if ((comment.indexOf(QChar::LineFeed) != -1) ||
+                    (comment.indexOf(0x0C) != -1) ||
+                    (comment.indexOf(QChar::CarriageReturn) != -1) ||
+                    (comment.indexOf(QChar::ParagraphSeparator) != -1) ||
+                    (comment.indexOf(QChar::LineSeparator) != -1))
+                continue;
+            
+            comment = comment.trimmed();
+            
+            int32_t comment_start = token.token_UTF16_start_;
+            int32_t comment_end = token.token_UTF16_end_ + 1;
+            QAction *jumpAction;
+            
+            if (comment.length() == 0)
+            {
+                jumpAction = new QAction("", scriptTE);
+                jumpAction->setSeparator(true);
+            }
+            else
+            {
+                jumpAction = new QAction(comment);
+                connect(jumpAction, &QAction::triggered, scriptTE, [scriptTE, comment_start, comment_end]() {
+                    QTextCursor cursor = scriptTE->textCursor();
+                    cursor.setPosition(comment_start, QTextCursor::MoveAnchor);
+                    cursor.setPosition(comment_end, QTextCursor::KeepAnchor);
+                    scriptTE->setTextCursor(cursor);
+                });
+                
+                QFont font = jumpAction->font();
+                font.setBold(true);
+                jumpAction->setFont(font);
+            }
+            
+            jumpActions.emplace_back(comment_start, jumpAction);
+        }
+    }
+    
+    // Next we parse and get script blocks
     if (cstr)
     {
         SLiMEidosScript script(cstr);
@@ -3645,8 +3713,6 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 int32_t decl_start = new_script_block->root_node_->token_->token_UTF16_start_;
                 int32_t code_start = new_script_block->compound_statement_node_->token_->token_UTF16_start_;
                 QString decl = currentScriptString.mid(decl_start, code_start - decl_start);
-                
-                qDebug() << "decl == " << decl;
                 
                 // Remove everything including and after the first newline
                 if (decl.indexOf(QChar::LineFeed) != -1)
@@ -3692,19 +3758,21 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 decl = decl.simplified();
                 comment = comment.trimmed();
                 
-                qDebug() << "   decl == " << decl;
-                qDebug() << "   comment == " << comment;
-                
                 if (comment.length() > 0)
                     decl = decl + "  —  " + comment;
                 
                 // Make a menu item with the final string, and annotate it with the range to select
-                contextMenu.addAction(decl, scriptTE, [scriptTE, decl_start, decl_end]() {
+                QAction *jumpAction = new QAction(decl);
+                
+                connect(jumpAction, &QAction::triggered, scriptTE, [scriptTE, decl_start, decl_end]() {
                     QTextCursor cursor = scriptTE->textCursor();
                     cursor.setPosition(decl_start, QTextCursor::MoveAnchor);
                     cursor.setPosition(decl_end, QTextCursor::KeepAnchor);
                     scriptTE->setTextCursor(cursor);
                 });
+                
+                jumpActions.emplace_back(decl_start, jumpAction);
+                
                 failedParse = false;
                 
                 delete new_script_block;
@@ -3715,10 +3783,30 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
         }
     }
     
-    if (failedParse)
+    QMenu contextMenu("jump_to_menu", this);
+    
+    if (failedParse || (jumpActions.size() == 0))
     {
         QAction *parseErrorItem = contextMenu.addAction("No symbols");
         parseErrorItem->setEnabled(false);
+        
+        // contextMenu never took ownership, so we need to dispose of allocated actions
+        for (auto &jump_pair : jumpActions)
+            delete jump_pair.second;
+    }
+    else
+    {
+        // sort the actions by position
+        std::sort(jumpActions.begin(),
+                  jumpActions.end(),
+                  [](const std::pair<int32_t, QAction *> &a1, const std::pair<int32_t, QAction *> &a2) { return a1.first < a2.first; });
+        
+        // add them all to contextMenu, and give it ownership
+        for (auto &jump_pair : jumpActions)
+        {
+            contextMenu.addAction(jump_pair.second);
+            jump_pair.second->setParent(&contextMenu);
+        }
     }
     
     // Run the context menu synchronously
