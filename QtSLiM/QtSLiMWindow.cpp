@@ -222,6 +222,9 @@ void QtSLiMWindow::init(void)
     // And also when about to show the Script menu, because the Show/Hide menu items might not be accurately named
     connect(ui->menuScript, &QMenu::aboutToShow, this, &QtSLiMWindow::updateUIEnabling);
     
+    // The app delegate wants to know our play state so it can change the app icon
+    connect(this, &QtSLiMWindow::playStateChanged, qtSLiMAppDelegate, &QtSLiMAppDelegate::playStateChanged);
+    
     // Set the window icon, overriding the app icon
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
@@ -1225,6 +1228,7 @@ void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
     {
         continuousPlayOn_ = p_flag;
         updateUIEnabling();
+        emit playStateChanged();
     }
 }
 

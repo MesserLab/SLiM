@@ -42,6 +42,7 @@ class QtSLiMAppDelegate : public QObject
     bool launchedFromShell_;	// true if launched from shell, false if launched from Finder/other
     
     QIcon appIcon_;
+    QIcon appIconHighlighted_;
     QIcon slimDocumentIcon_;
     QIcon genericDocumentIcon_;
     
@@ -76,6 +77,8 @@ public slots:
     
     void findRecipe(void);
     void openRecipe(void);
+    
+    void playStateChanged(void);
     
     // These are slots for menu bar actions that get dispatched to the focal widget/window by us.
     // Every window should use addActionsForGlobalMenuItems() to connect to these slots (except

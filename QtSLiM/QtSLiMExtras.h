@@ -155,6 +155,9 @@ protected:
     void paintEvent(QPaintEvent *paintEvent) override;
 };
 
+// Used to create the dark app icon displayed when running a model
+QPixmap QtSLiMDarkenPixmap(QPixmap p_pixmap);
+
 
 // Incremental sorting
 //

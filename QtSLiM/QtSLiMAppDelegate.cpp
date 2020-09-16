@@ -130,7 +130,16 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     appIcon_.addFile(":/icons/AppIcon512.png");
     appIcon_.addFile(":/icons/AppIcon1024.png");
     
-    // Set the application icon; this fixes in app icon in the dock/toolbar/whatever,
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(16, 16)));
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(32, 32)));
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(48, 48)));
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(64, 64)));
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(128, 128)));
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(256, 256)));
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(512, 512)));
+    appIconHighlighted_.addPixmap(QtSLiMDarkenPixmap(appIcon_.pixmap(1024, 1024)));
+    
+    // Set the application icon; this fixes the app icon in the dock/toolbar/whatever,
     // even if the right icon is not attached for display in the desktop environment
     app->setWindowIcon(appIcon_);
 }
@@ -369,6 +378,22 @@ void QtSLiMAppDelegate::openRecipe(void)
         }
      }
 }
+
+void QtSLiMAppDelegate::playStateChanged(void)
+{
+    bool anyPlaying = false;
+    
+    for (QWidget *widget : qApp->topLevelWidgets())
+    {
+        QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
+        
+        if (mainWin && mainWin->isPlaying())
+            anyPlaying = true;
+    }
+    
+    qApp->setWindowIcon(anyPlaying ? appIconHighlighted_ : appIcon_);
+}
+
 
 //
 //  "First responder" type dispatch for actions shared across the app

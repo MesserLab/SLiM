@@ -736,6 +736,19 @@ void QtSLiMStatusBar::paintEvent(QPaintEvent *paintEvent)
     painter.fillRect(bounds.adjusted(0, 0, 0, -(bounds.height() - 1)), QtSLiMColorWithWhite(0.72, 1.0));
 }
 
+QPixmap QtSLiMDarkenPixmap(QPixmap p_pixmap)
+{
+    QPixmap pixmap(p_pixmap);
+    
+    {
+        QPainter painter(&pixmap);
+        
+        painter.fillRect(pixmap.rect(), QtSLiMColorWithWhite(0.0, 0.35));
+    }
+    
+    return pixmap;
+}
+
 
 
 

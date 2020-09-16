@@ -171,6 +171,7 @@ public:
     void setInvalidSimulation(bool p_invalid);
     inline bool reachedSimulationEnd(void) { return reachedSimulationEnd_; }
     void setReachedSimulationEnd(bool p_reachedEnd);
+    inline bool isPlaying(void) { return continuousPlayOn_; }
     void setContinuousPlayOn(bool p_flag);
     void setGenerationPlayOn(bool p_flag);
     void setProfilePlayOn(bool p_flag);
@@ -233,6 +234,7 @@ public:
     
 signals:
     void terminationWithMessage(QString message);
+    void playStateChanged(void);
     
 public slots:
     void showTerminationMessage(QString terminationMessage);
