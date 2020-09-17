@@ -30,6 +30,8 @@ class EidosScript;
 // Generate a prettyprinted script string into parameter pretty, from the tokens and script supplied
 bool Eidos_prettyprintTokensFromScript(const std::vector<EidosToken> &tokens, EidosScript &tokenScript, std::string &pretty);
 
+bool Eidos_reformatTokensFromScript(const std::vector<EidosToken> &tokens, EidosScript &tokenScript, std::string &pretty);
+
 
 #endif // QTSLIMEIDOSPRETTYPRINTER_H
 

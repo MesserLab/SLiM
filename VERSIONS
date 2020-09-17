@@ -55,6 +55,7 @@ development head:
 	optimize sample() for the full shuffle case, and for better performance with large N; optimize sampleIndividuals() a bit for simple cases; may break backward compatibility for users of sample()
 	add support for doxygen-style /** and /// comments that get used in the "jump to" popup as section headers
 	darken the QtSLiM app icon while a model is running
+	add relayout option to prettyprinting in SLiMgui, with option-click/alt-click of the prettyprint button
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

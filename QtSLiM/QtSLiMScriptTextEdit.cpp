@@ -358,7 +358,7 @@ void QtSLiMTextEdit::checkScript(void)
     checkScriptSuppressSuccessResponse(false);
 }
 
-void QtSLiMTextEdit::prettyprint(void)
+void QtSLiMTextEdit::_prettyprint_reformat(bool reformat)
 {
     if (isEnabled())
 	{
@@ -375,10 +375,16 @@ void QtSLiMTextEdit::prettyprint(void)
 			// Then generate a new script string that is prettyprinted
 			const std::vector<EidosToken> &tokens = script.Tokens();
 			std::string pretty;
-			
-            if (Eidos_prettyprintTokensFromScript(tokens, script, pretty))
+			bool success = false;
+            
+            if (reformat)
+                success = Eidos_reformatTokensFromScript(tokens, script, pretty);
+            else
+                success = Eidos_prettyprintTokensFromScript(tokens, script, pretty);
+            
+            if (success)
                 setPlainText(QString::fromStdString(pretty));
-			else
+            else
                 qApp->beep();
 		}
 	}
@@ -386,6 +392,27 @@ void QtSLiMTextEdit::prettyprint(void)
 	{
         qApp->beep();
 	}
+}
+
+void QtSLiMTextEdit::prettyprint(void)
+{
+    _prettyprint_reformat(false);
+}
+
+void QtSLiMTextEdit::reformat(void)
+{
+    _prettyprint_reformat(true);
+}
+
+void QtSLiMTextEdit::prettyprintClicked(void)
+{
+    // Get the option-key state; if it is pressed, we do a full reformat
+    bool optionPressed = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier);
+    
+    if (optionPressed)
+        reformat();
+    else
+        prettyprint();
 }
 
 void QtSLiMTextEdit::scriptHelpOptionClick(QString searchString)

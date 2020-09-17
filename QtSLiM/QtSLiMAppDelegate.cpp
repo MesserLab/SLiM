@@ -487,6 +487,12 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionPrettyprintScript);
     }
     {
+        QAction *actionReformatScript = new QAction("Reformat Script", this);
+        actionReformatScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::ALT + Qt::Key_Equal);
+        connect(actionReformatScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_reformatScript);
+        window->addAction(actionReformatScript);
+    }
+    {
         QAction *actionShowScriptHelp = new QAction("Show Script Help", this);
         //actionShowScriptHelp->setShortcut(Qt::CTRL + Qt::Key_K);
         connect(actionShowScriptHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
@@ -891,6 +897,19 @@ void QtSLiMAppDelegate::dispatch_prettyprintScript(void)
         slimWindow->scriptTextEdit()->prettyprint();
     else if (eidosConsole)
         eidosConsole->scriptTextEdit()->prettyprint();
+}
+
+void QtSLiMAppDelegate::dispatch_reformatScript(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->scriptTextEdit()->reformat();
+    else if (eidosConsole)
+        eidosConsole->scriptTextEdit()->reformat();
 }
 
 void QtSLiMAppDelegate::dispatch_showEidosConsole(void)

@@ -975,7 +975,7 @@ QPushButton:checked {
              <enum>Qt::NoFocus</enum>
             </property>
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script; option-click/alt-click to do a full reformat&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:pressed {
@@ -1530,6 +1530,7 @@ QPushButton:checked {
     </property>
     <addaction name="actionCheckScript"/>
     <addaction name="actionPrettyprintScript"/>
+    <addaction name="actionReformatScript"/>
     <addaction name="actionShowScriptHelp"/>
     <addaction name="separator"/>
     <addaction name="actionShowVariableBrowser"/>
@@ -1981,6 +1982,14 @@ QPushButton:checked {
   <action name="actionZoom">
    <property name="text">
     <string>Zoom</string>
+   </property>
+  </action>
+  <action name="actionReformatScript">
+   <property name="text">
+    <string>Reformat Script</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+Shift+=</string>
    </property>
   </action>
  </widget>

@@ -88,6 +88,8 @@ public:
 public slots:
     void checkScript(void);
     void prettyprint(void);
+    void reformat(void);
+    void prettyprintClicked(void);      // decides whether to reformat or prettyprint based on the option key state
     
 signals:
     
@@ -163,6 +165,7 @@ protected slots:
     void updateStatusFieldFromSelection(void);
     
     void insertCompletion(const QString &completion);
+    void _prettyprint_reformat(bool reformat);
 };
 
 // A QtSLiMTextEdit subclass that provides various smarts for editing Eidos script

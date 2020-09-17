@@ -118,6 +118,7 @@ public slots:
     
     void dispatch_checkScript(void);
     void dispatch_prettyprintScript(void);
+    void dispatch_reformatScript(void);
     void dispatch_showEidosConsole(void);
     void dispatch_showVariableBrowser(void);
     void dispatch_clearOutput(void);
