@@ -383,7 +383,20 @@ void QtSLiMTextEdit::_prettyprint_reformat(bool reformat)
                 success = Eidos_prettyprintTokensFromScript(tokens, script, pretty);
             
             if (success)
-                setPlainText(QString::fromStdString(pretty));
+            {
+                // We want to replace our text in a way that is undoable; to do this, we use the text cursor
+                QString replacementString = QString::fromStdString(pretty);
+                
+                QTextCursor &&cursor = textCursor();
+                
+                cursor.beginEditBlock();
+                cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                cursor.insertText(replacementString);
+                cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                cursor.endEditBlock();
+                setTextCursor(cursor);
+            }
             else
                 qApp->beep();
 		}
