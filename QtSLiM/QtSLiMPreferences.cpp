@@ -38,6 +38,8 @@ static const char *QtSLiMSyntaxHighlightScript = "QtSLiMSyntaxHighlightScript";
 static const char *QtSLiMSyntaxHighlightOutput = "QtSLiMSyntaxHighlightOutput";
 static const char *QtSLiMShowLineNumbers = "QtSLiMShowLineNumbers";
 static const char *QtSLiMHighlightCurrentLine = "QtSLiMHighlightCurrentLine";
+static const char *QtSLiMAutosaveOnRecycle = "QtSLiMAutosaveOnRecycle";
+static const char *QtSLiMShowSaveInUntitled = "QtSLiMShowSaveInUntitled";
 
 
 static QFont &defaultDisplayFont(void)
@@ -84,14 +86,14 @@ QtSLiMPreferencesNotifier &QtSLiMPreferencesNotifier::instance(void)
 
 // pref value fetching
 
-int QtSLiMPreferencesNotifier::appStartupPref(void)
+int QtSLiMPreferencesNotifier::appStartupPref(void) const
 {
     QSettings settings;
     
     return settings.value(QtSLiMAppStartupAction, QVariant(1)).toInt();
 }
 
-QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth)
+QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth) const
 {
     QFont &defaultFont = defaultDisplayFont();
     QString defaultFamily = defaultFont.family();
@@ -115,32 +117,46 @@ QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth)
     return font;
 }
 
-bool QtSLiMPreferencesNotifier::scriptSyntaxHighlightPref(void)
+bool QtSLiMPreferencesNotifier::scriptSyntaxHighlightPref(void) const
 {
     QSettings settings;
     
     return settings.value(QtSLiMSyntaxHighlightScript, QVariant(true)).toBool();
 }
 
-bool QtSLiMPreferencesNotifier::outputSyntaxHighlightPref(void)
+bool QtSLiMPreferencesNotifier::outputSyntaxHighlightPref(void) const
 {
     QSettings settings;
     
     return settings.value(QtSLiMSyntaxHighlightOutput, QVariant(true)).toBool();
 }
 
-bool QtSLiMPreferencesNotifier::showLineNumbersPref(void)
+bool QtSLiMPreferencesNotifier::showLineNumbersPref(void) const
 {
     QSettings settings;
     
     return settings.value(QtSLiMShowLineNumbers, QVariant(true)).toBool();
 }
 
-bool QtSLiMPreferencesNotifier::highlightCurrentLinePref(void)
+bool QtSLiMPreferencesNotifier::highlightCurrentLinePref(void) const
 {
     QSettings settings;
     
     return settings.value(QtSLiMHighlightCurrentLine, QVariant(true)).toBool();
+}
+
+bool QtSLiMPreferencesNotifier::autosaveOnRecyclePref(void) const
+{
+    QSettings settings;
+    
+    return settings.value(QtSLiMAutosaveOnRecycle, QVariant(false)).toBool();
+}
+
+bool QtSLiMPreferencesNotifier::showSaveIfUntitledPref(void) const
+{
+    QSettings settings;
+    
+    return settings.value(QtSLiMShowSaveInUntitled, QVariant(false)).toBool();
 }
 
 // slots; these update the settings and then emit new signals
@@ -217,6 +233,26 @@ void QtSLiMPreferencesNotifier::highlightCurrentLineToggled()
     emit highlightCurrentLinePrefChanged();
 }
 
+void QtSLiMPreferencesNotifier::autosaveOnRecycleToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMAutosaveOnRecycle, QVariant(prefsUI.ui->autosaveOnRecycle->isChecked()));
+    
+    emit autosaveOnRecyclePrefChanged();
+}
+
+void QtSLiMPreferencesNotifier::showSaveIfUntitledToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMShowSaveInUntitled, QVariant(prefsUI.ui->showSaveIfUntitled->isChecked()));
+    
+    emit showSaveIfUntitledPrefChanged();
+}
+
 void QtSLiMPreferencesNotifier::resetSuppressedClicked()
 {
     // All "do not show this again" settings should be removed here
@@ -254,23 +290,25 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new 
     setAttribute(Qt::WA_QuitOnClose, false);
     
     // set the initial state of the UI elements from QtSLiMPreferencesNotifier
-    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
-    
-    ui->startupRadioCreateNew->setChecked(prefsNotifier.appStartupPref() == 1);
-    ui->startupRadioOpenFile->setChecked(prefsNotifier.appStartupPref() == 2);
-    
-    ui->fontComboBox->setCurrentFont(prefsNotifier.displayFontPref());
-    ui->fontSizeSpinBox->setValue(prefsNotifier.displayFontPref().pointSize());
-    
-    ui->syntaxHighlightScript->setChecked(prefsNotifier.scriptSyntaxHighlightPref());
-    ui->syntaxHighlightOutput->setChecked(prefsNotifier.outputSyntaxHighlightPref());
-    
-    ui->showLineNumbers->setChecked(prefsNotifier.showLineNumbersPref());
-    ui->highlightCurrentLine->setChecked(prefsNotifier.highlightCurrentLinePref());
-    
-    // connect the UI elements to QtSLiMPreferencesNotifier
     QtSLiMPreferencesNotifier *notifier = &QtSLiMPreferencesNotifier::instance();
     
+    ui->startupRadioCreateNew->setChecked(notifier->appStartupPref() == 1);
+    ui->startupRadioOpenFile->setChecked(notifier->appStartupPref() == 2);
+    
+    ui->fontComboBox->setCurrentFont(notifier->displayFontPref());
+    ui->fontSizeSpinBox->setValue(notifier->displayFontPref().pointSize());
+    
+    ui->syntaxHighlightScript->setChecked(notifier->scriptSyntaxHighlightPref());
+    ui->syntaxHighlightOutput->setChecked(notifier->outputSyntaxHighlightPref());
+    
+    ui->showLineNumbers->setChecked(notifier->showLineNumbersPref());
+    ui->highlightCurrentLine->setChecked(notifier->highlightCurrentLinePref());
+    
+    ui->autosaveOnRecycle->setChecked(notifier->autosaveOnRecyclePref());
+    ui->showSaveIfUntitled->setChecked(notifier->showSaveIfUntitledPref());
+    ui->showSaveIfUntitled->setEnabled(notifier->autosaveOnRecyclePref());
+    
+    // connect the UI elements to QtSLiMPreferencesNotifier
     connect(ui->startupRadioOpenFile, &QRadioButton::toggled, notifier, &QtSLiMPreferencesNotifier::startupRadioChanged);
     connect(ui->startupRadioCreateNew, &QRadioButton::toggled, notifier, &QtSLiMPreferencesNotifier::startupRadioChanged);
     
@@ -279,10 +317,14 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new 
 
     connect(ui->syntaxHighlightScript, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::syntaxHighlightScriptToggled);
     connect(ui->syntaxHighlightOutput, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::syntaxHighlightOutputToggled);
-
+    
     connect(ui->showLineNumbers, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::showLineNumbersToggled);
     connect(ui->highlightCurrentLine, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::highlightCurrentLineToggled);
-
+    
+    connect(ui->autosaveOnRecycle, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::autosaveOnRecycleToggled);
+    connect(ui->showSaveIfUntitled, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::showSaveIfUntitledToggled);
+    connect(notifier, &QtSLiMPreferencesNotifier::autosaveOnRecyclePrefChanged, this, [this, notifier]() { ui->showSaveIfUntitled->setEnabled(notifier->autosaveOnRecyclePref()); });
+    
     connect(ui->resetSuppressedButton, &QPushButton::clicked, notifier, &QtSLiMPreferencesNotifier::resetSuppressedClicked);
     
     // make window actions for all global menu items

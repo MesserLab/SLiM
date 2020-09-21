@@ -3401,6 +3401,20 @@ void QtSLiMWindow::generationChanged(void)
 
 void QtSLiMWindow::recycleClicked(void)
 {
+    // If the user has requested autosaves, act on that; these calls run modal, blocking panels
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    if (prefsNotifier.autosaveOnRecyclePref())
+    {
+        if (!isUntitled)
+            saveFile(curFile);
+        else if (prefsNotifier.showSaveIfUntitledPref())
+            saveAs();
+        //else
+        //    qApp->beep();
+    }
+    
+    // Now do the recycle
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
     // Converting a QString to a std::string is surprisingly tricky: https://stackoverflow.com/a/4644922/2752221

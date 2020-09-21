@@ -34,12 +34,14 @@ public:
     static QtSLiMPreferencesNotifier &instance(void);
     
     // Get the current pref values, falling back on defaults
-    int appStartupPref(void);               // 0 == do nothing, 1 == create a new window, 2 == run an open panel
-    QFont displayFontPref(int *tabWidth = nullptr);
-    bool scriptSyntaxHighlightPref(void);
-    bool outputSyntaxHighlightPref(void);
-    bool showLineNumbersPref(void);
-    bool highlightCurrentLinePref(void);
+    int appStartupPref(void) const;               // 0 == do nothing, 1 == create a new window, 2 == run an open panel
+    QFont displayFontPref(int *tabWidth = nullptr) const;
+    bool scriptSyntaxHighlightPref(void) const;
+    bool outputSyntaxHighlightPref(void) const;
+    bool showLineNumbersPref(void) const;
+    bool highlightCurrentLinePref(void) const;
+    bool autosaveOnRecyclePref(void) const;
+    bool showSaveIfUntitledPref(void) const;
     
 signals:
     // Get notified when a pref value changes
@@ -49,6 +51,8 @@ signals:
     void outputSyntaxHighlightPrefChanged(void);
     void showLineNumbersPrefChanged(void);
     void highlightCurrentLinePrefChanged(void);
+    void autosaveOnRecyclePrefChanged(void);
+    void showSaveIfUntitledPrefChanged(void);
     
 private:
     // singleton pattern
@@ -65,6 +69,8 @@ private slots:
     void syntaxHighlightOutputToggled();
     void showLineNumbersToggled();
     void highlightCurrentLineToggled();
+    void autosaveOnRecycleToggled();
+    void showSaveIfUntitledToggled();
     void resetSuppressedClicked();
     
     friend class QtSLiMPreferences;
