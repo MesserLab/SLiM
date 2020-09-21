@@ -55,6 +55,9 @@
       </property>
       <item>
        <widget class="QRadioButton" name="startupRadioCreateNew">
+        <property name="toolTip">
+         <string>a new untitled window with a default WF model will be created on startup</string>
+        </property>
         <property name="text">
          <string>Create a new simulation window</string>
         </property>
@@ -65,6 +68,9 @@
       </item>
       <item>
        <widget class="QRadioButton" name="startupRadioOpenFile">
+        <property name="toolTip">
+         <string>the &quot;open file&quot; panel will be run at startup</string>
+        </property>
         <property name="text">
          <string>Ask for a script file to open</string>
         </property>
@@ -118,6 +124,9 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="toolTip">
+         <string>the font to use for script and output views</string>
+        </property>
         <property name="editable">
          <bool>false</bool>
         </property>
@@ -153,6 +162,9 @@
           </property>
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="toolTip">
+           <string>the font size to use for script and output views</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -234,6 +246,9 @@
       </property>
       <item>
        <widget class="QCheckBox" name="syntaxHighlightScript">
+        <property name="toolTip">
+         <string>enabled syntax highlighting in script views; this may cause poor performance with long scripts</string>
+        </property>
         <property name="text">
          <string>In the script area</string>
         </property>
@@ -244,6 +259,9 @@
       </item>
       <item>
        <widget class="QCheckBox" name="syntaxHighlightOutput">
+        <property name="toolTip">
+         <string>enabled syntax highlighting in output views; this may cause poor performance with large amounts of output</string>
+        </property>
         <property name="text">
          <string>In the output area</string>
         </property>
@@ -303,6 +321,9 @@
       </property>
       <item>
        <widget class="QCheckBox" name="showLineNumbers">
+        <property name="toolTip">
+         <string>show line numbers in a gutter on the left of script views</string>
+        </property>
         <property name="text">
          <string>Show line numbers</string>
         </property>
@@ -310,6 +331,9 @@
       </item>
       <item>
        <widget class="QCheckBox" name="highlightCurrentLine">
+        <property name="toolTip">
+         <string>highlight the current editing line in script views</string>
+        </property>
         <property name="text">
          <string>Highlight current line</string>
         </property>
@@ -369,6 +393,9 @@
       </property>
       <item>
        <widget class="QCheckBox" name="autosaveOnRecycle">
+        <property name="toolTip">
+         <string>save to disk automatically whenever the model is recycled</string>
+        </property>
         <property name="text">
          <string>Autosave on every recycle</string>
         </property>
@@ -376,6 +403,9 @@
       </item>
       <item>
        <widget class="QCheckBox" name="showSaveIfUntitled">
+        <property name="toolTip">
+         <string>if autosave is enabled, run a &quot;save file&quot; panel if the model has not yet been saved</string>
+        </property>
         <property name="text">
          <string>Show save panel if untitled</string>
         </property>
