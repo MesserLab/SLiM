@@ -57,6 +57,8 @@ development head:
 	darken the QtSLiM app icon while a model is running
 	add relayout option to prettyprinting in SLiMgui, with option-click/alt-click of the prettyprint button
 	add autosave option (off by default) to SLiMgui
+	show colored function/method signatures in the SLiMgui status bar
+	show elapsed CPU time, segregating mutations, and number of substitutions in the SLiMgui status bar
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

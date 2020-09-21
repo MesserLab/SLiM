@@ -298,6 +298,14 @@ bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
 //  public slots
 //
 
+void QtSLiMAppDelegate::appDidFinishLaunching(QtSLiMWindow *initialWindow)
+{
+    //qDebug() << "appDidFinishLaunching start";
+    if (initialWindow)
+        initialWindow->displayStartupMessage();
+    //qDebug() << "appDidFinishLaunching end";
+}
+
 void QtSLiMAppDelegate::lastWindowClosed(void)
 {
     //qDebug() << "QtSLiMAppDelegate::lastWindowClosed";

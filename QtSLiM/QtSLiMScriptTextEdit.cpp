@@ -323,10 +323,7 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
             QStatusBar *statusBar = statusBarForWindow();
             
             if (statusBar)
-            {
-                statusBar->setStyleSheet("color: #cc0000; font-size: 11px;");
-                statusBar->showMessage(q_errorDiagnostic.trimmed());
-            }
+                statusBar->showMessage("<font color='#cc0000' style='font-size: 11px;'>" + q_errorDiagnostic.trimmed().toHtmlEscaped() + "</font>");
 		}
 		else
 		{
@@ -998,9 +995,18 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
         
         if (displayString.length())
         {
-            // FIXME no syntax coloring for this at the moment, because QStatusBar doesn't support rich text; subclass?
-            statusBar->setStyleSheet("font-size: 11px;");
-            statusBar->showMessage(displayString);
+            // The status bar now supports display of an HTML string, so we use QTextDocument and ColorizeCallSignature() to make one
+            QTextDocument td;
+            
+            td.setPlainText(displayString);
+            
+            QTextCursor tc(&td);
+            tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+            tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+            
+            ColorizeCallSignature(signature.get(), 11, tc);
+            
+            statusBar->showMessage(td.toHtml());
         }
         else
         {

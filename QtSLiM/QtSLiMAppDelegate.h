@@ -72,6 +72,7 @@ public:
     void addActionsForGlobalMenuItems(QWidget *window);
     
 public slots:
+    void appDidFinishLaunching(QtSLiMWindow *initialWindow);
     void lastWindowClosed(void);
     void aboutToQuit(void);
     

@@ -229,6 +229,8 @@ int main(int argc, char *argv[])
     if (mainWin)
         mainWin->show();
     
+    appDelegate.appDidFinishLaunching(mainWin);
+    
     // Run the event loop
     int appReturn = app.exec();
     

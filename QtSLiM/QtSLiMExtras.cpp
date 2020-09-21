@@ -35,6 +35,7 @@
 #include <QPaintEvent>
 #include <QStyleOption>
 #include <QStyle>
+#include <QTextDocument>
 #include <QDebug>
 #include <cmath>
 
@@ -247,12 +248,12 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     ss << *call_signature;
     QString callSigString = QString::fromStdString(ss.str());
     
-    if (callSigString.endsWith(" <SLiM>"))
+    if (callSigString.endsWith(" <SLiM>") && !docSigString.endsWith(" <SLiM>"))
         callSigString.chop(7);
     
     if (docSigString != callSigString)
     {
-        qDebug() << "*** " << ((call_signature->CallPrefix().length() > 0) ? "method" : "function") << " signature mismatch:\nold: " << docSigString << "\nnew: " << callSigString;
+        qDebug() << "*** " << ((call_signature->CallPrefix().length() > 0) ? "method" : "function") << "signature mismatch:\nold:" << docSigString << "\nnew:" << callSigString;
         return;
     }
     
@@ -724,16 +725,32 @@ void QtSLiMSplitterHandle::paintEvent(QPaintEvent *paintEvent)
 }
 
 
-// A subclass of QStatusBar that draws a top separator on Linux, so our splitters abut nicely
-void QtSLiMStatusBar::paintEvent(QPaintEvent *paintEvent)
+// A subclass of QStatusBar that draws a top separator, so our splitters abut nicely
+// BCH 9/20/2020: this now draws the message as HTML text too, allowing colorized signatures
+void QtSLiMStatusBar::paintEvent(QPaintEvent * /*paintEvent*/)
 {
-    QStatusBar::paintEvent(paintEvent);
-    
-    // draw the top separator
-    QPainter painter(this);
+    QPainter p(this);
     QRect bounds = rect();
     
-    painter.fillRect(bounds.adjusted(0, 0, 0, -(bounds.height() - 1)), QtSLiMColorWithWhite(0.72, 1.0));
+    // fill the interior; we no longer try to inherit this from QStatusBar, that was a headache
+    p.fillRect(bounds, QtSLiMColorWithWhite(0.965, 1.0));
+    
+    // draw the top separator and bevel lines
+    QRect bevelLine = bounds.adjusted(0, 0, 0, -(bounds.height() - 1));
+    
+    p.fillRect(bevelLine, QtSLiMColorWithWhite(0.722, 1.0));
+    p.fillRect(bevelLine.adjusted(0, 1, 0, 1), QtSLiMColorWithWhite(1.000, 1.0));
+    p.fillRect(bevelLine.adjusted(0, (bounds.height() - 1), 0, (bounds.height() - 1)), QtSLiMColorWithWhite(0.918, 1.0));
+    
+    // draw the message
+    if (!currentMessage().isEmpty())
+    {
+        p.translate(QPointF(6, 3)); // would be nice for these coordinates not to be magic
+        p.setPen(Qt::black);
+        QTextDocument td;
+        td.setHtml(currentMessage());
+        td.drawContents(&p, bounds);
+    }
 }
 
 QPixmap QtSLiMDarkenPixmap(QPixmap p_pixmap)

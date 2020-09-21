@@ -543,6 +543,20 @@ void QtSLiMWindow::initializeUI(void)
     connect(ui->menuWindow, &QMenu::aboutToShow, this, &QtSLiMWindow::updateWindowMenu);
 }
 
+void QtSLiMWindow::displayStartupMessage(void)
+{
+    // Set the initial status bar message; called by QtSLiMAppDelegate::appDidFinishLaunching()
+    QString message("<font color='#555555' style='font-size: 11px;'>SLiM %1, %2 build.</font>");
+    
+    ui->statusBar->showMessage(message.arg(QString(SLIM_VERSION_STRING)).arg(
+#if DEBUG
+                                   "debug"
+#else
+                                   "release"
+#endif
+                                   ));    
+}
+
 QtSLiMScriptTextEdit *QtSLiMWindow::scriptTextEdit(void)
 {
     return ui->scriptTextEdit;
@@ -1281,8 +1295,7 @@ void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
     messageBox.exec();
     
     // Show the error in the status bar also
-    statusBar()->setStyleSheet("color: #cc0000; font-size: 11px;");
-    statusBar()->showMessage(terminationMessage.trimmed());
+    statusBar()->showMessage("<font color='#cc0000' style='font-size: 11px;'>" + terminationMessage.trimmed().toHtmlEscaped() + "</font>");
 }
 
 void QtSLiMWindow::checkForSimulationTermination(void)
@@ -1526,7 +1539,23 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	
 	if (fullUpdate)
 		updateGenerationCounter();
-	
+    
+    if (fullUpdate)
+    {
+        double elapsedTimeInSLiM = elapsedCPUClock_ / static_cast<double>(CLOCKS_PER_SEC);
+        
+        if (elapsedTimeInSLiM == 0.0)
+            ui->statusBar->clearMessage();
+        else
+        {
+            QString message("<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>");
+            
+            ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
+                                       .arg(sim->population_.mutation_registry_.size())
+                                       .arg(sim->population_.substitutions_.size()));
+        }
+	}
+    
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
 	if (invalid || sim->mutation_types_changed_)
 	{
@@ -2957,27 +2986,36 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 
     willExecuteScript();
 
+    // We always take a start clock measurement, to tally elapsed time spent running the model
+    clock_t startCPUClock = clock();
+    
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 	if (profilePlayOn_)
 	{
 		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
 		// as profile report percentages are fractions of the total elapsed wall clock time.
-		clock_t startCPUClock = clock();
 		SLIM_PROFILE_BLOCK_START();
 
 		stillRunning = sim->RunOneGeneration();
 
 		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
-		clock_t endCPUClock = clock();
-
-		profileElapsedCPUClock += (endCPUClock - startCPUClock);
 	}
     else
 #endif
     {
         stillRunning = sim->RunOneGeneration();
     }
-
+    
+    // Take an end clock time to tally elapsed time spent running the model
+    clock_t endCPUClock = clock();
+    
+    elapsedCPUClock_ += (endCPUClock - startCPUClock);
+    
+#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+	if (profilePlayOn_)
+        profileElapsedCPUClock += (endCPUClock - startCPUClock);
+#endif
+    
     didExecuteScript();
 
     // We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
@@ -3430,6 +3468,8 @@ void QtSLiMWindow::recycleClicked(void)
         consoleController->validateSymbolTableAndFunctionMap();
     
     ui->generationLineEdit->clearFocus();
+    elapsedCPUClock_ = 0;
+    
     updateAfterTickFull(true);
     
     // A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop

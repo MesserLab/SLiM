@@ -96,6 +96,7 @@ private:
     QTimer continuousProfileInvocationTimer_;
     QTimer playOneStepInvocationTimer_;
     int partialUpdateCount_ = 0;
+    std::clock_t elapsedCPUClock_ = 0;      // kept even when not profiling, for status bar updates
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
     // profiling-related variables
@@ -155,6 +156,7 @@ public:
     void initializeUI(void);
     void tile(const QMainWindow *previous);
     void openRecipe(const QString &recipeName, const QString &recipeScript);   // called by QtSLiMAppDelegate to open a new recipe window
+    void displayStartupMessage(void);
     
     static std::string defaultWFScriptString(void);
     static std::string defaultNonWFScriptString(void);
