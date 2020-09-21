@@ -745,7 +745,13 @@ void QtSLiMStatusBar::paintEvent(QPaintEvent * /*paintEvent*/)
     // draw the message
     if (!currentMessage().isEmpty())
     {
-        p.translate(QPointF(6, 3)); // would be nice for these coordinates not to be magic
+        // would be nice for these coordinates not to be magic
+#ifdef __APPLE__
+        p.translate(QPointF(6, 3));
+#else
+        p.translate(QPointF(5, 1));
+#endif
+
         p.setPen(Qt::black);
         QTextDocument td;
         td.setHtml(currentMessage());

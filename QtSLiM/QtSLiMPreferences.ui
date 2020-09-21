@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>282</width>
-    <height>528</height>
+    <height>665</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -366,11 +366,8 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <property name="font">
-      <font>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
+     <property name="styleSheet">
+      <string notr="true">QGroupBox { font-weight: bold; }</string>
      </property>
      <property name="title">
       <string>Autosave:</string>

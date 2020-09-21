@@ -398,14 +398,14 @@ void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
 QtSLiMLegendSpec QtSLiMGraphView_FitnessOverTime::legendKey(void)
 {
     if (!showSubpopulations_)
-		return QtSLiMLegendSpec();
+        return QtSLiMLegendSpec();
     
     std::vector<slim_objectid_t> subpopsToDisplay;
     
     for (auto history_record_iter : controller_->sim->population_.fitness_histories_)
         subpopsToDisplay.push_back(history_record_iter.first);
-	
-	return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);
+
+    return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);
 }
 
 void QtSLiMGraphView_FitnessOverTime::toggleShowSubpopulations(void)
