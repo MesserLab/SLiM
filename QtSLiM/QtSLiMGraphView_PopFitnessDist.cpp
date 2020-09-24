@@ -109,6 +109,9 @@ double *QtSLiMGraphView_PopFitnessDist::populationFitnessData(void)
     for (int i = 0; i < binCount; ++i)
         totalCount += bins[i];
     
+    if (totalCount == 0.0)
+        totalCount = 1.0;   // counts are all zero; prevent divide by zero below, get 0 instead
+    
     for (int i = 0; i < binCount; ++i)
         bins[i] = bins[i] / totalCount;
     

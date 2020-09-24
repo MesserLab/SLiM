@@ -2467,7 +2467,7 @@ void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
         QStringList lines = linesForRoundedSelection(cursor, movedBack);
         
         for (QString &line : lines)
-            if (line[0] == '\t')
+            if (line.length() && (line[0] == '\t'))
                 line.remove(0, 1);
         
         QString replacementString = lines.join(QChar::ParagraphSeparator);

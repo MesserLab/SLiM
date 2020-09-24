@@ -145,6 +145,9 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
     // Tally reference counts within selectedSubpopulationID_
     size_t subpop_total_genome_count = tallyGUIMutationReferences(selectedSubpopulationID_, selectedMutationTypeIndex_);
 	
+    if (subpop_total_genome_count == 0)
+        subpop_total_genome_count = 1;  // refcounts will all be zero; prevent NAN values below, make them 0 instead
+    
 	// Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
@@ -157,7 +160,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 		
 		if (refcount)
 		{
-			uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_genome_count);	// FIXME static analyzer says potential divide by zero here
+			uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_genome_count);
             slim_mutationid_t mutationID = mutation->mutation_id_;
             auto history_iter = frequencyHistoryDict_.find(mutationID);
 			

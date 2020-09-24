@@ -235,6 +235,9 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
                 refcounts1.push_back(mutation->gui_scratch_reference_count_);
         }
+        
+        if (subpop1_total_genome_count == 0)
+            subpop1_total_genome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
     }
     {
         subpop2_total_genome_count = tallyGUIMutationReferences(selectedSubpopulation2ID_, selectedMutationTypeIndex_);
@@ -245,6 +248,9 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
                 refcounts2.push_back(mutation->gui_scratch_reference_count_);
         }
+        
+        if (subpop2_total_genome_count == 0)
+            subpop2_total_genome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
     }
     
     // Tally up the binned 2D SFS from the 1D data

@@ -4904,8 +4904,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	
 	for (Individual *individual : old_individual_ptrs)
 	{
+		EidosObjectPool *pool = (individual->subpopulation_).individual_pool_;
+		
 		individual->~Individual();
-		(individual->subpopulation_).individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+		pool->DisposeChunk(const_cast<Individual *>(individual));
 	}
 	
 	return gStaticEidosValueVOID;

@@ -3040,6 +3040,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 	return result_SP;
 }
 
+#if defined(__clang__)
+__attribute__((no_sanitize("float-divide-by-zero")))
+__attribute__((no_sanitize("integer-divide-by-zero")))
+#endif
 EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Div()");

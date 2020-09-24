@@ -100,6 +100,9 @@ double *QtSLiMGraphView_FixationTimeHistogram::fixationTimeData(void)
 			
 			total += static_cast<int64_t>(rebin[binIndex]);
 		}
+        
+        if (total == 0)
+            total = 1;  // if counts are all zero, avoid a divide by zero below and just end up with 0 instead
 		
 		for (int bin = 0; bin < binCount; ++bin)
 		{

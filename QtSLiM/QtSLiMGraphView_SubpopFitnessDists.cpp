@@ -115,6 +115,9 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
     for (int i = 0; i < binCount; ++i)
         totalCount += bins[i];
     
+    if (totalCount == 0)
+        totalCount = 1;  // if counts are all zero, avoid a divide by zero below and just end up with 0 instead
+    
     for (int i = 0; i < binCount; ++i)
         bins[i] = bins[i] / totalCount;
     

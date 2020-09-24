@@ -1559,12 +1559,15 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 	size_t subpop_total_genome_count = 0;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
-	
-	for (; registry_iter != registry_iter_end; ++registry_iter)
-		(mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
-	
+    
+    {
+        const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
+        const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
+        
+        for (; registry_iter != registry_iter_end; ++registry_iter)
+            (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
+    }
+    
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
 	{
 		if (subpop_pair.first == subpop_id)	// tally only within our chosen subpop

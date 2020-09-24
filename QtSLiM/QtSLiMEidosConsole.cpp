@@ -185,7 +185,8 @@ void QtSLiMEidosConsole::updateVariableBrowserButtonStates(bool visible)
     showBrowserReleased();
     
     // QtSLiMWindow's button
-    parentSLiMWindow->updateVariableBrowserButtonState(visible);
+    if (parentSLiMWindow)
+        parentSLiMWindow->updateVariableBrowserButtonState(visible);
 }
 
 void QtSLiMEidosConsole::setVariableBrowserVisibility(bool visible)

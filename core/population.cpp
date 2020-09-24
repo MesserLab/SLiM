@@ -4264,6 +4264,10 @@ void Population::RecordSubpopSize(slim_generation_t p_history_index, slim_object
 }
 
 // This method is used to record population statistics that are kept per generation for SLiMgui
+#if defined(__clang__)
+__attribute__((no_sanitize("float-divide-by-zero")))
+__attribute__((no_sanitize("integer-divide-by-zero")))
+#endif
 void Population::SurveyPopulation(void)
 {
 	// Calculate mean fitness for this generation

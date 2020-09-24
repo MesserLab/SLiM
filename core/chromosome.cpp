@@ -1006,9 +1006,9 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
-	mutation->scratch_ = 0;		// for the caller, we set this to signify "not in registry"; these semantics are local only!
 	
 	new (mutation) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, nucleotide);
+	mutation->scratch_ = 0;		// for the caller, we set this to signify "not in registry"; these semantics are local only!
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)

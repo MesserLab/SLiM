@@ -94,7 +94,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	double totalGenomeCount = pop.total_genome_count_;
+	double totalGenomeCount = ((pop.total_genome_count_ == 0) ? 1 : pop.total_genome_count_);   // prevent a zero count from producing NAN frequencies below
 	MutationRun &mutationRegistry = pop.mutation_registry_;
 	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
 	int mutationCount = static_cast<int>(mutationRegistry.end_pointer_const() - mutations);
