@@ -64,7 +64,6 @@ public:
     virtual void drawGraph(QPainter &painter, QRect interiorRect);
     
 public slots:
-    void dispatch(QtSLiMWindow::DynamicDispatchID dispatchID);  // called by QtSLiMWindow::sendAllLinkedViewsSelector()
     virtual void addedToWindow(void);
     virtual void invalidateDrawingCache(void);
     virtual void graphWindowResized(void);

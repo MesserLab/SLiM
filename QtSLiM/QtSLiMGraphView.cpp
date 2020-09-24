@@ -61,6 +61,11 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller) : QW
 {
     controller_ = controller;
     
+    connect(controller, &QtSLiMWindow::controllerUpdatedAfterTick, this, &QtSLiMGraphView::updateAfterTick);
+    connect(controller, &QtSLiMWindow::controllerSelectionChanged, this, &QtSLiMGraphView::controllerSelectionChanged);
+    connect(controller, &QtSLiMWindow::controllerGenerationFinished, this, &QtSLiMGraphView::controllerGenerationFinished);
+    connect(controller, &QtSLiMWindow::controllerRecycled, this, &QtSLiMGraphView::controllerRecycled);
+    
     showXAxis_ = true;
     allowXAxisUserRescale_ = true;
     showXAxisTicks_ = true;
@@ -766,18 +771,6 @@ void QtSLiMGraphView::paintEvent(QPaintEvent * /* event */)
     painter.setRenderHint(QPainter::Antialiasing);
     
     drawContents(painter);
-}
-
-void QtSLiMGraphView::dispatch(QtSLiMWindow::DynamicDispatchID dispatchID)
-{
-    // poor man's dynamic dispatch; dispatchID is essentially the selector we want to send
-    switch (dispatchID)
-    {
-    case QtSLiMWindow::DynamicDispatchID::updateAfterTick: updateAfterTick(); break;
-    case QtSLiMWindow::DynamicDispatchID::controllerSelectionChanged: controllerSelectionChanged(); break;
-    case QtSLiMWindow::DynamicDispatchID::controllerGenerationFinished: controllerGenerationFinished(); break;
-    case QtSLiMWindow::DynamicDispatchID::controllerRecycled: controllerRecycled(); break;
-    }
 }
 
 void QtSLiMGraphView::invalidateDrawingCache(void)

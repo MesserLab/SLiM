@@ -111,8 +111,6 @@ private:
     QtSLiMEidosConsole *consoleController = nullptr;
     QtSLiMTablesDrawer *tablesDrawerController = nullptr;
     
-    std::vector<QWidget *> graphWindows;
-    
     int openedGraphCount_left = 0;      // used for new graph window positioning
     int openedGraphCount_right = 0;
     int openedGraphCount_top = 0;
@@ -137,14 +135,6 @@ public:
         WF = 0,
         nonWF
     } ModelType;
-    
-    // dynamic dispatch to linked views – graph windows, etc.
-    enum DynamicDispatchID {
-        updateAfterTick,
-        controllerSelectionChanged,
-        controllerGenerationFinished,
-        controllerRecycled,
-    };
     
     QtSLiMWindow(QtSLiMWindow::ModelType modelType);                        // untitled window
     explicit QtSLiMWindow(const QString &fileName);                         // window from a file
@@ -237,6 +227,11 @@ public:
 signals:
     void terminationWithMessage(QString message);
     void playStateChanged(void);
+    
+    void controllerUpdatedAfterTick(void);
+    void controllerSelectionChanged(void);
+    void controllerGenerationFinished(void);
+    void controllerRecycled(void);
     
 public slots:
     void showTerminationMessage(QString terminationMessage);
@@ -331,7 +326,6 @@ protected:
     QWidget *graphWindowWithView(QtSLiMGraphView *graphView);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
     
-    void sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID);
     
     // splitter support
     void interpolateVerticalSplitter(void);

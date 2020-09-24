@@ -183,7 +183,7 @@ void QtSLiMWindow::init(void)
     connect(ui->subpopTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &QtSLiMWindow::subpopSelectionDidChange);
     
     // Watch for changes to the selection in the chromosome view
-    connect(ui->chromosomeOverview, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { sendAllLinkedViewsSelector(DynamicDispatchID::controllerSelectionChanged); });
+    connect(ui->chromosomeOverview, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerSelectionChanged(); });
     
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
@@ -1407,17 +1407,6 @@ QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *window)
     return nullptr;
 }
 
-void QtSLiMWindow::sendAllLinkedViewsSelector(QtSLiMWindow::DynamicDispatchID dispatchID)
-{
-    for (QWidget *graphWindow : graphWindows)
-    {
-        QtSLiMGraphView *graphView = graphViewForGraphWindow(graphWindow);
-        
-        if (graphView)
-            graphView->dispatch(dispatchID);
-    }
-}
-
 void QtSLiMWindow::updateOutputTextView(void)
 {
     std::string &&newOutput = gSLiMOut.str();
@@ -1607,7 +1596,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	
 	// Update graph windows as well; this will usually trigger an update() but may do other updating work as well
 	if (fullUpdate)
-		sendAllLinkedViewsSelector(DynamicDispatchID::updateAfterTick);
+        emit controllerUpdatedAfterTick();
 }
 
 void QtSLiMWindow::updatePlayButtonIcon(bool pressed)
@@ -3023,7 +3012,7 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 
     // We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
     // happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
-    sendAllLinkedViewsSelector(DynamicDispatchID::controllerGenerationFinished);
+    emit controllerGenerationFinished();
 
     return stillRunning;
 }
@@ -3481,7 +3470,7 @@ void QtSLiMWindow::recycleClicked(void)
     //[scriptTextView breakUndoCoalescing];
     resetSLiMChangeCount();
     
-    sendAllLinkedViewsSelector(DynamicDispatchID::controllerRecycled);
+    emit controllerRecycled();
 }
 
 void QtSLiMWindow::playSpeedChanged(void)
@@ -4360,9 +4349,6 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
                 QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
-                
-                // Note that we don't use graphWindow, and don't remember the window in an ivar.  Haplotype plots
-                // are different from graphs; they don't update dynamically, and you can have more than one.
             }
             else
             {
@@ -4376,13 +4362,6 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             
             if (graphWindow)
             {
-                graphWindows.push_back(graphWindow);
-                connect(graphWindow, &QObject::destroyed, this, [this](QObject *obj) {
-                    auto window_iter = std::find(graphWindows.begin(), graphWindows.end(), obj);
-                    if (window_iter != graphWindows.end())
-                        graphWindows.erase(window_iter);
-                });
-                
                 graphWindow->show();
                 graphWindow->raise();
                 graphWindow->activateWindow();
