@@ -62,8 +62,30 @@ static std::string Eidos_Beep_QT(std::string p_sound_name);
 
 QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
 
+
+// A custom message handler that we can use, optionally, for deubgging.  This is useful if Qt is emitting a warning and you don't know
+// where it's coming from; turn on the use of the message handler, and then set a breakpoint inside it, perhaps conditional on msg.
+void QtSLiM_MessageHandler(QtMsgType /*type*/, const QMessageLogContext &context, const QString &msg)
+{
+    if (msg.contains("Using QCharRef with an index"))
+        qDebug() << "HIT WATCH MESSAGE; SET A BREAKPOINT HERE!";
+    
+    // useful behavior, from https://doc.qt.io/qt-5/qtglobal.html#qInstallMessageHandler
+    {
+        QByteArray localMsg = msg.toLocal8Bit();
+        const char *file = context.file ? context.file : "";
+        const char *function = context.function ? context.function : "";
+        
+        fprintf(stderr, "%s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+    }
+}
+
+
 QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
 {
+    // Install a message handler; this seems useful for debugging
+    qInstallMessageHandler(QtSLiM_MessageHandler);
+    
     // Determine whether we were launched from a shell or from something else (Finder, Xcode, etc.)
 	launchedFromShell_ = (isatty(fileno(stdin)) == 1); // && !SLiM_AmIBeingDebugged();
     
