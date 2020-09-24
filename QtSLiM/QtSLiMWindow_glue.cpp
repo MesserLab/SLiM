@@ -23,7 +23,6 @@
 
 #include <QCoreApplication>
 #include <QKeyEvent>
-#include <QDesktopServices>
 
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiMEidosConsole.h"
@@ -136,34 +135,16 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionShowVariableBrowser, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showVariableBrowser);
     connect(ui->actionClearOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearOutput);
     
-    // connect menu items that open a URL; these have no shortcut, and so do not need to be delegated to qtSLiMAppDelegate
-    connect(ui->actionSLiMWorkshops, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("http://benhaller.com/workshops/workshops.html", QUrl::TolerantMode));
-    });
-    connect(ui->actionSendFeedback, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("mailto:bhaller@mac.com?subject=SLiM%20Feedback", QUrl::TolerantMode));
-    });
-    connect(ui->actionMailingList_slimdiscuss, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("https://groups.google.com/d/forum/slim-discuss", QUrl::TolerantMode));
-    });
-    connect(ui->actionMailingList_slimannounce, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("https://groups.google.com/d/forum/slim-announce", QUrl::TolerantMode));
-    });
-    connect(ui->actionSLiMHomePage, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("http://messerlab.org/slim/", QUrl::TolerantMode));
-    });
-    connect(ui->actionSLiMExtras, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("https://github.com/MesserLab/SLiM-Extras", QUrl::TolerantMode));
-    });
-    connect(ui->actionAboutMesserLab, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("http://messerlab.org/", QUrl::TolerantMode));
-    });
-    connect(ui->actionAboutBenHaller, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("http://www.benhaller.com/", QUrl::TolerantMode));
-    });
-    connect(ui->actionAboutStickSoftware, &QAction::triggered, []() {
-        QDesktopServices::openUrl(QUrl("http://www.sticksoftware.com/", QUrl::TolerantMode));
-    });
+    // connect menu items that open a URL
+    connect(ui->actionSLiMWorkshops, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpWorkshops);
+    connect(ui->actionSendFeedback, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpFeedback);
+    connect(ui->actionMailingList_slimdiscuss, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpSLiMDiscuss);
+    connect(ui->actionMailingList_slimannounce, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpSLiMAnnounce);
+    connect(ui->actionSLiMHomePage, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpSLiMHome);
+    connect(ui->actionSLiMExtras, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpSLiMExtras);
+    connect(ui->actionAboutMesserLab, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpMesserLab);
+    connect(ui->actionAboutBenHaller, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpBenHaller);
+    connect(ui->actionAboutStickSoftware, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpStickSoftware);
     
     // connect custom menu items
     connect(ui->actionShiftLeft, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftLeft);

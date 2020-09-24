@@ -81,13 +81,80 @@
 #include "slim_test.h"
 
 
+static std::string defaultWFScriptString(void)
+{
+    return std::string(
+                "// set up a simple neutral simulation\n"
+                "initialize() {\n"
+                "	initializeMutationRate(1e-7);\n"
+                "	\n"
+                "	// m1 mutation type: neutral\n"
+                "	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+                "	\n"
+                "	// g1 genomic element type: uses m1 for all mutations\n"
+                "	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+                "	\n"
+                "	// uniform chromosome of length 100 kb with uniform recombination\n"
+                "	initializeGenomicElement(g1, 0, 99999);\n"
+                "	initializeRecombinationRate(1e-8);\n"
+                "}\n"
+                "\n"
+                "// create a population of 500 individuals\n"
+                "1 {\n"
+                "	sim.addSubpop(\"p1\", 500);\n"
+                "}\n"
+                "\n"
+                "// output samples of 10 genomes periodically, all fixed mutations at end\n"
+                "1000 late() { p1.outputSample(10); }\n"
+                "2000 late() { p1.outputSample(10); }\n"
+                "2000 late() { sim.outputFixedMutations(); }\n");
+}
+
+static std::string defaultNonWFScriptString(void)
+{
+    return std::string(
+                "// set up a simple neutral nonWF simulation\n"
+                "initialize() {\n"
+                "	initializeSLiMModelType(\"nonWF\");\n"
+                "	defineConstant(\"K\", 500);	// carrying capacity\n"
+                "	\n"
+                "	// neutral mutations, which are allowed to fix\n"
+                "	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+                "	m1.convertToSubstitution = T;\n"
+                "	\n"
+                "	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+                "	initializeGenomicElement(g1, 0, 99999);\n"
+                "	initializeMutationRate(1e-7);\n"
+                "	initializeRecombinationRate(1e-8);\n"
+                "}\n"
+                "\n"
+                "// each individual reproduces itself once\n"
+                "reproduction() {\n"
+                "	subpop.addCrossed(individual, subpop.sampleIndividuals(1));\n"
+                "}\n"
+                "\n"
+                "// create an initial population of 10 individuals\n"
+                "1 early() {\n"
+                "	sim.addSubpop(\"p1\", 10);\n"
+                "}\n"
+                "\n"
+                "// provide density-dependent selection\n"
+                "early() {\n"
+                "	p1.fitnessScaling = K / p1.individualCount;\n"
+                "}\n"
+                "\n"
+                "// output all fixed mutations at end\n"
+                "2000 late() { sim.outputFixedMutations(); }\n");
+}
+
+
 QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
 {
     init();
     setCurrentFile(QString());
     
     // set up the initial script
-    std::string untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? QtSLiMWindow::defaultWFScriptString() : QtSLiMWindow::defaultNonWFScriptString();
+    std::string untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? defaultWFScriptString() : defaultNonWFScriptString();
     ui->scriptTextEdit->setPlainText(QString::fromStdString(untitledScriptString));
     
     if (consoleController)
@@ -130,7 +197,23 @@ QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScrip
 
 void QtSLiMWindow::init(void)
 {
+#ifdef __APPLE__
+    // On macOS we want to stay running when the last main window closes, following platform UI guidelines.
+    // However, Qt's treatment of the menu bar seems to be a bit buggy unless a main window exists.  That
+    // main window can be hidden; it just needs to exist.  So here we just allow our main window(s) to leak,
+    // so that Qt is happy.  This sucks, obviously, but really it seems unlikely to matter.  The window will
+    // notice its zombified state when it is closed, and will free resources and mark itself as a zombie so
+    // it doesn't get included in the Window menu, etc.
+    // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
+    // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
+    // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
+    // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
+    // the other spots in the code related to this mess.
+    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
     setAttribute(Qt::WA_DeleteOnClose);
+#else
+    setAttribute(Qt::WA_DeleteOnClose);
+#endif
     isUntitled = true;
     isRecipe = false;
     
@@ -524,20 +607,11 @@ void QtSLiMWindow::initializeUI(void)
     // Ask the app delegate to handle the recipes menu for us
     qtSLiMAppDelegate->setUpRecipesMenu(ui->menuOpenRecipe, ui->actionFindRecipe);
     
-    // Set up the recent documents submenu
+    // Likewise for the recent documents menu
     QMenu *recentMenu = new QMenu("Open Recent", this);
     ui->actionOpenRecent->setMenu(recentMenu);
-    connect(recentMenu, &QMenu::aboutToShow, this, &QtSLiMWindow::updateRecentFileActions);
     
-    for (int i = 0; i < MaxRecentFiles; ++i) {
-        recentFileActs[i] = recentMenu->addAction(QString(), this, &QtSLiMWindow::openRecentFile);
-        recentFileActs[i]->setVisible(false);
-    }
-    
-    recentMenu->addSeparator();
-    recentMenu->addAction("Clear Menu", this, &QtSLiMWindow::clearRecentFiles);
-    
-    setRecentFilesVisible(QtSLiMWindow::hasRecentFiles());
+    qtSLiMAppDelegate->setUpRecentsMenu(recentMenu);
     
     // Set up the Window menu, which updates on demand
     connect(ui->menuWindow, &QMenu::aboutToShow, this, &QtSLiMWindow::updateWindowMenu);
@@ -601,72 +675,6 @@ QtSLiMWindow::~QtSLiMWindow()
         //  consoleController->browserController->hide();
         consoleController->hide();
     }
-}
-
-std::string QtSLiMWindow::defaultWFScriptString(void)
-{
-    return std::string(
-                "// set up a simple neutral simulation\n"
-                "initialize() {\n"
-                "	initializeMutationRate(1e-7);\n"
-                "	\n"
-                "	// m1 mutation type: neutral\n"
-                "	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
-                "	\n"
-                "	// g1 genomic element type: uses m1 for all mutations\n"
-                "	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
-                "	\n"
-                "	// uniform chromosome of length 100 kb with uniform recombination\n"
-                "	initializeGenomicElement(g1, 0, 99999);\n"
-                "	initializeRecombinationRate(1e-8);\n"
-                "}\n"
-                "\n"
-                "// create a population of 500 individuals\n"
-                "1 {\n"
-                "	sim.addSubpop(\"p1\", 500);\n"
-                "}\n"
-                "\n"
-                "// output samples of 10 genomes periodically, all fixed mutations at end\n"
-                "1000 late() { p1.outputSample(10); }\n"
-                "2000 late() { p1.outputSample(10); }\n"
-                "2000 late() { sim.outputFixedMutations(); }\n");
-}
-
-std::string QtSLiMWindow::defaultNonWFScriptString(void)
-{
-    return std::string(
-                "// set up a simple neutral nonWF simulation\n"
-                "initialize() {\n"
-                "	initializeSLiMModelType(\"nonWF\");\n"
-                "	defineConstant(\"K\", 500);	// carrying capacity\n"
-                "	\n"
-                "	// neutral mutations, which are allowed to fix\n"
-                "	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
-                "	m1.convertToSubstitution = T;\n"
-                "	\n"
-                "	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
-                "	initializeGenomicElement(g1, 0, 99999);\n"
-                "	initializeMutationRate(1e-7);\n"
-                "	initializeRecombinationRate(1e-8);\n"
-                "}\n"
-                "\n"
-                "// each individual reproduces itself once\n"
-                "reproduction() {\n"
-                "	subpop.addCrossed(individual, subpop.sampleIndividuals(1));\n"
-                "}\n"
-                "\n"
-                "// create an initial population of 10 individuals\n"
-                "1 early() {\n"
-                "	sim.addSubpop(\"p1\", 10);\n"
-                "}\n"
-                "\n"
-                "// provide density-dependent selection\n"
-                "early() {\n"
-                "	p1.fitnessScaling = K / p1.individualCount;\n"
-                "}\n"
-                "\n"
-                "// output all fixed mutations at end\n"
-                "2000 late() { sim.outputFixedMutations(); }\n");
 }
 
 const QColor &QtSLiMWindow::blackContrastingColorForIndex(int index)
@@ -746,6 +754,34 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
 {
     if (maybeSave())
     {
+        // We used to save the window size/position here, but now that is done in moveEvent() / resizeEvent()
+        event->accept();
+        
+        // We no longer get freed when we close, because we need to stick around to make the global menubar
+        // work; see QtSLiMWindow::init().  So when we're closing, we now free up the resources we hold.
+        // This should close and free all auxiliary windows, while leaving us alive.
+        // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
+        // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
+        // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
+        // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
+        // the other spots in the code related to this mess.
+        // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
+        
+        // This function was still under development, and has been removed; the idea was to tear down unneeded
+        // UI on the window being permanently hidden, like graph views, Eidos console, object tables window,
+        // variable browser, haplotype plots... but there wasn't really any useful, debugged code yet.
+        //invalidate();
+    }
+    else
+    {
+        event->ignore();
+    }
+}
+
+void QtSLiMWindow::moveEvent(QMoveEvent *event)
+{
+    if (donePositioning_)
+    {
         // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
         QSettings settings;
         
@@ -754,11 +790,38 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
         settings.setValue("pos", pos());
         settings.endGroup();
         
-        event->accept();
+        //qDebug() << "moveEvent() after done positioning";
     }
-    else
+    
+    QWidget::moveEvent(event);
+}
+
+void QtSLiMWindow::resizeEvent(QResizeEvent *event)
+{
+    if (donePositioning_)
     {
-        event->ignore();
+        // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
+        QSettings settings;
+        
+        settings.beginGroup("QtSLiMMainWindow");
+        settings.setValue("size", size());
+        settings.setValue("pos", pos());
+        settings.endGroup();
+        
+        //qDebug() << "resizeEvent() after done positioning";
+    }
+    
+    QWidget::resizeEvent(event);
+}
+
+void QtSLiMWindow::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    
+    if (!testAttribute(Qt::WA_DontShowOnScreen))
+    {
+        //qDebug() << "showEvent() : done positioning";
+        donePositioning_ = true;
     }
 }
 
@@ -767,136 +830,9 @@ bool QtSLiMWindow::windowIsReuseable(void)
     return (isUntitled && !isRecipe && isTransient && (slimChangeCount == 0) && !isWindowModified());
 }
 
-void QtSLiMWindow::newFile_WF()
-{
-    QtSLiMWindow *other = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
-    other->tile(this);
-    other->show();
-}
-
-void QtSLiMWindow::newFile_nonWF()
-{
-    QtSLiMWindow *other = new QtSLiMWindow(QtSLiMWindow::ModelType::nonWF);
-    other->tile(this);
-    other->show();
-}
-
-QtSLiMWindow *QtSLiMWindow::runInitialOpenPanel(void)
-{
-    // This is like open(), but as a static method that makes no reference to an existing window
-    QSettings settings;
-    QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
-    
-    const QString fileName = QFileDialog::getOpenFileName(nullptr, QString(), directory, "Files (*.slim *.txt)");
-    if (!fileName.isEmpty())
-    {
-        settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
-        
-        QtSLiMWindow *other = new QtSLiMWindow(fileName);
-        if (other->isUntitled) {
-            delete other;
-            return nullptr;
-        }
-        return other;
-    }
-    
-    return nullptr;
-}
-
-void QtSLiMWindow::open()
-{
-    QSettings settings;
-    QString directory = settings.value("QtSLiMDefaultOpenDirectory", QVariant(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation))).toString();
-    
-    const QString fileName = QFileDialog::getOpenFileName(this, QString(), directory, "Files (*.slim *.txt *.png *.jpg *.jpeg *.bmp *.gif)");
-    if (!fileName.isEmpty())
-    {
-        settings.setValue("QtSLiMDefaultOpenDirectory", QVariant(QFileInfo(fileName).path()));
-        openFile(fileName);
-    }
-}
-
-void QtSLiMWindow::openFile(const QString &fileName)
-{
-    if (fileName.endsWith(".png", Qt::CaseInsensitive) ||
-            fileName.endsWith(".jpg", Qt::CaseInsensitive) ||
-            fileName.endsWith(".jpeg", Qt::CaseInsensitive) ||
-            fileName.endsWith(".bmp", Qt::CaseInsensitive) ||
-            fileName.endsWith(".gif", Qt::CaseInsensitive))
-    {
-        // An image; this opens as a child of the current SLiM window
-        QWidget *imageWindow = imageWindowWithPath(fileName);
-        
-        if (imageWindow)
-        {
-            imageWindow->show();
-            imageWindow->raise();
-            imageWindow->activateWindow();
-        }
-    }
-    else
-    {
-        // Should be a .slim or .txt file; look for an existing window for the file, otherwise open a new window (or reuse a reuseable window)
-        QtSLiMWindow *existing = findMainWindow(fileName);
-        if (existing) {
-            existing->show();
-            existing->raise();
-            existing->activateWindow();
-            return;
-        }
-        
-        if (windowIsReuseable()) {
-            loadFile(fileName);
-            return;
-        }
-        
-        QtSLiMWindow *other = new QtSLiMWindow(fileName);
-        if (other->isUntitled) {
-            delete other;
-            return;
-        }
-        other->tile(this);
-        other->show();
-    }
-}
-
-void QtSLiMWindow::openRecipe(const QString &recipeName, const QString &recipeScript)
-{
-    if (windowIsReuseable())
-    {
-        if (consoleController)
-            consoleController->invalidateSymbolTableAndFunctionMap();
-        
-        clearOutputClicked();
-        ui->scriptTextEdit->setPlainText(recipeScript);
-        setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
-        
-        if (consoleController)
-            consoleController->validateSymbolTableAndFunctionMap();
-        
-        setWindowFilePath(recipeName);
-        isRecipe = true;
-        isTransient = false;
-        
-        // Update all our UI to reflect the current state of the simulation
-        updateAfterTickFull(true);
-        resetSLiMChangeCount();     // no recycle change count; the current model is correct
-        setWindowModified(false);   // loaded windows start unmodified
-        return;
-    }
-
-    QtSLiMWindow *other = new QtSLiMWindow(recipeName, recipeScript);
-    if (!other->isRecipe) {
-        delete other;
-        return;
-    }
-    other->tile(this);
-    other->show();
-}
-
 bool QtSLiMWindow::save()
 {
-    return isUntitled ? saveAs() : saveFile(curFile);
+    return isUntitled ? saveAs() : saveFile(currentFile);
 }
 
 bool QtSLiMWindow::saveAs()
@@ -919,7 +855,7 @@ bool QtSLiMWindow::saveAs()
     else
     {
         // propose saving to the existing filename in the existing directory
-        fileName = QFileDialog::getSaveFileName(this, "Save As", curFile);
+        fileName = QFileDialog::getSaveFileName(this, "Save As", currentFile);
     }
     
     if (fileName.isEmpty())
@@ -940,7 +876,7 @@ void QtSLiMWindow::revert()
         
         switch (ret) {
         case QMessageBox::Yes:
-            loadFile(curFile);
+            loadFile(currentFile);
             break;
         case QMessageBox::Cancel:
             break;
@@ -999,6 +935,28 @@ void QtSLiMWindow::loadFile(const QString &fileName)
     setWindowModified(false);   // loaded windows start unmodified
 }
 
+void QtSLiMWindow::loadRecipe(const QString &recipeName, const QString &recipeScript)
+{
+    if (consoleController)
+        consoleController->invalidateSymbolTableAndFunctionMap();
+    
+    clearOutputClicked();
+    ui->scriptTextEdit->setPlainText(recipeScript);
+    setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
+    
+    if (consoleController)
+        consoleController->validateSymbolTableAndFunctionMap();
+    
+    setWindowFilePath(recipeName);
+    isRecipe = true;
+    isTransient = false;
+    
+    // Update all our UI to reflect the current state of the simulation
+    updateAfterTickFull(true);
+    resetSLiMChangeCount();     // no recycle change count; the current model is correct
+    setWindowModified(false);   // loaded windows start unmodified
+}
+
 bool QtSLiMWindow::saveFile(const QString &fileName)
 {
     QFile file(fileName);
@@ -1022,12 +980,12 @@ void QtSLiMWindow::setCurrentFile(const QString &fileName)
     
     if (isUntitled) {
         if (sequenceNumber == 1)
-            curFile = QString("Untitled");
+            currentFile = QString("Untitled");
         else
-            curFile = QString("Untitled %1").arg(sequenceNumber);
+            currentFile = QString("Untitled %1").arg(sequenceNumber);
         sequenceNumber++;
     } else {
-        curFile = QFileInfo(fileName).canonicalFilePath();
+        currentFile = QFileInfo(fileName).canonicalFilePath();
     }
 
     ui->scriptTextEdit->document()->setModified(false);
@@ -1036,23 +994,9 @@ void QtSLiMWindow::setCurrentFile(const QString &fileName)
         isTransient = false;
     
     if (!isUntitled)
-        QtSLiMWindow::prependToRecentFiles(curFile);
+        qtSLiMAppDelegate->prependToRecentFiles(currentFile);
     
-    setWindowFilePath(curFile);
-}
-
-QtSLiMWindow *QtSLiMWindow::findMainWindow(const QString &fileName) const
-{
-    QString canonicalFilePath = QFileInfo(fileName).canonicalFilePath();
-
-    const QList<QWidget *> topLevelWidgets = QApplication::topLevelWidgets();
-    for (QWidget *widget : topLevelWidgets) {
-        QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
-        if (mainWin && mainWin->curFile == canonicalFilePath)
-            return mainWin;
-    }
-
-    return nullptr;
+    setWindowFilePath(currentFile);
 }
 
 void QtSLiMWindow::documentWasModified()
@@ -1074,97 +1018,6 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
     const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
     if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + pos))
         move(pos);
-}
-
-
-//
-//  Recent documents
-//
-
-void QtSLiMWindow::setRecentFilesVisible(bool visible)
-{
-    ui->actionOpenRecent->setVisible(visible);
-}
-
-static inline QString recentFilesKey() { return QStringLiteral("QtSLiMRecentFilesList"); }
-static inline QString fileKey() { return QStringLiteral("file"); }
-
-static QStringList readRecentFiles(QSettings &settings)
-{
-    QStringList result;
-    const int count = settings.beginReadArray(recentFilesKey());
-    for (int i = 0; i < count; ++i) {
-        settings.setArrayIndex(i);
-        result.append(settings.value(fileKey()).toString());
-    }
-    settings.endArray();
-    return result;
-}
-
-static void writeRecentFiles(const QStringList &files, QSettings &settings)
-{
-    const int count = files.size();
-    settings.beginWriteArray(recentFilesKey());
-    for (int i = 0; i < count; ++i) {
-        settings.setArrayIndex(i);
-        settings.setValue(fileKey(), files.at(i));
-    }
-    settings.endArray();
-}
-
-bool QtSLiMWindow::hasRecentFiles()
-{
-    QSettings settings;
-    const int count = settings.beginReadArray(recentFilesKey());
-    settings.endArray();
-    return count > 0;
-}
-
-void QtSLiMWindow::prependToRecentFiles(const QString &fileName)
-{
-    QSettings settings;
-
-    const QStringList oldRecentFiles = readRecentFiles(settings);
-    QStringList recentFiles = oldRecentFiles;
-    recentFiles.removeAll(fileName);
-    recentFiles.prepend(fileName);
-    if (oldRecentFiles != recentFiles)
-        writeRecentFiles(recentFiles, settings);
-
-    setRecentFilesVisible(!recentFiles.isEmpty());
-}
-
-void QtSLiMWindow::updateRecentFileActions()
-{
-    QSettings settings;
-
-    const QStringList recentFiles = readRecentFiles(settings);
-    const int count = qMin(int(MaxRecentFiles), recentFiles.size());
-    int i = 0;
-    for ( ; i < count; ++i) {
-        const QString fileName = QFileInfo(recentFiles.at(i)).fileName();
-        recentFileActs[i]->setText(fileName);
-        recentFileActs[i]->setData(recentFiles.at(i));
-        recentFileActs[i]->setVisible(true);
-    }
-    for ( ; i < MaxRecentFiles; ++i)
-        recentFileActs[i]->setVisible(false);
-}
-
-void QtSLiMWindow::openRecentFile()
-{
-    const QAction *action = qobject_cast<const QAction *>(sender());
-    
-    if (action)
-        openFile(action->data().toString());
-}
-
-void QtSLiMWindow::clearRecentFiles()
-{
-    QSettings settings;
-    QStringList emptyRecentFiles;
-    writeRecentFiles(emptyRecentFiles, settings);
-    setRecentFilesVisible(false);
 }
 
 
@@ -1696,6 +1549,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     //ui->menuScript->setEnabled(true);
     ui->actionCheckScript->setEnabled(!continuousPlayOn_);
     ui->actionPrettyprintScript->setEnabled(!continuousPlayOn_);
+    ui->actionReformatScript->setEnabled(!continuousPlayOn_);
     ui->actionShowScriptHelp->setEnabled(true);
     ui->actionShowEidosConsole->setEnabled(true);
     ui->actionShowEidosConsole->setText(!consoleController->isVisible() ? "Show Eidos Console" : "Hide Eidos Console");
@@ -1747,6 +1601,7 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *foc
     //ui->menuScript->setEnabled(consoleFocused);
     ui->actionCheckScript->setEnabled(consoleFocusedAndEditable);
     ui->actionPrettyprintScript->setEnabled(consoleFocusedAndEditable);
+    ui->actionReformatScript->setEnabled(consoleFocusedAndEditable);
     ui->actionShowScriptHelp->setEnabled(consoleFocused);
     ui->actionShowEidosConsole->setEnabled(consoleFocused);
     ui->actionShowEidosConsole->setText(!consoleFocused ? "Show Eidos Console" : "Hide Eidos Console");
@@ -3281,7 +3136,7 @@ void QtSLiMWindow::eidos_openDocument(QString path)
         EIDOS_TERMINATION << "ERROR (QtSLiMWindow::eidos_openDocument): opening PDF files is not supported in SLiMgui; using PNG instead is suggested." << EidosTerminate(nullptr);
     }
     
-    openFile(path);
+    qtSLiMAppDelegate->openFile(path, this);
 }
 
 void QtSLiMWindow::eidos_pauseExecution(void)
@@ -3437,7 +3292,7 @@ void QtSLiMWindow::recycleClicked(void)
     if (prefsNotifier.autosaveOnRecyclePref())
     {
         if (!isUntitled)
-            saveFile(curFile);
+            saveFile(currentFile);
         else if (prefsNotifier.showSaveIfUntitledPref())
             saveAs();
         //else
@@ -4135,8 +3990,10 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     positionNewSubsidiaryWindow(window);
     
     // make window actions for all global menu items
-    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent window's shortcuts
     //qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
+    window->setAttribute(Qt::WA_DeleteOnClose, true);
     
     return window;
 }
@@ -4238,7 +4095,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     positionNewSubsidiaryWindow(window);
     
     // make window actions for all global menu items
-    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent window's shortcuts
     //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
     
     window->setAttribute(Qt::WA_DeleteOnClose, true);

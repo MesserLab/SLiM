@@ -24,8 +24,10 @@
 #include <QVector>
 #include <QIcon>
 #include <QPointer>
+#include <QMainWindow>
 #include <string>
 
+class QMenuBar;
 class QMenu;
 class QAction;
 class QtSLiMWindow;
@@ -48,6 +50,7 @@ class QtSLiMAppDelegate : public QObject
     
 public:
     explicit QtSLiMAppDelegate(QObject *parent);
+    virtual ~QtSLiMAppDelegate(void) override;
 
     // Whether we were launched from a shell (true) or Finder/other (false)
     bool launchedFromShell(void) { return launchedFromShell_; }
@@ -60,9 +63,20 @@ public:
     QWidget *activeWindow(void);                        // the frontmost window
     QWidget *activeWindowExcluding(QWidget *excluded);  // the frontmost window that is not excluded
     
-    // Recipes menu
-    void setUpRecipesMenu(QMenu *openRecipesSubmenu, QAction *findRecipeAction);
+    // Document opening
+    QtSLiMWindow *findMainWindow(const QString &fileName) const;
+    void newFile_WF(void);
+    void newFile_nonWF(void);
+    QtSLiMWindow *open(QtSLiMWindow *requester);
+    QtSLiMWindow *openFile(const QString &fileName, QtSLiMWindow *requester);
+    void openRecipeWithName(const QString &recipeName, const QString &recipeScript, QtSLiMWindow *requester);
 
+    // Recipes and Recents menus
+    void setUpRecipesMenu(QMenu *openRecipesSubmenu, QAction *findRecipeAction);
+    void setUpRecentsMenu(QMenu *openRecentSubmenu);
+    
+    void prependToRecentFiles(const QString &fileName);
+    
     // App-wide shared icons
     QIcon applicationIcon(void) { return appIcon_; }
     QIcon slimDocumentIcon(void) { return slimDocumentIcon_; }
@@ -73,8 +87,6 @@ public:
     
 public slots:
     void appDidFinishLaunching(QtSLiMWindow *initialWindow);
-    void lastWindowClosed(void);
-    void aboutToQuit(void);
     
     void findRecipe(void);
     void openRecipe(void);
@@ -129,6 +141,16 @@ public slots:
     void dispatch_minimize(void);
     void dispatch_zoom(void);
     
+    void dispatch_helpWorkshops(void);
+    void dispatch_helpFeedback(void);
+    void dispatch_helpSLiMDiscuss(void);
+    void dispatch_helpSLiMAnnounce(void);
+    void dispatch_helpSLiMHome(void);
+    void dispatch_helpSLiMExtras(void);
+    void dispatch_helpMesserLab(void);
+    void dispatch_helpBenHaller(void);
+    void dispatch_helpStickSoftware(void);
+    
 signals:
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);
     void activeWindowListChanged(void);
@@ -140,7 +162,17 @@ private:
     void pruneWindowList(void);                         // remove all windows that are closed or hidden
     bool queuedActiveWindowUpdate = false;
     
+    void makeGlobalMenuBar(void);                       // make the global menu bar, for use with no main windows open; macOS only, does nothing on other platforms
+    QMenuBar *windowlessMenuBar = nullptr;
+    
+    void updateRecentFileActions(void);
+    void openRecentFile(void);
+    void clearRecentFiles(void);
+    bool hasRecentFiles(void);
+    
 private slots:
+    void lastWindowClosed(void);
+    void aboutToQuit(void);
     void focusChanged(QWidget *old, QWidget *now);
     void updateActiveWindowList(void);
 };

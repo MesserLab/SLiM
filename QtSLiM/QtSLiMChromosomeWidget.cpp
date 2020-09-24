@@ -366,15 +366,19 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 	
 	double tickIndexDivisor = ((lastTickIndex == 0) ? 1.0 : static_cast<double>(lastTickIndex));		// avoid a divide by zero when we are displaying a single site
 	
+    // BCH 9/23/2020: Note that this QFont usage causes a crash on quit in certain circumstances (which we now avoid).
+    // See https://bugreports.qt.io/browse/QTBUG-86875 and the related bug QTBUG-86874.  Although this crash never
+    // occurs now, I note it here in case the bug crops up in a different context.
+    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
     static QFont *tickFont = nullptr;
     
     if (!tickFont)
     {
         tickFont = new QFont();
 #ifdef __APPLE__
-    tickFont->setPointSize(9);
+        tickFont->setPointSize(9);
 #else
-    tickFont->setPointSize(7);
+        tickFont->setPointSize(7);
 #endif
     }
     painter.setFont(*tickFont);

@@ -59,23 +59,12 @@ class QtSLiMWindow : public QMainWindow
 private:
     // basic file i/o and change count management
     void init(void);
+    void initializeUI(void);
     bool maybeSave(void);
-    void loadFile(const QString &fileName);
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
-    QtSLiMWindow *findMainWindow(const QString &fileName) const;
     
-    QString curFile;
-    bool isUntitled = false, isRecipe = false, isTransient = false;
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
-    
-    // recent files
-    enum { MaxRecentFiles = 10 };
-    QAction *recentFileActs[MaxRecentFiles];
-    
-    static bool hasRecentFiles();
-    void prependToRecentFiles(const QString &fileName);
-    void setRecentFilesVisible(bool visible);
     
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
     Eidos_RNG_State sim_RNG = {};
@@ -117,6 +106,9 @@ private:
     int openedGraphCount_bottom = 0;
     
 public:
+    bool isUntitled = false, isRecipe = false, isTransient = false;
+    QString currentFile;
+    
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
     SLiMSim *sim = nullptr;		// the simulation instance for this window
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
@@ -141,16 +133,12 @@ public:
     QtSLiMWindow(const QString &recipeName, const QString &recipeScript);   // window from a recipe
     virtual ~QtSLiMWindow() override;
     
-    static QtSLiMWindow *runInitialOpenPanel(void);
-    
-    void initializeUI(void);
     void tile(const QMainWindow *previous);
-    void openRecipe(const QString &recipeName, const QString &recipeScript);   // called by QtSLiMAppDelegate to open a new recipe window
     void displayStartupMessage(void);
+    void loadFile(const QString &fileName);                                     // loads a file into an existing window
+    void loadRecipe(const QString &recipeName, const QString &recipeScript);    // loads a recipe into an existing window
+    QWidget *imageWindowWithPath(const QString &path);                          // creates an image window subsidiary to the receiver
     
-    static std::string defaultWFScriptString(void);
-    static std::string defaultNonWFScriptString(void);
-
     static const QColor &blackContrastingColorForIndex(int index);
     static const QColor &whiteContrastingColorForIndex(int index);
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
@@ -221,9 +209,6 @@ public:
     void eidos_openDocument(QString path);
     void eidos_pauseExecution(void);
     
-    // Requesting to open a new file
-    void openFile(const QString &fileName);
-    
 signals:
     void terminationWithMessage(QString message);
     void playStateChanged(void);
@@ -258,10 +243,6 @@ public slots:
 
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
     
-    void newFile_WF(void);
-    void newFile_nonWF(void);
-    void open(void);
-    
     //
     //  UI glue, defined in QtSLiMWindow_glue.cpp
     //
@@ -270,9 +251,6 @@ private slots:
     bool save(void);
     bool saveAs(void);
     void revert(void);
-    void updateRecentFileActions(void);
-    void openRecentFile(void);
-    void clearRecentFiles(void);
     void documentWasModified(void);
     
     void playOneStepPressed(void);
@@ -321,11 +299,15 @@ private slots:
     
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void moveEvent(QMoveEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
+    void showEvent(QShowEvent *event) override;
     void positionNewSubsidiaryWindow(QWidget *window);
-    QWidget *imageWindowWithPath(const QString &path);
     QWidget *graphWindowWithView(QtSLiMGraphView *graphView);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
     
+    // used to suppress saving of resize/position info until we are fully constructed
+    bool donePositioning_ = false;
     
     // splitter support
     void interpolateVerticalSplitter(void);
