@@ -50,6 +50,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "eidos_globals.h"
 #include "eidos_beep.h"
@@ -71,18 +72,42 @@ QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
 
 // A custom message handler that we can use, optionally, for deubgging.  This is useful if Qt is emitting a warning and you don't know
 // where it's coming from; turn on the use of the message handler, and then set a breakpoint inside it, perhaps conditional on msg.
-void QtSLiM_MessageHandler(QtMsgType /*type*/, const QMessageLogContext &context, const QString &msg)
+void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    if (msg.contains("Using QCharRef with an index"))
-        qDebug() << "HIT WATCH MESSAGE; SET A BREAKPOINT HERE!";
+#pragma unused (type, context)
+    
+    // Test for a specific message so you can break on it when it occurs
+    //if (msg.contains("Using QCharRef with an index"))
+    //    qDebug() << "HIT WATCH MESSAGE; SET A BREAKPOINT HERE!";
     
     // useful behavior, from https://doc.qt.io/qt-5/qtglobal.html#qInstallMessageHandler
     {
         QByteArray localMsg = msg.toLocal8Bit();
+        
+#if 1
+        time_t rawtime;
+        struct tm *timeinfo;
+        
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        fprintf(stderr, "%02d:%02d:%02d : ", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+#endif
+        
+#if 0
+        // Log file/line number and function/method name
         const char *file = context.file ? context.file : "";
         const char *function = context.function ? context.function : "";
         
         fprintf(stderr, "%s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+#else
+        // Just log the message itself
+        fprintf(stderr, "%s\n", localMsg.constData());
+#endif
+        
+#if 0
+        // Log a backtrace after each message
+        Eidos_PrintStacktrace(stderr, 20);
+#endif
     }
 }
 
