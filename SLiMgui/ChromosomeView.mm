@@ -1222,11 +1222,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		//	mutations[mutIndex]->gui_scratch_reference_count_ = 0;
 		
 		// Then loop through the declared mutation types
-		std::map<slim_objectid_t,MutationType*> &mut_types = controller->sim->mutation_types_;
-		
-		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
+		for (auto mutationTypeIter : controller->sim->mutation_types_)
 		{
-			MutationType *mut_type = mutationTypeIter->second;
+			MutationType *mut_type = mutationTypeIter.second;
 			
 			if (mut_type->mutation_type_displayed_)
 			{

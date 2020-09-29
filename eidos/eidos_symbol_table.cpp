@@ -618,9 +618,8 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 	symbol_names.insert(symbol_names.end(), read_write_symbol_names.begin(), read_write_symbol_names.end());
 	std::sort(symbol_names.begin(), symbol_names.end());
 	
-	for (auto symbol_name_iter = symbol_names.begin(); symbol_name_iter != symbol_names.end(); ++symbol_name_iter)
+	for (const std::string &symbol_name : symbol_names)
 	{
-		const std::string &symbol_name = *symbol_name_iter;
 		EidosValue_SP symbol_value = p_symbols.GetValueOrRaiseForSymbol(Eidos_GlobalStringIDForString(symbol_name));
 		int symbol_count = symbol_value->Count();
 		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();

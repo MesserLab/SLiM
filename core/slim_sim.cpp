@@ -364,8 +364,8 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 	}
 	
 	// invalidate interactions, since any cached interaction data depends on the subpopulations and individuals
-	for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
-		int_type->second->Invalidate();
+    for (auto iter : interaction_types_)
+		iter.second->Invalidate();
 	
 	// then we dispose of all existing subpopulations, mutations, etc.
 	population_.RemoveAllSubpopulationInfo();
@@ -600,12 +600,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		}
 		
 		// look up the mutation type from its index
-		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
+        MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
 		
-		if (found_muttype_pair == mutation_types_.end()) 
+		if (!mutation_type_ptr) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined." << EidosTerminate();
-		
-		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		if (fabs(mutation_type_ptr->dominance_coeff_ - dominance_coeff) > 0.001)	// a reasonable tolerance to allow for I/O roundoff
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
@@ -668,17 +666,15 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			
 			int64_t individual_index = EidosInterpreter::NonnegativeIntegerForString(individual_index_string.c_str() + 1, nullptr);
 			
-			auto subpop_pair = population_.subpops_.find(subpop_id);
+			Subpopulation *subpop = SubpopulationWithID(subpop_id);
 			
-			if (subpop_pair == population_.subpops_.end())
+			if (!subpop)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
-			Subpopulation &subpop = *subpop_pair->second;
-			
-			if (individual_index >= subpop.parent_subpop_size_)
+			if (individual_index >= subpop->parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced individual i" << individual_index << " is out of range." << EidosTerminate();
 			
-			Individual &individual = *subpop.parent_individuals_[individual_index];
+			Individual &individual = *subpop->parent_individuals_[individual_index];
 			
 			if (has_individual_pedigree_IDs)
 			{
@@ -765,12 +761,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		std::string &&subpop_id_string = sub.substr(0, pos);
 		slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
 		
-		auto subpop_pair = population_.subpops_.find(subpop_id);
+        Subpopulation *subpop = SubpopulationWithID(subpop_id);
 		
-		if (subpop_pair == population_.subpops_.end())
+		if (!subpop)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
-		
-		Subpopulation &subpop = *subpop_pair->second;
 		
 		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
 		int64_t genome_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
@@ -779,7 +773,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome index out of permitted range." << EidosTerminate();
 		slim_popsize_t genome_index = static_cast<slim_popsize_t>(genome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
 		
-		Genome &genome = *subpop.parent_genomes_[genome_index];
+		Genome &genome = *subpop->parent_genomes_[genome_index];
 		
 		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
 		if (iss >> sub)
@@ -1269,13 +1263,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		}
 		
 		// look up the mutation type from its index
-		auto found_muttype_pair = mutation_types_.find(mutation_type_id);
+        MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
 		
-		if (found_muttype_pair == mutation_types_.end()) 
+		if (!mutation_type_ptr) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << EidosTerminate();
-		
-		MutationType *mutation_type_ptr = found_muttype_pair->second;
-		
 		if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
@@ -1355,12 +1346,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(genome_index);
 		
 		// Look up the subpopulation
-		auto subpop_pair = population_.subpops_.find(subpop_id);
+        Subpopulation *subpop = SubpopulationWithID(subpop_id);
 		
-		if (subpop_pair == population_.subpops_.end())
+		if (!subpop)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
-		
-		Subpopulation &subpop = *subpop_pair->second;
 		
 		// Read in individual spatial position information.  Added in version 3.
 		if (spatial_output_count && ((genome_index % 2) == 0))
@@ -1370,7 +1359,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				break;
 			
 			int individual_index = genome_index / 2;
-			Individual &individual = *subpop.parent_individuals_[individual_index];
+			Individual &individual = *subpop->parent_individuals_[individual_index];
 			
 			if (spatial_output_count >= 1)
 			{
@@ -1397,7 +1386,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				break;
 			
 			int individual_index = genome_index / 2;
-			Individual &individual = *subpop.parent_individuals_[individual_index];
+			Individual &individual = *subpop->parent_individuals_[individual_index];
 			slim_pedigreeid_t pedigree_id = *(slim_pedigreeid_t *)p;
 			
 			individual.SetPedigreeID(pedigree_id);
@@ -1416,7 +1405,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				break;
 			
 			int individual_index = genome_index / 2;
-			Individual &individual = *subpop.parent_individuals_[individual_index];
+			Individual &individual = *subpop->parent_individuals_[individual_index];
 			
 			individual.age_ = *(slim_age_t *)p;
 			p += sizeof(slim_age_t);
@@ -1430,7 +1419,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		if ((genome_index < 0) || (genome_index > SLIM_MAX_SUBPOP_SIZE * 2))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome index out of permitted range." << EidosTerminate();
 		
-		Genome &genome = *subpop.parent_genomes_[genome_index];
+		Genome &genome = *subpop->parent_genomes_[genome_index];
 		
 		// Error-check the genome type
 		if (genome_type != (int32_t)genome.Type())
@@ -3352,8 +3341,8 @@ bool SLiMSim::_RunOneGenerationWF(void)
 			population_.UniqueMutationRuns();
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
-			int_type->second->Invalidate();
+        for (auto iter : interaction_types_)
+			iter.second->Invalidate();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
@@ -3680,8 +3669,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		executing_block_type_ = old_executing_block_type;
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
-			int_type->second->Invalidate();
+        for (auto iter : interaction_types_)
+			iter.second->Invalidate();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
@@ -3787,8 +3776,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-		for (auto int_type = interaction_types_.begin(); int_type != interaction_types_.end(); ++int_type)
-			int_type->second->Invalidate();
+        for (auto iter : interaction_types_)
+			iter.second->Invalidate();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
@@ -4902,9 +4891,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 		// and then come all the genomes of the extant individuals
 		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_genomes_.size();
 		
-		for (auto it = population_.subpops_.begin(); it != population_.subpops_.end(); it++)
+		for (auto it : population_.subpops_)
 		{
-			std::vector<Genome *> &subpopulationGenomes = it->second->parent_genomes_;
+			std::vector<Genome *> &subpopulationGenomes = it.second->parent_genomes_;
 			
 			for (Genome *genome : subpopulationGenomes)
 			{
@@ -7250,8 +7239,8 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		{
 			std::vector<tsk_id_t> samples;
 			
-			for (auto iter = population_.subpops_.begin(); iter != population_.subpops_.end(); iter++)
-				for (Genome *genome : iter->second->parent_genomes_)
+			for (auto iter : population_.subpops_)
+				for (Genome *genome : iter.second->parent_genomes_)
 					samples.push_back(genome->tsk_node_id_);
 			
             int flags = TSK_NO_CHECK_INTEGRITY;
@@ -7794,8 +7783,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		SubpopulationMetadataRec *metadata = (SubpopulationMetadataRec *)metadata_char;
 		SubpopulationMigrationMetadataRec *migration_recs = (SubpopulationMigrationMetadataRec *)(metadata + 1);
 		slim_objectid_t subpop_id = metadata->subpopulation_id_;
-		auto subpop_iter = population_.subpops_.find(subpop_id);
-		Subpopulation *subpop = (subpop_iter == population_.subpops_.end()) ? nullptr : subpop_iter->second;
+		Subpopulation *subpop = SubpopulationWithID(subpop_id);
 		
 		if (!subpop)
 		{
@@ -8070,12 +8058,10 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		memcpy(&metadata, metadata_ptr, sizeof(MutationMetadataRec));
 		
 		// look up the mutation type from its index
-		auto found_muttype_pair = mutation_types_.find(metadata.mutation_type_id_);
+        MutationType *mutation_type_ptr = MutationTypeWithID(metadata.mutation_type_id_);
 		
-		if (found_muttype_pair == mutation_types_.end()) 
+		if (!mutation_type_ptr) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateMutationsFromTabulation): mutation type m" << metadata.mutation_type_id_ << " has not been defined." << EidosTerminate();
-		
-		MutationType *mutation_type_ptr = found_muttype_pair->second;
 		
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{

@@ -561,6 +561,23 @@ public:
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &InteractionTypes(void)			{ return interaction_types_; }
 	
+	inline Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id) {
+		auto id_iter = population_.subpops_.find(p_subpop_id);
+		return (id_iter == population_.subpops_.end()) ? nullptr : id_iter->second;
+	}
+	inline MutationType *MutationTypeWithID(slim_objectid_t p_muttype_id) {
+		auto id_iter = mutation_types_.find(p_muttype_id);
+		return (id_iter == mutation_types_.end()) ? nullptr : id_iter->second;
+	}
+	inline GenomicElementType *GenomicElementTypeTypeWithID(slim_objectid_t p_getype_id) {
+		auto id_iter = genomic_element_types_.find(p_getype_id);
+		return (id_iter == genomic_element_types_.end()) ? nullptr : id_iter->second;
+	}
+	inline InteractionType *InteractionTypeWithID(slim_objectid_t p_inttype_id) {
+		auto id_iter = interaction_types_.find(p_inttype_id);
+		return (id_iter == interaction_types_.end()) ? nullptr : id_iter->second;
+	}
+	
 	inline __attribute__((always_inline)) bool SexEnabled(void) const														{ return sex_enabled_; }
 	inline __attribute__((always_inline)) bool PreventIncidentalSelfing(void) const											{ return prevent_incidental_selfing_; }
 	inline __attribute__((always_inline)) GenomeType ModeledChromosomeType(void) const										{ return modeled_chromosome_type_; }

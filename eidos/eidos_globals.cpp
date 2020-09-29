@@ -2498,8 +2498,8 @@ void Eidos_FreeGlobalStrings(void)
 	// have leaked the global strings that we copied; apparently unordered_map keeps them in
 	// a way (unaligned?) that Valgrind does not recognize as a reference to the copies, so it
 	// reports them as leaked even though they're not.
-	for (auto gstr_iter = gIDToString_Thunk.begin(); gstr_iter != gIDToString_Thunk.end(); gstr_iter++)
-		delete (*gstr_iter);
+	for (auto gstr_iter : gIDToString_Thunk)
+		delete (gstr_iter);
 	
 	gIDToString_Thunk.clear();
 }

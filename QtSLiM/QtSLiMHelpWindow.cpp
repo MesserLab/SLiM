@@ -715,10 +715,10 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 				std::string function_name = callName.toStdString();
 				const EidosFunctionSignature *function_signature = nullptr;
 				
-				for (auto signature_iter = functionList->begin(); signature_iter != functionList->end(); signature_iter++)
-					if ((*signature_iter)->call_name_.compare(function_name) == 0)
+				for (auto signature_iter : *functionList)
+					if (signature_iter->call_name_.compare(function_name) == 0)
 					{
-						function_signature = signature_iter->get();
+						function_signature = signature_iter.get();
 						break;
 					}
 				
@@ -745,10 +745,10 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 				std::string method_name(callName.toStdString());
 				const EidosMethodSignature *method_signature = nullptr;
 				
-				for (auto signature_iter = methodList->begin(); signature_iter != methodList->end(); signature_iter++)
-					if ((*signature_iter)->call_name_.compare(method_name) == 0)
+				for (auto signature_iter : *methodList)
+					if (signature_iter->call_name_.compare(method_name) == 0)
 					{
-						method_signature = signature_iter->get();
+						method_signature = signature_iter.get();
 						break;
 					}
 				
@@ -775,10 +775,10 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 				std::string property_name(callName.toStdString());
 				const EidosPropertySignature *property_signature = nullptr;
 				
-				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
-					if ((*signature_iter)->property_name_.compare(property_name) == 0)
+				for (auto signature_iter : *propertyList)
+					if (signature_iter->property_name_.compare(property_name) == 0)
 					{
-						property_signature = signature_iter->get();
+						property_signature = signature_iter.get();
 						break;
 					}
 				

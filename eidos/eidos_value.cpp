@@ -942,8 +942,8 @@ EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		push_logical_no_check(*init_item);
+	for (auto init_item : p_init_list)
+		push_logical_no_check(init_item);
 }
 
 EidosValue_Logical::EidosValue_Logical(const eidos_logical_t *p_values, size_t p_count) : EidosValue(EidosValueType::kValueLogical, false)
@@ -1440,8 +1440,8 @@ EidosValue_Int_vector::EidosValue_Int_vector(std::initializer_list<int64_t> p_in
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		push_int_no_check(*init_item);
+	for (auto init_item : p_init_list)
+		push_int_no_check(init_item);
 }
 
 EidosValue_Int_vector::EidosValue_Int_vector(const int64_t *p_values, size_t p_count) : EidosValue_Int(false)
@@ -1709,8 +1709,8 @@ EidosValue_Float_vector::EidosValue_Float_vector(std::initializer_list<double> p
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		push_float_no_check(*init_item);
+	for (auto init_item : p_init_list)
+		push_float_no_check(init_item);
 }
 
 EidosValue_Float_vector::EidosValue_Float_vector(const double *p_values, size_t p_count) : EidosValue_Float(false)
@@ -2180,8 +2180,8 @@ EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosOb
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		push_object_element_no_check(*init_item);
+	for (auto init_item : p_init_list)
+		push_object_element_no_check(init_item);
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(EidosObjectElement **p_values, size_t p_count, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
@@ -3310,7 +3310,7 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	}
 }
 
-//	*********************	– (void)str(void)
+//	*********************	– (void)str(void)
 //
 EidosValue_SP EidosObjectElement::ExecuteMethod_str(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3603,7 +3603,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 	}
 }
 
-//	*********************	+ (void)propertySignature([Ns$ propertyName = NULL])
+//	*********************	+ (void)propertySignature([Ns$ propertyName = NULL])
 //
 EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -3633,7 +3633,7 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_propertySignature(EidosGlobalStrin
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (void)methodSignature([Ns$ methodName = NULL])
+//	*********************	+ (void)methodSignature([Ns$ methodName = NULL])
 //
 EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -3681,8 +3681,8 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_methodSignature(EidosGlobalStringI
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (integer$)size(void)
-//	*********************	+ (integer$)length(void)
+//	*********************	+ (integer$)size(void)
+//	*********************	+ (integer$)length(void)
 //
 EidosValue_SP EidosObjectClass::ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {

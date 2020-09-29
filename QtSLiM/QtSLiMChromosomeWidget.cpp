@@ -664,9 +664,9 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 		std::map<slim_objectid_t,MutationType*> &mut_types = controller->sim->mutation_types_;
 		bool draw_muttypes_sequentially = (mut_types.size() <= 20);	// with a lot of mutation types, the algorithm below becomes very inefficient
 		
-		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
+		for (auto mutationTypeIter : mut_types)
 		{
-			MutationType *mut_type = mutationTypeIter->second;
+			MutationType *mut_type = mutationTypeIter.second;
 			
 			if (mut_type->mutation_type_displayed_)
 			{

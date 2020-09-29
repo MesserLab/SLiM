@@ -1252,15 +1252,15 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	if (fitness_callback_count == 1)
 	{
 		slim_objectid_t mutation_type_id = p_fitness_callbacks[0]->mutation_type_id_;
-		auto found_muttype_pair = mut_types.find(mutation_type_id);
+        MutationType *found_muttype = population_.sim_.MutationTypeWithID(mutation_type_id);
 		
-		if (found_muttype_pair != mut_types.end())
+		if (found_muttype)
 		{
 			if (mut_types.size() > 1)
 			{
 				// We have a single callback that applies to a known mutation type among more than one defined type; we can optimize that
 				single_fitness_callback = true;
-				single_callback_mut_type = found_muttype_pair->second;
+				single_callback_mut_type = found_muttype;
 			}
 			// else there is only one mutation type, so the callback applies to all mutations in the simulation
 		}
@@ -1356,10 +1356,10 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 							}
 							else
 							{
-								auto found_muttype_pair = mut_types.find(mutation_type_id);
-								
-								if (found_muttype_pair != mut_types.end())
-									found_muttype_pair->second->is_pure_neutral_now_ = true;
+                                MutationType *found_muttype = population_.sim_.MutationTypeWithID(mutation_type_id);
+                                
+								if (found_muttype)
+									found_muttype->is_pure_neutral_now_ = true;
 							}
 							
 							continue;
@@ -3301,8 +3301,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(child_genomes_.size());
 					cached_child_genomes_value_ = EidosValue_SP(vec);
 					
-					for (auto genome_iter = child_genomes_.begin(); genome_iter != child_genomes_.end(); genome_iter++)
-						vec->push_object_element(*genome_iter);
+					for (auto genome_iter : child_genomes_)
+						vec->push_object_element(genome_iter);
 				}
 				/*
 				else
@@ -3333,8 +3333,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
 					cached_parent_genomes_value_ = EidosValue_SP(vec);
 					
-					for (auto genome_iter = parent_genomes_.begin(); genome_iter != parent_genomes_.end(); genome_iter++)
-						vec->push_object_element(*genome_iter);
+					for (auto genome_iter : parent_genomes_)
+						vec->push_object_element(genome_iter);
 				}
 				/*
 				else
@@ -3412,8 +3412,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Int_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
-				vec->push_int(migrant_pair->first);
+			for (auto migrant_pair : migrant_fractions_)
+				vec->push_int(migrant_pair.first);
 			
 			return result_SP;
 		}
@@ -3425,8 +3425,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Float_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto migrant_pair = migrant_fractions_.begin(); migrant_pair != migrant_fractions_.end(); ++migrant_pair)
-				vec->push_float(migrant_pair->second);
+			for (auto migrant_pair : migrant_fractions_)
+				vec->push_float(migrant_pair.second);
 			
 			return result_SP;
 		}
@@ -3756,7 +3756,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 	return sex;
 }
 
-//	*********************	– (No<Individual>$)addCloned(object<Individual>$ parent)
+//	*********************	– (No<Individual>$)addCloned(object<Individual>$ parent)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3838,7 +3838,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 }
 
-//	*********************	– (No<Individual>$)addCrossed(object<Individual>$ parent1, object<Individual>$ parent2, [Nfs$ sex = NULL])
+//	*********************	– (No<Individual>$)addCrossed(object<Individual>$ parent1, object<Individual>$ parent2, [Nfs$ sex = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3954,7 +3954,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	}
 }
 
-//	*********************	– (No<Individual>$)addEmpty([Nfs$ sex = NULL])
+//	*********************	– (No<Individual>$)addEmpty([Nfs$ sex = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4015,8 +4015,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 }
 
-//	*********************	– (No<Individual>$)addRecombinant(No<Genome>$ strand1, No<Genome>$ strand2, Ni breaks1,
-//															  No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2, [Nfs$ sex = NULL])
+//	*********************	– (No<Individual>$)addRecombinant(No<Genome>$ strand1, No<Genome>$ strand2, Ni breaks1,
+//															  No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2, [Nfs$ sex = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4415,7 +4415,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 }
 
-//	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent)
+//	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4507,7 +4507,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	}
 }
 
-//	*********************	- (void)takeMigrants(object<Individual> migrants)
+//	*********************	- (void)takeMigrants(object<Individual> migrants)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4893,8 +4893,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		// selectively invalidate only the subpops involved in the migrations that occurred
 		auto &interactionTypes = sim.InteractionTypes();
 		
-		for (auto int_type = interactionTypes.begin(); int_type != interactionTypes.end(); ++int_type)
-			int_type->second->Invalidate();
+		for (auto int_type : interactionTypes)
+			int_type.second->Invalidate();
 	}
 	
 	// Finally, dispose of the old individuals and genomes, in their respective subpops; there should be no references to
@@ -5728,7 +5728,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	}
 }
 
-//  *********************	– (No<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
+//  *********************	– (No<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -6008,7 +6008,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	return result_SP;
 }
 
-//  *********************	– (object<Individual>)subsetIndividuals([No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
+//  *********************	– (object<Individual>)subsetIndividuals([No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -6155,7 +6155,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	return result_SP;
 }
 
-//	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, Ni gridSize, numeric values, [logical$ interpolate = F], [Nif valueRange = NULL], [Ns colors = NULL])
+//	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, Ni gridSize, numeric values, [logical$ interpolate = F], [Nif valueRange = NULL], [Ns colors = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -6325,7 +6325,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (string)spatialMapColor(string$ name, numeric value)
+//	*********************	- (string)spatialMapColor(string$ name, numeric value)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -6370,7 +6370,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() could not find map with name " << map_name << "." << EidosTerminate();
 }
 
-//	*********************	– (float)spatialMapValue(string$ name, float point)
+//	*********************	– (float)spatialMapValue(string$ name, float point)
 //
 #define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
 
@@ -6519,9 +6519,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 
 #undef SLiMClampCoordinate
 
-//	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
-//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
-//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
+//	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
+//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {

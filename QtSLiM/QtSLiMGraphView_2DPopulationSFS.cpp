@@ -163,6 +163,22 @@ void QtSLiMGraphView_2DPopulationSFS::updateAfterTick(void)
 	QtSLiMGraphView::updateAfterTick();
 }
 
+QString QtSLiMGraphView_2DPopulationSFS::disableMessage(void)
+{
+    if (controller_ && !controller_->invalidSimulation())
+    {
+        Subpopulation *subpop1 = controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_);
+        Subpopulation *subpop2 = controller_->sim->SubpopulationWithID(selectedSubpopulation2ID_);
+        MutationType *muttype = controller_->sim->MutationTypeWithID(selectedMutationTypeIndex_);
+        
+        if (!subpop1 || !subpop2 || !muttype)
+            return "no\ndata";
+    }
+    
+return "";
+}
+
+
 void QtSLiMGraphView_2DPopulationSFS::drawGraph(QPainter &painter, QRect interiorRect)
 {
     double *sfs2dbuf = mutation2DSFS();
@@ -200,21 +216,9 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
     MutationRun &mutationRegistry = population.mutation_registry_;
     
     // Find our subpops and mutation type
-    Subpopulation *subpop1 = nullptr;
-    Subpopulation *subpop2 = nullptr;
-    MutationType *muttype = nullptr;
-    
-    for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
-		if (subpop_pair.first == selectedSubpopulation1ID_)	// find our chosen subpop
-			subpop1 = subpop_pair.second;
-	
-    for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
-		if (subpop_pair.first == selectedSubpopulation2ID_)	// find our chosen subpop
-			subpop2 = subpop_pair.second;
-	
-	for (const std::pair<const slim_objectid_t,MutationType*> &muttype_pair : sim->mutation_types_)
-		if (muttype_pair.second->mutation_type_index_ == selectedMutationTypeIndex_)	// find our chosen muttype
-			muttype = muttype_pair.second;
+    Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
+    Subpopulation *subpop2 = sim->SubpopulationWithID(selectedSubpopulation2ID_);
+    MutationType *muttype = sim->MutationTypeWithID(selectedMutationTypeIndex_);
     
     if (!subpop1 || !subpop2 || !muttype)
 		return nullptr;

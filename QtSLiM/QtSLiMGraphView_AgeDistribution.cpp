@@ -96,13 +96,18 @@ void QtSLiMGraphView_AgeDistribution::controllerRecycled(void)
 {
 	if (!controller_->invalidSimulation())
 		update();
-	
+    
     // Remake our popups, whether or not the controller is valid
     addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
     
     // Reset our autoscaling x axis
     histogramBinCount_ = 10;
     xAxisMax_ = histogramBinCount_;
+    
+    // Reset our autoscaling y axis
+    yAxisMax_ = 1.0;
+    yAxisMajorTickInterval_ = 0.5;
+    yAxisMinorTickInterval_ = 0.25;
     
 	QtSLiMGraphView::controllerRecycled();
 }
@@ -133,8 +138,14 @@ void QtSLiMGraphView_AgeDistribution::updateAfterTick(void)
 
 QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 {
-    if (controller_ && !controller_->invalidSimulation() && (controller_->sim->ModelType() == SLiMModelType::kModelTypeWF))
-        return "requires a\nnonWF model";
+    if (controller_ && !controller_->invalidSimulation())
+    {
+        if (controller_->sim->ModelType() == SLiMModelType::kModelTypeWF)
+            return "requires a\nnonWF model";
+        
+        if (controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
+            return "no\ndata";
+    }
     
     return "";
 }
@@ -146,12 +157,28 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
 	
     if (ageDist)
     {
-        // rescale if needed
+        // rescale the x axis if needed
         if (binCount != histogramBinCount_)
         {
             histogramBinCount_ = binCount;
             xAxisMax_ = histogramBinCount_;
             invalidateDrawingCache();
+        }
+        
+        // rescale the y axis if needed
+        double maxFreq = 0.000000001;   // guarantee a non-zero axis range
+        
+        for (int binIndex = 0; binIndex < binCount; ++binIndex)
+            maxFreq = std::max(maxFreq, ageDist[binIndex]);
+        
+        double ceilingFreq = std::ceil(maxFreq * 5.0) / 5.0;    // 0.2 / 0.4 / 0.6 / 0.8 / 1.0
+        
+        if ((ceilingFreq > yAxisMax_) ||
+                ((ceilingFreq < yAxisMax_) && (maxFreq + 0.05 < ceilingFreq)))    // require a margin of error to jump down
+        {
+            yAxisMax_ = ceilingFreq;
+            yAxisMajorTickInterval_ = ceilingFreq / 2.0;
+            yAxisMinorTickInterval_ = ceilingFreq / 4.0;
         }
         
         // plot our histogram bars
@@ -182,15 +209,9 @@ void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 
 double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount)
 {
-    SLiMSim *sim = controller_->sim;
-    Population &population = sim->population_;
-    
     // Find our subpop
-    Subpopulation *subpop1 = nullptr;
-    
-    for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
-        if (subpop_pair.first == selectedSubpopulation1ID_)	// find our chosen subpop
-            subpop1 = subpop_pair.second;
+    SLiMSim *sim = controller_->sim;
+    Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)
         return nullptr;

@@ -682,20 +682,19 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		// in the multipop case, we need to draw migration arrows, too
 #if (defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY))
 		{
-			for (auto destSubpopIter = pop.subpops_.begin(); destSubpopIter != pop.subpops_.end(); ++destSubpopIter)
+			for (auto destSubpopIter : pop.subpops_)
 			{
-				Subpopulation *destSubpop = (*destSubpopIter).second;
+				Subpopulation *destSubpop = destSubpopIter.second;
 				std::map<slim_objectid_t,double> &destMigrants = (sim->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
-				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
+				for (auto sourceSubpopIter : destMigrants)
 				{
-					slim_objectid_t sourceSubpopID = (*sourceSubpopIter).first;
-					auto sourceSubpopPair = pop.subpops_.find(sourceSubpopID);
+					slim_objectid_t sourceSubpopID = sourceSubpopIter.first;
+                    Subpopulation *sourceSubpop = sim->SubpopulationWithID(sourceSubpopID);
 					
-					if (sourceSubpopPair != pop.subpops_.end())
+					if (sourceSubpop)
 					{
-						Subpopulation *sourceSubpop = sourceSubpopPair->second;
-						double migrantFraction = (*sourceSubpopIter).second;
+						double migrantFraction = sourceSubpopIter.second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
 						if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
@@ -737,8 +736,8 @@ void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &cont
     
     // If any subpop has a user-defined center, disable position optimization; it doesn't know how to
     // handle those, and there's no way to revert back after it messes things up, and so forth
-    for (auto subpopIter = pop.subpops_.begin(); subpopIter != pop.subpops_.end(); ++subpopIter)
-        if (((*subpopIter).second)->gui_center_from_user_)
+    for (auto subpopIter : pop.subpops_)
+        if (subpopIter.second->gui_center_from_user_)
         {
             menuItem->setEnabled(false);
             return;

@@ -139,9 +139,9 @@ void QtSLiMGraphView_LossTimeHistogram::appendStringForData(QString &string)
 	SLiMSim *sim = controller_->sim;
     int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
 	
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter : sim->mutation_types_)
 	{
-		MutationType *mutationType = (*mutationTypeIter).second;
+		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
         string.append(QString("\"m%1\", ").arg(mutationType->mutation_type_id_));

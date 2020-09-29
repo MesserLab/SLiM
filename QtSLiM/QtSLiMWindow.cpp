@@ -1032,17 +1032,13 @@ std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 	if (!invalidSimulation() && sim)
 	{
 		Population &population = sim->population_;
-		int subpopCount = static_cast<int>(population.subpops_.size());
-		auto popIter = population.subpops_.begin();
-		
-		for (int i = 0; i < subpopCount; ++i)
+        
+        for (auto popIter : population.subpops_)
 		{
-			Subpopulation *subpop = popIter->second;
+			Subpopulation *subpop = popIter.second;
 			
 			if (subpop->gui_selected_)
 				selectedSubpops.emplace_back(subpop);
-			
-			popIter++;
 		}
 	}
 	
@@ -2242,9 +2238,9 @@ void QtSLiMWindow::displayProfileResults(void)
 		EidosFunctionMap &function_map = sim->FunctionMap();
 		std::vector<const EidosFunctionSignature *> userDefinedFunctions;
 		
-		for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
+		for (auto functionPairIter : function_map)
 		{
-			const EidosFunctionSignature *signature = functionPairIter->second.get();
+			const EidosFunctionSignature *signature = functionPairIter.second.get();
 			
 			if (signature->body_script_ && signature->user_defined_)
 			{
@@ -2733,9 +2729,9 @@ void QtSLiMWindow::startProfiling(void)
 	// zero out profile counts for all user-defined functions
 	EidosFunctionMap &function_map = sim->FunctionMap();
 	
-	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
+	for (auto functionPairIter : function_map)
 	{
-		const EidosFunctionSignature *signature = functionPairIter->second.get();
+		const EidosFunctionSignature *signature = functionPairIter.second.get();
 		
 		if (signature->body_script_ && signature->user_defined_)
 			signature->body_script_->AST()->ZeroProfileTotals();

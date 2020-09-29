@@ -716,7 +716,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 	}
 }
 
-//	*********************	- (logical$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position, [returnMutation$ = F])
+//	*********************	- (logical$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position, [returnMutation$ = F])
 //
 EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -746,7 +746,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 		return (mut ? EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mut, gSLiM_Mutation_Class)) : (EidosValue_SP)gStaticEidosValueNULL);
 }
 
-//	*********************	- (logical)containsMutations(object<Mutation> mutations)
+//	*********************	- (logical)containsMutations(object<Mutation> mutations)
 //
 EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -829,7 +829,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 	}
 }
 
-//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
 //
 EidosValue_SP Genome::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -860,7 +860,7 @@ EidosValue_SP Genome::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
 }
 
-//	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
 //
 EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -933,7 +933,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	}
 }
 
-//	*********************	– (is)nucleotides([Ni$ start = NULL], [Ni$ end = NULL], [s$ format = "string"])
+//	*********************	– (is)nucleotides([Ni$ start = NULL], [Ni$ end = NULL], [s$ format = "string"])
 //
 EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1212,7 +1212,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 	EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): parameter format must be either 'string', 'char', 'integer', or 'codon'." << EidosTerminate();
 }
 
-//	*********************	- (integer)positionsOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (integer)positionsOfMutationsOfType(io<MutationType>$ mutType)
 //
 EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1247,7 +1247,7 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 	return EidosValue_SP(int_result);
 }
 
-//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
+//	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
 //
 EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -2333,8 +2333,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
-//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
+//	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
+//	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Ni originGeneration = NULL], [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -2769,9 +2769,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	return retval;
 }
 
-//	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
-//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
-//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
+//	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
+//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -2878,7 +2878,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (o<Mutation>)readFromMS(s$ filePath = NULL, io<MutationType> mutationType)
+//	*********************	+ (o<Mutation>)readFromMS(s$ filePath = NULL, io<MutationType> mutationType)
 //
 EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -3103,7 +3103,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	return retval;
 }
 
-//	*********************	+ (o<Mutation>)readFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
+//	*********************	+ (o<Mutation>)readFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -3478,13 +3478,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			if (info_muttype.size() > 0)
 			{
 				slim_objectid_t mutation_type_id = info_muttype[alt_allele_index];
+                
+                mutation_type_ptr = sim.MutationTypeWithID(mutation_type_id);
 				
-				auto found_muttype_pair = sim.MutationTypes().find(mutation_type_id);
-				
-				if (found_muttype_pair == sim.MutationTypes().end())
+				if (!mutation_type_ptr)
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file MT field references a mutation type m" << mutation_type_id << " that is not defined." << EidosTerminate();
-				
-				mutation_type_ptr = found_muttype_pair->second;
 			}
 			
 			if (!mutation_type_ptr)
@@ -3659,7 +3657,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	return retval;
 }
 
-//	*********************	+ (void)removeMutations([No<Mutation> mutations = NULL], [logical$ substitute = F])
+//	*********************	+ (void)removeMutations([No<Mutation> mutations = NULL], [logical$ substitute = F])
 //
 EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {

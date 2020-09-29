@@ -38,6 +38,7 @@ public:
     void drawGraph(QPainter &painter, QRect interiorRect) override;
     bool providesStringForData(void) override;
     void appendStringForData(QString &string) override;    
+    QString disableMessage(void) override;
     
 public slots:
     void addedToWindow(void) override;

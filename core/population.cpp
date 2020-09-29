@@ -115,9 +115,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 	// If we're keeping any separate registries inside mutation types, clear those now as well
 	if (keeping_muttype_registries_)
 	{
-		const std::map<slim_objectid_t,MutationType*> &mut_types = sim_.MutationTypes();
-		
-		for (auto muttype_iter : mut_types)
+		for (auto muttype_iter : sim_.MutationTypes())
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -299,7 +297,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 		slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 		
 		// only remove if we have not already removed
-		if (subpops_.find(subpop_id) != subpops_.end())
+		if (subpops_.count(subpop_id))
 		{
 			// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
 			// First we remove the symbol for the subpop
@@ -331,7 +329,7 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 	slim_objectid_t subpop_id = p_subpop.subpopulation_id_;
 	
 	// only remove if we have not already removed
-	if (subpops_.find(subpop_id) != subpops_.end())
+	if (subpops_.count(subpop_id))
 	{
 		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
 		// First we remove the symbol for the subpop
@@ -896,13 +894,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		for (const std::pair<const slim_objectid_t,double> &fractions_pair : p_subpop.migrant_fractions_)
 		{
 			slim_objectid_t migrant_source_id = fractions_pair.first;
-			auto migrant_source_pair = subpops_.find(migrant_source_id);
+            Subpopulation *migrant_source = sim_.SubpopulationWithID(migrant_source_id);
 			
-			if (migrant_source_pair == subpops_.end())
+			if (!migrant_source)
 				EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): no migrant source subpopulation p" << migrant_source_id << "." << EidosTerminate();
 			
 			migration_rates[pop_count] = fractions_pair.second;
-			migration_sources[pop_count] = migrant_source_pair->second;
+			migration_sources[pop_count] = migrant_source;
 			migration_rate_sum += fractions_pair.second;
 			pop_count++;
 		}
@@ -4439,10 +4437,10 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 								
 								if (mutation_type_id != -1)
 								{
-									auto found_muttype_pair = mut_types.find(mutation_type_id);
+                                    MutationType *found_muttype = sim_.MutationTypeWithID(mutation_type_id);
 									
-									if (found_muttype_pair != mut_types.end())
-										found_muttype_pair->second->set_neutral_by_global_active_callback_ = true;
+									if (found_muttype)
+										found_muttype->set_neutral_by_global_active_callback_ = true;
 								}
 								
 								// This is a constant neutral effect, so avoid dropping through to the flag set below
@@ -4482,10 +4480,10 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 				
 				if (mutation_type_id != -1)
 				{
-					auto found_muttype_pair = mut_types.find(mutation_type_id);
+                    MutationType *found_muttype = sim_.MutationTypeWithID(mutation_type_id);
 					
-					if (found_muttype_pair != mut_types.end())
-						found_muttype_pair->second->subject_to_fitness_callback_ = true;
+					if (found_muttype)
+						found_muttype->subject_to_fitness_callback_ = true;
 				}
 			}
 		}
@@ -5699,9 +5697,7 @@ void Population::RemoveAllFixedMutations(void)
 	// the main registry is in charge of all bookkeeping, substitution, removal, etc.
 	if (keeping_muttype_registries_ && removed_mutation_accumulator.size())
 	{
-		const std::map<slim_objectid_t,MutationType*> &mut_types = sim_.MutationTypes();
-		
-		for (auto muttype_iter : mut_types)
+		for (auto muttype_iter : sim_.MutationTypes())
 		{
 			MutationType *muttype = muttype_iter.second;
 			

@@ -695,7 +695,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
 		painter.fillRect(bounds, Qt::white);
 	
 	// Get our controller and test for validity, so subclasses don't have to worry about this
-    if (controller_->invalidSimulation())
+    if (!controller_ || controller_->invalidSimulation())
     {
         drawMessage(painter, "invalid\nsimulation", bounds);
     }
@@ -1269,9 +1269,9 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
     legendKey.resize(sim->mutation_types_.size());
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter : sim->mutation_types_)
 	{
-		MutationType *mutationType = (*mutationTypeIter).second;
+		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
         QString labelString = QString("m%1").arg(mutationType->mutation_type_id_);
 		QtSLiMLegendEntry &entry = legendKey[static_cast<size_t>(mutationTypeIndex)];
@@ -1434,9 +1434,9 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 	{
 		Population &population = controller_->sim->population_;
 		
-		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
+		for (auto popIter : population.subpops_)
 		{
-			slim_objectid_t subpopID = popIter->first;
+			slim_objectid_t subpopID = popIter.first;
 			QString subpopString = QString("p%1").arg(subpopID);
 			
 			subpopButton->addItem(subpopString, subpopID);
@@ -1496,9 +1496,9 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 	{
 		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller_->sim->mutation_types_;
 		
-		for (auto mutTypeIter = mutationTypes.begin(); mutTypeIter != mutationTypes.end(); ++mutTypeIter)
+		for (auto mutTypeIter : mutationTypes)
 		{
-			MutationType *mutationType = mutTypeIter->second;
+			MutationType *mutationType = mutTypeIter.second;
 			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;
 			int mutationTypeIndex = mutationType->mutation_type_index_;
 			QString mutationTypeString = QString("m%1").arg(mutationTypeID);
@@ -1561,43 +1561,40 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
-	{
-		if (subpop_pair.first == subpop_id)	// tally only within our chosen subpop
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-			
-			for (int i = 0; i < subpop_genome_count; i++)
-			{
-				Genome &genome = *subpop_genomes[static_cast<size_t>(i)];
-				
-				if (!genome.IsNull())
-				{
-					int mutrun_count = genome.mutrun_count_;
-					
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
-					{
-						MutationRun *mutrun = genome.mutruns_[run_index].get();
-						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
-						
-						for (; genome_iter != genome_end_iter; ++genome_iter)
-						{
-							const Mutation *mutation = mut_block_ptr + *genome_iter;
-							
-							if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
-								(mutation->gui_scratch_reference_count_)++;
-						}
-					}
-					
-					subpop_total_genome_count++;
-				}
-			}
-		}
-	}
+    Subpopulation *subpop = sim->SubpopulationWithID(subpop_id);
+    
+    if (subpop)	// tally only within our chosen subpop
+    {
+        slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+        std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+        
+        for (int i = 0; i < subpop_genome_count; i++)
+        {
+            Genome &genome = *subpop_genomes[static_cast<size_t>(i)];
+            
+            if (!genome.IsNull())
+            {
+                int mutrun_count = genome.mutrun_count_;
+                
+                for (int run_index = 0; run_index < mutrun_count; ++run_index)
+                {
+                    MutationRun *mutrun = genome.mutruns_[run_index].get();
+                    const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+                    const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+                    
+                    for (; genome_iter != genome_end_iter; ++genome_iter)
+                    {
+                        const Mutation *mutation = mut_block_ptr + *genome_iter;
+                        
+                        if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
+                            (mutation->gui_scratch_reference_count_)++;
+                    }
+                }
+                
+                subpop_total_genome_count++;
+            }
+        }
+    }
     
     return subpop_total_genome_count;
 }

@@ -108,35 +108,15 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 	}
 #endif	// SLIM_WF_ONLY
 	
-	// Check that the subpop we're supposed to be surveying exists; if not, bail.
-	bool foundSelectedSubpop = false;
-	bool foundSelectedMutType = false;
+	// Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
+    bool hasSubpop = true, hasMuttype = true;
     
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
-		if (subpop_pair.first == selectedSubpopulationID_)	// find our chosen subpop
-			foundSelectedSubpop = true;
-	
-	for (const std::pair<const slim_objectid_t,MutationType*> &muttype_pair : sim->mutation_types_)
-		if (muttype_pair.second->mutation_type_index_ == selectedMutationTypeIndex_)	// find our chosen muttype
-			foundSelectedMutType = true;
-	
-	// Make sure we have a selected subpop if possible.  Our menu might not have been loaded, or our chosen subpop might have vanished.
-	if ((selectedSubpopulationID_ == -1) || !foundSelectedSubpop)
-	{
-		// Call -addSubpopulationsToMenu to reload our subpop menu and choose a subpop
-		foundSelectedSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-	}
-	
-	// Make sure we have a selected muttype if possible.  Our menu might not have been loaded, or our chosen muttype might have vanished.
-	if ((selectedMutationTypeIndex_ == -1) || !foundSelectedMutType)
-	{
-		// Call -addMutationTypesToMenu to reload our muttype menu and choose a muttype
-		foundSelectedMutType = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
-        //qDebug() << "fetchDataForFinishedGeneration() mut type invalid :" << foundSelectedMutType << "," << selectedMutationTypeIndex_;
-	}
-	
-	if (!foundSelectedSubpop || !foundSelectedMutType)
-		return;
+	if (!sim->SubpopulationWithID(selectedSubpopulationID_))
+		hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
+	if (!sim->MutationTypeWithID(selectedMutationTypeIndex_))
+		hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
+    if (!hasSubpop || !hasMuttype)
+        return;
 	
 	// Start by zeroing out the "updated" flags; this is how we find dead mutations
 	for (auto &pair_ref : frequencyHistoryDict_)
@@ -356,6 +336,23 @@ void QtSLiMGraphView_FrequencyTrajectory::updateAfterTick(void)
 	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
 	
 	QtSLiMGraphView::updateAfterTick();
+}
+
+QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
+{
+    if (controller_ && !controller_->invalidSimulation())
+    {
+        bool hasSubpop = true, hasMuttype = true;
+        
+        if (!controller_->sim->SubpopulationWithID(selectedSubpopulationID_))
+            hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
+        if (!controller_->sim->MutationTypeWithID(selectedMutationTypeIndex_))
+            hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
+        if (!hasSubpop || !hasMuttype)
+            return "no\ndata";
+    }
+    
+    return "";
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::drawHistory(QPainter &painter, MutationFrequencyHistory *history, QRect interiorRect)

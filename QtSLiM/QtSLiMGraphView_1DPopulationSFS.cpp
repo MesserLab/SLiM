@@ -212,9 +212,9 @@ void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
 	int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
 	double *plotData = populationSFS(mutationTypeCount);
 	
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter : sim->mutation_types_)
 	{
-		MutationType *mutationType = (*mutationTypeIter).second;
+		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
         string.append(QString("\"m%1\", ").arg(mutationType->mutation_type_id_));

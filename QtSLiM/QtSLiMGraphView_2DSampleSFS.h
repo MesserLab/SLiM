@@ -40,6 +40,7 @@ public:
     bool providesStringForData(void) override;
     void appendStringForData(QString &string) override;    
     void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    QString disableMessage(void) override;
     
 public slots:
     void addedToWindow(void) override;

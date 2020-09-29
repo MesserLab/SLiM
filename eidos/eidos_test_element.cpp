@@ -44,13 +44,13 @@ void EidosTestElement::FreeThunks(void)
 	// Valgrind doesn't seem happy with our spuriously allocated test elements just being referenced
 	// by a vector; maybe std::vector does not guarantee alignment or something.  Anyway, if we free
 	// the elements then Valgrind knows for sure they're not leaked.
-	for (auto thunk_iter = inc_element_thunk.begin(); thunk_iter != inc_element_thunk.end(); thunk_iter++)
-		delete (*thunk_iter);
+	for (auto thunk_iter : inc_element_thunk)
+		delete (thunk_iter);
 	
 	inc_element_thunk.clear();
 	
-	for (auto thunk_iter = sq_element_thunk.begin(); thunk_iter != sq_element_thunk.end(); thunk_iter++)
-		delete (*thunk_iter);
+	for (auto thunk_iter : sq_element_thunk)
+		delete (thunk_iter);
 	
 	sq_element_thunk.clear();
 }

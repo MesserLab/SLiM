@@ -396,12 +396,12 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-		auto found_muttype_pair = p_sim.MutationTypes().find(mutation_type_id);
+        MutationType *found_muttype = p_sim.MutationTypeWithID(mutation_type_id);
 		
-		if (found_muttype_pair == p_sim.MutationTypes().end())
+		if (!found_muttype)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		
-		return found_muttype_pair->second;
+		return found_muttype;
 	}
 	else
 	{
@@ -420,12 +420,12 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-		auto found_getype_pair = p_sim.GenomicElementTypes().find(getype_id);
+        GenomicElementType *found_getype = p_sim.GenomicElementTypeTypeWithID(getype_id);
 		
-		if (found_getype_pair == p_sim.GenomicElementTypes().end())
+		if (!found_getype)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined." << EidosTerminate();
 		
-		return found_getype_pair->second;
+		return found_getype;
 	}
 	else
 	{
@@ -444,12 +444,12 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-		auto found_subpop_pair = p_sim.ThePopulation().subpops_.find(source_subpop_id);
+        Subpopulation *found_subpop = p_sim.SubpopulationWithID(source_subpop_id);
 		
-		if (found_subpop_pair == p_sim.ThePopulation().subpops_.end())
+		if (!found_subpop)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
 		
-		return found_subpop_pair->second;
+		return found_subpop;
 	}
 	else
 	{
