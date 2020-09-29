@@ -4954,9 +4954,10 @@ Named
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
 
-\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2;");\
+\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 This produces the output 
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 
 \f1\fs18 1 9 25 49 81
 \f3\fs20 .  The 
 \f1\fs18 sapply()
@@ -4978,11 +4979,11 @@ Since this function can be hard to understand at first, here is an example:\
 \f1\fs18 F
 \f3\fs20  and so 
 \f1\fs18 NULL
-\f3\fs20  is implicitly returned by the lambda (since the 
-\f1\fs18 if
-\f3\fs20  has no 
-\f1\fs18 else
-\f3\fs20  clause).  If 
+\f3\fs20  is returned by the lambda; this must be done explicitly, since a 
+\f1\fs18 void
+\f3\fs20  return is not allowed by 
+\f1\fs18 sapply()
+\f3\fs20 .  If 
 \f1\fs18 applyValue
 \f3\fs20  is odd, on the other hand, the lambda returns its square (as calculated by the exponential operator, 
 \f1\fs18 ^
@@ -4990,7 +4991,8 @@ Since this function can be hard to understand at first, here is an example:\
 \f1\fs18 c()
 \f3\fs20  function, 
 \f1\fs18 NULL
-\f3\fs20  values are dropped during concatenation, so the final result contains only the squares of the odd values.\
+\f3\fs20  values are dropped during concatenation, so the final result contains only the squares of the odd values.\expnd0\expndtw0\kerning0
+\
 This example illustrates that the lambda can \'93drop\'94 values by returning 
 \f1\fs18 NULL
 \f3\fs20 , so 
