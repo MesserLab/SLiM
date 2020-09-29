@@ -36,6 +36,7 @@ public:
     QString graphTitle(void) override;
     QString aboutString(void) override;
     void drawGraph(QPainter &painter, QRect interiorRect) override;
+    QtSLiMLegendSpec legendKey(void) override;
     bool providesStringForData(void) override;
     void appendStringForData(QString &string) override;    
     QString disableMessage(void) override;
@@ -53,7 +54,7 @@ private:
     // The subpop selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)
     slim_objectid_t selectedSubpopulation1ID_;
     
-    double *ageDistribution(int *binCount);
+    double *ageDistribution(int *binCount, bool tallySexesSeparately);
 };
 
 

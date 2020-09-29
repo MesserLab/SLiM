@@ -153,7 +153,9 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-	double *ageDist = ageDistribution(&binCount);
+    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
+    int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
 	
     if (ageDist)
     {
@@ -168,7 +170,7 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
         // rescale the y axis if needed
         double maxFreq = 0.000000001;   // guarantee a non-zero axis range
         
-        for (int binIndex = 0; binIndex < binCount; ++binIndex)
+        for (int binIndex = 0; binIndex < totalBinCount; ++binIndex)
             maxFreq = std::max(maxFreq, ageDist[binIndex]);
         
         double ceilingFreq = std::ceil(maxFreq * 5.0) / 5.0;    // 0.2 / 0.4 / 0.6 / 0.8 / 1.0
@@ -182,9 +184,34 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
         }
         
         // plot our histogram bars
-        drawBarplot(painter, interiorRect, ageDist, histogramBinCount_, 0.0, 1.0);
+        if (tallySexesSeparately)
+            drawGroupedBarplot(painter, interiorRect, ageDist, 2, histogramBinCount_, 0.0, 1.0);
+        else
+            drawBarplot(painter, interiorRect, ageDist, histogramBinCount_, 0.0, 1.0);
         
         free(ageDist);
+    }
+}
+
+QtSLiMLegendSpec QtSLiMGraphView_AgeDistribution::legendKey(void)
+{
+    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    
+	if (tallySexesSeparately)
+    {
+        QtSLiMLegendSpec legendKey;
+        
+        legendKey.resize(2);
+        legendKey[0].first = "M";
+        legendKey[0].second = controller_->blackContrastingColorForIndex(0);
+        legendKey[1].first = "F";
+        legendKey[1].second = controller_->blackContrastingColorForIndex(1);
+        
+        return legendKey;
+    }
+    else
+    {
+        return QtSLiMLegendSpec();
     }
 }
 
@@ -196,18 +223,34 @@ bool QtSLiMGraphView_AgeDistribution::providesStringForData(void)
 void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-	double *ageDist = ageDistribution(&binCount);
+    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
 	
     if (ageDist)
     {
-        for (int i = 0; i < binCount; ++i)
-            string.append(QString("%1, ").arg(ageDist[i], 0, 'f', 4));
+        if (tallySexesSeparately)
+        {
+            string.append("M : ");
+            
+            for (int i = 0; i < binCount; ++i)
+                string.append(QString("%1, ").arg(ageDist[i * 2], 0, 'f', 4));
+            
+            string.append("\n\nF : ");
+            
+            for (int i = 0; i < binCount; ++i)
+                string.append(QString("%1, ").arg(ageDist[i * 2 + 1], 0, 'f', 4));
+        }
+        else
+        {
+            for (int i = 0; i < binCount; ++i)
+                string.append(QString("%1, ").arg(ageDist[i], 0, 'f', 4));
+        }
     }
     
     string.append("\n");
 }
 
-double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount)
+double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
     SLiMSim *sim = controller_->sim;
@@ -228,7 +271,8 @@ double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount)
     int newBinCount = *binCount;
     
     // Tally into our bins
-    double *ageTallies = static_cast<double *>(calloc(newBinCount, sizeof(double)));
+    int totalBinCount = (tallySexesSeparately ? newBinCount * 2 : newBinCount);
+    double *ageTallies = static_cast<double *>(calloc(totalBinCount, sizeof(double)));
     
     for (const Individual *individual : subpop1->CurrentIndividuals())
     {
@@ -237,18 +281,54 @@ double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount)
         if (age < 0) age = 0;
         if (age >= newBinCount) age = newBinCount - 1;
         
-        ageTallies[age]++;
+        if (tallySexesSeparately)
+        {
+            if (individual->sex_ == IndividualSex::kFemale)
+                ageTallies[age * 2 + 1]++;
+            else
+                ageTallies[age * 2]++;
+        }
+        else
+        {
+            ageTallies[age]++;
+        }
     }
     
     // Normalize to 1
-    double totalTallies = 0.0;
     
-    for (int i = 0; i < newBinCount; ++i)
-        totalTallies += ageTallies[i];
-    
-    if (totalTallies > 0.0)
+    if (tallySexesSeparately)
+    {
+        // males
+        double totalTallies = 0.0;
+        
         for (int i = 0; i < newBinCount; ++i)
-            ageTallies[i] /= totalTallies;
+            totalTallies += ageTallies[i * 2];
+        
+        if (totalTallies > 0.0)
+            for (int i = 0; i < newBinCount; ++i)
+                ageTallies[i * 2] /= totalTallies;
+        
+        // females
+        totalTallies = 0.0;
+        
+        for (int i = 0; i < newBinCount; ++i)
+            totalTallies += ageTallies[i * 2 + 1];
+        
+        if (totalTallies > 0.0)
+            for (int i = 0; i < newBinCount; ++i)
+                ageTallies[i * 2 + 1] /= totalTallies;
+    }
+    else
+    {
+        double totalTallies = 0.0;
+        
+        for (int i = 0; i < newBinCount; ++i)
+            totalTallies += ageTallies[i];
+        
+        if (totalTallies > 0.0)
+            for (int i = 0; i < newBinCount; ++i)
+                ageTallies[i] /= totalTallies;
+    }
     
     // Return the final tally; note that the caller takes ownership of the buffer
 	return ageTallies;
