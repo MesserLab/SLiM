@@ -31,14 +31,14 @@ class QtSLiMGraphView_LossTimeHistogram : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_LossTimeHistogram(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_LossTimeHistogram() override;
+    virtual ~QtSLiMGraphView_LossTimeHistogram() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    QtSLiMLegendSpec legendKey(void) override;
-    bool providesStringForData(void) override;
-    void appendStringForData(QString &string) override;    
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual QtSLiMLegendSpec legendKey(void) override;
+    virtual bool providesStringForData(void) override;
+    virtual void appendStringForData(QString &string) override;    
     
 private:
     double *lossTimeData(void);    

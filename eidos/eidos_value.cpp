@@ -381,6 +381,11 @@ void EidosValue::RaiseForRangeViolation(void) const
 	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForRangeViolation): (internal error) access violated the current size of an EidosValue." << EidosTerminate(nullptr);
 }
 
+void EidosValue::RaiseForRetainReleaseViolation(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForRetainReleaseViolation): (internal error) access violated the retain/release policy of an EidosValue." << EidosTerminate(nullptr);
+}
+
 EidosValue_SP EidosValue::VectorBasedCopy(void) const
 {
 	return CopyValues();
@@ -1967,10 +1972,8 @@ std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
 std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;
 std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;
 
-EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class)
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-, class_needs_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->NeedsRetainRelease())
-#endif
+EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
+	class_uses_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->UsesRetainRelease())
 {
 	// BCH 7 May 2017: OK, so, this is a hack of breathtaking disgustingness.  Here is the problem.  In SLiM we
 	// need to reallocate the block in which all Mutation objects live, which invalidates all their pointers.
@@ -2017,10 +2020,8 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p
 	}
 }
 
-EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class, __attribute__((unused)) bool p_register_for_patching) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class)
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-, class_needs_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->NeedsRetainRelease())
-#endif
+EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class, __attribute__((unused)) bool p_register_for_patching) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
+	class_uses_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->UsesRetainRelease())
 {
 	// This special constructor variant skips the registration done in the body of the standard constructor above.
 	// Note that the value of p_register_for_patching is UNUSED; its purpose is merely to select this alternative
@@ -2159,10 +2160,18 @@ EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vecto
 	size_t count = p_original.size();
 	EidosObjectElement * const *values = p_original.data();
 	
-	resize_no_initialize(count);
+	resize_no_initialize_RR(count);
 	
-	for (size_t index = 0; index < count; ++index)
-		set_object_element_no_check(values[index], index);
+	if (class_uses_retain_release_)
+	{
+		for (size_t index = 0; index < count; ++index)
+			set_object_element_no_check_no_previous_RR(values[index], index);
+	}
+	else
+	{
+		for (size_t index = 0; index < count; ++index)
+			set_object_element_no_check_NORR(values[index], index);
+	}
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
@@ -2170,42 +2179,64 @@ EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObject
 	size_t count = p_elementvec.size();
 	EidosObjectElement * const *values = p_elementvec.data();
 	
-	resize_no_initialize(count);
+	resize_no_initialize_RR(count);
 	
-	for (size_t index = 0; index < count; ++index)
-		set_object_element_no_check(values[index], index);
+	if (class_uses_retain_release_)
+	{
+		for (size_t index = 0; index < count; ++index)
+			set_object_element_no_check_no_previous_RR(values[index], index);
+	}
+	else
+	{
+		for (size_t index = 0; index < count; ++index)
+			set_object_element_no_check_NORR(values[index], index);
+	}
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
 {
 	reserve(p_init_list.size());
 	
-	for (auto init_item : p_init_list)
-		push_object_element_no_check(init_item);
+	if (class_uses_retain_release_)
+	{
+		for (auto init_item : p_init_list)
+			push_object_element_no_check_RR(init_item);
+	}
+	else
+	{
+		for (auto init_item : p_init_list)
+			push_object_element_no_check_NORR(init_item);
+	}
 }
 
 EidosValue_Object_vector::EidosValue_Object_vector(EidosObjectElement **p_values, size_t p_count, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
 {
-	resize_no_initialize(p_count);
+	resize_no_initialize_RR(p_count);
 	
-	for (size_t index = 0; index < p_count; ++index)
-		set_object_element_no_check(p_values[index], index);
+	if (class_uses_retain_release_)
+	{
+		for (size_t index = 0; index < p_count; ++index)
+			set_object_element_no_check_no_previous_RR(p_values[index], index);
+	}
+	else
+	{
+		for (size_t index = 0; index < p_count; ++index)
+			set_object_element_no_check_NORR(p_values[index], index);
+	}
 }
 
 EidosValue_Object_vector::~EidosValue_Object_vector(void)
 {
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-	if (class_needs_retain_release_)
+	if (class_uses_retain_release_)
 	{
 		for (size_t index = 0; index < count_; ++index)
 		{
 			EidosObjectElement *value = values_[index];
 			
 			if (value)
-				value->Release();
+				static_cast<EidosObjectElement_Retained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
 		}
 	}
-#endif
 	
 	free(values_);
 }
@@ -2240,14 +2271,12 @@ void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue
 	
 	DeclareClassFromElement(new_value);
 	
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-	if (class_needs_retain_release_)
+	if (class_uses_retain_release_)
 	{
-		new_value->Retain();
+		static_cast<EidosObjectElement_Retained *>(new_value)->Retain();				// unsafe cast to avoid virtual function overhead
 		if (values_[p_idx])
-			values_[p_idx]->Release();
+			static_cast<EidosObjectElement_Retained *>(values_[p_idx])->Release();		// unsafe cast to avoid virtual function overhead
 	}
-#endif
 	
 	values_[p_idx] = new_value;
 }
@@ -2260,7 +2289,7 @@ EidosValue_SP EidosValue_Object_vector::CopyValues(void) const
 void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	if (p_source_script_value.Type() == EidosValueType::kValueObject)
-		push_object_element(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token));
+		push_object_element_CRR(p_source_script_value.ObjectElementAtIndex(p_idx, p_blame_token));
 	else
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << EidosTerminate(p_blame_token);
 }
@@ -2333,10 +2362,18 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareLogicalObjectSortPairsDescending);
 			
 			// read out our new element vector
-			resize_no_initialize(0);
+			resize_no_initialize_RR(0);
 			
-			for (auto sorted_pair : sortable_pairs)
-				push_object_element_no_check(sorted_pair.second);
+			if (class_uses_retain_release_)
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_RR(sorted_pair.second);
+			}
+			else
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_NORR(sorted_pair.second);
+			}
 			
 			break;
 		}
@@ -2366,10 +2403,18 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareIntObjectSortPairsDescending);
 			
 			// read out our new element vector
-			resize_no_initialize(0);
+			resize_no_initialize_RR(0);
 			
-			for (auto sorted_pair : sortable_pairs)
-				push_object_element_no_check(sorted_pair.second);
+			if (class_uses_retain_release_)
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_RR(sorted_pair.second);
+			}
+			else
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_NORR(sorted_pair.second);
+			}
 			
 			break;
 		}
@@ -2399,10 +2444,18 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareFloatObjectSortPairsDescending);
 			
 			// read out our new element vector
-			resize_no_initialize(0);
+			resize_no_initialize_RR(0);
 			
-			for (auto sorted_pair : sortable_pairs)
-				push_object_element_no_check(sorted_pair.second);
+			if (class_uses_retain_release_)
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_RR(sorted_pair.second);
+			}
+			else
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_NORR(sorted_pair.second);
+			}
 			
 			break;
 		}
@@ -2432,10 +2485,18 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareStringObjectSortPairsDescending);
 			
 			// read out our new element vector
-			resize_no_initialize(0);
+			resize_no_initialize_RR(0);
 			
-			for (auto sorted_pair : sortable_pairs)
-				push_object_element_no_check(sorted_pair.second);
+			if (class_uses_retain_release_)
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_RR(sorted_pair.second);
+			}
+			else
+			{
+				for (auto sorted_pair : sortable_pairs)
+					push_object_element_no_check_NORR(sorted_pair.second);
+			}
 			
 			break;
 		}
@@ -2911,9 +2972,9 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 					if (temp_result->Type() == EidosValueType::kValueObject)
 					{
 						if (temp_result->IsSingleton())
-							object_result->push_object_element_no_check(((EidosValue_Object_singleton *)temp_result.get())->ObjectElementValue());
+							object_result->push_object_element_no_check_CRR(((EidosValue_Object_singleton *)temp_result.get())->ObjectElementValue());
 						else
-							object_result->push_object_element_no_check(temp_result->ObjectElementAtIndex(0, nullptr));		// should not generally get hit since the method should return a singleton
+							object_result->push_object_element_no_check_CRR(temp_result->ObjectElementAtIndex(0, nullptr));		// should not generally get hit since the method should return a singleton
 					}
 					// else it is a NULL, discard it
 				}
@@ -2932,14 +2993,14 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 						
 						if ((return_count == 1) && temp_result->IsSingleton())
 						{
-							object_result->push_object_element(((EidosValue_Object_singleton *)temp_result.get())->ObjectElementValue());
+							object_result->push_object_element_CRR(((EidosValue_Object_singleton *)temp_result.get())->ObjectElementValue());
 						}
 						else
 						{
 							EidosObjectElement * const *return_data = temp_result->ObjectElementVector()->data();
 							
 							for (int return_index = 0; return_index < return_count; return_index++)
-								object_result->push_object_element(return_data[return_index]);
+								object_result->push_object_element_CRR(return_data[return_index]);
 						}
 					}
 					// else it is a NULL, discard it
@@ -3005,9 +3066,8 @@ EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize(size_t 
 {
 	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
 	
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
 	// deal with retain/release
-	if (class_needs_retain_release_)
+	if (class_uses_retain_release_)
 	{
 		if (p_new_size < count_)
 		{
@@ -3017,17 +3077,25 @@ EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize(size_t 
 				EidosObjectElement *value = values_[element_index];
 				
 				if (value)
-					value->Release();
+					static_cast<EidosObjectElement_Retained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
 			}
 		}
 		else if (p_new_size > count_)
 		{
-			// expanding; need to zero out the new slots, despite our name (but only with class_needs_retain_release_!)
+			// expanding; need to zero out the new slots, despite our name (but only with class_uses_retain_release_!)
 			for (size_t element_index = count_; element_index < p_new_size; ++element_index)
 				values_[element_index] = nullptr;
 		}
 	}
-#endif
+	
+	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	
+	return this;
+}
+
+EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize_RR(size_t p_new_size)
+{
+	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
 	
 	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	
@@ -3047,11 +3115,9 @@ void EidosValue_Object_vector::erase_index(size_t p_index)
 	if (p_index >= count_)
 		RaiseForRangeViolation();
 	
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-	if (class_needs_retain_release_)
+	if (class_uses_retain_release_)
 		if (values_[p_index])
-			values_[p_index]->Release();
-#endif
+			static_cast<EidosObjectElement_Retained *>(values_[p_index])->Release();		// unsafe cast to avoid virtual function overhead
 	
 	if (p_index == count_ - 1)
 		--count_;
@@ -3079,10 +3145,8 @@ EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_e
 	{
 		DeclareClassFromElement(p_element1);
 		
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-		if (class_needs_retain_release_)
-			p_element1->Retain();
-#endif
+		if (class_uses_retain_release_)
+			static_cast<EidosObjectElement_Retained *>(p_element1)->Retain();		// unsafe cast to avoid virtual function overhead
 	}
 }
 
@@ -3097,20 +3161,16 @@ EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_e
 	{
 		DeclareClassFromElement(p_element1);
 		
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-		if (class_needs_retain_release_)
-			p_element1->Retain();
-#endif
+		if (class_uses_retain_release_)
+			static_cast<EidosObjectElement_Retained *>(p_element1)->Retain();		// unsafe cast to avoid virtual function overhead
 	}
 }
 
 EidosValue_Object_singleton::~EidosValue_Object_singleton(void)
 {
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-	if (class_needs_retain_release_)
+	if (class_uses_retain_release_)
 		if (value_)
-			value_->Release();
-#endif
+			static_cast<EidosObjectElement_Retained *>(value_)->Release();		// unsafe cast to avoid virtual function overhead
 }
 
 int EidosValue_Object_singleton::Count_Virtual(void) const
@@ -3138,14 +3198,14 @@ void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 {
 	DeclareClassFromElement(p_element);
 	
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-	if (class_needs_retain_release_)
+	if (class_uses_retain_release_)
 	{
-		p_element->Retain();
+		static_cast<EidosObjectElement_Retained *>(p_element)->Retain();		// unsafe cast to avoid virtual function overhead
+		
+		// we might have been initialized with nullptr with the aim of setting a value here
 		if (value_)
-			value_->Release();		// we might have been initialized with nullptr with the aim of setting a value here
+			static_cast<EidosObjectElement_Retained *>(value_)->Release();		// unsafe cast to avoid virtual function overhead
 	}
-#endif
 	
 	value_ = p_element;
 }
@@ -3160,7 +3220,7 @@ EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 	// We intentionally don't reserve a size of 1 here, on the assumption that further values are likely to be added
 	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(Class()));
 	
-	new_vec->push_object_element(value_);
+	new_vec->push_object_element_CRR(value_);
 	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
@@ -3250,18 +3310,6 @@ void EidosObjectElement::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ElementType();
 }
-
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-EidosObjectElement *EidosObjectElement::Retain(void)
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::Retain for " << Class()->ElementType() << "): (internal error) call to Retain() for non-shared class." << EidosTerminate(nullptr);
-}
-
-EidosObjectElement *EidosObjectElement::Release(void)
-{
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::Release for " << Class()->ElementType() << "): (internal error) call to Release() for non-shared class." << EidosTerminate(nullptr);
-}
-#endif
 
 EidosValue_SP EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
@@ -3425,51 +3473,31 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 
 
 //
-//	EidosObjectElementInternal
+//	EidosObjectElement_Retained
 //
-#pragma mark EidosObjectElementInternal
+#pragma mark -
+#pragma mark EidosObjectElement_Retained
+#pragma mark -
 
 /*
-EidosObjectElementInternal::EidosObjectElementInternal(void)
+EidosObjectElement_Retained::EidosObjectElement_Retained(void)
 {
-//	std::cerr << "EidosObjectElementInternal::EidosObjectElementInternal allocated " << this << " with refcount == 1" << std::endl;
+//	std::cerr << "EidosObjectElement_Retained::EidosObjectElement_Retained allocated " << this << " with refcount == 1" << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 }
 
-EidosObjectElementInternal::~EidosObjectElementInternal(void)
+EidosObjectElement_Retained::~EidosObjectElement_Retained(void)
 {
-//	std::cerr << "EidosObjectElementInternal::~EidosObjectElementInternal deallocated " << this << std::endl;
+//	std::cerr << "EidosObjectElement_Retained::~EidosObjectElement_Retained deallocated " << this << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 }
 */
 
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-EidosObjectElement *EidosObjectElementInternal::Retain(void)
+void EidosObjectElement_Retained::SelfDelete(void)
 {
-	refcount_++;
-	
-//	std::cerr << "EidosObjectElementInternal::Retain for " << this << ", new refcount == " << refcount_ << std::endl;
-//	Eidos_PrintStacktrace(stderr, 10);
-	
-	return this;
+	// called when our refcount reaches zero; can be overridden by subclasses to provide custom behavior
+	delete this;
 }
-
-EidosObjectElement *EidosObjectElementInternal::Release(void)
-{
-	refcount_--;
-	
-//	std::cerr << "EidosObjectElementInternal::Release for " << this << ", new refcount == " << refcount_ << std::endl;
-//	Eidos_PrintStacktrace(stderr, 10);
-	
-	if (refcount_ == 0)
-	{
-		delete this;
-		return nullptr;
-	}
-	
-	return this;
-}
-#endif
 
 
 //
@@ -3479,12 +3507,10 @@ EidosObjectElement *EidosObjectElementInternal::Release(void)
 #pragma mark EidosObjectClass
 #pragma mark -
 
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-bool EidosObjectClass::NeedsRetainRelease(void) const
+bool EidosObjectClass::UsesRetainRelease(void) const
 {
 	return false;
 }
-#endif
 
 const std::string &EidosObjectClass::ElementType(void) const
 {
@@ -3689,6 +3715,27 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_size_length(EidosGlobalStringID p_
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
+}
+
+
+//
+//	EidosObjectClass_Retained
+//
+#pragma mark -
+#pragma mark EidosObjectClass_Retained
+#pragma mark -
+
+EidosObjectClass *gEidos_EidosObjectClass_Retained = new EidosObjectClass_Retained();
+
+
+const std::string &EidosObjectClass_Retained::ElementType(void) const
+{
+	return gEidosStr_EidosObjectClass_Retained;
+}
+
+bool EidosObjectClass_Retained::UsesRetainRelease(void) const
+{
+	return true;
 }
 
 

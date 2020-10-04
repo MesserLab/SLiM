@@ -1168,17 +1168,16 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
-	MutationRun &mutationRegistry = pop.mutation_registry_;
-	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
-	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
+	int registry_size;
+	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
-	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.size.width))
+	if ((registry_size < 1000) || (displayedRange.length < interiorRect.size.width))
 	{
 		// This is the simple version of the display code, avoiding the memory allocations and such
-		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+			const Mutation *mutation = mut_block_ptr + registry[registry_index];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
 			if (mutType->mutation_type_displayed_)
@@ -1214,8 +1213,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
 		int displayPixelWidth = (int)interiorRect.size.width;
 		int16_t *heightBuffer = (int16_t *)malloc(displayPixelWidth * sizeof(int16_t));
-		bool *mutationsPlotted = (bool *)calloc(mutationCount, sizeof(bool));	// faster than using gui_scratch_reference_count_ because of cache locality
-		int64_t remainingMutations = mutationCount;
+		bool *mutationsPlotted = (bool *)calloc(registry_size, sizeof(bool));	// faster than using gui_scratch_reference_count_ because of cache locality
+		int64_t remainingMutations = registry_size;
 		
 		// First zero out the scratch refcount, which we use to track which mutations we have drawn already
 		//for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -1238,9 +1237,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					
 					// Scan through the mutation list for mutations of this type with the right selcoeff
-					for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+					for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 					{
-						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + registry[registry_index];
 						
 						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 						{
@@ -1257,7 +1256,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 							
 							// tally this mutation as handled
 							//mutation->gui_scratch_reference_count_ = 1;
-							mutationsPlotted[mutIndex] = true;
+							mutationsPlotted[registry_index] = true;
 							--remainingMutations;
 						}
 					}
@@ -1289,15 +1288,15 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			else
 			{
 				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
-					const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+					const Mutation *mutation = mut_block_ptr + registry[registry_index];
 					
 					if (mutation->mutation_type_ptr_ == mut_type)
 					{
 						// tally this mutation as handled
 						//mutation->gui_scratch_reference_count_ = 1;
-						mutationsPlotted[mutIndex] = true;
+						mutationsPlotted[registry_index] = true;
 						--remainingMutations;
 					}
 				}
@@ -1310,12 +1309,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			if (remainingMutations < 1000)
 			{
 				// Plot the remainder by brute force, since there are not that many
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
-					if (!mutationsPlotted[mutIndex])
+					if (!mutationsPlotted[registry_index])
 					{
-						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + registry[registry_index];
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
 						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
@@ -1335,12 +1334,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 				
 				// Find the tallest bar in each column
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
-					if (!mutationsPlotted[mutIndex])
+					if (!mutationsPlotted[registry_index])
 					{
-						MutationIndex mutationBlockIndex = mutations[mutIndex];
+						MutationIndex mutationBlockIndex = registry[registry_index];
 						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
@@ -1391,9 +1390,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
-	MutationRun &mutationRegistry = pop.mutation_registry_;
-	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
-	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
+	int registry_size;
+	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	// Set up to draw rects
@@ -1401,12 +1399,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	SLIM_GL_PREPARE();
 	
-	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.size.width))
+	if ((registry_size < 1000) || (displayedRange.length < interiorRect.size.width))
 	{
 		// This is the simple version of the display code, avoiding the memory allocations and such
-		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+			const Mutation *mutation = mut_block_ptr + registry[registry_index];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
 			if (mutType->mutation_type_displayed_)
@@ -1444,8 +1442,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
 		int displayPixelWidth = (int)interiorRect.size.width;
 		int16_t *heightBuffer = (int16_t *)malloc(displayPixelWidth * sizeof(int16_t));
-		bool *mutationsPlotted = (bool *)calloc(mutationCount, sizeof(bool));	// faster than using gui_scratch_reference_count_ because of cache locality
-		int64_t remainingMutations = mutationCount;
+		bool *mutationsPlotted = (bool *)calloc(registry_size, sizeof(bool));	// faster than using gui_scratch_reference_count_ because of cache locality
+		int64_t remainingMutations = registry_size;
 		
 		// First zero out the scratch refcount, which we use to track which mutations we have drawn already
 		//for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -1473,9 +1471,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 						EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 						
 						// Scan through the mutation list for mutations of this type with the right selcoeff
-						for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+						for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 						{
-							const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+							const Mutation *mutation = mut_block_ptr + registry[registry_index];
 							
 							if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 							{
@@ -1492,7 +1490,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 								
 								// tally this mutation as handled
 								//mutation->gui_scratch_reference_count_ = 1;
-								mutationsPlotted[mutIndex] = true;
+								mutationsPlotted[registry_index] = true;
 								--remainingMutations;
 							}
 						}
@@ -1529,15 +1527,15 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			else
 			{
 				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
-					const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+					const Mutation *mutation = mut_block_ptr + registry[registry_index];
 					
 					if (mutation->mutation_type_ptr_ == mut_type)
 					{
 						// tally this mutation as handled
 						//mutation->gui_scratch_reference_count_ = 1;
-						mutationsPlotted[mutIndex] = true;
+						mutationsPlotted[registry_index] = true;
 						--remainingMutations;
 					}
 				}
@@ -1550,12 +1548,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			if (remainingMutations < 1000)
 			{
 				// Plot the remainder by brute force, since there are not that many
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
-					if (!mutationsPlotted[mutIndex])
+					if (!mutationsPlotted[registry_index])
 					{
-						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + registry[registry_index];
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
 						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
@@ -1578,12 +1576,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 				EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 				
 				// Find the tallest bar in each column
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
-					if (!mutationsPlotted[mutIndex])
+					if (!mutationsPlotted[registry_index])
 					{
-						MutationIndex mutationBlockIndex = mutations[mutIndex];
+						MutationIndex mutationBlockIndex = registry[registry_index];
 						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;

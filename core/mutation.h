@@ -32,7 +32,6 @@
 
 #include "slim_globals.h"
 #include "eidos_value.h"
-#include "slim_eidos_dictionary.h"
 
 class MutationType;
 
@@ -57,7 +56,15 @@ class Mutation;
 extern Mutation *gSLiM_Mutation_Block;
 
 
-class Mutation : public SLiMEidosDictionary
+typedef enum {
+	kNewMutation = 0,			// the state after new Mutation()
+	kInRegistry,				// segregating in the simulation
+	kRemovedWithSubstitution,	// removed by removeMutations(substitute=T); transitional from kInRegistry to kFixedAndSubstituted
+	kFixedAndSubstituted,		// fixed and turned into a Substitution object
+	kLostAndRemoved				// lost and removed from the simulation
+} MutationState;
+
+class Mutation : public EidosObjectElement_Retained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -68,9 +75,10 @@ public:
 	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_generation_t origin_generation_;			// generation in which mutation arose
+	int8_t state_;										// see MutationState above
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
-	// NOTE THERE ARE 2 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
+	// NOTE THERE IS 1 BYTE FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
 	const slim_mutationid_t mutation_id_;				// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	
@@ -92,33 +100,36 @@ public:
 	Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide);
 	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide);
 	
-	// a destructor is needed now that we inherit from SLiMEidosDictionary; we want it to be as minimal as possible, though, and inline
+	// a destructor is needed now that we inherit from EidosObjectElement_Retained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
-	inline virtual ~Mutation(void)
+	inline virtual ~Mutation(void) override
 	{
-		SLIM_OUTSTREAM << "Mutation destructed: " << this << std::endl;
+		std::cout << "Mutation destructed: " << this << std::endl;
 	}
 #else
-	inline virtual ~Mutation(void) { }
+	inline virtual ~Mutation(void) override { }
 #endif
 	
+	virtual void SelfDelete(void) override;
 	
 	inline __attribute__((always_inline)) MutationIndex BlockIndex(void) const			{ return (MutationIndex)(this - gSLiM_Mutation_Block); }
 	
 	//
 	// Eidos support
 	//
-	virtual const EidosObjectClass *Class(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
+	virtual const EidosObjectClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
 	
-	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
-	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isFixed(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isSegregating(EidosObjectElement **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotide(EidosObjectElement **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosObjectElement **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_originGeneration(EidosObjectElement **p_values, size_t p_values_size);

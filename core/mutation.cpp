@@ -182,7 +182,7 @@ size_t SLiM_MemoryUsageForMutationRefcounts(void)
 slim_mutationid_t gSLiM_next_mutation_id = 0;
 
 Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -195,7 +195,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
 	
 #if DEBUG_MUTATIONS
-	SLIM_OUTSTREAM << "Mutation constructed: " << this << std::endl;
+	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
 #if 0
@@ -234,7 +234,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 }
 
 Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -247,12 +247,22 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
 	
 #if DEBUG_MUTATIONS
-	SLIM_OUTSTREAM << "Mutation constructed: " << this << std::endl;
+	std::cout << "Mutation constructed: " << this << std::endl;
 #endif
 	
 	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
 	if (gSLiM_next_mutation_id <= mutation_id_)
 		gSLiM_next_mutation_id = mutation_id_ + 1;
+}
+
+void Mutation::SelfDelete(void)
+{
+	// This is called when our retain count reaches zero
+	// We destruct ourselves and return our memory to our shared pool
+	MutationIndex mutation_index = BlockIndex();
+	
+	this->~Mutation();
+	SLiM_DisposeMutationToBlock(mutation_index);
 }
 
 // This is unused except by debugging code and in the debugger itself
@@ -289,6 +299,10 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_id:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_id_));
+		case gID_isFixed:			// ACCELERATED
+			return (((state_ == MutationState::kFixedAndSubstituted) || (state_ == MutationState::kRemovedWithSubstitution)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		case gID_isSegregating:		// ACCELERATED
+			return ((state_ == MutationState::kInRegistry) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutationType:		// ACCELERATED
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_originGeneration:	// ACCELERATED
@@ -357,6 +371,34 @@ EidosValue *Mutation::GetProperty_Accelerated_id(EidosObjectElement **p_values, 
 	}
 	
 	return int_result;
+}
+
+EidosValue *Mutation::GetProperty_Accelerated_isFixed(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Mutation *value = (Mutation *)(p_values[value_index]);
+		
+		logical_result->set_logical_no_check((value->state_ == MutationState::kFixedAndSubstituted) || (value->state_ == MutationState::kRemovedWithSubstitution), value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosObjectElement **p_values, size_t p_values_size)
+{
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Mutation *value = (Mutation *)(p_values[value_index]);
+		
+		logical_result->set_logical_no_check(value->state_ == MutationState::kInRegistry, value_index);
+	}
+	
+	return logical_result;
 }
 
 EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObjectElement **p_values, size_t p_values_size)
@@ -484,7 +526,7 @@ EidosValue *Mutation::GetProperty_Accelerated_mutationType(EidosObjectElement **
 	{
 		Mutation *value = (Mutation *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check(value->mutation_type_ptr_, value_index);
+		object_result->set_object_element_no_check_NORR(value->mutation_type_ptr_, value_index);
 	}
 	
 	return object_result;
@@ -586,7 +628,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	{
 		case gID_setSelectionCoeff:	return ExecuteMethod_setSelectionCoeff(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationType:	return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
-		default:					return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:					return EidosObjectElement_Retained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -668,17 +710,17 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 #pragma mark Mutation_Class
 #pragma mark -
 
-class Mutation_Class : public SLiMEidosDictionary_Class
+class Mutation_Class : public EidosObjectClass_Retained
 {
 public:
 	Mutation_Class(const Mutation_Class &p_original) = delete;	// no copy-construct
 	Mutation_Class& operator=(const Mutation_Class&) = delete;	// no copying
 	inline Mutation_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_Mutation_Class = new Mutation_Class();
@@ -695,9 +737,11 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass_Retained::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isFixed,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isFixed));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isSegregating,			true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isSegregating));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,				false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotide));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotideValue));
@@ -719,7 +763,7 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass_Retained::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskVOID))->AddFloat_S("selectionCoeff"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

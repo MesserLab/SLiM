@@ -321,10 +321,10 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
     {
         SLiMSim *sim = controller_->sim;
         Population &population = sim->population_;
-        MutationRun &mutationRegistry = population.mutation_registry_;
+        int registry_size;
+        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        const MutationIndex *registry_iter_end = registry + registry_size;
         Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-        const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
-        const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
         
         // Find our subpops and mutation type
         Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
@@ -349,7 +349,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         
         std::vector<slim_refcount_t> refcounts1;
         
-        for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
+        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
@@ -371,7 +371,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         
         std::vector<slim_refcount_t> refcounts2;
         
-        for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
+        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)

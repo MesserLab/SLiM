@@ -38,7 +38,7 @@ public:
     QtSLiMOutputHighlighter(QTextDocument *parent = nullptr);
 
 protected:
-    void highlightBlock(const QString &text) override;
+    virtual void highlightBlock(const QString &text) override;
 
 private:
     QRegularExpression poundRegex;
@@ -63,7 +63,7 @@ public:
     virtual ~QtSLiMScriptHighlighter() override;
 
 protected:
-    void highlightBlock(const QString &text) override;
+    virtual void highlightBlock(const QString &text) override;
     
 protected slots:
     void documentContentsChanged(void);

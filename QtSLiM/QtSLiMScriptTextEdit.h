@@ -68,7 +68,7 @@ public:
     
     QtSLiMTextEdit(const QString &text, QWidget *parent = nullptr);
     QtSLiMTextEdit(QWidget *parent = nullptr);
-    ~QtSLiMTextEdit() override;
+    virtual ~QtSLiMTextEdit() override;
     
     // configuration
     void setScriptType(ScriptType type);
@@ -107,14 +107,14 @@ protected:
     // used to track that we are intercepting a mouse event
     bool optionClickEnabled = false;
     bool optionClickIntercepted = false;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
+    virtual void mousePressEvent(QMouseEvent *event) override;
+    virtual void mouseMoveEvent(QMouseEvent *event) override;
+    virtual void mouseReleaseEvent(QMouseEvent *event) override;
     void scriptHelpOptionClick(QString searchString);
     
     // used to maintain the correct cursor (pointing hand when option is pressed)
     void fixMouseCursor(void);
-    void enterEvent(QEvent *event) override;
+    virtual void enterEvent(QEvent *event) override;
     
     // keeping track of undo/redo availability
     bool undoAvailable_ = false;
@@ -126,7 +126,7 @@ protected:
     QCompleter *completer = nullptr;
     
     void autoindentAfterNewline(void);
-    void keyPressEvent(QKeyEvent *e) override;
+    virtual void keyPressEvent(QKeyEvent *e) override;
     QStringList completionsForPartialWordRange(NSRange charRange, int *indexOfSelectedItem);
     NSRange rangeForUserCompletion(void);
     
@@ -137,7 +137,7 @@ protected:
     QStringList uniquedArgumentNameCompletions(std::vector<std::string> *argumentCompletions);
     void _completionHandlerWithRangeForCompletion(NSRange *baseRange, QStringList *completions);
     int64_t scoreForCandidateAsCompletionOfString(QString candidate, QString base);
-    virtual int rangeOffsetForCompletionRange(void);
+    int rangeOffsetForCompletionRange(void);
     void slimSpecificCompletion(QString completionScriptString, NSRange selection, EidosTypeTable **typeTable, EidosFunctionMap **functionMap, EidosCallTypeTable **callTypeTable, QStringList *keywords, std::vector<std::string> *argNameCompletions);
 
     EidosFunctionMap *functionMapForScriptString(QString scriptString, bool includingOptionalFunctions);
@@ -176,7 +176,7 @@ class QtSLiMScriptTextEdit : public QtSLiMTextEdit
 public:
     QtSLiMScriptTextEdit(const QString &text, QWidget *parent = nullptr);
     QtSLiMScriptTextEdit(QWidget *parent = nullptr);
-    ~QtSLiMScriptTextEdit() override;
+    virtual ~QtSLiMScriptTextEdit() override;
     
 public slots:
     void shiftSelectionLeft(void);
@@ -194,10 +194,10 @@ public:
 
 protected:
     void initializeLineNumbers(void);
-    void resizeEvent(QResizeEvent *event) override;
+    virtual void resizeEvent(QResizeEvent *event) override;
 
 protected slots:
-    void displayFontPrefChanged() override;
+    virtual void displayFontPrefChanged() override;
     
 private slots:
     void updateLineNumberAreaWidth(int newBlockCount);

@@ -31,20 +31,20 @@ class QtSLiMGraphView_AgeDistribution : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_AgeDistribution(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_AgeDistribution() override;
+    virtual ~QtSLiMGraphView_AgeDistribution() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    QtSLiMLegendSpec legendKey(void) override;
-    bool providesStringForData(void) override;
-    void appendStringForData(QString &string) override;    
-    QString disableMessage(void) override;
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual QtSLiMLegendSpec legendKey(void) override;
+    virtual bool providesStringForData(void) override;
+    virtual void appendStringForData(QString &string) override;    
+    virtual QString disableMessage(void) override;
     
 public slots:
-    void addedToWindow(void) override;
-    void controllerRecycled(void) override;
-    void updateAfterTick(void) override;
+    virtual void addedToWindow(void) override;
+    virtual void controllerRecycled(void) override;
+    virtual void updateAfterTick(void) override;
     void subpopulation1PopupChanged(int index);
     
 private:

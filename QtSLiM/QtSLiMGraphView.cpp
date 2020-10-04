@@ -1548,16 +1548,16 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 	//
     SLiMSim *sim = controller_->sim;
 	Population &population = sim->population_;
-	MutationRun &mutationRegistry = population.mutation_registry_;
 	size_t subpop_total_genome_count = 0;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     
     {
-        const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
-        const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
+        int registry_size;
+        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        const MutationIndex *registry_iter_end = registry + registry_size;
         
-        for (; registry_iter != registry_iter_end; ++registry_iter)
+        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
@@ -1607,15 +1607,18 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
 	//
     SLiMSim *sim = controller_->sim;
 	Population &population = sim->population_;
-	MutationRun &mutationRegistry = population.mutation_registry_;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
-	
-	for (; registry_iter != registry_iter_end; ++registry_iter)
-		(mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
-	
+    
+    {
+        int registry_size;
+        const MutationIndex *registry = population.MutationRegistry(&registry_size);
+        const MutationIndex *registry_iter_end = registry + registry_size;
+        
+        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+            (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
+    }
+    
 	for (const Genome *genome : genomes)
 	{
         if (!genome->IsNull())

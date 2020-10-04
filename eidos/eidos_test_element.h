@@ -33,7 +33,7 @@
 extern EidosObjectClass *gEidosTestElement_Class;
 
 
-class EidosTestElement : public EidosObjectElementInternal
+class EidosTestElement : public EidosObjectElement_Retained
 {
 private:
 	int64_t yolk_;
@@ -49,12 +49,12 @@ public:
 	//
 	// Eidos support
 	//
-	virtual const EidosObjectClass *Class(void) const;
+	virtual const EidosObjectClass *Class(void) const override;
 	
-	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
-	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	static EidosValue_SP ExecuteMethod_Accelerated_cubicYolk(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	

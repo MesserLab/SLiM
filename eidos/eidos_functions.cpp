@@ -301,7 +301,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskVOID)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_OS("type", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("cpu"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAnyBase("value"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAny("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("functionName")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional | kEidosValueMaskSingleton, "timed", nullptr, gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional | kEidosValueMaskSingleton, "timed", nullptr, gStaticEidosValue_LogicalF));
@@ -733,7 +733,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 	}
 	else if (has_object_type)
 	{
-		EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(element_class))->resize_no_initialize(reserve_size);
+		EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(element_class))->resize_no_initialize_RR(reserve_size);
 		EidosValue_Object_vector_SP result_SP = EidosValue_Object_vector_SP(result);
 		int result_set_index = 0;
 		
@@ -744,18 +744,30 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 			
 			if (arg_value_count == 1)
 			{
-				result->set_object_element_no_check(arg_value->ObjectElementAtIndex(0, nullptr), result_set_index++);
+				if (result->UsesRetainRelease())
+					result->set_object_element_no_check_no_previous_RR(arg_value->ObjectElementAtIndex(0, nullptr), result_set_index++);
+				else
+					result->set_object_element_no_check_NORR(arg_value->ObjectElementAtIndex(0, nullptr), result_set_index++);
 			}
 			else if (arg_value_count)
 			{
-				EidosObjectElement * const *arg_data = arg_value->ObjectElementVector()->data();
+				const EidosValue_Object_vector *object_arg_value = arg_value->ObjectElementVector();
+				EidosObjectElement * const *arg_data = object_arg_value->data();
 				
 				// Given the lack of win for memcpy() for integer and float above, I'm not even going to bother checking it for
 				// EidosObjectElement*, since there would also be the complexity of retain/release and DeclareClass() to deal with...
 				
 				// When retain/release of EidosObjectElement is enabled, we go through the accessors so the copied pointers get retained
-				for (int value_index = 0; value_index < arg_value_count; ++value_index)
-					result->set_object_element_no_check(arg_data[value_index], result_set_index++);
+				if (object_arg_value->UsesRetainRelease())
+				{
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->set_object_element_no_check_no_previous_RR(arg_data[value_index], result_set_index++);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < arg_value_count; ++value_index)
+						result->set_object_element_no_check_NORR(arg_data[value_index], result_set_index++);
+				}
 			}
 		}
 		
@@ -976,7 +988,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 				}
 				
 				if (scan_index == value_index)
-					object_result->push_object_element(value);
+					object_result->push_object_element_CRR(value);
 			}
 		}
 		else
@@ -989,10 +1001,18 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 			size_t unique_count = unique_iter - dup_vec.begin();
 			EidosObjectElement * const *dup_ptr = dup_vec.data();
 			
-			object_result->resize_no_initialize(unique_count);
+			object_result->resize_no_initialize_RR(unique_count);
 			
-			for (size_t unique_index = 0; unique_index < unique_count; ++unique_index)
-				object_result->set_object_element_no_check(dup_ptr[unique_index], unique_index);
+			if (object_result->UsesRetainRelease())
+			{
+				for (size_t unique_index = 0; unique_index < unique_count; ++unique_index)
+					object_result->set_object_element_no_check_no_previous_RR(dup_ptr[unique_index], unique_index);
+			}
+			else
+			{
+				for (size_t unique_index = 0; unique_index < unique_count; ++unique_index)
+					object_result->set_object_element_no_check_NORR(dup_ptr[unique_index], unique_index);
+			}
 		}
 	}
 	
@@ -2314,7 +2334,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 				if (scan_index < value_index0)
 					continue;
 				
-				object_result->push_object_element(value);
+				object_result->push_object_element_CRR(value);
 			}
 		}
 	}
@@ -2663,7 +2683,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 						}
 						
 						if (scan_index == value_index0)
-							object_result->push_object_element(value);
+							object_result->push_object_element_CRR(value);
 						break;
 					}
 			}
@@ -2915,7 +2935,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 					break;
 			
 			if (value_index == result_count)
-				object_element_vec->push_object_element(obj1);
+				object_element_vec->push_object_element_CRR(obj1);
 			else
 				object_element_vec->erase_index(value_index);
 		}
@@ -3113,7 +3133,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 							break;
 					
 					if (scan_index == value_index0)
-						object_result->push_object_element(value);
+						object_result->push_object_element_CRR(value);
 				}
 			}
 			
@@ -3134,7 +3154,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 							break;
 					
 					if (scan_index == value_index1)
-						object_result->push_object_element(value);
+						object_result->push_object_element_CRR(value);
 				}
 			}
 		}
@@ -3378,7 +3398,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 			}
 			
 			if (scan_index == result_count)
-				result_SP->ObjectElementVector_Mutable()->push_object_element(value);
+				result_SP->ObjectElementVector_Mutable()->push_object_element_CRR(value);
 		}
 	}
 	else
@@ -7541,10 +7561,18 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 				EidosObjectElement * const *true_vec = trueValues_value->ObjectElementVector()->data();
 				EidosObjectElement * const *false_vec = falseValues_value->ObjectElementVector()->data();
 				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
-				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize(test_count);
+				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
-				for (int value_index = 0; value_index < test_count; ++value_index)
-					object_result->set_object_element_no_check(logical_vec[value_index] ? true_vec[value_index] : false_vec[value_index], value_index);
+				if (object_result->UsesRetainRelease())
+				{
+					for (int value_index = 0; value_index < test_count; ++value_index)
+						object_result->set_object_element_no_check_no_previous_RR(logical_vec[value_index] ? true_vec[value_index] : false_vec[value_index], value_index);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < test_count; ++value_index)
+						object_result->set_object_element_no_check_NORR(logical_vec[value_index] ? true_vec[value_index] : false_vec[value_index], value_index);
+				}
 				
 				result_SP = object_result_SP;
 			}
@@ -7630,10 +7658,18 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 				EidosObjectElement *true_value = trueValues_value->ObjectElementAtIndex(0, nullptr);
 				EidosObjectElement *false_value = falseValues_value->ObjectElementAtIndex(0, nullptr);
 				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
-				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize(test_count);
+				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
-				for (int value_index = 0; value_index < test_count; ++value_index)
-					object_result->set_object_element_no_check(logical_vec[value_index] ? true_value : false_value, value_index);
+				if (object_result->UsesRetainRelease())
+				{
+					for (int value_index = 0; value_index < test_count; ++value_index)
+						object_result->set_object_element_no_check_no_previous_RR(logical_vec[value_index] ? true_value : false_value, value_index);
+				}
+				else
+				{
+					for (int value_index = 0; value_index < test_count; ++value_index)
+						object_result->set_object_element_no_check_NORR(logical_vec[value_index] ? true_value : false_value, value_index);
+				}
 				
 				result_SP = object_result_SP;
 			}
@@ -8256,11 +8292,19 @@ EidosValue_SP Eidos_ExecuteFunction_sortBy(const std::vector<EidosValue_SP> &p_a
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
-	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class()))->resize_no_initialize(x_count);
+	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class()))->resize_no_initialize_RR(x_count);
 	result_SP = EidosValue_SP(object_result);
 	
-	for (int value_index = 0; value_index < x_count; ++value_index)
-		object_result->set_object_element_no_check(x_value->ObjectElementAtIndex(value_index, nullptr), value_index);
+	if (object_result->UsesRetainRelease())
+	{
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			object_result->set_object_element_no_check_no_previous_RR(x_value->ObjectElementAtIndex(value_index, nullptr), value_index);
+	}
+	else
+	{
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			object_result->set_object_element_no_check_NORR(x_value->ObjectElementAtIndex(value_index, nullptr), value_index);
+	}
 	
 	object_result->SortBy(p_arguments[1]->StringAtIndex(0, nullptr), p_arguments[2]->LogicalAtIndex(0, nullptr));
 	
@@ -11028,7 +11072,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vect
 	return result_SP;
 }
 
-//	(void)defineConstant(string$ symbol, + x)
+//	(void)defineConstant(string$ symbol, * x)
 EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -11037,6 +11081,16 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	const EidosValue_SP x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
+	
+	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
+	// See also EidosDictionary::ExecuteMethod_Accelerated_setValue(), which enforces the same rule
+	if (x_value_sp->Type() == EidosValueType::kValueObject)
+	{
+		const EidosObjectClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();
+		
+		if (!x_value_class->UsesRetainRelease())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineConstant): defineConstant() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ElementType() << "is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+	}
 	
 	symbols.DefineConstantForSymbol(symbol_id, x_value_sp);
 	
@@ -11956,16 +12010,8 @@ EidosValue_SP Eidos_ExecuteFunction__Test(const std::vector<EidosValue_SP> &p_ar
 	EidosTestElement *testElement = new EidosTestElement(yolk_value->IntAtIndex(0, nullptr));
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(testElement, gEidosTestElement_Class));
 	
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
 	// testElement is now retained by result_SP, so we can release it
 	testElement->Release();
-#else
-	// when not doing retain/release, we just leak; to avoid these being reported in Instruments,
-	// we keep pointers to them statically forever so they don't clutter up the leaks report
-	static std::vector<EidosTestElement *> test_element_thunk;
-	
-	test_element_thunk.push_back(testElement);
-#endif
 	
 	return result_SP;
 }

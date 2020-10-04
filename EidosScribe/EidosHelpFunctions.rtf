@@ -4702,17 +4702,28 @@ If
 \f1\fs18 %d-%m-%Y
 \f3\fs20  (day in two digits, then month in two digits, then year in four digits, zero-padded and separated by dashes) regardless of the localization of the executing machine, for predictability and consistency.
 \f2 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)defineConstant(string$\'a0symbol, +\'a0value)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1\fs18 \cf2 (void)defineConstant(string$\'a0symbol, *\'a0value)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Defines a new constant
+\f0\b\fs20 \cf2 Defines a new constant
 \f3\b0  with the name 
 \f1\fs18 symbol
 \f3\fs20  and the value specified by 
 \f1\fs18 value
-\f3\fs20 .  The value may be any non-object value at all.  The name cannot previously be defined in any way (i.e., as either a variable or a constant).  The defined constant acts identically to intrinsic Eidos constants such as 
+\f3\fs20 .  Syntactically, the value may be any value at all; semantically, however, if 
+\f1\fs18 value
+\f3\fs20  is of 
+\f1\fs18 object
+\f3\fs20  type then 
+\f1\fs18 value
+\f3\fs20 \'92s class must be under retain/release memory management internally.  This restriction is necessary because if the Context defines the point in time when a given object ceases to exist (rather than that being governed by retain/release), then a defined constant referencing that object would become invalid, which must be prevented.  At present, among the classes defined by SLiM, only 
+\f1\fs18 Mutation
+\f3\fs20  and 
+\f1\fs18 Substitution
+\f3\fs20  are under retain/release; all object classes built into Eidos are under retain/release.\
+The name cannot previously be defined in any way (i.e., as either a variable or a constant).  The defined constant acts identically to intrinsic Eidos constants such as 
 \f1\fs18 T
 \f3\fs20 , 
 \f1\fs18 NAN
@@ -4721,9 +4732,10 @@ If
 \f3\fs20 , and will remain defined for as long as the Eidos context lives even if it is defined inside a block being executed by 
 \f1\fs18 executeLambda()
 \f3\fs20 , 
+\f1\fs18 apply()
+\f3\fs20 , 
 \f1\fs18 sapply()
-\f3\fs20 , or a Context-defined script block.
-\f2 \
+\f3\fs20 , or a Context-defined script block.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (\cf2 \expnd0\expndtw0\kerning0

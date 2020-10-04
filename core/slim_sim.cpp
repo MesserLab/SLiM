@@ -616,11 +616,11 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, nucleotide);
+		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, nucleotide);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 		mutations.insert(std::pair<slim_polymorphismid_t,MutationIndex>(polymorphism_id, new_mut_index));
-		population_.mutation_registry_.emplace_back(new_mut_index);
+		population_.MutationRegistryAdd(new_mut);
 		
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 		if (population_.keeping_muttype_registries_)
@@ -1278,11 +1278,11 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, nucleotide);
+		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, nucleotide);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 		mutations[polymorphism_id] = new_mut_index;
-		population_.mutation_registry_.emplace_back(new_mut_index);
+		population_.MutationRegistryAdd(new_mut);
 		
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 		if (population_.keeping_muttype_registries_)
@@ -2920,7 +2920,10 @@ void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
 	profile_nonneutral_regime_history_.push_back(last_nonneutral_regime_);
 	
 	// track the maximum number of mutations in existence at one time
-	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)(population_.mutation_registry_.size()));
+	int registry_size;
+	
+	population_.MutationRegistry(&registry_size);
+	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
 	
 	// tally up the number of mutation runs, mutation usage metrics, etc.
 	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
@@ -4461,7 +4464,10 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// Mutation
 	{
-		p_usage->mutationObjects_count = (int64_t)population_.mutation_registry_.size();
+		int registry_size;
+		
+		population_.MutationRegistry(&registry_size);
+		p_usage->mutationObjects_count = (int64_t)registry_size;
 		
 		p_usage->mutationObjects = sizeof(Mutation) * p_usage->mutationObjects_count;
 		
@@ -8079,11 +8085,11 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_generation_, metadata.nucleotide_);
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_generation_, metadata.nucleotide_);
 			
 			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;
-			population_.mutation_registry_.emplace_back(new_mut_index);
+			population_.MutationRegistryAdd(new_mut);
 			
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 			if (population_.keeping_muttype_registries_)

@@ -144,7 +144,7 @@ class QtSLiMHaplotypeView : public QOpenGLWidget, protected QOpenGLFunctions
     
 public:
     explicit QtSLiMHaplotypeView(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
-    ~QtSLiMHaplotypeView(void) override;
+    virtual ~QtSLiMHaplotypeView(void) override;
     
     void setDelegate(QtSLiMHaplotypeManager *delegate) { delegate_ = delegate; delegate_->setParent(this); }
     
@@ -154,11 +154,11 @@ private:
     bool displayBlackAndWhite_ = false;
     bool showSubpopulationStrips_ = false;
     
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
+    virtual void initializeGL() override;
+    virtual void resizeGL(int w, int h) override;
+    virtual void paintGL() override;
     
-    void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
 };
 
 

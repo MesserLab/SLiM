@@ -37,22 +37,22 @@ class QtSLiMGraphView_FrequencyTrajectory : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_FrequencyTrajectory(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_FrequencyTrajectory() override;
+    virtual ~QtSLiMGraphView_FrequencyTrajectory() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    bool providesStringForData(void) override;
-    void appendStringForData(QString &string) override;    
-    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
-    QString disableMessage(void) override;
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual bool providesStringForData(void) override;
+    virtual void appendStringForData(QString &string) override;    
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual QString disableMessage(void) override;
     
 public slots:
-    void addedToWindow(void) override;
+    virtual void addedToWindow(void) override;
     void invalidateCachedData(void);
-    void controllerRecycled(void) override;
-    void controllerGenerationFinished(void) override;
-    void updateAfterTick(void) override;
+    virtual void controllerRecycled(void) override;
+    virtual void controllerGenerationFinished(void) override;
+    virtual void updateAfterTick(void) override;
     void toggleShowLostMutations(void);
     void toggleShowFixedMutations(void);
     void toggleShowActiveMutations(void);
@@ -61,7 +61,7 @@ public slots:
     void mutationTypePopupChanged(int index);
     
 protected:
-    QtSLiMLegendSpec legendKey(void) override;    
+    virtual QtSLiMLegendSpec legendKey(void) override;    
     
 private:
     // Mutation history storage

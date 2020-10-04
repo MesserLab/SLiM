@@ -215,8 +215,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 					EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(constant_name);
 					EidosTypeSpecifier &constant_type = argument_types[1];
 					
-					if (constant_type.object_class == nullptr)
-						global_symbols_->SetTypeForSymbol(constant_id, constant_type);
+					global_symbols_->SetTypeForSymbol(constant_id, constant_type);
 				}
 			}
 		}

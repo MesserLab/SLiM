@@ -68,7 +68,7 @@ public:
 	EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);			// we use the passed symbol table but do not own it
 	EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);		// we use the passed symbol table but do not own it
 	
-	virtual ~EidosTypeInterpreter(void);										// destructor
+	virtual ~EidosTypeInterpreter(void);
 	
 	inline __attribute__((always_inline)) EidosTypeTable &SymbolTable(void) { return *global_symbols_; };	// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };	// the returned reference is to the function map that the interpreter has borrowed

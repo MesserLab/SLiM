@@ -33,25 +33,25 @@ class QtSLiMGraphView_FitnessOverTime : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_FitnessOverTime(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_FitnessOverTime() override;
+    virtual ~QtSLiMGraphView_FitnessOverTime() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    bool providesStringForData(void) override;
-    void appendStringForData(QString &string) override;    
-    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual bool providesStringForData(void) override;
+    virtual void appendStringForData(QString &string) override;    
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
     
 public slots:
-    void invalidateDrawingCache(void) override;
-    void controllerRecycled(void) override;
-    void controllerSelectionChanged(void) override;
-    void updateAfterTick(void) override;
+    virtual void invalidateDrawingCache(void) override;
+    virtual void controllerRecycled(void) override;
+    virtual void controllerSelectionChanged(void) override;
+    virtual void updateAfterTick(void) override;
     void toggleShowSubpopulations(void);
     void toggleDrawLines(void);
     
 protected:
-    QtSLiMLegendSpec legendKey(void) override;    
+    virtual QtSLiMLegendSpec legendKey(void) override;    
     
 private:
     bool showSubpopulations_ = false;

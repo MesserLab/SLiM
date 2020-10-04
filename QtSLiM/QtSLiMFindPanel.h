@@ -60,7 +60,7 @@ private:
     QtSLiMFindPanel(const QtSLiMFindPanel&) = delete;
     QtSLiMFindPanel& operator=(const QtSLiMFindPanel&) = delete;
     
-    void closeEvent(QCloseEvent *e) override;
+    virtual void closeEvent(QCloseEvent *e) override;
     
     bool findForwardWrapBeep(QTextEdit *target, bool forward, bool wrap, bool beepIfNotFound);
     

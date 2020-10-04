@@ -65,9 +65,9 @@ public:
     void tileSubpopulations(std::vector<Subpopulation*> &selectedSubpopulations);
     
 protected:
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
+    virtual void initializeGL() override;
+    virtual void resizeGL(int w, int h) override;
+    virtual void paintGL() override;
 
     bool canDisplayIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
     QRect spatialDisplayBoundsForSubpopulation(Subpopulation *subpop, QRect tileBounds);
@@ -80,7 +80,7 @@ protected:
     void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
     void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality);
     
-    void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
 };
 
 #endif // QTSLIMINDIVIDUALSWIDGET_H

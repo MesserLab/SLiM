@@ -687,7 +687,6 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
 	
 	new (mutation) Mutation(mutation_type_ptr, p_position.first, selection_coeff, p_subpop_index, p_generation, -1);
-	mutation->scratch_ = 0;		// for the caller, we set this to signify "not in registry"; these semantics are local only!
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
@@ -791,6 +790,8 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 								// responsibility to deal with; it can be a useful thing to do, Peter thinks.
 								if (replacementMutation->position_ != p_mut->position_)
 									EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the position of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
+								if ((replacementMutation->state_ == MutationState::kRemovedWithSubstitution) || (replacementMutation->state_ == MutationState::kFixedAndSubstituted))
+									EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback cannot be fixed/substituted." << EidosTerminate(mutation_callback->identifier_token_);
 								if (replacementMutation->mutation_type_ptr_ != p_mut->mutation_type_ptr_)
 								{
 									//EIDOS_TERMINATION << "ERROR (Chromosome::ApplyMutationCallbacks): a replacement mutation from a mutation() callback must match the mutation type of the proposed mutation." << EidosTerminate(mutation_callback->identifier_token_);
@@ -1008,7 +1009,6 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
 	
 	new (mutation) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_generation, nucleotide);
-	mutation->scratch_ = 0;		// for the caller, we set this to signify "not in registry"; these semantics are local only!
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
@@ -1019,7 +1019,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		if (post_callback_mut != mutation)
 		{
 			//std::cout << "proposed mutation not used, disposing..." << std::endl;
-			SLiM_DisposeMutationToBlock(new_mut_index);
+			mutation->Release();
 		}
 		
 		// If it returned nullptr, the mutation event was rejected
@@ -1036,7 +1036,6 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		if (new_mut_index != post_callback_mut_index)
 		{
 			//std::cout << "replacing mutation!" << std::endl;
-			post_callback_mut->scratch_ = 1;		// for the caller, we set this to signify "in registry"; these semantics are local only!
 			new_mut_index = post_callback_mut_index;
 		}
 	}
@@ -1403,7 +1402,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (GenomicElement *genomic_element : genomic_elements_)
-				vec->push_object_element(genomic_element);
+				vec->push_object_element_NORR(genomic_element);
 			
 			return result_SP;
 		}
@@ -2314,10 +2313,10 @@ public:
 	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
 	inline Chromosome_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_Chromosome_Class = new Chromosome_Class();

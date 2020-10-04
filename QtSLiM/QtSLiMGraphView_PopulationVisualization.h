@@ -31,13 +31,13 @@ class QtSLiMGraphView_PopulationVisualization : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_PopulationVisualization(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_PopulationVisualization() override;
+    virtual ~QtSLiMGraphView_PopulationVisualization() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
-    void appendStringForData(QString &string) override;
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual void appendStringForData(QString &string) override;
     
 public slots:
     void toggleOptimizedPositions(void);

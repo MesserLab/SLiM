@@ -41,7 +41,6 @@
 #include "eidos_value.h"
 #include "eidos_functions.h"
 #include "slim_eidos_block.h"
-#include "slim_eidos_dictionary.h"
 #include "interaction_type.h"
 
 //TREE SEQUENCE
@@ -254,7 +253,7 @@ typedef struct
 #pragma mark SLiMSim
 #pragma mark -
 
-class SLiMSim : public SLiMEidosDictionary
+class SLiMSim : public EidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -660,7 +659,7 @@ public:
 #pragma mark -
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
-	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteContextFunction_initializeAncestralNucleotides(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -687,12 +686,12 @@ public:
 	static const std::vector<EidosMethodSignature_CSP> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	static const std::vector<EidosPropertySignature_CSP> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
 	
-	virtual const EidosObjectClass *Class(void) const;
+	virtual const EidosObjectClass *Class(void) const override;
 	
-	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
-	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	
 #ifdef SLIM_WF_ONLY
 	EidosValue_SP ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

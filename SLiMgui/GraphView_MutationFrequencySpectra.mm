@@ -88,13 +88,12 @@
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	double totalGenomeCount = pop.total_genome_count_;
-	MutationRun &mutationRegistry = pop.mutation_registry_;
-	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
-	int mutationCount = (int)(mutationRegistry.end_pointer_const() - mutations);
+	int registry_size;
+	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	
-	for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 	{
-		const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+		const Mutation *mutation = mut_block_ptr + registry[registry_index];
 		
 		// if the user has selected a subrange of the chromosome, we will work from that
 		if (hasSelection)

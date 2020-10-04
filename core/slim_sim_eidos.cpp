@@ -274,7 +274,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		GenomicElement *new_genomic_element = new GenomicElement(genomic_element_type_ptr, start_position, end_position);
 		
 		chromosome_.GenomicElements().emplace_back(new_genomic_element);
-		result_vec->set_object_element_no_check(new_genomic_element, element_index);
+		result_vec->set_object_element_no_check_NORR(new_genomic_element, element_index);
 		
 		chromosome_changed_ = true;
 		num_genomic_elements_++;
@@ -1754,7 +1754,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto ge_type : genomic_element_types_)
-				vec->push_object_element(ge_type.second);
+				vec->push_object_element_NORR(ge_type.second);
 			
 			return result_SP;
 		}
@@ -1779,7 +1779,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
             for (auto iter : interaction_types_)
-				vec->push_object_element(iter.second);
+				vec->push_object_element_NORR(iter.second);
 			
 			return result_SP;
 		}
@@ -1804,13 +1804,13 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutations:
 		{
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			MutationRun &mutation_registry = population_.mutation_registry_;
-			int mutation_count = mutation_registry.size();
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(mutation_count);
+			int registry_size;
+			const MutationIndex *registry = population_.MutationRegistry(&registry_size);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(registry_size);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
-				vec->set_object_element_no_check(mut_block_ptr + mutation_registry[mut_index], mut_index);
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+				vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + registry[registry_index], registry_index);
 			
 			return result_SP;
 		}
@@ -1820,7 +1820,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mutation_type : mutation_types_)
-				vec->push_object_element(mutation_type.second);
+				vec->push_object_element_NORR(mutation_type.second);
 			
 			return result_SP;
 		}
@@ -1836,7 +1836,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			for (auto script_block : script_blocks)
 				if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)		// exclude function blocks; not user-visible
-					vec->push_object_element(script_block);
+					vec->push_object_element_NORR(script_block);
 			
 			return result_SP;
 		}
@@ -1848,17 +1848,19 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto pop : population_.subpops_)
-				vec->push_object_element(pop.second);
+				vec->push_object_element_NORR(pop.second);
 			
 			return result_SP;
 		}
 		case gID_substitutions:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Substitution_Class);
+			std::vector<Substitution*> &substitutions = population_.substitutions_;
+			int substitution_count = (int)substitutions.size();
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Substitution_Class))->resize_no_initialize_RR(substitution_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto sub_iter : population_.substitutions_)
-				vec->push_object_element(sub_iter);
+			for (int sub_index = 0; sub_index < substitution_count; ++sub_index)
+				vec->set_object_element_no_check_no_previous_RR(substitutions[sub_index], sub_index);
 			
 			return result_SP;
 		}
@@ -2019,7 +2021,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_treeSeqSimplify:				return ExecuteMethod_treeSeqSimplify(p_method_id, p_arguments, p_interpreter);
 		case gID_treeSeqRememberIndividuals:	return ExecuteMethod_treeSeqRememberIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_treeSeqOutput:					return ExecuteMethod_treeSeqOutput(p_method_id, p_arguments, p_interpreter);
-		default:								return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:								return EidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -2203,6 +2205,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	double denominator = 1.0 / total_genome_count;
 	EidosValue_SP result_SP;
 	
+	// BCH 10/3/2020: Note that we now have to worry about being asked for the frequency of mutations that are
+	// not in the registry, and might be fixed or lost.  We handle this in the first major case below, where
+	// a vector of mutations was given.  It could be a marginal issue in the second major case, where NULL was
+	// passed for the mutation vector, because the registry can temporarily contain mutations in the state
+	// MutationState::kRemovedWithSubstitution, immediately after removeMutations(substitute=T); if that is
+	// a potential issue, population_.registry_needs_consistency_check_ will be true, and we treat it specially.
+	
 	if (mutations_value->Type() != EidosValueType::kValueNULL)
 	{
 		// a vector of mutations was given, so loop through them and take their tallies
@@ -2214,16 +2223,26 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 			if (p_method_id == gID_mutationFrequencies)
 			{
 				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
-				MutationIndex mut_index = mut->BlockIndex();
+				int8_t mut_state = mut->state_;
+				double freq;
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(*(refcount_block_ptr + mut_index) * denominator));
+				if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
+				else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
+				else													freq = 1.0;
+				
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(freq));
 			}
 			else // p_method_id == gID_mutationCounts
 			{
 				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
-				MutationIndex mut_index = mut->BlockIndex();
+				int8_t mut_state = mut->state_;
+				slim_refcount_t count;
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(*(refcount_block_ptr + mut_index)));
+				if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
+				else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
+				else													count = total_genome_count;
+				
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(count));
 			}
 		}
 		else
@@ -2236,9 +2255,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 				for (int value_index = 0; value_index < mutations_count; ++value_index)
 				{
 					Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
-					MutationIndex mut_index = mut->BlockIndex();
+					int8_t mut_state = mut->state_;
+					double freq;
 					
-					float_result->set_float_no_check(*(refcount_block_ptr + mut_index) * denominator, value_index);
+					if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
+					else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
+					else													freq = 1.0;
+					
+					float_result->set_float_no_check(freq, value_index);
 				}
 			}
 			else // p_method_id == gID_mutationCounts
@@ -2249,19 +2273,25 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 				for (int value_index = 0; value_index < mutations_count; ++value_index)
 				{
 					Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
-					MutationIndex mut_index = mut->BlockIndex();
+					int8_t mut_state = mut->state_;
+					slim_refcount_t count;
 					
-					int_result->set_int_no_check(*(refcount_block_ptr + mut_index), value_index);
+					if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
+					else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
+					else													count = total_genome_count;
+					
+					int_result->set_int_no_check(count, value_index);
 				}
 			}
 		}
 	}
-	else
+	else if (population_.MutationRegistryNeedsCheck())
 	{
 		// no mutation vector was given, so return all frequencies from the registry
-		MutationRun &registry = population_.mutation_registry_;
-		const MutationIndex *registry_iter_begin = registry.begin_pointer_const();
-		int registry_size = registry.size();
+		// this is the same as the case below, except MutationState::kRemovedWithSubstitution is possible
+		int registry_size;
+		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
+		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 		
 		if (p_method_id == gID_mutationFrequencies)
 		{
@@ -2269,7 +2299,16 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int registry_index = 0; registry_index < registry_size; registry_index++)
-				float_result->set_float_no_check(*(refcount_block_ptr + *(registry_iter_begin + registry_index)) * denominator, registry_index);
+			{
+				MutationIndex mut_index = registry[registry_index];
+				int8_t mut_state = (mutation_block_ptr + registry_index)->state_;
+				double freq;
+				
+				if (mut_state == MutationState::kInRegistry)		freq = *(refcount_block_ptr + mut_index) * denominator;
+				else /* MutationState::kRemovedWithSubstitution */	freq = 1.0;
+				
+				float_result->set_float_no_check(freq, registry_index);
+			}
 		}
 		else // p_method_id == gID_mutationCounts
 		{
@@ -2277,7 +2316,39 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 			result_SP = EidosValue_SP(int_result);
 			
 			for (int registry_index = 0; registry_index < registry_size; registry_index++)
-				int_result->set_int_no_check(*(refcount_block_ptr + *(registry_iter_begin + registry_index)), registry_index);
+			{
+				MutationIndex mut_index = registry[registry_index];
+				int8_t mut_state = (mutation_block_ptr + registry_index)->state_;
+				slim_refcount_t count;
+				
+				if (mut_state == MutationState::kInRegistry)		count = *(refcount_block_ptr + mut_index);
+				else /* MutationState::kRemovedWithSubstitution */	count = total_genome_count;
+				
+				int_result->set_int_no_check(count, registry_index);
+			}
+		}
+	}
+	else
+	{
+		// no mutation vector was given, so return all frequencies from the registry
+		int registry_size;
+		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
+		
+		if (p_method_id == gID_mutationFrequencies)
+		{
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(registry_size);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int registry_index = 0; registry_index < registry_size; registry_index++)
+				float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) * denominator, registry_index);
+		}
+		else // p_method_id == gID_mutationCounts
+		{
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(registry_size);
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int registry_index = 0; registry_index < registry_size; registry_index++)
+				int_result->set_int_no_check(*(refcount_block_ptr + registry[registry_index]), registry_index);
 		}
 	}
 	
@@ -2302,13 +2373,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	// start a registry if appropriate, so we can hit the fast case below
 	if (start_registry && (!population_.keeping_muttype_registries_ || !mutation_type_ptr->keeping_muttype_registry_))
 	{
-		MutationRun &mutation_registry = population_.mutation_registry_;
-		int mutation_count = mutation_registry.size();
+		int registry_size;
+		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 		MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
 		
-		for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			MutationIndex mut = mutation_registry[mut_index];
+			MutationIndex mut = registry[registry_index];
 			
 			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
 				muttype_registry.emplace_back(mut);
@@ -2330,11 +2401,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 		}
 		else
 		{
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(mutation_count);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
-				vec->set_object_element_no_check(mut_block_ptr + mutation_registry[mut_index], mut_index);
+				vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_registry[mut_index], mut_index);
 			
 			return result_SP;
 		}
@@ -2344,14 +2415,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	{
 		// No registry in the muttype; count the number of mutations of the given type, so we can reserve the right vector size
 		// To avoid having to scan the registry twice for the simplest case of a single mutation, we cache the first mutation found
-		MutationRun &mutation_registry = population_.mutation_registry_;
-		int mutation_count = mutation_registry.size();
-		int match_count = 0, mut_index;
+		int registry_size;
+		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
+		int match_count = 0, registry_index;
 		MutationIndex first_match = -1;
 		
-		for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+		for (registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			MutationIndex mut = mutation_registry[mut_index];
+			MutationIndex mut = registry[registry_index];
 			
 			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
 			{
@@ -2367,19 +2438,19 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 		}
 		else
 		{
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(match_count);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(match_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			if (match_count != 0)
 			{
 				int set_index = 0;
 				
-				for (mut_index = 0; mut_index < mutation_count; ++mut_index)
+				for (registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
-					MutationIndex mut = mutation_registry[mut_index];
+					MutationIndex mut = registry[registry_index];
 					
 					if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-						vec->set_object_element_no_check(mut_block_ptr + mut, set_index++);
+						vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mut, set_index++);
 				}
 			}
 			
@@ -2406,13 +2477,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	// start a registry if appropriate, so we can hit the fast case below
 	if (start_registry && (!population_.keeping_muttype_registries_ || !mutation_type_ptr->keeping_muttype_registry_))
 	{
-		MutationRun &mutation_registry = population_.mutation_registry_;
-		int mutation_count = mutation_registry.size();
+		int registry_size;
+		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 		MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
 		
-		for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			MutationIndex mut = mutation_registry[mut_index];
+			MutationIndex mut = registry[registry_index];
 			
 			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
 				muttype_registry.emplace_back(mut);
@@ -2425,8 +2496,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	if (population_.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
 	{
 		// We're already keeping a separate registry for this mutation type (see mutation_type.h), so we can answer this directly
-		MutationRun &mutation_registry = mutation_type_ptr->muttype_registry_;
-		int mutation_count = mutation_registry.size();
+		MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
+		int mutation_count = muttype_registry.size();
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_count));
 	}
@@ -2434,12 +2505,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 #endif
 	{
 		// Count the number of mutations of the given type
-		MutationRun &mutation_registry = population_.mutation_registry_;
-		int mutation_count = mutation_registry.size();
-		int match_count = 0, mut_index;
+		int registry_size;
+		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
+		int match_count = 0;
 		
-		for (mut_index = 0; mut_index < mutation_count; ++mut_index)
-			if ((mut_block_ptr + mutation_registry[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+			if ((mut_block_ptr + registry[registry_index])->mutation_type_ptr_ == mutation_type_ptr)
 				++match_count;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
@@ -2662,12 +2733,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		// as we scan through genomes building the polymorphism map, we want to process only mutations that are
 		// in the user-supplied mutations vector; to do that filtering efficiently, we use Mutation::scratch_
 		// first zero out scratch_ in all mutations in the registry...
-		MutationRun &mutation_registry = population_.mutation_registry_;
-		int registry_count = mutation_registry.size();
+		int registry_size;
+		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 		
-		for (int mut_index = 0; mut_index < registry_count; ++mut_index)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			Mutation *mut = mut_block_ptr + mutation_registry[mut_index];
+			Mutation *mut = mut_block_ptr + registry[registry_index];
 			mut->scratch_ = 0;
 		}
 		
@@ -3403,7 +3474,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 					script_block_types_cached_ = false;
 					scripts_changed_ = true;
 					
-					vec->push_object_element(block);
+					vec->push_object_element_NORR(block);
 				}
 				else
 				{
@@ -3411,7 +3482,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 					
 					AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 					
-					vec->push_object_element(new_script_block);
+					vec->push_object_element_NORR(new_script_block);
 				}
 			}
 			
@@ -3489,8 +3560,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	// We will scan forward looking for a match, and will keep track of the first match we find.  If we only find one, we return
 	// a singleton; if we find a second, we will start accumulating a vector result.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	MutationRun &mutation_registry = population_.mutation_registry_;
-	int registry_count = mutation_registry.size();
+	int registry_size;
+	const MutationIndex *registry = population_.MutationRegistry(&registry_size);
 	int match_count = 0, registry_index;
 	Mutation *first_match = nullptr;
 	EidosValue_Object_vector *vec = nullptr;
@@ -3498,9 +3569,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag)
 	{
 		// id-only search; nice for this to be fast since people will use it to look up a specific mutation
-		for (registry_index = 0; registry_index < registry_count; ++registry_index)
+		for (registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			Mutation *mut = mut_block_ptr + mutation_registry[registry_index];
+			Mutation *mut = mut_block_ptr + registry[registry_index];
 			
 			if (mut->mutation_id_ != id)
 				continue;
@@ -3514,21 +3585,21 @@ EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			else if (match_count == 2)
 			{
 				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
-				vec->push_object_element(first_match);
-				vec->push_object_element(mut);
+				vec->push_object_element_RR(first_match);
+				vec->push_object_element_RR(mut);
 			}
 			else
 			{
-				vec->push_object_element(mut);
+				vec->push_object_element_RR(mut);
 			}
 		}
 	}
 	else if (!exclude && !has_tag && !has_id)
 	{
 		// no exclude, tag, or id; this is expected to be the common case, for the usage patterns I anticipate
-		for (registry_index = 0; registry_index < registry_count; ++registry_index)
+		for (registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			Mutation *mut = mut_block_ptr + mutation_registry[registry_index];
+			Mutation *mut = mut_block_ptr + registry[registry_index];
 			
 			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
 			if ((position != -1) && (mut->position_ != position))						continue;
@@ -3543,21 +3614,21 @@ EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			else if (match_count == 2)
 			{
 				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
-				vec->push_object_element(first_match);
-				vec->push_object_element(mut);
+				vec->push_object_element_RR(first_match);
+				vec->push_object_element_RR(mut);
 			}
 			else
 			{
-				vec->push_object_element(mut);
+				vec->push_object_element_RR(mut);
 			}
 		}
 	}
 	else
 	{
 		// GENERAL CASE
-		for (registry_index = 0; registry_index < registry_count; ++registry_index)
+		for (registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			Mutation *mut = mut_block_ptr + mutation_registry[registry_index];
+			Mutation *mut = mut_block_ptr + registry[registry_index];
 			
 			if (exclude && (mut == exclude))											continue;
 			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
@@ -3575,12 +3646,12 @@ EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			else if (match_count == 2)
 			{
 				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
-				vec->push_object_element(first_match);
-				vec->push_object_element(mut);
+				vec->push_object_element_RR(first_match);
+				vec->push_object_element_RR(mut);
 			}
 			else
 			{
-				vec->push_object_element(mut);
+				vec->push_object_element_RR(mut);
 			}
 		}
 	}
@@ -3703,17 +3774,17 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 #pragma mark SLiMSim_Class
 #pragma mark -
 
-class SLiMSim_Class : public SLiMEidosDictionary_Class
+class SLiMSim_Class : public EidosDictionary_Class
 {
 public:
 	SLiMSim_Class(const SLiMSim_Class &p_original) = delete;	// no copy-construct
 	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
 	inline SLiMSim_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
@@ -3730,7 +3801,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) c
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -3763,7 +3834,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));

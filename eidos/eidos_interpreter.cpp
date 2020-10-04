@@ -1673,7 +1673,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 					
 					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						if (logical_index_data[value_idx])
-							obj_result->push_object_element_no_check(first_child_vec[value_idx]);
+							obj_result->push_object_element_no_check_CRR(first_child_vec[value_idx]);
 					
 					result_SP = std::move(obj_result_SP);
 				}
@@ -1803,7 +1803,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							if ((index_value < 0) || (index_value >= first_child_count))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
-								obj_result->set_object_element_no_check(first_child_vec[index_value], value_idx);
+								obj_result->set_object_element_no_check_CRR(first_child_vec[index_value], value_idx);
 						}
 					}
 					else
@@ -1816,7 +1816,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 							if ((index_value < 0) || (index_value >= first_child_count))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 							else
-								obj_result->set_object_element_no_check(first_child_vec[index_value], value_idx);
+								obj_result->set_object_element_no_check_CRR(first_child_vec[index_value], value_idx);
 						}
 					}
 					

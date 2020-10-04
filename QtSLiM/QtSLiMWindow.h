@@ -298,10 +298,10 @@ private slots:
     void finish_eidos_pauseExecution(void);
     
 protected:
-    void closeEvent(QCloseEvent *event) override;
-    void moveEvent(QMoveEvent *event) override;
-    void resizeEvent(QResizeEvent *event) override;
-    void showEvent(QShowEvent *event) override;
+    virtual void closeEvent(QCloseEvent *event) override;
+    virtual void moveEvent(QMoveEvent *event) override;
+    virtual void resizeEvent(QResizeEvent *event) override;
+    virtual void showEvent(QShowEvent *event) override;
     void positionNewSubsidiaryWindow(QWidget *window);
     QWidget *graphWindowWithView(QtSLiMGraphView *graphView);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);

@@ -978,10 +978,6 @@ const std::string gStr_initializeTreeSeq = "initializeTreeSeq";
 const std::string gStr_initializeSLiMModelType = "initializeSLiMModelType";
 const std::string gStr_initializeInteractionType = "initializeInteractionType";
 
-// SLiMEidosDictionary
-const std::string gStr_getValue = "getValue";
-const std::string gStr_setValue = "setValue";
-
 // mostly property names
 const std::string gStr_genomicElements = "genomicElements";
 const std::string gStr_lastPosition = "lastPosition";
@@ -1025,6 +1021,8 @@ const std::string gStr_id = "id";
 const std::string gStr_mutationTypes = "mutationTypes";
 const std::string gStr_mutationFractions = "mutationFractions";
 const std::string gStr_mutationMatrix = "mutationMatrix";
+const std::string gStr_isFixed = "isFixed";
+const std::string gStr_isSegregating = "isSegregating";
 const std::string gStr_mutationType = "mutationType";
 const std::string gStr_nucleotide = "nucleotide";
 const std::string gStr_nucleotideValue = "nucleotideValue";
@@ -1232,7 +1230,6 @@ const std::string gStr_pauseExecution = "pauseExecution";
 const std::string gStr_configureDisplay = "configureDisplay";
 
 // mostly SLiM element types
-const std::string gStr_SLiMEidosDictionary = "SLiMEidosDictionary";
 const std::string gStr_Chromosome = "Chromosome";
 //const std::string gStr_Genome = "Genome";				// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string gStr_GenomicElement = "GenomicElement";
@@ -1324,9 +1321,6 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_initializeSLiMModelType, gID_initializeSLiMModelType);
 		Eidos_RegisterStringForGlobalID(gStr_initializeInteractionType, gID_initializeInteractionType);
 		
-		Eidos_RegisterStringForGlobalID(gStr_getValue, gID_getValue);
-		Eidos_RegisterStringForGlobalID(gStr_setValue, gID_setValue);
-		
 		Eidos_RegisterStringForGlobalID(gStr_genomicElements, gID_genomicElements);
 		Eidos_RegisterStringForGlobalID(gStr_lastPosition, gID_lastPosition);
 		Eidos_RegisterStringForGlobalID(gStr_hotspotEndPositions, gID_hotspotEndPositions);
@@ -1369,6 +1363,8 @@ void SLiM_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gStr_mutationTypes, gID_mutationTypes);
 		Eidos_RegisterStringForGlobalID(gStr_mutationFractions, gID_mutationFractions);
 		Eidos_RegisterStringForGlobalID(gStr_mutationMatrix, gID_mutationMatrix);
+		Eidos_RegisterStringForGlobalID(gStr_isFixed, gID_isFixed);
+		Eidos_RegisterStringForGlobalID(gStr_isSegregating, gID_isSegregating);
 		Eidos_RegisterStringForGlobalID(gStr_mutationType, gID_mutationType);
 		Eidos_RegisterStringForGlobalID(gStr_nucleotide, gID_nucleotide);
 		Eidos_RegisterStringForGlobalID(gStr_nucleotideValue, gID_nucleotideValue);

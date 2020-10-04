@@ -262,12 +262,13 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
     SLiMSim *sim = controller_->sim;
 	Population &population = sim->population_;
 	double scalingFactor = 0.8; //controller_->selectionColorScale;
-	MutationRun &registry = population.mutation_registry_;
-	const MutationIndex *reg_ptr, *reg_end_ptr = registry.end_pointer_const();
+    int registry_size;
+    const MutationIndex *registry = population.MutationRegistry(&registry_size);
+	const MutationIndex *reg_end_ptr = registry + registry_size;
 	MutationIndex biggest_index = 0;
 	
 	// First, find the biggest index presently in use; that's how many entries we need
-	for (reg_ptr = registry.begin_pointer_const() ; reg_ptr != reg_end_ptr; ++reg_ptr)
+	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
 		MutationIndex mut_index = *reg_ptr;
 		
@@ -283,7 +284,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	// Copy the information we need on each mutation in use
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
-	for (reg_ptr = registry.begin_pointer_const() ; reg_ptr != reg_end_ptr; ++reg_ptr)
+	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
 		MutationIndex mut_index = *reg_ptr;
 		const Mutation *mut = mut_block_ptr + mut_index;

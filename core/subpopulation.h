@@ -58,7 +58,6 @@
 #include "individual.h"
 #include "population.h"
 #include "slim_sim.h"
-#include "slim_eidos_dictionary.h"
 
 #include <vector>
 #include <map>
@@ -116,7 +115,7 @@ typedef std::map<std::string, SpatialMap *> SpatialMapMap;
 #pragma mark Subpopulation
 #pragma mark -
 
-class Subpopulation : public SLiMEidosDictionary
+class Subpopulation : public EidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -467,13 +466,13 @@ public:
 	//
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
-	virtual const EidosObjectClass *Class(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
+	virtual const EidosObjectClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
 	
-	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
-	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	
 #ifdef SLIM_WF_ONLY
 	EidosValue_SP ExecuteMethod_setMigrationRates(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

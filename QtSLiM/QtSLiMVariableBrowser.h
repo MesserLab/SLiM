@@ -40,9 +40,9 @@ public:
     QtSLiMBrowserItem(QString name, EidosValue_SP value) : QtSLiMBrowserItem(name, value, -1) {}
     QtSLiMBrowserItem(QString name, EidosValue_SP value, int index) : QtSLiMBrowserItem(name, value, index, false) {}
     QtSLiMBrowserItem(QString name, EidosValue_SP value, int index, bool isEllipsis);
-    ~QtSLiMBrowserItem(void) override;
+    virtual ~QtSLiMBrowserItem(void) override;
     
-    QVariant data(int column, int role) const override;
+    virtual QVariant data(int column, int role) const override;
     
     QString symbol_name;            // the name as displayed in the browser
     EidosValue_SP eidos_value;      // the EidosValue referred to by this item (perhaps just one element of it)
@@ -62,7 +62,7 @@ class QtSLiMVariableBrowserDelegate : public QStyledItemDelegate
     
 public:
     QtSLiMVariableBrowserDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
-    ~QtSLiMVariableBrowserDelegate(void) override;
+    virtual ~QtSLiMVariableBrowserDelegate(void) override;
     
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
@@ -93,7 +93,7 @@ signals:
     void willClose(void);
     
 private slots:
-    void closeEvent(QCloseEvent *event) override;
+    virtual void closeEvent(QCloseEvent *event) override;
     
 private:
     Ui::QtSLiMVariableBrowser *ui;

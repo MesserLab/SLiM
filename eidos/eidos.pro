@@ -69,6 +69,7 @@ SOURCES += \
     eidos_ast_node.cpp \
     eidos_beep.cpp \
     eidos_call_signature.cpp \
+    eidos_dictionary.cpp \
     eidos_functions.cpp \
     eidos_globals.cpp \
     eidos_interpreter.cpp \

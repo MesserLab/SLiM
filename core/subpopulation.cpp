@@ -3302,7 +3302,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter : child_genomes_)
-						vec->push_object_element(genome_iter);
+						vec->push_object_element_NORR(genome_iter);
 				}
 				/*
 				else
@@ -3334,7 +3334,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter : parent_genomes_)
-						vec->push_object_element(genome_iter);
+						vec->push_object_element_NORR(genome_iter);
 				}
 				/*
 				else
@@ -3376,7 +3376,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element(child_individuals_[individual_index]);
+						vec->push_object_element_NORR(child_individuals_[individual_index]);
 				}
 				
 				return cached_child_individuals_value_;
@@ -3397,7 +3397,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element(parent_individuals_[individual_index]);
+						vec->push_object_element_NORR(parent_individuals_[individual_index]);
 				}
 				
 				return cached_parent_individuals_value_;
@@ -3679,7 +3679,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_outputSample:			return ExecuteMethod_outputXSample(p_method_id, p_arguments, p_interpreter);
 		case gID_configureDisplay:		return ExecuteMethod_configureDisplay(p_method_id, p_arguments, p_interpreter);
 			
-		default:						return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:						return EidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -5861,7 +5861,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				if ((excluded_index != -1) && (sample_index >= excluded_index))
 					sample_index++;
 				
-				result->set_object_element_no_check(parent_individuals_[sample_index], samples_generated);
+				result->set_object_element_no_check_NORR(parent_individuals_[sample_index], samples_generated);
 			}
 			
 			return result_SP;
@@ -5877,7 +5877,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			if ((excluded_index != -1) && (sample_index1 >= excluded_index))
 				sample_index1++;
 			
-			result->set_object_element_no_check(parent_individuals_[sample_index1], 0);
+			result->set_object_element_no_check_NORR(parent_individuals_[sample_index1], 0);
 			
 			int sample_index2;
 			
@@ -5890,7 +5890,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			}
 			while (sample_index2 == sample_index1);
 			
-			result->set_object_element_no_check(parent_individuals_[sample_index2], 1);
+			result->set_object_element_no_check_NORR(parent_individuals_[sample_index2], 1);
 			
 			return result_SP;
 		}
@@ -5995,7 +5995,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			
 			int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
 			
-			result->set_object_element_no_check(parent_individuals_[index_vector[rose_index]], samples_generated);
+			result->set_object_element_no_check_NORR(parent_individuals_[index_vector[rose_index]], samples_generated);
 			
 			if (!replace)
 			{
@@ -6115,7 +6115,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 		if (excluded_index == -1)
 		{
 			for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
-				result->push_object_element_no_check(parent_individuals_[value_index]);
+				result->push_object_element_no_check_NORR(parent_individuals_[value_index]);
 		}
 		else
 		{
@@ -6124,7 +6124,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 				if (value_index == excluded_index)
 					continue;
 				
-				result->push_object_element_no_check(parent_individuals_[value_index]);
+				result->push_object_element_no_check_NORR(parent_individuals_[value_index]);
 			}
 		}
 	}
@@ -6148,7 +6148,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 			if (value_index == excluded_index)
 				continue;
 			
-			result->push_object_element_no_check(parent_individuals_[value_index]);
+			result->push_object_element_no_check_NORR(parent_individuals_[value_index]);
 		}
 	}
 	
@@ -6746,17 +6746,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID 
 #pragma mark Subpopulation_Class
 #pragma mark -
 
-class Subpopulation_Class : public SLiMEidosDictionary_Class
+class Subpopulation_Class : public EidosDictionary_Class
 {
 public:
 	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
 	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
 	inline Subpopulation_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
@@ -6773,7 +6773,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));
@@ -6801,7 +6801,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));

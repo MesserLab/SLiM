@@ -79,7 +79,7 @@ public:
 	EidosScript(void) = delete;												// no null construction
 	explicit EidosScript(const std::string &p_script_string);
 	
-	virtual ~EidosScript(void);												// destructor
+	virtual ~EidosScript(void);
 	
 	void SetFinalSemicolonOptional(bool p_optional_semicolon)		{ final_semicolon_optional_ = p_optional_semicolon; }
 	

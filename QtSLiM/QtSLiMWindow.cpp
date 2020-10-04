@@ -1389,9 +1389,14 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
             QString message("<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>");
             
             if (sim)
+            {
+                int registry_size;
+                sim->population_.MutationRegistry(&registry_size);
+                
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
-                                           .arg(sim->population_.mutation_registry_.size())
+                                           .arg(registry_size)
                                            .arg(sim->population_.substitutions_.size()));
+            }
             else
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6));
         }

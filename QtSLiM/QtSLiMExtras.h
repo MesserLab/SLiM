@@ -83,11 +83,11 @@ class QtSLiMPlayControlsLayout : public QHBoxLayout
 public:
     QtSLiMPlayControlsLayout(QWidget *parent): QHBoxLayout(parent) {}
     QtSLiMPlayControlsLayout(): QHBoxLayout() {}
-    ~QtSLiMPlayControlsLayout() override;
+    virtual ~QtSLiMPlayControlsLayout() override;
 
-    QSize sizeHint() const override;
-    QSize minimumSize() const override;
-    void setGeometry(const QRect &rect) override;
+    virtual QSize sizeHint() const override;
+    virtual QSize minimumSize() const override;
+    virtual void setGeometry(const QRect &rect) override;
 };
 
 // Heat colors for profiling display
@@ -109,10 +109,10 @@ public:
     QtSLiMPushButton(const QIcon &icon, const QString &text, QWidget *parent = nullptr) : QPushButton(icon, text, parent) {}
     QtSLiMPushButton(const QString &text, QWidget *parent = nullptr) : QPushButton(text, parent) {}
     QtSLiMPushButton(QWidget *parent = nullptr) : QPushButton(parent) {}
-    ~QtSLiMPushButton(void) override {}
+    virtual ~QtSLiMPushButton(void) override {}
     
 protected:
-    void paintEvent(QPaintEvent *paintEvent) override;
+    virtual void paintEvent(QPaintEvent *paintEvent) override;
 };
 
 // A subclass of QSplitterHandle that does some custom drawing
@@ -122,10 +122,10 @@ class QtSLiMSplitterHandle : public QSplitterHandle
     
 public:
     QtSLiMSplitterHandle(Qt::Orientation orientation, QSplitter *parent) : QSplitterHandle(orientation, parent) {}
-    ~QtSLiMSplitterHandle(void) override {}
+    virtual ~QtSLiMSplitterHandle(void) override {}
     
 protected:
-    void paintEvent(QPaintEvent *paintEvent) override;
+    virtual void paintEvent(QPaintEvent *paintEvent) override;
 };
 
 // A subclass of QSplitter that supplies a custom QSplitterHandle subclass
@@ -136,10 +136,10 @@ class QtSLiMSplitter : public QSplitter
 public:
     QtSLiMSplitter(Qt::Orientation orientation, QWidget *parent = nullptr) : QSplitter(orientation, parent) {}
     QtSLiMSplitter(QWidget *parent = nullptr) : QSplitter(parent) {}
-    ~QtSLiMSplitter(void) override {}
+    virtual ~QtSLiMSplitter(void) override {}
     
 protected:
-    QSplitterHandle *createHandle(void) override { return new QtSLiMSplitterHandle(orientation(), this); }
+    virtual QSplitterHandle *createHandle(void) override { return new QtSLiMSplitterHandle(orientation(), this); }
 };
 
 // A subclass of QStatusBar that draws a top separator on Linux, so our splitters abut nicely
@@ -149,10 +149,10 @@ class QtSLiMStatusBar : public QStatusBar
     
 public:
     QtSLiMStatusBar(QWidget *parent = nullptr) : QStatusBar(parent) {}
-    ~QtSLiMStatusBar(void) override {}
+    virtual ~QtSLiMStatusBar(void) override {}
     
 protected:
-    void paintEvent(QPaintEvent *paintEvent) override;
+    virtual void paintEvent(QPaintEvent *paintEvent) override;
 };
 
 // Used to create the dark app icon displayed when running a model

@@ -2336,6 +2336,14 @@ const std::string gEidosStr__increment = "_increment";
 const std::string gEidosStr__cubicYolk = "_cubicYolk";
 const std::string gEidosStr__squareTest = "_squareTest";
 
+// strings for EidosDictionary
+const std::string gEidosStr_EidosDictionary = "EidosDictionary";
+const std::string gEidosStr_getValue = "getValue";
+const std::string gEidosStr_setValue = "setValue";
+
+// strings for EidosObjectClass_Retained
+const std::string gEidosStr_EidosObjectClass_Retained = "EidosObjectClass_Retained";
+
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in Eidos_RegisterStringForGlobalID() below
 const std::string gEidosStr_start = "start";
@@ -2422,6 +2430,12 @@ void Eidos_RegisterGlobalStringsAndIDs(void)
 		Eidos_RegisterStringForGlobalID(gEidosStr__increment, gEidosID__increment);
 		Eidos_RegisterStringForGlobalID(gEidosStr__cubicYolk, gEidosID__cubicYolk);
 		Eidos_RegisterStringForGlobalID(gEidosStr__squareTest, gEidosID__squareTest);
+		
+		Eidos_RegisterStringForGlobalID(gEidosStr_EidosDictionary, gEidosID_EidosDictionary);
+		Eidos_RegisterStringForGlobalID(gEidosStr_getValue, gEidosID_getValue);
+		Eidos_RegisterStringForGlobalID(gEidosStr_setValue, gEidosID_setValue);
+		
+		Eidos_RegisterStringForGlobalID(gEidosStr_EidosObjectClass_Retained, gEidosID_EidosObjectClass_Retained);
 		
 		Eidos_RegisterStringForGlobalID(gEidosStr_start, gEidosID_start);
 		Eidos_RegisterStringForGlobalID(gEidosStr_end, gEidosID_end);

@@ -191,32 +191,21 @@ EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_m
 #pragma mark EidosTestElement_Class
 #pragma mark -
 
-class EidosTestElement_Class : public EidosObjectClass
+class EidosTestElement_Class : public EidosObjectClass_Retained
 {
 public:
 	EidosTestElement_Class(const EidosTestElement_Class &p_original) = delete;	// no copy-construct
 	EidosTestElement_Class& operator=(const EidosTestElement_Class&) = delete;	// no copying
 	inline EidosTestElement_Class(void) { }
 	
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-	virtual bool NeedsRetainRelease(void) const;
-#endif
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::string &ElementType(void) const;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gEidosTestElement_Class = new EidosTestElement_Class();
 
-
-#ifdef EIDOS_OBJECT_RETAIN_RELEASE
-bool EidosTestElement_Class::NeedsRetainRelease(void) const
-{
-	return true;
-}
-#endif
 
 const std::string &EidosTestElement_Class::ElementType(void) const
 {

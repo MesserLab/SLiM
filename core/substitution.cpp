@@ -34,7 +34,7 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-	SLiMEidosDictionary(p_mutation), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+	EidosObjectElement_Retained(p_mutation), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
 {
 }
@@ -294,7 +294,7 @@ EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosObjectElemen
 	{
 		Substitution *value = (Substitution *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check(value->mutation_type_ptr_, value_index);
+		object_result->set_object_element_no_check_NORR(value->mutation_type_ptr_, value_index);
 	}
 	
 	return object_result;
@@ -357,7 +357,7 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
-		default:					return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:					return EidosObjectElement_Retained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -369,17 +369,17 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 #pragma mark Substitution_Class
 #pragma mark -
 
-class Substitution_Class : public SLiMEidosDictionary_Class
+class Substitution_Class : public EidosObjectClass_Retained
 {
 public:
 	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
 	Substitution_Class& operator=(const Substitution_Class&) = delete;	// no copying
 	inline Substitution_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
@@ -396,7 +396,7 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass_Retained::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
@@ -421,7 +421,7 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass_Retained::Methods());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

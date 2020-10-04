@@ -31,22 +31,22 @@ class QtSLiMGraphView_2DSampleSFS : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_2DSampleSFS(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_2DSampleSFS() override;
+    virtual ~QtSLiMGraphView_2DSampleSFS() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void willDraw(QPainter &painter, QRect interiorRect) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    bool providesStringForData(void) override;
-    void appendStringForData(QString &string) override;    
-    void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
-    QString disableMessage(void) override;
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void willDraw(QPainter &painter, QRect interiorRect) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual bool providesStringForData(void) override;
+    virtual void appendStringForData(QString &string) override;    
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual QString disableMessage(void) override;
     
 public slots:
-    void addedToWindow(void) override;
-    void invalidateDrawingCache(void) override;
-    void controllerRecycled(void) override;
-    void updateAfterTick(void) override;
+    virtual void addedToWindow(void) override;
+    virtual void invalidateDrawingCache(void) override;
+    virtual void controllerRecycled(void) override;
+    virtual void updateAfterTick(void) override;
     void subpopulation1PopupChanged(int index);
     void subpopulation2PopupChanged(int index);
     void mutationTypePopupChanged(int index);

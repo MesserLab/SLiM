@@ -89,25 +89,20 @@ void Population::RemoveAllSubpopulationInfo(void)
 	
 	// Free all substitutions and clear out the substitution vector
 	for (auto substitution : substitutions_)
-		delete substitution;
+		substitution->Release();
 	
 	substitutions_.clear();
 	treeseq_substitutions_map_.clear();
 	
-	// The malloced storage of mutation_registry_ will be freed when it is destroyed, but it
-	// does not know that the Mutation pointers inside it are owned, so we need to free them.
+	// The malloced storage of the mutation registry will be freed when it is destroyed, but it
+	// does not know that the Mutation pointers inside it are owned, so we need to release them.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
+	int registry_size;
+	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+	const MutationIndex *registry_iter_end = registry_iter + registry_size;
 	
 	for (; registry_iter != registry_iter_end; ++registry_iter)
-	{
-		MutationIndex mutation = *registry_iter;
-		
-		// We no longer delete mutation objects; instead, we remove them from our shared pool
-		(mut_block_ptr + mutation)->~Mutation();
-		SLiM_DisposeMutationToBlock(mutation);
-	}
+		(mut_block_ptr + *registry_iter)->Release();
 	
 	mutation_registry_.clear();
 	
@@ -2471,7 +2466,6 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
-		// Note that DrawNewMutation[Extended]() sets mutation->scratch_ to 0 for "not in registry", 1 for "in registry"; we use that below
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		try {
@@ -2585,26 +2579,17 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
-						if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-						{
-							mutation_registry_.emplace_back(mutation_iter_mutation_index);
-							
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-						}
+						if (new_mut->state_ != MutationState::kInRegistry)
+							MutationRegistryAdd(new_mut);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
 							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
-					else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
-						// The mutation was rejected by the stacking policy, so we have to dispose of it
-						// We no longer delete mutation objects; instead, we remove them from our shared pool
-						new_mut->~Mutation();
-						SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+						// The mutation was rejected by the stacking policy, so we have to release it
+						new_mut->Release();
 					}
 					
 					if (++mutation_iter != mutation_iter_max) {
@@ -2736,26 +2721,17 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 										child_mutrun->emplace_back(mutation_iter_mutation_index);
 										
-										if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-										{
-											mutation_registry_.emplace_back(mutation_iter_mutation_index);
-											
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-											if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-												new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-										}
+										if (new_mut->state_ != MutationState::kInRegistry)
+											MutationRegistryAdd(new_mut);
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
 											sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 									}
-									else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+									else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 									{
-										// The mutation was rejected by the stacking policy, so we have to dispose of it
-										// We no longer delete mutation objects; instead, we remove them from our shared pool
-										new_mut->~Mutation();
-										SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+										// The mutation was rejected by the stacking policy, so we have to release it
+										new_mut->Release();
 									}
 									
 									if (++mutation_iter != mutation_iter_max) {
@@ -2786,26 +2762,17 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
-									if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-									{
-										mutation_registry_.emplace_back(mutation_iter_mutation_index);
-										
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-										if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-											new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-									}
+									if (new_mut->state_ != MutationState::kInRegistry)
+										MutationRegistryAdd(new_mut);
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
 										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
-								else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
-									// The mutation was rejected by the stacking policy, so we have to dispose of it
-									// We no longer delete mutation objects; instead, we remove them from our shared pool
-									new_mut->~Mutation();
-									SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+									// The mutation was rejected by the stacking policy, so we have to release it
+									new_mut->Release();
 								}
 								
 								if (++mutation_iter != mutation_iter_max) {
@@ -2937,26 +2904,17 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 							child_mutrun->emplace_back(mutation_iter_mutation_index);
 							
-							if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-							{
-								mutation_registry_.emplace_back(mutation_iter_mutation_index);
-								
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-								if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-									new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-							}
+							if (new_mut->state_ != MutationState::kInRegistry)
+								MutationRegistryAdd(new_mut);
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
 								sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 						}
-						else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
-							// The mutation was rejected by the stacking policy, so we have to dispose of it
-							// We no longer delete mutation objects; instead, we remove them from our shared pool
-							new_mut->~Mutation();
-							SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+							// The mutation was rejected by the stacking policy, so we have to release it
+							new_mut->Release();
 						}
 						
 						if (++mutation_iter != mutation_iter_max) {
@@ -3686,26 +3644,17 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 									// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
-									if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-									{
-										mutation_registry_.emplace_back(mutation_iter_mutation_index);
-										
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-										if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-											new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-									}
+									if (new_mut->state_ != MutationState::kInRegistry)
+										MutationRegistryAdd(new_mut);
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
 										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
-								else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
-									// The mutation was rejected by the stacking policy, so we have to dispose of it
-									// We no longer delete mutation objects; instead, we remove them from our shared pool
-									new_mut->~Mutation();
-									SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+									// The mutation was rejected by the stacking policy, so we have to release it
+									new_mut->Release();
 								}
 								
 								if (++mutation_iter != mutation_iter_max) {
@@ -3736,26 +3685,17 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 								// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 								child_mutrun->emplace_back(mutation_iter_mutation_index);
 								
-								if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-								{
-									mutation_registry_.emplace_back(mutation_iter_mutation_index);
-									
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-									if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-										new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-								}
+								if (new_mut->state_ != MutationState::kInRegistry)
+									MutationRegistryAdd(new_mut);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence_mutations)
 									sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 							}
-							else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+							else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 							{
-								// The mutation was rejected by the stacking policy, so we have to dispose of it
-								// We no longer delete mutation objects; instead, we remove them from our shared pool
-								new_mut->~Mutation();
-								SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+								// The mutation was rejected by the stacking policy, so we have to release it
+								new_mut->Release();
 							}
 							
 							if (++mutation_iter != mutation_iter_max) {
@@ -3887,26 +3827,17 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 						// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
-						if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-						{
-							mutation_registry_.emplace_back(mutation_iter_mutation_index);
-							
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-							if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-								new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-						}
+						if (new_mut->state_ != MutationState::kInRegistry)
+							MutationRegistryAdd(new_mut);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
 							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
-					else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
-						// The mutation was rejected by the stacking policy, so we have to dispose of it
-						// We no longer delete mutation objects; instead, we remove them from our shared pool
-						new_mut->~Mutation();
-						SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+						// The mutation was rejected by the stacking policy, so we have to release it
+						new_mut->Release();
 					}
 					
 					if (++mutation_iter != mutation_iter_max) {
@@ -4100,26 +4031,17 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 							// The mutation was passed by the stacking policy, so we can add it to the child genome and the registry
 							child_run->emplace_back(mutation_iter_mutation_index);
 							
-							if (new_mut->scratch_ == 0)		// not in registry, therefore new and needs to be registered
-							{
-								mutation_registry_.emplace_back(mutation_iter_mutation_index);
-								
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-								if (keeping_muttype_registries_ && new_mut_type->keeping_muttype_registry_)
-									new_mut_type->muttype_registry_.emplace_back(mutation_iter_mutation_index);
-#endif
-							}
+							if (new_mut->state_ != MutationState::kInRegistry)
+								MutationRegistryAdd(new_mut);
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
 								sim_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
 						}
-						else if (new_mut->scratch_ == 0)	// not in registry, therefore new and needs to be disposed of
+						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
-							// The mutation was rejected by the stacking policy, so we have to dispose of it
-							// We no longer delete mutation objects; instead, we remove them from our shared pool
-							new_mut->~Mutation();
-							SLiM_DisposeMutationToBlock(mutation_iter_mutation_index);
+							// The mutation was rejected by the stacking policy, so we have to release it
+							new_mut->Release();
 						}
 						
 						// move to the next mutation
@@ -4349,8 +4271,9 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 void Population::ValidateMutationFitnessCaches(void)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
+	int registry_size;
+	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+	const MutationIndex *registry_iter_end = registry_iter + registry_size;
 	
 	while (registry_iter != registry_iter_end)
 	{
@@ -5095,8 +5018,15 @@ void Population::MaintainRegistry(void)
 	RemoveAllFixedMutations();
 	
 	// check that the mutation registry does not have any "zombies" – mutations that have been removed and should no longer be there
-#if DEBUG_MUTATION_ZOMBIES
-	CheckMutationRegistry();
+	// also check for any mutations that are in the registry but do not have the state MutationState::kInRegistry
+#if DEBUG
+	CheckMutationRegistry(true);	// full check
+#else
+	if (registry_needs_consistency_check_)
+	{
+		CheckMutationRegistry(false);	// check registry but not genomes
+		registry_needs_consistency_check_ = false;
+	}
 #endif
 	
 	// debug output: assess mutation run usage patterns
@@ -5362,8 +5292,9 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			// SLiMgui can use this case if all subpops are selected; in that case, copy refcounts over to SLiMgui's info
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-			const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-			const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
+			int registry_size;
+			const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+			const MutationIndex *registry_iter_end = registry_iter + registry_size;
 			
 			while (registry_iter != registry_iter_end)
 			{
@@ -5401,8 +5332,9 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			// so we have to zero them out here.
 			if (slimgui_subpop_subset_selected)
 			{
-				const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-				const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
+				int registry_size;
+				const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+				const MutationIndex *registry_iter_end = registry_iter + registry_size;
 				
 				while (registry_iter != registry_iter_end)
 				{
@@ -5525,8 +5457,9 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			// If all subpops are selected in SLiMgui, we now copy the refcounts over, as in the fast case
 			if (!slimgui_subpop_subset_selected)
 			{
-				const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-				const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
+				int registry_size;
+				const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+				const MutationIndex *registry_iter_end = registry_iter + registry_size;
 				
 				while (registry_iter != registry_iter_end)
 				{
@@ -5619,71 +5552,106 @@ void Population::RemoveAllFixedMutations(void)
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	{
-		int registry_length = mutation_registry_.size();
+		int registry_size;
+		const MutationIndex *registry = MutationRegistry(&registry_size);
 		
-		for (int i = 0; i < registry_length; ++i)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			MutationIndex mutation_index = mutation_registry_[i];
-			Mutation *mutation = mut_block_ptr + mutation_index;
+			MutationIndex mutation_index = registry[registry_index];
 			slim_refcount_t reference_count = *(refcount_block_ptr + mutation_index);
 			bool remove_mutation = false;
 			
 			if (reference_count == 0)
 			{
+				Mutation *mutation = mut_block_ptr + mutation_index;
+				
+				if (mutation->state_ == MutationState::kRemovedWithSubstitution)
+				{
+					// a substitution object was already created by removeMutations() at the user's request;
+					// the refcount is zero because the mutation was removed in script, but it was fixed/substituted
+					// this code path is similar to the fixation code path below, but does not create a Substitution
 #if DEBUG_MUTATIONS
-				SLIM_ERRSTREAM << "Mutation unreferenced, will remove: " << mutation << endl;
+					std::cout << "Mutation fixed by script, already substituted: " << mutation << std::endl;
 #endif
-				
+					
 #ifdef SLIMGUI
-				// If we're running under SLiMgui, make a note of the lifetime of the mutation
-				slim_generation_t loss_time = sim_.generation_ - mutation->origin_generation_;
-				int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
-				
-				AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutation_loss_times_, &mutation_loss_gen_slots_);
+					// If we're running under SLiMgui, make a note of the fixation time of the mutation
+					slim_generation_t fixation_time = sim_.generation_ - mutation->origin_generation_;
+					int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
+					
+					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
 #endif
-				
-				remove_mutation = true;
+					
+					// fix the refcount of record; we want user-substituted mutations to have a full refcount, not 0
+					// actually, this doesn't work, because the denominator – what total_genome_count_ is – depends
+					// on what the user asks; so now SLiMSim::ExecuteMethod_mutationFreqsCounts() handles this
+					// the same issue would have bitten SLiM-substituted mutations if the population size changed
+					//*(refcount_block_ptr + mutation_index) = total_genome_count_;
+					
+					mutation->state_ = MutationState::kFixedAndSubstituted;			// marked in anticipation of removal below
+					remove_mutation = true;
+				}
+				else
+				{
+#if DEBUG_MUTATIONS
+					std::cout << "Mutation unreferenced, will remove: " << mutation << std::endl;
+#endif
+					
+#ifdef SLIMGUI
+					// If we're running under SLiMgui, make a note of the lifetime of the mutation
+					slim_generation_t loss_time = sim_.generation_ - mutation->origin_generation_;
+					int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
+					
+					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutation_loss_times_, &mutation_loss_gen_slots_);
+#endif
+					
+					mutation->state_ = MutationState::kLostAndRemoved;			// marked in anticipation of removal below
+					remove_mutation = true;
+				}
 			}
-			else if ((reference_count == total_genome_count_) && (mutation->mutation_type_ptr_->convert_to_substitution_))
+			else if (reference_count == total_genome_count_)
 			{
+				Mutation *mutation = mut_block_ptr + mutation_index;
+				
+				if (mutation->mutation_type_ptr_->convert_to_substitution_)
+				{
 #if DEBUG_MUTATIONS
-				SLIM_ERRSTREAM << "Mutation fixed, will substitute: " << mutation << endl;
+					std::cout << "Mutation fixed, will substitute: " << mutation << std::endl;
 #endif
-				
+					
 #ifdef SLIMGUI
-				// If we're running under SLiMgui, make a note of the fixation time of the mutation
-				slim_generation_t fixation_time = sim_.generation_ - mutation->origin_generation_;
-				int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
-				
-				AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
+					// If we're running under SLiMgui, make a note of the fixation time of the mutation
+					slim_generation_t fixation_time = sim_.generation_ - mutation->origin_generation_;
+					int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
+					
+					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
 #endif
-				
-				// set a special flag value for the reference count to allow it to be found rapidly
-				*(refcount_block_ptr + mutation_index) = -1;
-				
-				// add the fixed mutation to a vector, to be converted to a Substitution object below
-				fixed_mutation_accumulator.insert_sorted_mutation(mutation_index);
-				
-				remove_mutation = true;
+					
+					// add the fixed mutation to a vector, to be converted to a Substitution object below
+					fixed_mutation_accumulator.insert_sorted_mutation(mutation_index);
+					
+					mutation->state_ = MutationState::kFixedAndSubstituted;			// marked in anticipation of removal below
+					remove_mutation = true;
+				}
 			}
 			
 			if (remove_mutation)
 			{
 				// We have an unreferenced mutation object, so we want to remove it quickly
-				if (i == registry_length - 1)
+				if (registry_index == registry_size - 1)
 				{
 					mutation_registry_.pop_back();
 					
-					--registry_length;
+					--registry_size;
 				}
 				else
 				{
-					MutationIndex last_mutation = mutation_registry_[registry_length - 1];
-					mutation_registry_[i] = last_mutation;
+					MutationIndex last_mutation = mutation_registry_[registry_size - 1];
+					mutation_registry_[registry_index] = last_mutation;
 					mutation_registry_.pop_back();
 					
-					--registry_length;
-					--i;	// revisit this index
+					--registry_size;
+					--registry_index;	// revisit this index
 				}
 				
 				// We can't delete the mutation yet, because we might need to make a Substitution object from it, so add it to a vector for deletion below
@@ -5710,9 +5678,8 @@ void Population::RemoveAllFixedMutations(void)
 				{
 					MutationIndex mutation_index = registry[i];
 					Mutation *mutation = mut_block_ptr + mutation_index;
-					slim_refcount_t reference_count = *(refcount_block_ptr + mutation_index);
 					
-					if ((reference_count <= 0) || ((reference_count == total_genome_count_) && (mutation->mutation_type_ptr_->convert_to_substitution_)))
+					if ((mutation->state_ == MutationState::kFixedAndSubstituted) || (mutation->state_ == MutationState::kLostAndRemoved))
 					{
 						// We have an unreferenced mutation object, so we want to remove it quickly
 						if (i == registry_length - 1)
@@ -5759,7 +5726,7 @@ void Population::RemoveAllFixedMutations(void)
 					// Loop over the mutations to remove, and take advantage of our mutation runs by scanning
 					// for removal only within the runs that contain a mutation to be removed.  If there is
 					// more than one mutation to be removed within the same run, the second time around the
-					// runs will no-op the scan using operatiod_id.  The whole rest of the genomes can be skipped.
+					// runs will no-op the scan using operation_id.  The whole rest of the genomes can be skipped.
 					slim_position_t mutrun_length = genome->mutrun_length_;
 					
 					for (int mut_index = 0; mut_index < fixed_mutation_accumulator.size(); mut_index++)
@@ -5821,54 +5788,87 @@ void Population::RemoveAllFixedMutations(void)
 			MutationIndex mutation = removed_mutation_accumulator[i];
 			
 #if DEBUG_MUTATION_ZOMBIES
+			// Note that this violates SLiM guarantees, as of SLiM 3.5, because mutations are allowed to be retained
+			// long-term, so they are not necessarily invalid objects just because they're removed from the registry.
+			// But this might be useful for catching tricky bugs, so I'm leaving it in.  BCH 10/2/2020
 			(mut_block_ptr + mutation)->mutation_type_ptr_ = nullptr;	// render lethal
 			(mut_block_ptr + mutation)->reference_count_ = -1;			// zombie
 #else
-			// We no longer delete mutation objects; instead, we remove them from our shared pool
-			(mut_block_ptr + mutation)->~Mutation();
-			SLiM_DisposeMutationToBlock(mutation);
+			// We no longer delete mutation objects; instead, we release them
+			(mut_block_ptr + mutation)->Release();
 #endif
 		}
 	}
 }
 
-void Population::CheckMutationRegistry(void)
+void Population::CheckMutationRegistry(bool p_check_genomes)
 {
 #ifdef SLIM_WF_ONLY
 	if ((sim_.ModelType() == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) CheckMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
 #endif	// SLIM_WF_ONLY
 	
+	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
+#if DEBUG_MUTATION_ZOMBIES
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	const MutationIndex *registry_iter = mutation_registry_.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutation_registry_.end_pointer_const();
+#endif
+	int registry_size;
+	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+	const MutationIndex *registry_iter_end = registry_iter + registry_size;
 	
-	// first check that we don't have any zombies in our registry
+	// First check that we don't have any zombies in our registry.  BCH 10/2/2020 as of SLiM 3.5 we now also check
+	// for registered/segregating mutations that do not have state_ == MutationState::kInRegistry, and we now get
+	// called in DEBUG mode all the time, and in non-DEBUG mode when removeMutations(substitute=T) has been used.
 	for (; registry_iter != registry_iter_end; ++registry_iter)
-		if (*(refcount_block_ptr + *registry_iter) == -1)
-			SLIM_ERRSTREAM << "Zombie found in registry with address " << (*registry_iter) << std::endl;
-	
-	// then check that we don't have any zombies in any genomes
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+		MutationIndex mut_index = *registry_iter;
 		
-		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+#if DEBUG_MUTATION_ZOMBIES
+		if (*(refcount_block_ptr + mut_index) == -1)
+			EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) zombie mutation found in registry with address " << (*registry_iter) << EidosTerminate();
+#endif
+		
+		int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
+		
+		if (mut_state != MutationState::kInRegistry)
+			EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): A mutation was found in the mutation registry with a state other than MutationState::kInRegistry (" << (int)mut_state << ").  This may be the result of calling removeMutations(substitute=T) without actually removing the mutation from all genomes." << EidosTerminate();
+	}
+	
+	if (p_check_genomes)
+	{
+		// then check that we don't have any zombies in any genomes
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
-			Genome &genome = *subpop_genomes[i];
-			int mutrun_count = genome.mutrun_count_;
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 			{
-				MutationRun *mutrun = genome.mutruns_[run_index].get();
-				const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-				const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+				Genome &genome = *subpop_genomes[i];
+				int mutrun_count = genome.mutrun_count_;
 				
-				for (; genome_iter != genome_end_iter; ++genome_iter)
-					if (*(refcount_block_ptr + *genome_iter) == -1)
-						SLIM_ERRSTREAM << "Zombie found in genome with address " << (*genome_iter) << std::endl;
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					MutationRun *mutrun = genome.mutruns_[run_index].get();
+					const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+					const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+					
+					for (; genome_iter != genome_end_iter; ++genome_iter)
+					{
+						MutationIndex mut_index = *genome_iter;
+						
+#if DEBUG_MUTATION_ZOMBIES
+						if (*(refcount_block_ptr + mut_index) == -1)
+							EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) zombie mutation found in genome with address " << (*genome_iter) << EidosTerminate();
+#endif
+						
+						int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
+						
+						if (mut_state != MutationState::kInRegistry)
+							EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): A mutation was found in a genome with a state other than MutationState::kInRegistry (" << (int)mut_state << ").  This may be the result of calling removeMutations(substitute=T) without actually removing the mutation from all genomes." << EidosTerminate();
+					}
+				}
 			}
 		}
 	}

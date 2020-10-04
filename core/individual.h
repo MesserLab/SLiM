@@ -38,7 +38,6 @@
 
 
 #include "genome.h"
-#include "slim_eidos_dictionary.h"
 
 
 class Subpopulation;
@@ -49,7 +48,7 @@ extern EidosObjectClass *gSLiM_Individual_Class;
 extern slim_pedigreeid_t gSLiM_next_pedigree_id;
 
 
-class Individual : public SLiMEidosDictionary
+class Individual : public EidosDictionary
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -119,9 +118,7 @@ public:
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
 	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness);
-	inline virtual ~Individual(void)
-	{
-	}
+	inline virtual ~Individual(void) override { }
 	
 	inline __attribute__((always_inline)) void ClearColor(void) { color_.clear(); }
 	
@@ -168,13 +165,13 @@ public:
 	void GenerateCachedEidosValue(void);
 	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
-	virtual const EidosObjectClass *Class(void) const;
-	virtual void Print(std::ostream &p_ostream) const;
+	virtual const EidosObjectClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
 	
-	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
-	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
-	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

@@ -33,16 +33,16 @@ class QtSLiMGraphView_SubpopFitnessDists : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_SubpopFitnessDists(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_SubpopFitnessDists() override;
+    virtual ~QtSLiMGraphView_SubpopFitnessDists() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    bool providesStringForData(void) override;
-    void appendStringForData(QString &string) override;    
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual bool providesStringForData(void) override;
+    virtual void appendStringForData(QString &string) override;    
     
 protected:
-    QtSLiMLegendSpec legendKey(void) override;    
+    virtual QtSLiMLegendSpec legendKey(void) override;    
     
 private:
     double *subpopulationFitnessData(const Subpopulation *requestedSubpop);    

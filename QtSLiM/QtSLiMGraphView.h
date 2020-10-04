@@ -57,7 +57,7 @@ public:
     static inline QColor gridLineColor(void) { return QtSLiMColorWithWhite(0.85, 1.0); }
     
     QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView() override;
+    virtual ~QtSLiMGraphView() override;
     
     virtual QString graphTitle(void) = 0;
     virtual QString aboutString(void) = 0;
@@ -174,11 +174,11 @@ protected:
 	bool cachingNow_ = false;
     
 private:
-    void paintEvent(QPaintEvent *event) override;
+    virtual void paintEvent(QPaintEvent *event) override;
     void drawContents(QPainter &painter);
     
-    void resizeEvent(QResizeEvent *event) override;
-    void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void resizeEvent(QResizeEvent *event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
     
     QString stringForData(void);    
 };

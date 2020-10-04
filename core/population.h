@@ -67,13 +67,15 @@ class Population
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
+	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
+	bool registry_needs_consistency_check_;					// set this to run CheckMutationRegistry() at the end of the generation
+	
 public:
 	
 	std::map<slim_objectid_t,Subpopulation*> subpops_;		// OWNED POINTERS
 	
 	SLiMSim &sim_;											// We have a reference back to our simulation
 	
-	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	bool keeping_muttype_registries_ = false;				// if true, at least one MutationType is also keeping its own registry
 	bool any_muttype_call_count_used_ = false;				// if true, a muttype's muttype_registry_call_count_ has been incremented
@@ -121,6 +123,46 @@ public:
 	// add new empty subpopulation p_subpop_id of size p_subpop_size
 	Subpopulation *AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio);
 	
+	// Mutation registry access
+	inline const MutationIndex *MutationRegistry(int *registry_count)
+	{
+		*registry_count = mutation_registry_.size();
+		return mutation_registry_.begin_pointer_const();
+	}
+	
+	inline void MutationRegistryAdd(Mutation *p_mutation)
+	{
+#if DEBUG
+		if ((p_mutation->state_ == MutationState::kInRegistry) ||
+			(p_mutation->state_ == MutationState::kRemovedWithSubstitution) ||
+			(p_mutation->state_ == MutationState::kFixedAndSubstituted))
+			EIDOS_TERMINATION << "ERROR (Population::MutationRegistryAdd): " << "(internal error) cannot add a mutation to the registry that is already in the registry, or has been fixed/substituted." << EidosTerminate();
+#endif
+		
+		// We could be adding a lost mutation back into the registry (from a mutation() callback), in which case it gets a retain
+		// New mutations already have a retain count of 1, which we use (i.e., we take ownership of the mutation passed in to us)
+		if (p_mutation->state_ != MutationState::kNewMutation)
+			p_mutation->Retain();
+		
+		MutationIndex new_mut_index = p_mutation->BlockIndex();
+		mutation_registry_.emplace_back(new_mut_index);
+		
+		p_mutation->state_ = MutationState::kInRegistry;
+		
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+		if (keeping_muttype_registries_)
+		{
+			MutationType *mutation_type_ptr = p_mutation->mutation_type_ptr_;
+			
+			if (mutation_type_ptr->keeping_muttype_registry_)
+			{
+				// This mutation type is also keeping its own private registry, so we need to add to that as well
+				mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
+			}
+		}
+#endif
+	}
+	
 	// execute a script event in the population; the script is assumed to be due to trigger
 	void ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t p_generation, const Chromosome &p_chromosome);
 	
@@ -163,8 +205,10 @@ public:
 	// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
 	void RemoveAllFixedMutations(void);
 	
-	// check the registry for any bad entries (i.e. zombies)
-	void CheckMutationRegistry(void);
+	// check the registry for any bad entries (i.e. zombies, mutations with an incorrect state_)
+	void CheckMutationRegistry(bool p_check_genomes);
+	inline void SetMutationRegistryNeedsCheck(void) { registry_needs_consistency_check_ = true; }
+	inline bool MutationRegistryNeedsCheck(void) { return registry_needs_consistency_check_; }
 	
 	// assess usage patterns of mutation runs across the simulation
 	void AssessMutationRuns(void);

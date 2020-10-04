@@ -220,16 +220,16 @@ public:
 	EidosFunctionSignature(const EidosFunctionSignature&) = delete;								// no copying
 	EidosFunctionSignature& operator=(const EidosFunctionSignature&) = delete;					// no copying
 	EidosFunctionSignature(void) = delete;														// no null construction
-	virtual ~EidosFunctionSignature(void);
+	virtual ~EidosFunctionSignature(void) override;
 	
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask);
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const std::string &p_delegate_name);
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, const std::string &p_delegate_name);
 	
-	virtual std::string CallType(void) const;
-	virtual std::string CallPrefix(void) const;
-	virtual std::string CallDelegate(void) const;
+	virtual std::string CallType(void) const override;
+	virtual std::string CallPrefix(void) const override;
+	virtual std::string CallDelegate(void) const override;
 };
 
 // These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.
@@ -251,12 +251,12 @@ public:
 	EidosMethodSignature(const EidosMethodSignature&) = delete;									// no copying
 	EidosMethodSignature& operator=(const EidosMethodSignature&) = delete;						// no copying
 	EidosMethodSignature(void) = delete;														// no null construction
-	virtual ~EidosMethodSignature(void);
+	virtual ~EidosMethodSignature(void) override;
 	
 	EidosMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, bool p_is_class_method);
 	EidosMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class, bool p_is_class_method);
 	
-	virtual std::string CallType(void) const;
+	virtual std::string CallType(void) const override;
 };
 
 
@@ -273,12 +273,12 @@ public:
 	EidosInstanceMethodSignature(const EidosInstanceMethodSignature&) = delete;					// no copying
 	EidosInstanceMethodSignature& operator=(const EidosInstanceMethodSignature&) = delete;		// no copying
 	EidosInstanceMethodSignature(void) = delete;												// no null construction
-	virtual ~EidosInstanceMethodSignature(void);
+	virtual ~EidosInstanceMethodSignature(void) override;
 	
 	EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask);
 	EidosInstanceMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
 	
-	virtual std::string CallPrefix(void) const;
+	virtual std::string CallPrefix(void) const override;
 	
 	// property access acceleration
 	EidosInstanceMethodSignature *DeclareAcceleratedImp(Eidos_AcceleratedMethodImp p_imper);
@@ -295,12 +295,12 @@ public:
 	EidosClassMethodSignature(const EidosClassMethodSignature&) = delete;						// no copying
 	EidosClassMethodSignature& operator=(const EidosClassMethodSignature&) = delete;			// no copying
 	EidosClassMethodSignature(void) = delete;													// no null construction
-	virtual ~EidosClassMethodSignature(void);
+	virtual ~EidosClassMethodSignature(void) override;
 	
 	EidosClassMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask);
 	EidosClassMethodSignature(const std::string &p_function_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class);
 	
-	virtual std::string CallPrefix(void) const;
+	virtual std::string CallPrefix(void) const override;
 };
 
 

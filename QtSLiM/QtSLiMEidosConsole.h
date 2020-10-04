@@ -106,7 +106,7 @@ private slots:
     void clearOutputPressed(void);
     void clearOutputReleased(void);
     
-    void closeEvent(QCloseEvent *event) override;
+    virtual void closeEvent(QCloseEvent *event) override;
     
 private:
     Ui::QtSLiMEidosConsole *ui;

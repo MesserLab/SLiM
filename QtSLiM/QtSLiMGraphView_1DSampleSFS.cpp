@@ -244,7 +244,6 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
     {
         SLiMSim *sim = controller_->sim;
         Population &population = sim->population_;
-        MutationRun &mutationRegistry = population.mutation_registry_;
         
         // Find our subpops and mutation type
         Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
@@ -269,12 +268,12 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         // Tally into our bins
         sfs1dbuf_ = static_cast<uint64_t *>(calloc(histogramBinCount_, sizeof(uint64_t)));
         Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-        const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
-        int mutationCount = static_cast<int>(mutationRegistry.end_pointer_const() - mutations);
+        int registry_size;
+        const MutationIndex *registry = population.MutationRegistry(&registry_size);
         
-        for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+        for (int registry_index = 0; registry_index < registry_size; ++registry_index)
         {
-            const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+            const Mutation *mutation = mut_block_ptr + registry[registry_index];
             slim_refcount_t mutationRefCount = mutation->gui_scratch_reference_count_;
             int mutationBin = mutationRefCount - 1;
             

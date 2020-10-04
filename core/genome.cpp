@@ -189,8 +189,7 @@ void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutr
 	}
 }
 
-// Remove all mutations in p_genome that have a refcount of p_fixed_count, indicating that they have fixed
-// This must be called with mutation counts set up correctly as all-population counts, or it will malfunction!
+// Remove all mutations in p_genome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
 void Genome::RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
 #ifdef DEBUG
@@ -570,7 +569,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			int mut_count = mutation_count();
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize(mut_count);
+			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mut_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			int set_index = 0;
 			
@@ -581,7 +580,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
 				for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
-					vec->set_object_element_no_check(mut_block_ptr + *mut_ptr, set_index++);
+					vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + *mut_ptr, set_index++);
 			}
 			
 			return result_SP;
@@ -902,14 +901,14 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 						vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
 						result_SP = EidosValue_SP(vec);
 						
-						vec->push_object_element(first_match);
-						vec->push_object_element(mut);
+						vec->push_object_element_RR(first_match);
+						vec->push_object_element_RR(mut);
 						first_match = nullptr;
 					}
 				}
 				else
 				{
-					vec->push_object_element(mut);
+					vec->push_object_element_RR(mut);
 				}
 			}
 		}
@@ -1995,12 +1994,12 @@ public:
 	Genome_Class& operator=(const Genome_Class&) = delete;	// no copying
 	inline Genome_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
 	EidosValue_SP ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
@@ -2196,7 +2195,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	std::vector<Mutation *> mutations_to_add;
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
-		mutations_to_add.push_back((Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr));
+	{
+		Mutation *mut_to_add = (Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr);
+		
+		if ((mut_to_add->state_ == MutationState::kFixedAndSubstituted) ||
+			(mut_to_add->state_ == MutationState::kRemovedWithSubstitution))
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot add a mutation that has already been fixed/substituted." << EidosTerminate();
+		
+		mutations_to_add.push_back(mut_to_add);
+	}
 	
 	std::sort(mutations_to_add.begin(), mutations_to_add.end(), [ ](Mutation *i1, Mutation *i2) {return i1->position_ < i2->position_;});
 	
@@ -2685,7 +2692,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				
 				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 				
-				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation, (int8_t)nucleotide);
+				Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_generation, (int8_t)nucleotide);
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 				if (selection_coeff != 0.0)
@@ -2698,17 +2705,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				}
 				
 				// add to the registry, return value, genome, etc.
-				pop.mutation_registry_.emplace_back(new_mut_index);
-				retval->push_object_element(gSLiM_Mutation_Block + new_mut_index);
+				if (new_mut->state_ != MutationState::kInRegistry)
+					pop.MutationRegistryAdd(new_mut);
+				retval->push_object_element_RR(new_mut);
 				mutations_to_add.emplace_back(new_mut_index);
-				
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-				if (pop.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
-				{
-					// This mutation type is also keeping its own private registry, so we need to add to that as well
-					mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
-				}
-#endif
 			}
 		}
 		
@@ -3025,7 +3025,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 		
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, origin_generation, nucleotide);
+		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, origin_generation, nucleotide);
 		
 		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -3038,16 +3038,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 		}
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-		pop.mutation_registry_.emplace_back(new_mut_index);
+		pop.MutationRegistryAdd(new_mut);
 		mutation_indices.emplace_back(new_mut_index);
-		
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-		if (pop.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
-		{
-			// This mutation type is also keeping its own private registry, so we need to add to that as well
-			mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
-		}
-#endif
 	}
 	
 	// Sort the mutations by position so we can add them in order, and make an "order" vector for accessing calls in the sorted order
@@ -3095,12 +3087,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	}
 	
 	// Return the instantiated mutations
-	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+	int mutation_count = (int)mutation_indices.size();
+	EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	
-	for (MutationIndex mut_index : mutation_indices)
-		retval->push_object_element(mut_block_ptr + mut_index);
+	for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+		vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_indices[mut_index], mut_index);
 	
-	return retval;
+	return EidosValue_Object_vector_SP(vec);
 }
 
 //	*********************	+ (o<Mutation>)readFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
@@ -3576,18 +3569,19 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			
 			// instantiate the mutation with the values decided upon
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			Mutation *new_mut;
 			
 			if (info_mutids.size() > 0)
 			{
 				// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
 				slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 				
-				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_generation, nucleotide);
+				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_generation, nucleotide);
 			}
 			else
 			{
 				// no mutation ID supplied, so use whatever is next
-				new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_generation, nucleotide);
+				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_generation, nucleotide);
 			}
 			
 			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
@@ -3601,17 +3595,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			}
 			
 			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-			pop.mutation_registry_.emplace_back(new_mut_index);
+			pop.MutationRegistryAdd(new_mut);
 			alt_allele_mut_indices.push_back(new_mut_index);
 			mutation_indices.push_back(new_mut_index);
-			
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-			if (pop.keeping_muttype_registries_ && mutation_type_ptr->keeping_muttype_registry_)
-			{
-				// This mutation type is also keeping its own private registry, so we need to add to that as well
-				mutation_type_ptr->muttype_registry_.emplace_back(new_mut_index);
-			}
-#endif
 		}
 		
 		// add the mutations to the appropriate genomes and record the new derived states
@@ -3648,13 +3634,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	}
 	
 	// Return the instantiated mutations
-	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	int mutation_count = (int)mutation_indices.size();
+	EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	
-	for (MutationIndex mut_index : mutation_indices)
-		retval->push_object_element(mut_block_ptr + mut_index);
+	for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+		vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_indices[mut_index], mut_index);
 	
-	return retval;
+	return EidosValue_Object_vector_SP(vec);
 }
 
 //	*********************	+ (void)removeMutations([No<Mutation> mutations = NULL], [logical$ substitute = F])
@@ -3762,6 +3749,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	}
 	else
 	{
+		// If the user is creating substitutions for mutations, we now check for consistency at the end of the generation, so that
+		// we don't have a mutation still segregating while a substitution for it has also been created; see CheckMutationRegistry()
+		if (create_substitutions)
+			pop.SetMutationRegistryNeedsCheck();
+		
 		// Construct a vector of mutations to remove that is sorted by position
 		int mutations_count = mutations_value->Count();
 		std::vector<Mutation *> mutations_to_remove;
@@ -3769,6 +3761,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
 			Mutation *mut = (Mutation *)mutations_value->ObjectElementAtIndex(value_index, nullptr);
+			
+			if (mut->state_ != MutationState::kInRegistry)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot remove mutations that are not currently segregating (i.e., have either been fixed/substituted or lost)." << EidosTerminate();
+			
+			if (create_substitutions)
+				mut->state_ = MutationState::kRemovedWithSubstitution;		// mark removed/substituted mutations with a special state so they get handled correctly later
 			
 			mutations_to_remove.push_back(mut);
 			

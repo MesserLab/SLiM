@@ -283,7 +283,7 @@ const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(sli
 
 void MutationRun::_RemoveFixedMutations(void)
 {
-	// Mutations that have fixed, and are thus targeted for removal, have already had their refcount set to -1.
+	// Mutations that have fixed, and are thus targeted for removal, have had their state_ set to kFixedAndSubstituted.
 	// That is done only when convertToSubstitution == T, so we don't need to check that flag here.
 	
 	// We don't use begin_pointer() / end_pointer() here, because we actually want to modify the MutationRun even
@@ -291,14 +291,14 @@ void MutationRun::_RemoveFixedMutations(void)
 	MutationIndex *genome_iter = mutations_;
 	MutationIndex *genome_backfill_iter = nullptr;
 	MutationIndex *genome_max = mutations_ + mutation_count_;
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 	
 	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
 	// (copy it backward to the backfill pointer).  We do this with two successive loops; the first knows that no mutation has
 	// yet been skipped, whereas the second knows that at least one mutation has been.
 	while (genome_iter != genome_max)
 	{
-		if (*(refcount_block_ptr + (*genome_iter++)) != -1)
+		if ((mutation_block_ptr + (*genome_iter++))->state_ != MutationState::kFixedAndSubstituted)
 			continue;
 		
 		// Fixed mutation; we want to omit it, so we skip it in genome_backfill_iter and transition to the second loop
@@ -316,7 +316,7 @@ void MutationRun::_RemoveFixedMutations(void)
 	{
 		MutationIndex mutation_index = *genome_iter;
 		
-		if (*(refcount_block_ptr + mutation_index) != -1)
+		if ((mutation_block_ptr + mutation_index)->state_ != MutationState::kFixedAndSubstituted)
 		{
 			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
 			*genome_backfill_iter = mutation_index;

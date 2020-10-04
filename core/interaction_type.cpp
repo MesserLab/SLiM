@@ -2111,7 +2111,7 @@ void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element(p_individuals[root->individual_index_]);
+		p_result_vec.push_object_element_NORR(p_individuals[root->individual_index_]);
 	
 	if (dx > 0)
 	{
@@ -2147,7 +2147,7 @@ void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element(p_individuals[root->individual_index_]);
+		p_result_vec.push_object_element_NORR(p_individuals[root->individual_index_]);
 	
 	if (++p_phase >= 2) p_phase = 0;
 	
@@ -2185,7 +2185,7 @@ void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element(p_individuals[root->individual_index_]);
+		p_result_vec.push_object_element_NORR(p_individuals[root->individual_index_]);
 	
 	if (++p_phase >= 3) p_phase = 0;
 	
@@ -2491,7 +2491,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 			{
 				Individual *best_individual = p_subpop->parent_individuals_[best->individual_index_];
 				
-				p_result_vec.push_object_element(best_individual);
+				p_result_vec.push_object_element_NORR(best_individual);
 			}
 		}
 		else if (p_count >= p_subpop_data.individual_count_ - 1)	// -1 because the focal individual is excluded
@@ -2531,7 +2531,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 				
 				Individual *best_individual = p_subpop->parent_individuals_[best_rec->individual_index_];
 				
-				p_result_vec.push_object_element(best_individual);
+				p_result_vec.push_object_element_NORR(best_individual);
 			}
 			
 			free(best);
@@ -2706,7 +2706,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_interpreter);
 		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_interpreter);
 		case gID_unevaluate:				return ExecuteMethod_unevaluate(p_method_id, p_arguments, p_interpreter);
-		default:							return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:							return EidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -3060,7 +3060,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				int strength_index = strength_indices[result_index];
 				Individual *chosen_individual = individuals[strength_index];
 				
-				result_vec->set_object_element_no_check(chosen_individual, result_index);
+				result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
 			}
 		}
 		
@@ -3106,7 +3106,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				int strength_index = strength_indices[result_index];
 				Individual *chosen_individual = parents[row_columns[strength_index]];
 				
-				result_vec->set_object_element_no_check(chosen_individual, result_index);
+				result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
 			}
 		}
 		
@@ -3383,7 +3383,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(row_nnz);
 		
 		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
-			result_vec->set_object_element_no_check(individuals[row_columns[col_index]], col_index);
+			result_vec->set_object_element_no_check_NORR(individuals[row_columns[col_index]], col_index);
 		
 		return EidosValue_SP(result_vec);
 	}
@@ -3421,7 +3421,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 		{
 			Individual *ind = individuals[row_columns[neighbors[neighbor_index].first]];
 			
-			result_vec->set_object_element_no_check(ind, neighbor_index);
+			result_vec->set_object_element_no_check_NORR(ind, neighbor_index);
 		}
 		
 		return EidosValue_SP(result_vec);
@@ -3923,17 +3923,17 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 #pragma mark InteractionType_Class
 #pragma mark -
 
-class InteractionType_Class : public SLiMEidosDictionary_Class
+class InteractionType_Class : public EidosDictionary_Class
 {
 public:
 	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
 	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
 	inline InteractionType_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_InteractionType_Class = new InteractionType_Class();
@@ -3950,7 +3950,7 @@ const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
@@ -3971,7 +3971,7 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));

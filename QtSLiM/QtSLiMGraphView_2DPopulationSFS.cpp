@@ -213,7 +213,9 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
 {
     SLiMSim *sim = controller_->sim;
     Population &population = sim->population_;
-    MutationRun &mutationRegistry = population.mutation_registry_;
+    int registry_size;
+    const MutationIndex *registry = population.MutationRegistry(&registry_size);
+    const MutationIndex *registry_iter_end = registry + registry_size;
     
     // Find our subpops and mutation type
     Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
@@ -225,15 +227,13 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
     
     // Get frequencies in subpop1 and subpop2
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-    const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
     std::vector<slim_refcount_t> refcounts1, refcounts2;
     size_t subpop1_total_genome_count, subpop2_total_genome_count;
     
     {
         subpop1_total_genome_count = tallyGUIMutationReferences(selectedSubpopulation1ID_, selectedMutationTypeIndex_);
         
-        for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
+        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
@@ -246,7 +246,7 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
     {
         subpop2_total_genome_count = tallyGUIMutationReferences(selectedSubpopulation2ID_, selectedMutationTypeIndex_);
         
-        for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
+        for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)

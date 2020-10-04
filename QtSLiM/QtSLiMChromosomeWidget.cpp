@@ -598,9 +598,8 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
-	MutationRun &mutationRegistry = pop.mutation_registry_;
-	const MutationIndex *mutations = mutationRegistry.begin_pointer_const();
-	int mutationCount = static_cast<int>(mutationRegistry.end_pointer_const() - mutations);
+    int registry_size;
+    const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	// Set up to draw rects
@@ -608,12 +607,12 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 	
 	SLIM_GL_PREPARE();
 	
-	if ((mutationCount < 1000) || (displayedRange.length < interiorRect.width()))
+	if ((registry_size < 1000) || (displayedRange.length < interiorRect.width()))
 	{
 		// This is the simple version of the display code, avoiding the memory allocations and such
-		for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
-			const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+			const Mutation *mutation = mut_block_ptr + registry[registry_index];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
 			if (mutType->mutation_type_displayed_)
@@ -653,8 +652,8 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 		// had their selection coefficient changed, will be drawn at the end in the usual (slow) way.
 		int displayPixelWidth = interiorRect.width();
 		int16_t *heightBuffer = static_cast<int16_t *>(malloc(static_cast<size_t>(displayPixelWidth) * sizeof(int16_t)));
-		bool *mutationsPlotted = static_cast<bool *>(calloc(static_cast<size_t>(mutationCount), sizeof(bool)));	// faster than using gui_scratch_reference_count_ because of cache locality
-		int64_t remainingMutations = mutationCount;
+		bool *mutationsPlotted = static_cast<bool *>(calloc(static_cast<size_t>(registry_size), sizeof(bool)));	// faster than using gui_scratch_reference_count_ because of cache locality
+		int64_t remainingMutations = registry_size;
 		
 		// First zero out the scratch refcount, which we use to track which mutations we have drawn already
 		//for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
@@ -682,9 +681,9 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 						EIDOS_BZERO(heightBuffer, static_cast<size_t>(displayPixelWidth) * sizeof(int16_t));
 						
 						// Scan through the mutation list for mutations of this type with the right selcoeff
-						for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+						for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 						{
-							const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+							const Mutation *mutation = mut_block_ptr + registry[registry_index];
 							
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -708,7 +707,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 								
 								// tally this mutation as handled
 								//mutation->gui_scratch_reference_count_ = 1;
-								mutationsPlotted[mutIndex] = true;
+								mutationsPlotted[registry_index] = true;
 								--remainingMutations;
 							}
 						}
@@ -746,15 +745,15 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 			else
 			{
 				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
-					const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+					const Mutation *mutation = mut_block_ptr + registry[registry_index];
 					
 					if (mutation->mutation_type_ptr_ == mut_type)
 					{
 						// tally this mutation as handled
 						//mutation->gui_scratch_reference_count_ = 1;
-						mutationsPlotted[mutIndex] = true;
+						mutationsPlotted[registry_index] = true;
 						--remainingMutations;
 					}
 				}
@@ -767,12 +766,12 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 			if (remainingMutations < 1000)
 			{
 				// Plot the remainder by brute force, since there are not that many
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
-					if (!mutationsPlotted[mutIndex])
+					if (!mutationsPlotted[registry_index])
 					{
-						const Mutation *mutation = mut_block_ptr + mutations[mutIndex];
+						const Mutation *mutation = mut_block_ptr + registry[registry_index];
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
                         QRect mutationTickRect = rectEncompassingBaseToBase(mutationPosition, mutationPosition, interiorRect, displayedRange);
@@ -796,12 +795,12 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 				EIDOS_BZERO(heightBuffer, static_cast<size_t>(displayPixelWidth) * sizeof(int16_t));
 				
 				// Find the tallest bar in each column
-				for (int mutIndex = 0; mutIndex < mutationCount; ++mutIndex)
+				for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
-					if (!mutationsPlotted[mutIndex])
+					if (!mutationsPlotted[registry_index])
 					{
-						MutationIndex mutationBlockIndex = mutations[mutIndex];
+						MutationIndex mutationBlockIndex = registry[registry_index];
 						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;

@@ -49,7 +49,7 @@ public:
     
     QtSLiMHelpItem(QTreeWidget *parent) : QTreeWidgetItem(parent) {}
     QtSLiMHelpItem(QTreeWidgetItem *parent) : QTreeWidgetItem(parent) {}
-    ~QtSLiMHelpItem() override;
+    virtual ~QtSLiMHelpItem() override;
 };
 
 
@@ -61,7 +61,7 @@ class QtSLiMHelpOutlineDelegate : public QStyledItemDelegate
     
 public:
     QtSLiMHelpOutlineDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
-    ~QtSLiMHelpOutlineDelegate(void) override;
+    virtual ~QtSLiMHelpOutlineDelegate(void) override;
     
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
@@ -126,7 +126,7 @@ private:
     void checkDocumentationOfClass(EidosObjectClass *classObject);
     
     // responding to events
-    void closeEvent(QCloseEvent *e) override;
+    virtual void closeEvent(QCloseEvent *e) override;
     void outlineSelectionChanged(void);
     
     // Internals

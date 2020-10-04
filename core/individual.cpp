@@ -179,8 +179,8 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->resize_no_initialize(2);
 			
-			vec->set_object_element_no_check(genome1_, 0);
-			vec->set_object_element_no_check(genome2_, 1);
+			vec->set_object_element_no_check_NORR(genome1_, 0);
+			vec->set_object_element_no_check_NORR(genome2_, 1);
 			
 			return EidosValue_SP(vec);
 		}
@@ -303,7 +303,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					{
 						if (pos1 < pos2)
 						{
-							vec->push_object_element_no_check(mut_block_ptr + g1_mut);
+							vec->push_object_element_no_check_RR(mut_block_ptr + g1_mut);
 							
 							// Move to the next mutation in g1
 							if (++g1_index >= g1_size)
@@ -313,7 +313,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 						}
 						else if (pos1 > pos2)
 						{
-							vec->push_object_element_no_check(mut_block_ptr + g2_mut);
+							vec->push_object_element_no_check_RR(mut_block_ptr + g2_mut);
 							
 							// Move to the next mutation in g2
 							if (++g2_index >= g2_size)
@@ -330,7 +330,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 							
 							while (pos1 == focal_pos)
 							{
-								vec->push_object_element_no_check(mut_block_ptr + g1_mut);
+								vec->push_object_element_no_check_RR(mut_block_ptr + g1_mut);
 								
 								// Move to the next mutation in g1
 								if (++g1_index >= g1_size)
@@ -355,7 +355,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 								
 								// If the check indicates that g2_mut is not in g1, we copy it over
 								if (check_index == last_index_plus_one)
-									vec->push_object_element_no_check(mut_block_ptr + g2_mut);
+									vec->push_object_element_no_check_RR(mut_block_ptr + g2_mut);
 								
 								// Move to the next mutation in g2
 								if (++g2_index >= g2_size)
@@ -377,9 +377,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				
 				// Finish off any tail ends, which must be unique and sorted already
 				while (g1_index < g1_size)
-					vec->push_object_element_no_check(mut_block_ptr + (*mutrun1)[g1_index++]);
+					vec->push_object_element_no_check_RR(mut_block_ptr + (*mutrun1)[g1_index++]);
 				while (g2_index < g2_size)
-					vec->push_object_element_no_check(mut_block_ptr + (*mutrun2)[g2_index++]);
+					vec->push_object_element_no_check_RR(mut_block_ptr + (*mutrun2)[g2_index++]);
 			}
 		
 			return result_SP;
@@ -626,7 +626,7 @@ EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObjectElement
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check(&value->subpopulation_, value_index);
+		object_result->set_object_element_no_check_NORR(&value->subpopulation_, value_index);
 	}
 	
 	return object_result;
@@ -640,7 +640,7 @@ EidosValue *Individual::GetProperty_Accelerated_genome1(EidosObjectElement **p_v
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check(value->genome1_, value_index);
+		object_result->set_object_element_no_check_NORR(value->genome1_, value_index);
 	}
 	
 	return object_result;
@@ -654,7 +654,7 @@ EidosValue *Individual::GetProperty_Accelerated_genome2(EidosObjectElement **p_v
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check(value->genome2_, value_index);
+		object_result->set_object_element_no_check_NORR(value->genome2_, value_index);
 	}
 	
 	return object_result;
@@ -939,12 +939,12 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		default:
 		{
-			// In a sense, we here "subclass" SLiMEidosDictionary to override setValue(); we set a flag remembering that
+			// In a sense, we here "subclass" EidosDictionary to override setValue(); we set a flag remembering that
 			// an individual's dictionary has been modified, and then we call "super" for the usual behavior.
-			if (p_method_id == gID_setValue)
+			if (p_method_id == gEidosID_setValue)
 				s_any_individual_dictionary_set_ = true;
 			
-			return SLiMEidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+			return EidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 		}
 	}
 }
@@ -1197,7 +1197,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 					// Now we have mutations of the right type, so we can start working with them by position
 					if (pos1 < pos2)
 					{
-						vec->push_object_element(mut_block_ptr + g1_mut);
+						vec->push_object_element_RR(mut_block_ptr + g1_mut);
 						
 						// Move to the next mutation in g1
 					loopback1:
@@ -1212,7 +1212,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 					}
 					else if (pos1 > pos2)
 					{
-						vec->push_object_element(mut_block_ptr + g2_mut);
+						vec->push_object_element_RR(mut_block_ptr + g2_mut);
 						
 						// Move to the next mutation in g2
 					loopback2:
@@ -1234,7 +1234,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 						
 						while (pos1 == focal_pos)
 						{
-							vec->push_object_element(mut_block_ptr + g1_mut);
+							vec->push_object_element_RR(mut_block_ptr + g1_mut);
 							
 							// Move to the next mutation in g1
 						loopback3:
@@ -1263,7 +1263,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 							
 							// If the check indicates that g2_mut is not in g1, we copy it over
 							if (check_index == last_index_plus_one)
-								vec->push_object_element(mut_block_ptr + g2_mut);
+								vec->push_object_element_RR(mut_block_ptr + g2_mut);
 							
 							// Move to the next mutation in g2
 						loopback4:
@@ -1294,14 +1294,14 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 			MutationIndex mut = (*mutrun1)[g1_index++];
 			
 			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				vec->push_object_element(mut_block_ptr + mut);
+				vec->push_object_element_RR(mut_block_ptr + mut);
 		}
 		while (g2_index < g2_size)
 		{
 			MutationIndex mut = (*mutrun2)[g2_index++];
 			
 			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				vec->push_object_element(mut_block_ptr + mut);
+				vec->push_object_element_RR(mut_block_ptr + mut);
 		}
 	}
 	
@@ -1347,19 +1347,19 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma mark Individual_Class
 #pragma mark -
 
-class Individual_Class : public SLiMEidosDictionary_Class
+class Individual_Class : public EidosDictionary_Class
 {
 public:
 	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
 	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
 	inline Individual_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 
@@ -1377,7 +1377,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*SLiMEidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionary_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
@@ -1414,7 +1414,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*SLiMEidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionary_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
@@ -1434,7 +1434,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 	switch (p_method_id)
 	{
 		case gID_setSpatialPosition:	return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
-		default:						return SLiMEidosDictionary_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		default:						return EidosDictionary_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
 }
 

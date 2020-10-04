@@ -90,7 +90,6 @@ SOURCES += \
     polymorphism.cpp \
     population.cpp \
     slim_eidos_block.cpp \
-    slim_eidos_dictionary.cpp \
     slim_functions.cpp \
     slim_globals.cpp \
     slim_sim.cpp \
@@ -117,7 +116,6 @@ HEADERS += \
     polymorphism.h \
     population.h \
     slim_eidos_block.h \
-    slim_eidos_dictionary.h \
     slim_functions.h \
     slim_globals.h \
     slim_sim.h \

@@ -35,7 +35,7 @@ class QtSLiMHaplotypeOptions : public QDialog
     
 public:
     explicit QtSLiMHaplotypeOptions(QWidget *parent = nullptr);
-    ~QtSLiMHaplotypeOptions() override;
+    virtual ~QtSLiMHaplotypeOptions() override;
     
     size_t genomeSampleSize(void);    // 0 indicates "all genomes"
     QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod(void);
@@ -44,7 +44,7 @@ public:
 private:
     Ui::QtSLiMHaplotypeOptions *ui;
     
-    void done(int r) override;
+    virtual void done(int r) override;
 };
 
 

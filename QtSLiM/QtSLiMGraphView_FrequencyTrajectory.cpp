@@ -98,7 +98,9 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 {
 	SLiMSim *sim = controller_->sim;
 	Population &population = sim->population_;
-	MutationRun &mutationRegistry = population.mutation_registry_;
+    int registry_size;
+    const MutationIndex *registry = population.MutationRegistry(&registry_size);
+    const MutationIndex *registry_iter_end = registry + registry_size;
 	
 #ifdef SLIM_WF_ONLY
 	if (population.child_generation_valid_)
@@ -130,10 +132,8 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
     
 	// Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-    const MutationIndex *registry_iter = mutationRegistry.begin_pointer_const();
-	const MutationIndex *registry_iter_end = mutationRegistry.end_pointer_const();
     
-	for (registry_iter = mutationRegistry.begin_pointer_const(); registry_iter != registry_iter_end; ++registry_iter)
+	for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
 	{
 		const Mutation *mutation = mut_block_ptr + *registry_iter;
 		slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
@@ -176,11 +176,9 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
         if (!history->updated)
         {
 			slim_mutationid_t historyID = history->mutationID;
-			const MutationIndex *mutation_iter = mutationRegistry.begin_pointer_const();
-			const MutationIndex *mutation_iter_end = mutationRegistry.end_pointer_const();
 			bool mutationStillExists = false;
 			
-			for ( ; mutation_iter != mutation_iter_end; ++mutation_iter)
+			for (const MutationIndex *mutation_iter = registry; mutation_iter != registry_iter_end; ++mutation_iter)
 			{
 				const Mutation *mutation = mut_block_ptr + *mutation_iter;
 				slim_mutationid_t mutationID = mutation->mutation_id_;

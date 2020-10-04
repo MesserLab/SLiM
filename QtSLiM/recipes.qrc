@@ -172,5 +172,7 @@
         <file>recipes/Recipe 10.6 - Varying the dominance coefficient among mutations II.txt</file>
         <file>recipes/Recipe 5.4 - The Gravel et al. (2011) model of human evolution I.txt</file>
         <file>recipes/Recipe 5.4 - The Gravel et al. (2011) model of human evolution II.txt</file>
+        <file>recipes/Recipe 9.9 - Keeping a reference to a sweep mutation.txt</file>
+        <file>recipes/Recipe 9.10 - Tracking the fate of background mutations.txt</file>
     </qresource>
 </RCC>

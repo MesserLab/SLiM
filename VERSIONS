@@ -59,6 +59,10 @@ development head:
 	add autosave option (off by default) to SLiMgui
 	show colored function/method signatures in the SLiMgui status bar
 	show elapsed CPU time, segregating mutations, and number of substitutions in the SLiMgui status bar
+	make it possible to retain a Mutation object long term with defineConstant() / setValue(), with a revamp of object memory management under the hood (putting Mutation under retain/release)
+	add isFixed and isSegregating properties to Mutation to help diagnose the state of a mutation that has been retained long-term
+	add recipe 9.9, "Keeping a reference to a sweep mutation"
+	add recipe 9.10, "Tracking the fate of background mutations"
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

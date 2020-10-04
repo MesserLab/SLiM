@@ -138,10 +138,10 @@ class SLiMgui_Class : public EidosObjectClass
 	SLiMgui_Class& operator=(const SLiMgui_Class&) = delete;	// no copying
 	inline SLiMgui_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_SLiMgui_Class = new SLiMgui_Class();

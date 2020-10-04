@@ -150,7 +150,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_genomicElementType(EidosObje
 	{
 		GenomicElement *value = (GenomicElement *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check(value->genomic_element_type_ptr_, value_index);
+		object_result->set_object_element_no_check_NORR(value->genomic_element_type_ptr_, value_index);
 	}
 	
 	return object_result;
@@ -213,10 +213,10 @@ public:
 	GenomicElement_Class& operator=(const GenomicElement_Class&) = delete;	// no copying
 	inline GenomicElement_Class(void) { }
 	
-	virtual const std::string &ElementType(void) const;
+	virtual const std::string &ElementType(void) const override;
 	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 EidosObjectClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();

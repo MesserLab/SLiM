@@ -51,7 +51,7 @@ public:
 	EidosTypeTable(const EidosTypeTable&) = delete;										// no copying
 	EidosTypeTable& operator=(const EidosTypeTable&) = delete;							// no copying
 	explicit EidosTypeTable(void);														// standard constructor
-	virtual ~EidosTypeTable(void);														// destructor
+	virtual ~EidosTypeTable(void);
 	
 	// symbol access; these are variables defined in the global namespace
 	std::vector<std::string> AllSymbols(void) const;

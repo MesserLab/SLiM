@@ -31,13 +31,13 @@ class QtSLiMGraphView_PopFitnessDist : public QtSLiMGraphView
     
 public:
     QtSLiMGraphView_PopFitnessDist(QWidget *parent, QtSLiMWindow *controller);
-    ~QtSLiMGraphView_PopFitnessDist() override;
+    virtual ~QtSLiMGraphView_PopFitnessDist() override;
     
-    QString graphTitle(void) override;
-    QString aboutString(void) override;
-    void drawGraph(QPainter &painter, QRect interiorRect) override;
-    bool providesStringForData(void) override;
-    void appendStringForData(QString &string) override;    
+    virtual QString graphTitle(void) override;
+    virtual QString aboutString(void) override;
+    virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
+    virtual bool providesStringForData(void) override;
+    virtual void appendStringForData(QString &string) override;    
     
 private:
     double *populationFitnessData(void);    
