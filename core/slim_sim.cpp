@@ -685,7 +685,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				
 				individual.SetPedigreeID(pedigree_id);
 				individual.genome1_->SetGenomeID(pedigree_id * 2);
-				individual.genome1_->SetGenomeID(pedigree_id * 2 + 1);
+				individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 			}
 			
@@ -1391,7 +1391,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			
 			individual.SetPedigreeID(pedigree_id);
 			individual.genome1_->SetGenomeID(pedigree_id * 2);
-			individual.genome1_->SetGenomeID(pedigree_id * 2 + 1);
+			individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
 			gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 			p += sizeof(slim_pedigreeid_t);
 		}
