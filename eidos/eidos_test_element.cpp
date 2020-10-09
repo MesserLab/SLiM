@@ -48,7 +48,7 @@ EidosTestElement::EidosTestElement(int64_t p_value) : yolk_(p_value)
 
 EidosTestElement::~EidosTestElement(void)
 {
-	std::cout << "~EidosTestElement : " << yolk_ << std::endl;
+	//std::cout << "~EidosTestElement : " << yolk_ << std::endl;
 }
 
 const EidosObjectClass *EidosTestElement::Class(void) const
