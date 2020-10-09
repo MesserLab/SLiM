@@ -43,8 +43,7 @@ public:
 	EidosTestElement& operator=(const EidosTestElement&) = delete;	// no copying
 	
 	explicit EidosTestElement(int64_t p_value);
-	
-	static void FreeThunks(void);										// a hack to de-confuse Valgrind
+	virtual ~EidosTestElement(void) override;
 	
 	//
 	// Eidos support

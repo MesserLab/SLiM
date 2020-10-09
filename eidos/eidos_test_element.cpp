@@ -35,27 +35,6 @@
 #include <vector>
 
 
-// See EidosTestElement::GetProperty(), EidosTestElement::ExecuteInstanceMethod, and 
-static std::vector<EidosTestElement *> inc_element_thunk;
-static std::vector<EidosTestElement *> sq_element_thunk;
-
-void EidosTestElement::FreeThunks(void)
-{
-	// Valgrind doesn't seem happy with our spuriously allocated test elements just being referenced
-	// by a vector; maybe std::vector does not guarantee alignment or something.  Anyway, if we free
-	// the elements then Valgrind knows for sure they're not leaked.
-	for (auto thunk_iter : inc_element_thunk)
-		delete (thunk_iter);
-	
-	inc_element_thunk.clear();
-	
-	for (auto thunk_iter : sq_element_thunk)
-		delete (thunk_iter);
-	
-	sq_element_thunk.clear();
-}
-
-
 //
 //	EidosTestElement
 //
@@ -65,6 +44,11 @@ void EidosTestElement::FreeThunks(void)
 
 EidosTestElement::EidosTestElement(int64_t p_value) : yolk_(p_value)
 {
+}
+
+EidosTestElement::~EidosTestElement(void)
+{
+	std::cout << "~EidosTestElement : " << yolk_ << std::endl;
 }
 
 const EidosObjectClass *EidosTestElement::Class(void) const
@@ -78,17 +62,11 @@ EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
 	else if (p_property_id == gEidosID__increment)
 	{
-		// The way we handle the increment property is extremely questionable; we create a new
-		// EidosTestElement object that is not owned by anyone, so it ends up as a leak in
-		// Instruments.  This doesn't matter, since EidosTestElement is only used in test code,
-		// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
-		// keep a static vector of pointers to the leaked elements, so they are no longer
-		// considered leaks.  This is an ugly hack, but is completely harmless.
 		EidosTestElement *inc_element = new EidosTestElement(yolk_ + 1);
+		EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(inc_element, gEidosTestElement_Class));
+		inc_element->Release();	// retval now owns it; release the retain from new
 		
-		inc_element_thunk.push_back(inc_element);
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(inc_element, gEidosTestElement_Class));
+		return retval;
 	}
 	
 	// all others, including gID_none
@@ -170,17 +148,11 @@ EidosValue_SP EidosTestElement::ExecuteMethod_Accelerated_cubicYolk(EidosObjectE
 EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	// The way we handle the squareTest property is extremely questionable; we create a new
-	// EidosTestElement object that is not owned by anyone, so it ends up as a leak in
-	// Instruments.  This doesn't matter, since EidosTestElement is only used in test code,
-	// but it clutters up leak reports confusingly.  To get rid of those leak reports, we
-	// keep a static vector of pointers to the leaked elements, so they are no longer
-	// considered leaks.  This is an ugly hack, but is completely harmless.
 	EidosTestElement *sq_element = new EidosTestElement(yolk_ * yolk_);
+	EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidosTestElement_Class));
+	sq_element->Release();	// retval now owns it; release the retain from new
 	
-	sq_element_thunk.push_back(sq_element);
-	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidosTestElement_Class));
+	return retval;
 }
 
 
