@@ -370,7 +370,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 	EidosSymbolTableEntry &symbol_entry = new_genomic_element_type->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -481,7 +481,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	EidosSymbolTableEntry &symbol_entry = new_interaction_type->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -550,7 +550,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 	EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -2057,7 +2057,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -2103,7 +2103,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 	
 	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpopSplit): addSubpopSplit() symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 	
 	simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	
@@ -3208,7 +3208,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << Eidos_StringForGlobalStringID(p_method_id) << "() requires start <= end." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlockType block_type;
 	

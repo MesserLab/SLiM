@@ -25,7 +25,7 @@
 
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, bool p_read_only, EidosValueMask p_value_mask)
-	: property_name_(p_property_name), property_id_(Eidos_GlobalStringIDForString(p_property_name)), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr), accelerated_get_(false), accelerated_set_(false)
+	: property_name_(p_property_name), property_id_(EidosStringRegistry::GlobalStringIDForString(p_property_name)), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(nullptr), accelerated_get_(false), accelerated_set_(false)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << EidosTerminate(nullptr);
@@ -36,7 +36,7 @@ EidosPropertySignature::EidosPropertySignature(const std::string &p_property_nam
 }
 
 EidosPropertySignature::EidosPropertySignature(const std::string &p_property_name, bool p_read_only, EidosValueMask p_value_mask, const EidosObjectClass *p_value_class)
-	: property_name_(p_property_name), property_id_(Eidos_GlobalStringIDForString(p_property_name)), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class), accelerated_get_(false), accelerated_set_(false)
+	: property_name_(p_property_name), property_id_(EidosStringRegistry::GlobalStringIDForString(p_property_name)), read_only_(p_read_only), value_mask_(p_value_mask), value_class_(p_value_class), accelerated_get_(false), accelerated_set_(false)
 {
 	if (!read_only_ && !(value_mask_ & kEidosValueMaskSingleton))
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::EidosPropertySignature): (internal error) read-write property " << property_name_ << " must produce a singleton value according to Eidos semantics." << EidosTerminate(nullptr);

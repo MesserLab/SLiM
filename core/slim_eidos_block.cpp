@@ -601,7 +601,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 				
 				// fix ID string for our symbol
 				std::string new_symbol_string = SLiMEidosScript::IDStringWithPrefix('s', block_id_);
-				script_block_symbol_.first = Eidos_GlobalStringIDForString(new_symbol_string);
+				script_block_symbol_.first = EidosStringRegistry::GlobalStringIDForString(new_symbol_string);
 			}
 		}
 		
@@ -863,7 +863,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 
 SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	script_block_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
+	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	type_(p_type), block_id_(p_id), start_generation_(p_start), end_generation_(p_end)
 {
 	script_ = new EidosScript(p_script_string);
@@ -1198,7 +1198,7 @@ bool SLiMTypeTable::ContainsSymbol(EidosGlobalStringID p_symbol_name) const
 		// one of the standard naming patterns pX, gX, mX, or sX; this lets the user complete off of
 		// those roots even if the simulation is not aware of the existence of the variable.  See also
 		// eidosConsoleWindowController:tokenStringIsSpecialIdentifier:
-		const std::string &token_string = Eidos_StringForGlobalStringID(p_symbol_name);
+		const std::string &token_string = EidosStringRegistry::StringForGlobalStringID(p_symbol_name);
 		int len = (int)token_string.length();
 		
 		if (len >= 2)
@@ -1235,7 +1235,7 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 		// one of the standard naming patterns pX, gX, mX, or sX; this lets the user complete off of
 		// those roots even if the simulation is not aware of the existence of the variable.  See also
 		// eidosConsoleWindowController:tokenStringIsSpecialIdentifier:
-		const std::string &token_string = Eidos_StringForGlobalStringID(p_symbol_name);
+		const std::string &token_string = EidosStringRegistry::StringForGlobalStringID(p_symbol_name);
 		int len = (int)token_string.length();
 		
 		if (len >= 2)
@@ -1313,7 +1313,7 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 				
 				if (all_numeric)
 				{
-					EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(constant_name);
+					EidosGlobalStringID constant_id = EidosStringRegistry::GlobalStringIDForString(constant_name);
 					
 					global_symbols_->SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
 				}
@@ -1330,7 +1330,7 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 				
 				if ((cached_int >= 0) && (cached_int <= SLIM_MAX_ID_VALUE))
 				{
-					EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix(p_symbol_prefix, static_cast<slim_objectid_t>(cached_int)));
+					EidosGlobalStringID constant_id = EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix(p_symbol_prefix, static_cast<slim_objectid_t>(cached_int)));
 					
 					global_symbols_->SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, p_type_class});
 				}

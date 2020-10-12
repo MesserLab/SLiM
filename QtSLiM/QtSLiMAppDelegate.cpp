@@ -132,8 +132,6 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
     // Warm up our back ends before anything else happens
     Eidos_WarmUp();
     SLiM_WarmUp();
-    gEidosContextClasses.push_back(gSLiM_SLiMgui_Class);			// available only in SLiMgui
-    Eidos_FinishWarmUp();
 
     // Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
     app_cwd_ = Eidos_CurrentDirectory();

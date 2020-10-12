@@ -4195,7 +4195,7 @@
 									
 									if (all_numeric)
 									{
-										EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(child_string);
+										EidosGlobalStringID constant_id = EidosStringRegistry::GlobalStringIDForString(child_string);
 										
 										(*typeTable)->SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
 									}
@@ -4347,7 +4347,7 @@
 											if (param_children_count >= 2)
 											{
 												// param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
-												(*typeTable)->SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+												(*typeTable)->SetTypeForSymbol(EidosStringRegistry::GlobalStringIDForString(param_name), param_type);
 											}
 										}
 									}

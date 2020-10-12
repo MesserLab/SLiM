@@ -212,7 +212,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 				if (p_arguments[0]->token_->token_type_ == EidosTokenType::kTokenString)
 				{
 					const std::string &constant_name = p_arguments[0]->token_->token_string_;
-					EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(constant_name);
+					EidosGlobalStringID constant_id = EidosStringRegistry::GlobalStringIDForString(constant_name);
 					EidosTypeSpecifier &constant_type = argument_types[1];
 					
 					global_symbols_->SetTypeForSymbol(constant_id, constant_type);
@@ -1145,7 +1145,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 						EidosTypeSpecifier &param_type = param_children[0]->typespec_;
 						const std::string &param_name = param_children[1]->token_->token_string_;
 						
-						global_symbols_->SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+						global_symbols_->SetTypeForSymbol(EidosStringRegistry::GlobalStringIDForString(param_name), param_type);
 					}
 				}
 				
@@ -1171,7 +1171,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 						EidosTypeSpecifier &param_type = param_children[0]->typespec_;
 						const std::string &param_name = param_children[1]->token_->token_string_;
 						
-						typeTable.SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+						typeTable.SetTypeForSymbol(EidosStringRegistry::GlobalStringIDForString(param_name), param_type);
 					}
 				}
 				

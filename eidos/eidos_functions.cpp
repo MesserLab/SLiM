@@ -20,7 +20,6 @@
 
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
-#include "eidos_test_element.h"
 #include "eidos_interpreter.h"
 #include "eidos_rng.h"
 #include "eidos_beep.h"
@@ -355,10 +354,14 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		
 		// ************************************************************************************
 		//
-		//	object instantiation
+		//	object instantiation – delegated to EidosObjectClass subclasses
 		//
-		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test",				Eidos_ExecuteFunction__Test,		kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class))->AddInt_S("yolk"));
+		for (EidosObjectClass *eidos_class : EidosObjectClass::RegisteredClasses())
+		{
+			const std::vector<EidosFunctionSignature_CSP> *class_functions = eidos_class->Functions();
+			
+			signatures->insert(signatures->end(), class_functions->begin(), class_functions->end());
+		}
 		
 		
 		// alphabetize, mostly to be nice to the auto-completion feature
@@ -11079,7 +11082,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	
 	std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
 	const EidosValue_SP x_value_sp = p_arguments[1];
-	EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
+	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 	
 	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
@@ -11379,7 +11382,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const std::vector<EidosValue_SP> &p_a
 	if ((symbol_count == 1) && (symbol_value->DimensionCount() == 1))
 	{
 		// Use the global constants, but only if we do not have to impose a dimensionality upon the value below
-		EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_value->StringAtIndex(0, nullptr));
+		EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringAtIndex(0, nullptr));
 		
 		result_SP = (symbols.ContainsSymbol(symbol_id) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
@@ -11390,7 +11393,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const std::vector<EidosValue_SP> &p_a
 		
 		for (int value_index = 0; value_index < symbol_count; ++value_index)
 		{
-			EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_value->StringAtIndex(value_index, nullptr));
+			EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringAtIndex(value_index, nullptr));
 			
 			logical_result->set_logical_no_check(symbols.ContainsSymbol(symbol_id), value_index);
 		}
@@ -11520,10 +11523,10 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_argum
 	
 	if (removeConstants)
 		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveConstantForSymbol(Eidos_GlobalStringIDForString(symbol));
+			symbols.RemoveConstantForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
 	else
 		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveValueForSymbol(Eidos_GlobalStringIDForString(symbol));
+			symbols.RemoveValueForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
 	
 	return gStaticEidosValueVOID;
 }
@@ -11990,31 +11993,6 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 
 
 
-// ************************************************************************************
-//
-//	object instantiation
-//
-#pragma mark -
-#pragma mark Object instantiation
-#pragma mark -
-
-
-//	(object<_TestElement>$)_Test(integer$ yolk)
-EidosValue_SP Eidos_ExecuteFunction__Test(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
-{
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
-	EidosValue_SP result_SP(nullptr);
-	
-	EidosValue *yolk_value = p_arguments[0].get();
-	EidosTestElement *testElement = new EidosTestElement(yolk_value->IntAtIndex(0, nullptr));
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(testElement, gEidosTestElement_Class));
-	
-	// testElement is now retained by result_SP, so we can release it
-	testElement->Release();
-	
-	return result_SP;
-}
 
 
 

@@ -24,7 +24,6 @@
 #include "eidos_interpreter.h"
 #include "eidos_object_pool.h"
 #include "eidos_ast_node.h"
-#include "eidos_test_element.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -269,12 +268,6 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("*"));
 		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**"));
 		
-		// Register the _Test class, 
-		gEidosContextClasses.push_back(gEidosTestElement_Class);
-		
-		// Register global strings and IDs
-		Eidos_RegisterGlobalStringsAndIDs();
-		
 		// Set up the built-in function map, which is immutable
 		EidosInterpreter::CacheBuiltInFunctionMap();
 		
@@ -282,20 +275,9 @@ void Eidos_WarmUp(void)
 		// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
 		// that that is actually a bit slower.  If the number of intrinsic constants grows above 10 or so, this should be revisited.
 		gEidosConstantsSymbolTable = new EidosSymbolTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr);
-	}
-}
-
-void Eidos_FinishWarmUp(void)
-{
-	static bool been_here = false;
-	
-	if (!been_here)
-	{
-		been_here = true;
 		
-		// The Context should have added its classes to gEidosContextClasses by this point, so now we will tell
-		// all registered classes to initialize their dispatch tables; doing this here saves a flag check later
-		for (EidosObjectClass *eidos_class : gEidosContextClasses)
+		// Tell all registered classes to initialize their dispatch tables; doing this here saves a flag check later
+		for (EidosObjectClass *eidos_class : EidosObjectClass::RegisteredClasses())
 			eidos_class->CacheDispatchTables();
 	}
 }
@@ -492,7 +474,7 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 									//std::cout << "define " << symbol_name << " = " << value_expression << std::endl;
 									
 									// Permanently alter the global Eidos symbol table; don't do this at home!
-									EidosGlobalStringID symbol_id = Eidos_GlobalStringIDForString(symbol_name);
+									EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 									EidosSymbolTableEntry table_entry(symbol_id, x_value_sp);
 									
 									gEidosConstantsSymbolTable->InitializeConstantSymbolEntry(table_entry);
@@ -539,8 +521,6 @@ double gEidosContextVersion = 0.0;
 std::string gEidosContextVersionString;
 std::string gEidosContextLicense;
 std::string gEidosContextCitation;
-
-std::vector<EidosObjectClass *> gEidosContextClasses;
 
 
 #pragma mark -
@@ -2270,112 +2250,141 @@ void Eidos_hash_to_string(char string[65], const uint8_t hash[32])
 #pragma mark -
 
 //	Global std::string objects.
-const std::string gEidosStr_empty_string = "";
-const std::string gEidosStr_space_string = " ";
+const std::string &gEidosStr_empty_string = EidosRegisteredString("", gEidosID_empty_string);
+const std::string &gEidosStr_space_string = EidosRegisteredString(" ", gEidosID_space_string);
 
 // mostly function names used in multiple places
-const std::string gEidosStr_apply = "apply";
-const std::string gEidosStr_sapply = "sapply";
-const std::string gEidosStr_doCall = "doCall";
-const std::string gEidosStr_executeLambda = "executeLambda";
-const std::string gEidosStr__executeLambda_OUTER = "_executeLambda_OUTER";
-const std::string gEidosStr_ls = "ls";
-const std::string gEidosStr_rm = "rm";
+const std::string &gEidosStr_apply = EidosRegisteredString("apply", gEidosID_apply);
+const std::string &gEidosStr_sapply = EidosRegisteredString("sapply", gEidosID_sapply);
+const std::string &gEidosStr_doCall = EidosRegisteredString("doCall", gEidosID_doCall);
+const std::string &gEidosStr_executeLambda = EidosRegisteredString("executeLambda", gEidosID_executeLambda);
+const std::string &gEidosStr__executeLambda_OUTER = EidosRegisteredString("_executeLambda_OUTER", gEidosID__executeLambda_OUTER);
+const std::string &gEidosStr_ls = EidosRegisteredString("ls", gEidosID_ls);
+const std::string &gEidosStr_rm = EidosRegisteredString("rm", gEidosID_rm);
 
 // mostly language keywords
-const std::string gEidosStr_if = "if";
-const std::string gEidosStr_else = "else";
-const std::string gEidosStr_do = "do";
-const std::string gEidosStr_while = "while";
-const std::string gEidosStr_for = "for";
-const std::string gEidosStr_in = "in";
-const std::string gEidosStr_next = "next";
-const std::string gEidosStr_break = "break";
-const std::string gEidosStr_return = "return";
-const std::string gEidosStr_function = "function";
+const std::string &gEidosStr_if = EidosRegisteredString("if", gEidosID_if);
+const std::string &gEidosStr_else = EidosRegisteredString("else", gEidosID_else);
+const std::string &gEidosStr_do = EidosRegisteredString("do", gEidosID_do);
+const std::string &gEidosStr_while = EidosRegisteredString("while", gEidosID_while);
+const std::string &gEidosStr_for = EidosRegisteredString("for", gEidosID_for);
+const std::string &gEidosStr_in = EidosRegisteredString("in", gEidosID_in);
+const std::string &gEidosStr_next = EidosRegisteredString("next", gEidosID_next);
+const std::string &gEidosStr_break = EidosRegisteredString("break", gEidosID_break);
+const std::string &gEidosStr_return = EidosRegisteredString("return", gEidosID_return);
+const std::string &gEidosStr_function = EidosRegisteredString("function", gEidosID_function);
 
 // mostly Eidos global constants
-const std::string gEidosStr_T = "T";
-const std::string gEidosStr_F = "F";
-const std::string gEidosStr_NULL = "NULL";
-const std::string gEidosStr_PI = "PI";
-const std::string gEidosStr_E = "E";
-const std::string gEidosStr_INF = "INF";
-const std::string gEidosStr_MINUS_INF = "-INF";
-const std::string gEidosStr_NAN = "NAN";
+const std::string &gEidosStr_T = EidosRegisteredString("T", gEidosID_T);
+const std::string &gEidosStr_F = EidosRegisteredString("F", gEidosID_F);
+const std::string &gEidosStr_NULL = EidosRegisteredString("NULL", gEidosID_NULL);
+const std::string &gEidosStr_PI = EidosRegisteredString("PI", gEidosID_PI);
+const std::string &gEidosStr_E = EidosRegisteredString("E", gEidosID_E);
+const std::string &gEidosStr_INF = EidosRegisteredString("INF", gEidosID_INF);
+const std::string &gEidosStr_MINUS_INF = EidosRegisteredString("-INF", gEidosID_MINUS_INF);
+const std::string &gEidosStr_NAN = EidosRegisteredString("NAN", gEidosID_NAN);
 
 // mostly Eidos type names
-const std::string gEidosStr_void = "void";
-const std::string gEidosStr_logical = "logical";
-const std::string gEidosStr_string = "string";
-const std::string gEidosStr_integer = "integer";
-const std::string gEidosStr_float = "float";
-const std::string gEidosStr_object = "object";
-const std::string gEidosStr_numeric = "numeric";
+const std::string &gEidosStr_void = EidosRegisteredString("void", gEidosID_void);
+const std::string &gEidosStr_logical = EidosRegisteredString("logical", gEidosID_logical);
+const std::string &gEidosStr_string = EidosRegisteredString("string", gEidosID_string);
+const std::string &gEidosStr_integer = EidosRegisteredString("integer", gEidosID_integer);
+const std::string &gEidosStr_float = EidosRegisteredString("float", gEidosID_float);
+const std::string &gEidosStr_object = EidosRegisteredString("object", gEidosID_object);
+const std::string &gEidosStr_numeric = EidosRegisteredString("numeric", gEidosID_numeric);
 
 // Eidos function names, property names, and method names
-const std::string gEidosStr_ELLIPSIS = "...";
-const std::string gEidosStr_size = "size";
-const std::string gEidosStr_length = "length";
-const std::string gEidosStr_methodSignature = "methodSignature";
-const std::string gEidosStr_propertySignature = "propertySignature";
-const std::string gEidosStr_str = "str";
-const std::string gEidosStr_type = "type";
-const std::string gEidosStr_source = "source";
+const std::string &gEidosStr_ELLIPSIS = EidosRegisteredString("...", gEidosID_ELLIPSIS);
+const std::string &gEidosStr_size = EidosRegisteredString("size", gEidosID_size);
+const std::string &gEidosStr_length = EidosRegisteredString("length", gEidosID_length);
+const std::string &gEidosStr_methodSignature = EidosRegisteredString("methodSignature", gEidosID_methodSignature);
+const std::string &gEidosStr_propertySignature = EidosRegisteredString("propertySignature", gEidosID_propertySignature);
+const std::string &gEidosStr_str = EidosRegisteredString("str", gEidosID_str);
+const std::string &gEidosStr_type = EidosRegisteredString("type", gEidosID_type);
+const std::string &gEidosStr_source = EidosRegisteredString("source", gEidosID_source);
 
 // other miscellaneous strings
-const std::string gEidosStr_GetPropertyOfElements = "GetPropertyOfElements";
-const std::string gEidosStr_ExecuteInstanceMethod = "ExecuteInstanceMethod";
-const std::string gEidosStr_undefined = "undefined";
-const std::string gEidosStr_applyValue = "applyValue";
+const std::string &gEidosStr_GetPropertyOfElements = EidosRegisteredString("GetPropertyOfElements", gEidosID_GetPropertyOfElements);
+const std::string &gEidosStr_ExecuteInstanceMethod = EidosRegisteredString("ExecuteInstanceMethod", gEidosID_ExecuteInstanceMethod);
+const std::string &gEidosStr_undefined = EidosRegisteredString("undefined", gEidosID_undefined);
+const std::string &gEidosStr_applyValue = EidosRegisteredString("applyValue", gEidosID_applyValue);
 
 // strings for EidosTestElement
-const std::string gEidosStr__TestElement = "_TestElement";
-const std::string gEidosStr__yolk = "_yolk";
-const std::string gEidosStr__increment = "_increment";
-const std::string gEidosStr__cubicYolk = "_cubicYolk";
-const std::string gEidosStr__squareTest = "_squareTest";
+const std::string &gEidosStr__TestElement = EidosRegisteredString("_TestElement", gEidosID__TestElement);
+const std::string &gEidosStr__yolk = EidosRegisteredString("_yolk", gEidosID__yolk);
+const std::string &gEidosStr__increment = EidosRegisteredString("_increment", gEidosID__increment);
+const std::string &gEidosStr__cubicYolk = EidosRegisteredString("_cubicYolk", gEidosID__cubicYolk);
+const std::string &gEidosStr__squareTest = EidosRegisteredString("_squareTest", gEidosID__squareTest);
 
 // strings for EidosDictionary
-const std::string gEidosStr_EidosDictionary = "EidosDictionary";
-const std::string gEidosStr_getValue = "getValue";
-const std::string gEidosStr_setValue = "setValue";
+const std::string &gEidosStr_EidosDictionary = EidosRegisteredString("EidosDictionary", gEidosID_EidosDictionary);
+const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidosID_getValue);
+const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
 
 // strings for EidosObjectClass_Retained
-const std::string gEidosStr_EidosObjectClass_Retained = "EidosObjectClass_Retained";
+const std::string &gEidosStr_EidosObjectClass_Retained = EidosRegisteredString("EidosObjectClass_Retained", gEidosID_EidosObjectClass_Retained);
+
+// strings for EidosImage
+const std::string &gEidosStr_Image = EidosRegisteredString("Image", gEidosID_Image);
+const std::string &gEidosStr_width = EidosRegisteredString("width", gEidosID_width);
+const std::string &gEidosStr_height = EidosRegisteredString("height", gEidosID_height);
+const std::string &gEidosStr_bitsPerChannel = EidosRegisteredString("bitsPerChannel", gEidosID_bitsPerChannel);
+const std::string &gEidosStr_isGrayscale = EidosRegisteredString("isGrayscale", gEidosID_isGrayscale);
+const std::string &gEidosStr_integerR = EidosRegisteredString("integerR", gEidosID_integerR);
+const std::string &gEidosStr_integerG = EidosRegisteredString("integerG", gEidosID_integerG);
+const std::string &gEidosStr_integerB = EidosRegisteredString("integerB", gEidosID_integerB);
+const std::string &gEidosStr_integerK = EidosRegisteredString("integerK", gEidosID_integerK);
+const std::string &gEidosStr_floatR = EidosRegisteredString("floatR", gEidosID_floatR);
+const std::string &gEidosStr_floatG = EidosRegisteredString("floatG", gEidosID_floatG);
+const std::string &gEidosStr_floatB = EidosRegisteredString("floatB", gEidosID_floatB);
+const std::string &gEidosStr_floatK = EidosRegisteredString("floatK", gEidosID_floatK);
 
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
-// explicitly registered by Eidos; see the comment in Eidos_RegisterStringForGlobalID() below
-const std::string gEidosStr_start = "start";
-const std::string gEidosStr_end = "end";
-const std::string gEidosStr_weights = "weights";
-const std::string gEidosStr_c = "c";
-const std::string gEidosStr_n = "n";
-const std::string gEidosStr_s = "s";
-const std::string gEidosStr_x = "x";
-const std::string gEidosStr_y = "y";
-const std::string gEidosStr_z = "z";
-const std::string gEidosStr_color = "color";
+// explicitly registered by Eidos; see the comment in EidosStringRegistry::RegisterStringForGlobalID() below
+const std::string &gEidosStr_start = EidosRegisteredString("start", gEidosID_start);
+const std::string &gEidosStr_end = EidosRegisteredString("end", gEidosID_end);
+const std::string &gEidosStr_weights = EidosRegisteredString("weights", gEidosID_weights);
+const std::string &gEidosStr_c = EidosRegisteredString("c", gEidosID_c);
+const std::string &gEidosStr_n = EidosRegisteredString("n", gEidosID_n);
+const std::string &gEidosStr_s = EidosRegisteredString("s", gEidosID_s);
+const std::string &gEidosStr_x = EidosRegisteredString("x", gEidosID_x);
+const std::string &gEidosStr_y = EidosRegisteredString("y", gEidosID_y);
+const std::string &gEidosStr_z = EidosRegisteredString("z", gEidosID_z);
+const std::string &gEidosStr_color = EidosRegisteredString("color", gEidosID_color);
 
-const std::string gEidosStr_Mutation = "Mutation";		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-const std::string gEidosStr_Genome = "Genome";			// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-const std::string gEidosStr_Individual = "Individual";	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string &gEidosStr_Mutation = EidosRegisteredString("Mutation", gEidosID_Mutation);		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string &gEidosStr_Genome = EidosRegisteredString("Genome", gEidosID_Genome);			// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string &gEidosStr_Individual = EidosRegisteredString("Individual", gEidosID_Individual);	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 
 std::vector<std::string> gEidosConstantNames;
 
 
-static std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
-static std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
-static std::vector<const std::string *> gIDToString_Thunk;
-static EidosGlobalStringID gNextUnusedID = gEidosID_LastContextEntry;
+EidosStringRegistry::EidosStringRegistry(void) : gNextUnusedID(gEidosID_LastContextEntry)
+{
+}
 
+EidosStringRegistry::~EidosStringRegistry(void)
+{
+	// The gIDToString map will not be safe to use, since we will have freed strings out from under it
+	gIDToString.clear();
+	
+	// Now we free all of the registration objects that we made above in EidosRegisteredString().
+	// The point of this thunk vector is to prevent Valgrind from being confused and thinking we
+	// have leaked the global strings that we constructed; apparently unordered_map keeps them in
+	// a way (unaligned?) that Valgrind does not recognize as a reference to the copies, so it
+	// reports them as leaked even though they're not.
+	for (auto gstr_iter : gIDToString_Thunk)
+		delete (gstr_iter);
+	
+	gIDToString_Thunk.clear();
+}
 
-void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
+void EidosStringRegistry::_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
 {
 	// BCH 13 September 2016: So, this is a tricky issue without a good resolution at the moment.  Eidos explicitly registers
-	// a few strings, using this method, right below in Eidos_RegisterGlobalStringsAndIDs().  And SLiM explicitly registers
+	// a few strings, using this method, using the function EidosRegisteredString().  And SLiM explicitly registers
 	// a bunch more strings, in SLiM_RegisterGlobalStringsAndIDs().  So far so good.  But Eidos also registers a bunch of
-	// strings "in passing", as a side effect of calling Eidos_GlobalStringIDForString(), because it doesn't care what the
+	// strings "in passing", as a side effect of calling GlobalStringIDForString(), because it doesn't care what the
 	// IDs of those strings are, it just wants them to be registered for later matching.  This happens to function names and
 	// parameter names, in particular.  This is good; we don't want to have to explicitly enumerate and register all of those
 	// strings, that would be a tremendous pain.  The problem is that these "in passing" registrations can conflict with
@@ -2387,76 +2396,23 @@ void Eidos_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStr
 	// but I don't see any good solution.  Sure is nice how uniquing of selectors just happens automatically in Obj-C!  That
 	// is basically what we're trying to duplicate here, without language support.
 	if (gStringToID.find(p_string) != gStringToID.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): string " << p_string << " has already been registered." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosStringRegistry::_RegisterStringForGlobalID): string " << p_string << " has already been registered." << EidosTerminate(nullptr);
 	
 	if (gIDToString.find(p_string_id) != gIDToString.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosStringRegistry::_RegisterStringForGlobalID): id " << p_string_id << " has already been registered." << EidosTerminate(nullptr);
 	
 	if (p_string_id >= gEidosID_LastContextEntry)
-		EIDOS_TERMINATION << "ERROR (Eidos_RegisterStringForGlobalID): id " << p_string_id << " is out of the legal range for preregistered strings." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosStringRegistry::_RegisterStringForGlobalID): id " << p_string_id << " is out of the legal range for preregistered strings." << EidosTerminate(nullptr);
 	
 	gStringToID[p_string] = p_string_id;
 	gIDToString[p_string_id] = &p_string;
-}
-
-void Eidos_RegisterGlobalStringsAndIDs(void)
-{
-	static bool been_here = false;
 	
-	if (!been_here)
-	{
-		been_here = true;
-		
-		Eidos_RegisterStringForGlobalID(gEidosStr_ELLIPSIS, gEidosID_ELLIPSIS);
-		Eidos_RegisterStringForGlobalID(gEidosStr_size, gEidosID_size);
-		Eidos_RegisterStringForGlobalID(gEidosStr_length, gEidosID_length);
-		Eidos_RegisterStringForGlobalID(gEidosStr_methodSignature, gEidosID_methodSignature);
-		Eidos_RegisterStringForGlobalID(gEidosStr_propertySignature, gEidosID_propertySignature);
-		Eidos_RegisterStringForGlobalID(gEidosStr_str, gEidosID_str);
-		Eidos_RegisterStringForGlobalID(gEidosStr_type, gEidosID_type);
-		Eidos_RegisterStringForGlobalID(gEidosStr_source, gEidosID_source);
-		Eidos_RegisterStringForGlobalID(gEidosStr_applyValue, gEidosID_applyValue);
-		
-		Eidos_RegisterStringForGlobalID(gEidosStr_T, gEidosID_T);
-		Eidos_RegisterStringForGlobalID(gEidosStr_F, gEidosID_F);
-		Eidos_RegisterStringForGlobalID(gEidosStr_NULL, gEidosID_NULL);
-		Eidos_RegisterStringForGlobalID(gEidosStr_PI, gEidosID_PI);
-		Eidos_RegisterStringForGlobalID(gEidosStr_E, gEidosID_E);
-		Eidos_RegisterStringForGlobalID(gEidosStr_INF, gEidosID_INF);
-		Eidos_RegisterStringForGlobalID(gEidosStr_NAN, gEidosID_NAN);
-		
-		Eidos_RegisterStringForGlobalID(gEidosStr__TestElement, gEidosID__TestElement);
-		Eidos_RegisterStringForGlobalID(gEidosStr__yolk, gEidosID__yolk);
-		Eidos_RegisterStringForGlobalID(gEidosStr__increment, gEidosID__increment);
-		Eidos_RegisterStringForGlobalID(gEidosStr__cubicYolk, gEidosID__cubicYolk);
-		Eidos_RegisterStringForGlobalID(gEidosStr__squareTest, gEidosID__squareTest);
-		
-		Eidos_RegisterStringForGlobalID(gEidosStr_EidosDictionary, gEidosID_EidosDictionary);
-		Eidos_RegisterStringForGlobalID(gEidosStr_getValue, gEidosID_getValue);
-		Eidos_RegisterStringForGlobalID(gEidosStr_setValue, gEidosID_setValue);
-		
-		Eidos_RegisterStringForGlobalID(gEidosStr_EidosObjectClass_Retained, gEidosID_EidosObjectClass_Retained);
-		
-		Eidos_RegisterStringForGlobalID(gEidosStr_start, gEidosID_start);
-		Eidos_RegisterStringForGlobalID(gEidosStr_end, gEidosID_end);
-		Eidos_RegisterStringForGlobalID(gEidosStr_weights, gEidosID_weights);
-		Eidos_RegisterStringForGlobalID(gEidosStr_c, gEidosID_c);
-		Eidos_RegisterStringForGlobalID(gEidosStr_n, gEidosID_n);
-		Eidos_RegisterStringForGlobalID(gEidosStr_s, gEidosID_s);
-		Eidos_RegisterStringForGlobalID(gEidosStr_x, gEidosID_x);
-		Eidos_RegisterStringForGlobalID(gEidosStr_y, gEidosID_y);
-		Eidos_RegisterStringForGlobalID(gEidosStr_z, gEidosID_z);
-		Eidos_RegisterStringForGlobalID(gEidosStr_color, gEidosID_color);
-		
-		Eidos_RegisterStringForGlobalID(gEidosStr_Mutation, gEidosID_Mutation);		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-		Eidos_RegisterStringForGlobalID(gEidosStr_Genome, gEidosID_Genome);			// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-		Eidos_RegisterStringForGlobalID(gEidosStr_Individual, gEidosID_Individual);	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-	}
+	//std::cout << "_RegisterStringForGlobalID(): added string " << p_string << ", id " << p_string_id << std::endl;
 }
 
-EidosGlobalStringID Eidos_GlobalStringIDForString(const std::string &p_string)
+EidosGlobalStringID EidosStringRegistry::_GlobalStringIDForString(const std::string &p_string)
 {
-	//std::cerr << "Eidos_GlobalStringIDForString: " << p_string << std::endl;
+	//std::cerr << "EidosStringRegistry::_GlobalStringIDForString: " << p_string << std::endl;
 	auto found_iter = gStringToID.find(p_string);
 	
 	if (found_iter == gStringToID.end())
@@ -2471,19 +2427,15 @@ EidosGlobalStringID Eidos_GlobalStringIDForString(const std::string &p_string)
 		auto found_ID_iter = gIDToString.find(string_id);
 		
 		if (found_ID_iter != gIDToString.end())
-			EIDOS_TERMINATION << "ERROR (Eidos_GlobalStringIDForString): id " << string_id << " was already in use; collision during in-passing registration of global string '" << p_string << "'." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosStringRegistry::_GlobalStringIDForString): id " << string_id << " was already in use; collision during in-passing registration of global string '" << p_string << "'." << EidosTerminate(nullptr);
 #endif
 		
 		const std::string *copied_string = new const std::string(p_string);
 		
-		gStringToID[*copied_string] = string_id;
-		gIDToString[string_id] = copied_string;
+		gStringToID[*copied_string] = string_id;	// makes another copy for the key
+		gIDToString[string_id] = copied_string;		// uses the copy we made above
 		
-#if SLIM_LEAK_CHECKING
-		// We add copied strings to a thunk vector so we can free them at the end to un-confuse Valgrind;
-		// see Eidos_FreeGlobalStrings().
-		gIDToString_Thunk.push_back(copied_string);
-#endif
+		//std::cout << "_GlobalStringIDForString(): added string " << p_string << ", id " << string_id << std::endl;
 		
 		return string_id;
 	}
@@ -2491,9 +2443,9 @@ EidosGlobalStringID Eidos_GlobalStringIDForString(const std::string &p_string)
 		return found_iter->second;
 }
 
-const std::string &Eidos_StringForGlobalStringID(EidosGlobalStringID p_string_id)
+const std::string &EidosStringRegistry::_StringForGlobalStringID(EidosGlobalStringID p_string_id)
 {
-	//std::cerr << "Eidos_StringForGlobalStringID: " << p_string_id << std::endl;
+	//std::cerr << "EidosStringRegistry::_StringForGlobalStringID: " << p_string_id << std::endl;
 	auto found_iter = gIDToString.find(p_string_id);
 	
 	if (found_iter == gIDToString.end())
@@ -2502,20 +2454,18 @@ const std::string &Eidos_StringForGlobalStringID(EidosGlobalStringID p_string_id
 		return *(found_iter->second);
 }
 
-void Eidos_FreeGlobalStrings(void)
+const std::string &EidosRegisteredString(const char *p_cstr, EidosGlobalStringID p_id)
 {
-	// The gIDToString map will not be safe to use, since we will have freed strings out from under it
-	gIDToString.clear();
+	_EidosRegisteredString *registration_object = new _EidosRegisteredString(p_cstr, p_id);
 	
-	// Now we free all of the strings that we copied above in Eidos_GlobalStringIDForString().
-	// The point of this thunk vector is to prevent Valgrind from being confused and thinking we
-	// have leaked the global strings that we copied; apparently unordered_map keeps them in
-	// a way (unaligned?) that Valgrind does not recognize as a reference to the copies, so it
-	// reports them as leaked even though they're not.
-	for (auto gstr_iter : gIDToString_Thunk)
-		delete (gstr_iter);
+#if SLIM_LEAK_CHECKING
+	// We add registration objects to a thunk vector so we can free them at the end to un-confuse Valgrind;
+	// see Eidos_FreeGlobalStrings().  Note that this thunk vector is not used by Eidos or SLiM, but the
+	// registration objects are; they hold onto the std::string objects used by _RegisterStringForGlobalID().
+	gIDToString_Thunk.push_back(registration_object);
+#endif
 	
-	gIDToString_Thunk.clear();
+	return registration_object->string_;
 }
 
 

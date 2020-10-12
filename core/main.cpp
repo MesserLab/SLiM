@@ -38,7 +38,6 @@
 #include "slim_globals.h"
 #include "eidos_test.h"
 #include "slim_test.h"
-#include "eidos_test_element.h"
 #include "eidos_symbol_table.h"
 
 
@@ -275,7 +274,6 @@ int main(int argc, char *argv[])
 		{
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
-			Eidos_FinishWarmUp();
 			
 			int test_result = RunEidosTests();
 			
@@ -289,7 +287,6 @@ int main(int argc, char *argv[])
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
 			SLiM_WarmUp();
-			Eidos_FinishWarmUp();
 			
 			int test_result = RunSLiMTests();
 			
@@ -377,7 +374,6 @@ int main(int argc, char *argv[])
 	// run the simulation
 	Eidos_WarmUp();
 	SLiM_WarmUp();
-	Eidos_FinishWarmUp();
 	
 	SLiMSim *sim = nullptr;
 	

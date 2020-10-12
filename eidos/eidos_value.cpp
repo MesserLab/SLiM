@@ -2324,7 +2324,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		return;
 	
 	// figure out what type the property returns
-	EidosGlobalStringID property_string_id = Eidos_GlobalStringIDForString(p_property);
+	EidosGlobalStringID property_string_id = EidosStringRegistry::GlobalStringIDForString(p_property);
 	EidosValue_SP first_result = values_[0]->GetProperty(property_string_id);
 	EidosValueType property_type = first_result->Type();
 	
@@ -2509,7 +2509,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 	const EidosPropertySignature *signature = class_->SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
 	
 	if (values_size == 0)
 	{
@@ -2537,7 +2537,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 				return gStaticEidosValue_Object_ZeroVec;
 		}
 		
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " does not specify an unambiguous value type, and thus cannot be accessed on a zero-length vector." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " does not specify an unambiguous value type, and thus cannot be accessed on a zero-length vector." << EidosTerminate(nullptr);
 	}
 	else if (values_size == 1)
 	{
@@ -2632,7 +2632,7 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
 	
 	bool exact_match = signature->CheckAssignedValue(p_value);
 	
@@ -2716,7 +2716,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 				return gStaticEidosValue_Object_ZeroVec;
 		}
 		
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteMethodCall): method " << Eidos_StringForGlobalStringID(p_method_id) << " does not specify an unambiguous return type, and thus cannot be called on a zero-length vector." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ExecuteMethodCall): method " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " does not specify an unambiguous return type, and thus cannot be called on a zero-length vector." << EidosTerminate(nullptr);
 	}
 	else if (p_method_signature->accelerated_imp_)
 	{
@@ -2759,7 +2759,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 #if 0
 		// Log vectorized calls to methods, to assess which methods are most worth accelerating
 		if (values_size > 10)
-			std::cerr << "Vector call to method " << Eidos_StringForGlobalStringID(p_method_id) << " on class " << class_->ElementType() << " (" << values_size << " elements)" << std::endl;
+			std::cerr << "Vector call to method " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " on class " << class_->ElementType() << " (" << values_size << " elements)" << std::endl;
 #endif
 		
 		if (sig_mask == kEidosValueMaskVOID)
@@ -3243,7 +3243,7 @@ EidosValue_SP EidosValue_Object_singleton::GetPropertyOfElements(EidosGlobalStri
 	const EidosPropertySignature *signature = value_->Class()->SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::GetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::GetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
 	
 	EidosValue_SP result = value_->GetProperty(p_property_id);
 	
@@ -3264,7 +3264,7 @@ void EidosValue_Object_singleton::SetPropertyOfElements(EidosGlobalStringID p_pr
 	const EidosPropertySignature *signature = value_->Class()->SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): property " << Eidos_StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
 	
 	signature->CheckAssignedValue(p_value);
 	
@@ -3314,7 +3314,7 @@ void EidosObjectElement::Print(std::ostream &p_ostream) const
 EidosValue_SP EidosObjectElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): attempt to get a value for property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObjectElement::GetProperty for " << Class()->ElementType() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -3324,15 +3324,15 @@ void EidosObjectElement::SetProperty(EidosGlobalStringID p_property_id, const Ei
 	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty): property " << Eidos_StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ElementType() << "." << EidosTerminate(nullptr);
 	
 	bool readonly = signature->read_only_;
 	
 	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): attempt to set a new value for read-only property " << Eidos_StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): attempt to set a new value for read-only property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
 	else
-		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): (internal error) setting a new value for read-write property " << Eidos_StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObjectElement::SetProperty for " << Class()->ElementType() << "): (internal error) setting a new value for read-write property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -3346,7 +3346,7 @@ EidosValue_SP EidosObjectElement::ExecuteInstanceMethod(EidosGlobalStringID p_me
 		{
 			// Check whether the method call failed due to a bad subclass implementation
 			const std::vector<EidosMethodSignature_CSP> *methods = Class()->Methods();
-			const std::string &method_name = Eidos_StringForGlobalStringID(p_method_id);
+			const std::string &method_name = EidosStringRegistry::StringForGlobalStringID(p_method_id);
 			
 			for (const EidosMethodSignature_CSP &method_sig : *methods)
 				if (method_sig->call_name_.compare(method_name) == 0)
@@ -3507,6 +3507,24 @@ void EidosObjectElement_Retained::SelfDelete(void)
 #pragma mark EidosObjectClass
 #pragma mark -
 
+// global class registry; this non-const accessor is private to this file
+std::vector<EidosObjectClass *> &EidosObjectClass::EidosObjectClassRegistry(void)
+{
+	// Our global registry is handled this way, so that we don't run into order-of-initialization issues
+	static std::vector<EidosObjectClass *> *classRegistry = nullptr;
+	
+	if (!classRegistry)
+		classRegistry = new std::vector<EidosObjectClass *>;
+	
+	return *classRegistry;
+}
+
+EidosObjectClass::EidosObjectClass(void)
+{
+	// Every EidosObjectClass instance gets added to a shared registry, so that Eidos can find them all
+	EidosObjectClassRegistry().push_back(this);
+}
+
 bool EidosObjectClass::UsesRetainRelease(void) const
 {
 	return false;
@@ -3532,7 +3550,8 @@ void EidosObjectClass::CacheDispatchTables(void)
 		property_signatures_dispatch_capacity_ = last_id + 1;
 		
 		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
-		if (property_signatures_dispatch_capacity_ > 512)
+		// all properties should use explicitly registered strings, in the present design, so they should all be <= gEidosID_LastContextEntry
+		if ((int64_t)property_signatures_dispatch_capacity_ > (int64_t)gEidosID_LastContextEntry)
 			EIDOS_TERMINATION << "ERROR (EidosObjectClass::CacheDispatchTables): (internal error) property dispatch table unreasonably large for class " << ElementType() << "." << EidosTerminate(nullptr);
 		
 		property_signatures_dispatch_ = (EidosPropertySignature_CSP *)calloc(property_signatures_dispatch_capacity_, sizeof(EidosPropertySignature_CSP));
@@ -3604,6 +3623,20 @@ const std::vector<EidosMethodSignature_CSP> *EidosObjectClass::Methods(void) con
 	return methods;
 }
 
+const std::vector<EidosFunctionSignature_CSP> *EidosObjectClass::Functions(void) const
+{
+	static std::vector<EidosFunctionSignature_CSP> *functions = nullptr;
+	
+	if (!functions)
+	{
+		functions = new std::vector<EidosFunctionSignature_CSP>;
+		
+		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
+	}
+	
+	return functions;
+}
+
 EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 	switch (p_method_id)
@@ -3617,7 +3650,7 @@ EidosValue_SP EidosObjectClass::ExecuteClassMethod(EidosGlobalStringID p_method_
 		{
 			// Check whether the method call failed due to a bad subclass implementation
 			const std::vector<EidosMethodSignature_CSP> *methods = Methods();
-			const std::string &method_name = Eidos_StringForGlobalStringID(p_method_id);
+			const std::string &method_name = EidosStringRegistry::StringForGlobalStringID(p_method_id);
 			
 			for (const EidosMethodSignature_CSP &method_sig : *methods)
 				if (method_sig->call_name_.compare(method_name) == 0)

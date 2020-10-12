@@ -34,12 +34,12 @@
 #pragma mark -
 
 EidosCallSignature::EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask)
-	: call_name_(p_call_name), call_id_(Eidos_GlobalStringIDForString(p_call_name)), return_mask_(p_return_mask), return_class_(nullptr)
+	: call_name_(p_call_name), call_id_(EidosStringRegistry::GlobalStringIDForString(p_call_name)), return_mask_(p_return_mask), return_class_(nullptr)
 {
 }
 
 EidosCallSignature::EidosCallSignature(const std::string &p_call_name, EidosValueMask p_return_mask, const EidosObjectClass *p_return_class)
-	: call_name_(p_call_name), call_id_(Eidos_GlobalStringIDForString(p_call_name)), return_mask_(p_return_mask), return_class_(p_return_class)
+	: call_name_(p_call_name), call_id_(EidosStringRegistry::GlobalStringIDForString(p_call_name)), return_mask_(p_return_mask), return_class_(p_return_class)
 {
 }
 
@@ -78,7 +78,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 	
 	arg_masks_.emplace_back(p_arg_mask);
 	arg_names_.emplace_back(p_argument_name);
-	arg_name_IDs_.emplace_back(Eidos_GlobalStringIDForString(p_argument_name));
+	arg_name_IDs_.emplace_back(EidosStringRegistry::GlobalStringIDForString(p_argument_name));
 	arg_classes_.emplace_back(p_argument_class);
 	arg_defaults_.emplace_back(p_default_value);
 	

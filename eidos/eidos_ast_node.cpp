@@ -75,7 +75,7 @@ void EidosASTNode::ReplaceTokenWithToken(EidosToken *p_token)
 void EidosASTNode::OptimizeTree(void) const
 {
 	_OptimizeConstants();		// cache values for numeric and string constants, and for return statements and constant compound statements
-	_OptimizeIdentifiers();		// cache unique IDs for identifiers using Eidos_GlobalStringIDForString()
+	_OptimizeIdentifiers();		// cache unique IDs for identifiers using EidosStringRegistry::GlobalStringIDForString()
 	_OptimizeEvaluators();		// cache evaluator functions in cached_evaluator_ for fast node evaluation
 	_OptimizeFor();				// cache information about for loops that allows them to be accelerated at runtime
 	_OptimizeAssignments();		// cache information about assignments that allows simple increment/decrement assignments to be accelerated
@@ -178,7 +178,7 @@ void EidosASTNode::_OptimizeIdentifiers(void) const
 		}
 		
 		// cache a uniqued ID for the identifier, allowing fast matching
-		cached_stringID_ = Eidos_GlobalStringIDForString(token_string);
+		cached_stringID_ = EidosStringRegistry::GlobalStringIDForString(token_string);
 	}
 }
 

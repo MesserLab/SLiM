@@ -2043,7 +2043,7 @@ EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *p_type_node)
 		
 		const std::string &object_class = current_token_->token_string_;
 		
-		for (EidosObjectClass *eidos_class : gEidosContextClasses)
+		for (EidosObjectClass *eidos_class : EidosObjectClass::RegisteredClasses())
 		{
 			if (eidos_class->ElementType() == object_class)
 			{

@@ -2379,7 +2379,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			Individual *target_individual = target_genome->OwningIndividual();
 			
 			if (target_individual->age_ > 0)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
 		}
 	}
 	
@@ -2388,7 +2388,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	bool nucleotide_based = sim.IsNucleotideBased();
 	
 	if (!nucleotide_based && (arg_nucleotide->Type() != EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be NULL in non-nucleotide-based models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " requires nucleotide to be NULL in non-nucleotide-based models." << EidosTerminate();
 	
 	sim.CheckMutationStackPolicy();
 	
@@ -2398,7 +2398,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2406,7 +2406,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next generation." << std::endl;
+				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2429,13 +2429,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 				
 				if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
 			}
 		}
 	}
 	else if ((pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
 			 (pop.sim_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called from within a recombination() or mutation() callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot be called from within a recombination() or mutation() callback." << EidosTerminate();
 	
 	// position, originGeneration, and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
 	int muttype_count = arg_muttype->Count();
@@ -2460,7 +2460,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		((origin_gen_count != 1) && (origin_gen_count != count_to_add)) ||
 		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)) ||
 		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originGeneration, originSubpop, and nucleotide." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originGeneration, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originGeneration, originSubpop, and nucleotide." << EidosTerminate();
 	
 	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
 	
@@ -2476,7 +2476,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex(position_index, nullptr));
 		
 		if (position > last_position)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " position " << position << " is past the end of the chromosome." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " position " << position << " is past the end of the chromosome." << EidosTerminate();
 	}
 	
 	// similarly, check nucleotide values for validity
@@ -2487,10 +2487,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		// If nucleotide is NULL, all mutation types supplied must be non-nucleotide-based
 		for (int muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
 		{
-			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
+			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, sim, EidosStringRegistry::StringForGlobalStringID(p_method_id).c_str());
 			
 			if (mutation_type_ptr->nucleotide_based_)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be non-NULL when nucleotide-based mutation types are used." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " requires nucleotide to be non-NULL when nucleotide-based mutation types are used." << EidosTerminate();
 		}
 	}
 	else
@@ -2498,10 +2498,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		// If nucleotide is non-NULL, all mutation types supplied must be nucleotide-based
 		for (int muttype_index = 0; muttype_index < muttype_count; ++muttype_index)
 		{
-			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
+			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, sim, EidosStringRegistry::StringForGlobalStringID(p_method_id).c_str());
 			
 			if (!mutation_type_ptr->nucleotide_based_)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires nucleotide to be NULL when non-nucleotide-based mutation types are used." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " requires nucleotide to be NULL when non-nucleotide-based mutation types are used." << EidosTerminate();
 		}
 		
 		// And then nucleotide values must also be within bounds
@@ -2512,7 +2512,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				int64_t nuc_int = arg_nucleotide->IntAtIndex(nucleotide_index, nullptr);
 				
 				if ((nuc_int < 0) || (nuc_int > 3))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " requires integer nucleotide values to be in [0,3]." << EidosTerminate();
 			}
 		}
 		else if (arg_nucleotide->Type() == EidosValueType::kValueString)
@@ -2522,7 +2522,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				uint8_t nuc = nucleotide_lookup[(int)(arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0])];
 				
 				if (nuc > 3)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
 		}
 	}
@@ -2533,7 +2533,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 		
 		if (target_genome->IsNull())
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called on a null genome." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot be called on a null genome." << EidosTerminate();
 		
 		target_genome->patch_pointer_ = target_genome;
 	}
@@ -2543,7 +2543,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 		
 		if (target_genome->patch_pointer_ != target_genome)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
 		
 		target_genome->patch_pointer_ = nullptr;
 	}
@@ -2569,7 +2569,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	}
 	
 	// for the singleton case for each of the parameters, get all the info
-	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
+	MutationType *singleton_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, 0, sim, EidosStringRegistry::StringForGlobalStringID(p_method_id).c_str());
 	
 	double singleton_selection_coeff = (arg_selcoeff ? arg_selcoeff->FloatAtIndex(0, nullptr) : 0.0);
 	
@@ -2585,7 +2585,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		
 		// BCH 3 Sept. 2020: We now require that originGeneration equal the current generation, for time consistency when tree-seq recording; it cannot be used as scratch space
 		if (singleton_origin_generation != sim.Generation())
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " now requires that originGeneration be equal to the current generation (or NULL); it may no longer be used as scratch space." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " now requires that originGeneration be equal to the current generation (or NULL); it may no longer be used as scratch space." << EidosTerminate();
 	}
 	
 	slim_objectid_t singleton_origin_subpop_id;
@@ -2648,7 +2648,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			if (position / mutrun_length == mutrun_index)
 			{
 				if (muttype_count != 1)
-					mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, mut_parameter_index, sim, Eidos_StringForGlobalStringID(p_method_id).c_str());
+					mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, mut_parameter_index, sim, EidosStringRegistry::StringForGlobalStringID(p_method_id).c_str());
 				
 				if (selcoeff_count != 1)
 				{
@@ -2664,7 +2664,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 					
 					// BCH 3 Sept. 2020: We now require that originGeneration equal the current generation, for time consistency when tree-seq recording; it cannot be used as scratch space
 					if (origin_generation != sim.Generation())
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << Eidos_StringForGlobalStringID(p_method_id) << " now requires that originGeneration be equal to the current generation (or NULL); it may no longer be used as scratch space." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " now requires that originGeneration be equal to the current generation (or NULL); it may no longer be used as scratch space." << EidosTerminate();
 				}
 				
 				if (origin_subpop_count != 1)

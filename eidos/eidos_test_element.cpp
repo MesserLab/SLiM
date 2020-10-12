@@ -157,6 +157,31 @@ EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_m
 
 
 //
+//	Object instantiation
+//
+#pragma mark -
+#pragma mark Object instantiation
+#pragma mark -
+
+//	(object<_TestElement>$)_Test(integer$ yolk)
+static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *yolk_value = p_arguments[0].get();
+	EidosTestElement *objectElement = new EidosTestElement(yolk_value->IntAtIndex(0, nullptr));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosTestElement_Class));
+	
+	// objectElement is now retained by result_SP, so we can release it
+	objectElement->Release();
+	
+	return result_SP;
+}
+
+
+//
 //	EidosTestElement_Class
 //
 #pragma mark -
@@ -174,6 +199,7 @@ public:
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };
 
 EidosObjectClass *gEidosTestElement_Class = new EidosTestElement_Class();
@@ -216,6 +242,22 @@ const std::vector<EidosMethodSignature_CSP> *EidosTestElement_Class::Methods(voi
 	}
 	
 	return methods;
+}
+
+const std::vector<EidosFunctionSignature_CSP> *EidosTestElement_Class::Functions(void) const
+{
+	static std::vector<EidosFunctionSignature_CSP> *functions = nullptr;
+	
+	if (!functions)
+	{
+		functions = new std::vector<EidosFunctionSignature_CSP>;
+		
+		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test", Eidos_Instantiate_EidosTestElement, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class))->AddInt_S("yolk"));
+		
+		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
+	}
+	
+	return functions;
 }
 
 

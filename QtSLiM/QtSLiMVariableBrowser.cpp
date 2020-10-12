@@ -354,7 +354,7 @@ void QtSLiMVariableBrowser::reloadBrowser(bool nowValidState)
                 for (size_t index = 0; index < symbolNamesCount;++ index)
                 {
                     const std::string &symbolName = symbolNamesVec[index];
-                    EidosValue_SP symbolValue = symbols->GetValueOrRaiseForSymbol(Eidos_GlobalStringIDForString(symbolName));
+                    EidosValue_SP symbolValue = symbols->GetValueOrRaiseForSymbol(EidosStringRegistry::GlobalStringIDForString(symbolName));
                     QtSLiMBrowserItem *item = new QtSLiMBrowserItem(QString::fromStdString(symbolName), std::move(symbolValue));
                     browserTree->addTopLevelItem(item);
                     

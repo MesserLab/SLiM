@@ -24,7 +24,6 @@
 #include "eidos_interpreter.h"
 #include "eidos_globals.h"
 #include "eidos_rng.h"
-#include "eidos_test_element.h"
 
 #include <iostream>
 #include <string>

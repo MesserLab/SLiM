@@ -347,7 +347,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 		
 		for (std::string symbol_name : all_symbols)
 		{
-			EidosGlobalStringID symbol_ID = Eidos_GlobalStringIDForString(symbol_name);
+			EidosGlobalStringID symbol_ID = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 			EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
 			
 			if (symbol_value->Type() == EidosValueType::kValueObject)
@@ -528,7 +528,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): new subpopulation symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
@@ -1154,7 +1154,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): new subpopulation symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
@@ -2055,7 +2055,7 @@ void SLiMSim::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p
 		EidosGlobalStringID symbol_id = symbol_entry.first;
 		
 		if ((simulation_constants_->ContainsSymbol(symbol_id)) || (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_id)))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::AddScriptBlock): script block symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate(p_error_token);
+			EIDOS_TERMINATION << "ERROR (SLiMSim::AddScriptBlock): script block symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate(p_error_token);
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 	}
@@ -7665,7 +7665,7 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
 		
 		if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): new subpopulation symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
 		
 		simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		
@@ -7806,7 +7806,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			EidosSymbolTableEntry &symbol_entry = subpop->SymbolTableEntry();
 			
 			if (p_interpreter && p_interpreter->SymbolTable().ContainsSymbol(symbol_entry.first))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): new subpopulation symbol " << Eidos_StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here; this file cannot be read." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): new subpopulation symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here; this file cannot be read." << EidosTerminate();
 			
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		}

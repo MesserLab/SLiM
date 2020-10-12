@@ -57,7 +57,7 @@ MutationType::MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, d
 #else
 MutationType::MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
 #endif
-self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class))),
+self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class))),
 	sim_(p_sim), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), dominance_coeff_changed_(false), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), dfe_strings_(p_dfe_strings), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
@@ -576,7 +576,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			int64_t new_group = p_value.IntAtIndex(0, nullptr);
 			
 			if (nucleotide_based_ && (new_group != -1))
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << Eidos_StringForGlobalStringID(p_property_id) << " must be -1 for nucleotide-based mutation types." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be -1 for nucleotide-based mutation types." << EidosTerminate();
 			
 			stack_group_ = new_group;
 			
@@ -589,7 +589,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			std::string value = p_value.StringAtIndex(0, nullptr);
 			
 			if (nucleotide_based_ && (value != gStr_l))
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << Eidos_StringForGlobalStringID(p_property_id) << " must be \"l\" for nucleotide-based mutation types." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be \"l\" for nucleotide-based mutation types." << EidosTerminate();
 			
 			if (value.compare(gEidosStr_s) == 0)
 				stack_policy_ = MutationStackPolicy::kStack;
@@ -598,7 +598,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			else if (value.compare(gStr_l) == 0)
 				stack_policy_ = MutationStackPolicy::kKeepLast;
 			else
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << Eidos_StringForGlobalStringID(p_property_id) << " must be \"s\", \"f\", or \"l\"." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be \"s\", \"f\", or \"l\"." << EidosTerminate();
 			
 			sim_.MutationStackPolicyChanged();
 			return;

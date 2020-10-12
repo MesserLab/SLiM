@@ -1148,6 +1148,9 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 
 class EidosObjectClass
 {
+private:
+	static std::vector<EidosObjectClass *> &EidosObjectClassRegistry(void);
+
 protected:
 	// cached dispatch tables; these are lookup tables, indexed by EidosGlobalStringID property / method ids
 	bool dispatches_cached_ = false;
@@ -1159,10 +1162,12 @@ protected:
 	int32_t method_signatures_dispatch_capacity_ = 0;
 	
 public:
+	static inline const std::vector<EidosObjectClass *> &RegisteredClasses(void) { return EidosObjectClassRegistry(); }
+	
 	EidosObjectClass(const EidosObjectClass &p_original) = delete;		// no copy-construct
 	EidosObjectClass& operator=(const EidosObjectClass&) = delete;		// no copying
 	
-	inline EidosObjectClass(void) { }
+	EidosObjectClass(void);
 	inline virtual ~EidosObjectClass(void) { }
 	
 	virtual bool UsesRetainRelease(void) const;
@@ -1199,6 +1204,7 @@ public:
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const;
+	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;

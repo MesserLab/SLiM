@@ -633,7 +633,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(parent_token);
 			
 			*p_base_value_ptr = first_child_value;
-			*p_property_string_id_ptr = Eidos_GlobalStringIDForString(right_operand->token_->token_string_);
+			*p_property_string_id_ptr = EidosStringRegistry::GlobalStringIDForString(right_operand->token_->token_string_);
 			
 			int number_of_elements = first_child_value->Count();	// property operations are guaranteed to produce one value per element
 			
@@ -1460,11 +1460,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		{
 			// Give more helpful error messages for deprecated methods
 			if (call_identifier_token->token_string_ == "method")
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << Eidos_StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that method() has been renamed to methodSignature()." << EidosTerminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << EidosStringRegistry::StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that method() has been renamed to methodSignature()." << EidosTerminate(call_identifier_token);
 			else if (call_identifier_token->token_string_ == "property")
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << Eidos_StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that property() has been renamed to propertySignature()." << EidosTerminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << EidosStringRegistry::StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << ".  Note that property() has been renamed to propertySignature()." << EidosTerminate(call_identifier_token);
 			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << Eidos_StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << EidosTerminate(call_identifier_token);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): method " << EidosStringRegistry::StringForGlobalStringID(method_id) << "() is not defined on object element type " << method_object->ElementType() << "." << EidosTerminate(call_identifier_token);
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call

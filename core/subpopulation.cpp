@@ -1004,7 +1004,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 }
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq) :
-	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
+	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
 	population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size)
 #ifdef SLIM_WF_ONLY
 	, child_subpop_size_(p_subpop_size)
@@ -1053,7 +1053,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
 							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
-	self_symbol_(Eidos_GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
+	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
 	population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size),
 #ifdef SLIM_WF_ONLY
 	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
@@ -6545,7 +6545,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				output_stream << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				output_stream << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				sim.warned_early_output_ = true;
 			}
 		}
@@ -6566,10 +6566,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
 	
 	if (!sim.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << EidosTerminate();
 	
 	bool output_multiallelics = true;
 	
@@ -6605,7 +6605,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 		has_file = true;
 		
 		if (!outfile.is_open())
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << Eidos_StringForGlobalStringID(p_method_id) << "() could not open "<< outfile_path << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() could not open "<< outfile_path << "." << EidosTerminate();
 	}
 	
 	std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));

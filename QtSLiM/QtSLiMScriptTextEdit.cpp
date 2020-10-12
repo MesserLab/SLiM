@@ -1408,7 +1408,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// the beginning of the key path, and figure out what the class of the key path root is
 	int key_path_index = static_cast<int>(identifiers.size()) - 1;
 	std::string &identifier_name = identifiers[static_cast<size_t>(key_path_index)];
-	EidosGlobalStringID identifier_ID = Eidos_GlobalStringIDForString(identifier_name);
+	EidosGlobalStringID identifier_ID = EidosStringRegistry::GlobalStringIDForString(identifier_name);
 	bool identifier_is_call = identifiers_are_calls[static_cast<size_t>(key_path_index)];
 	const EidosObjectClass *key_path_class = nullptr;
 	
@@ -1460,7 +1460,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 		identifier_name = identifiers[static_cast<size_t>(key_path_index)];
 		identifier_is_call = identifiers_are_calls[static_cast<size_t>(key_path_index)];
 		
-		EidosGlobalStringID identifier_id = Eidos_GlobalStringIDForString(identifier_name);
+		EidosGlobalStringID identifier_id = EidosStringRegistry::GlobalStringIDForString(identifier_name);
 		
 		if (identifier_id == gEidosID_none)
 			return QStringList();			// unrecognized identifier in the key path, so there is probably a typo and we can't complete off of it
@@ -1910,7 +1910,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                                 
                                 if (all_numeric)
                                 {
-                                    EidosGlobalStringID constant_id = Eidos_GlobalStringIDForString(child_string);
+                                    EidosGlobalStringID constant_id = EidosStringRegistry::GlobalStringIDForString(child_string);
                                     
                                     (*typeTable)->SetTypeForSymbol(constant_id, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class});
                                 }
@@ -2062,7 +2062,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                                     if (param_children_count >= 2)
                                     {
                                         // param_node has 2 or 3 children (type, identifier, [default]); we don't care about default values
-                                        (*typeTable)->SetTypeForSymbol(Eidos_GlobalStringIDForString(param_name), param_type);
+                                        (*typeTable)->SetTypeForSymbol(EidosStringRegistry::GlobalStringIDForString(param_name), param_type);
                                     }
                                 }
                             }

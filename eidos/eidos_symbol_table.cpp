@@ -235,7 +235,7 @@ std::vector<std::string> EidosSymbolTable::_SymbolNames(bool p_include_constants
 		(p_include_variables && (table_type_ == EidosSymbolTableType::kVariablesTable)))
 	{
 		for (EidosGlobalStringID symbol = slots_->next_; symbol != 0; symbol = (slots_ + symbol)->next_)
-			symbol_names.emplace_back(Eidos_StringForGlobalStringID(symbol));
+			symbol_names.emplace_back(EidosStringRegistry::StringForGlobalStringID(symbol));
 	}
 	
 	return symbol_names;
@@ -326,7 +326,7 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 	}
 	while (current_table);
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 EidosValue *EidosSymbolTable::_GetValue_RAW(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const
@@ -350,7 +350,7 @@ EidosValue *EidosSymbolTable::_GetValue_RAW(EidosGlobalStringID p_symbol_name, c
 	}
 	while (current_table);
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_RAW): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_RAW): undefined identifier " << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const
@@ -377,7 +377,7 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 	}
 	while (current_table);
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << Eidos_StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
@@ -418,7 +418,7 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 		// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 		if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbol): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 		
 		// set the value into the unused slot and add it to the front of the linked list
 		slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
@@ -454,7 +454,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 		// The symbol is not already defined in this table.  Before we can define it, we need to check that it is not defined in a chained table.
 		// At present, we assume that if it is defined in a chained table it is a constant, which is true for now.
 		if (chain_symbol_table_ && chain_symbol_table_->ContainsSymbol(p_symbol_name))
-			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 		
 		// set the value into the unused slot and add it to the front of the linked list
 		slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
@@ -474,7 +474,7 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 	// We use SymbolDefinedAnywhere() because defined constants cannot conflict with any symbol defined anywhere, whether
 	// currently in scope or not – as soon as the conflicting scope comes into scope, the conflict will be manifest.
 	if (SymbolDefinedAnywhere(p_symbol_name))
-		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is already defined." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbol): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' is already defined." << EidosTerminate(nullptr);
 	
 	// Search through our chain for a defined constants table; if we don't find one, add one
 	EidosSymbolTable *definedConstantsTable;
@@ -534,9 +534,9 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 			if (table_type_ != EidosSymbolTableType::kVariablesTable)
 			{
 				if (table_type_ == EidosSymbolTableType::kEidosIntrinsicConstantsTable)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is an intrinsic Eidos constant and thus cannot be removed." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' is an intrinsic Eidos constant and thus cannot be removed." << EidosTerminate(nullptr);
 				if (!p_remove_constant)
-					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << Eidos_StringForGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_RemoveSymbol): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' is a constant and thus cannot be removed." << EidosTerminate(nullptr);
 			}
 			
 			slot->symbol_value_SP_.reset();
@@ -620,7 +620,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_sy
 	
 	for (const std::string &symbol_name : symbol_names)
 	{
-		EidosValue_SP symbol_value = p_symbols.GetValueOrRaiseForSymbol(Eidos_GlobalStringIDForString(symbol_name));
+		EidosValue_SP symbol_value = p_symbols.GetValueOrRaiseForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol_name));
 		int symbol_count = symbol_value->Count();
 		bool is_const = std::find(read_only_symbol_names.begin(), read_only_symbol_names.end(), symbol_name) != read_only_symbol_names.end();
 		

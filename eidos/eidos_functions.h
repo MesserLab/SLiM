@@ -272,14 +272,6 @@ EidosValue_SP Eidos_ExecuteFunction_usage(const std::vector<EidosValue_SP> &p_ar
 EidosValue_SP Eidos_ExecuteFunction_version(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
 
-#pragma mark -
-#pragma mark Object instantiation
-#pragma mark -
-
-//	object instantiation
-EidosValue_SP Eidos_ExecuteFunction__Test(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-
-
 #endif /* defined(__Eidos__eidos_functions__) */
 
 

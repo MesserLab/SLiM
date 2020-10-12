@@ -75,7 +75,6 @@ int main(int argc, const char * argv[])
 		{
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
-			Eidos_FinishWarmUp();
 			
 			int test_result = RunEidosTests();
 			
@@ -121,7 +120,6 @@ int main(int argc, const char * argv[])
 	
 	// warm up and load the script
 	Eidos_WarmUp();
-	Eidos_FinishWarmUp();
 	EidosScript::ClearErrorPosition();
 	
 	EidosScript *script = nullptr;
