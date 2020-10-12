@@ -11086,7 +11086,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 	
 	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
-	// See also EidosDictionary::ExecuteMethod_Accelerated_setValue(), which enforces the same rule
+	// See also EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(), which enforces the same rule
 	if (x_value_sp->Type() == EidosValueType::kValueObject)
 	{
 		const EidosObjectClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();

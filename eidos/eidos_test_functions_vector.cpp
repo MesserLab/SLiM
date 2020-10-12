@@ -20,7 +20,7 @@
 
 #include "eidos_test.h"
 
-#include "eidos_test_element.h"
+#include "eidos_class_TestElement.h"
 
 #include <limits>
 

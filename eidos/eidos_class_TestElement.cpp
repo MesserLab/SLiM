@@ -1,5 +1,5 @@
 //
-//  eidos_test_element.cpp
+//  eidos_class_TestElement.cpp
 //  Eidos
 //
 //  Created by Ben Haller on 5/1/15.
@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "eidos_test_element.h"
+#include "eidos_class_TestElement.h"
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
@@ -188,7 +188,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 #pragma mark EidosTestElement_Class
 #pragma mark -
 
-class EidosTestElement_Class : public EidosObjectClass_Retained
+class EidosTestElement_Class : public EidosDictionaryRetained_Class
 {
 public:
 	EidosTestElement_Class(const EidosTestElement_Class &p_original) = delete;	// no copy-construct

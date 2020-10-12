@@ -628,7 +628,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	{
 		case gID_setSelectionCoeff:	return ExecuteMethod_setSelectionCoeff(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationType:	return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
-		default:					return EidosObjectElement_Retained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:					return EidosDictionaryRetained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -710,7 +710,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 #pragma mark Mutation_Class
 #pragma mark -
 
-class Mutation_Class : public EidosObjectClass_Retained
+class Mutation_Class : public EidosDictionaryRetained_Class
 {
 public:
 	Mutation_Class(const Mutation_Class &p_original) = delete;	// no copy-construct
@@ -737,7 +737,7 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass_Retained::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryRetained_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isFixed,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isFixed));
@@ -763,7 +763,7 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass_Retained::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryRetained_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskVOID))->AddFloat_S("selectionCoeff"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

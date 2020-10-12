@@ -44,7 +44,7 @@ class SLiMSim;
 extern EidosObjectClass *gSLiM_GenomicElementType_Class;
 
 
-class GenomicElementType : public EidosDictionary
+class GenomicElementType : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 

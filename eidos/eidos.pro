@@ -69,7 +69,8 @@ SOURCES += \
     eidos_ast_node.cpp \
     eidos_beep.cpp \
     eidos_call_signature.cpp \
-    eidos_dictionary.cpp \
+    eidos_class_Dictionary.cpp \
+    eidos_class_TestElement.cpp \
     eidos_functions.cpp \
     eidos_globals.cpp \
     eidos_interpreter.cpp \
@@ -77,7 +78,6 @@ SOURCES += \
     eidos_rng.cpp \
     eidos_script.cpp \
     eidos_symbol_table.cpp \
-    eidos_test_element.cpp \
     eidos_test.cpp \
     eidos_test_functions_math.cpp \
     eidos_test_functions_other.cpp \
@@ -95,6 +95,8 @@ HEADERS += \
     eidos_ast_node.h \
     eidos_beep.h \
     eidos_call_signature.h \
+    eidos_class_Dictionary.h \
+    eidos_class_TestElement.h \
     eidos_functions.h \
     eidos_globals.h \
     eidos_interpreter.h \
@@ -105,7 +107,6 @@ HEADERS += \
     eidos_script.h \
     eidos_symbol_table.h \
     eidos_test_builtins.h \
-    eidos_test_element.h \
     eidos_test.h \
     eidos_tinycolormap.h \
     eidos_token.h \

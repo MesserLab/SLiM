@@ -34,7 +34,7 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-	EidosObjectElement_Retained(p_mutation), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+	EidosDictionaryRetained(p_mutation), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
 {
 }
@@ -357,7 +357,7 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 {
 	switch (p_method_id)
 	{
-		default:					return EidosObjectElement_Retained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:					return EidosDictionaryRetained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -369,7 +369,7 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 #pragma mark Substitution_Class
 #pragma mark -
 
-class Substitution_Class : public EidosObjectClass_Retained
+class Substitution_Class : public EidosDictionaryRetained_Class
 {
 public:
 	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
@@ -396,7 +396,7 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass_Retained::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryRetained_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
@@ -421,7 +421,7 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass_Retained::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryRetained_Class::Methods());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

@@ -2316,13 +2316,13 @@ const std::string &gEidosStr__increment = EidosRegisteredString("_increment", gE
 const std::string &gEidosStr__cubicYolk = EidosRegisteredString("_cubicYolk", gEidosID__cubicYolk);
 const std::string &gEidosStr__squareTest = EidosRegisteredString("_squareTest", gEidosID__squareTest);
 
-// strings for EidosDictionary
-const std::string &gEidosStr_EidosDictionary = EidosRegisteredString("EidosDictionary", gEidosID_EidosDictionary);
+// strings for Dictionary (i.e., for EidosDictionaryUnretained, but also inherited by EidosDictionaryRetained)
+const std::string &gEidosStr_EidosDictionaryUnretained = EidosRegisteredString("EidosDictionaryUnretained", gEidosID_EidosDictionaryUnretained);
 const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidosID_getValue);
 const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
 
-// strings for EidosObjectClass_Retained
-const std::string &gEidosStr_EidosObjectClass_Retained = EidosRegisteredString("EidosObjectClass_Retained", gEidosID_EidosObjectClass_Retained);
+// strings for Dictionary (i.e., for EidosDictionaryRetained, which is the publicly visible class called "Dictionary" in Eidos)
+const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);
 
 // strings for EidosImage
 const std::string &gEidosStr_Image = EidosRegisteredString("Image", gEidosID_Image);

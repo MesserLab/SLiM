@@ -280,8 +280,8 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  Memory management in SLiM is a complex topic which I'll try to summarize here.  Classes that are visible in Eidos
  descend from EidosObjectElement.  Most of these have their ownership and lifetime managed by the simulation; when
  an Individual dies, for example, the object ceases to exist at that time, and will be disposed of.  A subclass of
- EidosObjectElement, EidosObjectElement_Retained, provides retain/release style memory management for objects that
- are visible in Eidos; at present, Mutation and Substitution take advantage of this facility, and can therefore be
+ EidosObjectElement, EidosDictionaryRetained, provides retain/release style memory management for objects that are
+ visible in Eidos; at present, Mutation and Substitution take advantage of this optional facility, and can thus be
  held onto long-term in Eidos with defineConstant() or setValue().  In either case, objects might be allocated out
  of several different pools: some objects are allocated with new, some out of EidosObjectPool.  EidosValue objects
  themselves (which can contain pointers to EidosObjectElements) are always allocated from a global EidosObjectPool
@@ -291,31 +291,31 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  
  EidosValue : no base class; allocated from a shared pool, held under retain/release with Eidos_intrusive_ptr
  EidosObjectElement : base class for all Eidos classes that are visible as objects in SLiM scripts
- EidosDictionary : EidosObjectElement subclass that provides dictionary-style key-value Eidos methods
- EidosObjectElement_Retained : EidosDictionary subclass that provides retain/release memory management
+ EidosDictionaryUnretained : EidosObjectElement subclass that provides dictionary-style key-value Eidos methods
+ EidosDictionaryRetained : EidosDictionaryUnretained subclass that provides retain/release memory management
  
  Chromosome : EidosObjectElement subclass, allocated with new and never deleted
  GenomicElement : EidosObjectElement subclass, allocated with new and never deleted
  SLiMgui : EidosObjectElement subclass, allocated with new and never deleted
- GenomicElementType : EidosDictionary subclass, allocated with new and never deleted
- MutationType : EidosDictionary subclass, allocated with new and never deleted
- InteractionType : EidosDictionary subclass, allocated with new and never deleted
- SLiMSim : EidosDictionary subclass, allocated with new and never deleted
+ GenomicElementType : EidosDictionaryUnretained subclass, allocated with new and never deleted
+ MutationType : EidosDictionaryUnretained subclass, allocated with new and never deleted
+ InteractionType : EidosDictionaryUnretained subclass, allocated with new and never deleted
+ SLiMSim : EidosDictionaryUnretained subclass, allocated with new and never deleted
  SLiMEidosBlock : EidosObjectElement subclass, dynamic lifetime with a deferred deletion scheme in SLiMSim
  
  MutationRun : no superclass, not visible in Eidos, shared by Genome, private pool for very efficient reuse
  Genome : EidosObjectElement subclass, allocated out of an EidosObjectPool owned by its subpopulation
- Individual : EidosDictionary subclass, allocated out of an EidosObjectPool owned by its subpopulation
- Subpopulation : EidosDictionary subclass, allocated with new/delete
+ Individual : EidosDictionaryUnretained subclass, allocated out of an EidosObjectPool owned by its subpopulation
+ Subpopulation : EidosDictionaryUnretained subclass, allocated with new/delete
  
- Substitution : EidosObjectElement_Retained subclass, allocated with new/delete
- Mutation : EidosObjectElement_Retained subclass, allocated out of a special global pool, gSLiM_Mutation_Block
+ Substitution : EidosDictionaryRetained subclass, allocated with new/delete
+ Mutation : EidosDictionaryRetained subclass, allocated out of a special global pool, gSLiM_Mutation_Block
  
  The dynamics of Mutation are unusual and require further discussion.  The global shared gSLiM_Mutation_Block pool
  is used instead of EidosObjectPool because all mutations must be allocated out of a single contiguous memory bloc
  in order to be indexable with MutationIndex (whereas EidosObjectPool dynamically creates new blocs).  This allows
  references to mutations in MutationRun to be done with 32-bit MutationIndexes rather than 64-bit pointers, giving
- better performance.  Mutation, as a subclass of EidosObjectElement_Retained, is under retain/release, but uses of
+ better performance.  Mutation, as a subclass of EidosDictionaryRetained, is under retain/release, but the uses of
  Mutation inside SLiM's core do not cause retain/release activity, for efficiency; instead, the population keeps a
  "registry" of mutations that are currently segregating, and the registry holds a retain on all of those mutations
  on behalf of the entire SLiM core.  Normally, when a mutation is lost or fixes and gets removed from the registry
@@ -333,12 +333,12 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  a central bottleneck in most SLiM models.
  
  In summary, there are two different retain/release schemes in SLiM, one run by Eidos_intrusive_ptr and one run by
- EidosObjectElement_Retained.  Eidos_intrusive_ptr is a template-based solution that can be used by any class with
+ EidosDictionaryRetained.  Eidos_intrusive_ptr is a template-based solution that can be incorporated in class with
  the declaration of a counter and two friend functions, providing a very general solution.  In contrast, the class
- EidosObjectElement_Retained provides a retain/release scheme that is tightly integrated into EidosValue's design,
- with explicit calls to retain/release instead of the automatic "shared pointer" design of Eidos_intrusive_ptr.
+ EidosDictionaryRetained provides a retain/release scheme that's tightly integrated into EidosValue's design, with
+ explicit calls to retain/release instead of the automatic "shared pointer" design of Eidos_intrusive_ptr.
  
- Other SLiM Eidos objects could conceivably be brought under EidosObjectElement_Retained, allowing them to be kept
+ Other SLiM Eidos objects could conceivably be brought under EidosDictionaryRetained, allowing them to be retained
  long-term like Mutation and Substitution.  However, this is tricky with objects that have a lifetime delimited by
  the simulation itself, like Subpopulation; it would be hard to keep a Subpopulation object alive beyond its usual
  lifetime while remaining useful and functional.  There is also a substantial speed penalty to being under retain/

@@ -939,12 +939,12 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			
 		default:
 		{
-			// In a sense, we here "subclass" EidosDictionary to override setValue(); we set a flag remembering that
+			// In a sense, we here "subclass" EidosDictionaryUnretained to override setValue(); we set a flag remembering that
 			// an individual's dictionary has been modified, and then we call "super" for the usual behavior.
 			if (p_method_id == gEidosID_setValue)
 				s_any_individual_dictionary_set_ = true;
 			
-			return EidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+			return EidosDictionaryUnretained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 		}
 	}
 }
@@ -1347,7 +1347,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma mark Individual_Class
 #pragma mark -
 
-class Individual_Class : public EidosDictionary_Class
+class Individual_Class : public EidosDictionaryUnretained_Class
 {
 public:
 	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
@@ -1377,7 +1377,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryUnretained_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
@@ -1414,7 +1414,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryUnretained_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
@@ -1434,7 +1434,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 	switch (p_method_id)
 	{
 		case gID_setSpatialPosition:	return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
-		default:						return EidosDictionary_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		default:						return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
 }
 

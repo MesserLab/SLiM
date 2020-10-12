@@ -1,5 +1,5 @@
 //
-//  eidos_test_element.h
+//  eidos_class_TestElement.h
 //  Eidos
 //
 //  Created by Ben Haller on 5/1/15.
@@ -24,8 +24,8 @@
  
  */
 
-#ifndef __Eidos__eidos_path_element__
-#define __Eidos__eidos_path_element__
+#ifndef __Eidos__eidos_class_test_element__
+#define __Eidos__eidos_class_test_element__
 
 #include "eidos_value.h"
 
@@ -33,7 +33,7 @@
 extern EidosObjectClass *gEidosTestElement_Class;
 
 
-class EidosTestElement : public EidosObjectElement_Retained
+class EidosTestElement : public EidosDictionaryRetained
 {
 private:
 	int64_t yolk_;
@@ -63,7 +63,7 @@ public:
 };
 
 
-#endif /* defined(__Eidos__eidos_path_element__) */
+#endif /* defined(__Eidos__eidos_class_test_element__) */
 
 
 

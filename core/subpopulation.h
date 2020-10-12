@@ -115,7 +115,7 @@ typedef std::map<std::string, SpatialMap *> SpatialMapMap;
 #pragma mark Subpopulation
 #pragma mark -
 
-class Subpopulation : public EidosDictionary
+class Subpopulation : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 

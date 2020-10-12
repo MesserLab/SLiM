@@ -910,12 +910,12 @@ public:
 //
 
 // EidosObjectElement supports a retain/release mechanism that disposes of objects when no longer
-// referenced, which client code can get by subclassing EidosObjectElement_Retained instead of
-// EidosObjectElement and subclassing EidosObjectClass_Retained instead of EidosObjectClass.
+// referenced, which client code can get by subclassing EidosDictionaryRetained instead of
+// EidosObjectElement and subclassing EidosDictionaryRetained_Class instead of EidosObjectClass.
 // Note that most SLiM objects have managed lifetimes, and are not under retain/release,
 // but Mutation uses retain/release so that those objects can be kept permanently by the user's
-// script.  Note that if you inherit from EidosObjectElement_Retained you *must* subclass from
-// EidosObjectClass_Retained, and vice versa; each is considered a guarantee of the other.
+// script.  Note that if you inherit from EidosDictionaryRetained you *must* subclass from
+// EidosDictionaryRetained_Class, and vice versa; each is considered a guarantee of the other.
 
 class EidosValue_Object : public EidosValue
 {
@@ -1020,7 +1020,7 @@ public:
 	inline __attribute__((always_inline)) size_t size(void) const { return count_; }
 	
 	// fast accessors; you can use the _RR or _NORR versions in a tight loop to avoid overhead, when you know
-	// whether the EidosObjectElement subclass you are using inherits from EidosObjectElement_Retained or not;
+	// whether the EidosObjectElement subclass you are using inherits from EidosDictionaryRetained or not;
 	// you can call UsesRetainRelease() to find that out if you don't know or want to assert() for safety
 	void push_object_element_CRR(EidosObjectElement *p_object);								// checks for retain/release
 	void push_object_element_RR(EidosObjectElement *p_object);								// specifies retain/release
@@ -1097,8 +1097,8 @@ public:
 // EidosObjectElement never copies itself.  To manage its lifetime, refcounting can be used.  Many objects
 // do not use this refcount, since their lifetime is managed, but some objects, such as Mutation and the
 // internal test class EidosTestElement, use the refcount and delete themselves when they are done.  Those
-// objects inherit from EidosObjectElement_Retained, and their EidosObjectClass subclass must subclass from
-// EidosObjectClass_Retained (which guarantees inheritance from EidosObjectElement_Retained).
+// objects inherit from EidosDictionaryRetained, and their EidosObjectClass subclass must subclass from
+// EidosDictionaryRetained_Class (which guarantees inheritance from EidosDictionaryRetained).
 
 class EidosObjectElement
 {
@@ -1237,258 +1237,11 @@ inline __attribute__((always_inline)) void EidosValue_Object::DeclareClassFromEl
 }
 
 
-#pragma mark -
-#pragma mark EidosDictionary
-#pragma mark -
+// We have implementations of a few inline methods in eidos_dictionary.h because they are tightly related to
+// the classes declared there.  To make sure they are available as inlines for everyone who includes this header,
+// we include eidos_dictionary.h here.  These two headers is very interwoven; indeed, they used to be one header.
 
-extern EidosObjectClass *gEidos_EidosDictionary_Class;
-
-
-class EidosDictionary : public EidosObjectElement
-{
-private:
-	// We keep a pointer to our hash table for values we are tracking.  The reason to use a pointer is
-	// that most clients of SLiM will not use getValue()/setValue() for most objects most of the time,
-	// so we want to keep that case as minimal as possible in terms of speed and memory footprint.
-	// Those who do use getValue()/setValue() will pay a little additional cost; that's OK.
-	std::unordered_map<std::string, EidosValue_SP> *hash_symbols_ = nullptr;
-	
-public:
-	EidosDictionary(const EidosDictionary &p_original);
-	EidosDictionary& operator= (const EidosDictionary &p_original) = delete;	// no assignment
-	inline EidosDictionary(void) { }
-	
-	inline virtual ~EidosDictionary(void) override
-	{
-		if (hash_symbols_)
-			delete hash_symbols_;
-	}
-	
-	inline __attribute__((always_inline)) void RemoveAllKeys(void)
-	{
-		if (hash_symbols_)
-			hash_symbols_->clear();
-	}
-	
-	//
-	// Eidos support
-	//
-	virtual const EidosObjectClass *Class(void) const override;
-	
-	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
-	EidosValue_SP ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_setValue(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-};
-
-
-class EidosDictionary_Class : public EidosObjectClass
-{
-public:
-	EidosDictionary_Class(const EidosDictionary_Class &p_original) = delete;	// no copy-construct
-	EidosDictionary_Class& operator=(const EidosDictionary_Class&) = delete;	// no copying
-	inline EidosDictionary_Class(void) { }
-	
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-
-#pragma mark -
-#pragma mark EidosObjectElement_Retained
-#pragma mark -
-
-// A base class for EidosObjectElement subclasses that are under retain/release.  These must inherit from EidosDictionary.
-class EidosObjectElement_Retained : public EidosDictionary
-{
-private:
-	uint32_t refcount_ = 1;				// start life with a refcount of 1; the allocator does not need to call Retain()
-	
-public:
-	inline EidosObjectElement_Retained(const EidosObjectElement_Retained &p_original) : EidosDictionary(p_original) { }
-	EidosObjectElement_Retained& operator=(const EidosObjectElement_Retained&) = delete;		// no copying
-	inline EidosObjectElement_Retained(void) { }
-	inline virtual ~EidosObjectElement_Retained(void) override { }
-	
-	inline __attribute__((always_inline)) void Retain(void)
-	{
-		refcount_++;
-	}
-
-	inline __attribute__((always_inline)) void Release(void)
-	{
-		if ((--refcount_) == 0)
-			SelfDelete();
-	}
-	
-	virtual void SelfDelete(void);
-};
-
-class EidosObjectClass_Retained : public EidosDictionary_Class
-{
-public:
-	EidosObjectClass_Retained(const EidosObjectClass_Retained &p_original) = delete;	// no copy-construct
-	EidosObjectClass_Retained& operator=(const EidosObjectClass_Retained&) = delete;	// no copying
-	inline EidosObjectClass_Retained(void) { }
-	
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual bool UsesRetainRelease(void) const override;
-};
-
-
-#pragma mark -
-#pragma mark Inlines
-#pragma mark -
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_CRR(EidosObjectElement *p_object)
-{
-	if (count_ == capacity_)
-		expand();
-	
-	DeclareClassFromElement(p_object);
-	
-	if (class_uses_retain_release_)
-		static_cast<EidosObjectElement_Retained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_RR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	if (count_ == capacity_)
-		expand();
-	
-	DeclareClassFromElement(p_object);
-	
-	static_cast<EidosObjectElement_Retained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_NORR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	if (count_ == capacity_)
-		expand();
-	
-	DeclareClassFromElement(p_object);
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_CRR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (count_ == capacity_) RaiseForCapacityViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-#endif
-	
-	if (class_uses_retain_release_)
-		static_cast<EidosObjectElement_Retained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_RR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (count_ == capacity_) RaiseForCapacityViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	static_cast<EidosObjectElement_Retained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_NORR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (count_ == capacity_) RaiseForCapacityViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_CRR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	if (class_uses_retain_release_)
-	{
-		static_cast<EidosObjectElement_Retained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
-		if (value_slot_to_replace)
-			static_cast<EidosObjectElement_Retained *>(value_slot_to_replace)->Release();	// unsafe cast to avoid virtual function overhead
-	}
-	
-	value_slot_to_replace = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_RR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	static_cast<EidosObjectElement_Retained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
-	if (value_slot_to_replace)
-		static_cast<EidosObjectElement_Retained *>(value_slot_to_replace)->Release();	// unsafe cast to avoid virtual function overhead
-	
-	value_slot_to_replace = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_no_previous_RR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	static_cast<EidosObjectElement_Retained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
-	
-	value_slot_to_replace = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_NORR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	value_slot_to_replace = p_object;
-}
+#include "eidos_class_Dictionary.h"
 
 
 #endif /* defined(__Eidos__eidos_value__) */

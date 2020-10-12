@@ -2234,7 +2234,7 @@ EidosValue_Object_vector::~EidosValue_Object_vector(void)
 			EidosObjectElement *value = values_[index];
 			
 			if (value)
-				static_cast<EidosObjectElement_Retained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
+				static_cast<EidosDictionaryRetained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
 		}
 	}
 	
@@ -2273,9 +2273,9 @@ void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue
 	
 	if (class_uses_retain_release_)
 	{
-		static_cast<EidosObjectElement_Retained *>(new_value)->Retain();				// unsafe cast to avoid virtual function overhead
+		static_cast<EidosDictionaryRetained *>(new_value)->Retain();				// unsafe cast to avoid virtual function overhead
 		if (values_[p_idx])
-			static_cast<EidosObjectElement_Retained *>(values_[p_idx])->Release();		// unsafe cast to avoid virtual function overhead
+			static_cast<EidosDictionaryRetained *>(values_[p_idx])->Release();		// unsafe cast to avoid virtual function overhead
 	}
 	
 	values_[p_idx] = new_value;
@@ -3077,7 +3077,7 @@ EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize(size_t 
 				EidosObjectElement *value = values_[element_index];
 				
 				if (value)
-					static_cast<EidosObjectElement_Retained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
+					static_cast<EidosDictionaryRetained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
 			}
 		}
 		else if (p_new_size > count_)
@@ -3117,7 +3117,7 @@ void EidosValue_Object_vector::erase_index(size_t p_index)
 	
 	if (class_uses_retain_release_)
 		if (values_[p_index])
-			static_cast<EidosObjectElement_Retained *>(values_[p_index])->Release();		// unsafe cast to avoid virtual function overhead
+			static_cast<EidosDictionaryRetained *>(values_[p_index])->Release();		// unsafe cast to avoid virtual function overhead
 	
 	if (p_index == count_ - 1)
 		--count_;
@@ -3146,7 +3146,7 @@ EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_e
 		DeclareClassFromElement(p_element1);
 		
 		if (class_uses_retain_release_)
-			static_cast<EidosObjectElement_Retained *>(p_element1)->Retain();		// unsafe cast to avoid virtual function overhead
+			static_cast<EidosDictionaryRetained *>(p_element1)->Retain();		// unsafe cast to avoid virtual function overhead
 	}
 }
 
@@ -3162,7 +3162,7 @@ EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_e
 		DeclareClassFromElement(p_element1);
 		
 		if (class_uses_retain_release_)
-			static_cast<EidosObjectElement_Retained *>(p_element1)->Retain();		// unsafe cast to avoid virtual function overhead
+			static_cast<EidosDictionaryRetained *>(p_element1)->Retain();		// unsafe cast to avoid virtual function overhead
 	}
 }
 
@@ -3170,7 +3170,7 @@ EidosValue_Object_singleton::~EidosValue_Object_singleton(void)
 {
 	if (class_uses_retain_release_)
 		if (value_)
-			static_cast<EidosObjectElement_Retained *>(value_)->Release();		// unsafe cast to avoid virtual function overhead
+			static_cast<EidosDictionaryRetained *>(value_)->Release();		// unsafe cast to avoid virtual function overhead
 }
 
 int EidosValue_Object_singleton::Count_Virtual(void) const
@@ -3200,11 +3200,11 @@ void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
 	
 	if (class_uses_retain_release_)
 	{
-		static_cast<EidosObjectElement_Retained *>(p_element)->Retain();		// unsafe cast to avoid virtual function overhead
+		static_cast<EidosDictionaryRetained *>(p_element)->Retain();		// unsafe cast to avoid virtual function overhead
 		
 		// we might have been initialized with nullptr with the aim of setting a value here
 		if (value_)
-			static_cast<EidosObjectElement_Retained *>(value_)->Release();		// unsafe cast to avoid virtual function overhead
+			static_cast<EidosDictionaryRetained *>(value_)->Release();		// unsafe cast to avoid virtual function overhead
 	}
 	
 	value_ = p_element;
@@ -3473,27 +3473,27 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 
 
 //
-//	EidosObjectElement_Retained
+//	EidosDictionaryRetained
 //
 #pragma mark -
-#pragma mark EidosObjectElement_Retained
+#pragma mark EidosDictionaryRetained
 #pragma mark -
 
 /*
-EidosObjectElement_Retained::EidosObjectElement_Retained(void)
+EidosDictionaryRetained::EidosDictionaryRetained(void)
 {
-//	std::cerr << "EidosObjectElement_Retained::EidosObjectElement_Retained allocated " << this << " with refcount == 1" << std::endl;
+//	std::cerr << "EidosDictionaryRetained::EidosDictionaryRetained allocated " << this << " with refcount == 1" << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 }
 
-EidosObjectElement_Retained::~EidosObjectElement_Retained(void)
+EidosDictionaryRetained::~EidosDictionaryRetained(void)
 {
-//	std::cerr << "EidosObjectElement_Retained::~EidosObjectElement_Retained deallocated " << this << std::endl;
+//	std::cerr << "EidosDictionaryRetained::~EidosDictionaryRetained deallocated " << this << std::endl;
 //	Eidos_PrintStacktrace(stderr, 10);
 }
 */
 
-void EidosObjectElement_Retained::SelfDelete(void)
+void EidosDictionaryRetained::SelfDelete(void)
 {
 	// called when our refcount reaches zero; can be overridden by subclasses to provide custom behavior
 	delete this;
@@ -3751,25 +3751,6 @@ EidosValue_SP EidosObjectClass::ExecuteMethod_size_length(EidosGlobalStringID p_
 }
 
 
-//
-//	EidosObjectClass_Retained
-//
-#pragma mark -
-#pragma mark EidosObjectClass_Retained
-#pragma mark -
-
-EidosObjectClass *gEidos_EidosObjectClass_Retained = new EidosObjectClass_Retained();
-
-
-const std::string &EidosObjectClass_Retained::ElementType(void) const
-{
-	return gEidosStr_EidosObjectClass_Retained;
-}
-
-bool EidosObjectClass_Retained::UsesRetainRelease(void) const
-{
-	return true;
-}
 
 
 

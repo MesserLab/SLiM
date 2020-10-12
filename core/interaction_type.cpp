@@ -2706,7 +2706,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_interpreter);
 		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_interpreter);
 		case gID_unevaluate:				return ExecuteMethod_unevaluate(p_method_id, p_arguments, p_interpreter);
-		default:							return EidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:							return EidosDictionaryUnretained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -3923,7 +3923,7 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 #pragma mark InteractionType_Class
 #pragma mark -
 
-class InteractionType_Class : public EidosDictionary_Class
+class InteractionType_Class : public EidosDictionaryUnretained_Class
 {
 public:
 	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
@@ -3950,7 +3950,7 @@ const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryUnretained_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
@@ -3971,7 +3971,7 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryUnretained_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));

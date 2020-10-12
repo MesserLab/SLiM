@@ -64,7 +64,7 @@ typedef enum {
 	kLostAndRemoved				// lost and removed from the simulation
 } MutationState;
 
-class Mutation : public EidosObjectElement_Retained
+class Mutation : public EidosDictionaryRetained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -100,7 +100,7 @@ public:
 	Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide);
 	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide);
 	
-	// a destructor is needed now that we inherit from EidosObjectElement_Retained; we want it to be as minimal as possible, though, and inline
+	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
 	inline virtual ~Mutation(void) override
 	{

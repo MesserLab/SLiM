@@ -59,7 +59,7 @@ enum class DFEType : char {
 std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
 
 	
-class MutationType : public EidosDictionary
+class MutationType : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

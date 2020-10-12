@@ -253,7 +253,7 @@ typedef struct
 #pragma mark SLiMSim
 #pragma mark -
 
-class SLiMSim : public EidosDictionary
+class SLiMSim : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

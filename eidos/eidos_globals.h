@@ -757,11 +757,11 @@ extern const std::string &gEidosStr__increment;
 extern const std::string &gEidosStr__cubicYolk;
 extern const std::string &gEidosStr__squareTest;
 
-extern const std::string &gEidosStr_EidosDictionary;
+extern const std::string &gEidosStr_EidosDictionaryUnretained;
 extern const std::string &gEidosStr_getValue;
 extern const std::string &gEidosStr_setValue;
 
-extern const std::string &gEidosStr_EidosObjectClass_Retained;
+extern const std::string &gEidosStr_Dictionary;
 
 extern const std::string &gEidosStr_Image;
 extern const std::string &gEidosStr_width;
@@ -856,11 +856,11 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__cubicYolk,
 	gEidosID__squareTest,
 
-	gEidosID_EidosDictionary,
+	gEidosID_EidosDictionaryUnretained,
 	gEidosID_getValue,
 	gEidosID_setValue,
 
-	gEidosID_EidosObjectClass_Retained,
+	gEidosID_Dictionary,
 
 	gEidosID_Image,
 	gEidosID_width,

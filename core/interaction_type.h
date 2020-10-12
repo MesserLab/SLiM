@@ -115,7 +115,7 @@ struct _InteractionsData
 typedef struct _InteractionsData InteractionsData;
 
 
-class InteractionType : public EidosDictionary
+class InteractionType : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

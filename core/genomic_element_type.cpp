@@ -359,7 +359,7 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	{
 		case gID_setMutationFractions:	return ExecuteMethod_setMutationFractions(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationMatrix:		return ExecuteMethod_setMutationMatrix(p_method_id, p_arguments, p_interpreter);
-		default:						return EidosDictionary::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:						return EidosDictionaryUnretained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -443,7 +443,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 #pragma mark GenomicElementType_Class
 #pragma mark -
 
-class GenomicElementType_Class : public EidosDictionary_Class
+class GenomicElementType_Class : public EidosDictionaryUnretained_Class
 {
 public:
 	GenomicElementType_Class(const GenomicElementType_Class &p_original) = delete;	// no copy-construct
@@ -470,7 +470,7 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Propert
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionary_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryUnretained_Class::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
@@ -491,7 +491,7 @@ const std::vector<EidosMethodSignature_CSP> *GenomicElementType_Class::Methods(v
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionary_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryUnretained_Class::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskVOID))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationMatrix, kEidosValueMaskVOID))->AddFloat("mutationMatrix"));

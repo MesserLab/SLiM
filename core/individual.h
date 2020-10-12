@@ -48,7 +48,7 @@ extern EidosObjectClass *gSLiM_Individual_Class;
 extern slim_pedigreeid_t gSLiM_next_pedigree_id;
 
 
-class Individual : public EidosDictionary
+class Individual : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

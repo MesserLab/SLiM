@@ -10,7 +10,6 @@
 #include <locale.h>
 
 #include "eidos_globals.h"
-#include "eidos_test_element.h"
 #include "eidos_symbol_table.h"
 
 #ifdef __APPLE__
