@@ -63,6 +63,7 @@ development head:
 	add isFixed and isSegregating properties to Mutation to help diagnose the state of a mutation that has been retained long-term
 	add recipe 9.9, "Keeping a reference to a sweep mutation"
 	add recipe 9.10, "Tracking the fate of background mutations"
+	add Image class to Eidos, based on lodepng
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

@@ -70,6 +70,7 @@ SOURCES += \
     eidos_beep.cpp \
     eidos_call_signature.cpp \
     eidos_class_Dictionary.cpp \
+    eidos_class_Image.cpp \
     eidos_class_TestElement.cpp \
     eidos_functions.cpp \
     eidos_globals.cpp \
@@ -89,7 +90,8 @@ SOURCES += \
     eidos_token.cpp \
     eidos_type_interpreter.cpp \
     eidos_type_table.cpp \
-    eidos_value.cpp
+    eidos_value.cpp \
+    lodepng.cpp
 
 HEADERS += \
     eidos_ast_node.h \
@@ -97,6 +99,7 @@ HEADERS += \
     eidos_call_signature.h \
     eidos_class_Dictionary.h \
     eidos_class_TestElement.h \
+    eidos_class_Image.h \
     eidos_functions.h \
     eidos_globals.h \
     eidos_interpreter.h \
@@ -112,6 +115,7 @@ HEADERS += \
     eidos_token.h \
     eidos_type_interpreter.h \
     eidos_type_table.h \
-    eidos_value.h
+    eidos_value.h \
+    lodepng.h
 
 
