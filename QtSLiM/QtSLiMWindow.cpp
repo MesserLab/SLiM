@@ -3535,6 +3535,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
     std::vector<std::pair<int32_t, QAction *>> jumpActions;
     
     // First we scan for comments of the form /** comment */ or /// comment, which are taken to be section headers
+    // BCH 10/13/2020: Now we exclude comments of the form /*** or ////, since they are not of the expected form, but are instead just somebody's fancy comment block
     if (cstr)
     {
         SLiMEidosScript script(cstr);
@@ -3549,12 +3550,12 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
         {
             const EidosToken &token = tokens[token_index];
             
-            if ((token.token_type_ == EidosTokenType::kTokenComment) && (token.token_string_.rfind("///", 0) == 0))
+            if ((token.token_type_ == EidosTokenType::kTokenComment) && (token.token_string_.rfind("///", 0) == 0) && (token.token_string_.rfind("////", 0) != 0))
             {
                 comment = QString::fromStdString(token.token_string_);
                 comment = comment.mid(3);
             }
-            else if (token.token_type_ == EidosTokenType::kTokenCommentLong && (token.token_string_.rfind("/**", 0) == 0))
+            else if (token.token_type_ == EidosTokenType::kTokenCommentLong && (token.token_string_.rfind("/**", 0) == 0) && (token.token_string_.rfind("/***", 0) != 0))
             {
                 comment = QString::fromStdString(token.token_string_);
                 comment = comment.mid(3, comment.length() - 5);
