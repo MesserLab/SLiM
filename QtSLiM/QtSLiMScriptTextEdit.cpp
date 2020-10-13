@@ -1000,15 +1000,18 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             
             td.setPlainText(displayString);
             
-            QTextCursor tc(&td);
-            tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
-            tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
-            
+            if (signature)
+            {
+                QTextCursor tc(&td);
+                tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                
 #ifdef __APPLE__
-            ColorizeCallSignature(signature.get(), 11, tc);
+                ColorizeCallSignature(signature.get(), 11, tc);
 #else
-            ColorizeCallSignature(signature.get(), 9, tc);
+                ColorizeCallSignature(signature.get(), 9, tc);
 #endif
+            }
             
             statusBar->showMessage(td.toHtml());
         }
