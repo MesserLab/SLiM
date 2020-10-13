@@ -34,10 +34,10 @@
 #include "eidos_value.h"
 
 
-extern EidosObjectClass *gSLiM_GenomicElement_Class;
+extern EidosClass *gSLiM_GenomicElement_Class;
 
 
-class GenomicElement : public EidosObjectElement
+class GenomicElement : public EidosObject
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -63,7 +63,7 @@ public:
 	void GenerateCachedEidosValue(void);
 	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
@@ -71,11 +71,11 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_setGenomicElementType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_startPosition(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_endPosition(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genomicElementType(EidosObjectElement **p_values, size_t p_values_size);
+	// Accelerated property access; see class EidosObject for comments on this mechanism
+	static EidosValue *GetProperty_Accelerated_startPosition(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_endPosition(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_genomicElementType(EidosObject **p_values, size_t p_values_size);
 };
 
 // support stream output of GenomicElement, for debugging

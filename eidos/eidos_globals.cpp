@@ -277,7 +277,7 @@ void Eidos_WarmUp(void)
 		gEidosConstantsSymbolTable = new EidosSymbolTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr);
 		
 		// Tell all registered classes to initialize their dispatch tables; doing this here saves a flag check later
-		for (EidosObjectClass *eidos_class : EidosObjectClass::RegisteredClasses())
+		for (EidosClass *eidos_class : EidosClass::RegisteredClasses())
 			eidos_class->CacheDispatchTables();
 	}
 }

@@ -41,7 +41,7 @@
 class SLiMSim;
 
 
-extern EidosObjectClass *gSLiM_GenomicElementType_Class;
+extern EidosClass *gSLiM_GenomicElementType_Class;
 
 
 class GenomicElementType : public EidosDictionaryUnretained
@@ -88,7 +88,7 @@ public:
 	//
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
@@ -98,9 +98,9 @@ public:
 	EidosValue_SP ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationMatrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
+	// Accelerated property access; see class EidosObject for comments on this mechanism
+	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
 };
 
 // support stream output of GenomicElementType, for debugging

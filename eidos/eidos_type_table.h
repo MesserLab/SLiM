@@ -65,7 +65,7 @@ public:
 	
 	// Remove symbols
 	void RemoveTypeForSymbol(EidosGlobalStringID p_symbol_name);
-	void RemoveSymbolsOfClass(const EidosObjectClass *p_object_class);
+	void RemoveSymbolsOfClass(const EidosClass *p_object_class);
 	void RemoveAllSymbols(void);
 	
 	// Get the type for a symbol

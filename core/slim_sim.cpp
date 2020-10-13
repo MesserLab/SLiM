@@ -352,7 +352,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 			
 			if (symbol_value->Type() == EidosValueType::kValueObject)
 			{
-				const EidosObjectClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
+				const EidosClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
 				
 				if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Individual_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
 					symbols_to_remove.emplace_back(symbol_ID);

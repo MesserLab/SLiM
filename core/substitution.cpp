@@ -65,7 +65,7 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 #pragma mark Eidos support
 #pragma mark -
 
-const EidosObjectClass *Substitution::Class(void) const
+const EidosClass *Substitution::Class(void) const
 {
 	return gSLiM_Substitution_Class;
 }
@@ -137,11 +137,11 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -155,7 +155,7 @@ EidosValue *Substitution::GetProperty_Accelerated_id(EidosObjectElement **p_valu
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)p_values_size);
 	
@@ -180,7 +180,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObjectElement 
 	return string_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -198,7 +198,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObjectEle
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_originGeneration(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_originGeneration(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -212,7 +212,7 @@ EidosValue *Substitution::GetProperty_Accelerated_originGeneration(EidosObjectEl
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_fixationGeneration(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_fixationGeneration(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -226,7 +226,7 @@ EidosValue *Substitution::GetProperty_Accelerated_fixationGeneration(EidosObject
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_position(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -240,7 +240,7 @@ EidosValue *Substitution::GetProperty_Accelerated_position(EidosObjectElement **
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -254,7 +254,7 @@ EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObjectElement **
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -272,7 +272,7 @@ EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObjectElement **p_val
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
 	
@@ -286,7 +286,7 @@ EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObjectElem
 	return float_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
 	
@@ -348,7 +348,7 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		
 		default:
 		{
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 		}
 	}
 }
@@ -382,7 +382,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_Substitution_Class = new Substitution_Class();
+EidosClass *gSLiM_Substitution_Class = new Substitution_Class();
 
 
 const std::string &Substitution_Class::ElementType(void) const

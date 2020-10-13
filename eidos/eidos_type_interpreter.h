@@ -38,8 +38,8 @@
 // This is used to record the object class returned by function calls encountered during type interpreting.  This is used to recall
 // the return type of a function at the beginning of a key path for code completion, in cases where the function signature is not
 // sufficient to determine that, such as sample(), rep(), etc.  See -[EidosTextView completionsForKeyPathEndingInTokenIndex:...].
-typedef std::pair<int32_t, const EidosObjectClass *> EidosCallTypeEntry;
-typedef std::map<int32_t, const EidosObjectClass *> EidosCallTypeTable;
+typedef std::pair<int32_t, const EidosClass *> EidosCallTypeEntry;
+typedef std::map<int32_t, const EidosClass *> EidosCallTypeTable;
 
 
 class EidosTypeInterpreter
@@ -121,7 +121,7 @@ public:
 	// side effects.
 	virtual EidosTypeSpecifier _TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments);
 	
-	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments);
+	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments);
 	
 	// Argument processing; handles default arguments and named arguments
 	void _ProcessArgumentListTypes(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature, std::vector<EidosASTNode *> &p_arguments);

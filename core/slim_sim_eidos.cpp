@@ -1673,7 +1673,7 @@ EidosSymbolTable *SLiMSim::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbo
 	return simulation_constants_;
 }
 
-const EidosObjectClass *SLiMSim::Class(void) const
+const EidosClass *SLiMSim::Class(void) const
 {
 	return gSLiM_SLiMSim_Class;
 }
@@ -1886,7 +1886,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
@@ -1981,7 +1981,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 	}
 }
 
@@ -3726,7 +3726,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	else
 	{
 		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
-		EidosObjectElement * const *oe_buffer = ind_vector->data();
+		EidosObject * const *oe_buffer = ind_vector->data();
 		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
 		AddIndividualsToTable(ind_buffer, ind_count, &tables_, SLIM_TSK_INDIVIDUAL_REMEMBERED);
 	}
@@ -3787,7 +3787,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
+EidosClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
 
 
 const std::string &SLiMSim_Class::ElementType(void) const

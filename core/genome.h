@@ -50,7 +50,7 @@ class Individual;
 class GenomeWalker;
 
 
-extern EidosObjectClass *gSLiM_Genome_Class;
+extern EidosClass *gSLiM_Genome_Class;
 
 
 // Genome now keeps an array of MutationRun objects, and those objects actually hold the mutations of the Genome.  This design
@@ -73,7 +73,7 @@ extern EidosObjectClass *gSLiM_Genome_Class;
 #define SLIM_GENOME_MUTRUN_BUFSIZE 1
 
 
-class Genome : public EidosObjectElement
+class Genome : public EidosObject
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -374,7 +374,7 @@ public:
 	void GenerateCachedEidosValue(void);
 	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
@@ -382,20 +382,20 @@ public:
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_containsMutations(EidosObjectElement **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_containsMutations(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_genomePedigreeID(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_isNullGenome(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
+	// Accelerated property access; see class EidosObject for comments on this mechanism
+	static EidosValue *GetProperty_Accelerated_genomePedigreeID(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_isNullGenome(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
 	
-	// Accelerated property writing; see class EidosObjectElement for comments on this mechanism
-	static void SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	// Accelerated property writing; see class EidosObject for comments on this mechanism
+	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
 	friend class Genome_Class;
 	

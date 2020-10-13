@@ -600,7 +600,7 @@ void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
 		EidosValue *symbol_value = slot->symbol_value_SP_.get();
 		EidosValueType symbol_type = symbol_value->Type();
 		EidosValueMask symbol_type_mask = (1 << (int)symbol_type);
-		const EidosObjectClass *symbol_class = ((symbol_type == EidosValueType::kValueObject) ? ((EidosValue_Object *)symbol_value)->Class() : nullptr);
+		const EidosClass *symbol_class = ((symbol_type == EidosValueType::kValueObject) ? ((EidosValue_Object *)symbol_value)->Class() : nullptr);
 		EidosTypeSpecifier symbol_type_specifier = EidosTypeSpecifier{symbol_type_mask, symbol_class};
 		
 		p_type_table->SetTypeForSymbol(symbol, symbol_type_specifier);

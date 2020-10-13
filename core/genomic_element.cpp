@@ -61,7 +61,7 @@ void GenomicElement::GenerateCachedEidosValue(void)
 	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElement_Class));
 }
 
-const EidosObjectClass *GenomicElement::Class(void) const
+const EidosClass *GenomicElement::Class(void) const
 {
 	return gSLiM_GenomicElement_Class;
 }
@@ -92,11 +92,11 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -110,7 +110,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObjectEle
 	return int_result;
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -124,7 +124,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObjectEleme
 	return int_result;
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -142,7 +142,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObjectElement **p_v
 	return int_result;
 }
 
-EidosValue *GenomicElement::GetProperty_Accelerated_genomicElementType(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *GenomicElement::GetProperty_Accelerated_genomicElementType(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElementType_Class))->resize_no_initialize(p_values_size);
 	
@@ -170,7 +170,7 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 			
 		default:
 		{
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 		}
 	}
 }
@@ -180,7 +180,7 @@ EidosValue_SP GenomicElement::ExecuteInstanceMethod(EidosGlobalStringID p_method
 	switch (p_method_id)
 	{
 		case gID_setGenomicElementType: return ExecuteMethod_setGenomicElementType(p_method_id, p_arguments, p_interpreter);
-		default:						return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:						return EidosObject::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -206,7 +206,7 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 #pragma mark GenomicElement_Class
 #pragma mark -
 
-class GenomicElement_Class : public EidosObjectClass
+class GenomicElement_Class : public EidosClass
 {
 public:
 	GenomicElement_Class(const GenomicElement_Class &p_original) = delete;	// no copy-construct
@@ -219,7 +219,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
+EidosClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
 
 
 const std::string &GenomicElement_Class::ElementType(void) const
@@ -233,7 +233,7 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElement_Class::Properties(
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementType,	true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_GenomicElementType_Class))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_genomicElementType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_startPosition,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElement::GetProperty_Accelerated_startPosition));
@@ -252,7 +252,7 @@ const std::vector<EidosMethodSignature_CSP> *GenomicElement_Class::Methods(void)
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosClass::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGenomicElementType, kEidosValueMaskVOID))->AddIntObject_S("genomicElementType", gSLiM_GenomicElementType_Class));
 		

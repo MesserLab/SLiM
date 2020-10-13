@@ -42,7 +42,7 @@
 
 class Subpopulation;
 
-extern EidosObjectClass *gSLiM_Individual_Class;
+extern EidosClass *gSLiM_Individual_Class;
 
 // A global counter used to assign all Individual objects a unique ID
 extern slim_pedigreeid_t gSLiM_next_pedigree_id;
@@ -165,7 +165,7 @@ public:
 	void GenerateCachedEidosValue(void);
 	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
@@ -175,35 +175,35 @@ public:
 	EidosValue_SP ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObjectElement **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_index(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_pedigreeID(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
+	// Accelerated property access; see class EidosObject for comments on this mechanism
+	static EidosValue *GetProperty_Accelerated_index(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_pedigreeID(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
 #ifdef SLIM_NONWF_ONLY
-	static EidosValue *GetProperty_Accelerated_age(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size);
 #endif  // SLIM_NONWF_ONLY
-	static EidosValue *GetProperty_Accelerated_tagF(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_migrant(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_x(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_y(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_z(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genome1(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genome2(EidosObjectElement **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_genome1(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_genome2(EidosObject **p_values, size_t p_values_size);
 	
-	// Accelerated property writing; see class EidosObjectElement for comments on this mechanism
-	static void SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tagF(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_x(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_y(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_z(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_age(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_color(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	// Accelerated property writing; see class EidosObject for comments on this mechanism
+	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_color(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
 	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.

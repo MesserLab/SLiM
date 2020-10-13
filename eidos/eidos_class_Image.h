@@ -29,7 +29,7 @@
 #include "eidos_value.h"
 
 
-extern EidosObjectClass *gEidosImage_Class;
+extern EidosClass *gEidosImage_Class;
 
 
 class EidosImage : public EidosDictionaryRetained
@@ -66,7 +66,7 @@ public:
 	//
 	// Eidos support
 	//
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 };

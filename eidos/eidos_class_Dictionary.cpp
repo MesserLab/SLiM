@@ -35,7 +35,7 @@
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
 
-EidosDictionaryUnretained::EidosDictionaryUnretained(__attribute__((unused)) const EidosDictionaryUnretained &p_original) : EidosObjectElement()
+EidosDictionaryUnretained::EidosDictionaryUnretained(__attribute__((unused)) const EidosDictionaryUnretained &p_original) : EidosObject()
 {
 	// copy hash_symbols_ from p_original; I think this is called only when a Substitution is created from a Mutation
 	if (p_original.hash_symbols_)
@@ -54,7 +54,7 @@ EidosDictionaryUnretained::EidosDictionaryUnretained(__attribute__((unused)) con
 #pragma mark EidosDictionaryUnretained Eidos support
 #pragma mark -
 
-const EidosObjectClass *EidosDictionaryUnretained::Class(void) const
+const EidosClass *EidosDictionaryUnretained::Class(void) const
 {
 	return gEidosDictionaryUnretained_Class;
 }
@@ -81,7 +81,7 @@ EidosValue_SP EidosDictionaryUnretained::GetProperty(EidosGlobalStringID p_prope
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
@@ -91,7 +91,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteInstanceMethod(EidosGlobalString
 	{
 		case gEidosID_getValue:		return ExecuteMethod_getValue(p_method_id, p_arguments, p_interpreter);
 		//case gEidosID_setValue:	return ExecuteMethod_Accelerated_setValue(p_method_id, p_arguments, p_interpreter);
-		default:					return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:					return EidosObject::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -121,7 +121,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 
 //	*********************	- (void)setValue(string $key, * value)
 //
-EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *key_value = p_arguments[0].get();
@@ -133,7 +133,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 	// See also Eidos_ExecuteFunction_defineConstant(), which enforces the same rule
 	if (value_type == EidosValueType::kValueObject)
 	{
-		const EidosObjectClass *value_class = ((EidosValue_Object *)value.get())->Class();
+		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
 		
 		if (!value_class->UsesRetainRelease())
 			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue): setValue() can only accept object classes that are under retain/release memory management internally; class " << value_class->ElementType() << "is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
@@ -183,7 +183,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 #pragma mark EidosDictionaryUnretained_Class
 #pragma mark -
 
-EidosObjectClass *gEidosDictionaryUnretained_Class = new EidosDictionaryUnretained_Class();
+EidosClass *gEidosDictionaryUnretained_Class = new EidosDictionaryUnretained_Class();
 
 
 const std::string &EidosDictionaryUnretained_Class::ElementType(void) const
@@ -197,7 +197,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_allKeys,				true,	kEidosValueMaskString)));
 		
@@ -213,7 +213,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosClass::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddString_S("key"));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
@@ -277,7 +277,7 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(__attribute__((un
 #pragma mark EidosDictionaryRetained Eidos support
 #pragma mark -
 
-const EidosObjectClass *EidosDictionaryRetained::Class(void) const
+const EidosClass *EidosDictionaryRetained::Class(void) const
 {
 	return gEidosDictionaryRetained_Class;
 }
@@ -290,7 +290,7 @@ const EidosObjectClass *EidosDictionaryRetained::Class(void) const
 #pragma mark EidosDictionaryRetained_Class
 #pragma mark -
 
-EidosObjectClass *gEidosDictionaryRetained_Class = new EidosDictionaryRetained_Class();
+EidosClass *gEidosDictionaryRetained_Class = new EidosDictionaryRetained_Class();
 
 
 const std::string &EidosDictionaryRetained_Class::ElementType(void) const

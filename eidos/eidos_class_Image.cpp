@@ -91,7 +91,7 @@ EidosImage::~EidosImage(void)
 {
 }
 
-const EidosObjectClass *EidosImage::Class(void) const
+const EidosClass *EidosImage::Class(void) const
 {
 	return gEidosImage_Class;
 }
@@ -246,7 +246,7 @@ public:
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };
 
-EidosObjectClass *gEidosImage_Class = new EidosImage_Class();
+EidosClass *gEidosImage_Class = new EidosImage_Class();
 
 
 const std::string &EidosImage_Class::ElementType(void) const
@@ -260,7 +260,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties(void
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_width,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_height,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

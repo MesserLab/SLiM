@@ -70,7 +70,7 @@
 			{
 				EidosValueMask type_mask = signature->arg_masks_[arg_index];
 				const std::string &arg_name = signature->arg_names_[arg_index];
-				const EidosObjectClass *arg_obj_class = signature->arg_classes_[arg_index];
+				const EidosClass *arg_obj_class = signature->arg_classes_[arg_index];
 				EidosValue_SP arg_default = signature->arg_defaults_[arg_index];
 				
 				// skip private arguments

@@ -43,7 +43,7 @@
 class SLiMSim;
 
 
-extern EidosObjectClass *gSLiM_MutationType_Class;
+extern EidosClass *gSLiM_MutationType_Class;
 
 
 // This enumeration represents a type of distribution of fitness effects (DFE) that a mutation type can draw from
@@ -174,7 +174,7 @@ public:
 	//
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
@@ -184,13 +184,13 @@ public:
 	EidosValue_SP ExecuteMethod_drawSelectionCoefficient(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setDistribution(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_dominanceCoeff(EidosObjectElement **p_values, size_t p_values_size);
+	// Accelerated property access; see class EidosObject for comments on this mechanism
+	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_dominanceCoeff(EidosObject **p_values, size_t p_values_size);
 	
-	static void SetProperty_Accelerated_convertToSubstitution(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
-	static void SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_convertToSubstitution(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
+	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 // support stream output of MutationType, for debugging

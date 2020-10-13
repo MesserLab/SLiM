@@ -371,7 +371,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutati
 #pragma mark Eidos support
 #pragma mark -
 
-const EidosObjectClass *MutationType::Class(void) const
+const EidosClass *MutationType::Class(void) const
 {
 	return gSLiM_MutationType_Class;
 }
@@ -477,11 +477,11 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *MutationType::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *MutationType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -495,7 +495,7 @@ EidosValue *MutationType::GetProperty_Accelerated_id(EidosObjectElement **p_valu
 	return int_result;
 }
 
-EidosValue *MutationType::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *MutationType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -513,7 +513,7 @@ EidosValue *MutationType::GetProperty_Accelerated_tag(EidosObjectElement **p_val
 	return int_result;
 }
 
-EidosValue *MutationType::GetProperty_Accelerated_dominanceCoeff(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *MutationType::GetProperty_Accelerated_dominanceCoeff(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
 	
@@ -614,12 +614,12 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		default:
 		{
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 		}
 	}
 }
 
-void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 	if (p_source_size == 1)
 	{
@@ -637,7 +637,7 @@ void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObjectElem
 	}
 }
 
-void MutationType::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void MutationType::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
@@ -750,7 +750,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_MutationType_Class = new MutationType_Class();
+EidosClass *gSLiM_MutationType_Class = new MutationType_Class();
 
 
 const std::string &MutationType_Class::ElementType(void) const

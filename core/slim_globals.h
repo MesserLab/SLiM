@@ -278,33 +278,33 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 /*
  
  Memory management in SLiM is a complex topic which I'll try to summarize here.  Classes that are visible in Eidos
- descend from EidosObjectElement.  Most of these have their ownership and lifetime managed by the simulation; when
+ descend from EidosObject.  Most of these have their ownership and lifetime managed by the simulation; when
  an Individual dies, for example, the object ceases to exist at that time, and will be disposed of.  A subclass of
- EidosObjectElement, EidosDictionaryRetained, provides retain/release style memory management for objects that are
+ EidosObject, EidosDictionaryRetained, provides retain/release style memory management for objects that are
  visible in Eidos; at present, Mutation and Substitution take advantage of this optional facility, and can thus be
  held onto long-term in Eidos with defineConstant() or setValue().  In either case, objects might be allocated out
  of several different pools: some objects are allocated with new, some out of EidosObjectPool.  EidosValue objects
- themselves (which can contain pointers to EidosObjectElements) are always allocated from a global EidosObjectPool
+ themselves (which can contain pointers to EidosObjects) are always allocated from a global EidosObjectPool
  that is shared across the process, gEidosValuePool, and EidosASTNodes are similarly allocated from another global
  pool, gEidosASTNodePool.  Here are details on the memory management scheme for various SLiM classes (note that by
  "never deleted", this means not deleted within a run of a simulation; in SLiMgui they can be deleted):
  
  EidosValue : no base class; allocated from a shared pool, held under retain/release with Eidos_intrusive_ptr
- EidosObjectElement : base class for all Eidos classes that are visible as objects in SLiM scripts
- EidosDictionaryUnretained : EidosObjectElement subclass that provides dictionary-style key-value Eidos methods
+ EidosObject : base class for all Eidos classes that are visible as objects in SLiM scripts
+ EidosDictionaryUnretained : EidosObject subclass that provides dictionary-style key-value Eidos methods
  EidosDictionaryRetained : EidosDictionaryUnretained subclass that provides retain/release memory management
  
- Chromosome : EidosObjectElement subclass, allocated with new and never deleted
- GenomicElement : EidosObjectElement subclass, allocated with new and never deleted
- SLiMgui : EidosObjectElement subclass, allocated with new and never deleted
+ Chromosome : EidosObject subclass, allocated with new and never deleted
+ GenomicElement : EidosObject subclass, allocated with new and never deleted
+ SLiMgui : EidosObject subclass, allocated with new and never deleted
  GenomicElementType : EidosDictionaryUnretained subclass, allocated with new and never deleted
  MutationType : EidosDictionaryUnretained subclass, allocated with new and never deleted
  InteractionType : EidosDictionaryUnretained subclass, allocated with new and never deleted
  SLiMSim : EidosDictionaryUnretained subclass, allocated with new and never deleted
- SLiMEidosBlock : EidosObjectElement subclass, dynamic lifetime with a deferred deletion scheme in SLiMSim
+ SLiMEidosBlock : EidosObject subclass, dynamic lifetime with a deferred deletion scheme in SLiMSim
  
  MutationRun : no superclass, not visible in Eidos, shared by Genome, private pool for very efficient reuse
- Genome : EidosObjectElement subclass, allocated out of an EidosObjectPool owned by its subpopulation
+ Genome : EidosObject subclass, allocated out of an EidosObjectPool owned by its subpopulation
  Individual : EidosDictionaryUnretained subclass, allocated out of an EidosObjectPool owned by its subpopulation
  Subpopulation : EidosDictionaryUnretained subclass, allocated with new/delete
  

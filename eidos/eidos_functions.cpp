@@ -354,9 +354,9 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		
 		// ************************************************************************************
 		//
-		//	object instantiation – delegated to EidosObjectClass subclasses
+		//	object instantiation – delegated to EidosClass subclasses
 		//
-		for (EidosObjectClass *eidos_class : EidosObjectClass::RegisteredClasses())
+		for (EidosClass *eidos_class : EidosClass::RegisteredClasses())
 		{
 			const std::vector<EidosFunctionSignature_CSP> *class_functions = eidos_class->Functions();
 			
@@ -489,8 +489,8 @@ bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value, bool p_compa
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement * const *objelement_vec0 = x_value->ObjectElementVector()->data();
-			EidosObjectElement * const *objelement_vec1 = y_value->ObjectElementVector()->data();
+			EidosObject * const *objelement_vec0 = x_value->ObjectElementVector()->data();
+			EidosObject * const *objelement_vec1 = y_value->ObjectElementVector()->data();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				if (objelement_vec0[value_index] != objelement_vec1[value_index])
@@ -510,7 +510,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 	
 	EidosValueType highest_type = EidosValueType::kValueVOID;	// start at the lowest
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
-	const EidosObjectClass *element_class = gEidos_UndefinedClassObject;
+	const EidosClass *element_class = gEidos_UndefinedClassObject;
 	int reserve_size = 0;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
@@ -536,7 +536,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 		
 		if (arg_type == EidosValueType::kValueObject)
 		{
-			const EidosObjectClass *this_element_class = ((EidosValue_Object *)arg_value)->Class();
+			const EidosClass *this_element_class = ((EidosValue_Object *)arg_value)->Class();
 			
 			if (this_element_class != gEidos_UndefinedClassObject)	// undefined objects do not conflict with other object types
 			{
@@ -755,12 +755,12 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 			else if (arg_value_count)
 			{
 				const EidosValue_Object_vector *object_arg_value = arg_value->ObjectElementVector();
-				EidosObjectElement * const *arg_data = object_arg_value->data();
+				EidosObject * const *arg_data = object_arg_value->data();
 				
 				// Given the lack of win for memcpy() for integer and float above, I'm not even going to bother checking it for
-				// EidosObjectElement*, since there would also be the complexity of retain/release and DeclareClass() to deal with...
+				// EidosObject*, since there would also be the complexity of retain/release and DeclareClass() to deal with...
 				
-				// When retain/release of EidosObjectElement is enabled, we go through the accessors so the copied pointers get retained
+				// When retain/release of EidosObject is enabled, we go through the accessors so the copied pointers get retained
 				if (object_arg_value->UsesRetainRelease())
 				{
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
@@ -973,7 +973,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 	else if (x_type == EidosValueType::kValueObject)
 	{
 		// We have x_count != 1, so the type of x_value must be EidosValue_Object_vector; we can use the fast API
-		EidosObjectElement * const *object_data = x_value->ObjectElementVector()->data();
+		EidosObject * const *object_data = x_value->ObjectElementVector()->data();
 		EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
 		result_SP = EidosValue_SP(object_result);
 		
@@ -981,7 +981,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 		{
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
-				EidosObjectElement *value = object_data[value_index];
+				EidosObject *value = object_data[value_index];
 				int scan_index;
 				
 				for (scan_index = 0; scan_index < value_index; ++scan_index)
@@ -996,13 +996,13 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 		}
 		else
 		{
-			std::vector<EidosObjectElement*> dup_vec(object_data, object_data + x_count);
+			std::vector<EidosObject*> dup_vec(object_data, object_data + x_count);
 			
 			std::sort(dup_vec.begin(), dup_vec.end());
 			
 			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end());
 			size_t unique_count = unique_iter - dup_vec.begin();
-			EidosObjectElement * const *dup_ptr = dup_vec.data();
+			EidosObject * const *dup_ptr = dup_vec.data();
 			
 			object_result->resize_no_initialize_RR(unique_count);
 			
@@ -1954,7 +1954,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = x_type;
-	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	const EidosClass *class0 = nullptr, *class1 = nullptr;
 	
 	if (arg_type == EidosValueType::kValueObject)
 	{
@@ -2082,7 +2082,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
 			
 			if (obj0 == obj1)
 				result_SP = x_value->NewMatchingType();
@@ -2132,8 +2132,8 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *obj0 = x_value->ObjectElementAtIndex(0, nullptr);
-			EidosObjectElement * const *object_vec = y_value->ObjectElementVector()->data();
+			EidosObject *obj0 = x_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject * const *object_vec = y_value->ObjectElementVector()->data();
 			
 			for (int value_index = 0; value_index < y_count; ++value_index)
 				if (obj0 == object_vec[value_index])
@@ -2193,9 +2193,9 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
 			EidosValue_Object_vector *object_element_vec = result_SP->ObjectElementVector_Mutable();
-			EidosObjectElement * const *object_element_data = object_element_vec->data();
+			EidosObject * const *object_element_data = object_element_vec->data();
 			
 			for (int value_index = 0; value_index < result_count; ++value_index)
 				if (obj1 == object_element_data[value_index])
@@ -2311,14 +2311,14 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement * const *object_vec0 = x_value->ObjectElementVector()->data();
-			EidosObjectElement * const *object_vec1 = y_value->ObjectElementVector()->data();
+			EidosObject * const *object_vec0 = x_value->ObjectElementVector()->data();
+			EidosObject * const *object_vec1 = y_value->ObjectElementVector()->data();
 			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
 			result_SP = EidosValue_SP(object_result);
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
 			{
-				EidosObjectElement *value = object_vec0[value_index0];
+				EidosObject *value = object_vec0[value_index0];
 				int value_index1, scan_index;
 				
 				// First check that the value does not exist in y
@@ -2364,7 +2364,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = x_type;
-	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	const EidosClass *class0 = nullptr, *class1 = nullptr;
 	
 	if (arg_type == EidosValueType::kValueObject)
 	{
@@ -2484,7 +2484,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
 			
 			if (obj0 == obj1)
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)x_value)->Class()));
@@ -2546,8 +2546,8 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *value = y_value->ObjectElementAtIndex(0, nullptr);
-			EidosObjectElement * const *object_vec = x_value->ObjectElementVector()->data();
+			EidosObject *value = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject * const *object_vec = x_value->ObjectElementVector()->data();
 			
 			for (int scan_index = 0; scan_index < x_count; ++scan_index)
 				if (value == object_vec[scan_index])
@@ -2663,14 +2663,14 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement * const *object_vec0 = x_value->ObjectElementVector()->data();
-			EidosObjectElement * const *object_vec1 = y_value->ObjectElementVector()->data();
+			EidosObject * const *object_vec0 = x_value->ObjectElementVector()->data();
+			EidosObject * const *object_vec1 = y_value->ObjectElementVector()->data();
 			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
 			result_SP = EidosValue_SP(object_result);
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
 			{
-				EidosObjectElement *value = object_vec0[value_index0];
+				EidosObject *value = object_vec0[value_index0];
 				
 				// First check that the value also exists in y
 				for (int value_index1 = 0; value_index1 < y_count; ++value_index1)
@@ -2715,7 +2715,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = x_type;
-	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	const EidosClass *class0 = nullptr, *class1 = nullptr;
 	
 	if (arg_type == EidosValueType::kValueObject)
 	{
@@ -2850,7 +2850,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
 			
 			if (obj0 == obj1)
 				result_SP = x_value->NewMatchingType();
@@ -2928,9 +2928,9 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
 			EidosValue_Object_vector *object_element_vec = result_SP->ObjectElementVector_Mutable();
-			EidosObjectElement * const *object_element_data = object_element_vec->data();
+			EidosObject * const *object_element_data = object_element_vec->data();
 			int value_index;
 			
 			for (value_index = 0; value_index < result_count; ++value_index)
@@ -3114,14 +3114,14 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement * const *object_vec0 = x_value->ObjectElementVector()->data();
-			EidosObjectElement * const *object_vec1 = y_value->ObjectElementVector()->data();
+			EidosObject * const *object_vec0 = x_value->ObjectElementVector()->data();
+			EidosObject * const *object_vec1 = y_value->ObjectElementVector()->data();
 			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
 			result_SP = EidosValue_SP(object_result);
 			
 			for (value_index0 = 0; value_index0 < x_count; ++value_index0)
 			{
-				EidosObjectElement *value = object_vec0[value_index0];
+				EidosObject *value = object_vec0[value_index0];
 				
 				// First check that the value also exists in y
 				for (value_index1 = 0; value_index1 < y_count; ++value_index1)
@@ -3142,7 +3142,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 			
 			for (value_index1 = 0; value_index1 < y_count; ++value_index1)
 			{
-				EidosObjectElement *value = object_vec1[value_index1];
+				EidosObject *value = object_vec1[value_index1];
 				
 				// First check that the value also exists in y
 				for (value_index0 = 0; value_index0 < x_count; ++value_index0)
@@ -3185,7 +3185,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands have the same type." << EidosTerminate(nullptr);
 	
 	EidosValueType arg_type = x_type;
-	const EidosObjectClass *class0 = nullptr, *class1 = nullptr;
+	const EidosClass *class0 = nullptr, *class1 = nullptr;
 	
 	if (arg_type == EidosValueType::kValueObject)
 	{
@@ -3317,7 +3317,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *obj0 = x_value->ObjectElementAtIndex(0, nullptr), *obj1 = y_value->ObjectElementAtIndex(0, nullptr);
 			
 			if (obj0 == obj1)
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)x_value)->Class()));
@@ -3390,8 +3390,8 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *value = y_value->ObjectElementAtIndex(0, nullptr);
-			EidosObjectElement * const *object_vec = result_SP->ObjectElementVector()->data();
+			EidosObject *value = y_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject * const *object_vec = result_SP->ObjectElementVector()->data();
 			int scan_index;
 			
 			for (scan_index = 0; scan_index < result_count; ++scan_index)
@@ -6860,7 +6860,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					// handled below, because gsl_ran_shuffle() can't move std::string safely
 					break;
 				case EidosValueType::kValueObject:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count, sizeof(EidosObjectElement *));
+					gsl_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count, sizeof(EidosObject *));
 					break;
 			}
 		}
@@ -7555,14 +7555,14 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueObject)
 			{
-				const EidosObjectClass *trueValues_class = ((EidosValue_Object *)trueValues_value)->Class();
-				const EidosObjectClass *falseValues_class = ((EidosValue_Object *)falseValues_value)->Class();
+				const EidosClass *trueValues_class = ((EidosValue_Object *)trueValues_value)->Class();
+				const EidosClass *falseValues_class = ((EidosValue_Object *)falseValues_value)->Class();
 				
 				if (trueValues_class != falseValues_class)
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed in function ifelse()." << EidosTerminate(nullptr);
 				
-				EidosObjectElement * const *true_vec = trueValues_value->ObjectElementVector()->data();
-				EidosObjectElement * const *false_vec = falseValues_value->ObjectElementVector()->data();
+				EidosObject * const *true_vec = trueValues_value->ObjectElementVector()->data();
+				EidosObject * const *false_vec = falseValues_value->ObjectElementVector()->data();
 				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
 				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
@@ -7652,14 +7652,14 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueObject)
 			{
-				const EidosObjectClass *trueValues_class = ((EidosValue_Object *)trueValues_value)->Class();
-				const EidosObjectClass *falseValues_class = ((EidosValue_Object *)falseValues_value)->Class();
+				const EidosClass *trueValues_class = ((EidosValue_Object *)trueValues_value)->Class();
+				const EidosClass *falseValues_class = ((EidosValue_Object *)falseValues_value)->Class();
 				
 				if (trueValues_class != falseValues_class)
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed in function ifelse()." << EidosTerminate(nullptr);
 				
-				EidosObjectElement *true_value = trueValues_value->ObjectElementAtIndex(0, nullptr);
-				EidosObjectElement *false_value = falseValues_value->ObjectElementAtIndex(0, nullptr);
+				EidosObject *true_value = trueValues_value->ObjectElementAtIndex(0, nullptr);
+				EidosObject *false_value = falseValues_value->ObjectElementAtIndex(0, nullptr);
 				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
 				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
@@ -7832,8 +7832,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else // if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *value0 = x_value->ObjectElementAtIndex(0, nullptr);
-			EidosObjectElement * const *objelement_vec1 = table_value->ObjectElementVector()->data();
+			EidosObject *value0 = x_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject * const *objelement_vec1 = table_value->ObjectElementVector()->data();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
 				if (value0 == objelement_vec1[table_index])
@@ -7889,8 +7889,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement *value1 = table_value->ObjectElementAtIndex(0, nullptr);
-			EidosObjectElement * const *objelement_vec0 = x_value->ObjectElementVector()->data();
+			EidosObject *value1 = table_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject * const *objelement_vec0 = x_value->ObjectElementVector()->data();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				int_result->set_int_no_check(objelement_vec0[value_index] == value1 ? 0 : -1, value_index);
@@ -8028,16 +8028,16 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObjectElement * const *objelement_vec0 = x_value->ObjectElementVector()->data();
-			EidosObjectElement * const *objelement_vec1 = table_value->ObjectElementVector()->data();
+			EidosObject * const *objelement_vec0 = x_value->ObjectElementVector()->data();
+			EidosObject * const *objelement_vec1 = table_value->ObjectElementVector()->data();
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
 				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
-				std::unordered_map<EidosObjectElement *, int64_t> fromValueToIndex;
+				std::unordered_map<EidosObject *, int64_t> fromValueToIndex;
 				
 				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(std::pair<EidosObjectElement *, int64_t>(objelement_vec1[table_index], table_index));	// does nothing if the key is already in the map
+					fromValueToIndex.insert(std::pair<EidosObject *, int64_t>(objelement_vec1[table_index], table_index));	// does nothing if the key is already in the map
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -9372,7 +9372,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_ar
 	
 	// First check the type and class of the result; NULL may be mixed in, but otherwise all arguments must be the same type and class
 	EidosValueType result_type = EidosValueType::kValueNULL;
-	const EidosObjectClass *result_class = gEidos_UndefinedClassObject;
+	const EidosClass *result_class = gEidos_UndefinedClassObject;
 	
 	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
@@ -9389,7 +9389,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_ar
 		if (arg_type == EidosValueType::kValueObject)
 		{
 			EidosValue_Object *arg_object = (EidosValue_Object *)arg;
-			const EidosObjectClass *arg_class = arg_object->Class();
+			const EidosClass *arg_class = arg_object->Class();
 			
 			if (arg_class == gEidos_UndefinedClassObject)
 				continue;
@@ -9885,7 +9885,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_ar
 	
 	// First check the type and class of the result; NULL may be mixed in, but otherwise all arguments must be the same type and class
 	EidosValueType result_type = EidosValueType::kValueNULL;
-	const EidosObjectClass *result_class = gEidos_UndefinedClassObject;
+	const EidosClass *result_class = gEidos_UndefinedClassObject;
 	
 	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
@@ -9902,7 +9902,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_ar
 		if (arg_type == EidosValueType::kValueObject)
 		{
 			EidosValue_Object *arg_object = (EidosValue_Object *)arg;
-			const EidosObjectClass *arg_class = arg_object->Class();
+			const EidosClass *arg_class = arg_object->Class();
 			
 			if (arg_class == gEidos_UndefinedClassObject)
 				continue;
@@ -11089,7 +11089,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	// See also EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(), which enforces the same rule
 	if (x_value_sp->Type() == EidosValueType::kValueObject)
 	{
-		const EidosObjectClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();
+		const EidosClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();
 		
 		if (!x_value_class->UsesRetainRelease())
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineConstant): defineConstant() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ElementType() << "is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);

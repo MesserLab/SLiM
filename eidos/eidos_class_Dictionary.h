@@ -29,10 +29,10 @@
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
 
-extern EidosObjectClass *gEidosDictionaryUnretained_Class;
+extern EidosClass *gEidosDictionaryUnretained_Class;
 
 
-class EidosDictionaryUnretained : public EidosObjectElement
+class EidosDictionaryUnretained : public EidosObject
 {
 private:
 	// We keep a pointer to our hash table for values we are tracking.  The reason to use a pointer is
@@ -61,17 +61,17 @@ public:
 	//
 	// Eidos support
 	//
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	static EidosValue_SP ExecuteMethod_Accelerated_setValue(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_setValue(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
 
-class EidosDictionaryUnretained_Class : public EidosObjectClass
+class EidosDictionaryUnretained_Class : public EidosClass
 {
 public:
 	EidosDictionaryUnretained_Class(const EidosDictionaryUnretained_Class &p_original) = delete;	// no copy-construct
@@ -89,10 +89,10 @@ public:
 #pragma mark EidosDictionaryRetained
 #pragma mark -
 
-extern EidosObjectClass *gEidosDictionaryRetained_Class;
+extern EidosClass *gEidosDictionaryRetained_Class;
 
 
-// A base class for EidosObjectElement subclasses that are under retain/release.  These must inherit from EidosDictionaryUnretained.
+// A base class for EidosObject subclasses that are under retain/release.  These must inherit from EidosDictionaryUnretained.
 class EidosDictionaryRetained : public EidosDictionaryUnretained
 {
 private:
@@ -120,7 +120,7 @@ public:
 	//
 	// Eidos support
 	//
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 };
 
 class EidosDictionaryRetained_Class : public EidosDictionaryUnretained_Class

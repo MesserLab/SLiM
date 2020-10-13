@@ -1410,7 +1410,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	std::string &identifier_name = identifiers[static_cast<size_t>(key_path_index)];
 	EidosGlobalStringID identifier_ID = EidosStringRegistry::GlobalStringIDForString(identifier_name);
 	bool identifier_is_call = identifiers_are_calls[static_cast<size_t>(key_path_index)];
-	const EidosObjectClass *key_path_class = nullptr;
+	const EidosClass *key_path_class = nullptr;
 	
 	if (identifier_is_call)
 	{
@@ -1493,7 +1493,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	// OK, we've now got a EidosValue object that represents the end of the line; the final dot is off of this object.
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	QStringList candidates;
-	const EidosObjectClass *terminus = key_path_class;
+	const EidosClass *terminus = key_path_class;
 	
 	// First, a sorted list of globals
 	for (auto symbol_sig : *terminus->Properties())

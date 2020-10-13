@@ -1385,7 +1385,7 @@ size_t Chromosome::MemoryUsageForAncestralSequence(void)
 #pragma mark Eidos support
 #pragma mark -
 
-const EidosObjectClass *Chromosome::Class(void) const
+const EidosClass *Chromosome::Class(void) const
 {
 	return gSLiM_Chromosome_Class;
 }
@@ -1636,7 +1636,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
@@ -1662,7 +1662,7 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 	}
 }
 
@@ -1677,7 +1677,7 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_setMutationRate:			return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_interpreter);
 		case gID_setRecombinationRate:		return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_interpreter);
 		case gID_drawBreakpoints:			return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_interpreter);
-		default:							return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:							return EidosObject::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -2306,7 +2306,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 #pragma mark Chromosome_Class
 #pragma mark -
 
-class Chromosome_Class : public EidosObjectClass
+class Chromosome_Class : public EidosClass
 {
 public:
 	Chromosome_Class(const Chromosome_Class &p_original) = delete;	// no copy-construct
@@ -2319,7 +2319,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_Chromosome_Class = new Chromosome_Class();
+EidosClass *gSLiM_Chromosome_Class = new Chromosome_Class();
 
 
 const std::string &Chromosome_Class::ElementType(void) const
@@ -2333,7 +2333,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
@@ -2381,7 +2381,7 @@ const std::vector<EidosMethodSignature_CSP> *Chromosome_Class::Methods(void) con
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosClass::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));

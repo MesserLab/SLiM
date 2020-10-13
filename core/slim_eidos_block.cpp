@@ -1000,7 +1000,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 #pragma mark Eidos support
 #pragma mark -
 
-const EidosObjectClass *SLiMEidosBlock::Class(void) const
+const EidosClass *SLiMEidosBlock::Class(void) const
 {
 	return gSLiM_SLiMEidosBlock_Class;
 }
@@ -1093,7 +1093,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
@@ -1118,7 +1118,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 	}
 }
 
@@ -1130,7 +1130,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 #pragma mark SLiMEidosBlock_Class
 #pragma mark -
 
-class SLiMEidosBlock_Class : public EidosObjectClass
+class SLiMEidosBlock_Class : public EidosClass
 {
 public:
 	SLiMEidosBlock_Class(const SLiMEidosBlock_Class &p_original) = delete;	// no copy-construct
@@ -1142,7 +1142,7 @@ public:
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 };
 
-EidosObjectClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
+EidosClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
 
 
 const std::string &SLiMEidosBlock_Class::ElementType(void) const
@@ -1156,7 +1156,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_start,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
@@ -1292,7 +1292,7 @@ SLiMTypeInterpreter::~SLiMTypeInterpreter(void)
 {
 }
 
-void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg_node, char p_symbol_prefix, const EidosObjectClass *p_type_class)
+void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg_node, char p_symbol_prefix, const EidosClass *p_type_class)
 {
 	if (p_arg_node)
 	{
@@ -1366,7 +1366,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 	return ret;
 }
 
-EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
+EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
 	// call super; this should always be called, since it type-avaluates all arguments as a side effect
 	EidosTypeSpecifier ret = EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(p_target, p_method_signature, p_arguments);

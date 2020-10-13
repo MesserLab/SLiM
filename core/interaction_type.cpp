@@ -2548,7 +2548,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 #pragma mark Eidos support
 #pragma mark -
 
-const EidosObjectClass *InteractionType::Class(void) const
+const EidosClass *InteractionType::Class(void) const
 {
 	return gSLiM_InteractionType_Class;
 }
@@ -2614,11 +2614,11 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -2632,7 +2632,7 @@ EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObjectElement **p_v
 	return int_result;
 }
 
-EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -2684,7 +2684,7 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 			
 		default:
 		{
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 		}
 	}
 }
@@ -3936,7 +3936,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_InteractionType_Class = new InteractionType_Class();
+EidosClass *gSLiM_InteractionType_Class = new InteractionType_Class();
 
 
 const std::string &InteractionType_Class::ElementType(void) const

@@ -61,7 +61,7 @@ class Individual;
 struct ts_subpop_info;
 struct ts_mut_info;
 
-extern EidosObjectClass *gSLiM_SLiMSim_Class;
+extern EidosClass *gSLiM_SLiMSim_Class;
 
 enum class SLiMModelType
 {
@@ -686,7 +686,7 @@ public:
 	static const std::vector<EidosMethodSignature_CSP> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
 	static const std::vector<EidosPropertySignature_CSP> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;

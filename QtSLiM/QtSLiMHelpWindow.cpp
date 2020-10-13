@@ -918,7 +918,7 @@ void QtSLiMHelpWindow::checkDocumentationOfFunctions(const std::vector<EidosFunc
 	}
 }
 
-void QtSLiMHelpWindow::checkDocumentationOfClass(EidosObjectClass *classObject)
+void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 {
     bool classIsUndefinedClass = (classObject == gEidos_UndefinedClassObject);
     const QString className = QString::fromStdString(classObject->ElementType());

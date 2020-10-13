@@ -980,12 +980,12 @@ class EidosInstanceMethodSignature;
 class EidosInterpreter;
 class EidosToken;
 
-class EidosObjectElement;	// the value type for EidosValue_Object
-class EidosObjectClass;		// the class definition object for EidosObjectElement
+class EidosObject;	// the value type for EidosValue_Object
+class EidosClass;		// the class definition object for EidosObject
 
 
 // Type int64_t is used for Eidos "integer", type double is used for Eidos "float", type std::string is used
-// for Eidos "string", and EidosObjectElement* is used for Eidos "object".  The type used for Eidos "logical"
+// for Eidos "string", and EidosObject* is used for Eidos "object".  The type used for Eidos "logical"
 // is a bit less clear, and so is controlled by a typedef here.  Type bool would be the obvious choice, but
 // std::vector<bool> is a special class that may not be desirable; it generally encapsulates a priority for
 // small memory usage over high speed, which is not our priority.  The measured speed difference is not large,
@@ -1029,7 +1029,7 @@ enum class EidosValueType : uint8_t
 	kValueFloat,		// floats (double)
 	kValueString,		// strings (std:string)
 	
-	kValueObject		// a vector of EidosObjectElement objects: these represent built-in objects with properties and methods
+	kValueObject		// a vector of EidosObject objects: these represent built-in objects with properties and methods
 };
 
 std::string StringForEidosValueType(const EidosValueType p_type);
@@ -1058,14 +1058,14 @@ const EidosValueMask kEidosValueMaskLogicalEquiv =	(kEidosValueMaskLogical | kEi
 const EidosValueMask kEidosValueMaskAnyBase =		(kEidosValueMaskNULL | kEidosValueMaskLogicalEquiv | kEidosValueMaskString);	// any non-void type except object
 const EidosValueMask kEidosValueMaskAny =			(kEidosValueMaskAnyBase | kEidosValueMaskObject);								// any non-void type including object
 
-std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name, EidosValue *p_default);
+std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosClass *p_object_class, const std::string &p_name, EidosValue *p_default);
 //std::ostream &operator<<(std::ostream &p_outstream, const EidosValueMask p_mask);	// can't do this since EidosValueMask is just uint32_t
 
 
 // EidosTypeSpecifier is a struct that provides a full type specifier, including an optional object class, for a value
 typedef struct {
 	EidosValueMask type_mask;					// can specify kEidosValueMaskNone for no known type, or any combination of type masks
-	const EidosObjectClass *object_class;		// if kEidosValueMaskObject is included in type_mask, this can specify a class (or can be nullptr)
+	const EidosClass *object_class;		// if kEidosValueMaskObject is included in type_mask, this can specify a class (or can be nullptr)
 } EidosTypeSpecifier;
 
 

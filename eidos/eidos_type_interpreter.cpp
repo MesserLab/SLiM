@@ -264,7 +264,7 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 	return result_type;
 }
 
-EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
+EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
 #pragma unused(p_target, p_arguments)
 	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
@@ -482,7 +482,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Call(const EidosASTNode *p
 		if (call_name_node->children_.size() >= 2)
 		{
 			EidosTypeSpecifier first_child_type = TypeEvaluateNode(call_name_node->children_[0]);
-			const EidosObjectClass *method_class = first_child_type.object_class;
+			const EidosClass *method_class = first_child_type.object_class;
 			
 			if (method_class)
 			{

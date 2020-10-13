@@ -100,10 +100,10 @@ public:
 #pragma mark SLiMEidosBlock
 #pragma mark -
 
-extern EidosObjectClass *gSLiM_SLiMEidosBlock_Class;
+extern EidosClass *gSLiM_SLiMEidosBlock_Class;
 
 
-class SLiMEidosBlock : public EidosObjectElement
+class SLiMEidosBlock : public EidosObject
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
@@ -199,7 +199,7 @@ public:
 	inline EidosSymbolTableEntry &SelfSymbolTableEntry(void) { return self_symbol_; };
 	EidosSymbolTableEntry &ScriptBlockSymbolTableEntry(void) { if (block_id_ != -1) return script_block_symbol_; else EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::ScriptBlockSymbolTableEntry): (internal error) no symbol table entry." << EidosTerminate(); };
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
@@ -247,11 +247,11 @@ public:
 	
 	virtual ~SLiMTypeInterpreter(void) override;
 	
-	void _SetTypeForISArgumentOfClass(const EidosASTNode *p_arg_node, char p_symbol_prefix, const EidosObjectClass *p_type_class);
+	void _SetTypeForISArgumentOfClass(const EidosASTNode *p_arg_node, char p_symbol_prefix, const EidosClass *p_type_class);
 	
 	virtual EidosTypeSpecifier _TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments) override;
 	
-	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosObjectClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments) override;
+	virtual EidosTypeSpecifier _TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments) override;
 };
 
 

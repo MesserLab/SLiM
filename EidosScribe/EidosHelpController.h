@@ -45,7 +45,7 @@
 
 // Check for complete documentation
 - (void)checkDocumentationOfFunctions:(const std::vector<EidosFunctionSignature_CSP> *)functions;
-- (void)checkDocumentationOfClass:(EidosObjectClass *)classObject;
+- (void)checkDocumentationOfClass:(EidosClass *)classObject;
 - (void)checkDocumentationForDuplicatePointers;
 
 @end

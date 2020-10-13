@@ -71,8 +71,8 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 	if (base_is_object && dest_is_object)
 	{
 		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
-		const EidosObjectClass *base_element_class = ((const EidosValue_Object &)p_base_value).Class();
-		const EidosObjectClass *dest_element_class = ((const EidosValue_Object &)p_dest_value).Class();
+		const EidosClass *base_element_class = ((const EidosValue_Object &)p_base_value).Class();
+		const EidosClass *dest_element_class = ((const EidosValue_Object &)p_dest_value).Class();
 		bool base_is_typeless = (base_element_class == gEidos_UndefinedClassObject);
 		bool dest_is_typeless = (dest_element_class == gEidos_UndefinedClassObject);
 		
@@ -1667,7 +1667,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				}
 				else if (first_child_type == EidosValueType::kValueObject)
 				{
-					EidosObjectElement * const *first_child_vec = first_child_value->ObjectElementVector()->data();
+					EidosObject * const *first_child_vec = first_child_value->ObjectElementVector()->data();
 					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)first_child_value.get())->Class()));
 					EidosValue_Object_vector *obj_result = obj_result_SP->reserve(second_child_count);
 					
@@ -1787,7 +1787,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				else if (first_child_type == EidosValueType::kValueObject)
 				{
 					// result type is object; optimize for that
-					EidosObjectElement * const *first_child_vec = first_child_value->ObjectElementVector()->data();
+					EidosObject * const *first_child_vec = first_child_value->ObjectElementVector()->data();
 					EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)first_child_value.get())->Class()));
 					EidosValue_Object_vector *obj_result = obj_result_SP->resize_no_initialize(second_child_count);
 					
@@ -4218,8 +4218,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 				{
 					// Direct object-to-object compare can be optimized through vector access
-					EidosObjectElement * const *obj1_vec = first_child_value->ObjectElementVector()->data();
-					EidosObjectElement * const *obj2_vec = second_child_value->ObjectElementVector()->data();
+					EidosObject * const *obj1_vec = first_child_value->ObjectElementVector()->data();
+					EidosObject * const *obj2_vec = second_child_value->ObjectElementVector()->data();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(obj1_vec[value_index] == obj2_vec[value_index], value_index);
@@ -4274,8 +4274,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			else if ((promotion_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
-				EidosObjectElement *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObjectElement * const *obj_vec = second_child_value->ObjectElementVector()->data();
+				EidosObject *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
+				EidosObject * const *obj_vec = second_child_value->ObjectElementVector()->data();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj1 == obj_vec[value_index], value_index);
@@ -4329,8 +4329,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			else if ((promotion_type == EidosValueType::kValueObject) && (first_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
-				EidosObjectElement *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObjectElement * const *obj_vec = first_child_value->ObjectElementVector()->data();
+				EidosObject *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
+				EidosObject * const *obj_vec = first_child_value->ObjectElementVector()->data();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj_vec[value_index] == obj2, value_index);
@@ -5044,8 +5044,8 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 				{
 					// Direct object-to-object compare can be optimized through vector access
-					EidosObjectElement * const *obj1_vec = first_child_value->ObjectElementVector()->data();
-					EidosObjectElement * const *obj2_vec = second_child_value->ObjectElementVector()->data();
+					EidosObject * const *obj1_vec = first_child_value->ObjectElementVector()->data();
+					EidosObject * const *obj2_vec = second_child_value->ObjectElementVector()->data();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(obj1_vec[value_index] != obj2_vec[value_index], value_index);
@@ -5100,8 +5100,8 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			else if ((promotion_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
-				EidosObjectElement *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObjectElement * const *obj_vec = second_child_value->ObjectElementVector()->data();
+				EidosObject *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
+				EidosObject * const *obj_vec = second_child_value->ObjectElementVector()->data();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj1 != obj_vec[value_index], value_index);
@@ -5155,8 +5155,8 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			else if ((promotion_type == EidosValueType::kValueObject) && (first_child_type == EidosValueType::kValueObject))
 			{
 				// Direct object-to-object compare can be optimized through vector access
-				EidosObjectElement *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObjectElement * const *obj_vec = first_child_value->ObjectElementVector()->data();
+				EidosObject *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
+				EidosObject * const *obj_vec = first_child_value->ObjectElementVector()->data();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj_vec[value_index] != obj2, value_index);
@@ -5982,7 +5982,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueObject)
 				{
-					EidosObjectElement * const *range_vec = range_value->ObjectElementVector()->data();
+					EidosObject * const *range_vec = range_value->ObjectElementVector()->data();
 					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
 					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					

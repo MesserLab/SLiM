@@ -38,10 +38,10 @@
 @class SLiMWindowController;
 
 
-extern EidosObjectClass *gSLiM_SLiMgui_Class;
+extern EidosClass *gSLiM_SLiMgui_Class;
 
 
-class SLiMgui : public EidosObjectElement
+class SLiMgui : public EidosObject
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 public:
@@ -63,7 +63,7 @@ public:
 	//
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
 	
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;

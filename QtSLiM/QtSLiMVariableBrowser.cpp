@@ -525,8 +525,8 @@ void QtSLiMVariableBrowser::itemExpanded(QTreeWidgetItem *item)
             // we used to display zero-length property values for zero-length object vectors, but don't any more
             int display_index = (element_index != -1) ? element_index : 0;
             EidosValue_Object *eidos_object_vector = static_cast<EidosValue_Object *>(eidos_value);
-            EidosObjectElement *eidos_object = eidos_object_vector->ObjectElementAtIndex(display_index, nullptr);
-			const EidosObjectClass *object_class = eidos_object->Class();
+            EidosObject *eidos_object = eidos_object_vector->ObjectElementAtIndex(display_index, nullptr);
+			const EidosClass *object_class = eidos_object->Class();
 			const std::vector<EidosPropertySignature_CSP> *properties = object_class->Properties();
 			size_t propertyCount = properties->size();
 			bool oldSuppressWarnings = gEidosSuppressWarnings, inaccessibleCaught = false;

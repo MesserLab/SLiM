@@ -72,7 +72,7 @@ EidosValue_String_SP gStaticEidosValue_StringSpace;
 EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 
-EidosObjectClass *gEidos_UndefinedClassObject = new EidosObjectClass();
+EidosClass *gEidos_UndefinedClassObject = new EidosClass();
 
 
 std::string StringForEidosValueType(const EidosValueType p_type)
@@ -97,7 +97,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValueType p_type)
 	return p_outstream;
 }
 
-std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosObjectClass *p_object_class, const std::string &p_name, EidosValue *p_default)
+std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosClass *p_object_class, const std::string &p_name, EidosValue *p_default)
 {
 	//
 	//	Note this logic is paralleled in +[NSAttributedString eidosAttributedStringForCallSignature:].
@@ -222,8 +222,8 @@ bool CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosVal
 	// comparing one object to another is legal, but objects cannot be compared to other types
 	if ((type1 == EidosValueType::kValueObject) && (type2 == EidosValueType::kValueObject))
 	{
-		EidosObjectElement *element1 = p_value1.ObjectElementAtIndex(p_index1, p_blame_token);
-		EidosObjectElement *element2 = p_value2.ObjectElementAtIndex(p_index2, p_blame_token);
+		EidosObject *element1 = p_value1.ObjectElementAtIndex(p_index1, p_blame_token);
+		EidosObject *element2 = p_value2.ObjectElementAtIndex(p_index2, p_blame_token);
 		
 		if (p_operator == EidosComparisonOperator::kEqual)			return (element1 == element2);
 		else if (p_operator == EidosComparisonOperator::kNotEqual)	return (element1 != element2);
@@ -355,7 +355,7 @@ double EidosValue::FloatAtIndex(int p_idx, const EidosToken *p_blame_token) cons
 	EIDOS_TERMINATION << "ERROR (EidosValue::FloatAtIndex): operand type " << this->Type() << " cannot be converted to type float." << EidosTerminate(p_blame_token);
 }
 
-EidosObjectElement *EidosValue::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
+EidosObject *EidosValue::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
 	EIDOS_TERMINATION << "ERROR (EidosValue::ObjectElementAtIndex): operand type " << this->Type() << " cannot be converted to type object." << EidosTerminate(p_blame_token);
@@ -1972,7 +1972,7 @@ std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
 std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;
 std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;
 
-EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
+EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
 	class_uses_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->UsesRetainRelease())
 {
 	// BCH 7 May 2017: OK, so, this is a hack of breathtaking disgustingness.  Here is the problem.  In SLiM we
@@ -2020,7 +2020,7 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p
 	}
 }
 
-EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosObjectClass *p_class, __attribute__((unused)) bool p_register_for_patching) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
+EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class, __attribute__((unused)) bool p_register_for_patching) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
 	class_uses_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->UsesRetainRelease())
 {
 	// This special constructor variant skips the registration done in the body of the standard constructor above.
@@ -2087,7 +2087,7 @@ void EidosValue_Object_vector::PatchPointersByAdding(std::uintptr_t p_pointer_di
 		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
 		std::uintptr_t new_element_ptr = old_element_ptr + p_pointer_difference;
 		
-		values_[i] = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
+		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);
 	}
 }
 
@@ -2101,7 +2101,7 @@ void EidosValue_Object_vector::PatchPointersBySubtracting(std::uintptr_t p_point
 		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
 		std::uintptr_t new_element_ptr = old_element_ptr - p_pointer_difference;
 		
-		values_[i] = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
+		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);
 	}
 }
 
@@ -2111,7 +2111,7 @@ void EidosValue_Object_singleton::PatchPointersByAdding(std::uintptr_t p_pointer
 	std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(value_);
 	std::uintptr_t new_element_ptr = old_element_ptr + p_pointer_difference;
 	
-	value_ = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
+	value_ = reinterpret_cast<EidosObject *>(new_element_ptr);
 }
 
 // Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
@@ -2120,7 +2120,7 @@ void EidosValue_Object_singleton::PatchPointersBySubtracting(std::uintptr_t p_po
 	std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(value_);
 	std::uintptr_t new_element_ptr = old_element_ptr - p_pointer_difference;
 	
-	value_ = reinterpret_cast<EidosObjectElement *>(new_element_ptr);
+	value_ = reinterpret_cast<EidosObject *>(new_element_ptr);
 }
 
 void EidosValue_Object::RaiseForClassMismatch(void) const
@@ -2146,7 +2146,7 @@ void EidosValue_Object::Sort(bool p_ascending)
 
 void EidosValue_Object::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
 {
-	EidosObjectElement *value = ObjectElementAtIndex(p_idx, nullptr);
+	EidosObject *value = ObjectElementAtIndex(p_idx, nullptr);
 	
 	p_ostream << *value;
 }
@@ -2158,7 +2158,7 @@ void EidosValue_Object::PrintValueAtIndex(const int p_idx, std::ostream &p_ostre
 EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vector &p_original) : EidosValue_Object(false, p_original.Class())
 {
 	size_t count = p_original.size();
-	EidosObjectElement * const *values = p_original.data();
+	EidosObject * const *values = p_original.data();
 	
 	resize_no_initialize_RR(count);
 	
@@ -2174,10 +2174,10 @@ EidosValue_Object_vector::EidosValue_Object_vector(const EidosValue_Object_vecto
 	}
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObjectElement *> &p_elementvec, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
+EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObject *> &p_elementvec, const EidosClass *p_class) : EidosValue_Object(false, p_class)
 {
 	size_t count = p_elementvec.size();
-	EidosObjectElement * const *values = p_elementvec.data();
+	EidosObject * const *values = p_elementvec.data();
 	
 	resize_no_initialize_RR(count);
 	
@@ -2193,7 +2193,7 @@ EidosValue_Object_vector::EidosValue_Object_vector(const std::vector<EidosObject
 	}
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObjectElement *> p_init_list, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
+EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosObject *> p_init_list, const EidosClass *p_class) : EidosValue_Object(false, p_class)
 {
 	reserve(p_init_list.size());
 	
@@ -2209,7 +2209,7 @@ EidosValue_Object_vector::EidosValue_Object_vector(std::initializer_list<EidosOb
 	}
 }
 
-EidosValue_Object_vector::EidosValue_Object_vector(EidosObjectElement **p_values, size_t p_count, const EidosObjectClass *p_class) : EidosValue_Object(false, p_class)
+EidosValue_Object_vector::EidosValue_Object_vector(EidosObject **p_values, size_t p_count, const EidosClass *p_class) : EidosValue_Object(false, p_class)
 {
 	resize_no_initialize_RR(p_count);
 	
@@ -2231,7 +2231,7 @@ EidosValue_Object_vector::~EidosValue_Object_vector(void)
 	{
 		for (size_t index = 0; index < count_; ++index)
 		{
-			EidosObjectElement *value = values_[index];
+			EidosObject *value = values_[index];
 			
 			if (value)
 				static_cast<EidosDictionaryRetained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
@@ -2246,7 +2246,7 @@ int EidosValue_Object_vector::Count_Virtual(void) const
 	return (int)size();
 }
 
-EidosObjectElement *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
+EidosObject *EidosValue_Object_vector::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::ObjectElementAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
@@ -2267,7 +2267,7 @@ void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue
 	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
-	EidosObjectElement *new_value = p_value.ObjectElementAtIndex(0, p_blame_token);
+	EidosObject *new_value = p_value.ObjectElementAtIndex(0, p_blame_token);
 	
 	DeclareClassFromElement(new_value);
 	
@@ -2294,25 +2294,25 @@ void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << EidosTerminate(p_blame_token);
 }
 
-static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j);
-static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j)	{ return (i.first < j.first); }
-static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j);
-static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObjectElement*> i, std::pair<eidos_logical_t, EidosObjectElement*> j)	{ return (i.first > j.first); }
+static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j);
+static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j)	{ return (i.first < j.first); }
+static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j);
+static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j)	{ return (i.first > j.first); }
 
-static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j);
-static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j)				{ return (i.first < j.first); }
-static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j);
-static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObjectElement*> i, std::pair<int64_t, EidosObjectElement*> j)				{ return (i.first > j.first); }
+static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j);
+static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j)				{ return (i.first < j.first); }
+static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j);
+static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j)				{ return (i.first > j.first); }
 
-static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j);
-static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j)				{ return (i.first < j.first); }
-static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j);
-static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObjectElement*> i, std::pair<double, EidosObjectElement*> j)				{ return (i.first > j.first); }
+static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j);
+static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j)				{ return (i.first < j.first); }
+static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j);
+static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j)				{ return (i.first > j.first); }
 
-static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j);
-static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j)		{ return (i.first < j.first); }
-static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j);
-static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObjectElement*> i, std::pair<std::string, EidosObjectElement*> j)	{ return (i.first > j.first); }
+static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j);
+static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j)		{ return (i.first < j.first); }
+static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j);
+static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j)	{ return (i.first > j.first); }
 
 void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_ascending)
 {
@@ -2340,11 +2340,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueLogical:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			std::vector<std::pair<eidos_logical_t, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<eidos_logical_t, EidosObject*>> sortable_pairs;
 			
 			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
-				EidosObjectElement *value = values_[value_index];
+				EidosObject *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -2352,7 +2352,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<eidos_logical_t, EidosObjectElement*>(temp_result->LogicalAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<eidos_logical_t, EidosObject*>(temp_result->LogicalAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -2381,11 +2381,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueInt:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			std::vector<std::pair<int64_t, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<int64_t, EidosObject*>> sortable_pairs;
 			
 			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
-				EidosObjectElement *value = values_[value_index];
+				EidosObject *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -2393,7 +2393,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<int64_t, EidosObjectElement*>(temp_result->IntAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<int64_t, EidosObject*>(temp_result->IntAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -2422,11 +2422,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueFloat:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			std::vector<std::pair<double, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<double, EidosObject*>> sortable_pairs;
 			
 			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
-				EidosObjectElement *value = values_[value_index];
+				EidosObject *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -2434,7 +2434,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<double, EidosObjectElement*>(temp_result->FloatAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<double, EidosObject*>(temp_result->FloatAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -2463,11 +2463,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 		case EidosValueType::kValueString:
 		{
 			// make a vector of pairs: first is the value returned for the sorting property, second is the object element
-			std::vector<std::pair<std::string, EidosObjectElement*>> sortable_pairs;
+			std::vector<std::pair<std::string, EidosObject*>> sortable_pairs;
 			
 			for (size_t value_index = 0; value_index < count_; value_index++)
 			{
-				EidosObjectElement *value = values_[value_index];
+				EidosObject *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(property_string_id);
 				
 				if (temp_result->Count() != 1)
@@ -2475,7 +2475,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<std::string, EidosObjectElement*>(temp_result->StringAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(std::pair<std::string, EidosObject*>(temp_result->StringAtIndex(0, nullptr), value));
 			}
 			
 			// sort the vector of pairs
@@ -2529,7 +2529,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		if (sig_mask == kEidosValueMaskString) return gStaticEidosValue_String_ZeroVec;
 		if (sig_mask == kEidosValueMaskObject)
 		{
-			const EidosObjectClass *value_class = signature->value_class_;
+			const EidosClass *value_class = signature->value_class_;
 			
 			if (value_class)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(value_class));
@@ -2544,7 +2544,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 		// the singleton case is very common, so it should be special-cased for speed
 		// accelerated property is not used for singletons because we want to generate a singleton-class result
 		// of course the accelerated getters could be smart enough to do that, but that makes them more complex; not a clear win
-		EidosObjectElement *value = values_[0];
+		EidosObject *value = values_[0];
 		EidosValue_SP result = value->GetProperty(p_property_id);
 		
 		// Access of singleton properties retains the matrix/array structure of the target
@@ -2584,7 +2584,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 			// with small objects, we check every value
 			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
-				EidosObjectElement *value = values_[value_index];
+				EidosObject *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(p_property_id);
 				
 #if DEBUG
@@ -2602,7 +2602,7 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 			
 			for (size_t value_index = 0; value_index < values_size; ++value_index)
 			{
-				EidosObjectElement *value = values_[value_index];
+				EidosObject *value = values_[value_index];
 				EidosValue_SP temp_result = value->GetProperty(p_property_id);
 				
 				if (!checked_multivalued)
@@ -2708,7 +2708,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 		if (sig_mask == kEidosValueMaskString) return gStaticEidosValue_String_ZeroVec;
 		if (sig_mask == kEidosValueMaskObject)
 		{
-			const EidosObjectClass *return_class = p_method_signature->return_class_;
+			const EidosClass *return_class = p_method_signature->return_class_;
 			
 			if (return_class)
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(return_class));
@@ -2730,7 +2730,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 	else if (values_size == 1)
 	{
 		// The singleton case is very common, so it should be special-cased for speed
-		EidosObjectElement *value = values_[0];
+		EidosObject *value = values_[0];
 		EidosValue_SP result = value->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 		
 		p_method_signature->CheckReturn(*result);
@@ -2956,7 +2956,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 		//}
 		else if (sig_mask == kEidosValueMaskObject && p_method_signature->return_class_)
 		{
-			const EidosObjectClass *return_class = p_method_signature->return_class_;
+			const EidosClass *return_class = p_method_signature->return_class_;
 			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(return_class);
 			
 			if (return_is_singleton)
@@ -2997,7 +2997,7 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 						}
 						else
 						{
-							EidosObjectElement * const *return_data = temp_result->ObjectElementVector()->data();
+							EidosObject * const *return_data = temp_result->ObjectElementVector()->data();
 							
 							for (int return_index = 0; return_index < return_count; return_index++)
 								object_result->push_object_element_CRR(return_data[return_index]);
@@ -3055,7 +3055,7 @@ EidosValue_Object_vector *EidosValue_Object_vector::reserve(size_t p_reserved_si
 {
 	if (p_reserved_size > capacity_)
 	{
-		values_ = (EidosObjectElement **)realloc(values_, p_reserved_size * sizeof(EidosObjectElement *));
+		values_ = (EidosObject **)realloc(values_, p_reserved_size * sizeof(EidosObject *));
 		capacity_ = p_reserved_size;
 	}
 	
@@ -3074,7 +3074,7 @@ EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize(size_t 
 			// shrinking; need to release the elements made redundant
 			for (size_t element_index = p_new_size; element_index < count_; ++element_index)
 			{
-				EidosObjectElement *value = values_[element_index];
+				EidosObject *value = values_[element_index];
 				
 				if (value)
 					static_cast<EidosDictionaryRetained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
@@ -3123,12 +3123,12 @@ void EidosValue_Object_vector::erase_index(size_t p_index)
 		--count_;
 	else
 	{
-		EidosObjectElement **element_ptr = values_ + p_index;
-		EidosObjectElement **next_element_ptr = values_ + p_index + 1;
-		EidosObjectElement **past_end_element_ptr = values_ + count_;
+		EidosObject **element_ptr = values_ + p_index;
+		EidosObject **next_element_ptr = values_ + p_index + 1;
+		EidosObject **past_end_element_ptr = values_ + count_;
 		size_t element_copy_count = past_end_element_ptr - next_element_ptr;
 		
-		memmove(element_ptr, next_element_ptr, element_copy_count * sizeof(EidosObjectElement *));
+		memmove(element_ptr, next_element_ptr, element_copy_count * sizeof(EidosObject *));
 		
 		--count_;
 	}
@@ -3138,7 +3138,7 @@ void EidosValue_Object_vector::erase_index(size_t p_index)
 // EidosValue_Object_singleton
 #pragma mark EidosValue_Object_singleton
 
-EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class) : EidosValue_Object(true, p_class), value_(p_element1)
+EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObject *p_element1, const EidosClass *p_class) : EidosValue_Object(true, p_class), value_(p_element1)
 {
 	// we want to allow nullptr as a momentary placeholder, although in general a value should exist
 	if (p_element1)
@@ -3150,7 +3150,7 @@ EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_e
 	}
 }
 
-EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObjectElement *p_element1, const EidosObjectClass *p_class, bool p_register_for_patching) : EidosValue_Object(true, p_class, p_register_for_patching), value_(p_element1)
+EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObject *p_element1, const EidosClass *p_class, bool p_register_for_patching) : EidosValue_Object(true, p_class, p_register_for_patching), value_(p_element1)
 {
 	// This is a special variant constructor used for EidosValues that are self-pointers and should not be
 	// patched by the address-patching mechanism; see EidosValue_Object::EidosValue_Object() for comments.
@@ -3178,7 +3178,7 @@ int EidosValue_Object_singleton::Count_Virtual(void) const
 	return 1;
 }
 
-EidosObjectElement *EidosValue_Object_singleton::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
+EidosObject *EidosValue_Object_singleton::ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::ObjectElementAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
@@ -3194,7 +3194,7 @@ EidosValue_SP EidosValue_Object_singleton::GetValueAtIndex(const int p_idx, cons
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_, Class()));
 }
 
-void EidosValue_Object_singleton::SetValue(EidosObjectElement *p_element)
+void EidosValue_Object_singleton::SetValue(EidosObject *p_element)
 {
 	DeclareClassFromElement(p_element);
 	

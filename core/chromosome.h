@@ -44,10 +44,10 @@ class Genome;
 class SLiMSim;
 
 
-extern EidosObjectClass *gSLiM_Chromosome_Class;
+extern EidosClass *gSLiM_Chromosome_Class;
 
 
-class Chromosome : public EidosObjectElement
+class Chromosome : public EidosObject
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
@@ -234,7 +234,7 @@ public:
 	//
 	// Eidos support
 	//
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;

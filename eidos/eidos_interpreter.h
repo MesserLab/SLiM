@@ -41,12 +41,12 @@ class EidosCallSignature;
 
 
 // EidosInterpreter keeps track of the EidosContext object that is in charge of the whole show.  This should
-// be an object of type EidosObjectElement; this allows dynamic_cast to work, whereas void* would not.  This
+// be an object of type EidosObject; this allows dynamic_cast to work, whereas void* would not.  This
 // is optional; you can pass nullptr if you don't want to register a Context.  Eidos itself does nothing
 // with the Context except keep track of it for you; the purpose of it is to allow your Eidos method
 // implementations, function implementations, etc., to get up to the big picture without every object in
 // your object graph having a back pointer of some kind.  If you think this is gross, don't use it.  :->
-typedef EidosObjectElement EidosContext;
+typedef EidosObject EidosContext;
 
 // typedefs used to set up our map table of EidosFunctionSignature objects; std::map is used instead of
 // std::unordered_map mostly for convenience, speed should not matter much since signatures get cached anyway

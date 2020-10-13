@@ -153,7 +153,7 @@
 		else if (wrappedValue->Type() == EidosValueType::kValueObject)
 		{
 			EidosValue_Object *wrapped_object = ((EidosValue_Object *)wrappedValue.get());
-			const EidosObjectClass *object_class = wrapped_object->Class();
+			const EidosClass *object_class = wrapped_object->Class();
 			const std::vector<EidosPropertySignature_CSP> *properties = object_class->Properties();
 			int propertyCount = (int)properties->size();
 			bool oldSuppressWarnings = gEidosSuppressWarnings, inaccessibleCaught = false;

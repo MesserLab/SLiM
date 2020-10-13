@@ -113,7 +113,7 @@
 	{
 		topicRoot = [NSMutableDictionary new];
 		
-		// Add Eidos topics; the only methods defined by Eidos come from EidosObjectClass
+		// Add Eidos topics; the only methods defined by Eidos come from EidosClass
 		[self addTopicsFromRTFFile:@"EidosHelpFunctions" underHeading:@"1. Eidos Functions" functions:&EidosInterpreter::BuiltInFunctions() methods:nullptr properties:nullptr];
 		[self addTopicsFromRTFFile:@"EidosHelpMethods" underHeading:@"2. Eidos Methods" functions:nullptr methods:gEidos_UndefinedClassObject->Methods() properties:nullptr];
 		[self addTopicsFromRTFFile:@"EidosHelpOperators" underHeading:@"3. Eidos Operators" functions:nullptr methods:nullptr properties:nullptr];
@@ -589,7 +589,7 @@
 	}
 }
 
-- (void)checkDocumentationOfClass:(EidosObjectClass *)classObject
+- (void)checkDocumentationOfClass:(EidosClass *)classObject
 {
 	bool classIsUndefinedClass = (classObject == gEidos_UndefinedClassObject);
 	const std::string &className = classObject->ElementType();

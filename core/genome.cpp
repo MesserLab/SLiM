@@ -517,7 +517,7 @@ void Genome::GenerateCachedEidosValue(void)
 	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Genome_Class, false));
 }
 
-const EidosObjectClass *Genome::Class(void) const
+const EidosClass *Genome::Class(void) const
 {
 	return gSLiM_Genome_Class;
 }
@@ -599,11 +599,11 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	size_t value_index = 0;
@@ -627,7 +627,7 @@ EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObjectElement 
 	return int_result;
 }
 
-EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
@@ -641,7 +641,7 @@ EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObjectElement **p_
 	return logical_result;
 }
 
-EidosValue *Genome::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Genome::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -674,12 +674,12 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 			
 		default:
 		{
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 		}
 	}
 }
 
-void Genome::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Genome::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 	Individual::s_any_individual_or_genome_tag_set_ = true;
 	
@@ -711,7 +711,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 		case gID_nucleotides:					return ExecuteMethod_nucleotides(p_method_id, p_arguments, p_interpreter);
 		case gID_positionsOfMutationsOfType:	return ExecuteMethod_positionsOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_sumOfMutationsOfType:			return ExecuteMethod_sumOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
-		default:								return EidosObjectElement::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:								return EidosObject::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -747,7 +747,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 
 //	*********************	- (logical)containsMutations(object<Mutation> mutations)
 //
-EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (p_elements_size)
@@ -800,7 +800,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObjectEle
 			EidosValue_SP result(logical_result);
 			int64_t result_index = 0;
 			
-			EidosObjectElement * const *mutations_data = mutations_value->ObjectElementVector()->data();
+			EidosObject * const *mutations_data = mutations_value->ObjectElementVector()->data();
 			
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			{
@@ -1987,7 +1987,7 @@ size_t Genome::MemoryUsageForMutrunBuffers(void)
 #pragma mark Genome_Class
 #pragma mark -
 
-class Genome_Class : public EidosObjectClass
+class Genome_Class : public EidosClass
 {
 public:
 	Genome_Class(const Genome_Class &p_original) = delete;	// no copy-construct
@@ -2008,7 +2008,7 @@ public:
 	EidosValue_SP ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 
-EidosObjectClass *gSLiM_Genome_Class = new Genome_Class();
+EidosClass *gSLiM_Genome_Class = new Genome_Class();
 
 
 const std::string &Genome_Class::ElementType(void) const
@@ -2022,7 +2022,7 @@ const std::vector<EidosPropertySignature_CSP> *Genome_Class::Properties(void) co
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_genomePedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -2043,7 +2043,7 @@ const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosObjectClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*EidosClass::Methods());
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddInt_ON("originGeneration", gStaticEidosValueNULL)->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
@@ -2081,7 +2081,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 		case gID_readFromMS:			return ExecuteMethod_readFromMS(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readFromVCF:			return ExecuteMethod_readFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_removeMutations:		return ExecuteMethod_removeMutations(p_method_id, p_target, p_arguments, p_interpreter);
-		default:						return EidosObjectClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		default:						return EidosClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
 }
 

@@ -3267,7 +3267,7 @@ size_t Subpopulation::MemoryUsageForParentTables(void)
 #pragma mark Eidos support
 #pragma mark -
 
-const EidosObjectClass *Subpopulation::Class(void) const
+const EidosClass *Subpopulation::Class(void) const
 {
 	return gSLiM_Subpopulation_Class;
 }
@@ -3309,7 +3309,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					// check that the cache is correct
 					EidosValue_Object_vector *vec = cached_child_genomes_value_->ObjectElementVector_Mutable();
-					const std::vector<EidosObjectElement *> *vec_direct = vec->ObjectElementVector();
+					const std::vector<EidosObject *> *vec_direct = vec->ObjectElementVector();
 					int vec_size = (int)vec_direct->size();
 					
 					if (vec_size == (int)child_genomes_.size())
@@ -3341,7 +3341,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				{
 					// check that the cache is correct
 					EidosValue_Object_vector *vec = cached_parent_genomes_value_->ObjectElementVector_Mutable();
-					const std::vector<EidosObjectElement *> *vec_direct = vec->ObjectElementVector();
+					const std::vector<EidosObject *> *vec_direct = vec->ObjectElementVector();
 					int vec_size = (int)vec_direct->size();
 					
 					if (vec_size == (int)parent_genomes_.size())
@@ -3487,11 +3487,11 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -3505,7 +3505,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObjectElement **p_val
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -3519,7 +3519,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObjectEle
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -3533,7 +3533,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObjectEl
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -3551,7 +3551,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObjectElement **p_va
 	return int_result;
 }
 
-EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
 	
@@ -3588,12 +3588,12 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 			
 		default:
 		{
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 		}
 	}
 }
 
-void Subpopulation::SetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Subpopulation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
@@ -3612,7 +3612,7 @@ void Subpopulation::SetProperty_Accelerated_tag(EidosObjectElement **p_values, s
 	}
 }
 
-void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObjectElement **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 	if (p_source_size == 1)
 	{
@@ -4771,7 +4771,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			{
 				EidosValue_Object_vector *genome_vector = (EidosValue_Object_vector *)genome_value;
 				
-				EidosObjectElement * const *vec_data = genome_vector->data();
+				EidosObject * const *vec_data = genome_vector->data();
 				size_t vec_size = genome_vector->size();
 				
 				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
@@ -4797,7 +4797,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			{
 				EidosValue_Object_vector *individual_vector = (EidosValue_Object_vector *)individual_value;
 				
-				EidosObjectElement * const *vec_data = individual_vector->data();
+				EidosObject * const *vec_data = individual_vector->data();
 				size_t vec_size = individual_vector->size();
 				
 				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
@@ -4848,7 +4848,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			{
 				EidosValue_Object_vector *genome_vector = (EidosValue_Object_vector *)genome_value;
 				
-				EidosObjectElement **vec_data = genome_vector->data();
+				EidosObject **vec_data = genome_vector->data();
 				size_t vec_size = genome_vector->size();
 				
 				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
@@ -4876,7 +4876,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			{
 				EidosValue_Object_vector *individual_vector = (EidosValue_Object_vector *)individual_value;
 				
-				EidosObjectElement **vec_data = individual_vector->data();
+				EidosObject **vec_data = individual_vector->data();
 				size_t vec_size = individual_vector->size();
 				
 				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
@@ -4937,7 +4937,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
 		SLiMSim &sim = population_.sim_;
-		EidosObjectElement *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, sim, "setMigrationRates()");
+		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, sim, "setMigrationRates()");
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 		
 		if (source_subpop_id == subpopulation_id_)
@@ -6759,7 +6759,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
+EidosClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
 
 
 const std::string &Subpopulation_Class::ElementType(void) const

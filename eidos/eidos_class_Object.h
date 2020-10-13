@@ -29,11 +29,11 @@
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
 
-class EidosObjectClass;
+class EidosClass;
 
 
 #pragma mark -
-#pragma mark EidosObjectElement
+#pragma mark EidosObject
 #pragma mark -
 
 //	*********************************************************************************************************
@@ -42,23 +42,23 @@ class EidosObjectClass;
 // EidosValue_Float is a vector.  EidosValue_Object is just a bag; this class is the abstract base class of
 // the things that can be contained in that bag.  This class defines the methods that can be used by an
 // instance of EidosValue_Object; EidosValue_Object just forwards such things on to this class.
-// EidosObjectElement obeys sharing semantics; many EidosValue_Objects can refer to the same element, and
-// EidosObjectElement never copies itself.  To manage its lifetime, refcounting can be used.  Many objects
+// EidosObject obeys sharing semantics; many EidosValue_Objects can refer to the same element, and
+// EidosObject never copies itself.  To manage its lifetime, refcounting can be used.  Many objects
 // do not use this refcount, since their lifetime is managed, but some objects, such as Mutation and the
 // internal test class EidosTestElement, use the refcount and delete themselves when they are done.  Those
-// objects inherit from EidosDictionaryRetained, and their EidosObjectClass subclass must subclass from
+// objects inherit from EidosDictionaryRetained, and their EidosClass subclass must subclass from
 // EidosDictionaryRetained_Class (which guarantees inheritance from EidosDictionaryRetained).
 
-class EidosObjectElement
+class EidosObject
 {
 public:
-	EidosObjectElement(const EidosObjectElement &p_original) = delete;		// no copy-construct
-	EidosObjectElement& operator=(const EidosObjectElement&) = delete;		// no copying
+	EidosObject(const EidosObject &p_original) = delete;		// no copy-construct
+	EidosObject& operator=(const EidosObject&) = delete;		// no copying
 	
-	inline EidosObjectElement(void) { }
-	inline virtual ~EidosObjectElement(void) { }
+	inline EidosObject(void) { }
+	inline virtual ~EidosObject(void) { }
 	
-	virtual const EidosObjectClass *Class(void) const = 0;
+	virtual const EidosClass *Class(void) const = 0;
 	
 	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints ElementType()
 	
@@ -68,23 +68,23 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_str(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// EidosContext is a typedef for EidosObjectElement at present, so this class is the superclass of the Context
+	// EidosContext is a typedef for EidosObject at present, so this class is the superclass of the Context
 	// object.  If that gets complicated we'll probably want to make a new EidosContext class to formalize things,
 	// but for now the only addition we need for that is this virtual function stub, used for Context-defined
 	// function dispatch.
 	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
-std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_element);
+std::ostream &operator<<(std::ostream &p_outstream, const EidosObject &p_element);
 
 
 #pragma mark -
-#pragma mark EidosObjectClass
+#pragma mark EidosClass
 #pragma mark -
 
 //	*********************************************************************************************************
 //
-// This class is similar to Class objects in Objective-C; it represents the class of an EidosObjectElement.
+// This class is similar to Class objects in Objective-C; it represents the class of an EidosObject.
 // These class objects are not visible in Eidos, at least at present; they just work behind the scenes to
 // enable some behaviors.  In particular: (1) class objects define the interface, of methods and properties,
 // that elements implement; (2) class objects implement class methods, avoiding the need to call class
@@ -95,10 +95,10 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObjectElement &p_
 //
 // Note that this is not an abstract base class!  It is used to represent the class of empty objects.
 
-class EidosObjectClass
+class EidosClass
 {
 private:
-	static std::vector<EidosObjectClass *> &EidosObjectClassRegistry(void);
+	static std::vector<EidosClass *> &EidosClassRegistry(void);
 
 protected:
 	// cached dispatch tables; these are lookup tables, indexed by EidosGlobalStringID property / method ids
@@ -111,13 +111,13 @@ protected:
 	int32_t method_signatures_dispatch_capacity_ = 0;
 	
 public:
-	static inline const std::vector<EidosObjectClass *> &RegisteredClasses(void) { return EidosObjectClassRegistry(); }
+	static inline const std::vector<EidosClass *> &RegisteredClasses(void) { return EidosClassRegistry(); }
 	
-	EidosObjectClass(const EidosObjectClass &p_original) = delete;		// no copy-construct
-	EidosObjectClass& operator=(const EidosObjectClass&) = delete;		// no copying
+	EidosClass(const EidosClass &p_original) = delete;		// no copy-construct
+	EidosClass& operator=(const EidosClass&) = delete;		// no copying
 	
-	EidosObjectClass(void);
-	inline virtual ~EidosObjectClass(void) { }
+	EidosClass(void);
+	inline virtual ~EidosClass(void) { }
 	
 	virtual bool UsesRetainRelease(void) const;
 	
@@ -161,7 +161,7 @@ public:
 	EidosValue_SP ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 
-extern EidosObjectClass *gEidos_UndefinedClassObject;
+extern EidosClass *gEidos_UndefinedClassObject;
 
 
 #endif /* __Eidos__eidos_class_Object__ */

@@ -30,7 +30,7 @@
 #include "eidos_value.h"
 
 
-extern EidosObjectClass *gEidosTestElement_Class;
+extern EidosClass *gEidosTestElement_Class;
 
 
 class EidosTestElement : public EidosDictionaryRetained
@@ -48,18 +48,18 @@ public:
 	//
 	// Eidos support
 	//
-	virtual const EidosObjectClass *Class(void) const override;
+	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
-	static EidosValue_SP ExecuteMethod_Accelerated_cubicYolk(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	static EidosValue_SP ExecuteMethod_Accelerated_cubicYolk(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_squareTest(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// Accelerated property access; see class EidosObjectElement for comments on this mechanism
-	static EidosValue *GetProperty_Accelerated__yolk(EidosObjectElement **p_elements, size_t p_elements_size);
-	static void SetProperty_Accelerated__yolk(EidosObjectElement **p_elements, size_t p_elements_size, const EidosValue &p_source, size_t p_source_size);
+	// Accelerated property access; see class EidosObject for comments on this mechanism
+	static EidosValue *GetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size);
+	static void SetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size, const EidosValue &p_source, size_t p_source_size);
 };
 
 

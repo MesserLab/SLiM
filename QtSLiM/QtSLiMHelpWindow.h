@@ -32,7 +32,7 @@
 
 class QCloseEvent;
 class QSplitter;
-class EidosObjectClass;
+class EidosClass;
 
 
 // SLiMgui uses an NSDictionary-based design to hold the documentation tree data structure.  Here we
@@ -123,7 +123,7 @@ private:
     QtSLiMHelpItem *findObjectWithKeySuffix(const QString searchKeySuffix, QTreeWidgetItem *searchItem);
     QtSLiMHelpItem *findObjectForKeyEqualTo(const QString searchKey, QTreeWidgetItem *searchItem);
     void checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_CSP> *functions);
-    void checkDocumentationOfClass(EidosObjectClass *classObject);
+    void checkDocumentationOfClass(EidosClass *classObject);
     
     // responding to events
     virtual void closeEvent(QCloseEvent *e) override;

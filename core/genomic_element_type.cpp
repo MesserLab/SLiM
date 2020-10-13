@@ -229,7 +229,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElementType &p_
 #pragma mark Eidos support
 #pragma mark -
 
-const EidosObjectClass *GenomicElementType::Class(void) const
+const EidosClass *GenomicElementType::Class(void) const
 {
 	return gSLiM_GenomicElementType_Class;
 }
@@ -287,11 +287,11 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObjectElement::GetProperty(p_property_id);
+			return EidosObject::GetProperty(p_property_id);
 	}
 }
 
-EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -305,7 +305,7 @@ EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObjectElement **
 	return int_result;
 }
 
-EidosValue *GenomicElementType::GetProperty_Accelerated_tag(EidosObjectElement **p_values, size_t p_values_size)
+EidosValue *GenomicElementType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -348,7 +348,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 			
 		default:
 		{
-			return EidosObjectElement::SetProperty(p_property_id, p_value);
+			return EidosObject::SetProperty(p_property_id, p_value);
 		}
 	}
 }
@@ -456,7 +456,7 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
-EidosObjectClass *gSLiM_GenomicElementType_Class = new GenomicElementType_Class();
+EidosClass *gSLiM_GenomicElementType_Class = new GenomicElementType_Class();
 
 
 const std::string &GenomicElementType_Class::ElementType(void) const

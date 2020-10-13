@@ -1927,7 +1927,7 @@
 	std::string &identifier_name = identifiers[key_path_index];
 	EidosGlobalStringID identifier_ID = EidosStringRegistry::GlobalStringIDForString(identifier_name);
 	bool identifier_is_call = identifiers_are_calls[key_path_index];
-	const EidosObjectClass *key_path_class = nullptr;
+	const EidosClass *key_path_class = nullptr;
 	
 	if (identifier_is_call)
 	{
@@ -2010,7 +2010,7 @@
 	// OK, we've now got a EidosValue object that represents the end of the line; the final dot is off of this object.
 	// So we want to extract all of its properties and methods, and return them all as candidates.
 	NSMutableArray *candidates = [NSMutableArray array];
-	const EidosObjectClass *terminus = key_path_class;
+	const EidosClass *terminus = key_path_class;
 	
 	// First, a sorted list of globals
 	for (auto symbol_sig : *terminus->Properties())
