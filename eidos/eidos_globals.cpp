@@ -2320,6 +2320,9 @@ const std::string &gEidosStr__squareTest = EidosRegisteredString("_squareTest", 
 const std::string &gEidosStr_EidosDictionaryUnretained = EidosRegisteredString("EidosDictionaryUnretained", gEidosID_EidosDictionaryUnretained);
 const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidosID_getValue);
 const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
+const std::string &gEidosStr_allKeys = EidosRegisteredString("allKeys", gEidosID_allKeys);
+const std::string &gEidosStr_addKeysAndValuesFrom = EidosRegisteredString("addKeysAndValuesFrom", gEidosID_addKeysAndValuesFrom);
+const std::string &gEidosStr_clearKeysAndValues = EidosRegisteredString("clearKeysAndValues", gEidosID_clearKeysAndValues);
 
 // strings for Dictionary (i.e., for EidosDictionaryRetained, which is the publicly visible class called "Dictionary" in Eidos)
 const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);

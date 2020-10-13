@@ -250,6 +250,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosTestElement_Class::Functions
 	
 	if (!functions)
 	{
+		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		
 		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_Test", Eidos_Instantiate_EidosTestElement, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosTestElement_Class))->AddInt_S("yolk"));

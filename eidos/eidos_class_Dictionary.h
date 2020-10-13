@@ -21,13 +21,15 @@
 #define __Eidos__eidos_class_dictionary__
 
 
-#include "eidos_value.h"
+#include "eidos_globals.h"
+#include "eidos_class_Object.h"
+
 
 #pragma mark -
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
 
-extern EidosObjectClass *gEidos_EidosDictionaryUnretained_Class;
+extern EidosObjectClass *gEidosDictionaryUnretained_Class;
 
 
 class EidosDictionaryUnretained : public EidosObjectElement
@@ -61,6 +63,8 @@ public:
 	//
 	virtual const EidosObjectClass *Class(void) const override;
 	
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	static EidosValue_SP ExecuteMethod_Accelerated_setValue(EidosObjectElement **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -76,6 +80,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
@@ -83,6 +88,9 @@ public:
 #pragma mark -
 #pragma mark EidosDictionaryRetained
 #pragma mark -
+
+extern EidosObjectClass *gEidosDictionaryRetained_Class;
+
 
 // A base class for EidosObjectElement subclasses that are under retain/release.  These must inherit from EidosDictionaryUnretained.
 class EidosDictionaryRetained : public EidosDictionaryUnretained
@@ -108,6 +116,11 @@ public:
 	}
 	
 	virtual void SelfDelete(void);
+	
+	//
+	// Eidos support
+	//
+	virtual const EidosObjectClass *Class(void) const override;
 };
 
 class EidosDictionaryRetained_Class : public EidosDictionaryUnretained_Class
@@ -119,165 +132,10 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	
+	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
+	
 	virtual bool UsesRetainRelease(void) const override;
 };
-
-
-#pragma mark -
-#pragma mark Inlines
-#pragma mark -
-
-// These inline implementations belong to EidosValue_Object_vector, but relate tightly to EidosDictionaryRetained,
-// so we have to provide them here.  So that they are available to everyone that includes eidos_value.h, it includes us.
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_CRR(EidosObjectElement *p_object)
-{
-	if (count_ == capacity_)
-		expand();
-	
-	DeclareClassFromElement(p_object);
-	
-	if (class_uses_retain_release_)
-		static_cast<EidosDictionaryRetained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_RR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	if (count_ == capacity_)
-		expand();
-	
-	DeclareClassFromElement(p_object);
-	
-	static_cast<EidosDictionaryRetained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_NORR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	if (count_ == capacity_)
-		expand();
-	
-	DeclareClassFromElement(p_object);
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_CRR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (count_ == capacity_) RaiseForCapacityViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-#endif
-	
-	if (class_uses_retain_release_)
-		static_cast<EidosDictionaryRetained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_RR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (count_ == capacity_) RaiseForCapacityViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	static_cast<EidosDictionaryRetained *>(p_object)->Retain();		// unsafe cast to avoid virtual function overhead
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_NORR(EidosObjectElement *p_object)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (count_ == capacity_) RaiseForCapacityViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	
-	values_[count_++] = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_CRR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	if (class_uses_retain_release_)
-	{
-		static_cast<EidosDictionaryRetained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
-		if (value_slot_to_replace)
-			static_cast<EidosDictionaryRetained *>(value_slot_to_replace)->Release();	// unsafe cast to avoid virtual function overhead
-	}
-	
-	value_slot_to_replace = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_RR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	static_cast<EidosDictionaryRetained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
-	if (value_slot_to_replace)
-		static_cast<EidosDictionaryRetained *>(value_slot_to_replace)->Release();	// unsafe cast to avoid virtual function overhead
-	
-	value_slot_to_replace = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_no_previous_RR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (!class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	static_cast<EidosDictionaryRetained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
-	
-	value_slot_to_replace = p_object;
-}
-
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_NORR(EidosObjectElement *p_object, size_t p_index)
-{
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= count_) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-	if (class_uses_retain_release_) RaiseForRetainReleaseViolation();
-#endif
-	EidosObjectElement *&value_slot_to_replace = values_[p_index];
-	
-	value_slot_to_replace = p_object;
-}
 
 
 #endif /* __Eidos__eidos_class_dictionary__ */

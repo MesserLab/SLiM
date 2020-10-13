@@ -2,7 +2,7 @@
 //  eidos_class_Dictionary.cpp
 //  Eidos
 //
-//  Created by Ben Haller on 9/30/20.
+//  Created by Ben Haller on 10/12/20.
 //  Copyright (c) 2020 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
@@ -20,12 +20,17 @@
 #include "eidos_class_Dictionary.h"
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
+#include "eidos_value.h"
 
 #include <utility>
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 
 
+//
+// EidosDictionaryUnretained
+//
 #pragma mark -
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
@@ -43,15 +48,41 @@ EidosDictionaryUnretained::EidosDictionaryUnretained(__attribute__((unused)) con
 
 
 //
-// Eidos support
+// EidosDictionaryUnretained Eidos support
 //
 #pragma mark -
-#pragma mark Eidos support
+#pragma mark EidosDictionaryUnretained Eidos support
 #pragma mark -
 
 const EidosObjectClass *EidosDictionaryUnretained::Class(void) const
 {
-	return gEidos_EidosDictionaryUnretained_Class;
+	return gEidosDictionaryUnretained_Class;
+}
+
+EidosValue_SP EidosDictionaryUnretained::GetProperty(EidosGlobalStringID p_property_id)
+{
+	// All of our strings are in the global registry, so we can require a successful lookup
+	switch (p_property_id)
+	{
+			// constants
+		case gEidosID_allKeys:
+		{
+			if (!hash_symbols_)
+				return gStaticEidosValue_String_ZeroVec;
+			
+			int key_count = (int)hash_symbols_->size();
+			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(key_count);
+			
+			for (auto const &kv_pair : *hash_symbols_)
+				string_result->PushString(kv_pair.first);
+			
+			return EidosValue_SP(string_result);
+		}
+			
+			// all others, including gID_none
+		default:
+			return EidosObjectElement::GetProperty(p_property_id);
+	}
 }
 
 EidosValue_SP EidosDictionaryUnretained::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -152,12 +183,28 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 #pragma mark EidosDictionaryUnretained_Class
 #pragma mark -
 
-EidosObjectClass *gEidos_EidosDictionaryUnretained_Class = new EidosDictionaryUnretained_Class();
+EidosObjectClass *gEidosDictionaryUnretained_Class = new EidosDictionaryUnretained_Class();
 
 
 const std::string &EidosDictionaryUnretained_Class::ElementType(void) const
 {
 	return gEidosStr_EidosDictionaryUnretained;		// Note that this class name is not visible to users at this point; "EidosDictionary" is EidosDictionaryRetained
+}
+
+const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties(void) const
+{
+	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
+	
+	if (!properties)
+	{
+		properties = new std::vector<EidosPropertySignature_CSP>(*EidosObjectClass::Properties());
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_allKeys,				true,	kEidosValueMaskString)));
+		
+		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
+	}
+	
+	return properties;
 }
 
 const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Methods(void) const
@@ -179,18 +226,93 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 
 
 //
+// EidosDictionaryRetained
+//
+#pragma mark -
+#pragma mark EidosDictionaryRetained
+#pragma mark -
+
+/*
+EidosDictionaryRetained::EidosDictionaryRetained(void)
+{
+//	std::cerr << "EidosDictionaryRetained::EidosDictionaryRetained allocated " << this << " with refcount == 1" << std::endl;
+//	Eidos_PrintStacktrace(stderr, 10);
+}
+
+EidosDictionaryRetained::~EidosDictionaryRetained(void)
+{
+//	std::cerr << "EidosDictionaryRetained::~EidosDictionaryRetained deallocated " << this << std::endl;
+//	Eidos_PrintStacktrace(stderr, 10);
+}
+*/
+
+void EidosDictionaryRetained::SelfDelete(void)
+{
+	// called when our refcount reaches zero; can be overridden by subclasses to provide custom behavior
+	// the default behavior assumes that this was allocated by new, and uses delete to free it
+	delete this;
+}
+
+//	(object<Dictionary>$)Dictionary()
+static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	
+	// objectElement is now retained by result_SP, so we can release it
+	objectElement->Release();
+	
+	return result_SP;
+}
+
+
+//
+// EidosDictionaryRetained Eidos support
+//
+#pragma mark -
+#pragma mark EidosDictionaryRetained Eidos support
+#pragma mark -
+
+const EidosObjectClass *EidosDictionaryRetained::Class(void) const
+{
+	return gEidosDictionaryRetained_Class;
+}
+
+
+//
 //	EidosDictionaryRetained_Class
 //
 #pragma mark -
 #pragma mark EidosDictionaryRetained_Class
 #pragma mark -
 
-EidosObjectClass *gEidos_EidosDictionaryRetained_Class = new EidosDictionaryRetained_Class();
+EidosObjectClass *gEidosDictionaryRetained_Class = new EidosDictionaryRetained_Class();
 
 
 const std::string &EidosDictionaryRetained_Class::ElementType(void) const
 {
 	return gEidosStr_Dictionary;
+}
+
+const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Functions(void) const
+{
+	static std::vector<EidosFunctionSignature_CSP> *functions = nullptr;
+	
+	if (!functions)
+	{
+		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
+		functions = new std::vector<EidosFunctionSignature_CSP>;
+		
+		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Dictionary, Eidos_Instantiate_EidosDictionaryRetained, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class)));
+		
+		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
+	}
+	
+	return functions;
 }
 
 bool EidosDictionaryRetained_Class::UsesRetainRelease(void) const

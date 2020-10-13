@@ -71,6 +71,7 @@ SOURCES += \
     eidos_call_signature.cpp \
     eidos_class_Dictionary.cpp \
     eidos_class_Image.cpp \
+    eidos_class_Object.cpp \
     eidos_class_TestElement.cpp \
     eidos_functions.cpp \
     eidos_globals.cpp \
@@ -98,6 +99,7 @@ HEADERS += \
     eidos_beep.h \
     eidos_call_signature.h \
     eidos_class_Dictionary.h \
+    eidos_class_Object.h \
     eidos_class_TestElement.h \
     eidos_class_Image.h \
     eidos_functions.h \

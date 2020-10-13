@@ -760,6 +760,9 @@ extern const std::string &gEidosStr__squareTest;
 extern const std::string &gEidosStr_EidosDictionaryUnretained;
 extern const std::string &gEidosStr_getValue;
 extern const std::string &gEidosStr_setValue;
+extern const std::string &gEidosStr_allKeys;
+extern const std::string &gEidosStr_addKeysAndValuesFrom;
+extern const std::string &gEidosStr_clearKeysAndValues;
 
 extern const std::string &gEidosStr_Dictionary;
 
@@ -859,6 +862,9 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_EidosDictionaryUnretained,
 	gEidosID_getValue,
 	gEidosID_setValue,
+	gEidosID_allKeys,
+	gEidosID_addKeysAndValuesFrom,
+	gEidosID_clearKeysAndValues,
 
 	gEidosID_Dictionary,
 
