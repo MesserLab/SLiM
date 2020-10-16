@@ -73,8 +73,8 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 		// objects must match in their element type, or one or both must have no defined element type (due to being empty)
 		const EidosClass *base_element_class = ((const EidosValue_Object &)p_base_value).Class();
 		const EidosClass *dest_element_class = ((const EidosValue_Object &)p_dest_value).Class();
-		bool base_is_typeless = (base_element_class == gEidos_UndefinedClassObject);
-		bool dest_is_typeless = (dest_element_class == gEidos_UndefinedClassObject);
+		bool base_is_typeless = (base_element_class == gEidosObject_Class);
+		bool dest_is_typeless = (dest_element_class == gEidosObject_Class);
 		
 		if (base_is_typeless || dest_is_typeless)
 			return true;

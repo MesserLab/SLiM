@@ -41,11 +41,6 @@
  */
 
 @protocol EidosConsoleWindowControllerDelegate
-@required
-
-// a message from EidosTextViewDelegate that we essentially forward on to our delegate; see EidosTextView.h
-- (const std::vector<EidosMethodSignature_CSP> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController;
-
 @optional
 
 // If provided, this context object will be handed to EidosInterpreter objects created by the console

@@ -103,7 +103,7 @@ public:
 extern EidosClass *gSLiM_SLiMEidosBlock_Class;
 
 
-class SLiMEidosBlock : public EidosObject
+class SLiMEidosBlock : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	

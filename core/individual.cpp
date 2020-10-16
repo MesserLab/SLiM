@@ -1354,6 +1354,7 @@ public:
 	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
 	inline Individual_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -1365,6 +1366,11 @@ public:
 
 EidosClass *gSLiM_Individual_Class = new Individual_Class();
 
+
+const EidosClass *Individual_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &Individual_Class::ElementType(void) const
 {

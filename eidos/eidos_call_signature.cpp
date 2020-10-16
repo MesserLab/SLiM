@@ -132,7 +132,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 						if (argument_class != signature_class)
 						{
 							// Empty object vectors of undefined class are allowed to be passed for type-specified parameters; such vectors are generic
-							if ((argument_class == gEidos_UndefinedClassObject) && (argument->Count() == 0))
+							if ((argument_class == gEidosObject_Class) && (argument->Count() == 0))
 								break;
 							
 							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
@@ -306,10 +306,11 @@ void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_i
 					if (argument_class != signature_class)
 					{
 						// Empty object vectors of undefined class are allowed to be passed for type-specified parameters; such vectors are generic
-						if ((argument_class == gEidos_UndefinedClassObject) && (p_argument->Count() == 0))
+						if ((argument_class == gEidosObject_Class) && (p_argument->Count() == 0))
 							break;
 						
-						EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
+						if (!argument_class->IsSubclassOfClass(signature_class))
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
 					}
 				}
 				break;
@@ -404,7 +405,8 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
+				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -461,7 +463,8 @@ void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t
 			// in the signature, check the object element type of the return.  Note this uses pointer equality!
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
+				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}

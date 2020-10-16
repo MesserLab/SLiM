@@ -1137,6 +1137,7 @@ public:
 	SLiMEidosBlock_Class& operator=(const SLiMEidosBlock_Class&) = delete;	// no copying
 	inline SLiMEidosBlock_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -1144,6 +1145,11 @@ public:
 
 EidosClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
 
+
+const EidosClass *SLiMEidosBlock_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &SLiMEidosBlock_Class::ElementType(void) const
 {

@@ -138,6 +138,7 @@ class SLiMgui_Class : public EidosClass
 	SLiMgui_Class& operator=(const SLiMgui_Class&) = delete;	// no copying
 	inline SLiMgui_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -146,6 +147,11 @@ class SLiMgui_Class : public EidosClass
 
 EidosClass *gSLiM_SLiMgui_Class = new SLiMgui_Class();
 
+
+const EidosClass *SLiMgui_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &SLiMgui_Class::ElementType(void) const
 {

@@ -244,7 +244,7 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_Integer_ZeroVec = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 		gStaticEidosValue_Float_ZeroVec = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		gStaticEidosValue_String_ZeroVec = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
-		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidos_UndefinedClassObject));
+		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosObject_Class));
 		
 		gStaticEidosValue_LogicalT = EidosValue_Logical_const::Static_EidosValue_Logical_T();
 		gStaticEidosValue_LogicalF = EidosValue_Logical_const::Static_EidosValue_Logical_F();
@@ -277,8 +277,11 @@ void Eidos_WarmUp(void)
 		gEidosConstantsSymbolTable = new EidosSymbolTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr);
 		
 		// Tell all registered classes to initialize their dispatch tables; doing this here saves a flag check later
-		for (EidosClass *eidos_class : EidosClass::RegisteredClasses())
+		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 			eidos_class->CacheDispatchTables();
+		
+		// Check classes for mismatched duplicate interfaces
+		EidosClass::CheckForDuplicateMethodsOrProperties();
 	}
 }
 
@@ -2293,21 +2296,22 @@ const std::string &gEidosStr_float = EidosRegisteredString("float", gEidosID_flo
 const std::string &gEidosStr_object = EidosRegisteredString("object", gEidosID_object);
 const std::string &gEidosStr_numeric = EidosRegisteredString("numeric", gEidosID_numeric);
 
-// Eidos function names, property names, and method names
+// other miscellaneous strings
 const std::string &gEidosStr_ELLIPSIS = EidosRegisteredString("...", gEidosID_ELLIPSIS);
+const std::string &gEidosStr_type = EidosRegisteredString("type", gEidosID_type);
+const std::string &gEidosStr_source = EidosRegisteredString("source", gEidosID_source);
+const std::string &gEidosStr_GetPropertyOfElements = EidosRegisteredString("GetPropertyOfElements", gEidosID_GetPropertyOfElements);
+const std::string &gEidosStr_ExecuteInstanceMethod = EidosRegisteredString("ExecuteInstanceMethod", gEidosID_ExecuteInstanceMethod);
+const std::string &gEidosStr_undefined = EidosRegisteredString("undefined", gEidosID_undefined);
+const std::string &gEidosStr_applyValue = EidosRegisteredString("applyValue", gEidosID_applyValue);
+
+// strings for EidosObject
+const std::string &gEidosStr_Object = EidosRegisteredString("Object", gEidosID_Object);
 const std::string &gEidosStr_size = EidosRegisteredString("size", gEidosID_size);
 const std::string &gEidosStr_length = EidosRegisteredString("length", gEidosID_length);
 const std::string &gEidosStr_methodSignature = EidosRegisteredString("methodSignature", gEidosID_methodSignature);
 const std::string &gEidosStr_propertySignature = EidosRegisteredString("propertySignature", gEidosID_propertySignature);
 const std::string &gEidosStr_str = EidosRegisteredString("str", gEidosID_str);
-const std::string &gEidosStr_type = EidosRegisteredString("type", gEidosID_type);
-const std::string &gEidosStr_source = EidosRegisteredString("source", gEidosID_source);
-
-// other miscellaneous strings
-const std::string &gEidosStr_GetPropertyOfElements = EidosRegisteredString("GetPropertyOfElements", gEidosID_GetPropertyOfElements);
-const std::string &gEidosStr_ExecuteInstanceMethod = EidosRegisteredString("ExecuteInstanceMethod", gEidosID_ExecuteInstanceMethod);
-const std::string &gEidosStr_undefined = EidosRegisteredString("undefined", gEidosID_undefined);
-const std::string &gEidosStr_applyValue = EidosRegisteredString("applyValue", gEidosID_applyValue);
 
 // strings for EidosTestElement
 const std::string &gEidosStr__TestElement = EidosRegisteredString("_TestElement", gEidosID__TestElement);
@@ -2317,7 +2321,7 @@ const std::string &gEidosStr__cubicYolk = EidosRegisteredString("_cubicYolk", gE
 const std::string &gEidosStr__squareTest = EidosRegisteredString("_squareTest", gEidosID__squareTest);
 
 // strings for Dictionary (i.e., for EidosDictionaryUnretained, but also inherited by EidosDictionaryRetained)
-const std::string &gEidosStr_EidosDictionaryUnretained = EidosRegisteredString("EidosDictionaryUnretained", gEidosID_EidosDictionaryUnretained);
+const std::string &gEidosStr_DictionaryBase = EidosRegisteredString("DictionaryBase", gEidosID_DictionaryBase);
 const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidosID_getValue);
 const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
 const std::string &gEidosStr_allKeys = EidosRegisteredString("allKeys", gEidosID_allKeys);

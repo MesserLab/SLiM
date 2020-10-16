@@ -861,9 +861,11 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptRaise("version(_Test(7));", 0, "cannot be type object");
 }
 
-#pragma mark methods
-void _RunMethodTests(void)
+#pragma mark classes
+void _RunClassTests(void)
 {
+	// Test EidosObject methods, using EidosTestElement since EidosObject is an abstract base class
+	
 	// methodSignature()
 	EidosAssertScriptSuccess("_Test(7).methodSignature();", gStaticEidosValueVOID);
 	EidosAssertScriptSuccess("_Test(7).methodSignature('methodSignature');", gStaticEidosValueVOID);
@@ -888,6 +890,40 @@ void _RunMethodTests(void)
 	EidosAssertScriptSuccess("c(_Test(7), _Test(8), _Test(9)).str();", gStaticEidosValueVOID);
 	EidosAssertScriptSuccess("matrix(_Test(7)).str();", gStaticEidosValueVOID);
 	EidosAssertScriptSuccess("matrix(c(_Test(7), _Test(8), _Test(9))).str();", gStaticEidosValueVOID);
+	
+	
+	// Test EidosDictionaryUnretained properties and methods, using EidosDictionaryRetained
+	// since there's no way to instantiate an EidosDictionaryUnretained directly
+	
+	// setValue() / getValue()
+	EidosAssertScriptSuccess("x = Dictionary(); x.getValue('a');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', c(T,F,T)); x.getValue('a');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true,false,true}));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 7:9); x.getValue('a');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7,8,9}));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 7.0:9); x.getValue('a');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{7,8,9}));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('baz', c('foo', 'bar')); x.getValue('baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
+	EidosAssertScriptSuccess("x = Dictionary(); y = Dictionary(); y.setValue('foo', 'bar'); x.setValue('a', y); x.getValue('a').getValue('foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 7:9); x.setValue('a', NULL); x.getValue('a');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("x = Dictionary(); y = Dictionary(); y.setValue('foo', 'bar'); x.setValue('a', y); x.getValue('a').setValue('foo', NULL); x.getValue('a').getValue('foo');", gStaticEidosValueNULL);
+	
+	// allKeys
+	EidosAssertScriptSuccess("x = Dictionary(); x.allKeys;", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', c(T,F,T)); x.allKeys;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', c(T,F,T)); x.setValue('foo', 7:9); x.setValue('baz', 7.0:9); sort(x.allKeys);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "baz", "foo"}));
+	
+	// addKeysAndValuesFrom
+	EidosAssertScriptSuccess("x = Dictionary(); y = x; x.setValue('bar', 2); y.getValue('bar');", gStaticEidosValue_Integer2);
+	EidosAssertScriptSuccess("x = Dictionary(); y = Dictionary(); y.addKeysAndValuesFrom(x); x.setValue('bar', 2); y.getValue('bar');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); y = Dictionary(); y.addKeysAndValuesFrom(x); x.setValue('bar', 1); y.getValue('bar');", gStaticEidosValue_Integer2);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); y = Dictionary(); y.addKeysAndValuesFrom(x); x.setValue('bar', 1); x.getValue('bar');", gStaticEidosValue_Integer1);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); y = Dictionary(); y.addKeysAndValuesFrom(x); y.setValue('xyzzy', 17); sort(y.allKeys);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "baz", "xyzzy"}));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); y = Dictionary(); y.addKeysAndValuesFrom(x); y.setValue('baz', NULL); y.allKeys;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
+	
+	// clearKeysAndValues
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); x.clearKeysAndValues(); x.allKeys;", gStaticEidosValue_String_ZeroVec);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); x.clearKeysAndValues(); x.setValue('foo', 'baz'); x.allKeys;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
+	
+	
+	// Test EidosImage properties and methods – but how?  If it were possible to construct an Image from a matrix, and then save that Image out to disk, I guess that would provide an avenue for testing...  FIXME
 }
 
 #pragma mark code examples

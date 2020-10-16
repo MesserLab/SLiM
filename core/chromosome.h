@@ -47,7 +47,7 @@ class SLiMSim;
 extern EidosClass *gSLiM_Chromosome_Class;
 
 
-class Chromosome : public EidosObject
+class Chromosome : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 

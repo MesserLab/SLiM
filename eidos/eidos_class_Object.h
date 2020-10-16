@@ -59,6 +59,9 @@ public:
 	inline virtual ~EidosObject(void) { }
 	
 	virtual const EidosClass *Class(void) const = 0;
+	const EidosClass *Superclass(void) const;
+	bool IsKindOfClass(const EidosClass *p_class_object) const;
+	bool IsMemberOfClass(const EidosClass *p_class_object) const;
 	
 	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints ElementType()
 	
@@ -93,7 +96,9 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObject &p_element
 // without having to have instantiated object elements in hand.  It is conceivable that class objects will
 // become visible in Eidos at some point; but there seems to be no need for that at present.
 //
-// Note that this is not an abstract base class!  It is used to represent the class of empty objects.
+// Note that this is not an abstract base class!  It is used to represent the class of empty object vectors.
+
+extern EidosClass *gEidosObject_Class;
 
 class EidosClass
 {
@@ -111,7 +116,10 @@ protected:
 	int32_t method_signatures_dispatch_capacity_ = 0;
 	
 public:
-	static inline const std::vector<EidosClass *> &RegisteredClasses(void) { return EidosClassRegistry(); }
+	static std::vector<EidosClass *> RegisteredClasses(bool p_builtin, bool p_context);
+	static std::vector<EidosPropertySignature_CSP> RegisteredClassProperties(bool p_builtin, bool p_context);
+	static std::vector<EidosMethodSignature_CSP> RegisteredClassMethods(bool p_builtin, bool p_context);
+	static void CheckForDuplicateMethodsOrProperties(void);
 	
 	EidosClass(const EidosClass &p_original) = delete;		// no copy-construct
 	EidosClass& operator=(const EidosClass&) = delete;		// no copying
@@ -120,6 +128,10 @@ public:
 	inline virtual ~EidosClass(void) { }
 	
 	virtual bool UsesRetainRelease(void) const;
+	
+	inline const EidosClass *Class(void) const { return this; }
+	virtual const EidosClass *Superclass(void) const;
+	bool IsSubclassOfClass(const EidosClass *p_class_object) const;
 	
 	virtual const std::string &ElementType(void) const;
 	
@@ -160,8 +172,6 @@ public:
 	EidosValue_SP ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
-
-extern EidosClass *gEidos_UndefinedClassObject;
 
 
 #endif /* __Eidos__eidos_class_Object__ */

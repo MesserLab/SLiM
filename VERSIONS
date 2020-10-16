@@ -64,6 +64,9 @@ development head:
 	add recipe 9.9, "Keeping a reference to a sweep mutation"
 	add recipe 9.10, "Tracking the fate of background mutations"
 	add Image class to Eidos, based on lodepng
+	extend Dictionary with allKeys, addKeysAndValuesFrom(), clearKeysAndValues()
+	make superclass relationships explicit and documented; make Chromosome, SlimEidosBlock, and SLiMgui inherit from EidosDictionaryUnretained
+	move doc for setValue()/getValue() to the Eidos manual, remove all the duplicated doc for it in SLiM
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

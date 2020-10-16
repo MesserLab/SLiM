@@ -1966,7 +1966,7 @@ If a value is supplied for
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<undefined>)object(void)\
+\f1\fs18 \cf0 (object<Object>)object(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf0 Returns a 
@@ -1985,7 +1985,7 @@ If a value is supplied for
 \f1\fs18 c()
 \f2\fs20 .
 \f3   Note that the return value is of type 
-\f1\fs18 object<undefined>
+\f1\fs18 object<Object>
 \f3\fs20 ; this method creates an 
 \f1\fs18 object
 \f3\fs20  vector that does not know what element type it contains.  Such 
@@ -4965,8 +4965,9 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 

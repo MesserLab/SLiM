@@ -72,7 +72,7 @@ EidosValue_String_SP gStaticEidosValue_StringSpace;
 EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 
-EidosClass *gEidos_UndefinedClassObject = new EidosClass();
+EidosClass *gEidosObject_Class = new EidosClass();
 
 
 std::string StringForEidosValueType(const EidosValueType p_type)
@@ -1973,7 +1973,7 @@ std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;
 std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;
 
 EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
-	class_uses_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->UsesRetainRelease())
+	class_uses_retain_release_(p_class == gEidosObject_Class ? true : p_class->UsesRetainRelease())
 {
 	// BCH 7 May 2017: OK, so, this is a hack of breathtaking disgustingness.  Here is the problem.  In SLiM we
 	// need to reallocate the block in which all Mutation objects live, which invalidates all their pointers.
@@ -2021,7 +2021,7 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 }
 
 EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class, __attribute__((unused)) bool p_register_for_patching) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
-	class_uses_retain_release_(p_class == gEidos_UndefinedClassObject ? true : p_class->UsesRetainRelease())
+	class_uses_retain_release_(p_class == gEidosObject_Class ? true : p_class->UsesRetainRelease())
 {
 	// This special constructor variant skips the registration done in the body of the standard constructor above.
 	// Note that the value of p_register_for_patching is UNUSED; its purpose is merely to select this alternative

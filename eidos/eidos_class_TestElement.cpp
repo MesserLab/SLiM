@@ -195,6 +195,7 @@ public:
 	EidosTestElement_Class& operator=(const EidosTestElement_Class&) = delete;	// no copying
 	inline EidosTestElement_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -204,6 +205,11 @@ public:
 
 EidosClass *gEidosTestElement_Class = new EidosTestElement_Class();
 
+
+const EidosClass *EidosTestElement_Class::Superclass(void) const
+{
+	return gEidosDictionaryRetained_Class;
+}
 
 const std::string &EidosTestElement_Class::ElementType(void) const
 {

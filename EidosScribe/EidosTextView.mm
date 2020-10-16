@@ -1648,19 +1648,9 @@
 - (NSAttributedString *)attributedSignatureForMethodName:(NSString *)callName
 {
 	std::string call_name([callName UTF8String]);
-	id delegate = [self delegate];
 	
-	// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos.
-	// This case is much simpler than the function case, because the user can't declare their own methods.
-	const std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
-	
-	if ([delegate respondsToSelector:@selector(eidosTextViewAllMethodSignatures:)])
-		methodSignatures = [delegate eidosTextViewAllMethodSignatures:self];
-	
-	if (!methodSignatures)
-		methodSignatures = gEidos_UndefinedClassObject->Methods();
-	
-	for (const EidosMethodSignature_CSP &sig : *methodSignatures)
+	// Look for a matching method signature for the call name.
+	for (const EidosMethodSignature_CSP &sig : EidosClass::RegisteredClassMethods(true, true))
 	{
 		const std::string &sig_call_name = sig->call_name_;
 		

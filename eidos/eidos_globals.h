@@ -738,18 +738,19 @@ extern const std::string &gEidosStr_object;
 extern const std::string &gEidosStr_numeric;
 
 extern const std::string &gEidosStr_ELLIPSIS;
+extern const std::string &gEidosStr_type;
+extern const std::string &gEidosStr_source;
+extern const std::string &gEidosStr_GetPropertyOfElements;
+extern const std::string &gEidosStr_ExecuteInstanceMethod;
+extern const std::string &gEidosStr_undefined;
+extern const std::string &gEidosStr_applyValue;
+
+extern const std::string &gEidosStr_Object;
 extern const std::string &gEidosStr_size;
 extern const std::string &gEidosStr_length;
 extern const std::string &gEidosStr_methodSignature;
 extern const std::string &gEidosStr_propertySignature;
 extern const std::string &gEidosStr_str;
-extern const std::string &gEidosStr_type;
-extern const std::string &gEidosStr_source;
-
-extern const std::string &gEidosStr_GetPropertyOfElements;
-extern const std::string &gEidosStr_ExecuteInstanceMethod;
-extern const std::string &gEidosStr_undefined;
-extern const std::string &gEidosStr_applyValue;
 
 extern const std::string &gEidosStr__TestElement;
 extern const std::string &gEidosStr__yolk;
@@ -757,7 +758,7 @@ extern const std::string &gEidosStr__increment;
 extern const std::string &gEidosStr__cubicYolk;
 extern const std::string &gEidosStr__squareTest;
 
-extern const std::string &gEidosStr_EidosDictionaryUnretained;
+extern const std::string &gEidosStr_DictionaryBase;
 extern const std::string &gEidosStr_getValue;
 extern const std::string &gEidosStr_setValue;
 extern const std::string &gEidosStr_allKeys;
@@ -840,18 +841,19 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_numeric,
 
 	gEidosID_ELLIPSIS,
+	gEidosID_type,
+	gEidosID_source,
+	gEidosID_GetPropertyOfElements,
+	gEidosID_ExecuteInstanceMethod,
+	gEidosID_undefined,
+	gEidosID_applyValue,
+	
+	gEidosID_Object,
 	gEidosID_size,
 	gEidosID_length,
 	gEidosID_methodSignature,
 	gEidosID_propertySignature,
 	gEidosID_str,
-	gEidosID_type,
-	gEidosID_source,
-
-	gEidosID_GetPropertyOfElements,
-	gEidosID_ExecuteInstanceMethod,
-	gEidosID_undefined,
-	gEidosID_applyValue,
 
 	gEidosID__TestElement,
 	gEidosID__yolk,
@@ -859,7 +861,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__cubicYolk,
 	gEidosID__squareTest,
 
-	gEidosID_EidosDictionaryUnretained,
+	gEidosID_DictionaryBase,
 	gEidosID_getValue,
 	gEidosID_setValue,
 	gEidosID_allKeys,

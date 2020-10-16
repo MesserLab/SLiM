@@ -2313,6 +2313,7 @@ public:
 	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
 	inline Chromosome_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -2321,6 +2322,11 @@ public:
 
 EidosClass *gSLiM_Chromosome_Class = new Chromosome_Class();
 
+
+const EidosClass *Chromosome_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &Chromosome_Class::ElementType(void) const
 {

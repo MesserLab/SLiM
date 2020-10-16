@@ -22,6 +22,10 @@
 
 #include "eidos_interpreter.h"
 #include "eidos_value.h"
+#include "eidos_class_Object.h"
+#include "eidos_class_Dictionary.h"
+#include "eidos_class_Image.h"
+#include "eidos_class_TestElement.h"
 
 
 //
@@ -30,6 +34,41 @@
 #pragma mark -
 #pragma mark EidosObject
 #pragma mark -
+
+// EidosObject::Class() is not defined, to make this an abstract base class; but of course its superclass is gEidosObject_Class
+/*const EidosClass *EidosObject::Class(void) const
+{
+	return gEidosObject_Class;
+}*/
+
+const EidosClass *EidosObject::Superclass(void) const
+{
+	const EidosClass *class_object = Class();
+	const EidosClass *superclass_object = class_object ? class_object->Superclass() : nullptr;
+	
+	return superclass_object;
+}
+
+bool EidosObject::IsKindOfClass(const EidosClass *p_class_object) const
+{
+	const EidosClass *class_object = Class();
+	
+	do
+	{
+		if (class_object == p_class_object)
+			return true;
+		
+		class_object = class_object->Superclass();
+	}
+	while (class_object);
+	
+	return false;
+}
+
+bool EidosObject::IsMemberOfClass(const EidosClass *p_class_object) const
+{
+	return (Class() == p_class_object);
+}
 
 void EidosObject::Print(std::ostream &p_ostream) const
 {
@@ -204,7 +243,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosObject &p_element
 #pragma mark EidosClass
 #pragma mark -
 
-// global class registry; this non-const accessor is private to this file
+// global class registry; this non-const accessor is private
 std::vector<EidosClass *> &EidosClass::EidosClassRegistry(void)
 {
 	// Our global registry is handled this way, so that we don't run into order-of-initialization issues
@@ -214,6 +253,137 @@ std::vector<EidosClass *> &EidosClass::EidosClassRegistry(void)
 		classRegistry = new std::vector<EidosClass *>;
 	
 	return *classRegistry;
+}
+
+std::vector<EidosClass *> EidosClass::RegisteredClasses(bool p_builtin, bool p_context)
+{
+	// EidosClass::EidosClassRegistry() contains every class that has an allocated EidosClass object; we want to filter that
+	std::vector<EidosClass *> &classRegistry = EidosClass::EidosClassRegistry();
+	std::vector<EidosClass *> filteredRegistry;
+	
+	for (EidosClass *class_object : classRegistry)
+	{
+		bool builtin = false;
+		
+		// It's unfortunate to have to hard-code this here, but I can't think of a better
+		// heuristic that wouldn't hard-code some detail about SLiM here...
+		if ((class_object == gEidosObject_Class) ||
+			(class_object == gEidosTestElement_Class) ||
+			(class_object == gEidosDictionaryUnretained_Class) ||
+			(class_object == gEidosDictionaryRetained_Class) ||
+			(class_object == gEidosImage_Class))
+			builtin = true;
+		
+		if ((builtin && p_builtin) || (!builtin && p_context))
+			filteredRegistry.push_back(class_object);
+	}
+	
+	return filteredRegistry;
+}
+
+std::vector<EidosPropertySignature_CSP> EidosClass::RegisteredClassProperties(bool p_builtin, bool p_context)
+{
+	std::vector<EidosPropertySignature_CSP> propertySignatures;
+	std::vector<EidosClass *> classRegistry = EidosClass::RegisteredClasses(p_builtin, p_context);
+	
+	for (EidosClass *class_object : classRegistry)
+	{
+		const std::vector<EidosPropertySignature_CSP> *properties = class_object->Properties();
+		
+		propertySignatures.insert(propertySignatures.end(), properties->begin(), properties->end());
+	}
+	
+	// sort by pointer; we want pointer-identical signatures to end up adjacent
+	std::sort(propertySignatures.begin(), propertySignatures.end());
+	
+	// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
+	auto unique_end_iter = std::unique(propertySignatures.begin(), propertySignatures.end());
+	propertySignatures.resize(std::distance(propertySignatures.begin(), unique_end_iter));
+	
+	// now sort by name
+	std::sort(propertySignatures.begin(), propertySignatures.end(), CompareEidosPropertySignatures);
+	
+	return propertySignatures;
+}
+
+std::vector<EidosMethodSignature_CSP> EidosClass::RegisteredClassMethods(bool p_builtin, bool p_context)
+{
+	std::vector<EidosMethodSignature_CSP> methodSignatures;
+	std::vector<EidosClass *> classRegistry = EidosClass::RegisteredClasses(p_builtin, p_context);
+	
+	for (EidosClass *class_object : classRegistry)
+	{
+		const std::vector<EidosMethodSignature_CSP> *methods = class_object->Methods();
+		
+		methodSignatures.insert(methodSignatures.end(), methods->begin(), methods->end());
+	}
+	
+	// sort by pointer; we want pointer-identical signatures to end up adjacent
+	std::sort(methodSignatures.begin(), methodSignatures.end());
+	
+	// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
+	auto unique_end_iter = std::unique(methodSignatures.begin(), methodSignatures.end());
+	methodSignatures.resize(std::distance(methodSignatures.begin(), unique_end_iter));
+	
+	// now sort by name
+	std::sort(methodSignatures.begin(), methodSignatures.end(), CompareEidosCallSignatures);
+	
+	return methodSignatures;
+}
+
+void EidosClass::CheckForDuplicateMethodsOrProperties(void)
+{
+	std::vector<EidosPropertySignature_CSP> all_properties = RegisteredClassProperties(true, true);
+	std::vector<EidosMethodSignature_CSP> all_methods = RegisteredClassMethods(true, true);
+	
+	// print out any property signatures that are identical by name but are not identical
+	{
+		EidosPropertySignature_CSP previous_sig = nullptr;
+		
+		for (const EidosPropertySignature_CSP &sig : all_properties)
+		{
+			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
+			{
+				// We have a name collision.  That is OK as long as the property signatures are identical.
+				if ((sig->property_id_ != previous_sig->property_id_) ||
+					(sig->read_only_ != previous_sig->read_only_) ||
+					(sig->value_mask_ != previous_sig->value_mask_) ||
+					(sig->value_class_ != previous_sig->value_class_))
+					std::cout << "Duplicate property name with different signature: " << sig->property_name_ << std::endl;
+			}
+			
+			previous_sig = sig;
+		}
+	}
+	
+	// print out any method signatures that are identical by name but are not identical
+	{
+		EidosMethodSignature_CSP previous_sig = nullptr;
+		
+		for (const EidosMethodSignature_CSP &sig : all_methods)
+		{
+			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
+			{
+				// We have a name collision.  That is OK as long as the method signatures are identical.
+				const EidosMethodSignature *sig1 = sig.get();
+				const EidosMethodSignature *sig2 = previous_sig.get();
+				
+				if ((typeid(*sig1) != typeid(*sig2)) ||
+					(sig->is_class_method != previous_sig->is_class_method) ||
+					(sig->call_name_ != previous_sig->call_name_) ||
+					(sig->return_mask_ != previous_sig->return_mask_) ||
+					(sig->return_class_ != previous_sig->return_class_) ||
+					(sig->arg_masks_ != previous_sig->arg_masks_) ||
+					(sig->arg_names_ != previous_sig->arg_names_) ||
+					(sig->arg_classes_ != previous_sig->arg_classes_) ||
+					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
+					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
+					std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
+			}
+			
+			previous_sig = sig;
+		}
+	}
 }
 
 EidosClass::EidosClass(void)
@@ -227,9 +397,30 @@ bool EidosClass::UsesRetainRelease(void) const
 	return false;
 }
 
+const EidosClass *EidosClass::Superclass(void) const
+{
+	return nullptr;		// FIXME maybe at some point we want to go the Objective-C route and make Class a subclass of Object?
+}
+
+bool EidosClass::IsSubclassOfClass(const EidosClass *p_class_object) const
+{
+	const EidosClass *class_object = this;
+	
+	do
+	{
+		if (class_object == p_class_object)
+			return true;
+		
+		class_object = class_object->Superclass();
+	}
+	while (class_object);
+	
+	return false;
+}
+
 const std::string &EidosClass::ElementType(void) const
 {
-	return gEidosStr_undefined;
+	return gEidosStr_Object;
 }
 
 void EidosClass::CacheDispatchTables(void)

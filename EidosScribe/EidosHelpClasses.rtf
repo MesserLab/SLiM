@@ -1,0 +1,315 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2513
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
+\f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\margl1440\margr1440\vieww9000\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf2 5.1  Class Object\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\b0 \cf2 5.1.1  
+\f2\fs18 Object
+\f1\fs22  properties\
+5.1.2  
+\f2\fs18 Object
+\f1\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 +\'a0(integer$)length(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the size (e.g., length) of the receiving object.  This is equivalent to the 
+\f3\fs18 length()
+\f4\fs20  (or 
+\f3\fs18 size()
+\f4\fs20 ) function; in other words, for any 
+\f3\fs18 object
+\f4\fs20  
+\f3\fs18 x
+\f4\fs20 , the return value of the function call 
+\f3\fs18 length(x)
+\f4\fs20  equals the return value of the class method call 
+\f3\fs18 x.length()
+\f4\fs20 .  This method is provided solely for syntactic convenience.  Note that 
+\f3\fs18 +length()
+\f4\fs20  is a synonym for 
+\f3\fs18 +size()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)methodSignature([Ns$\'a0methodName\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Prints the method signature for the method specified by 
+\f3\fs18 methodName
+\f4\fs20 , or for all methods supported by the receiving object if 
+\f3\fs18 methodName
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)propertySignature([Ns$\'a0propertyName\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Prints the property signature for the property specified by 
+\f3\fs18 propertyName
+\f4\fs20 , or for all properties supported by the receiving object if 
+\f3\fs18 propertyName
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(integer$)size(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the size of the receiving object.  This is equivalent to the 
+\f3\fs18 size()
+\f4\fs20  (or 
+\f3\fs18 length()
+\f4\fs20 ) function; in other words, for any 
+\f3\fs18 object
+\f4\fs20  
+\f3\fs18 x
+\f4\fs20 , the return value of the function call 
+\f3\fs18 size(x)
+\f4\fs20  equals the return value of the class method call 
+\f3\fs18 x.size()
+\f4\fs20 .  This method is provided solely for syntactic convenience.  Note that 
+\f3\fs18 +length()
+\f4\fs20  is a synonym for 
+\f3\fs18 +size()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)str(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Prints the internal property structure of the receiving object; in particular, the element type of the object is printed, followed, on successive lines, by all of the properties supported by the object, their types, and a sample of their values.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf2 5.2  Class Dictionary\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\b0\fs18 \cf2 (object<Dictionary>$)Dictionary(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Creates a new empty 
+\f3\fs18 Dictionary
+\f4\fs20  object.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.2.1  
+\f2\fs18 Dictionary
+\f1\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 allKeys => (string)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A vector containing all of the string keys that have been assigned values using 
+\f3\fs18 setValue()
+\f4\fs20 .\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.2.2  
+\f2\fs18 Dictionary
+\f1\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(void)addKeysAndValuesFrom(object$\'a0source)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds all of the key-value pairs contained by 
+\f3\fs18 source
+\f4\fs20  (which must be a 
+\f3\fs18 Dictionary
+\f4\fs20  or a subclass of 
+\f3\fs18 Dictionary
+\f4\fs20 ) to the receiver.  Note that, as usual in Eidos, sharing semantics are followed; if one of the values contained by 
+\f3\fs18 source
+\f4\fs20  is itself a 
+\f3\fs18 Dictionary
+\f4\fs20 , the receiver will then have a reference to the very same 
+\f3\fs18 Dictionary
+\f4\fs20 , not a copy of it.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)clearKeysAndValues(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Removes all key-value pairs from the receiver.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(*)getValue(string$\'a0key)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the value previously set for the dictionary entry identifier 
+\f3\fs18 key
+\f4\fs20  using 
+\f3\fs18 setValue()
+\f4\fs20 , or 
+\f3\fs18 NULL
+\f4\fs20  if no value has been set.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, *\'a0value)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets a value for the dictionary entry identifier 
+\f3\fs18 key
+\f4\fs20 .  The value, which may be of any type, can be fetched later using 
+\f3\fs18 getValue()
+\f4\fs20 .  If 
+\f3\fs18 value
+\f4\fs20  is of type 
+\f3\fs18 object
+\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
+\f3\fs18 Mutation
+\f4\fs20  and 
+\f3\fs18 Substitution
+\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
+\f3\fs18 defineConstant()
+\f4\fs20  for further discussion).  Setting a key to a value of 
+\f3\fs18 NULL
+\f4\fs20  removes that key from the dictionary.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf2 5.3  Class Image\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\b0\fs18 \cf2 (object<Image>$)Image(string$\'a0filePath)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Creates a new 
+\f3\fs18 Image
+\f4\fs20  object from the PNG file at 
+\f3\fs18 filePath
+\f4\fs20 .  If the file represents a grayscale image, an 8-bit grayscale (K) 
+\f3\fs18 Image
+\f4\fs20  will be created; all other PNG files will yield a 24-bit color (RGB) 
+\f3\fs18 Image
+\f4\fs20 .\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.3.1  
+\f2\fs18 Image
+\f1\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 width => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The width of the image, in pixels.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 height => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The height of the image, in pixels.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 isGrayscale => (logical$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This flag is 
+\f3\fs18 T
+\f4\fs20  if the image is grayscale, with only a K channel; it is 
+\f3\fs18 F
+\f4\fs20  if the image is color, with R/G/B channels.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 bitsPerChannel => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The number of bits used to represent a single pixel, in one channel of the image.  At present this is always 8; grayscale (K) images are 8-bit, color (RGB) images are 24-bit.  It could be extended to support 16-bit channels in future.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 integerR => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The red (R) channel of the image, represented as a 2D 
+\f3\fs18 integer
+\f4\fs20  matrix.  Values will be in [0,255].  See the 
+\f3\fs18 floatR
+\f4\fs20  property for an alternative representation.  If the image is grayscale, this property is unavailable.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 integerG => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The green (G) channel of the image, represented as a 2D 
+\f3\fs18 integer
+\f4\fs20  matrix.  Values will be in [0,255].  See the 
+\f3\fs18 floatG
+\f4\fs20  property for an alternative representation.  If the image is grayscale, this property is unavailable.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 integerB => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The blue (R) channel of the image, represented as a 2D 
+\f3\fs18 integer
+\f4\fs20  matrix.  Values will be in [0,255].  See the 
+\f3\fs18 floatB
+\f4\fs20  property for an alternative representation.  If the image is grayscale, this property is unavailable.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 integerK => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The gray (K) channel of the image, represented as a 2D 
+\f3\fs18 integer
+\f4\fs20  matrix.  Values will be in [0,255].  See the 
+\f3\fs18 floatK
+\f4\fs20  property for an alternative representation.  If the image is color, this property is unavailable.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 floatR => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The red (R) channel of the image, represented as a 2D 
+\f3\fs18 float
+\f4\fs20  matrix.  Values will be in [0,1].  See the 
+\f3\fs18 integerR
+\f4\fs20  property for an alternative representation.  If the image is grayscale, this property is unavailable.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 floatG => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The green (G) channel of the image, represented as a 2D 
+\f3\fs18 float
+\f4\fs20  matrix.  Values will be in [0,1].  See the 
+\f3\fs18 integerG
+\f4\fs20  property for an alternative representation.  If the image is grayscale, this property is unavailable.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 floatB => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The blue (B) channel of the image, represented as a 2D 
+\f3\fs18 float
+\f4\fs20  matrix.  Values will be in [0,1].  See the 
+\f3\fs18 integerB
+\f4\fs20  property for an alternative representation.  If the image is grayscale, this property is unavailable.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 floatK => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The gray (K) channel of the image, represented as a 2D 
+\f3\fs18 float
+\f4\fs20  matrix.  Values will be in [0,1].  See the 
+\f3\fs18 integerK
+\f4\fs20  property for an alternative representation.  If the image is color, this property is unavailable.\
+\pard\pardeftab720\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.3.2  
+\f2\fs18 Image
+\f1\fs22  methods\
+}

@@ -104,9 +104,6 @@ private:
                               const std::vector<EidosMethodSignature_CSP> *methodList,
                               const std::vector<EidosPropertySignature_CSP> *propertyList);
     
-    const std::vector<EidosPropertySignature_CSP> *slimguiAllPropertySignatures(void);
-    const std::vector<EidosMethodSignature_CSP> *slimguiAllMethodSignatures(void);
-    
     // Searching
     bool findItemsMatchingSearchString(QTreeWidgetItem *root, const QString searchString, bool titlesOnly, std::vector<QTreeWidgetItem *> &matchKeys, std::vector<QTreeWidgetItem *> &expandItems);
     void searchFieldChanged(void);

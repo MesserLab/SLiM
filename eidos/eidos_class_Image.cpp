@@ -240,6 +240,7 @@ public:
 	EidosImage_Class& operator=(const EidosImage_Class&) = delete;	// no copying
 	inline EidosImage_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -248,6 +249,11 @@ public:
 
 EidosClass *gEidosImage_Class = new EidosImage_Class();
 
+
+const EidosClass *EidosImage_Class::Superclass(void) const
+{
+	return gEidosDictionaryRetained_Class;
+}
 
 const std::string &EidosImage_Class::ElementType(void) const
 {

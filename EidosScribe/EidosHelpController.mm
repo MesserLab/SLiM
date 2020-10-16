@@ -111,11 +111,14 @@
 {
 	if (self = [super init])
 	{
+		std::vector<EidosPropertySignature_CSP> builtin_properties = EidosClass::RegisteredClassProperties(true, false);
+		std::vector<EidosMethodSignature_CSP> builtin_methods = EidosClass::RegisteredClassMethods(true, false);
+		
 		topicRoot = [NSMutableDictionary new];
 		
 		// Add Eidos topics; the only methods defined by Eidos come from EidosClass
 		[self addTopicsFromRTFFile:@"EidosHelpFunctions" underHeading:@"1. Eidos Functions" functions:&EidosInterpreter::BuiltInFunctions() methods:nullptr properties:nullptr];
-		[self addTopicsFromRTFFile:@"EidosHelpMethods" underHeading:@"2. Eidos Methods" functions:nullptr methods:gEidos_UndefinedClassObject->Methods() properties:nullptr];
+		[self addTopicsFromRTFFile:@"EidosHelpClasses" underHeading:@"2. Eidos Classes" functions:&EidosInterpreter::BuiltInFunctions() methods:&builtin_methods properties:&builtin_properties];    // constructors are in BuiltInFunctions()
 		[self addTopicsFromRTFFile:@"EidosHelpOperators" underHeading:@"3. Eidos Operators" functions:nullptr methods:nullptr properties:nullptr];
 		[self addTopicsFromRTFFile:@"EidosHelpStatements" underHeading:@"4. Eidos Statements" functions:nullptr methods:nullptr properties:nullptr];
 		[self addTopicsFromRTFFile:@"EidosHelpTypes" underHeading:@"5. Eidos Types" functions:nullptr methods:nullptr properties:nullptr];
@@ -125,7 +128,13 @@
 		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
 		[self checkDocumentationOfFunctions:&EidosInterpreter::BuiltInFunctions()];
 		
-		[self checkDocumentationOfClass:gEidos_UndefinedClassObject];
+		for (EidosClass *class_object : EidosClass::RegisteredClasses(true, false))
+		{
+			const std::string &element_type = class_object->ElementType();
+			
+			if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
+				[self checkDocumentationOfClass:class_object];
+		}
 		
 		[self checkDocumentationForDuplicatePointers];
 	}
@@ -591,43 +600,54 @@
 
 - (void)checkDocumentationOfClass:(EidosClass *)classObject
 {
-	bool classIsUndefinedClass = (classObject == gEidos_UndefinedClassObject);
+	const EidosClass *superclass = classObject->Superclass();
+	
+	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object, so the Dictionary stuff gets checked
+	if (classObject == gEidosDictionaryRetained_Class)
+		superclass = gEidosObject_Class;
+	
 	const std::string &className = classObject->ElementType();
 	NSString *classString = [NSString stringWithUTF8String:className.c_str()];
-	NSString *classKey = (classIsUndefinedClass ? @"Eidos Methods" : [NSString stringWithFormat:@"Class %@", classString]);
+	NSString *classKey = [NSString stringWithFormat:@"Class %@", classString];
 	id classDocumentation = [self findObjectWithKeySuffix:classKey withinDictionary:[self effectiveTopicRoot]];
 	
 	if ([classDocumentation isKindOfClass:[NSDictionary class]])
 	{
 		NSDictionary *classDocDict = (NSDictionary *)classDocumentation;
+		int classDocChildCount = (int)[classDocDict count];
 		NSArray *keys = [classDocDict allKeys];
 		NSString *propertiesKey = [NSString stringWithFormat:@"1. %@ properties", classString];
 		NSString *methodsKey = [NSString stringWithFormat:@"2. %@ methods", classString];
 		
-		if (classIsUndefinedClass || (([classDocDict count] == 2) && [keys containsObject:propertiesKey] && [keys containsObject:methodsKey]))
+		if (((classDocChildCount == 2) || (classDocChildCount == 3)) && [keys containsObject:propertiesKey] && [keys containsObject:methodsKey])    // 3 if there is a constructor function, which we don't presently check
 		{
 			// Check for complete documentation of all properties defined by the class
-			if (!classIsUndefinedClass)
 			{
 				NSDictionary *propertyDict = [classDocDict objectForKey:propertiesKey];
 				NSMutableArray *docProperties = [[propertyDict allKeys] mutableCopy];
 				const std::vector<EidosPropertySignature_CSP> *classProperties = classObject->Properties();
+				const std::vector<EidosPropertySignature_CSP> *superclassProperties = superclass ? superclass->Properties() : nullptr;
 				
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-					std::string &&connector_string = propertySignature->PropertySymbol();
-					NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
-					NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
-					NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
-					NSUInteger docIndex = [docProperties indexOfObject:propertyString];
+					bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
 					
-					if (docIndex != NSNotFound)
+					if (!isSuperclassProperty)
 					{
-						[docProperties removeObjectAtIndex:docIndex];
-					}
-					else
-					{
-						NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+						std::string &&connector_string = propertySignature->PropertySymbol();
+						NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
+						NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
+						NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
+						NSUInteger docIndex = [docProperties indexOfObject:propertyString];
+						
+						if (docIndex != NSNotFound)
+						{
+							[docProperties removeObjectAtIndex:docIndex];
+						}
+						else
+						{
+							NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
+						}
 					}
 				}
 				
@@ -639,16 +659,16 @@
 			
 			// Check for complete documentation of all methods defined by the class
 			{
-				NSDictionary *methodDict = (classIsUndefinedClass ? classDocDict : [classDocDict objectForKey:methodsKey]);
+				NSDictionary *methodDict = [classDocDict objectForKey:methodsKey];
 				NSMutableArray *docMethods = [[methodDict allKeys] mutableCopy];
 				const std::vector<EidosMethodSignature_CSP> *classMethods = classObject->Methods();
-				const std::vector<EidosMethodSignature_CSP> *baseMethods = gEidos_UndefinedClassObject->Methods();
+				const std::vector<EidosMethodSignature_CSP> *superclassMethods = superclass ? superclass->Methods() : nullptr;
 				
 				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
-					bool isBaseMethod = (std::find(baseMethods->begin(), baseMethods->end(), methodSignature) != baseMethods->end());
+					bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
 					
-					if (!isBaseMethod || classIsUndefinedClass)
+					if (!isSuperclassMethod)
 					{
 						std::string &&prefix_string = methodSignature->CallPrefix();
 						NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "

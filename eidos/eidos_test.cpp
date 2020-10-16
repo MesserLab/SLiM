@@ -293,7 +293,7 @@ int RunEidosTests(void)
 	_RunColorManipulationTests();
 	_RunFunctionMiscTests_apply_sapply();
 	_RunFunctionMiscTests(temp_path);
-	_RunMethodTests();
+	_RunClassTests();
 	_RunCodeExampleTests();
 	_RunUserDefinedFunctionTests();
 	_RunVoidEidosValueTests();

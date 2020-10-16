@@ -58,14 +58,6 @@ enum class EidosSyntaxHighlightType
 @end
 
 @protocol EidosTextViewDelegate <NSTextViewDelegate>
-@required
-
-// Supply all method signatures for all methods of all classes; used to show the
-// signature for the currently editing method call in the status bar (note that
-// multiple methods of the same name but with different signatures should be avoided).
-// This is required because without it the status bar's display of methods will not work,
-// but if you really don't wish to implement it you can return nullptr.
-- (const std::vector<EidosMethodSignature_CSP> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
 
 @optional
 

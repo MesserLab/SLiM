@@ -257,17 +257,29 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window
     settings.endGroup();
     
     // Add Eidos topics
+    std::vector<EidosPropertySignature_CSP> builtin_properties = EidosClass::RegisteredClassProperties(true, false);
+    std::vector<EidosMethodSignature_CSP> builtin_methods = EidosClass::RegisteredClassMethods(true, false);
+    
     addTopicsFromRTFFile("EidosHelpFunctions", "Eidos Functions", &EidosInterpreter::BuiltInFunctions(), nullptr, nullptr);
-    addTopicsFromRTFFile("EidosHelpMethods", "Eidos Methods", nullptr, gEidos_UndefinedClassObject->Methods(), nullptr);
+    addTopicsFromRTFFile("EidosHelpClasses", "Eidos Classes", &EidosInterpreter::BuiltInFunctions(), &builtin_methods, &builtin_properties);    // constructors are in BuiltInFunctions()
     addTopicsFromRTFFile("EidosHelpOperators", "Eidos Operators", nullptr, nullptr, nullptr);
     addTopicsFromRTFFile("EidosHelpStatements", "Eidos Statements", nullptr, nullptr, nullptr);
     addTopicsFromRTFFile("EidosHelpTypes", "Eidos Types", nullptr, nullptr, nullptr);
     
     // Check for completeness of the Eidos documentation
     checkDocumentationOfFunctions(&EidosInterpreter::BuiltInFunctions());
-    checkDocumentationOfClass(gEidos_UndefinedClassObject);
+    
+    for (EidosClass *class_object : EidosClass::RegisteredClasses(true, false))
+    {
+        const std::string &element_type = class_object->ElementType();
+        
+        if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
+            checkDocumentationOfClass(class_object);
+    }
     
     // Add SLiM topics
+    std::vector<EidosPropertySignature_CSP> context_properties = EidosClass::RegisteredClassProperties(false, true);
+    std::vector<EidosMethodSignature_CSP> context_methods = EidosClass::RegisteredClassMethods(false, true);
     const std::vector<EidosFunctionSignature_CSP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
     const std::vector<EidosFunctionSignature_CSP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
     std::vector<EidosFunctionSignature_CSP> all_slim_functions;
@@ -276,25 +288,19 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window
     all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
     
     addTopicsFromRTFFile("SLiMHelpFunctions", "SLiM Functions", &all_slim_functions, nullptr, nullptr);
-    addTopicsFromRTFFile("SLiMHelpClasses", "SLiM Classes", nullptr, slimguiAllMethodSignatures(), slimguiAllPropertySignatures());
+    addTopicsFromRTFFile("SLiMHelpClasses", "SLiM Classes", nullptr, &context_methods, &context_properties);
     addTopicsFromRTFFile("SLiMHelpCallbacks", "SLiM Events and Callbacks", nullptr, nullptr, nullptr);
     
     // Check for completeness of the SLiM documentation
     checkDocumentationOfFunctions(&all_slim_functions);
     
-    checkDocumentationOfClass(gSLiM_Chromosome_Class);
-    checkDocumentationOfClass(gSLiM_Genome_Class);
-    checkDocumentationOfClass(gSLiM_GenomicElement_Class);
-    checkDocumentationOfClass(gSLiM_GenomicElementType_Class);
-    checkDocumentationOfClass(gSLiM_Individual_Class);
-    checkDocumentationOfClass(gSLiM_InteractionType_Class);
-    checkDocumentationOfClass(gSLiM_Mutation_Class);
-    checkDocumentationOfClass(gSLiM_MutationType_Class);
-    checkDocumentationOfClass(gSLiM_SLiMEidosBlock_Class);
-    checkDocumentationOfClass(gSLiM_SLiMSim_Class);
-    checkDocumentationOfClass(gSLiM_Subpopulation_Class);
-    checkDocumentationOfClass(gSLiM_Substitution_Class);
-    checkDocumentationOfClass(gSLiM_SLiMgui_Class);
+    for (EidosClass *class_object : EidosClass::RegisteredClasses(false, true))
+    {
+        const std::string &element_type = class_object->ElementType();
+        
+        if (!Eidos_string_hasPrefix(element_type, "_"))		// internal classes are undocumented
+            checkDocumentationOfClass(class_object);
+    }
     
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
@@ -796,116 +802,6 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
     }
 }
 
-const std::vector<EidosPropertySignature_CSP> *QtSLiMHelpWindow::slimguiAllPropertySignatures(void)
-{
-    // This adds the properties belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<EidosPropertySignature_CSP> *propertySignatures = nullptr;
-	
-	if (!propertySignatures)
-	{
-		const std::vector<EidosPropertySignature_CSP> *slimProperties =					SLiMSim::AllPropertySignatures();
-		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
-		
-		propertySignatures = new std::vector<EidosPropertySignature_CSP>(*slimProperties);
-		
-		propertySignatures->insert(propertySignatures->end(), propertiesSLiMgui->begin(), propertiesSLiMgui->end());
-		
-		// *** From here downward this is taken verbatim from SLiMSim::AllPropertySignatures()
-		// FIXME should be split into a separate method
-		
-		// sort by pointer; we want pointer-identical signatures to end up adjacent
-		std::sort(propertySignatures->begin(), propertySignatures->end());
-		
-		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
-		auto unique_end_iter = std::unique(propertySignatures->begin(), propertySignatures->end());
-		propertySignatures->resize(static_cast<size_t>(std::distance(propertySignatures->begin(), unique_end_iter)));
-		
-		// print out any signatures that are identical by name
-		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
-		
-		EidosPropertySignature_CSP previous_sig = nullptr;
-		
-		for (EidosPropertySignature_CSP &sig : *propertySignatures)
-		{
-			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
-			{
-				// We have a name collision.  That is OK as long as the property signatures are identical.
-				if ((sig->property_id_ != previous_sig->property_id_) ||
-					(sig->read_only_ != previous_sig->read_only_) ||
-					(sig->value_mask_ != previous_sig->value_mask_) ||
-					(sig->value_class_ != previous_sig->value_class_))
-				std::cout << "Duplicate property name with different signature: " << sig->property_name_ << std::endl;
-			}
-			
-			previous_sig = sig;
-		}
-	}
-	
-	return propertySignatures;
-}
-
-const std::vector<EidosMethodSignature_CSP> *QtSLiMHelpWindow::slimguiAllMethodSignatures(void)
-{
-    // This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
-	
-	if (!methodSignatures)
-	{
-		const std::vector<EidosMethodSignature_CSP> *slimMethods =					SLiMSim::AllMethodSignatures();
-		const std::vector<EidosMethodSignature_CSP> *methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
-		
-		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*slimMethods);
-		
-		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
-		
-		// *** From here downward this is taken verbatim from SLiMSim::AllMethodSignatures()
-		// FIXME should be split into a separate method
-		
-		// sort by pointer; we want pointer-identical signatures to end up adjacent
-		std::sort(methodSignatures->begin(), methodSignatures->end());
-		
-		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
-		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
-		methodSignatures->resize(static_cast<size_t>(std::distance(methodSignatures->begin(), unique_end_iter)));
-		
-		// print out any signatures that are identical by name
-		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
-		
-		EidosMethodSignature_CSP previous_sig = nullptr;
-		
-		for (EidosMethodSignature_CSP &sig : *methodSignatures)
-		{
-			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
-			{
-				// We have a name collision.  That is OK as long as the method signatures are identical.
-                const EidosMethodSignature *sig1 = sig.get();
-				const EidosMethodSignature *sig2 = previous_sig.get();
-				
-				if ((typeid(*sig1) != typeid(*sig2)) ||
-					(sig->is_class_method != previous_sig->is_class_method) ||
-					(sig->call_name_ != previous_sig->call_name_) ||
-					(sig->return_mask_ != previous_sig->return_mask_) ||
-					(sig->return_class_ != previous_sig->return_class_) ||
-					(sig->arg_masks_ != previous_sig->arg_masks_) ||
-					(sig->arg_names_ != previous_sig->arg_names_) ||
-					(sig->arg_classes_ != previous_sig->arg_classes_) ||
-					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
-					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
-				std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
-			}
-			
-			previous_sig = sig;
-		}
-		
-		// log a full list
-		//std::cout << "----------------" << std::endl;
-		//for (const EidosMethodSignature *sig : *methodSignatures)
-		//	std::cout << sig->call_name_ << " (" << sig << ")" << std::endl;
-	}
-	
-	return methodSignatures;
-}
-
 void QtSLiMHelpWindow::checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_CSP> *functions)
 {
     for (const EidosFunctionSignature_CSP &functionSignature : *functions)
@@ -920,44 +816,52 @@ void QtSLiMHelpWindow::checkDocumentationOfFunctions(const std::vector<EidosFunc
 
 void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 {
-    bool classIsUndefinedClass = (classObject == gEidos_UndefinedClassObject);
-    const QString className = QString::fromStdString(classObject->ElementType());
-	const QString classKey = (classIsUndefinedClass ? "Eidos Methods" : "Class " + className);
-	QtSLiMHelpItem *classDocumentation = findObjectWithKeySuffix(classKey, ui->topicOutlineView->invisibleRootItem());
+    const EidosClass *superclass = classObject->Superclass();
 	
-	if (classDocumentation && (classDocumentation->doc_fragment == nullptr) && (classDocumentation->childCount() > 0))
+	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object, so the Dictionary stuff gets checked
+	if (classObject == gEidosDictionaryRetained_Class)
+		superclass = gEidosObject_Class;
+	
+    const QString className = QString::fromStdString(classObject->ElementType());
+	const QString classKey = "Class " + className;
+	QtSLiMHelpItem *classDocumentation = findObjectWithKeySuffix(classKey, ui->topicOutlineView->invisibleRootItem());
+    int classDocChildCount = classDocumentation ? classDocumentation->childCount() : 0;
+	
+	if (classDocumentation && (classDocumentation->doc_fragment == nullptr) && (classDocChildCount > 0))
 	{
 		QString propertiesKey = /*QString("1. ") +*/ className + QString(" properties");
 		QString methodsKey = /*QString("2. ") +*/ className + QString(" methods");
         QtSLiMHelpItem *classPropertyItem = findObjectForKeyEqualTo(propertiesKey, classDocumentation);
         QtSLiMHelpItem *classMethodsItem = findObjectForKeyEqualTo(methodsKey, classDocumentation);
         
-        if (classIsUndefinedClass && !classMethodsItem)
-            classMethodsItem = classDocumentation;
-        
-		if (classIsUndefinedClass ||
-			((classDocumentation->childCount() == 2) && classPropertyItem && classMethodsItem))
+		if ((classDocChildCount == 2) || (classDocChildCount == 3))    // 3 if there is a constructor function, which we don't presently check
 		{
 			// Check for complete documentation of all properties defined by the class
-			if (!classIsUndefinedClass)
 			{
 				const std::vector<EidosPropertySignature_CSP> *classProperties = classObject->Properties();
+                const std::vector<EidosPropertySignature_CSP> *superclassProperties = superclass ? superclass->Properties() : nullptr;
 				QStringList docProperties;
 				
-                for (int child_index = 0; child_index < classPropertyItem->childCount(); ++child_index)
-                    docProperties.push_back(classPropertyItem->child(child_index)->text(0));
-				
+                if (classPropertyItem)
+                    for (int child_index = 0; child_index < classPropertyItem->childCount(); ++child_index)
+                        docProperties.push_back(classPropertyItem->child(child_index)->text(0));
+                
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-					const std::string &&connector_string = propertySignature->PropertySymbol();
-					const std::string &property_name_string = propertySignature->property_name_;
-					QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
-                    int docIndex = docProperties.indexOf(property_string);
+                    bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
 					
-					if (docIndex != -1)
-						docProperties.removeAt(docIndex);
-					else
-						qDebug() << "*** no documentation found for class " << className << " property " << property_string;
+					if (!isSuperclassProperty)
+					{
+                        const std::string &&connector_string = propertySignature->PropertySymbol();
+                        const std::string &property_name_string = propertySignature->property_name_;
+                        QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
+                        int docIndex = docProperties.indexOf(property_string);
+                        
+                        if (docIndex != -1)
+                            docProperties.removeAt(docIndex);
+                        else
+                            qDebug() << "*** no documentation found for class " << className << " property " << property_string;
+                    }
 				}
 				
 				if (docProperties.size())
@@ -967,17 +871,18 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 			// Check for complete documentation of all methods defined by the class
 			{
 				const std::vector<EidosMethodSignature_CSP> *classMethods = classObject->Methods();
-				const std::vector<EidosMethodSignature_CSP> *baseMethods = gEidos_UndefinedClassObject->Methods();
+				const std::vector<EidosMethodSignature_CSP> *superclassMethods = superclass ? superclass->Methods() : nullptr;
 				QStringList docMethods;
 				
-                for (int child_index = 0; child_index < classMethodsItem->childCount(); ++child_index)
-                    docMethods.push_back(classMethodsItem->child(child_index)->text(0));
-				
+                if (classMethodsItem)
+                    for (int child_index = 0; child_index < classMethodsItem->childCount(); ++child_index)
+                        docMethods.push_back(classMethodsItem->child(child_index)->text(0));
+                
 				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
-					bool isBaseMethod = (std::find(baseMethods->begin(), baseMethods->end(), methodSignature) != baseMethods->end());
+					bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
 					
-					if (!isBaseMethod || classIsUndefinedClass)
+					if (!isSuperclassMethod)
 					{
 						const std::string &&prefix_string = methodSignature->CallPrefix();
 						const std::string &method_name_string = methodSignature->call_name_;

@@ -376,6 +376,7 @@ public:
 	Substitution_Class& operator=(const Substitution_Class&) = delete;	// no copying
 	inline Substitution_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -384,6 +385,11 @@ public:
 
 EidosClass *gSLiM_Substitution_Class = new Substitution_Class();
 
+
+const EidosClass *Substitution_Class::Superclass(void) const
+{
+	return gEidosDictionaryRetained_Class;
+}
 
 const std::string &Substitution_Class::ElementType(void) const
 {

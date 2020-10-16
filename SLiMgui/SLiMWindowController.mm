@@ -3693,108 +3693,6 @@
 #pragma mark -
 #pragma mark EidosConsoleWindowControllerDelegate
 
-- (const std::vector<EidosPropertySignature_CSP> *)slimguiAllPropertySignatures
-{
-	// This adds the properties belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<EidosPropertySignature_CSP> *propertySignatures = nullptr;
-	
-	if (!propertySignatures)
-	{
-		const std::vector<EidosPropertySignature_CSP> *slimProperties =					SLiMSim::AllPropertySignatures();
-		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMgui =				gSLiM_SLiMgui_Class->Properties();
-		
-		propertySignatures = new std::vector<EidosPropertySignature_CSP>(*slimProperties);
-		
-		propertySignatures->insert(propertySignatures->end(), propertiesSLiMgui->begin(), propertiesSLiMgui->end());
-		
-		// *** From here downward this is taken verbatim from SLiMSim::AllPropertySignatures()
-		// FIXME should be split into a separate method
-		
-		// sort by pointer; we want pointer-identical signatures to end up adjacent
-		std::sort(propertySignatures->begin(), propertySignatures->end());
-		
-		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
-		auto unique_end_iter = std::unique(propertySignatures->begin(), propertySignatures->end());
-		propertySignatures->resize(static_cast<size_t>(std::distance(propertySignatures->begin(), unique_end_iter)));
-		
-		// print out any signatures that are identical by name
-		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
-		
-		EidosPropertySignature_CSP previous_sig = nullptr;
-		
-		for (EidosPropertySignature_CSP &sig : *propertySignatures)
-		{
-			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
-			{
-				// We have a name collision.  That is OK as long as the property signatures are identical.
-				if ((sig->property_id_ != previous_sig->property_id_) ||
-					(sig->read_only_ != previous_sig->read_only_) ||
-					(sig->value_mask_ != previous_sig->value_mask_) ||
-					(sig->value_class_ != previous_sig->value_class_))
-				std::cout << "Duplicate property name with different signature: " << sig->property_name_ << std::endl;
-			}
-			
-			previous_sig = sig;
-		}
-	}
-	
-	return propertySignatures;
-}
-	
-- (const std::vector<EidosMethodSignature_CSP> *)slimguiAllMethodSignatures
-{
-	// This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
-	
-	if (!methodSignatures)
-	{
-		const std::vector<EidosMethodSignature_CSP> *slimMethods =					SLiMSim::AllMethodSignatures();
-		const std::vector<EidosMethodSignature_CSP> *methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
-		
-		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*slimMethods);
-		
-		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
-		
-		// *** From here downward this is taken verbatim from SLiMSim::AllMethodSignatures()
-		// FIXME should be split into a separate method
-		
-		// sort by pointer; we want pointer-identical signatures to end up adjacent
-		std::sort(methodSignatures->begin(), methodSignatures->end());
-		
-		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
-		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
-		methodSignatures->resize(static_cast<size_t>(std::distance(methodSignatures->begin(), unique_end_iter)));
-		
-		// print out any signatures that are identical by name
-		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
-		
-		EidosMethodSignature_CSP previous_sig = nullptr;
-		
-		for (EidosMethodSignature_CSP &sig : *methodSignatures)
-		{
-			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
-			{
-				// We have a name collision.  That is OK as long as the method signatures are identical.
-				if ((typeid(*sig) != typeid(*previous_sig)) ||
-					(sig->is_class_method != previous_sig->is_class_method) ||
-					(sig->call_name_ != previous_sig->call_name_) ||
-					(sig->return_mask_ != previous_sig->return_mask_) ||
-					(sig->return_class_ != previous_sig->return_class_) ||
-					(sig->arg_masks_ != previous_sig->arg_masks_) ||
-					(sig->arg_names_ != previous_sig->arg_names_) ||
-					(sig->arg_classes_ != previous_sig->arg_classes_) ||
-					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
-					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
-				std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
-			}
-			
-			previous_sig = sig;
-		}
-	}
-	
-	return methodSignatures;
-}
-
 - (EidosContext *)eidosConsoleWindowControllerEidosContext:(EidosConsoleWindowController *)eidosConsoleController
 {
 	return sim;
@@ -3829,6 +3727,9 @@
 		
 		EidosHelpController *sharedHelp = [EidosHelpController sharedController];
 		
+		std::vector<EidosPropertySignature_CSP> context_properties = EidosClass::RegisteredClassProperties(false, true);
+		std::vector<EidosMethodSignature_CSP> context_methods = EidosClass::RegisteredClassMethods(false, true);
+		
 		const std::vector<EidosFunctionSignature_CSP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
 		const std::vector<EidosFunctionSignature_CSP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
 		std::vector<EidosFunctionSignature_CSP> all_slim_functions;
@@ -3837,26 +3738,19 @@
 		all_slim_functions.insert(all_slim_functions.end(), slim_functions->begin(), slim_functions->end());
 		
 		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpFunctions" underHeading:@"6. SLiM Functions" functions:&all_slim_functions methods:nullptr properties:nullptr];
-		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:[self slimguiAllMethodSignatures] properties:[self slimguiAllPropertySignatures]];
+		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpClasses" underHeading:@"7. SLiM Classes" functions:nullptr methods:&context_methods properties:&context_properties];
 		[sharedHelp addTopicsFromRTFFile:@"SLiMHelpCallbacks" underHeading:@"8. SLiM Events and Callbacks" functions:nullptr methods:nullptr properties:nullptr];
 		
 		// Check for completeness of the help documentation, since it's easy to forget to add new functions/properties/methods to the doc
 		[sharedHelp checkDocumentationOfFunctions:&all_slim_functions];
 		
-		[sharedHelp checkDocumentationOfClass:gSLiM_Chromosome_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_Genome_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_GenomicElement_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_GenomicElementType_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_Individual_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_InteractionType_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_Mutation_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_MutationType_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_SLiMEidosBlock_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_SLiMSim_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_Subpopulation_Class];
-		[sharedHelp checkDocumentationOfClass:gSLiM_Substitution_Class];
-		
-		[sharedHelp checkDocumentationOfClass:gSLiM_SLiMgui_Class];
+		for (EidosClass *class_object : EidosClass::RegisteredClasses(false, true))
+		{
+			const std::string &element_type = class_object->ElementType();
+			
+			if (!Eidos_string_hasPrefix(element_type, "_"))		// internal classes are undocumented
+				[sharedHelp checkDocumentationOfClass:class_object];
+		}
 		
 		[sharedHelp checkDocumentationForDuplicatePointers];
 		
@@ -3893,11 +3787,6 @@
 {
 	SLiMSim::AddZeroGenerationFunctionsToMap(*functionMap);
 	SLiMSim::AddSLiMFunctionsToMap(*functionMap);
-}
-
-- (const std::vector<EidosMethodSignature_CSP> *)eidosConsoleWindowControllerAllMethodSignatures:(EidosConsoleWindowController *)eidosConsoleController
-{
-	return [self slimguiAllMethodSignatures];
 }
 
 - (EidosSyntaxHighlightType)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
@@ -4071,11 +3960,6 @@
 - (void)eidosTextView:(EidosTextView *)eidosTextView addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap
 {
 	[self eidosConsoleWindowController:nullptr addOptionalFunctionsToMap:functionMap];
-}
-
-- (const std::vector<EidosMethodSignature_CSP> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView;
-{
-	return [self eidosConsoleWindowControllerAllMethodSignatures:nullptr];
 }
 
 - (EidosSyntaxHighlightType)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string;

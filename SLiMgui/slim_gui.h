@@ -41,7 +41,7 @@
 extern EidosClass *gSLiM_SLiMgui_Class;
 
 
-class SLiMgui : public EidosObject
+class SLiMgui : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 public:

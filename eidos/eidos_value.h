@@ -922,7 +922,7 @@ public:
 class EidosValue_Object : public EidosValue
 {
 protected:
-	const EidosClass *class_;		// can be gEidos_UndefinedClassObject if the vector is empty
+	const EidosClass *class_;		// can be gEidosObject_Class if the vector is empty
 	bool class_uses_retain_release_;	// cached from UsesRetainRelease() of class_; true until class_ is set, to catch errors
 	
 	EidosValue_Object(bool p_singleton, const EidosClass *p_class);
@@ -945,7 +945,7 @@ public:
 		
 		if (element_class != class_)
 		{
-			if (!p_undeclared_is_error && (class_ == gEidos_UndefinedClassObject))
+			if (!p_undeclared_is_error && (class_ == gEidosObject_Class))
 			{
 				class_ = element_class;
 				class_uses_retain_release_ = class_->UsesRetainRelease();
@@ -993,7 +993,7 @@ public:
 	EidosValue_Object_vector(const EidosValue_Object_vector &p_original);				// can copy-construct
 	EidosValue_Object_vector& operator=(const EidosValue_Object_vector&) = delete;		// no copying
 	
-	explicit inline EidosValue_Object_vector(const EidosClass *p_class) : EidosValue_Object(false, p_class) { }		// can be gEidos_UndefinedClassObject
+	explicit inline EidosValue_Object_vector(const EidosClass *p_class) : EidosValue_Object(false, p_class) { }		// can be gEidosObject_Class
 	explicit EidosValue_Object_vector(const std::vector<EidosObject *> &p_elementvec, const EidosClass *p_class);
 	//explicit EidosValue_Object_vector(EidosObject *p_element1);		// disabled to encourage use of EidosValue_Object_singleton for this case
 	explicit EidosValue_Object_vector(std::initializer_list<EidosObject *> p_init_list, const EidosClass *p_class);

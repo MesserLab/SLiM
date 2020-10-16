@@ -89,13 +89,72 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteInstanceMethod(EidosGlobalString
 {
 	switch (p_method_id)
 	{
-		case gEidosID_getValue:		return ExecuteMethod_getValue(p_method_id, p_arguments, p_interpreter);
-		//case gEidosID_setValue:	return ExecuteMethod_Accelerated_setValue(p_method_id, p_arguments, p_interpreter);
-		default:					return EidosObject::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_addKeysAndValuesFrom:		return ExecuteMethod_addKeysAndValuesFrom(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_clearKeysAndValues:		return ExecuteMethod_clearKeysAndValues(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_getValue:					return ExecuteMethod_getValue(p_method_id, p_arguments, p_interpreter);
+		//case gEidosID_setValue:				return ExecuteMethod_Accelerated_setValue(p_method_id, p_arguments, p_interpreter);
+		default:								return EidosObject::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
-//	*********************	- (*)getValue(string $key)
+//	*********************	- (void)addKeysAndValuesFrom(object$ source)
+//
+EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *source_value = p_arguments[0].get();
+	
+	// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
+	// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
+	// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
+	EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
+	
+	if (!source)
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom): addKeysAndValuesFrom() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+	
+	// Loop through the key-value pairs of source and add them
+	if (source->hash_symbols_)
+	{
+		for (auto const &kv_pair : *source->hash_symbols_)
+		{
+			const std::string &key = kv_pair.first;
+			const EidosValue_SP &value = kv_pair.second;
+			
+			if (!hash_symbols_)
+				hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+			
+			// BCH: Copy values just as EidosSymbolTable does, to prevent them from being modified underneath us etc.
+			// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
+			// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
+			// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
+			if ((value->UseCount() != 1) || value->Invisible())
+			{
+				// Copy case
+				(*hash_symbols_)[key] = value->CopyValues();
+			}
+			else
+			{
+				// No copy needed
+				(*hash_symbols_)[key] = value;
+			}
+		}
+	}
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	- (void)clearKeysAndValues(void)
+//
+EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_clearKeysAndValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (hash_symbols_)
+		hash_symbols_->clear();
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	- (*)getValue(string $ key)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -119,7 +178,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 	}
 }
 
-//	*********************	- (void)setValue(string $key, * value)
+//	*********************	- (void)setValue(string$ key, * value)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -186,9 +245,14 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 EidosClass *gEidosDictionaryUnretained_Class = new EidosDictionaryUnretained_Class();
 
 
+const EidosClass *EidosDictionaryUnretained_Class::Superclass(void) const
+{
+	return gEidosObject_Class;
+}
+
 const std::string &EidosDictionaryUnretained_Class::ElementType(void) const
 {
-	return gEidosStr_EidosDictionaryUnretained;		// Note that this class name is not visible to users at this point; "EidosDictionary" is EidosDictionaryRetained
+	return gEidosStr_DictionaryBase;
 }
 
 const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties(void) const
@@ -215,6 +279,8 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*EidosClass::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S("source", nullptr));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddString_S("key"));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
 		
@@ -292,6 +358,11 @@ const EidosClass *EidosDictionaryRetained::Class(void) const
 
 EidosClass *gEidosDictionaryRetained_Class = new EidosDictionaryRetained_Class();
 
+
+const EidosClass *EidosDictionaryRetained_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &EidosDictionaryRetained_Class::ElementType(void) const
 {

@@ -683,9 +683,6 @@ public:
 	static const std::vector<EidosFunctionSignature_CSP> *SLiMFunctionSignatures(void);		// all non-zero-gen functions
 	static void AddSLiMFunctionsToMap(EidosFunctionMap &p_map);
 	
-	static const std::vector<EidosMethodSignature_CSP> *AllMethodSignatures(void);		// does not depend on sim state, so can be a class method
-	static const std::vector<EidosPropertySignature_CSP> *AllPropertySignatures(void);	// does not depend on sim state, so can be a class method
-	
 	virtual const EidosClass *Class(void) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;

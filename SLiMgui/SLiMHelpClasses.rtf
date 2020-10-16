@@ -1738,7 +1738,9 @@ mutationMatrix => (float)\
 \f3\fs18 getValue()
 \f4\fs20  and 
 \f3\fs18 setValue()
-\f4\fs20  methods, for another way of attaching state to genomic element types.
+\f4\fs20  methods\cf2  (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to genomic element types.
 \f5 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
@@ -1747,27 +1749,7 @@ mutationMatrix => (float)\
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (*)getValue(string$\'a0key)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 GenomicElementType
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96\'a0(void)setMutationFractions(io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
+\f3\i0\fs18 \cf0 \'96\'a0(void)setMutationFractions(io<MutationType>\'a0mutationTypes, numeric\'a0proportions)
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1790,37 +1772,9 @@ mutationMatrix => (float)\
 \f4\fs20 \cf2 Sets a new nucleotide mutation matrix for the genomic element type.  This replaces the mutation matrix originally set by 
 \f3\fs18 initializeGenomicElementType()
 \f4\fs20 .  This method may only be called in nucleotide-based models.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
-\f5 \'a0
-\f3 (void)setValue(string$\'a0key, *\'a0value)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20 .  The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \cf2 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \cf0 This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 GenomicElementType
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.6  Class Individual\
+\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.6  Class Individual\
 \pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\b0 \cf0 5.6.1  
@@ -2033,7 +1987,9 @@ In nonWF models, this flag is
 \f3\fs18 getValue()
 \f4\fs20  and 
 \f3\fs18 setValue()
-\f4\fs20  methods, for another way of attaching state to individuals.\
+\f4\fs20  methods\cf2  (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to individuals.\
 Note that the 
 \f3\fs18 Individual
 \f4\fs20  objects used by SLiM are (conceptually) new with every generation, so the 
@@ -2068,7 +2024,9 @@ Note that the
 \f3\fs18 getValue()
 \f4\fs20  and 
 \f3\fs18 setValue()
-\f4\fs20  methods, for another way of attaching state to individuals.\
+\f4\fs20  methods\cf2  (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to individuals.\
 Note that at present, although many classes in SLiM have an 
 \f3\fs18 integer
 \f4\fs20 -type 
@@ -2237,26 +2195,6 @@ See the description of the
 
 \f3\fs18 \cf0 \'96
 \f5 \'a0
-\f3 (*)getValue(string$\'a0key)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Individual
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
 \f3 (float)relatedness(object<Individual>
 \f5 \'a0
 \f3 individuals)
@@ -2348,35 +2286,6 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
-\f5 \'a0
-\f3 (void)setValue(string$\'a0key, *\'a0value)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f5\fs20 .
-\f4   The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \cf2 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \cf0 This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Individual
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
 \f5 \'a0
 \f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
 \f5 \
@@ -2519,7 +2428,9 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \f3\fs18 getValue()
 \f4\fs20  and 
 \f3\fs18 setValue()
-\f4\fs20  methods, for another way of attaching state to interaction types.
+\f4\fs20  methods\cf2  (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to interaction types.
 \f5 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
@@ -2692,26 +2603,6 @@ You must explicitly call
 \f4\fs20  event (and an interaction that affects both may need to be evaluated at both times).\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If an interaction is never evaluated for a given subpopulation, it is guaranteed that there will be essentially no memory or computational overhead associated with the interaction for that subpopulation.  Furthermore, attempting to query an interaction for an individual in a subpopulation that has not been evaluated is guaranteed to raise an error.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (*)getValue(string$\'a0key)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 InteractionType
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2907,34 +2798,6 @@ Note that this method does not use interaction eligibility as a criterion; it wi
 \f3\fs18 "f"
 \f4\fs20 , since no distance values are available in that case.\
 The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated for a given generation of individuals.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (void)setValue(string$\'a0key, *\'a0value)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20 .  The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \cf2 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \cf0 This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 InteractionType
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f5 \
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3190,27 +3053,7 @@ If you don\'92t care which subpopulation a mutation originated in, the
 \f1\fs22  methods\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (*)getValue(string$\'a0key)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Mutation
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)
+\f3\i0\fs18 \cf0 \'96\'a0(void)setMutationType(io<MutationType>$\'a0mutType)
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3249,34 +3092,6 @@ This is normally a constant in simulations, so be sure you know what you are doi
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (void)setValue(string$\'a0key, *\'a0value)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20 .  The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \cf2 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \cf0 This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Mutation
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.9  Class MutationType\
@@ -3667,7 +3482,9 @@ In nucleotide-based models, the stacking policy for nucleotide-based mutation ty
 \f3\fs18 getValue()
 \f4\fs20  and 
 \f3\fs18 setValue()
-\f4\fs20  methods, for another way of attaching state to mutation types.
+\f4\fs20  methods\cf2  (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to mutation types.
 \f5 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
@@ -3685,29 +3502,9 @@ In nucleotide-based models, the stacking policy for nucleotide-based mutation ty
 \f4\fs20  selection coefficients using the currently defined distribution of fitness effects (DFE) for the target mutation type.  If the DFE is type 
 \f3\fs18 "s"
 \f4\fs20 , this method will result in synchronous execution of the DFE\'92s script.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
-\f5 \'a0
-\f3 (*)getValue(string$\'a0key)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 MutationType
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3750,34 +3547,6 @@ In nucleotide-based models, the stacking policy for nucleotide-based mutation ty
 \f3\fs18 string$
 \f4\fs22  Eidos script parameter.
 \fs20   The DFE for a mutation type is normally a constant in simulations, so be sure you know what you are doing.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (void)setValue(string$\'a0key, *\'a0value)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20 .  The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \cf2 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \cf0 This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 MutationType
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f5 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
@@ -4163,7 +3932,9 @@ The spatial periodicity of the simulation, as specified in
 \f3\fs18 getValue()
 \f4\fs20  and 
 \f3\fs18 setValue()
-\f4\fs20  methods, for another way of attaching state to the simulation.
+\f4\fs20  methods\cf2  (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to the simulation.
 \f5 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
@@ -4262,26 +4033,6 @@ The spatial periodicity of the simulation, as specified in
 \f4\fs20  identifiers) will be scheduled for deregistration.  The deregistered blocks remain valid, and may even still be executed in the current stage of the current generation; the blocks are not actually deregistered and deallocated until sometime after the currently executing script block has completed.  To immediately prevent a script block from executing, even when it is scheduled to execute in the current stage of the current generation, use the 
 \f3\fs18 active
 \f4\fs20  property of the script block.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (*)getValue(string$\'a0key)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 SLiMSim
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -5157,35 +4908,6 @@ Note that new script blocks can also be created and scheduled using the
 \f3\fs18 rescheduleScriptBlock()
 \f4\fs20  does essentially that internally.
 \f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (void)setValue(string$\'a0key, *\'a0value)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f5\fs20 .
-\f4   The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \cf2 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \cf0 This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 SLiMSim
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)simulationFinished(void)\
@@ -5518,7 +5240,9 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 getValue()
 \f4\fs20  and 
 \f3\fs18 setValue()
-\f4\fs20  methods, for another way of attaching state to subpopulations.\
+\f4\fs20  methods\cf2  (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to subpopulations.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 5.13.2  
@@ -6116,29 +5840,9 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps with color-mapping parameters defined, SLiMgui will choose just one for display; it will prefer an 
 \f3\fs18 "xy"
 \f4\fs20  map if one is available, but beyond that heuristic its choice will be arbitrary.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
-\f5 \'a0
-\f3 (*)getValue(string$\'a0key)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Subpopulation
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0filterMonomorphic\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -6616,35 +6320,6 @@ Set the spatial boundaries of the subpopulation to
 \f4\fs20 \cf0 Set the size of this subpopulation to 
 \f3\fs18 size
 \f4\fs20  individuals (see the SLiM manual for further details).  This will take effect when children are next generated; it does not change the current subpopulation state.  Setting a subpopulation to a size of 0 does have some immediate effects that serve to disconnect it from the simulation: the subpopulation is removed from the list of active subpopulations, the subpopulation is removed as a source of migration for all other subpopulations, and the symbol representing the subpopulation is undefined.  In this case, the subpopulation itself remains unchanged until children are next generated (at which point it is deallocated), but it is no longer part of the simulation and should not be used.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (void)setValue(string$\'a0key, *\'a0value)
-\f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f5\fs20 .
-\f4   The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \cf2 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \cf0 This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Subpopulation
-\f4\fs20 , 
-\f3\fs18 EidosDictionary
-\f4\fs20 , although that fact is not presently visible in Eidos since superclasses are not introspectable.
-\f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
@@ -6915,51 +6590,7 @@ nucleotide <\'96> (string$)\
 \f1\i\fs22 \cf0 5.14.2  
 \f2\fs18 Substitution
 \f1\fs22  methods\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(*)getValue(string$\'a0key)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Returns the value previously set for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20  using 
-\f3\fs18 setValue()
-\f4\fs20 , or 
-\f3\fs18 NULL
-\f4\fs20  if no value has been set.  This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Substitution
-\f4\fs20 , 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 EidosDictionary
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-, although that fact is not presently visible in Eidos since superclasses are not introspectable.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, *\'a0value)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Sets a value for the dictionary entry identifier 
-\f3\fs18 key
-\f4\fs20 .  The value, which may be of any type, can be fetched later using 
-\f3\fs18 getValue()
-\f4\fs20 .  \kerning1\expnd0\expndtw0 If 
-\f3\fs18 value
-\f4\fs20  is of type 
-\f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Mutation
-\f4\fs20  and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  \expnd0\expndtw0\kerning0
-This dictionary-style functionality is actually provided by the superclass of 
-\f3\fs18 Substitution
-\f4\fs20 , 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 EidosDictionary
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-, although that fact is not presently visible in Eidos since superclasses are not introspectable.\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f5\fs22 \cf0 \kerning1\expnd0\expndtw0 \
+\f5\i0 \cf0 \
 }

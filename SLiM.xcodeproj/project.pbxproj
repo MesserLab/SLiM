@@ -73,8 +73,8 @@
 		9825566C1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */; };
 		9825566D1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */; };
 		9825566F1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */; };
-		982556A01BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */; };
-		982556A11BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */; };
+		982556A01BA5DFEB0054CB3F /* EidosHelpClasses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpClasses.rtf */; };
+		982556A11BA5DFEB0054CB3F /* EidosHelpClasses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9825569F1BA5DFEB0054CB3F /* EidosHelpClasses.rtf */; };
 		982556A31BA5F0810054CB3F /* SLiMHelpClasses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */; };
 		982556AC1BA8E77C0054CB3F /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982556AB1BA8E77C0054CB3F /* main.cpp */; };
 		982556B01BA8EF720054CB3F /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
@@ -787,7 +787,7 @@
 		982556681BA451D00054CB3F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/EidosHelpWindow.xib; sourceTree = "<group>"; };
 		9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpFunctions.rtf; sourceTree = "<group>"; };
 		9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = SLiMHelpFunctions.rtf; sourceTree = "<group>"; };
-		9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpMethods.rtf; sourceTree = "<group>"; };
+		9825569F1BA5DFEB0054CB3F /* EidosHelpClasses.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpClasses.rtf; sourceTree = "<group>"; };
 		982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = SLiMHelpClasses.rtf; sourceTree = "<group>"; };
 		982556A91BA8E77B0054CB3F /* eidos */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = eidos; sourceTree = BUILT_PRODUCTS_DIR; };
 		982556AB1BA8E77C0054CB3F /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -1544,12 +1544,12 @@
 				9857249A1AD08A810047C223 /* eidos_interpreter.cpp */,
 				985724A01AD34B740047C223 /* eidos_functions.h */,
 				9857249F1AD34B740047C223 /* eidos_functions.cpp */,
+				98ACDCA2253522D40038703F /* eidos_class_Object.h */,
+				98ACDC9C253522B80038703F /* eidos_class_Object.cpp */,
 				98ACDC9B2534CA120038703F /* eidos_class_Dictionary.h */,
 				989A5BE82525304100E7192D /* eidos_class_Dictionary.cpp */,
 				9823568E252FE62F0096A745 /* eidos_class_Image.h */,
 				98235688252FE61A0096A745 /* eidos_class_Image.cpp */,
-				98ACDCA2253522D40038703F /* eidos_class_Object.h */,
-				98ACDC9C253522B80038703F /* eidos_class_Object.cpp */,
 				989790D91AF3D0E100C6B14C /* eidos_class_TestElement.h */,
 				989790D81AF3D0E100C6B14C /* eidos_class_TestElement.cpp */,
 				985724A81AD4551C0047C223 /* eidos_test.h */,
@@ -1609,7 +1609,7 @@
 				98A4EC921B67C1CD00CD92FD /* EidosConsoleWindow.xib */,
 				982556671BA451D00054CB3F /* EidosHelpWindow.xib */,
 				9825566B1BA477D60054CB3F /* EidosHelpFunctions.rtf */,
-				9825569F1BA5DFEB0054CB3F /* EidosHelpMethods.rtf */,
+				9825569F1BA5DFEB0054CB3F /* EidosHelpClasses.rtf */,
 				9892282A1BAE279700429674 /* EidosHelpOperators.rtf */,
 				9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */,
 				989228301BAF496C00429674 /* EidosHelpStatements.rtf */,
@@ -2178,7 +2178,7 @@
 				9825566D1BA477D60054CB3F /* EidosHelpFunctions.rtf in Resources */,
 				9892282F1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */,
 				98D524631F2E6AFB005AD9A6 /* prettyprint_H.pdf in Resources */,
-				982556A11BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */,
+				982556A11BA5DFEB0054CB3F /* EidosHelpClasses.rtf in Resources */,
 				98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */,
 				9825566A1BA451D00054CB3F /* EidosHelpWindow.xib in Resources */,
 				985724B91AD478630047C223 /* Images.xcassets in Resources */,
@@ -2274,7 +2274,7 @@
 				98453F571A76004300C058CB /* open_type_drawer.pdf in Resources */,
 				98DE4C1B1B713F1A004FDF5F /* ScriptMod_RemoveSubpop.xib in Resources */,
 				980613B01FAFF16000D379BA /* SLiMHaplotypeGraphWindow.xib in Resources */,
-				982556A01BA5DFEB0054CB3F /* EidosHelpMethods.rtf in Resources */,
+				982556A01BA5DFEB0054CB3F /* EidosHelpClasses.rtf in Resources */,
 				98F65D5A1DF39F9D0058BD29 /* Tip_END.rtfd in Resources */,
 				987AD87F1B2CBE550035D6C8 /* show_tokens.pdf in Resources */,
 				98453F621A76041200C058CB /* edit_submenu_H.pdf in Resources */,

@@ -1523,147 +1523,6 @@ void SLiMSim::AddSLiMFunctionsToMap(EidosFunctionMap &p_map)
 	}
 }
 
-const std::vector<EidosMethodSignature_CSP> *SLiMSim::AllMethodSignatures(void)
-{
-	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
-	
-	if (!methodSignatures)
-	{
-		const std::vector<EidosMethodSignature_CSP> *baseMethods =					gEidos_UndefinedClassObject->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsChromosome =			gSLiM_Chromosome_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsGenome =				gSLiM_Genome_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsGenomicElement =		gSLiM_GenomicElement_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsGenomicElementType =	gSLiM_GenomicElementType_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsIndividual =			gSLiM_Individual_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsInteractionType =		gSLiM_InteractionType_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsMutation =				gSLiM_Mutation_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsMutationType =			gSLiM_MutationType_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsSLiMSim =				gSLiM_SLiMSim_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsSubpopulation =			gSLiM_Subpopulation_Class->Methods();
-		const std::vector<EidosMethodSignature_CSP> *methodsSubstitution =			gSLiM_Substitution_Class->Methods();
-		
-		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*baseMethods);
-		
-		methodSignatures->insert(methodSignatures->end(), methodsChromosome->begin(), methodsChromosome->end());
-		methodSignatures->insert(methodSignatures->end(), methodsGenome->begin(), methodsGenome->end());
-		methodSignatures->insert(methodSignatures->end(), methodsGenomicElement->begin(), methodsGenomicElement->end());
-		methodSignatures->insert(methodSignatures->end(), methodsGenomicElementType->begin(), methodsGenomicElementType->end());
-		methodSignatures->insert(methodSignatures->end(), methodsIndividual->begin(), methodsIndividual->end());
-		methodSignatures->insert(methodSignatures->end(), methodsInteractionType->begin(), methodsInteractionType->end());
-		methodSignatures->insert(methodSignatures->end(), methodsMutation->begin(), methodsMutation->end());
-		methodSignatures->insert(methodSignatures->end(), methodsMutationType->begin(), methodsMutationType->end());
-		methodSignatures->insert(methodSignatures->end(), methodsSLiMEidosBlock->begin(), methodsSLiMEidosBlock->end());
-		methodSignatures->insert(methodSignatures->end(), methodsSLiMSim->begin(), methodsSLiMSim->end());
-		methodSignatures->insert(methodSignatures->end(), methodsSubpopulation->begin(), methodsSubpopulation->end());
-		methodSignatures->insert(methodSignatures->end(), methodsSubstitution->begin(), methodsSubstitution->end());
-		
-		// sort by pointer; we want pointer-identical signatures to end up adjacent
-		std::sort(methodSignatures->begin(), methodSignatures->end());
-		
-		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
-		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
-		methodSignatures->resize(std::distance(methodSignatures->begin(), unique_end_iter));
-		
-		// print out any signatures that are identical by name
-		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
-		
-		EidosMethodSignature_CSP previous_sig = nullptr;
-		
-		for (const EidosMethodSignature_CSP &sig : *methodSignatures)
-		{
-			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
-			{
-				// We have a name collision.  That is OK as long as the method signatures are identical.
-				const EidosMethodSignature *sig1 = sig.get();
-				const EidosMethodSignature *sig2 = previous_sig.get();
-				
-				if ((typeid(*sig1) != typeid(*sig2)) ||
-					(sig->is_class_method != previous_sig->is_class_method) ||
-					(sig->call_name_ != previous_sig->call_name_) ||
-					(sig->return_mask_ != previous_sig->return_mask_) ||
-					(sig->return_class_ != previous_sig->return_class_) ||
-					(sig->arg_masks_ != previous_sig->arg_masks_) ||
-					(sig->arg_names_ != previous_sig->arg_names_) ||
-					(sig->arg_classes_ != previous_sig->arg_classes_) ||
-					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
-					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
-					std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
-			}
-			
-			previous_sig = sig;
-		}
-	}
-	
-	return methodSignatures;
-}
-
-const std::vector<EidosPropertySignature_CSP> *SLiMSim::AllPropertySignatures(void)
-{
-	static std::vector<EidosPropertySignature_CSP> *propertySignatures = nullptr;
-	
-	if (!propertySignatures)
-	{
-		const std::vector<EidosPropertySignature_CSP> *baseProperties =					gEidos_UndefinedClassObject->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesChromosome =			gSLiM_Chromosome_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesGenome =				gSLiM_Genome_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesGenomicElement =		gSLiM_GenomicElement_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesGenomicElementType =	gSLiM_GenomicElementType_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesIndividual =			gSLiM_Individual_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesInteractionType =		gSLiM_InteractionType_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesMutation =				gSLiM_Mutation_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesMutationType =			gSLiM_MutationType_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMEidosBlock =		gSLiM_SLiMEidosBlock_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesSLiMSim =				gSLiM_SLiMSim_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesSubpopulation =		gSLiM_Subpopulation_Class->Properties();
-		const std::vector<EidosPropertySignature_CSP> *propertiesSubstitution =			gSLiM_Substitution_Class->Properties();
-		
-		propertySignatures = new std::vector<EidosPropertySignature_CSP>(*baseProperties);
-		
-		propertySignatures->insert(propertySignatures->end(), propertiesChromosome->begin(), propertiesChromosome->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesGenome->begin(), propertiesGenome->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElement->begin(), propertiesGenomicElement->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesGenomicElementType->begin(), propertiesGenomicElementType->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesIndividual->begin(), propertiesIndividual->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesInteractionType->begin(), propertiesInteractionType->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesMutation->begin(), propertiesMutation->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesMutationType->begin(), propertiesMutationType->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesSLiMEidosBlock->begin(), propertiesSLiMEidosBlock->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesSLiMSim->begin(), propertiesSLiMSim->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesSubpopulation->begin(), propertiesSubpopulation->end());
-		propertySignatures->insert(propertySignatures->end(), propertiesSubstitution->begin(), propertiesSubstitution->end());
-		
-		// sort by pointer; we want pointer-identical signatures to end up adjacent
-		std::sort(propertySignatures->begin(), propertySignatures->end());
-		
-		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
-		auto unique_end_iter = std::unique(propertySignatures->begin(), propertySignatures->end());
-		propertySignatures->resize(std::distance(propertySignatures->begin(), unique_end_iter));
-		
-		// print out any signatures that are identical by name
-		std::sort(propertySignatures->begin(), propertySignatures->end(), CompareEidosPropertySignatures);
-		
-		EidosPropertySignature_CSP previous_sig = nullptr;
-		
-		for (const EidosPropertySignature_CSP &sig : *propertySignatures)
-		{
-			if (previous_sig && (sig->property_name_.compare(previous_sig->property_name_) == 0))
-			{
-				// We have a name collision.  That is OK as long as the property signatures are identical.
-				if ((sig->property_id_ != previous_sig->property_id_) ||
-					(sig->read_only_ != previous_sig->read_only_) ||
-					(sig->value_mask_ != previous_sig->value_mask_) ||
-					(sig->value_class_ != previous_sig->value_class_))
-					std::cout << "Duplicate property name with different signature: " << sig->property_name_ << std::endl;
-			}
-			
-			previous_sig = sig;
-		}
-	}
-	
-	return propertySignatures;
-}
-
 EidosSymbolTable *SLiMSim::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols)
 {
 	// Since we keep our own symbol table long-term, this function does not actually re-derive a new table, but just returns the cached table
@@ -3781,6 +3640,7 @@ public:
 	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
 	inline SLiMSim_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -3789,6 +3649,11 @@ public:
 
 EidosClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
 
+
+const EidosClass *SLiMSim_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &SLiMSim_Class::ElementType(void) const
 {

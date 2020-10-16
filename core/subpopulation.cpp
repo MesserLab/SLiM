@@ -6753,6 +6753,7 @@ public:
 	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
 	inline Subpopulation_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -6761,6 +6762,11 @@ public:
 
 EidosClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
 
+
+const EidosClass *Subpopulation_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &Subpopulation_Class::ElementType(void) const
 {

@@ -1994,6 +1994,7 @@ public:
 	Genome_Class& operator=(const Genome_Class&) = delete;	// no copying
 	inline Genome_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -2010,6 +2011,11 @@ public:
 
 EidosClass *gSLiM_Genome_Class = new Genome_Class();
 
+
+const EidosClass *Genome_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &Genome_Class::ElementType(void) const
 {

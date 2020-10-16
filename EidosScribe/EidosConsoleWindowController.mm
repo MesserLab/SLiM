@@ -949,14 +949,6 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		[delegate eidosConsoleWindowController:self addOptionalFunctionsToMap:functionMap];
 }
 
-- (const std::vector<EidosMethodSignature_CSP> *)eidosTextViewAllMethodSignatures:(EidosTextView *)eidosTextView
-{
-	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerAllMethodSignatures:)])
-		return [delegate eidosConsoleWindowControllerAllMethodSignatures:self];
-	else
-		return nullptr;
-}
-
 - (EidosSyntaxHighlightType)eidosTextView:(EidosTextView *)eidosTextView tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowController:tokenStringIsSpecialIdentifier:)])

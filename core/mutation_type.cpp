@@ -744,6 +744,7 @@ public:
 	MutationType_Class& operator=(const MutationType_Class&) = delete;	// no copying
 	inline MutationType_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -752,6 +753,11 @@ public:
 
 EidosClass *gSLiM_MutationType_Class = new MutationType_Class();
 
+
+const EidosClass *MutationType_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &MutationType_Class::ElementType(void) const
 {

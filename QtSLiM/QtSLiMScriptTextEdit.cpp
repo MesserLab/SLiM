@@ -632,77 +632,14 @@ EidosFunctionSignature_CSP QtSLiMTextEdit::signatureForFunctionName(QString call
 	return nullptr;
 }
 
-const std::vector<EidosMethodSignature_CSP> *QtSLiMTextEdit::slimguiAllMethodSignatures(void)
-{
-	// This adds the methods belonging to the SLiMgui class to those returned by SLiMSim (which does not know about SLiMgui)
-	static std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
-	
-	if (!methodSignatures)
-	{
-		const std::vector<EidosMethodSignature_CSP> *slimMethods =					SLiMSim::AllMethodSignatures();
-		const std::vector<EidosMethodSignature_CSP> *methodsSLiMgui =				gSLiM_SLiMgui_Class->Methods();
-		
-		methodSignatures = new std::vector<EidosMethodSignature_CSP>(*slimMethods);
-		
-		methodSignatures->insert(methodSignatures->end(), methodsSLiMgui->begin(), methodsSLiMgui->end());
-		
-		// *** From here downward this is taken verbatim from SLiMSim::AllMethodSignatures()
-		// FIXME should be split into a separate method
-		
-		// sort by pointer; we want pointer-identical signatures to end up adjacent
-		std::sort(methodSignatures->begin(), methodSignatures->end());
-		
-		// then unique by pointer value to get a list of unique signatures (which may not be unique by name)
-		auto unique_end_iter = std::unique(methodSignatures->begin(), methodSignatures->end());
-		methodSignatures->resize(static_cast<size_t>(std::distance(methodSignatures->begin(), unique_end_iter)));
-		
-		// print out any signatures that are identical by name
-		std::sort(methodSignatures->begin(), methodSignatures->end(), CompareEidosCallSignatures);
-		
-		EidosMethodSignature_CSP previous_sig = nullptr;
-		
-		for (EidosMethodSignature_CSP &sig : *methodSignatures)
-		{
-			if (previous_sig && (sig->call_name_.compare(previous_sig->call_name_) == 0))
-			{
-				// We have a name collision.  That is OK as long as the method signatures are identical.
-                const EidosMethodSignature *sig1 = sig.get();
-                const EidosMethodSignature *sig2 = previous_sig.get();
-                
-				if ((typeid(*sig1) != typeid(*sig2)) ||
-					(sig->is_class_method != previous_sig->is_class_method) ||
-					(sig->call_name_ != previous_sig->call_name_) ||
-					(sig->return_mask_ != previous_sig->return_mask_) ||
-					(sig->return_class_ != previous_sig->return_class_) ||
-					(sig->arg_masks_ != previous_sig->arg_masks_) ||
-					(sig->arg_names_ != previous_sig->arg_names_) ||
-					(sig->arg_classes_ != previous_sig->arg_classes_) ||
-					(sig->has_optional_args_ != previous_sig->has_optional_args_) ||
-					(sig->has_ellipsis_ != previous_sig->has_ellipsis_))
-				std::cout << "Duplicate method name with a different signature: " << sig->call_name_ << std::endl;
-			}
-			
-			previous_sig = sig;
-		}
-	}
-	
-	return methodSignatures;
-}
-
 EidosMethodSignature_CSP QtSLiMTextEdit::signatureForMethodName(QString callName)
 {
 	std::string call_name = callName.toStdString();
 	
-	// Look for a method in the global method registry last; for this to work, the Context must register all methods with Eidos.
-	// This case is much simpler than the function case, because the user can't declare their own methods.
-	const std::vector<EidosMethodSignature_CSP> *methodSignatures = nullptr;
+    // Look for a matching method signature for the call name.
+	const std::vector<EidosMethodSignature_CSP> methodSignatures = EidosClass::RegisteredClassMethods(true, true);
 	
-    methodSignatures = slimguiAllMethodSignatures();
-    
-	if (!methodSignatures)
-		methodSignatures = gEidos_UndefinedClassObject->Methods();
-	
-	for (const EidosMethodSignature_CSP &sig : *methodSignatures)
+	for (const EidosMethodSignature_CSP &sig : methodSignatures)
 	{
 		const std::string &sig_call_name = sig->call_name_;
 		

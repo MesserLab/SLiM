@@ -450,6 +450,7 @@ public:
 	GenomicElementType_Class& operator=(const GenomicElementType_Class&) = delete;	// no copying
 	inline GenomicElementType_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -458,6 +459,11 @@ public:
 
 EidosClass *gSLiM_GenomicElementType_Class = new GenomicElementType_Class();
 
+
+const EidosClass *GenomicElementType_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &GenomicElementType_Class::ElementType(void) const
 {

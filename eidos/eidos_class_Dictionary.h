@@ -31,7 +31,7 @@
 
 extern EidosClass *gEidosDictionaryUnretained_Class;
 
-
+// This class is known in Eidos as "DictionaryBase"
 class EidosDictionaryUnretained : public EidosObject
 {
 private:
@@ -66,6 +66,8 @@ public:
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
+	EidosValue_SP ExecuteMethod_addKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_clearKeysAndValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	static EidosValue_SP ExecuteMethod_Accelerated_setValue(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
@@ -78,6 +80,7 @@ public:
 	EidosDictionaryUnretained_Class& operator=(const EidosDictionaryUnretained_Class&) = delete;	// no copying
 	inline EidosDictionaryUnretained_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -91,8 +94,8 @@ public:
 
 extern EidosClass *gEidosDictionaryRetained_Class;
 
-
-// A base class for EidosObject subclasses that are under retain/release.  These must inherit from EidosDictionaryUnretained.
+// A base class for EidosObject subclasses that are under retain/release.
+// This class is known in Eidos as "Dictionary"
 class EidosDictionaryRetained : public EidosDictionaryUnretained
 {
 private:
@@ -130,6 +133,7 @@ public:
 	EidosDictionaryRetained_Class& operator=(const EidosDictionaryRetained_Class&) = delete;	// no copying
 	inline EidosDictionaryRetained_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;

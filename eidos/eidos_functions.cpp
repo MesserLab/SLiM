@@ -194,7 +194,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_float,		Eidos_ExecuteFunction_float,		kEidosValueMaskFloat))->AddInt_S("length"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_integer,	Eidos_ExecuteFunction_integer,		kEidosValueMaskInt))->AddInt_S("length")->AddInt_OS("fill1", gStaticEidosValue_Integer0)->AddInt_OS("fill2", gStaticEidosValue_Integer1)->AddInt_ON("fill2Indices", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_logical,	Eidos_ExecuteFunction_logical,		kEidosValueMaskLogical))->AddInt_S("length"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_object,	Eidos_ExecuteFunction_object,		kEidosValueMaskObject, gEidos_UndefinedClassObject)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_object,	Eidos_ExecuteFunction_object,		kEidosValueMaskObject, gEidosObject_Class)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rep",				Eidos_ExecuteFunction_rep,			kEidosValueMaskAny))->AddAny("x")->AddInt_S("count"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("repEach",			Eidos_ExecuteFunction_repEach,		kEidosValueMaskAny))->AddAny("x")->AddInt("count"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sample",			Eidos_ExecuteFunction_sample,		kEidosValueMaskAny))->AddAny("x")->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddNumeric_ON(gEidosStr_weights, gStaticEidosValueNULL));
@@ -356,7 +356,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		//	object instantiation – delegated to EidosClass subclasses
 		//
-		for (EidosClass *eidos_class : EidosClass::RegisteredClasses())
+		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 		{
 			const std::vector<EidosFunctionSignature_CSP> *class_functions = eidos_class->Functions();
 			
@@ -510,7 +510,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 	
 	EidosValueType highest_type = EidosValueType::kValueVOID;	// start at the lowest
 	bool has_object_type = false, has_nonobject_type = false, all_invisible = true;
-	const EidosClass *element_class = gEidos_UndefinedClassObject;
+	const EidosClass *element_class = gEidosObject_Class;
 	int reserve_size = 0;
 	
 	// First figure out our return type, which is the highest-promotion type among all our arguments
@@ -538,9 +538,9 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 		{
 			const EidosClass *this_element_class = ((EidosValue_Object *)arg_value)->Class();
 			
-			if (this_element_class != gEidos_UndefinedClassObject)	// undefined objects do not conflict with other object types
+			if (this_element_class != gEidosObject_Class)	// undefined objects do not conflict with other object types
 			{
-				if (element_class == gEidos_UndefinedClassObject)
+				if (element_class == gEidosObject_Class)
 				{
 					// we haven't seen a (defined) object type yet, so remember what type we're dealing with
 					element_class = this_element_class;
@@ -1961,14 +1961,14 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		class0 = ((EidosValue_Object *)x_value)->Class();
 		class1 = ((EidosValue_Object *)y_value)->Class();
 		
-		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+		if ((class0 != class1) && (class0 != gEidosObject_Class) && (class1 != gEidosObject_Class))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setDifference): function setDifference() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if (x_count == 0)
 	{
 		// If x is empty, the difference is the empty set
-		if (class1 && (class1 != gEidos_UndefinedClassObject))
+		if (class1 && (class1 != gEidosObject_Class))
 			result_SP = y_value->NewMatchingType();
 		else
 			result_SP = x_value->NewMatchingType();
@@ -2371,14 +2371,14 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 		class0 = ((EidosValue_Object *)x_value)->Class();
 		class1 = ((EidosValue_Object *)y_value)->Class();
 		
-		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+		if ((class0 != class1) && (class0 != gEidosObject_Class) && (class1 != gEidosObject_Class))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setIntersection): function setIntersection() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if ((x_count == 0) || (y_count == 0))
 	{
 		// If either argument is empty, the intersection is the empty set
-		if (class1 && (class1 != gEidos_UndefinedClassObject))
+		if (class1 && (class1 != gEidosObject_Class))
 			result_SP = y_value->NewMatchingType();
 		else
 			result_SP = x_value->NewMatchingType();
@@ -2722,13 +2722,13 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		class0 = ((EidosValue_Object *)x_value)->Class();
 		class1 = ((EidosValue_Object *)y_value)->Class();
 		
-		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+		if ((class0 != class1) && (class0 != gEidosObject_Class) && (class1 != gEidosObject_Class))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setSymmetricDifference): function setSymmetricDifference() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if (x_count + y_count == 0)
 	{
-		if (class1 && (class1 != gEidos_UndefinedClassObject))
+		if (class1 && (class1 != gEidosObject_Class))
 			result_SP = y_value->NewMatchingType();
 		else
 			result_SP = x_value->NewMatchingType();
@@ -3192,13 +3192,13 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 		class0 = ((EidosValue_Object *)x_value)->Class();
 		class1 = ((EidosValue_Object *)y_value)->Class();
 		
-		if ((class0 != class1) && (class0 != gEidos_UndefinedClassObject) && (class1 != gEidos_UndefinedClassObject))
+		if ((class0 != class1) && (class0 != gEidosObject_Class) && (class1 != gEidosObject_Class))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setUnion): function setUnion() requires that both operands of object type have the same class (or undefined class)." << EidosTerminate(nullptr);
 	}
 	
 	if (x_count + y_count == 0)
 	{
-		if (class1 && (class1 != gEidos_UndefinedClassObject))
+		if (class1 && (class1 != gEidosObject_Class))
 			result_SP = y_value->NewMatchingType();
 		else
 			result_SP = x_value->NewMatchingType();
@@ -6465,7 +6465,7 @@ EidosValue_SP Eidos_ExecuteFunction_logical(const std::vector<EidosValue_SP> &p_
 	return result_SP;
 }
 
-//	(object<undefined>)object(void)
+//	(object<Object>)object(void)
 EidosValue_SP Eidos_ExecuteFunction_object(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -9372,7 +9372,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_ar
 	
 	// First check the type and class of the result; NULL may be mixed in, but otherwise all arguments must be the same type and class
 	EidosValueType result_type = EidosValueType::kValueNULL;
-	const EidosClass *result_class = gEidos_UndefinedClassObject;
+	const EidosClass *result_class = gEidosObject_Class;
 	
 	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
@@ -9391,9 +9391,9 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Object *arg_object = (EidosValue_Object *)arg;
 			const EidosClass *arg_class = arg_object->Class();
 			
-			if (arg_class == gEidos_UndefinedClassObject)
+			if (arg_class == gEidosObject_Class)
 				continue;
-			else if (result_class == gEidos_UndefinedClassObject)
+			else if (result_class == gEidosObject_Class)
 				result_class = arg_class;
 			else if (arg_class != result_class)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cbind): function cbind() requires that all object arguments be of the same class." << EidosTerminate(nullptr);
@@ -9885,7 +9885,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_ar
 	
 	// First check the type and class of the result; NULL may be mixed in, but otherwise all arguments must be the same type and class
 	EidosValueType result_type = EidosValueType::kValueNULL;
-	const EidosClass *result_class = gEidos_UndefinedClassObject;
+	const EidosClass *result_class = gEidosObject_Class;
 	
 	for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 	{
@@ -9904,9 +9904,9 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Object *arg_object = (EidosValue_Object *)arg;
 			const EidosClass *arg_class = arg_object->Class();
 			
-			if (arg_class == gEidos_UndefinedClassObject)
+			if (arg_class == gEidosObject_Class)
 				continue;
-			else if (result_class == gEidos_UndefinedClassObject)
+			else if (result_class == gEidosObject_Class)
 				result_class = arg_class;
 			else if (arg_class != result_class)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbind): function rbind() requires that all object arguments be of the same class." << EidosTerminate(nullptr);

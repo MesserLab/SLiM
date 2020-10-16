@@ -3930,6 +3930,7 @@ public:
 	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
 	inline InteractionType_Class(void) { }
 	
+	virtual const EidosClass *Superclass(void) const override;
 	virtual const std::string &ElementType(void) const override;
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
@@ -3938,6 +3939,11 @@ public:
 
 EidosClass *gSLiM_InteractionType_Class = new InteractionType_Class();
 
+
+const EidosClass *InteractionType_Class::Superclass(void) const
+{
+	return gEidosDictionaryUnretained_Class;
+}
 
 const std::string &InteractionType_Class::ElementType(void) const
 {
