@@ -47,8 +47,8 @@ class QtSLiMHelpItem : public QTreeWidgetItem
 public:
     QTextDocumentFragment *doc_fragment = nullptr;
     
-    QtSLiMHelpItem(QTreeWidget *parent) : QTreeWidgetItem(parent) {}
-    QtSLiMHelpItem(QTreeWidgetItem *parent) : QTreeWidgetItem(parent) {}
+    explicit QtSLiMHelpItem(QTreeWidget *parent) : QTreeWidgetItem(parent) {}
+    explicit QtSLiMHelpItem(QTreeWidgetItem *parent) : QTreeWidgetItem(parent) {}
     virtual ~QtSLiMHelpItem() override;
 };
 
@@ -106,6 +106,7 @@ private:
     
     // Searching
     bool findItemsMatchingSearchString(QTreeWidgetItem *root, const QString searchString, bool titlesOnly, std::vector<QTreeWidgetItem *> &matchKeys, std::vector<QTreeWidgetItem *> &expandItems);
+    void expandToShowItems(const std::vector<QTreeWidgetItem *> &expandItems, const std::vector<QTreeWidgetItem *> &matchKeys);
     void searchFieldChanged(void);
     void searchScopeToggled(void);
     
@@ -121,6 +122,7 @@ private:
     QtSLiMHelpItem *findObjectForKeyEqualTo(const QString searchKey, QTreeWidgetItem *searchItem);
     void checkDocumentationOfFunctions(const std::vector<EidosFunctionSignature_CSP> *functions);
     void checkDocumentationOfClass(EidosClass *classObject);
+    void addSuperclassItemForClass(EidosClass *classObject);
     
     // responding to events
     virtual void closeEvent(QCloseEvent *e) override;

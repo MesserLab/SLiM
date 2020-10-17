@@ -68,6 +68,7 @@ QtSLiMHelpOutlineDelegate::~QtSLiMHelpOutlineDelegate(void)
 
 void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
+    QString itemString = index.data().toString();
     bool topLevel = !index.parent().isValid();
     QRect fullRect = option.rect;
     fullRect.setLeft(0);             // we are not clipped; we will draw outside our rect to occupy the full width of the view
@@ -102,7 +103,6 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
     else
     {
         // otherwise, add a color box on the right for the items that need them
-        QString itemString = index.data().toString();
         static QStringList *stringsWF = nullptr;
         static QStringList *stringsNonWF = nullptr;
         static QStringList *stringsNucmut = nullptr;
@@ -274,7 +274,10 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window
         const std::string &element_type = class_object->ElementType();
         
         if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
+        {
             checkDocumentationOfClass(class_object);
+            addSuperclassItemForClass(class_object);
+        }
     }
     
     // Add SLiM topics
@@ -299,7 +302,10 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window
         const std::string &element_type = class_object->ElementType();
         
         if (!Eidos_string_hasPrefix(element_type, "_"))		// internal classes are undocumented
+        {
             checkDocumentationOfClass(class_object);
+            addSuperclassItemForClass(class_object);
+        }
     }
     
     // make window actions for all global menu items
@@ -408,6 +414,30 @@ bool QtSLiMHelpWindow::findItemsMatchingSearchString(QTreeWidgetItem *root, cons
 	return anyChildMatches;
 }
 
+void QtSLiMHelpWindow::expandToShowItems(const std::vector<QTreeWidgetItem *> &expandItems, const std::vector<QTreeWidgetItem *> &matchKeys)
+{
+    // Coalesce the selection change to avoid obsessively re-generating the documentation textedit
+    doingProgrammaticSelection = true;
+    doingProgrammaticCollapseExpand = true;
+    
+    // Deselect and collapse everything, as an initial state
+    ui->topicOutlineView->setCurrentItem(nullptr, 0, QItemSelectionModel::Clear);
+    recursiveCollapse(ui->topicOutlineView->invisibleRootItem());   // collapseAll() only collapses items that are visible!
+    
+    // Expand all nodes that have a search hit; reverse order so parents expand before their children
+    for (auto iter = expandItems.rbegin(); iter != expandItems.rend(); ++iter)
+        ui->topicOutlineView->expandItem(*iter);
+    
+    // Select all of the items that matched
+    for (auto item : matchKeys)
+        ui->topicOutlineView->setCurrentItem(item, 0, QItemSelectionModel::Select);
+    
+    // Finish coalescing selection changes
+    doingProgrammaticCollapseExpand = false;
+    doingProgrammaticSelection = false;
+    outlineSelectionChanged();
+}
+
 void QtSLiMHelpWindow::searchFieldChanged(void)
 {
     QString searchString = ui->searchField->text();
@@ -423,32 +453,9 @@ void QtSLiMHelpWindow::searchFieldChanged(void)
         findItemsMatchingSearchString(ui->topicOutlineView->invisibleRootItem(), searchString, (searchType == 0), matchKeys, expandItems);
         
         if (matchKeys.size())
-        {
-            // Coalesce the selection change to avoid obsessively re-generating the documentation textedit
-            doingProgrammaticSelection = true;
-            doingProgrammaticCollapseExpand = true;
-            
-            // Deselect and collapse everything, as an initial state
-            ui->topicOutlineView->setCurrentItem(nullptr, 0, QItemSelectionModel::Clear);
-            recursiveCollapse(ui->topicOutlineView->invisibleRootItem());   // collapseAll() only collapses items that are visible!
-            
-            // Expand all nodes that have a search hit; reverse order so parents expand before their children
-            for (auto iter = expandItems.rbegin(); iter != expandItems.rend(); ++iter)
-                ui->topicOutlineView->expandItem(*iter);
-            
-            // Select all of the items that matched
-            for (auto item : matchKeys)
-                ui->topicOutlineView->setCurrentItem(item, 0, QItemSelectionModel::Select);
-            
-            // Finish coalescing selection changes
-            doingProgrammaticCollapseExpand = false;
-            doingProgrammaticSelection = false;
-            outlineSelectionChanged();
-        }
+            expandToShowItems(expandItems, matchKeys);
         else
-        {
             qApp->beep();
-        }
     }
 }
 
@@ -816,11 +823,11 @@ void QtSLiMHelpWindow::checkDocumentationOfFunctions(const std::vector<EidosFunc
 
 void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 {
-    const EidosClass *superclass = classObject->Superclass();
+    const EidosClass *superclassObject = classObject->Superclass();
 	
 	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object, so the Dictionary stuff gets checked
 	if (classObject == gEidosDictionaryRetained_Class)
-		superclass = gEidosObject_Class;
+		superclassObject = gEidosObject_Class;
 	
     const QString className = QString::fromStdString(classObject->ElementType());
 	const QString classKey = "Class " + className;
@@ -839,7 +846,7 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 			// Check for complete documentation of all properties defined by the class
 			{
 				const std::vector<EidosPropertySignature_CSP> *classProperties = classObject->Properties();
-                const std::vector<EidosPropertySignature_CSP> *superclassProperties = superclass ? superclass->Properties() : nullptr;
+                const std::vector<EidosPropertySignature_CSP> *superclassProperties = superclassObject ? superclassObject->Properties() : nullptr;
 				QStringList docProperties;
 				
                 if (classPropertyItem)
@@ -871,7 +878,7 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 			// Check for complete documentation of all methods defined by the class
 			{
 				const std::vector<EidosMethodSignature_CSP> *classMethods = classObject->Methods();
-				const std::vector<EidosMethodSignature_CSP> *superclassMethods = superclass ? superclass->Methods() : nullptr;
+				const std::vector<EidosMethodSignature_CSP> *superclassMethods = superclassObject ? superclassObject->Methods() : nullptr;
 				QStringList docMethods;
 				
                 if (classMethodsItem)
@@ -908,6 +915,51 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 	else
 	{
 		qDebug() << "*** no documentation found for class " << className;
+	}
+}
+
+void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
+{
+    const EidosClass *superclassObject = classObject->Superclass();
+	
+	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object
+	if (classObject == gEidosDictionaryRetained_Class)
+		superclassObject = gEidosObject_Class;
+	
+    const QString className = QString::fromStdString(classObject->ElementType());
+	const QString classKey = "Class " + className;
+	QtSLiMHelpItem *classDocumentation = findObjectWithKeySuffix(classKey, ui->topicOutlineView->invisibleRootItem());
+    int classDocChildCount = classDocumentation ? classDocumentation->childCount() : 0;
+	
+	if (classDocumentation && (classDocumentation->doc_fragment == nullptr) && (classDocChildCount > 0))
+	{
+        QString superclassName = superclassObject ? QString::fromStdString(superclassObject->ElementType()) : QString("none");
+        
+        // Hide DictionaryBase by pretending our superclass is Dictionary
+        if (superclassName == "DictionaryBase")
+            superclassName = "Dictionary";
+        
+        QtSLiMHelpItem *superclassItem = new QtSLiMHelpItem((QTreeWidgetItem *)nullptr);
+        
+        superclassItem->setText(0, QString("Superclass: " + superclassName));
+        superclassItem->setFlags(Qt::ItemIsEnabled);
+        
+        if (superclassObject)
+        {
+            // Hyperlink appearance, with blue underlined text
+            superclassItem->setForeground(0, QBrush(QtSLiMColorWithHSV(0.65, 1.0, 0.8, 1.0)));
+            
+            QFont font(superclassItem->font(0));
+            font.setUnderline(true);
+            superclassItem->setFont(0, font);
+        }
+        else
+        {
+            // Dimmed appearance
+            superclassItem->setForeground(0, QBrush(QtSLiMColorWithWhite(0.3, 1.0)));
+        }
+        
+        classDocumentation->insertChild(0, superclassItem);     // takes ownership
 	}
 }
 
@@ -974,28 +1026,64 @@ void QtSLiMHelpWindow::recursiveCollapse(QTreeWidgetItem *item)
 
 void QtSLiMHelpWindow::itemClicked(QTreeWidgetItem *item, int __attribute__((__unused__)) column)
 {
-    bool optionPressed = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier);
-    
-    doingProgrammaticCollapseExpand = true;
-    
-    if (optionPressed)
+    if ((item->childCount() == 0) && (item->childIndicatorPolicy() == QTreeWidgetItem::DontShowIndicatorWhenChildless))
     {
-        // recursively expand/collapse items below this item
-        if (item->isExpanded())
-            recursiveCollapse(item);
-        else
-            recursiveExpand(item);
+        // If the item has no children, and is not showing an indicator, it is a leaf and might be a hyperlink item
+        QString itemText = item->text(0);
+        
+        if (itemText.startsWith("Superclass: "))
+        {
+            QString superclassName = itemText.right(itemText.length() - QString("Superclass: ").length());
+            
+            if (superclassName != "none")
+            {
+                QString sectionTitle = "Class " + superclassName;
+                
+                // Open disclosure triangles to show the section
+                std::vector<QTreeWidgetItem *> matchKeys;
+                std::vector<QTreeWidgetItem *> expandItems;
+                
+                QTreeWidgetItem *classDocumentation = findObjectWithKeySuffix(sectionTitle, ui->topicOutlineView->invisibleRootItem());
+                
+                while (classDocumentation)
+                {
+                    expandItems.push_back(classDocumentation);
+                    classDocumentation = classDocumentation->parent();
+                }
+                
+                if (expandItems.size())
+                    expandToShowItems(expandItems, matchKeys);
+                else
+                    qApp->beep();
+            }
+        }
     }
     else
     {
-        // expand/collapse just this item
-        if (item->isExpanded())
-            ui->topicOutlineView->collapseItem(item);
+        // Otherwise, it has a disclosure triangle and needs to expand/collapse
+        bool optionPressed = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier);
+        
+        doingProgrammaticCollapseExpand = true;
+        
+        if (optionPressed)
+        {
+            // recursively expand/collapse items below this item
+            if (item->isExpanded())
+                recursiveCollapse(item);
+            else
+                recursiveExpand(item);
+        }
         else
-            ui->topicOutlineView->expandItem(item);
+        {
+            // expand/collapse just this item
+            if (item->isExpanded())
+                ui->topicOutlineView->collapseItem(item);
+            else
+                ui->topicOutlineView->expandItem(item);
+        }
+        
+        doingProgrammaticCollapseExpand = false;
     }
-    
-    doingProgrammaticCollapseExpand = false;
 }
 
 void QtSLiMHelpWindow::itemCollapsed(QTreeWidgetItem *item)
