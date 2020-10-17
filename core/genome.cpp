@@ -2014,7 +2014,7 @@ EidosClass *gSLiM_Genome_Class = new Genome_Class();
 
 const EidosClass *Genome_Class::Superclass(void) const
 {
-	return gEidosDictionaryUnretained_Class;
+	return gEidosObject_Class;
 }
 
 const std::string &Genome_Class::ElementType(void) const

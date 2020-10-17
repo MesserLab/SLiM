@@ -225,7 +225,7 @@ EidosClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
 
 const EidosClass *GenomicElement_Class::Superclass(void) const
 {
-	return gEidosDictionaryUnretained_Class;
+	return gEidosObject_Class;
 }
 
 const std::string &GenomicElement_Class::ElementType(void) const
