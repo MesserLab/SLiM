@@ -984,7 +984,7 @@ void QtSLiMTextEdit::setCodeCompletionEnabled(bool enabled)
         completer->setWrapAround(false);
         completer->setWidget(this);
         
-        connect(completer, QOverload<const QString &>::of(&QCompleter::activated), this, &QtSLiMTextEdit::insertCompletion);
+        connect(completer, QOverload<const QString &>::of(&QCompleter::activated), this, &QtSLiMTextEdit::insertCompletion);    // note this activated() signal was deprecated in 5.15, use QComboBox::textActivated() which was added in 5.14
     }
 }
 
