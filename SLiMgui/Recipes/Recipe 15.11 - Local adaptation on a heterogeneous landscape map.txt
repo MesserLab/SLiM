@@ -29,8 +29,8 @@ fitness(m2) { return 1.0; }
 	p1.individuals.setSpatialPosition(p1.pointUniform(N));
 	p1.individuals.z = 0.0;
 	
-	defineConstant("mapValues", runif(25, 0, 1));
-	p1.defineSpatialMap("map1", "xy", c(5, 5), mapValues, interpolate=T,
+	defineConstant("mapValues", matrix(runif(25, 0, 1), ncol=5));
+	p1.defineSpatialMap("map1", "xy", mapValues, interpolate=T,
 		valueRange=c(0.0, 1.0), colors=c("red", "yellow"));
 }
 modifyChild() {

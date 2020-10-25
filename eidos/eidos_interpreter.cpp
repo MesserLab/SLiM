@@ -1173,6 +1173,10 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							if ((p_call_signature->call_name_ == "apply") && ((named_arg == "lambdaSource") || (named_arg == "simplify")))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
 							
+							// Special error-handling for defineSpatialMap() because its gridSize parameter was removed in SLiM 3.5
+							if ((p_call_signature->call_name_ == "defineSpatialMap") && (named_arg == "gridSize"))
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+							
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
 						}
 						
@@ -1189,7 +1193,15 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 					// Move to the next signature argument; if we have run out of them, then treat this argument as illegal
 					sig_arg_index++;
 					if (sig_arg_index == sig_arg_count)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg_name_node->token_->token_string_ << "." << EidosTerminate(nullptr);
+					{
+						const std::string &named_arg = named_arg_name_node->token_->token_string_;
+						
+						// Special error-handling for defineSpatialMap() because its gridSize parameter was removed in SLiM 3.5
+						if ((p_call_signature->call_name_ == "defineSpatialMap") && ((named_arg == "values") || (named_arg == "interpolate")))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+						
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << EidosTerminate(nullptr);
+					}
 				}
 				while (true);
 				

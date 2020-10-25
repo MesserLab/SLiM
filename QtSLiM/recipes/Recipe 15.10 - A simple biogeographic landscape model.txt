@@ -19,14 +19,11 @@ initialize() {
 1 late() {
 	sim.addSubpop("p1", 1000);
 	
-	p1.setSpatialBounds(c(0.0, 0.0, 540.0, 217.0));
+	p1.setSpatialBounds(c(0.0, 0.0, 539.0, 216.0));
 	
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	mapLines = rev(readFile("~/Desktop/world_map_540x217.txt"));
-	mapLines = sapply(mapLines, "strsplit(applyValue, '') == '#';");
-	mapValues = asFloat(mapLines);
-	
-	p1.defineSpatialMap("world", "xy", c(540, 217), mapValues,
+	mapImage = Image("~/Desktop/world_map_540x217.png");
+	p1.defineSpatialMap("world", "xy", 1.0 - mapImage.floatK,
 		valueRange=c(0.0, 1.0), colors=c("#0000CC", "#55FF22"));
 	
 	// start near a specific map location

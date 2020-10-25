@@ -5659,15 +5659,14 @@ The
 \f4\fs20 , SLiMgui\'92s default (fitness-based) color will be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, Ni
-\f5 \'a0
-\f3 gridSize, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-Defines a spatial map for the subpopulation.  The map will henceforth be identified by 
+\f4\fs20 \cf2 Defines a spatial map for the subpopulation.  The map will henceforth be identified by 
 \f3\fs18 name
-\f4\fs20 .  The map uses the spatial dimensions referenced by spatiality, which must be a subset of the dimensions defined for the simulation in 
+\f4\fs20 .  The map uses the spatial dimensions referenced by 
+\f3\fs18 spatiality
+\f4\fs20 , which must be a subset of the dimensions defined for the simulation in 
 \f3\fs18 initializeSLiMOptions()
 \f4\fs20 .  Spatiality 
 \f3\fs18 "x"
@@ -5697,100 +5696,37 @@ Defines a spatial map for the subpopulation.  The map will henceforth be identif
 \f3\fs18 "xyz"
 \f4\fs20  for dimensionality 
 \f3\fs18 "xyz"
-\f4\fs20 .  The spatial map is defined by a grid of values of a size specified by 
+\f4\fs20 .  The spatial map is defined by a grid of values supplied in parameter 
+\f3\fs18 values
+\f4\fs20 .  The remaining optional parameters are described below.\
+Note that the semantics of this method changed in SLiM 3.5; in particular, the 
 \f3\fs18 gridSize
-\f4\fs20 , which must have one value per spatial dimension (or 
+\f4\fs20  parameter was removed, and the interpretation of the 
+\f3\fs18 values
+\f4\fs20  parameter changed as described below.  Existing code written prior to SLiM 3.5 will produce an error, due to the removed 
 \f3\fs18 gridSize
-\f4\fs20  may be 
+\f4\fs20  parameter, and must be revised carefully to obtain the same result, even if 
 \f3\fs18 NULL
-\f4\fs20 ; see below); for a spatiality of 
-\f3\fs18 "xz"
-\f4\fs20 , for example, 
+\f4\fs20  had been passed for 
 \f3\fs18 gridSize
-\f4\fs20  must be of length 
-\f3\fs18 2
-\f4\fs20 , specifying the size of the values grid in the 
-\f1\i x
-\f4\i0  and 
-\f1\i z
-\f4\i0  dimensions.  The parameter 
+\f4\fs20  previously.\
+Beginning in SLiM 3.5, the 
 \f3\fs18 values
-\f4\fs20  then gives the values of the grid; it must be of length equal to the product of the 
-\f3\fs18 gridSize
-\f4\fs20  elements, and specifies values varying first (i.e., fastest) in the 
-\f1\i x
-\f4\i0  dimension, then in 
-\f1\i y
-\f4\i0 , then in 
-\f1\i z
-\f4\i0 .\
-Beginning in SLiM 2.6, the 
-\f3\fs18 values
-\f4\fs20  parameter may be a matrix/array with the number of dimensions appropriate for the declared spatiality of the map; for example, a map with spatiality 
+\f4\fs20  parameter must be a vector/matrix/array with the number of dimensions appropriate for the declared spatiality of the map; for example, a map with spatiality 
+\f3\fs18 "x"
+\f4\fs20  would require a (one-dimensional) vector, spatiality 
 \f3\fs18 "xy"
-\f4\fs20  would require a (two-dimensional) matrix, whereas a map with spatiality of 
+\f4\fs20  would require a (two-dimensional) matrix, and a map with spatiality of 
 \f3\fs18 "xyz"
-\f4\fs20  would require a three-dimensional array.  (See the Eidos manual for discussion of matrices and arrays.)  If a matrix/array argument is supplied for 
+\f4\fs20  would require a three-dimensional array.  (See the Eidos manual for discussion of vectors, matrices, and arrays.)  The data in 
 \f3\fs18 values
-\f4\fs20 , 
-\f3\fs18 gridSize
-\f4\fs20  must either be 
-\f3\fs18 NULL
-\f4\fs20 , or (for backward compatibility) may match the dimensions of 
-\f3\fs18 values
-\f4\fs20  as they would be given by 
-\f3\fs18 dim(values)
-\f4\fs20 .  The data in 
-\f3\fs18 values
-\f4\fs20  is interpreted just as is described above for the vector case: varying first in 
-\f1\i x
-\f4\i0 , then in 
-\f1\i y
-\f4\i0 , then in 
+\f4\fs20  is interpreted in such a way that a two-dimensional matrix of values, with (0, 0) at upper left and values by column, is transformed into the format expected by SLiM, with (0, 0) at lower left and values by row; in other words, the two-dimensional matrix as it prints in the Eidos console will match the appearance of the two-dimensional spatial map as seen in SLiMgui.  
+\f1\i This is a change in behavior from versions prior to SLiM 3.5
+\f4\i0 ; it ensures that images loaded from disk with the Eidos class 
+\f3\fs18 Image
+\f4\fs20  can be used directly as spatial maps, achieving the expected orientation, with no need for transposition or flipping.  If the spatial map is a three-dimensional array, it is read as successive 
 \f1\i z
-\f4\i0 .  BEWARE: since the values in Eidos matrices and arrays are stored in column-first order (following the convention established by R), this means that for a map with spatiality 
-\f3\fs18 "xy"
-\f4\fs20  each column of the 
-\f3\fs18 values
-\f4\fs20  matrix will provide map data as 
-\f1\i x
-\f4\i0  varies and 
-\f1\i y
-\f4\i0  remains constant.  This will be confusing if you think of matrix columns as being \'93
-\f1\i x
-\f4\i0 \'94 and matrix rows as being \'93
-\f1\i y
-\f4\i0 \'94, so try not to think that way; the opposite is true.  This behavior is actually simple, self-consistent, and backward-compatible; if you before created a spatial map with a vector 
-\f3\fs18 values
-\f4\fs20  before and a 
-\f3\fs18 gridSize
-\f4\fs20  of 
-\f3\fs18 c(x, y)
-\f4\fs20  specifying the dimensions of that vector, you can now supply 
-\f3\fs18 matrix(values, nrow=x)
-\f4\fs20  for 
-\f3\fs18 values
-\f4\fs20  to get exactly the same spatial map, and you can still supply the same value of 
-\f3\fs18 c(x, y)
-\f4\fs20  for 
-\f3\fs18 gridSize
-\f4\fs20  if you wish (or you may supply 
-\f3\fs18 NULL
-\f4\fs20 ).  If, however, you are looking at a matrix as printed in the Eidos console, and want that matrix to be used as a spatial map in SLiM in the same orientation, you should use the transpose of the matrix, as supplied by the 
-\f3\fs18 t()
-\f4\fs20  function.  Actually, since matrices are printed in the console with each successive row having a 
-\f1\i larger
-\f4\i0  index, whereas in Cartesian (
-\f1\i x
-\f4\i0 , 
-\f1\i y
-\f4\i0 ) coordinates 
-\f1\i y
-\f4\i0 -values increase as you go 
-\f1\i upward
-\f4\i0 , you may also wish to reverse the order of rows in your matrix prior to transposing (or the order of columns after transposing), with an expression such as 
-\f3\fs18 t(map[(nrow(map)-1):0,])
-\f4\fs20 , in order to make the spatial map display in SLiMgui as you expect (since SLiMgui displays everything in Cartesian coordinates).  Apologies if this is confusing; it would be nice if matrix notation, programming languages, and Descartes all agreed on such things, but they do not, so be very careful that your spatial maps are oriented as you wish them to be!\
+\f4\i0 -axis \'93planes\'94, each of which is a two-dimensional matrix that is treated as described above.\
 Moving on to the other parameters of 
 \f3\fs18 defineSpatialMap()
 \f4\fs20 : if 
@@ -5826,7 +5762,7 @@ The
 \f3\fs18 valueRange[1]
 \f4\fs20  will map to the last 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see example recipes for an illustration of its use.\
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 15 for an illustration of its use.\
 Note that at present, SLiMgui will only display spatial maps of spatiality 
 \f3\fs18 "x"
 \f4\fs20 , 
@@ -5839,12 +5775,10 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f1\i xyz
 \f4\i0  space it ought to display).  The 
 \f3\fs18 spatialMapColor()
-\f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps with color-mapping parameters defined, SLiMgui will choose just one for display; it will prefer an 
-\f3\fs18 "xy"
-\f4\fs20  map if one is available, but beyond that heuristic its choice will be arbitrary.\
+\f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it choose one for display by default, but other maps may be selected from the context menu on the individuals view (with a right-click or control-click).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0filterMonomorphic\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0

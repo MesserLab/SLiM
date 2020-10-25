@@ -324,6 +324,13 @@ void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_i
 			if ((call_name_ == "apply") && (arg_type == EidosValueType::kValueString))
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
 			
+			// Special error-handling for defineSpatialMap() because its gridSize parameter was removed in SLiM 3.5
+			if ((call_name_ == "defineSpatialMap") &&
+				(((p_signature_index == 2) && (arg_type == EidosValueType::kValueNULL)) ||
+				 ((p_signature_index == 3) && ((arg_type == EidosValueType::kValueFloat) || (arg_type == EidosValueType::kValueInt))) ||
+				 ((p_signature_index == 4) && (arg_type == EidosValueType::kValueLogical))))
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+			
 			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 		}
 		

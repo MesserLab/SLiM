@@ -6155,18 +6155,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	return result_SP;
 }
 
-//	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, Ni gridSize, numeric values, [logical$ interpolate = F], [Nif valueRange = NULL], [Ns colors = NULL])
+//	*********************	– (void)defineSpatialMap(string$ name, string$ spatiality, numeric values, [logical$ interpolate = F], [Nif valueRange = NULL], [Ns colors = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *name_value = p_arguments[0].get();
 	EidosValue *spatiality_value = p_arguments[1].get();
-	EidosValue *gridSize_value = p_arguments[2].get();
-	EidosValue *values = p_arguments[3].get();
-	EidosValue *interpolate_value = p_arguments[4].get();
-	EidosValue *value_range = p_arguments[5].get();
-	EidosValue *colors = p_arguments[6].get();
+	EidosValue *values = p_arguments[2].get();
+	EidosValue *interpolate_value = p_arguments[3].get();
+	EidosValue *value_range = p_arguments[4].get();
+	EidosValue *colors = p_arguments[5].get();
 	
 	std::string map_name = name_value->StringAtIndex(0, nullptr);
 	std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
@@ -6196,48 +6195,28 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	int values_dimcount = values->DimensionCount();
 	const int64_t *values_dim = values->Dimensions();
 	
-	if ((values_dimcount != 1) && (values_dimcount != map_spatiality))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() the dimensionality of the supplied matrix/array does not match the spatiality defined for the map." << EidosTerminate();
+	if (values_dimcount != map_spatiality)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() the dimensionality of the supplied vector/matrix/array does not match the spatiality defined for the map." << EidosTerminate();
 	
 	int64_t map_size = 1;
 	int64_t dimension_sizes[3];
 	
-	if (gridSize_value->Type() != EidosValueType::kValueNULL)
+	// There is no longer a gridSize parameter (as of SLiM 3.5), so values must be a matrix/array that matches the spatiality of the map
+	for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
 	{
-		// A gridSize argument was supplied, so it must match the spatiality of the map and the size of the data in values
-		if (gridSize_value->Count() != map_spatiality)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() gridSize must match the spatiality defined for the map." << EidosTerminate();
+		int64_t dimension_size = (values_dimcount == 1) ? values->Count() : values_dim[dimension_index];	// treat a vector as a 1D matrix
 		
-		for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
-		{
-			int64_t dimension_size = gridSize_value->IntAtIndex(dimension_index, nullptr);
-			
-			if (dimension_size < 2)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all elements of gridSize must be of length >= 2." << EidosTerminate();
-			if ((values_dimcount != 1) && (dimension_size != values_dim[dimension_index]))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() supplied gridSize does not match dimensions of matrix/array value; either supply a matching gridSize or supply NULL for gridSize." << EidosTerminate();
-			
-			dimension_sizes[dimension_index] = dimension_size;
-			map_size *= dimension_size;
-		}
+		if (dimension_size < 2)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all dimensions of value must be of size >= 2." << EidosTerminate();
 		
-		if (values->Count() != map_size)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() size of the values vector (" << values->Count() << ") does not match the product of the sizes in gridSize (" << map_size << ")." << EidosTerminate();
+		dimension_sizes[dimension_index] = dimension_size;
+		map_size *= dimension_size;
 	}
-	else
-	{
-		// No gridSize was supplied, so values must be a matrix/array that matches the spatiality of the map
-		for (int dimension_index = 0; dimension_index < map_spatiality; ++dimension_index)
-		{
-			int64_t dimension_size = (values_dimcount == 1) ? values->Count() : values_dim[dimension_index];	// treat a vector as a 1D matrix
-			
-			if (dimension_size < 2)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() all dimensions of value must be of size >= 2." << EidosTerminate();
-			
-			dimension_sizes[dimension_index] = dimension_size;
-			map_size *= dimension_size;
-		}
-	}
+	
+	// Matrices and arrays use dim[0] as the number of rows, and dim[1] as the number of cols; spatial maps do the opposite,
+	// following standard image conventions (by row, not by column); we therefore need to swap dim[0] and dim[1] at this point
+	if (map_spatiality >= 2)
+		std::swap(dimension_sizes[0], dimension_sizes[1]);
 	
 	const double *values_float_vec_ptr = (values->Type() == EidosValueType::kValueFloat) ? values->FloatVector()->data() : nullptr;
 	const int64_t *values_integer_vec_ptr = (values->Type() == EidosValueType::kValueInt) ? values->IntVector()->data() : nullptr;
@@ -6290,12 +6269,48 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	SpatialMap *spatial_map = new SpatialMap(spatiality_string, map_spatiality, dimension_sizes, interpolate, range_min, range_max, color_count);
 	double *values_ptr = spatial_map->values_;
 	
-	if (values_float_vec_ptr)
-		for (int64_t values_index = 0; values_index < map_size; ++values_index)
-			*(values_ptr++) = *(values_float_vec_ptr++);
-	else
-		for (int64_t values_index = 0; values_index < map_size; ++values_index)
-			*(values_ptr++) = *(values_integer_vec_ptr++);
+	if (map_spatiality == 1)
+	{
+		// A vector was passed (since no matrix dimension here is allowed to have a size of 1), so no transpose/flip needed
+		// The vector values will be read left to right, or bottom to top, following SLiM's Cartesian spatial coordinates
+		if (values_float_vec_ptr)
+			for (int64_t values_index = 0; values_index < map_size; ++values_index)
+				*(values_ptr++) = *(values_float_vec_ptr++);
+		else
+			for (int64_t values_index = 0; values_index < map_size; ++values_index)
+				*(values_ptr++) = *(values_integer_vec_ptr++);
+	}
+	else if (map_spatiality >= 2)
+	{
+		// A matrix/array was passed (it is no longer legal to pass a vector in the multidimensional case)
+		// A transpose/flip is therefore needed, because matrices are stored by row and read top to bottom
+		int64_t col_count = dimension_sizes[0];		// note dimension_sizes got swapped above
+		int64_t row_count = dimension_sizes[1];
+		int64_t plane_count = (map_spatiality == 3) ? dimension_sizes[2] : 1;
+		
+		if (values_float_vec_ptr)
+		{
+			for (int64_t z = 0; z < plane_count; ++z)
+			{
+				int64_t plane_offset = z * (row_count * col_count);
+				
+				for (int64_t x = 0; x < col_count; ++x)
+					for (int64_t y = 0; y < row_count; ++y)
+						values_ptr[plane_offset + x + (row_count - 1 - y) * col_count] = values_float_vec_ptr[plane_offset + y + x * row_count];
+			}
+		}
+		else
+		{
+			for (int64_t z = 0; z < plane_count; ++z)
+			{
+				int64_t plane_offset = z * (row_count * col_count);
+				
+				for (int64_t x = 0; x < col_count; ++x)
+					for (int64_t y = 0; y < row_count; ++y)
+						values_ptr[plane_offset + x + (row_count - 1 - y) * col_count] = values_integer_vec_ptr[plane_offset + y + x * row_count];
+			}
+		}
+	}
 	
 	if (color_count > 0)
 	{
@@ -6830,7 +6845,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt_S("size")->AddLogical_OS("replace", gStaticEidosValue_LogicalF)->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskVOID))->AddString_S("name")->AddString_S("spatiality")->AddInt_N("gridSize")->AddNumeric("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskVOID))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddNumeric("value"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat))->AddString_S("name")->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN("filePath", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));

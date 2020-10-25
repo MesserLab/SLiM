@@ -1230,46 +1230,44 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-10.5, -1.0, 4.5, -8.0, 2.5, 14.5)), c(7.5, -1.0, 4.5, 1.0, 2.5, 1.5))) stop(); }", __LINE__);
 	
 	// Test spatial stuff including defineSpatialMap(), spatialMapColor(), and spatialMapValue()
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 250, "spatiality \"\" must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0)); stop(); }", 1, 250, "spatial dimensions beyond those set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', '', float(0)); stop(); }", 1, 250, "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', c(0.0, 1.0)); stop(); }", 1, 250, "spatial dimensions beyond those set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.spatialMapColor('m', 0.5); stop(); }", 1, 250, "could not find map", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.spatialMapValue('m', float(0)); stop(); }", 1, 250, "could not find map", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.spatialMapValue('m', 0.0); stop(); }", 1, 250, "could not find map", __LINE__);
 	
+	// Test that permutations of defineSpatialMap() that include the old gridSize parameter get a helpful error message
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', gridSize=2, c(0.0, 1.0)); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', NULL, c(0.0, 1.0)); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, values=c(0.0, 1.0)); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0)); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0), interpolate=T); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0), T); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0), T, valueRange=c(0.0, 1.0)); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0), T, c(0.0, 1.0)); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0), T, c(0.0, 1.0), colors=c('red','blue')); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.defineSpatialMap('map', 'x', 2, c(0.0, 1.0), T, c(0.0, 1.0), c('red','blue')); stop(); }", 1, 250, "changed in SLiM 3.5", __LINE__);
+	
 	// a few tests supplying a matrix/array spatial map instead of a vector; no need to test spatialMapValue() etc. with these,
 	// since it all funnels into the same map definition code anyway, so we just need to be sure the pre-funnel code is good...
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(2,2), matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', NULL, matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(3,3), matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', NULL, matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(2,3), matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', NULL, matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(6), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize must match the spatiality", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(3,2), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize does not match dimensions", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(2,2), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize does not match dimensions", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', c(3,3), matrix(1.0:6, nrow=2)); stop(); }", 1, 488, "gridSize does not match dimensions", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xy', matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(2,2), matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', NULL, matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(3,3), matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', NULL, matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(2,3), matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', NULL, matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', matrix(1.0:4, nrow=2)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', matrix(1.0:9, nrow=3)); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', matrix(1.0:6, nrow=2)); stop(); }", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(2,2,2), array(1.0:8, c(2,2,2))); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', NULL, array(1.0:8, c(2,2,2))); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(3,3,3), array(1.0:27, c(3,3,3))); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', NULL, array(1.0:27, c(3,3,3))); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(2,3,2), array(1.0:12, c(2,3,2))); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', NULL, array(1.0:12, c(2,3,2))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', array(1.0:8, c(2,2,2))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', array(1.0:27, c(3,3,3))); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', array(1.0:12, c(2,3,2))); stop(); }", __LINE__);
 	
 	// 1D sim with 1D x map
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 424, "spatiality \"\" must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'xy', 2, c(0.0, 1.0)); stop(); }", 1, 424, "spatial dimensions beyond those set", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'x', 1, 0.0); stop(); }", 1, 424, "elements of gridSize must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'x', 2, 0.0); stop(); }", 1, 424, "does not match the product of the sizes", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', '', float(0)); stop(); }", 1, 424, "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'xy', c(0.0, 1.0)); stop(); }", 1, 424, "spatial dimensions beyond those set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'x', 0.0); stop(); }", 1, 424, "must be of size >= 2", __LINE__);
 	
-	std::string gen1_setup_i1x_mapNI(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'x', 3, c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
+	std::string gen1_setup_i1x_mapNI(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'x', c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1x_mapNI + "if (p1.spatialMapValue('map', -9.0) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x_mapNI + "if (p1.spatialMapValue('map', 0.0) == 0.0) stop(); }", __LINE__);
@@ -1287,7 +1285,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x_mapNI + "if (p1.spatialMapColor('map', 2.5) == '#BFBFBF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x_mapNI + "if (p1.spatialMapColor('map', 5.0) == '#FFFFFF') stop(); }", __LINE__);
 	
-	std::string gen1_setup_i1x_mapI(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'x', 3, c(0.0, 1.0, 3.0), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
+	std::string gen1_setup_i1x_mapI(gen1_setup_i1x + "1 { p1.defineSpatialMap('map', 'x', c(0.0, 1.0, 3.0), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapValue('map', -9.0) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapValue('map', 0.0) == 0.0) stop(); }", __LINE__);
@@ -1304,11 +1302,10 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D x map
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'x', 1, 0.0); stop(); }", 1, 488, "elements of gridSize must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'x', 2, 0.0); stop(); }", 1, 488, "does not match the product of the sizes", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'x', 0.0); stop(); }", 1, 488, "must be of size >= 2", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapNIx(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'x', 3, c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
+	std::string gen1_setup_i1xyz_mapNIx(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'x', c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIx + "if (p1.spatialMapValue('map', -9.0) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIx + "if (p1.spatialMapValue('map', 0.0) == 0.0) stop(); }", __LINE__);
@@ -1326,7 +1323,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIx + "if (p1.spatialMapColor('map', 2.5) == '#BFBFBF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIx + "if (p1.spatialMapColor('map', 5.0) == '#FFFFFF') stop(); }", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapIx(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'x', 3, c(0.0, 1.0, 3.0), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
+	std::string gen1_setup_i1xyz_mapIx(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'x', c(0.0, 1.0, 3.0), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapValue('map', -9.0) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapValue('map', 0.0) == 0.0) stop(); }", __LINE__);
@@ -1343,11 +1340,10 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D z map
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'z', 1, 0.0); stop(); }", 1, 488, "elements of gridSize must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'z', 2, 0.0); stop(); }", 1, 488, "does not match the product of the sizes", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'z', 0.0); stop(); }", 1, 488, "must be of size >= 2", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapNIz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'z', 3, c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
+	std::string gen1_setup_i1xyz_mapNIz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'z', c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIz + "if (p1.spatialMapValue('map', -9.0) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIz + "if (p1.spatialMapValue('map', 0.0) == 0.0) stop(); }", __LINE__);
@@ -1365,7 +1361,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIz + "if (p1.spatialMapColor('map', 2.5) == '#BFBFBF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIz + "if (p1.spatialMapColor('map', 5.0) == '#FFFFFF') stop(); }", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapIz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'z', 3, c(0.0, 1.0, 3.0), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
+	std::string gen1_setup_i1xyz_mapIz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'z', c(0.0, 1.0, 3.0), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapValue('map', -9.0) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapValue('map', 0.0) == 0.0) stop(); }", __LINE__);
@@ -1381,14 +1377,14 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
-	// 3D sim with 2D xz map
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', 1, 0.0); stop(); }", 1, 488, "gridSize must match the spatiality", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(2,2), 0.0); stop(); }", 1, 488, "does not match the product of the sizes", __LINE__);
+	// 3D sim with 2D xz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', 0.0); stop(); }", 1, 488, "does not match the spatiality defined for the map", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', matrix(0.0)); stop(); }", 1, 488, "must be of size >= 2", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapNIxz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(3,2), c(0.0, 1, 3, 5, 5, 5), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
+	std::string gen1_setup_i1xyz_mapNIxz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', matrix(c(0.0, 1, 3, 5, 5, 5), ncol=3, byrow=T)[1:0,], interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
 	
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapNIxz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 621, "must match spatiality of map", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapNIxz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 644, "must match spatiality of map", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxz + "if (p1.spatialMapValue('map', c(-9.0, 0.0)) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxz + "if (p1.spatialMapValue('map', c(0.0, 0.0)) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxz + "if (p1.spatialMapValue('map', c(0.2, 0.0)) == 0.0) stop(); }", __LINE__);
@@ -1432,9 +1428,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxz + "if (p1.spatialMapColor('map', 2.5) == '#BFBFBF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxz + "if (p1.spatialMapColor('map', 5.0) == '#FFFFFF') stop(); }", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapIxz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', c(3,2), c(0.0, 1, 3, 5, 5, 5), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
+	std::string gen1_setup_i1xyz_mapIxz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xz', matrix(c(0.0, 1, 3, 5, 5, 5), ncol=3, byrow=T)[1:0,], interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
 	
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapIxz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 636, "must match spatiality of map", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapIxz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 659, "must match spatiality of map", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapValue('map', c(-9.0, 0.0)) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapValue('map', c(0.0, 0.0)) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapValue('map', c(0.25, 0.0)) == 0.5) stop(); }", __LINE__);
@@ -1463,14 +1459,14 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 2.5) == '#00BF80') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
-	// 3D sim with 3D xyz map
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', integer(0), float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', 1, 0.0); stop(); }", 1, 488, "gridSize must match the spatiality", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(2,2,2), 0.0); stop(); }", 1, 488, "does not match the product of the sizes", __LINE__);
+	// 3D sim with 3D xyz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', '', float(0)); stop(); }", 1, 488, "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', 0.0); stop(); }", 1, 488, "does not match the spatiality defined for the map", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', array(0.0, c(1,1,1))); stop(); }", 1, 488, "must be of size >= 2", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapNIxyz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(3,2,2), 0.0:11.0, interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
+	std::string gen1_setup_i1xyz_mapNIxyz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', array(c(3.0, 0, 4, 1, 5, 2, 9, 6, 10, 7, 11, 8), c(2,3,2)), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
 	
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapNIxyz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 611, "must match spatiality of map", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapNIxyz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 651, "must match spatiality of map", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxyz + "if (p1.spatialMapValue('map', c(0.0, 0.0, 0.0)) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxyz + "if (p1.spatialMapValue('map', c(0.5, 0.0, 0.0)) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxyz + "if (p1.spatialMapValue('map', c(1.0, 0.0, 0.0)) == 2.0) stop(); }", __LINE__);
@@ -1505,9 +1501,9 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxyz + "if (p1.spatialMapColor('map', 2.5) == '#BFBFBF') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapNIxyz + "if (p1.spatialMapColor('map', 5.0) == '#FFFFFF') stop(); }", __LINE__);
 	
-	std::string gen1_setup_i1xyz_mapIxyz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', c(3,2,2), 0.0:11.0, interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
+	std::string gen1_setup_i1xyz_mapIxyz(gen1_setup_i1xyz + "1 { p1.defineSpatialMap('map', 'xyz', array(c(3.0, 0, 4, 1, 5, 2, 9, 6, 10, 7, 11, 8), c(2,3,2)), interpolate=T, valueRange=c(-5.0, 5.0), colors=c('#FF003F', '#007F00', '#00FFFF')); ");
 	
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapIxyz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 626, "must match spatiality of map", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_mapIxyz + "p1.spatialMapValue('map', 0.0); stop(); }", 1, 666, "must match spatiality of map", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapValue('map', c(0.0, 0.0, 0.0)) == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapValue('map', c(0.5, 0.0, 0.0)) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxyz + "if (p1.spatialMapValue('map', c(1.0, 0.0, 0.0)) == 2.0) stop(); }", __LINE__);

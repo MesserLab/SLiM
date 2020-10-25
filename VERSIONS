@@ -68,6 +68,8 @@ development head:
 	make superclass relationships explicit and documented; make Chromosome, SlimEidosBlock, and SLiMgui inherit from EidosDictionaryUnretained
 	move doc for setValue()/getValue() to the Eidos manual, remove all the duplicated doc for it in SLiM
 	show superclasses in the doc browser, with a hyperlink
+	change defineSpatialMap() to require a matrix (except in the 1D case), removing the gridSize parameter (breaking backward compatibility!), and reading the matrix in the right order (so it looks the same in SLiMgui as in the console)
+	revise recipes 15.10 and 15.11 to adjust to the changes in defineSpatialMap() (and fix a very small bug with the spatial bounds)
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
