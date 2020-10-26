@@ -787,7 +787,7 @@
 \f2\fs20 .
 \f3   The disadvantage of using this function instead of 
 \f1\fs18 sum()
-\f3\fs20  is that it is much slower \'96 about 35 times slower, according to one test on Mac OS X 10.2.5, but that will vary across operating systems and hardware.  This function is rarely truly needed, but apart from the performance consequences there is no disadvantage to using it.
+\f3\fs20  is that it is much slower \'96 about 35 times slower, according to one test on macOS, but that will vary across operating systems and hardware.  This function is rarely truly needed, but apart from the performance consequences there is no disadvantage to using it.
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -4564,7 +4564,7 @@ This function can also be called with a matrix of RGB values, with three columns
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Plays a sound or beeps.
-\f3\b0   On Mac OS X in a GUI environment (i.e., in EidosScribe or SLiMgui), the optional parameter 
+\f3\b0   On macOS in a GUI environment (i.e., in EidosScribe or SLiMgui), the optional parameter 
 \f1\fs18 soundName
 \f3\fs20  can be the name of a sound file to play; in other cases (if 
 \f1\fs18 soundName
@@ -4965,9 +4965,8 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 
@@ -5299,7 +5298,7 @@ If
 \f1\fs18 T
 \f3\fs20 , the maximum memory usage over the history of the process is returned.  Memory usage is a surprisingly complex topic; the particular metric reported by 
 \f1\fs18 usage()
-\f3\fs20  is the resident set size, or RSS, which includes memory usage from shared libraries, but does not include memory that is swapped out or has never been used.  For most purposes, RSS is a useful metric of memory usage from a practical perspective.  On some platforms (AIX, BSD, Solaris) the memory usage reported may be zero, but it should be correct on both Mac OS X and Linux platforms.\
+\f3\fs20  is the resident set size, or RSS, which includes memory usage from shared libraries, but does not include memory that is swapped out or has never been used.  For most purposes, RSS is a useful metric of memory usage from a practical perspective.  On some platforms (AIX, BSD, Solaris) the memory usage reported may be zero, but it should be correct on both macOS and Linux platforms.\
 This function can be useful for documenting the memory usage of long runs as they are in progress; in SLiM, it could also be used to trigger tree-sequence simplification with a call to 
 \f1\fs18 treeSeqSimplify()
 \f3\fs20 , to reduce memory usage when it becomes too large, but keep in mind that the simplification process itself may cause a substantial spike in memory usage.\

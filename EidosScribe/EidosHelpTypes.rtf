@@ -1,9 +1,9 @@
-{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf200
-{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
+{\rtf1\ansi\ansicpg1252\cocoartf2513
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 LucidaGrande;
 \f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fswiss\fcharset0 Optima-Bold;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
@@ -258,48 +258,72 @@ The basic philosophy of how Eidos handles
 \f0\fs22 \
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf0 An 
+\f2\i0 \cf2 In addition to 
+\f3\fs18 logical
+\f2\fs22 , 
+\f3\fs18 integer
+\f2\fs22 , 
+\f3\fs18 float
+\f2\fs22 , 
+\f3\fs18 string
+\f2\fs22 , and 
+\f3\fs18 NULL
+\f2\fs22 , there is one more type in Eidos left to discuss: 
+\f3\fs18 object
+\f2\fs22 .  A variable of type 
 \f3\fs18 object
 \f2\fs22  is a vector that contains elements; it is a container, a bag of stuff.  In this way, it is similar to Eidos\'92s other types; a 
 \f3\fs18 float
-\f2\fs22  in Eidos is a vector containing floating-point elements, whereas an 
+\f2\fs22  vector in Eidos contains floating-point elements, whereas an 
 \f3\fs18 object
-\f2\fs22  is a vector containing 
+\f2\fs22  vector contains 
 \f3\fs18 object
-\f2\fs22 -elements (often just called \'93elements\'94 in general).  An 
+\f2\fs22 -elements (often just called \'93objects\'94; whether one is referring to a single 
 \f3\fs18 object
-\f2\fs22  can also embody 
+\f2\fs22 -element or a vector of type 
+\f3\fs18 object
+\f2\fs22  is generally clear from context).  An 
+\f3\fs18 object
+\f2\fs22  vector can also embody 
 \f0\i behavior
-\f2\i0 : it has operations that it can perform using the elements it contains.  The 
+\f2\i0 : it has operations that it can perform using the elements it contains, which all belong to a 
+\f0\i class
+\f2\i0  that defines the available behaviors.  The 
 \f3\fs18 object
-\f2\fs22  type in Eidos is thus similar to objects in other languages such as Java, C++, or R \'96 except much more limited.  In Eidos you cannot define your own classes of 
+\f2\fs22  type in Eidos is thus similar to objects in other languages such as Java, C++, or R \'96 except much more limited.  In Eidos you cannot define your own 
 \f3\fs18 object
-\f2\fs22  type; you work only with the predefined 
+\f2\fs22  classes; you work only with the predefined 
 \f3\fs18 object
-\f2\fs22  types supplied by SLiM or whatever other Context you might be using Eidos within.  These predefined 
+\f2\fs22  classes supplied by SLiM or whatever other Context you might be using Eidos within.  These predefined 
 \f3\fs18 object
-\f2\fs22  types generally contain Context-dependent elements related to the task performed by the Context; in SLiM, the elements are things such as mutations, genomic elements, and mutation types (described in SLiM\'92s documentation).\
+\f2\fs22  classes generally define Context-dependent 
+\f3\fs18 object
+\f2\fs22 -elements related to the task performed by the Context; in SLiM, the classes are things such as mutations, genomic elements, and mutation types (described in SLiM\'92s documentation).  Eidos itself also supplies a few built-in 
+\f3\fs18 object
+\f2\fs22  classes, notably 
+\f3\fs18 Dictionary
+\f2\fs22  and 
+\f3\fs18 Image
+\f2\fs22 .\
 The behaviors of objects in Eidos manifest in two ways: objects can have 
 \f0\i properties
-\f2\i0  (also called instance variables or member variables in some languages) that can be read from and written to, and they can have 
+\f2\i0  (also called instance variables or member variables, in other languages) that can be read from and written to, and they can have 
 \f0\i methods
-\f2\i0  (also sometimes called member functions).  The properties of an 
+\f2\i0  (also called member functions, in other languages).  The behavior of an 
 \f3\fs18 object
-\f2\fs22  in Eidos are determined by the type of element the 
+\f2\fs22  vector in Eidos are determined by the class of element the 
 \f3\fs18 object
 \f2\fs22  contains; an Eidos 
 \f3\fs18 object
-\f2\fs22  will always contain only one type of element (just as a 
+\f2\fs22  will always contain only one class of element (just as a 
 \f3\fs18 float
 \f2\fs22  cannot contain 
 \f3\fs18 string
-\f4\fs22 -
-\f2 elements, for example).\
+\f2\fs22 -elements, for example).\
 Instances of particular 
 \f3\fs18 object
 \f2\fs22  classes \'96 particular kinds of objects \'96 are obtained via built-in functions and/or global constants and variables.  For example, in SLiM there is a global constant called 
 \f3\fs18 sim
 \f2\fs22  that represents the current simulation as an instance of the 
 \f3\fs18 SLiMSim
-\f2\fs22  class.\
-}
+\f2\fs22  class.}
