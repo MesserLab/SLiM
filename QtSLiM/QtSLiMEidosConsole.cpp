@@ -29,6 +29,7 @@
 #include "QtSLiMWindow.h"
 #include "QtSLiMPreferences.h"
 #include "QtSLiMVariableBrowser.h"
+#include "QtSLiMExtras.h"
 
 
 QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
@@ -51,7 +52,7 @@ QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
     
     // add a status bar at the bottom; there is a layout in Designer for it already
     // thanks to https://stackoverflow.com/a/6143818/2752221
-    statusBar_ = new QStatusBar(this);
+    statusBar_ = new QtSLiMStatusBar(this);
     ui->statusBarLayout->addWidget(statusBar_);
     statusBar_->setMaximumHeight(statusBar_->sizeHint().height());
     
