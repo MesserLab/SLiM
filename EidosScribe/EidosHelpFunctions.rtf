@@ -4893,12 +4893,19 @@ Returns a
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)ls(void)\
+\f1\fs18 \cf0 (void)ls(\cf2 [logical$\'a0showSymbolTables\'a0=\'a0F]\cf0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Prints all currently defined variables
 \f3\b0  to Eidos\'92s output stream.
 \f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3 \cf2 Beginning in Eidos 2.5 (SLiM 3.5), the 
+\f1\fs18 showSymbolTables
+\f3\fs20  optional argument can be set to 
+\f1\fs18 T
+\f3\fs20  to request full information on the current symbol table chain.  This will show which symbol table a given symbol is defined in, as well as revealing whether there are other symbols with the same name that have been masked by a local definition.  This is mostly useful for debugging.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)rm([Ns\'a0variableNames

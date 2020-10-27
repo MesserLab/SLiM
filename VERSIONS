@@ -71,6 +71,7 @@ development head:
 	change defineSpatialMap() to require a matrix (except in the 1D case), removing the gridSize parameter (breaking backward compatibility!), and reading the matrix in the right order (so it looks the same in SLiMgui as in the console)
 	revise recipes 15.10 and 15.11 to adjust to the changes in defineSpatialMap() (and fix a very small bug with the spatial bounds)
 	put Chromosome under retain/release (subclassing EidosDictionaryRetained) so it can be kept long-term
+	add a "showSymbolTables=F" option for ls() that, if T, shows the whole chain of symbol tables that are defined, mostly for debugging purposes
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

@@ -187,6 +187,9 @@ public:
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
 	
+	// A utility method for printing a symbol table; note this is different from operator<<, which prints the whole chain in sorted form
+	void PrintSymbolTable(std::ostream &p_outstream);
+	
 	// A utility method to add entries for defined symbols into an EidosTypeTable
 	void AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const;
 	

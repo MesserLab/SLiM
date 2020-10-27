@@ -306,7 +306,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional | kEidosValueMaskSingleton, "timed", nullptr, gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			Eidos_ExecuteFunction_exists,		kEidosValueMaskLogical))->AddString("symbol"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSignature",	Eidos_ExecuteFunction_functionSignature,	kEidosValueMaskVOID))->AddString_OSN("functionName", gStaticEidosValueNULL));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID))->AddLogical_OS("showSymbolTables", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskVOID)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL)->AddLogical_OS("removeConstants", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskVOID))->AddInt_S("seed"));
@@ -11490,12 +11490,34 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const std::v
 	return gStaticEidosValueVOID;
 }
 
-//	(void)ls(void)
+//	(void)ls([logical$ showSymbolTables = F])
 EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	p_interpreter.ExecutionOutputStream() << p_interpreter.SymbolTable();
+	bool showSymbolTables = p_arguments[0]->LogicalAtIndex(0, nullptr);
+	
+	std::ostream &outstream = p_interpreter.ExecutionOutputStream();
+	EidosSymbolTable &current_symbol_table = p_interpreter.SymbolTable();
+	
+	if (showSymbolTables)
+	{
+		EidosSymbolTable *table = &current_symbol_table;
+		
+		while (table)
+		{
+			table->PrintSymbolTable(outstream);
+			outstream << std::endl;
+			
+			// Go to the next symbol table up in the chain; note that we use ChainSymbolTable(), not ParentSymbolTable(),
+			// because we only want to show symbol tables that are relevant to the current scope
+			table = table->ChainSymbolTable();
+		}
+	}
+	else
+	{
+		outstream << current_symbol_table;
+	}
 	
 	return gStaticEidosValueVOID;
 }

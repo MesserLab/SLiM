@@ -588,6 +588,42 @@ void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symb
 	slots_[0].next_ = p_symbol_name;
 }
 
+void EidosSymbolTable::PrintSymbolTable(std::ostream &p_outstream)
+{
+	p_outstream << "EidosSymbolTable " << this << " : ";
+	
+	switch (table_type_)
+	{
+		case EidosSymbolTableType::kEidosIntrinsicConstantsTable: p_outstream << "kEidosIntrinsicConstantsTable"; break;
+		case EidosSymbolTableType::kEidosDefinedConstantsTable: p_outstream << "kEidosDefinedConstantsTable"; break;
+		case EidosSymbolTableType::kContextConstantsTable: p_outstream << "kContextConstantsTable"; break;
+		case EidosSymbolTableType::kVariablesTable: p_outstream << "kVariablesTable"; break;
+		case EidosSymbolTableType::kINVALID_TABLE_TYPE:
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::PrintSymbolTable): (internal error) invalid table type." << EidosTerminate(nullptr);
+	}
+	
+	p_outstream << std::endl;
+	
+	bool is_const = (table_type_ != EidosSymbolTableType::kVariablesTable);
+	
+	for (EidosGlobalStringID symbol = slots_->next_; symbol != 0; symbol = (slots_ + symbol)->next_)
+	{
+		const std::string &symbol_name = EidosStringRegistry::StringForGlobalStringID(symbol);
+		EidosValue *symbol_value = (slots_ + symbol)->symbol_value_SP_.get();
+		int symbol_count = symbol_value->Count();
+		
+		if (symbol_count <= 2)
+			p_outstream << "   " << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *symbol_value << std::endl;
+		else
+		{
+			EidosValue_SP first_value = symbol_value->GetValueAtIndex(0, nullptr);
+			EidosValue_SP second_value = symbol_value->GetValueAtIndex(1, nullptr);
+			
+			p_outstream << "   " << symbol_name << (is_const ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << std::endl;
+		}
+	}
+}
+
 void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
 {
 	// recurse to get the symbols from our chained symbol table
