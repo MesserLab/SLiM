@@ -327,7 +327,7 @@ private:
 	bool sim_declared_finished_ = false;											// a flag set by simulationFinished() to halt the sim at the end of the current generation
 	EidosValue_SP cached_value_generation_;											// a cached value for generation_; reset() if changed
 	
-	Chromosome chromosome_;															// the chromosome, which defines genomic elements
+	Chromosome *chromosome_;														// the chromosome, which defines genomic elements
 	Population population_;															// the population, which contains sub-populations
 	
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
@@ -554,7 +554,7 @@ public:
 	inline __attribute__((always_inline)) slim_generation_t Generation(void) const											{ return generation_; }
 	void SetGeneration(slim_generation_t p_new_generation);
 	inline __attribute__((always_inline)) SLiMGenerationStage GenerationStage(void) const									{ return generation_stage_; }
-	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return chromosome_; }
+	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return *chromosome_; }
 	inline __attribute__((always_inline)) Population &ThePopulation(void)													{ return population_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }

@@ -2306,7 +2306,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 #pragma mark Chromosome_Class
 #pragma mark -
 
-class Chromosome_Class : public EidosClass
+class Chromosome_Class : public EidosDictionaryRetained_Class
 {
 public:
 	Chromosome_Class(const Chromosome_Class &p_original) = delete;	// no copy-construct
@@ -2325,7 +2325,7 @@ EidosClass *gSLiM_Chromosome_Class = new Chromosome_Class();
 
 const EidosClass *Chromosome_Class::Superclass(void) const
 {
-	return gEidosDictionaryUnretained_Class;
+	return gEidosDictionaryRetained_Class;
 }
 
 const std::string &Chromosome_Class::ElementType(void) const

@@ -40,7 +40,7 @@
 - (void)configSheetLoaded
 {
 	// find last defined chromosome position
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	slim_position_t lastPosition = 0;
 	
 	for (GenomicElement *element : chromosome.GenomicElements())

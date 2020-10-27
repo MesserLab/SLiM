@@ -268,7 +268,7 @@
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = sim->chromosome_.last_position_;
+	mutationLastPosition = sim->chromosome_->last_position_;
 }
 
 // Delegate the genome sorting to the appropriate method based on our configuration

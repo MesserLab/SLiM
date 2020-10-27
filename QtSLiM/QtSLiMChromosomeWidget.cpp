@@ -220,7 +220,7 @@ QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(void)
 	else
 	{
         QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-		Chromosome &chromosome = controller->sim->chromosome_;
+		Chromosome &chromosome = controller->sim->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return QtSLiMRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -300,7 +300,7 @@ QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(void)
 	else
 	{
         QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-		Chromosome &chromosome = controller->sim->chromosome_;
+		Chromosome &chromosome = controller->sim->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return QtSLiMRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -504,7 +504,7 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 
 void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-    Chromosome &chromosome = controller->sim->chromosome_;
+    Chromosome &chromosome = controller->sim->TheChromosome();
 	int previousIntervalLeftEdge = -10000;
 	
 	SLIM_GL_PREPARE();
@@ -857,7 +857,7 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, QtSLi
     double scalingFactor = 0.8; // controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-    Chromosome &chromosome = sim->chromosome_;
+    Chromosome &chromosome = sim->TheChromosome();
 	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
@@ -1069,7 +1069,7 @@ void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attr
 
 void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	
 	if (chromosome.single_recombination_map_)
 	{
@@ -1092,7 +1092,7 @@ void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, Q
 
 void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	
 	if (chromosome.single_mutation_map_)
 	{
@@ -1115,7 +1115,7 @@ void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, QtSLiM
 
 void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	bool recombinationWorthShowing = false;
 	bool mutationWorthShowing = false;
 	
@@ -1228,7 +1228,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *event)
 			{
 				slim_position_t clickedBase = baseForPosition(curPoint.x(), interiorRect, displayedRange);
 				QtSLiMRange selectionRange = QtSLiMRange(0, 0);
-				Chromosome &chromosome = controller->sim->chromosome_;
+				Chromosome &chromosome = controller->sim->TheChromosome();
 				
 				for (GenomicElement *genomicElement : chromosome.GenomicElements())
 				{

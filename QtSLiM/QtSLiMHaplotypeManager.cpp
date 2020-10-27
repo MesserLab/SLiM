@@ -312,7 +312,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = sim->chromosome_.last_position_;
+	mutationLastPosition = sim->chromosome_->last_position_;
 }
 
 void QtSLiMHaplotypeManager::sortGenomes(void)

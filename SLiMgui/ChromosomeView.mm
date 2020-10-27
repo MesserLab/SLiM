@@ -219,7 +219,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	else
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-		Chromosome &chromosome = controller->sim->chromosome_;
+		Chromosome &chromosome = controller->sim->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -294,7 +294,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	else
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-		Chromosome &chromosome = controller->sim->chromosome_;
+		Chromosome &chromosome = controller->sim->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -422,7 +422,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	CGFloat previousIntervalLeftEdge = -10000;
 	
 	for (GenomicElement *genomicElement : chromosome.GenomicElements())
@@ -462,7 +462,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	CGFloat previousIntervalLeftEdge = -10000;
 	
 	SLIM_GL_PREPARE();
@@ -679,7 +679,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	
 	if (chromosome.single_recombination_map_)
 	{
@@ -702,7 +702,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	
 	if (chromosome.single_recombination_map_)
 	{
@@ -727,7 +727,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawMutationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	
 	if (chromosome.single_mutation_map_)
 	{
@@ -750,7 +750,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawMutationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	
 	if (chromosome.single_mutation_map_)
 	{
@@ -775,7 +775,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawRateMapsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	BOOL recombinationWorthShowing = NO;
 	BOOL mutationWorthShowing = NO;
 	
@@ -815,7 +815,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawRateMapsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->sim->chromosome_;
+	Chromosome &chromosome = controller->sim->TheChromosome();
 	BOOL recombinationWorthShowing = NO;
 	BOOL mutationWorthShowing = NO;
 	
@@ -861,7 +861,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	double scalingFactor = controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	Chromosome &chromosome = sim->chromosome_;
+	Chromosome &chromosome = sim->TheChromosome();
 	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
 	
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f;
@@ -990,7 +990,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	double scalingFactor = controller->selectionColorScale;
 	SLiMSim *sim = controller->sim;
 	Population &pop = sim->population_;
-	Chromosome &chromosome = sim->chromosome_;
+	Chromosome &chromosome = sim->TheChromosome();
 	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
@@ -1870,7 +1870,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			{
 				slim_position_t clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];
 				NSRange selectionRange = NSMakeRange(0, 0);
-				Chromosome &chromosome = controller->sim->chromosome_;
+				Chromosome &chromosome = controller->sim->TheChromosome();
 				
 				for (GenomicElement *genomicElement : chromosome.GenomicElements())
 				{

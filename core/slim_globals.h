@@ -281,7 +281,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  descend from EidosObject.  Most of these have their ownership and lifetime managed by the simulation; when
  an Individual dies, for example, the object ceases to exist at that time, and will be disposed of.  A subclass of
  EidosObject, EidosDictionaryRetained, provides retain/release style memory management for objects that are
- visible in Eidos; at present, Mutation and Substitution take advantage of this optional facility, and can thus be
+ visible in Eidos; Chromosome, Mutation, and Substitution take advantage of this optional facility, and can thus be
  held onto long-term in Eidos with defineConstant() or setValue().  In either case, objects might be allocated out
  of several different pools: some objects are allocated with new, some out of EidosObjectPool.  EidosValue objects
  themselves (which can contain pointers to EidosObjects) are always allocated from a global EidosObjectPool
@@ -294,7 +294,6 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  EidosDictionaryUnretained : EidosObject subclass that provides dictionary-style key-value Eidos methods
  EidosDictionaryRetained : EidosDictionaryUnretained subclass that provides retain/release memory management
  
- Chromosome : EidosObject subclass, allocated with new and never deleted
  GenomicElement : EidosObject subclass, allocated with new and never deleted
  SLiMgui : EidosObject subclass, allocated with new and never deleted
  GenomicElementType : EidosDictionaryUnretained subclass, allocated with new and never deleted
@@ -308,6 +307,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  Individual : EidosDictionaryUnretained subclass, allocated out of an EidosObjectPool owned by its subpopulation
  Subpopulation : EidosDictionaryUnretained subclass, allocated with new/delete
  
+ Chromosome : EidosDictionaryRetained subclass, allocated with new/delete
  Substitution : EidosDictionaryRetained subclass, allocated with new/delete
  Mutation : EidosDictionaryRetained subclass, allocated out of a special global pool, gSLiM_Mutation_Block
  

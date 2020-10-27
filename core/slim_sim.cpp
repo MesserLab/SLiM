@@ -78,8 +78,11 @@ static const char *SLIM_TREES_FILE_VERSION = "0.5";				// SLiM 3.5.x onward, wit
 #pragma mark SLiMSim
 #pragma mark -
 
-SLiMSim::SLiMSim(std::istream &p_infile) : chromosome_(this), population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
+SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
 {
+	// Create our Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
+	chromosome_ = new Chromosome(this);
+	
 	// set up the symbol table we will use for all of our constants; we use the external hash table design
 	// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
 	// that that is actually a bit slower.  I suspect it crosses over for models with more SLiM symbols; but EidosSymbolTable
@@ -155,6 +158,10 @@ SLiMSim::~SLiMSim(void)
 	// TREE SEQUENCE RECORDING
 	if (RecordingTreeSequence())
 		FreeTreeSequence();
+	
+	// Let go of our chromosome object
+	chromosome_->Release();
+	chromosome_ = nullptr;
 }
 
 void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
@@ -845,7 +852,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 	// Conveniently, NucleotideArray supports operator>> to read nucleotides until the EOF
 	if (line.find("Ancestral sequence") != std::string::npos)
 	{
-		infile >> *(chromosome_.AncestralSequence());
+		infile >> *(chromosome_->AncestralSequence());
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
@@ -1525,7 +1532,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		}
 		else
 		{
-			chromosome_.AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
+			chromosome_->AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
 			
 			if (p + sizeof(section_end_tag) > buf_end)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after ancestral sequence." << EidosTerminate();
@@ -2269,7 +2276,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 			SLIM_PROFILE_BLOCK_START();
 #endif
 			
-			population_.ExecuteScript(script_block, generation_, chromosome_);
+			population_.ExecuteScript(script_block, generation_, *chromosome_);
 			
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 			// PROFILING
@@ -2304,27 +2311,27 @@ void SLiMSim::RunInitializeCallbacks(void)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << EidosTerminate();
 	
 	
-	if ((chromosome_.recombination_rates_H_.size() != 0) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0)))
+	if ((chromosome_->recombination_rates_H_.size() != 0) && ((chromosome_->recombination_rates_M_.size() != 0) || (chromosome_->recombination_rates_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
 	
-	if (((chromosome_.recombination_rates_M_.size() == 0) && (chromosome_.recombination_rates_F_.size() != 0)) ||
-		((chromosome_.recombination_rates_M_.size() != 0) && (chromosome_.recombination_rates_F_.size() == 0)))
+	if (((chromosome_->recombination_rates_M_.size() == 0) && (chromosome_->recombination_rates_F_.size() != 0)) ||
+		((chromosome_->recombination_rates_M_.size() != 0) && (chromosome_->recombination_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
 	
 	
-	if ((chromosome_.mutation_rates_H_.size() != 0) && ((chromosome_.mutation_rates_M_.size() != 0) || (chromosome_.mutation_rates_F_.size() != 0)))
+	if ((chromosome_->mutation_rates_H_.size() != 0) && ((chromosome_->mutation_rates_M_.size() != 0) || (chromosome_->mutation_rates_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific mutation rates." << EidosTerminate();
 	
-	if (((chromosome_.mutation_rates_M_.size() == 0) && (chromosome_.mutation_rates_F_.size() != 0)) ||
-		((chromosome_.mutation_rates_M_.size() != 0) && (chromosome_.mutation_rates_F_.size() == 0)))
+	if (((chromosome_->mutation_rates_M_.size() == 0) && (chromosome_->mutation_rates_F_.size() != 0)) ||
+		((chromosome_->mutation_rates_M_.size() != 0) && (chromosome_->mutation_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific mutation rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
 	
 	
-	if ((chromosome_.hotspot_multipliers_H_.size() != 0) && ((chromosome_.hotspot_multipliers_M_.size() != 0) || (chromosome_.hotspot_multipliers_F_.size() != 0)))
+	if ((chromosome_->hotspot_multipliers_H_.size() != 0) && ((chromosome_->hotspot_multipliers_M_.size() != 0) || (chromosome_->hotspot_multipliers_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific hotspot maps." << EidosTerminate();
 	
-	if (((chromosome_.hotspot_multipliers_M_.size() == 0) && (chromosome_.hotspot_multipliers_F_.size() != 0)) ||
-		((chromosome_.hotspot_multipliers_M_.size() != 0) && (chromosome_.hotspot_multipliers_F_.size() == 0)))
+	if (((chromosome_->hotspot_multipliers_M_.size() == 0) && (chromosome_->hotspot_multipliers_F_.size() != 0)) ||
+		((chromosome_->hotspot_multipliers_M_.size() != 0) && (chromosome_->hotspot_multipliers_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << EidosTerminate();
 	
 	
@@ -2357,7 +2364,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	{
 		if (num_ancseq_declarations_ == 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralNucleotides()." << EidosTerminate();
-		if (!chromosome_.ancestral_seq_buffer_)
+		if (!chromosome_->ancestral_seq_buffer_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
 	}
 	
@@ -2377,13 +2384,13 @@ void SLiMSim::RunInitializeCallbacks(void)
 	{
 		bool mut_rate_zero = true;
 		
-		for (double rate : chromosome_.mutation_rates_H_)
+		for (double rate : chromosome_->mutation_rates_H_)
 			if (rate != 0.0) { mut_rate_zero = false; break; }
 		if (mut_rate_zero)
-			for (double rate : chromosome_.mutation_rates_M_)
+			for (double rate : chromosome_->mutation_rates_M_)
 				if (rate != 0.0) { mut_rate_zero = false; break; }
 		if (mut_rate_zero)
-			for (double rate : chromosome_.mutation_rates_F_)
+			for (double rate : chromosome_->mutation_rates_F_)
 				if (rate != 0.0) { mut_rate_zero = false; break; }
 		
 		if (!mut_rate_zero)
@@ -2418,14 +2425,14 @@ void SLiMSim::RunInitializeCallbacks(void)
 	simulation_constants_->InitializeConstantSymbolEntry(SymbolTableEntry());
 	
 	// initialize chromosome
-	chromosome_.InitializeDraws();
-	chromosome_.ChooseMutationRunLayout(preferred_mutrun_count_);
+	chromosome_->InitializeDraws();
+	chromosome_->ChooseMutationRunLayout(preferred_mutrun_count_);
 	
 	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
 	if (nucleotide_based_)
 	{
-		if (chromosome_.ancestral_seq_buffer_->size() != (std::size_t)(chromosome_.last_position_ + 1))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): The chromosome length (" << chromosome_.last_position_ + 1 << " base" << (chromosome_.last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome_.ancestral_seq_buffer_->size() << " base" << (chromosome_.ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
+		if (chromosome_->ancestral_seq_buffer_->size() != (std::size_t)(chromosome_->last_position_ + 1))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): The chromosome length (" << chromosome_->last_position_ + 1 << " base" << (chromosome_->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome_->ancestral_seq_buffer_->size() << " base" << (chromosome_->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
 	
 	// kick off mutation run experiments, if needed
@@ -2455,7 +2462,7 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 		
 		return;
 	}
-	if (chromosome_.mutrun_length_ <= SLIM_MUTRUN_MAXIMUM_COUNT)
+	if (chromosome_->mutrun_length_ <= SLIM_MUTRUN_MAXIMUM_COUNT)
 	{
 		// If the chromosome length is too short, go with that and don't run experiments;
 		// we want to guarantee that with SLIM_MUTRUN_MAXIMUM_COUNT runs each mutrun is at
@@ -2473,7 +2480,7 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 	
 	x_experiments_enabled_ = true;
 	
-	x_current_mutcount_ = chromosome_.mutrun_count_;
+	x_current_mutcount_ = chromosome_->mutrun_count_;
 	x_current_runtimes_ = (double *)malloc(SLIM_MUTRUN_EXPERIMENT_LENGTH * sizeof(double));
 	x_current_buflen_ = 0;
 	
@@ -2859,13 +2866,13 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	}
 	
 	// Promulgate the new mutation run count
-	if (x_current_mutcount_ != chromosome_.mutrun_count_)
+	if (x_current_mutcount_ != chromosome_->mutrun_count_)
 	{
 		// Fix all genomes.  We could do this by brute force, by making completely new mutation runs for every
 		// existing genome and then calling Population::UniqueMutationRuns(), but that would be inefficient,
 		// and would also cause a huge memory usage spike.  Instead, we want to preserve existing redundancy.
 		
-		while (x_current_mutcount_ > chromosome_.mutrun_count_)
+		while (x_current_mutcount_ > chromosome_->mutrun_count_)
 		{
 #if MUTRUN_EXPERIMENT_OUTPUT
 			std::clock_t start_clock = std::clock();
@@ -2873,19 +2880,19 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			
 			// We are splitting existing runs in two, so make a map from old mutrun index to new pair of
 			// mutrun indices; every time we encounter the same old index we will substitute the same pair.
-			population_.SplitMutationRuns(chromosome_.mutrun_count_ * 2);
+			population_.SplitMutationRuns(chromosome_->mutrun_count_ * 2);
 			
 			// Fix the chromosome values
-			chromosome_.mutrun_count_ *= 2;
-			chromosome_.mutrun_length_ /= 2;
+			chromosome_->mutrun_count_ *= 2;
+			chromosome_->mutrun_length_ /= 2;
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbose_output)
-				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << chromosome_.mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
+				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
 		
-		while (x_current_mutcount_ < chromosome_.mutrun_count_)
+		while (x_current_mutcount_ < chromosome_->mutrun_count_)
 		{
 #if MUTRUN_EXPERIMENT_OUTPUT
 			std::clock_t start_clock = std::clock();
@@ -2893,19 +2900,19 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			
 			// We are joining existing runs together, so make a map from old mutrun index pairs to a new
 			// index; every time we encounter the same pair of indices we will substitute the same index.
-			population_.JoinMutationRuns(chromosome_.mutrun_count_ / 2);
+			population_.JoinMutationRuns(chromosome_->mutrun_count_ / 2);
 			
 			// Fix the chromosome values
-			chromosome_.mutrun_count_ /= 2;
-			chromosome_.mutrun_length_ *= 2;
+			chromosome_->mutrun_count_ /= 2;
+			chromosome_->mutrun_length_ *= 2;
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbose_output)
-				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << chromosome_.mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
+				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
 		
-		if (chromosome_.mutrun_count_ != x_current_mutcount_)
+		if (chromosome_->mutrun_count_ != x_current_mutcount_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << EidosTerminate();
 	}
 }
@@ -2916,7 +2923,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
 {
 	// maintain our history of the number of mutruns per genome and the nonneutral regime
-	profile_mutcount_history_.push_back(chromosome_.mutrun_count_);
+	profile_mutcount_history_.push_back(chromosome_->mutrun_count_);
 	profile_nonneutral_regime_history_.push_back(last_nonneutral_regime_);
 	
 	// track the maximum number of mutations in existence at one time
@@ -3137,7 +3144,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 				SLIM_PROFILE_BLOCK_START_NESTED();
 #endif
 				
-				population_.ExecuteScript(script_block, generation_, chromosome_);
+				population_.ExecuteScript(script_block, generation_, *chromosome_);
 				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING
@@ -3418,7 +3425,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 				SLIM_PROFILE_BLOCK_START_NESTED();
 #endif
 				
-				population_.ExecuteScript(script_block, generation_, chromosome_);
+				population_.ExecuteScript(script_block, generation_, *chromosome_);
 				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING
@@ -3734,7 +3741,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 				SLIM_PROFILE_BLOCK_START_NESTED();
 #endif
 				
-				population_.ExecuteScript(script_block, generation_, chromosome_);
+				population_.ExecuteScript(script_block, generation_, *chromosome_);
 				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING
@@ -3885,7 +3892,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 				SLIM_PROFILE_BLOCK_START_NESTED();
 #endif
 				
-				population_.ExecuteScript(script_block, generation_, chromosome_);
+				population_.ExecuteScript(script_block, generation_, *chromosome_);
 				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING
@@ -4288,19 +4295,19 @@ void SLiMSim::CreateNucleotideMutationRateMap(void)
 	// though.  So this method is, in a sense, an internal call to initializeMutationRate() that sets up the right
 	// rate map to achieve what the user has requested through other APIs.
 	
-	std::vector<slim_position_t> &hotspot_end_positions_H = chromosome_.hotspot_end_positions_H_;
-	std::vector<slim_position_t> &hotspot_end_positions_M = chromosome_.hotspot_end_positions_M_;
-	std::vector<slim_position_t> &hotspot_end_positions_F = chromosome_.hotspot_end_positions_F_;
-	std::vector<double> &hotspot_multipliers_H = chromosome_.hotspot_multipliers_H_;
-	std::vector<double> &hotspot_multipliers_M = chromosome_.hotspot_multipliers_M_;
-	std::vector<double> &hotspot_multipliers_F = chromosome_.hotspot_multipliers_F_;
+	std::vector<slim_position_t> &hotspot_end_positions_H = chromosome_->hotspot_end_positions_H_;
+	std::vector<slim_position_t> &hotspot_end_positions_M = chromosome_->hotspot_end_positions_M_;
+	std::vector<slim_position_t> &hotspot_end_positions_F = chromosome_->hotspot_end_positions_F_;
+	std::vector<double> &hotspot_multipliers_H = chromosome_->hotspot_multipliers_H_;
+	std::vector<double> &hotspot_multipliers_M = chromosome_->hotspot_multipliers_M_;
+	std::vector<double> &hotspot_multipliers_F = chromosome_->hotspot_multipliers_F_;
 	
-	std::vector<slim_position_t> &mut_positions_H = chromosome_.mutation_end_positions_H_;
-	std::vector<slim_position_t> &mut_positions_M = chromosome_.mutation_end_positions_M_;
-	std::vector<slim_position_t> &mut_positions_F = chromosome_.mutation_end_positions_F_;
-	std::vector<double> &mut_rates_H = chromosome_.mutation_rates_H_;
-	std::vector<double> &mut_rates_M = chromosome_.mutation_rates_M_;
-	std::vector<double> &mut_rates_F = chromosome_.mutation_rates_F_;
+	std::vector<slim_position_t> &mut_positions_H = chromosome_->mutation_end_positions_H_;
+	std::vector<slim_position_t> &mut_positions_M = chromosome_->mutation_end_positions_M_;
+	std::vector<slim_position_t> &mut_positions_F = chromosome_->mutation_end_positions_F_;
+	std::vector<double> &mut_rates_H = chromosome_->mutation_rates_H_;
+	std::vector<double> &mut_rates_M = chromosome_->mutation_rates_M_;
+	std::vector<double> &mut_rates_F = chromosome_->mutation_rates_F_;
 	
 	// clear the mutation map; there may be old cruft in there, if we're called by setHotspotMap() for example
 	mut_positions_H.clear();
@@ -4390,11 +4397,11 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 		
 		p_usage->chromosomeObjects = sizeof(Chromosome) * p_usage->chromosomeObjects_count;
 		
-		p_usage->chromosomeMutationRateMaps = chromosome_.MemoryUsageForMutationMaps();
+		p_usage->chromosomeMutationRateMaps = chromosome_->MemoryUsageForMutationMaps();
 		
-		p_usage->chromosomeRecombinationRateMaps = chromosome_.MemoryUsageForRecombinationMaps();
+		p_usage->chromosomeRecombinationRateMaps = chromosome_->MemoryUsageForRecombinationMaps();
 		
-		p_usage->chromosomeAncestralSequence = chromosome_.MemoryUsageForAncestralSequence();
+		p_usage->chromosomeAncestralSequence = chromosome_->MemoryUsageForAncestralSequence();
 	}
 	
 	// Genome
@@ -4416,7 +4423,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	
 	// GenomicElement
 	{
-		p_usage->genomicElementObjects_count = (int64_t)chromosome_.GenomicElementCount();
+		p_usage->genomicElementObjects_count = (int64_t)chromosome_->GenomicElementCount();
 		
 		p_usage->genomicElementObjects = sizeof(GenomicElement) * p_usage->genomicElementObjects_count;
 	}
@@ -5105,7 +5112,7 @@ void SLiMSim::AllocateTreeSequenceTables(void)
 	int ret = tsk_table_collection_init(&tables_, TSK_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
 	
-	tables_.sequence_length = (double)chromosome_.last_position_ + 1;
+	tables_.sequence_length = (double)chromosome_->last_position_ + 1;
 	
 	RecordTablePosition();
 }
@@ -5186,7 +5193,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	// fix possible excess past-the-end breakpoint
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	
-	if (breakpoint_count && (p_breakpoints->back() > chromosome_.last_position_))
+	if (breakpoint_count && (p_breakpoints->back() > chromosome_->last_position_))
 		breakpoint_count--;
 	
 	// add an edge for each interval between breakpoints
@@ -5206,7 +5213,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 		left = right;
 	}
 	
-	right = (double)chromosome_.last_position_+1;
+	right = (double)chromosome_->last_position_+1;
 	tsk_id_t parent = (tsk_id_t) (polarity ? genome1TSKID : genome2TSKID);
 	int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 	if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
@@ -6917,12 +6924,12 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		// In nucleotide-based models, write out the ancestral sequence, re-opening the kastore to append
 		if (nucleotide_based_)
 		{
-			std::size_t buflen = chromosome_.AncestralSequence()->size();
+			std::size_t buflen = chromosome_->AncestralSequence()->size();
 			char *buffer;	// kastore needs to provide us with a memory location to which to write the data
 			kastore_t store;
 			
 			buffer = (char *)malloc(buflen);
-			chromosome_.AncestralSequence()->WriteNucleotidesToBuffer(buffer);
+			chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
 			
 			ret = kastore_open(&store, path.c_str(), "a", 0);
 			if (ret < 0) handle_error("kastore_open", ret);
@@ -6988,7 +6995,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 				if (!outfile.is_open())
 					EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): treeSeqOutput() could not open "<< RefSeqFileName << "." << EidosTerminate();
 				
-				outfile << *(chromosome_.AncestralSequence());
+				outfile << *(chromosome_->AncestralSequence());
 				outfile.close();
 			}
 		}
@@ -8221,7 +8228,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	SLiMModelType file_model_type;
 	int file_version;
 	
-	if (tables_.sequence_length != chromosome_.last_position_ + 1)
+	if (tables_.sequence_length != chromosome_->last_position_ + 1)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population does not match the configured chromosome length." << EidosTerminate();
 	
 	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
@@ -8384,7 +8391,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 		if (!infile.is_open())
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitTextFile): readFromPopulationFile() could not open "<< RefSeqFileName << "; this model is nucleotide-based, but the ancestral sequence is missing or unreadable." << EidosTerminate();
 		
-		infile >> *(chromosome_.AncestralSequence());	// raises if the sequence is the wrong length
+		infile >> *(chromosome_->AncestralSequence());	// raises if the sequence is the wrong length
 		infile.close();
 	}
 	
@@ -8446,10 +8453,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 		
 		if (!buffer)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitBinaryFile): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
-		if (buffer_length != chromosome_.AncestralSequence()->size())
+		if (buffer_length != chromosome_->AncestralSequence()->size())
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
 		
-		chromosome_.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
+		chromosome_->AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
 		
 		// buffer is owned by kastore and is freed by closing the store
         kastore_close(&store);

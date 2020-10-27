@@ -4719,8 +4719,10 @@ If
 \f3\fs20  type then 
 \f1\fs18 value
 \f3\fs20 \'92s class must be under retain/release memory management internally.  This restriction is necessary because if the Context defines the point in time when a given object ceases to exist (rather than that being governed by retain/release), then a defined constant referencing that object would become invalid, which must be prevented.  At present, among the classes defined by SLiM, only 
+\f1\fs18 Chromosome
+\f3\fs20 , 
 \f1\fs18 Mutation
-\f3\fs20  and 
+\f3\fs20 , and 
 \f1\fs18 Substitution
 \f3\fs20  are under retain/release; all object classes built into Eidos are under retain/release.\
 The name cannot previously be defined in any way (i.e., as either a variable or a constant).  The defined constant acts identically to intrinsic Eidos constants such as 

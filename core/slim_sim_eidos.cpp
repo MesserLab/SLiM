@@ -112,8 +112,8 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			// singleton case
 			int64_t int_value = sequence_value->IntAtIndex(0, nullptr);
 			
-			chromosome_.ancestral_seq_buffer_ = new NucleotideArray(1);
-			chromosome_.ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
+			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(1);
+			chromosome_->ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
 		}
 		else
 		{
@@ -122,7 +122,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			const int64_t *int_data = int_vec->data();
 			
 			try {
-				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
+				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 			} catch (...) {
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
 			}
@@ -136,7 +136,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			const std::vector<std::string> *string_vec = sequence_value->StringVector();
 			
 			try {
-				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
+				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
 			} catch (...) {
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): string nucleotide values must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
@@ -147,7 +147,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			bool contains_only_nuc = true;
 			
 			try {
-				chromosome_.ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
+				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
 			} catch (...) {
 				contains_only_nuc = false;
 			}
@@ -190,7 +190,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
 				
 				try {
-					chromosome_.ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
+					chromosome_->ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
 				} catch (...) {
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
 				}
@@ -199,17 +199,17 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 	}
 	
 	// debugging
-	//std::cout << "ancestral sequence set: " << *chromosome_.ancestral_seq_buffer_ << std::endl;
+	//std::cout << "ancestral sequence set: " << *chromosome_->ancestral_seq_buffer_ << std::endl;
 	
 	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeAncestralNucleotides(\"";
 		
 		// output up to 20 nucleotides, followed by an ellipsis if necessary
-		for (std::size_t i = 0; (i < 20) && (i < chromosome_.ancestral_seq_buffer_->size()); ++i)
-			output_stream << "ACGT"[chromosome_.ancestral_seq_buffer_->NucleotideAtIndex(i)];
+		for (std::size_t i = 0; (i < 20) && (i < chromosome_->ancestral_seq_buffer_->size()); ++i)
+			output_stream << "ACGT"[chromosome_->ancestral_seq_buffer_->NucleotideAtIndex(i)];
 		
-		if (chromosome_.ancestral_seq_buffer_->size() > 20)
+		if (chromosome_->ancestral_seq_buffer_->size() > 20)
 			output_stream << gEidosStr_ELLIPSIS;
 		
 		output_stream << "\");" << std::endl;
@@ -217,7 +217,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 	
 	num_ancseq_declarations_++;
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(chromosome_.ancestral_seq_buffer_->size()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(chromosome_->ancestral_seq_buffer_->size()));
 }
 
 //	*********************	(object<GenomicElement>)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)
@@ -260,7 +260,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
 		if (start_position <= last_genomic_element_position_)
 		{
-			for (GenomicElement *element : chromosome_.GenomicElements())
+			for (GenomicElement *element : chromosome_->GenomicElements())
 			{
 				if ((element->start_position_ <= end_position) && (element->end_position_ >= start_position))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << EidosTerminate();
@@ -273,7 +273,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElement(const std
 		// Create and add the new element
 		GenomicElement *new_genomic_element = new GenomicElement(genomic_element_type_ptr, start_position, end_position);
 		
-		chromosome_.GenomicElements().emplace_back(new_genomic_element);
+		chromosome_->GenomicElements().emplace_back(new_genomic_element);
 		result_vec->set_object_element_no_check_NORR(new_genomic_element, element_index);
 		
 		chromosome_changed_ = true;
@@ -614,18 +614,18 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeRecombinationRate(const 
 	
 	// Make sure specifying a map for that sex is legal, given our current state.  Since single_recombination_map_ has not been set
 	// yet, we just look to see whether the chromosome's policy has already been determined or not.
-	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.recombination_rates_M_.size() != 0) || (chromosome_.recombination_rates_F_.size() != 0))) ||
-		((requested_sex != IndividualSex::kUnspecified) && (chromosome_.recombination_rates_H_.size() != 0)))
+	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_->recombination_rates_M_.size() != 0) || (chromosome_->recombination_rates_F_.size() != 0))) ||
+		((requested_sex != IndividualSex::kUnspecified) && (chromosome_->recombination_rates_H_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	if (((requested_sex == IndividualSex::kUnspecified) && (num_recombination_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_recombination_rates_ > 1)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() may be called only once (or once per sex, with sex-specific recombination maps).  The multiple recombination regions of a recombination map must be set up in a single call to initializeRecombinationRate()." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_end_positions_H_ : 
-											   ((requested_sex == IndividualSex::kMale) ? chromosome_.recombination_end_positions_M_ : chromosome_.recombination_end_positions_F_));
-	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.recombination_rates_H_ : 
-								  ((requested_sex == IndividualSex::kMale) ? chromosome_.recombination_rates_M_ : chromosome_.recombination_rates_F_));
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->recombination_end_positions_H_ : 
+											   ((requested_sex == IndividualSex::kMale) ? chromosome_->recombination_end_positions_M_ : chromosome_->recombination_end_positions_F_));
+	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->recombination_rates_H_ : 
+								  ((requested_sex == IndividualSex::kMale) ? chromosome_->recombination_rates_M_ : chromosome_->recombination_rates_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -762,12 +762,12 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGeneConversion(const std
 	if ((bias != 0.0) && !nucleotide_based_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() bias must be 0.0 in non-nucleotide-based models." << EidosTerminate();
 	
-	chromosome_.using_DSB_model_ = true;
-	chromosome_.non_crossover_fraction_ = non_crossover_fraction;
-	chromosome_.gene_conversion_avg_length_ = gene_conversion_avg_length;
-	chromosome_.gene_conversion_inv_half_length_ = 1.0 / (gene_conversion_avg_length / 2.0);
-	chromosome_.simple_conversion_fraction_ = simple_conversion_fraction;
-	chromosome_.mismatch_repair_bias_ = bias;
+	chromosome_->using_DSB_model_ = true;
+	chromosome_->non_crossover_fraction_ = non_crossover_fraction;
+	chromosome_->gene_conversion_avg_length_ = gene_conversion_avg_length;
+	chromosome_->gene_conversion_inv_half_length_ = 1.0 / (gene_conversion_avg_length / 2.0);
+	chromosome_->simple_conversion_fraction_ = simple_conversion_fraction;
+	chromosome_->mismatch_repair_bias_ = bias;
 	
 	if (SLiM_verbosity_level >= 1)
 		output_stream << "initializeGeneConversion(" << non_crossover_fraction << ", " << gene_conversion_avg_length << ", " << simple_conversion_fraction << ", " << bias << ");" << std::endl;
@@ -809,18 +809,18 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeHotspotMap(const std::st
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() sex-specific hotspot map supplied in non-sexual simulation." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state
-	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.hotspot_multipliers_M_.size() != 0) || (chromosome_.hotspot_multipliers_F_.size() != 0))) ||
-		((requested_sex != IndividualSex::kUnspecified) && (chromosome_.hotspot_multipliers_H_.size() != 0)))
+	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_->hotspot_multipliers_M_.size() != 0) || (chromosome_->hotspot_multipliers_F_.size() != 0))) ||
+		((requested_sex != IndividualSex::kUnspecified) && (chromosome_->hotspot_multipliers_H_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	if (((requested_sex == IndividualSex::kUnspecified) && (num_hotspot_maps_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_hotspot_maps_ > 1)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() may be called only once (or once per sex, with sex-specific hotspot maps).  The multiple hotspot regions of a hotspot map must be set up in a single call to initializeHotspotMap()." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.hotspot_end_positions_H_ : 
-											   ((requested_sex == IndividualSex::kMale) ? chromosome_.hotspot_end_positions_M_ : chromosome_.hotspot_end_positions_F_));
-	std::vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.hotspot_multipliers_H_ : 
-								  ((requested_sex == IndividualSex::kMale) ? chromosome_.hotspot_multipliers_M_ : chromosome_.hotspot_multipliers_F_));
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->hotspot_end_positions_H_ : 
+											   ((requested_sex == IndividualSex::kMale) ? chromosome_->hotspot_end_positions_M_ : chromosome_->hotspot_end_positions_F_));
+	std::vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->hotspot_multipliers_H_ : 
+								  ((requested_sex == IndividualSex::kMale) ? chromosome_->hotspot_multipliers_M_ : chromosome_->hotspot_multipliers_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -960,18 +960,18 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	
 	// Make sure specifying a map for that sex is legal, given our current state.  Since single_mutation_map_ has not been set
 	// yet, we just look to see whether the chromosome's policy has already been determined or not.
-	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_.mutation_rates_M_.size() != 0) || (chromosome_.mutation_rates_F_.size() != 0))) ||
-		((requested_sex != IndividualSex::kUnspecified) && (chromosome_.mutation_rates_H_.size() != 0)))
+	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_->mutation_rates_M_.size() != 0) || (chromosome_->mutation_rates_F_.size() != 0))) ||
+		((requested_sex != IndividualSex::kUnspecified) && (chromosome_->mutation_rates_H_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
 	if (((requested_sex == IndividualSex::kUnspecified) && (num_mutation_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_mutation_rates_ > 1)))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_end_positions_H_ : 
-											   ((requested_sex == IndividualSex::kMale) ? chromosome_.mutation_end_positions_M_ : chromosome_.mutation_end_positions_F_));
-	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_.mutation_rates_H_ : 
-								  ((requested_sex == IndividualSex::kMale) ? chromosome_.mutation_rates_M_ : chromosome_.mutation_rates_F_));
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->mutation_end_positions_H_ : 
+											   ((requested_sex == IndividualSex::kMale) ? chromosome_->mutation_end_positions_M_ : chromosome_->mutation_end_positions_F_));
+	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->mutation_rates_H_ : 
+								  ((requested_sex == IndividualSex::kMale) ? chromosome_->mutation_rates_M_ : chromosome_->mutation_rates_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -1544,7 +1544,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gID_chromosome:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&chromosome_, gSLiM_Chromosome_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(chromosome_, gSLiM_Chromosome_Class));
 		case gID_chromosomeType:
 		{
 			switch (modeled_chromosome_type_)
