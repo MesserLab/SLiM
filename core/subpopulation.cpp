@@ -1850,7 +1850,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
 						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
-						EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+						EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 						EidosFunctionMap &function_map = sim.FunctionMap();
 						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &sim);
 						
@@ -1988,7 +1988,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
-					EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = sim.FunctionMap();
 					EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &sim);
 					
@@ -3005,7 +3005,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
-					EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = sim.FunctionMap();
 					EidosInterpreter interpreter(reproduction_callback->compound_statement_node_, client_symbols, function_map, &sim);
 					

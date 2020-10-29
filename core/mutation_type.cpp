@@ -280,7 +280,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			
 			try
 			{
-				EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &sim_.SymbolTable());
+				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &sim_.SymbolTable());
 				EidosFunctionMap &function_map = sim_.FunctionMap();
 				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, nullptr);
 				

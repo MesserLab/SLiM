@@ -85,7 +85,7 @@ typedef struct {
 // constants table holds Eidos constants like T, F, INF, and NAN.  The defined constants table, which should be
 // the direct child of the intrinsic table, holds constants defined by the user with DefineConstantForSymbol().
 // The context constants table is used by the Context for its own constants; SLiM uses it for constants like
-// sim, p1, g1, m1, s1, etc.  Finally, the variables table contains all user-defined variables.  This linked-list
+// sim, p1, g1, m1, s1, etc.  Finally, the variables tables contain all user-defined variables.  This linked-list
 // design for the symbol table makes it easy to throw out variables while keeping constants, to differentiate
 // between different responsibilities for constants without having to keep a tag for each defined symbol, etc.
 // Clients of this class can just use the symbol table they have a reference to, which will generally be a
@@ -96,12 +96,19 @@ typedef struct {
 // These represent nested function calls; when a new function call starts, a new table is added to the top, and
 // when a function call ends that table is removed.  The outer variable scopes are hidden; searches for values
 // will go from the bottommost variables table directly up to the first constants table in the chain.
+
+// BCH 10/27/2020: Now, in Eidos 2.5, the scoping rules have changed a bit: there is now a "global variables"
+// scope that contains any globals that are defined.  In Eidos you are normally in the global scope, and so
+// there will generally be one of these, in place of the kVariablesTable that would have existed before.  In
+// SLiM you are generally inside some sub-scope, and the global variables table exists above you, but is often
+// empty.
 enum class EidosSymbolTableType
 {
 	kEidosIntrinsicConstantsTable = 0,	// just one of these
 	kEidosDefinedConstantsTable,		// and just one of these
-	kContextConstantsTable,				// can be any number of these
-	kVariablesTable,					// and finally, any number of these, for nested function calls
+	kGlobalVariablesTable,				// and zero or one of these; can be in among the context constants tables
+	kContextConstantsTable,				// then there can be any number of these
+	kLocalVariablesTable,				// and finally, any number of these, for nested function calls
 	kINVALID_TABLE_TYPE					// used as a sort of zombie marker in an attempt to increase code safety
 };
 
@@ -112,6 +119,7 @@ class EidosSymbolTable
 private:
 	
 	EidosSymbolTableType table_type_;
+	bool table_type_is_constant_;		// based on table_type_
 	
 	EidosSymbolTableSlot *slots_;		// a lookup table indexed by EidosGlobalStringID (uint32_t); see EidosSymbolTableSlot
 	uint32_t capacity_;					// the capacity of the lookup table (max id value, not max number of variables)
@@ -161,6 +169,9 @@ public:
 	// Set as a constant (raises if already defined as a variable or a constant); adds to the kEidosDefinedConstantsTable, creating it if necessary
 	void DefineConstantForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	
+	// Set as a global (raises if already defined as a constant); adds to the kGlobalVariablesTable, or raises if that does not exist
+	void DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
+	
 	// Remove symbols; RemoveValueForSymbol() will raise if the symbol is a constant
 	inline __attribute__((always_inline)) void RemoveValueForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }
 	inline __attribute__((always_inline)) void RemoveConstantForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, true); }
@@ -197,6 +208,7 @@ public:
 	// the symbol table chain themselves in some way, since normally the chain is encapsulated by this class.
 	inline __attribute__((always_inline)) EidosSymbolTable *ChainSymbolTable(void) { return chain_symbol_table_; }
 	inline __attribute__((always_inline)) EidosSymbolTable *ParentSymbolTable(void) { return parent_symbol_table_; }
+	inline __attribute__((always_inline)) EidosSymbolTableType TableType(void) { return table_type_; }
 
 	friend size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable);
 };

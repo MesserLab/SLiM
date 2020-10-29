@@ -382,7 +382,28 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
         if (parentSLiMWindow->sim && !parentSLiMWindow->invalidSimulation())
             global_symbols = parentSLiMWindow->sim->SymbolsFromBaseSymbols(global_symbols);
 		
-		global_symbols = new EidosSymbolTable(EidosSymbolTableType::kVariablesTable, global_symbols);	// add a table for script-defined variables on top
+        // With the advant of global versus local symbol tables, the semantics here have gotten a little tricky.  In EidosScribe
+		// we want the console to work in the global variables table directly, which we need to create; that will be our symbol
+		// table.  In SLiM, we want the console to work in a local variables table; SLiM has its own global variables table,
+		// which we don't want to clutter up, just as if were were in a callback.  So here, we now check whether a global variables
+		// table is already in the chain, and if so, we create a local variables table; otherwise we create a global variables table.
+		bool global_variables_table_exists = false;
+		EidosSymbolTable *scan_table = global_symbols;
+		
+		while (scan_table)
+		{
+			if (scan_table->TableType() == EidosSymbolTableType::kGlobalVariablesTable)
+			{
+				global_variables_table_exists = true;
+				break;
+			}
+			
+			scan_table = scan_table->ChainSymbolTable();
+		}
+		
+		EidosSymbolTableType console_table_type = global_variables_table_exists ? EidosSymbolTableType::kLocalVariablesTable : EidosSymbolTableType::kGlobalVariablesTable;
+		
+		global_symbols = new EidosSymbolTable(console_table_type, global_symbols);	// add a table for script-defined variables on top
 	}
 	
 	// Get a function map from SLiM, or make one ourselves

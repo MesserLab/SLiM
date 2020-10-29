@@ -361,7 +361,7 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 {
 #pragma unused(p_generation, p_chromosome)
 	EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
-	EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+	EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 	EidosFunctionMap &function_map = sim_.FunctionMap();
 	
 	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, function_map, &sim_);
@@ -439,7 +439,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// The callback is active, so we need to execute it; we start a block here to manage the lifetime of the symbol table
 			{
 				EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
-				EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 				EidosFunctionMap &function_map = sim_.FunctionMap();
 				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, function_map, &sim_);
 				
@@ -758,7 +758,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 		{
 			// The callback is active, so we need to execute it
 			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
-			EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+			EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 			EidosFunctionMap &function_map = sim_.FunctionMap();
 			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, function_map, &sim_);
 			
@@ -1949,7 +1949,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 		{
 			// The callback is active, so we need to execute it
 			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
-			EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+			EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 			EidosFunctionMap &function_map = sim_.FunctionMap();
 			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, function_map, &sim_);
 			

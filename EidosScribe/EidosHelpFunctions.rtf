@@ -4737,7 +4737,39 @@ The name cannot previously be defined in any way (i.e., as either a variable or 
 \f1\fs18 apply()
 \f3\fs20 , 
 \f1\fs18 sapply()
-\f3\fs20 , or a Context-defined script block.\
+\f3\fs20 , or a Context-defined script block.  Note that defined constants can be undefined by 
+\f1\fs18 rm(removeConstants=T)
+\f3\fs20 , but if you find yourself taking advantage of that feature, you may wish to use 
+\f1\fs18 defineGlobal()
+\f3\fs20  instead.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (void)defineGlobal(string$\'a0symbol, *\'a0value)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Defines a new global variable
+\f3\b0  with the name 
+\f1\fs18 symbol
+\f3\fs20  and the value specified by 
+\f1\fs18 value
+\f3\fs20 .  Syntactically, the value may be any value at all; semantically, however, if 
+\f1\fs18 value
+\f3\fs20  is of 
+\f1\fs18 object
+\f3\fs20  type then 
+\f1\fs18 value
+\f3\fs20 \'92s class must be under retain/release memory management internally.  This restriction is necessary because if the Context defines the point in time when a given object ceases to exist (rather than that being governed by retain/release), then a defined global variable referencing that object would become invalid, which must be prevented.  At present, among the classes defined by SLiM, only 
+\f1\fs18 Chromosome
+\f3\fs20 , 
+\f1\fs18 Mutation
+\f3\fs20 , and 
+\f1\fs18 Substitution
+\f3\fs20  are under retain/release; all object classes built into Eidos are under retain/release.\
+The name cannot previously be defined as a constant.  The result is similar to a standard variable assignment with operator 
+\f1\fs18 =
+\f3\fs20 , except that the variable is always defined in the global scope (even if the 
+\f1\fs18 defineGlobal()
+\f3\fs20  call is made inside a user-defined function or other locally-scoped block, such as a SLiM event or callback).  This means that the variable will remain defined even after the current scope is exited.  Note that global variables can be hidden by local variables with the same name; unlike defined constants, such scoped masking is allowed.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (\cf2 \expnd0\expndtw0\kerning0
@@ -4774,7 +4806,7 @@ Executes a block of Eidos code
 \f1\fs18 lambdaSource
 \f3\fs20 .  Eidos allows you to execute 
 \f7\i lambdas
-\f3\i0 : blocks of Eidos code which can be called directly within the same scope as the caller.  Eidos lambdas do not take arguments; for this reason, they are not first-class functions.  (Since they share the scope of the caller, however, you may effectively pass values in and out of a lambda using global variables.)  The 
+\f3\i0 : blocks of Eidos code which can be called directly within the same scope as the caller.  Eidos lambdas do not take arguments; for this reason, they are not first-class functions.  (Since they share the scope of the caller, however, you may effectively pass values in and out of a lambda using variables.)  The 
 \f1\fs18 string
 \f3\fs20  argument 
 \f1\fs18 lambdaSource
@@ -4908,12 +4940,10 @@ Returns a
 \f3\fs20  to request full information on the current symbol table chain.  This will show which symbol table a given symbol is defined in, as well as revealing whether there are other symbols with the same name that have been masked by a local definition.  This is mostly useful for debugging.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (void)rm([Ns\'a0variableNames
-\f2 \'a0
-\f1 =\'a0NULL], [logical$\'a0removeConstants\'a0=\'a0F])\
+\f1\fs18 \cf2 (void)rm([Ns\'a0variableNames\'a0=\'a0NULL], [logical$\'a0removeConstants\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Removes global variables
+\f0\b\fs20 \cf2 Removes variables
 \f3\b0  from the Eidos namespace; in other words, it causes the variables to become undefined.  Variables are specified by their 
 \f1\fs18 string
 \f3\fs20  name in the 
@@ -4924,7 +4954,8 @@ Returns a
 \f1\fs18 NULL
 \f3\fs20  (the default), 
 \f7\i all
-\f3\i0  variables will be removed (be careful!).  If the optional parameter 
+\f3\i0  variables will be removed (be careful!).\
+If the optional parameter 
 \f1\fs18 removeConstants
 \f3\fs20  is 
 \f1\fs18 F
@@ -4934,8 +4965,9 @@ Returns a
 \f1\fs18 T
 \f3\fs20 , constants defined with 
 \f1\fs18 defineConstant()
-\f3\fs20  may be removed, but attempting to remove intrinsic Eidos constants is still an error.
-\f2 \
+\f3\fs20  may be removed, but attempting to remove intrinsic Eidos constants is still an error.  However, if you find yourself redefining constants, 
+\f1\fs18 defineGlobal()
+\f3\fs20  might be better suited.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)sapply(*\'a0x, string$\'a0lambdaSource, [string$\'a0simplify\'a0=\'a0"vector"])\

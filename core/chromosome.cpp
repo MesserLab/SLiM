@@ -725,7 +725,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_->SymbolTable());
-					EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = sim_->FunctionMap();
 					EidosInterpreter interpreter(mutation_callback->compound_statement_node_, client_symbols, function_map, sim_);
 					

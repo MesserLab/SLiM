@@ -203,10 +203,10 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 		// in EidosInterpreter.
 		EidosInternalFunctionPtr function_ptr = p_function_signature->internal_function_;
 		
-		if ((function_ptr == &Eidos_ExecuteFunction_defineConstant) && (argument_count == 2))
+		if (((function_ptr == &Eidos_ExecuteFunction_defineConstant) || (function_ptr == &Eidos_ExecuteFunction_defineGlobal)) && (argument_count == 2))
 		{
-			// We know that defineConstant() has the side effect of adding a new symbol, and we want to reflect that in
-			// our type table so that defined constants are always available.
+			// We know that defineConstant() and defineGlobal() have the side effect of adding a new symbol,
+			// and we want to reflect that in our type table so that defined constants are always available.
 			if (p_arguments[0])
 			{
 				if (p_arguments[0]->token_->token_type_ == EidosTokenType::kTokenString)

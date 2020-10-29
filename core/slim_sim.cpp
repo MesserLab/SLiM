@@ -83,11 +83,11 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 	// Create our Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
 	chromosome_ = new Chromosome(this);
 	
-	// set up the symbol table we will use for all of our constants; we use the external hash table design
-	// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
-	// that that is actually a bit slower.  I suspect it crosses over for models with more SLiM symbols; but EidosSymbolTable
-	// crosses over to the external table anyway when more symbols are used, so it shouldn't be a big deal.
-	simulation_constants_ = new EidosSymbolTable(EidosSymbolTableType::kContextConstantsTable, gEidosConstantsSymbolTable);
+	// set up the symbol tables we will use for global variables and constants; note that the global variables table
+	// lives *above* the context constants table, which is fine since they cannot define the same symbol anyway
+	// this satisfies Eidos, which expects the child of the intrinsic constants table to be the global variables table
+	simulation_globals_ = new EidosSymbolTable(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
+	simulation_constants_ = new EidosSymbolTable(EidosSymbolTableType::kContextConstantsTable, simulation_globals_);
 	
 	// set up the function map with the base Eidos functions plus zero-gen functions, since we're in an initial state
 	simulation_functions_ = *EidosInterpreter::BuiltInFunctionMap();
@@ -103,6 +103,9 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 	}
 	catch (...) {
 		// try to clean up what we've allocated so far
+		delete simulation_globals_;
+		simulation_globals_ = nullptr;
+		
 		delete simulation_constants_;
 		simulation_constants_ = nullptr;
 		
@@ -117,6 +120,9 @@ SLiMSim::~SLiMSim(void)
 	//EIDOS_ERRSTREAM << "SLiMSim::~SLiMSim" << std::endl;
 	
 	population_.RemoveAllSubpopulationInfo();
+	
+	delete simulation_globals_;
+	simulation_globals_ = nullptr;
 	
 	delete simulation_constants_;
 	simulation_constants_ = nullptr;
@@ -2214,7 +2220,7 @@ void SLiMSim::DeregisterScheduledInteractionBlocks(void)
 void SLiMSim::ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block)
 {
 	EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &SymbolTable());
-	EidosSymbolTable client_symbols(EidosSymbolTableType::kVariablesTable, &callback_symbols);
+	EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 	
 	EidosInterpreter interpreter(p_script_block->root_node_->children_[0], client_symbols, simulation_functions_, this);
 	

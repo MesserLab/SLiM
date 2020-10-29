@@ -189,7 +189,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 	EidosValueType value_type = value->Type();
 	
 	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
-	// See also Eidos_ExecuteFunction_defineConstant(), which enforces the same rule
+	// See also Eidos_ExecuteFunction_defineConstant() and Eidos_ExecuteFunction_defineGlobal(), which enforce the same rule
 	if (value_type == EidosValueType::kValueObject)
 	{
 		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();

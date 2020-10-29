@@ -4020,7 +4020,7 @@
 		
 		// Now we scan through the children of the root node, each of which is the root of a SLiM script block.  The last
 		// script block is the one we are actually completing inside, but we also want to do a quick scan of any other
-		// blocks we find, solely to add entries for any defineConstant() calls we can decode.
+		// blocks we find, solely to add entries for any defineConstant() and defineGlobal() calls we can decode.
 		const EidosASTNode *script_root = script.AST();
 		
 		if (script_root && (script_root->children_.size() > 0))

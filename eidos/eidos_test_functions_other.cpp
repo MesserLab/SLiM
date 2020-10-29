@@ -750,12 +750,8 @@ void _RunFunctionMiscTests(std::string temp_path)
 	
 	// ls()
 	EidosAssertScriptSuccess("ls();", gStaticEidosValueVOID);
-	EidosAssertScriptRaise("ls(NULL);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("ls(T);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("ls(3);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("ls(3.5);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("ls('foo');", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("ls(_Test(7));", 0, "too many arguments supplied");
+	EidosAssertScriptSuccess("ls(F);", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess("ls(T);", gStaticEidosValueVOID);
 	
 	// license()
 	EidosAssertScriptSuccess("license();", gStaticEidosValueVOID);
@@ -1015,11 +1011,11 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptSuccess("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return baz(x - 1); } function (i)baz(i x) { return x * foo(x); } foo(10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2335699)));
 	EidosAssertScriptSuccess("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return baz(x - 1); } function (i)baz(i x) { return x * foo(x); } foo(-10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-9)));
 	
-	// Scoping
+	// Scoping, defineConstant(), and defineGlobal()
 	EidosAssertScriptRaise("defineConstant('x', 10); function (i)plus(i x) { return x + 1; } plus(5);", 65, "cannot be redefined because it is a constant");
 	EidosAssertScriptRaise("defineConstant('x', 10); function (i)plus(i y) { x = y + 1; return x; } plus(5);", 72, "cannot be redefined because it is a constant");
 	EidosAssertScriptSuccess("defineConstant('x', 10); function (i)plus(i y) { return x + y; } plus(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
-	EidosAssertScriptRaise("x = 10; function (i)plus(i y) { return x + y; } plus(5);", 48, "undefined identifier x");
+	EidosAssertScriptSuccess("x = 10; function (i)plus(i y) { return x + y; } plus(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
 	EidosAssertScriptSuccess("defineConstant('x', 10); y = 1; function (i)plus(i y) { return x + y; } plus(5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
 	EidosAssertScriptSuccess("defineConstant('x', 10); y = 1; function (i)plus(i y) { return x + y; } plus(5); y; ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1)));
 	EidosAssertScriptSuccess("defineConstant('x', 10); y = 1; function (i)plus(i y) { y = y + 1; return x + y; } plus(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(16)));
@@ -1032,6 +1028,44 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptSuccess("function (i)plus(i y) { foo(); y = y + 1; return y; } function (void)foo(void) { defineConstant('x', 10); } plus(5); x; ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
 	EidosAssertScriptRaise("function (i)plus(i x) { foo(); x = x + 1; return x; } function (void)foo(void) { defineConstant('x', 10); } plus(5); x; ", 108, "identifier 'x' is already defined");
 	EidosAssertScriptRaise("x = 3; function (i)plus(i y) { foo(); y = y + 1; return y; } function (void)foo(void) { defineConstant('x', 10); } plus(5); x; ", 115, "identifier 'x' is already defined");
+	EidosAssertScriptSuccess("function (i)plus(i y) { foo(y); y = y + 1; return y; } function (void)foo(i y) { y = 12; } plus(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
+	EidosAssertScriptRaise("function (i)plus(i y) { foo(y); y = y + 1; return y; } function (void)foo(i y) { y = 12; } plus(5); y; ", 100, "undefined identifier y");
+	EidosAssertScriptSuccess("function (i)plus(i y) { foo(y); y = y + 1; return y; } function (void)foo(i x) { y = 12; } plus(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
+	EidosAssertScriptRaise("function (i)plus(i y) { foo(y); y = y + 1; return y; } function (void)foo(i x) { y = 12; } plus(5); y; ", 100, "undefined identifier y");
+	
+	EidosAssertScriptSuccess("x = 15; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("defineGlobal('x', 15); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("x = 5; defineGlobal('x', 15); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("defineGlobal('x', 15); x = 5; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("x = 5; defineGlobal('x', 15); defineGlobal('x', 25); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(25)));
+	EidosAssertScriptSuccess("x = 5; defineGlobal('x', 15); x = 3; defineGlobal('x', 25); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(25)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { return x; } foo();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { x = 5; return x; } foo();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { x = 5; return x; } foo(); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { defineGlobal('x', 5); return 25; } foo();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(25)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { defineGlobal('x', 5); return x; } foo();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { defineGlobal('x', 5); return 25; } foo(); x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { y = x; defineGlobal('x', 5); return y; } foo();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { y = x; defineGlobal('y', 25); return y; } foo();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(15)));
+	EidosAssertScriptSuccess("x = 15; function (i)foo(void) { y = x; defineGlobal('y', 25); return y; } foo(); y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(25)));
+	EidosAssertScriptRaise("x = 15; function (i)foo(void) { y = x; return y; } foo(); y;", 58, "undefined identifier y");
+	
+	EidosAssertScriptRaise("x = 5; defineConstant('x', 10);", 7, "already defined");
+	EidosAssertScriptRaise("defineConstant('x', 10); x = 5;", 27, "is a constant");
+	EidosAssertScriptRaise("defineConstant('x', 10); defineConstant('x', 5);", 25, "already defined");
+	EidosAssertScriptRaise("x = 5; function(void)foo(void) { defineConstant('x', 10); } foo();", 60, "already defined");
+	EidosAssertScriptRaise("defineConstant('x', 10); function(void)foo(void) { x = 5; } foo();", 60, "is a constant");
+	EidosAssertScriptRaise("defineConstant('x', 10); function(void)foo(void) { defineConstant('x', 5); } foo();", 77, "already defined");
+	EidosAssertScriptRaise("function(void)foo(void) { defineConstant('x', 10); } foo(); x = 5;", 62, "is a constant");
+	EidosAssertScriptRaise("function(void)foo(void) { x = 5; } foo(); defineConstant('x', 10); foo();", 67, "is a constant");
+	EidosAssertScriptRaise("function(void)foo(void) { defineConstant('x', 5); } foo(); defineConstant('x', 10);", 59, "already defined");
+	
+	EidosAssertScriptRaise("defineGlobal('x', 5); defineConstant('x', 10);", 22, "already defined");
+	EidosAssertScriptRaise("defineConstant('x', 10); defineGlobal('x', 5);", 25, "is a constant");
+	EidosAssertScriptRaise("defineGlobal('x', 5); function(void)foo(void) { defineConstant('x', 10); } foo();", 75, "already defined");
+	EidosAssertScriptRaise("defineConstant('x', 10); function(void)foo(void) { defineGlobal('x', 5); } foo();", 75, "is a constant");
+	EidosAssertScriptRaise("function(void)foo(void) { defineConstant('x', 10); } foo(); defineGlobal('x', 5);", 60, "is a constant");
+	EidosAssertScriptRaise("function(void)foo(void) { defineGlobal('x', 5); } foo(); defineConstant('x', 10); foo();", 57, "already defined");
 	
 	// Mutual recursion with lambdas
 	

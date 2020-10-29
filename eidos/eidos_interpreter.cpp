@@ -1293,7 +1293,7 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	EidosValue_SP result_SP(nullptr);
 	
 	// We need to add a new variables symbol table on to the top of the symbol table stack, for parameters and local variables.
-	EidosSymbolTable new_symbols(EidosSymbolTableType::kVariablesTable, global_symbols_);
+	EidosSymbolTable new_symbols(EidosSymbolTableType::kLocalVariablesTable, global_symbols_);
 	
 	// Set up variables for the function's parameters; they have already been type-checked and had default
 	// values substituted and so forth, by the Eidos function call dispatch code.

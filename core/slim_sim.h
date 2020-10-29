@@ -317,6 +317,7 @@ private:
 	
 	SLiMModelType model_type_ = SLiMModelType::kModelTypeWF;						// the overall model type: WF or nonWF, at present; affects many other things!
 	
+	EidosSymbolTable *simulation_globals_ = nullptr;								// A symbol table of global variables, typically empty; the parent of simulation_constants_
 	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
 	EidosFunctionMap simulation_functions_;											// A map of all defined functions in the simulation
 	

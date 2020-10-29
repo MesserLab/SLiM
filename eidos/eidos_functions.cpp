@@ -301,6 +301,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_OS("type", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("cpu"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAny("value"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineGlobal",		Eidos_ExecuteFunction_defineGlobal,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAny("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("functionName")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_executeLambda,	Eidos_ExecuteFunction_executeLambda,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional | kEidosValueMaskSingleton, "timed", nullptr, gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional | kEidosValueMaskSingleton, "timed", nullptr, gStaticEidosValue_LogicalF));
@@ -11086,7 +11087,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
 	
 	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
-	// See also EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(), which enforces the same rule
+	// See also EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue() and Eidos_ExecuteFunction_defineGlobal(), which enforce the same rule
 	if (x_value_sp->Type() == EidosValueType::kValueObject)
 	{
 		const EidosClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();
@@ -11096,6 +11097,31 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	}
 	
 	symbols.DefineConstantForSymbol(symbol_id, x_value_sp);
+	
+	return gStaticEidosValueVOID;
+}
+
+//	(void)defineGlobal(string$ symbol, * x)
+EidosValue_SP Eidos_ExecuteFunction_defineGlobal(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	std::string symbol_name = p_arguments[0]->StringAtIndex(0, nullptr);
+	const EidosValue_SP x_value_sp = p_arguments[1];
+	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
+	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
+	
+	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
+	// See also EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue() and Eidos_ExecuteFunction_defineConstant(), which enforce the same rule
+	if (x_value_sp->Type() == EidosValueType::kValueObject)
+	{
+		const EidosClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();
+		
+		if (!x_value_class->UsesRetainRelease())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineGlobal): defineGlobal() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+	}
+	
+	symbols.DefineGlobalForSymbol(symbol_id, x_value_sp);
 	
 	return gStaticEidosValueVOID;
 }

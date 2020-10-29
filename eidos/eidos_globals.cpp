@@ -272,8 +272,6 @@ void Eidos_WarmUp(void)
 		EidosInterpreter::CacheBuiltInFunctionMap();
 		
 		// Set up the symbol table for Eidos constants
-		// BCH 1/18/2018: I looked into telling this table to use the external unordered_map from the start, but testing indicates
-		// that that is actually a bit slower.  If the number of intrinsic constants grows above 10 or so, this should be revisited.
 		gEidosConstantsSymbolTable = new EidosSymbolTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr);
 		
 		// Tell all registered classes to initialize their dispatch tables; doing this here saves a flag check later
@@ -391,7 +389,7 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	script.Tokenize();
 	script.ParseInterpreterBlockToAST(false);
 	
-	EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+	EidosSymbolTable symbol_table(EidosSymbolTableType::kLocalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 	EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
 	

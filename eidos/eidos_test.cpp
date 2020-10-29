@@ -53,7 +53,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 {
 	EidosScript script(p_script_string);
 	EidosValue_SP result;
-	EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	
 	gEidosCurrentScript = &script;
 	
@@ -142,7 +142,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_position, const std::string &p_reason_snip)
 {
 	EidosScript script(p_script_string);
-	EidosSymbolTable symbol_table(EidosSymbolTableType::kVariablesTable, gEidosConstantsSymbolTable);
+	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 	
 	gEidosCurrentScript = &script;
