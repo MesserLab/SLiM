@@ -117,7 +117,7 @@ EidosValue_SP EidosImage::ValueForIntegerChannel(EidosValue_SP &p_channel_cache,
 	if (p_channel_cache)
 		return p_channel_cache;
 	
-	int64_t pixel_stride, pixel_suboffset;
+	int64_t pixel_stride = 0, pixel_suboffset = 0;
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(height_ * width_);
 	p_channel_cache = EidosValue_SP(int_result);
 	
@@ -145,7 +145,7 @@ EidosValue_SP EidosImage::ValueForFloatChannel(EidosValue_SP &p_channel_cache, C
 	if (p_channel_cache)
 		return p_channel_cache;
 	
-	int64_t pixel_stride, pixel_suboffset;
+	int64_t pixel_stride = 0, pixel_suboffset = 0;
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(height_ * width_);
 	p_channel_cache = EidosValue_SP(float_result);
 	
