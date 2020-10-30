@@ -74,6 +74,22 @@ bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outs
 #endif
 
 
+// This governs whether "Robin Hood Hashing" is used instead of std::unordered_map in key spots, for speed
+// Robin Hood Hashing is in robin_hood.h, and is by Martin Ankerl (https://github.com/martinus/robin-hood-hashing)
+// Change this define to 1 to enable Robin Hood Hashing, or change it to 0 to disable it
+// Note that you have a choice of robin_hood::unordered_node_map or robin_hood::unordered_flat_map
+// With robin_hood::unordered_flat_map, references to elements are not stable, but it is probably a bit faster
+// STD_UNORDERED_MAP_HASHING is the reverse flag; this just makes it easy to get an error message if this header
+// is not included, following a standard usage pattern, since then neither of these defines will exist.
+#define EIDOS_ROBIN_HOOD_HASHING	1
+
+#if EIDOS_ROBIN_HOOD_HASHING
+#define STD_UNORDERED_MAP_HASHING	0
+#else
+#define STD_UNORDERED_MAP_HASHING	1
+#endif
+
+
 // *******************************************************************************************************************
 //
 //	Context customization
@@ -632,6 +648,7 @@ class _EidosRegisteredString;
 class EidosStringRegistry
 {
 private:
+	// robin_hood seems unnecessary here, dynamic lookups are generally not a bottleneck because EidosGlobalStringID gets cached
 	std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
 	std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
 	std::vector<const _EidosRegisteredString *> gIDToString_Thunk;

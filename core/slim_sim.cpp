@@ -46,6 +46,11 @@
 #include <float.h>
 #include <ctime>
 
+#include "eidos_globals.h"
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+#endif
+
 //TREE SEQUENCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -4889,13 +4894,19 @@ void SLiMSim::SimplifyTreeSequence(void)
 	
 	std::vector<tsk_id_t> samples;
 	
-	// BCH 7/27/2019: We now build a std::unordered_map containing all of the entries of remembered_genomes_,
+	// BCH 7/27/2019: We now build a hash table containing all of the entries of remembered_genomes_,
 	// so that the find() operations in the loop below can be done in constant time instead of O(N) time.
 	// We need to be able to find out the index of an entry, in remembered_genomes_, once we have found it;
 	// that is what the mapped value provides, whereas the key value is the tsk_id_t we need to find below.
 	// We do all this inside a block so the map gets deallocated as soon as possible, to minimize footprint.
 	{
+#if EIDOS_ROBIN_HOOD_HASHING
+		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
+		typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 		std::unordered_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
+		typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
+#endif
 		
 		// the remembered_genomes_ come first in the list of samples
 		uint32_t index = 0;
@@ -4903,7 +4914,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 		for (tsk_id_t sid : remembered_genomes_)
 		{
 			samples.push_back(sid);
-			remembered_genomes_lookup.emplace(std::pair<tsk_id_t, uint32_t>(sid, index));
+			remembered_genomes_lookup.emplace(MAP_PAIR(sid, index));
 			index++;
 		}
 		
@@ -6088,8 +6099,14 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	// of two data structures, std::vector or std::unordered_map, to do our lookups based on
 	// how many lookups we anticipate doing.
 	bool using_std_vector = (p_num_individuals < 5);
-    std::vector<slim_pedigreeid_t> remembered_individuals;									// used when using_std_vector==true
-	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;	// used when using_std_vector==false
+    std::vector<slim_pedigreeid_t> remembered_individuals;												// used when using_std_vector==true
+#if EIDOS_ROBIN_HOOD_HASHING
+	robin_hood::unordered_flat_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;	// used when using_std_vector==false
+	typedef robin_hood::pair<slim_pedigreeid_t, slim_popsize_t> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
+	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;				// used when using_std_vector==false
+	typedef std::pair<slim_pedigreeid_t, slim_popsize_t> MAP_PAIR;
+#endif
 	
 	if (using_std_vector)
 	{
@@ -6125,7 +6142,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			// remembered_genomes_ has two entries per individual; we want to work with individuals, so we filter
 			if (metadata_id != last_added_id)
 			{
-				remembered_individuals_lookup.emplace(std::pair<slim_pedigreeid_t, slim_popsize_t>(metadata_id, added_count));
+				remembered_individuals_lookup.emplace(MAP_PAIR(metadata_id, added_count));
 				last_added_id = metadata_id;
 				added_count++;
 			}

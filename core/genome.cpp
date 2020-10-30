@@ -42,7 +42,7 @@
 // Static class variables in support of Genome's bulk operation optimization; see Genome::WillModifyRunForBulkOperation()
 int64_t Genome::s_bulk_operation_id_ = 0;
 slim_mutrun_index_t Genome::s_bulk_operation_mutrun_index_ = -1;
-std::unordered_map<MutationRun*, MutationRun*> Genome::s_bulk_operation_runs_;
+SLiMBulkOperationHashTable Genome::s_bulk_operation_runs_;
 
 
 Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), individual_(nullptr), genome_id_(-1)
@@ -157,7 +157,7 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_i
 		product_run->copy_from_run(*original_run);
 		mutruns_[p_mutrun_index] = MutationRun_SP(product_run);
 		
-		s_bulk_operation_runs_.insert(std::pair<MutationRun*, MutationRun*>(original_run, product_run));
+		s_bulk_operation_runs_.insert(SLiMBulkOperationPair(original_run, product_run));
 		
 		//std::cout << "WillModifyRunForBulkOperation() created product for " << original_run << std::endl;
 		
@@ -1403,11 +1403,17 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 	}
 	
 	// make a hash table that looks up the genotype string position from a mutation pointer
+#if EIDOS_ROBIN_HOOD_HASHING
+	robin_hood::unordered_flat_map<const Mutation*, int> genotype_string_positions;
+	typedef robin_hood::pair<const Mutation*, int> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 	std::unordered_map<const Mutation*, int> genotype_string_positions;
+	typedef std::pair<const Mutation*, int> MAP_PAIR;
+#endif
 	int genotype_string_position = 0;
 	
 	for (const Polymorphism &polymorphism : sorted_polymorphisms) 
-		genotype_string_positions.insert(std::pair<const Mutation*, int>(polymorphism.mutation_ptr_, genotype_string_position++));
+		genotype_string_positions.insert(MAP_PAIR(polymorphism.mutation_ptr_, genotype_string_position++));
 	
 	// print header
 	p_out << "//" << std::endl << "segsites: " << sorted_polymorphisms.size() << std::endl;

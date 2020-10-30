@@ -21,7 +21,7 @@
  
  A type table is very much like a symbol table, except that it does not keep values for its symbols, just type information.
  This is used for type-smart code completion in EidosScribe and SLiMgui.  At present EidosTypeTable is implemented with
- std::unordered_map since we need no additional functionality from it.
+ a hash table, since we need no additional functionality from it.
  
  */
 
@@ -31,12 +31,20 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <unordered_map>
 
 #include "eidos_value.h"
 
 
+#include "eidos_globals.h"
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+typedef robin_hood::unordered_flat_map<EidosGlobalStringID, EidosTypeSpecifier> EidosTypeTableSymbols;
+typedef robin_hood::pair<EidosGlobalStringID, EidosTypeSpecifier> EidosTypeTableEntry;
+#elif STD_UNORDERED_MAP_HASHING
+#include <unordered_map>
+typedef std::unordered_map<EidosGlobalStringID, EidosTypeSpecifier> EidosTypeTableSymbols;
 typedef std::pair<EidosGlobalStringID, EidosTypeSpecifier> EidosTypeTableEntry;
+#endif
 
 
 class EidosTypeTable
@@ -44,7 +52,7 @@ class EidosTypeTable
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 private:
 	
-	std::unordered_map<EidosGlobalStringID, EidosTypeSpecifier> hash_symbols_;
+	EidosTypeTableSymbols hash_symbols_;
 	
 public:
 	

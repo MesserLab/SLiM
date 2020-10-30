@@ -53,6 +53,11 @@
 
 #include "../eidos_zlib/zlib.h"
 
+#include "eidos_globals.h"
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+#endif
+
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
 // builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
@@ -7926,11 +7931,17 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				// use a hash table to speed up lookups from O(N) to O(1)
+#if EIDOS_ROBIN_HOOD_HASHING
+				robin_hood::unordered_flat_map<int64_t, int64_t> fromValueToIndex;
+				typedef robin_hood::pair<int64_t, int64_t> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 				std::unordered_map<int64_t, int64_t> fromValueToIndex;
+				typedef std::pair<int64_t, int64_t> MAP_PAIR;
+#endif
 				
 				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(std::pair<int64_t, int64_t>(int_data1[table_index], table_index));	// does nothing if the key is already in the map
+					fromValueToIndex.insert(MAP_PAIR(int_data1[table_index], table_index));	// does nothing if the key is already in the map
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -7960,13 +7971,19 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				// use a hash table to speed up lookups from O(N) to O(1)
 				// we have to use a custom comparator so that NAN==NAN is true, so that NAN gets matched correctly
 				auto equal = [](const double& l, const double& r) { if (std::isnan(l) && std::isnan(r)) return true; return l == r; };
+#if EIDOS_ROBIN_HOOD_HASHING
+				robin_hood::unordered_flat_map<double, int64_t, robin_hood::hash<double>, decltype(equal)> fromValueToIndex(0, robin_hood::hash<double>{}, equal);
+				typedef robin_hood::pair<double, int64_t> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 				std::unordered_map<double, int64_t, std::hash<double>, decltype(equal)> fromValueToIndex(0, std::hash<double>{}, equal);
+				typedef std::pair<double, int64_t> MAP_PAIR;
+#endif
 				
 				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(std::pair<double, int64_t>(float_data1[table_index], table_index));	// does nothing if the key is already in the map
+					fromValueToIndex.insert(MAP_PAIR(float_data1[table_index], table_index));	// does nothing if the key is already in the map
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -8000,11 +8017,17 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				// use a hash table to speed up lookups from O(N) to O(1)
+#if EIDOS_ROBIN_HOOD_HASHING
+				robin_hood::unordered_flat_map<std::string, int64_t> fromValueToIndex;
+				typedef robin_hood::pair<std::string, int64_t> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 				std::unordered_map<std::string, int64_t> fromValueToIndex;
+				typedef std::pair<std::string, int64_t> MAP_PAIR;
+#endif
 				
 				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(std::pair<std::string, int64_t>(string_vec1[table_index], table_index));	// does nothing if the key is already in the map
+					fromValueToIndex.insert(MAP_PAIR(string_vec1[table_index], table_index));	// does nothing if the key is already in the map
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -8034,11 +8057,17 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
-				// use a hash table (i.e. std::unordered_map) to speed up lookups from O(N) to O(1)
+				// use a hash table to speed up lookups from O(N) to O(1)
+#if EIDOS_ROBIN_HOOD_HASHING
+				robin_hood::unordered_flat_map<EidosObject *, int64_t> fromValueToIndex;
+				typedef robin_hood::pair<EidosObject *, int64_t> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 				std::unordered_map<EidosObject *, int64_t> fromValueToIndex;
+				typedef std::pair<EidosObject *, int64_t> MAP_PAIR;
+#endif
 				
 				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(std::pair<EidosObject *, int64_t>(objelement_vec1[table_index], table_index));	// does nothing if the key is already in the map
+					fromValueToIndex.insert(MAP_PAIR(objelement_vec1[table_index], table_index));	// does nothing if the key is already in the map
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{

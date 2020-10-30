@@ -118,6 +118,7 @@ HEADERS += \
     eidos_type_interpreter.h \
     eidos_type_table.h \
     eidos_value.h \
-    lodepng.h
+    lodepng.h \
+    robin_hood.h
 
 

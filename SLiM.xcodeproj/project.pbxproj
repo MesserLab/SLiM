@@ -726,6 +726,7 @@
 		980DD5191AAE42F900D5B7B8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphAxisRescaleSheet.xib; sourceTree = "<group>"; };
 		980DD51B1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationFrequencyTrajectory.h; sourceTree = "<group>"; };
 		980DD51C1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_MutationFrequencyTrajectory.mm; sourceTree = "<group>"; };
+		98186DB8254A8B1600F9118C /* robin_hood.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = robin_hood.h; sourceTree = "<group>"; };
 		981BAC681ACC6E8B0005BE94 /* eidos_script.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_script.cpp; sourceTree = "<group>"; };
 		981BAC691ACC6E8B0005BE94 /* eidos_script.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_script.h; sourceTree = "<group>"; };
 		9821E1F71ABC69550036EAEA /* ScriptMod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptMod.h; sourceTree = "<group>"; };
@@ -1573,6 +1574,7 @@
 				9893C7E71CDFE9870029AC94 /* eidos_type_interpreter.cpp */,
 				98235687252FDD120096A745 /* lodepng.h */,
 				98235681252FDCF50096A745 /* lodepng.cpp */,
+				98186DB8254A8B1600F9118C /* robin_hood.h */,
 			);
 			path = eidos;
 			sourceTree = "<group>";

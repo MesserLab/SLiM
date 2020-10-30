@@ -36,6 +36,13 @@
 #include "polymorphism.h"
 #include "subpopulation.h"
 
+#include "eidos_globals.h"
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+#elif STD_UNORDERED_MAP_HASHING
+#include <unordered_map>
+#endif
+
 
 Population::Population(SLiMSim &p_sim) : sim_(p_sim)
 {
@@ -4725,7 +4732,14 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 #endif	// SLIM_WF_ONLY
 	
 	// make a map to keep track of which mutation runs split into which new runs
+#if EIDOS_ROBIN_HOOD_HASHING
+	robin_hood::unordered_flat_map<MutationRun *, std::pair<MutationRun *, MutationRun *>> split_map;
+    typedef robin_hood::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 	std::unordered_map<MutationRun *, std::pair<MutationRun *, MutationRun *>> split_map;
+    typedef std::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
+#endif
+	
 	std::vector<MutationRun_SP> mutrun_retain;
 	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
 	int mutruns_buf_index;
@@ -4792,7 +4806,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 							mutruns_buf[mutruns_buf_index++] = first_half;
 							mutruns_buf[mutruns_buf_index++] = second_half;
 							
-							split_map.insert(std::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>>(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half)));
+							split_map.insert(SLiM_SPLIT_PAIR(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half)));
 							
 							// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
 							// reused out from under us, which would happen otherwise when their last occurrence was replaced
@@ -4831,13 +4845,18 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 }
 #endif
 
-// define a hash function for std::pair<MutationRun *, MutationRun *> so we can use it in std::unordered_map below
+// define a hash function for std::pair<MutationRun *, MutationRun *> so we can use it in our hash table below
 // see https://stackoverflow.com/questions/32685540/c-unordered-map-with-pair-as-key-not-compiling
 struct slim_pair_hash {
 	template <class T1, class T2>
 	std::size_t operator () (const std::pair<T1,T2> &p) const {
+#if EIDOS_ROBIN_HOOD_HASHING
+		auto h1 = robin_hood::hash<T1>{}(p.first);
+		auto h2 = robin_hood::hash<T2>{}(p.second);
+#elif STD_UNORDERED_MAP_HASHING
 		auto h1 = std::hash<T1>{}(p.first);
 		auto h2 = std::hash<T2>{}(p.second);
+#endif
 		
 		// This is not a great hash function, but for our purposes it should actually be fine.
 		// We don't expect identical pairs <A, A>, and if we have a pair <A, B> we don't
@@ -4897,7 +4916,13 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 #endif	// SLIM_WF_ONLY
 	
 	// make a map to keep track of which mutation runs join into which new runs
+#if EIDOS_ROBIN_HOOD_HASHING
+	robin_hood::unordered_flat_map<std::pair<MutationRun *, MutationRun *>, MutationRun *, slim_pair_hash> join_map;
+    typedef robin_hood::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
 	std::unordered_map<std::pair<MutationRun *, MutationRun *>, MutationRun *, slim_pair_hash> join_map;
+    typedef std::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
+#endif
 	std::vector<MutationRun_SP> mutrun_retain;
 	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
 	int mutruns_buf_index;
@@ -4963,7 +4988,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 							
 							mutruns_buf[mutruns_buf_index++] = joined_run;
 							
-							join_map.insert(std::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *>(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run));
+							join_map.insert(SLiM_JOIN_PAIR(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run));
 							
 							// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
 							// reused out from under us, which would happen otherwise when their last occurrence was replaced

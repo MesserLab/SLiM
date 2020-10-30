@@ -25,6 +25,17 @@
 #include "eidos_class_Object.h"
 
 
+
+#include "eidos_globals.h"
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+typedef robin_hood::unordered_flat_map<std::string, EidosValue_SP> EidosDictionaryHashTable;
+#elif STD_UNORDERED_MAP_HASHING
+#include <unordered_map>
+typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable;
+#endif
+
+
 #pragma mark -
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
@@ -39,7 +50,7 @@ private:
 	// that most clients of SLiM will not use getValue()/setValue() for most objects most of the time,
 	// so we want to keep that case as minimal as possible in terms of speed and memory footprint.
 	// Those who do use getValue()/setValue() will pay a little additional cost; that's OK.
-	std::unordered_map<std::string, EidosValue_SP> *hash_symbols_ = nullptr;
+	EidosDictionaryHashTable *hash_symbols_ = nullptr;
 	
 public:
 	EidosDictionaryUnretained(const EidosDictionaryUnretained &p_original);

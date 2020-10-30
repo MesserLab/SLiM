@@ -74,6 +74,7 @@ development head:
 	add a "showSymbolTables=F" option for ls() that, if T, shows the whole chain of symbol tables that are defined, mostly for debugging purposes
 	change scoping rules so that variables in the global scope are visible inside user-defined functions and callbacks, like global constants
 	add a defineGlobal() function, parallel to defineConstant(), to assign a variable into the global scope
+	add "Robin Hood Hashing" to use in place of std::unordered_map in time-critical spots: match(), Dictionary, Genome bulk operations, MutationRun split/join, EidosTypeTable symbols, tree-seq simplification and individual table management, MS output
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

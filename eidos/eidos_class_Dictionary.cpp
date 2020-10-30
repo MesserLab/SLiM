@@ -40,7 +40,7 @@ EidosDictionaryUnretained::EidosDictionaryUnretained(__attribute__((unused)) con
 	// copy hash_symbols_ from p_original; I think this is called only when a Substitution is created from a Mutation
 	if (p_original.hash_symbols_)
 	{
-		hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+		hash_symbols_ = new EidosDictionaryHashTable;
 		
 		*hash_symbols_ = *(p_original.hash_symbols_);
 	}
@@ -121,7 +121,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(Eido
 			const EidosValue_SP &value = kv_pair.second;
 			
 			if (!hash_symbols_)
-				hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+				hash_symbols_ = new EidosDictionaryHashTable;
 			
 			// BCH: Copy values just as EidosSymbolTable does, to prevent them from being modified underneath us etc.
 			// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
@@ -225,7 +225,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 			EidosDictionaryUnretained *element = (EidosDictionaryUnretained *)(p_elements[element_index]);
 			
 			if (!element->hash_symbols_)
-				element->hash_symbols_ = new std::unordered_map<std::string, EidosValue_SP>;
+				element->hash_symbols_ = new EidosDictionaryHashTable;
 			
 			(*element->hash_symbols_)[key] = value;
 		}

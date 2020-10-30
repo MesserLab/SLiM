@@ -42,6 +42,17 @@
 //INCLUDE JEROME's TABLES API
 #include "../treerec/tskit/tables.h"
 
+#include "eidos_globals.h"
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+typedef robin_hood::unordered_flat_map<MutationRun*, MutationRun*> SLiMBulkOperationHashTable;
+typedef robin_hood::pair<MutationRun*, MutationRun*> SLiMBulkOperationPair;
+#elif STD_UNORDERED_MAP_HASHING
+#include <unordered_map>
+typedef std::unordered_map<MutationRun*, MutationRun*> SLiMBulkOperationHashTable;
+typedef std::pair<MutationRun*, MutationRun*> SLiMBulkOperationPair;
+#endif
+
 
 class SLiMSim;
 class Population;
@@ -112,7 +123,7 @@ private:
 	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
 	static int64_t s_bulk_operation_id_;
 	static slim_mutrun_index_t s_bulk_operation_mutrun_index_;
-	static std::unordered_map<MutationRun*, MutationRun*> s_bulk_operation_runs_;
+	static SLiMBulkOperationHashTable s_bulk_operation_runs_;
 	
 public:
 	
