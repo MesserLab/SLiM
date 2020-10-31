@@ -723,7 +723,7 @@ EidosSymbolTable *QtSLiMTextEdit::symbolsFromBaseSymbols(EidosSymbolTable *baseS
     return baseSymbols;
 }
 
-void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len)
+void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len, int &offset)
 {
     // by default, the entire contents of the textedit are considered "script"
     scriptString = toPlainText();
@@ -731,15 +731,16 @@ void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, i
     QTextCursor selection(textCursor());
     pos = selection.selectionStart();
     len = selection.selectionEnd() - pos;
+    offset = 0;
 }
 
 EidosCallSignature_CSP QtSLiMTextEdit::signatureForScriptSelection(QString &callName)
 {
     // Note we return a copy of the signature, owned by the caller
     QString scriptString;
-    int selectionStart, selectionEnd;
+    int selectionStart, selectionLength, rangeOffset;
     
-    scriptStringAndSelection(scriptString, selectionStart, selectionEnd);
+    scriptStringAndSelection(scriptString, selectionStart, selectionLength, rangeOffset);
     
     if (scriptString.length())
 	{
@@ -1726,13 +1727,6 @@ QStringList QtSLiMTextEdit::completionsForTokenStream(const std::vector<EidosTok
 	return QStringList();
 }
 
-//- (NSUInteger)rangeOffsetForCompletionRange
-int QtSLiMTextEdit::rangeOffsetForCompletionRange(void)
-{
-	// This is for EidosConsoleTextView to be able to remove the prompt string from the string being completed
-	return 0;
-}
-
 //- (NSArray *)uniquedArgumentNameCompletions:(std::vector<std::string> *)argumentCompletions
 QStringList QtSLiMTextEdit::uniquedArgumentNameCompletions(std::vector<std::string> *argumentCompletions)
 {
@@ -2072,18 +2066,12 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
 //- (void)_completionHandlerWithRangeForCompletion:(NSRange *)baseRange completions:(NSArray **)completions
 void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange, QStringList *completions)
 {
-	QString scriptString = toPlainText();
-    NSRange selection = {textCursor().selectionStart(), textCursor().selectionEnd() - textCursor().selectionStart()};	// ignore charRange and work from the selection
-	int rangeOffset = rangeOffsetForCompletionRange();
-	
-	// correct the script string to have only what is entered after the prompt, if we are a EidosConsoleTextView
-	if (rangeOffset)
-	{
-        scriptString.remove(0, rangeOffset);
-        selection.location -= rangeOffset;
-		selection.length -= rangeOffset;
-	}
-	
+    QString scriptString;
+    int selectionStart, selectionLength, rangeOffset;
+    
+    scriptStringAndSelection(scriptString, selectionStart, selectionLength, rangeOffset);
+
+    NSRange selection = {selectionStart, selectionLength};	// ignore charRange and work from the selection
 	int selStart = selection.location;
 	
 	//if (selStart != NSNotFound)       // I don't think this can happen in Qt; you always have a text cursor...

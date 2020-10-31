@@ -73,7 +73,7 @@ QTextCharFormat QtSLiMConsoleTextEdit::textFormatForColor(QColor color)
     return attrs;
 }
 
-void QtSLiMConsoleTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len)
+void QtSLiMConsoleTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len, int &offset)
 {
     // here we provide a subclass definition of what we consider "script": just what follows the prompt
     QTextCursor commandCursor(lastPromptCursor);
@@ -86,7 +86,8 @@ void QtSLiMConsoleTextEdit::scriptStringAndSelection(QString &scriptString, int 
     pos = selection.anchor();
     len = selection.position() - pos;
     
-    pos -= commandCursor.anchor();  // compensate for snipping off everything from the prompt back
+    pos -= commandCursor.anchor();      // compensate for snipping off everything from the prompt back
+    offset = commandCursor.anchor();    // tell the caller how much we snipped off
 }
 
 void QtSLiMConsoleTextEdit::showWelcome(void)

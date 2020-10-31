@@ -137,7 +137,6 @@ protected:
     QStringList uniquedArgumentNameCompletions(std::vector<std::string> *argumentCompletions);
     void _completionHandlerWithRangeForCompletion(NSRange *baseRange, QStringList *completions);
     int64_t scoreForCandidateAsCompletionOfString(QString candidate, QString base);
-    int rangeOffsetForCompletionRange(void);
     void slimSpecificCompletion(QString completionScriptString, NSRange selection, EidosTypeTable **typeTable, EidosFunctionMap **functionMap, EidosCallTypeTable **callTypeTable, QStringList *keywords, std::vector<std::string> *argNameCompletions);
 
     EidosFunctionMap *functionMapForScriptString(QString scriptString, bool includingOptionalFunctions);
@@ -153,7 +152,7 @@ protected:
     // virtual function for accessing the script portion of the contents; for normal
     // script textedits this is the whole content and the text cursor, but for the
     // console view it is just the snippet of script following the prompt
-    virtual void scriptStringAndSelection(QString &scriptString, int &pos, int &len);
+    virtual void scriptStringAndSelection(QString &scriptString, int &pos, int &len, int &offset);
     
 protected slots:
     virtual void displayFontPrefChanged();
