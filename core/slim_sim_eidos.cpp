@@ -2160,7 +2160,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 			for (int registry_index = 0; registry_index < registry_size; registry_index++)
 			{
 				MutationIndex mut_index = registry[registry_index];
-				int8_t mut_state = (mutation_block_ptr + registry_index)->state_;
+				int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
 				double freq;
 				
 				if (mut_state == MutationState::kInRegistry)		freq = *(refcount_block_ptr + mut_index) * denominator;
@@ -2177,7 +2177,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 			for (int registry_index = 0; registry_index < registry_size; registry_index++)
 			{
 				MutationIndex mut_index = registry[registry_index];
-				int8_t mut_state = (mutation_block_ptr + registry_index)->state_;
+				int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
 				slim_refcount_t count;
 				
 				if (mut_state == MutationState::kInRegistry)		count = *(refcount_block_ptr + mut_index);

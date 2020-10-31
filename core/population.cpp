@@ -5046,6 +5046,7 @@ void Population::MaintainRegistry(void)
 	// also check for any mutations that are in the registry but do not have the state MutationState::kInRegistry
 #if DEBUG
 	CheckMutationRegistry(true);	// full check
+	registry_needs_consistency_check_ = false;
 #else
 	if (registry_needs_consistency_check_)
 	{
