@@ -2979,7 +2979,7 @@ void QtSLiMWindow::_continuousProfile(void)
 
 void QtSLiMWindow::playOrProfile(PlayType playType)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (playType == PlayType::kProfilePlay)
 	{
         ui->profileButton->setChecked(false);

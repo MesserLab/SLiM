@@ -51,7 +51,7 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 // If defined, runtime checks are conducted to ensure that MutationRun objects are not modified once they have been referenced by
 // more than one Genome.  This allows multiple Genome objects to refer to the same underlying MutationRun securely.  Genome and other
 // clients are responsible for making a copy of a MutationRun before modification when they do not know they are the sole owner.
-#ifdef DEBUG
+#if DEBUG
 #define SLIM_MUTRUN_CHECK_LOCKING
 #endif
 

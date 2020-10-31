@@ -60,6 +60,7 @@ development head:
 	show colored function/method signatures in the SLiMgui status bar
 	show elapsed CPU time, segregating mutations, and number of substitutions in the SLiMgui status bar
 	make it possible to retain a Mutation object long term with defineConstant() / setValue(), with a revamp of object memory management under the hood (putting Mutation under retain/release)
+		subtle behavior change: the reported frequency of a mutation that is removed with substitute=T used to be 0.0, now it is 1.0 (which seems more correct)
 	add isFixed and isSegregating properties to Mutation to help diagnose the state of a mutation that has been retained long-term
 	add recipe 9.9, "Keeping a reference to a sweep mutation"
 	add recipe 9.10, "Tracking the fate of background mutations"

@@ -86,7 +86,7 @@ void Genome::NullGenomeAccessError(void) const
 
 void Genome::WillModifyRun(slim_mutrun_index_t p_run_index)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (p_run_index >= mutrun_count_)
 		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 #endif
@@ -192,7 +192,7 @@ void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutr
 // Remove all mutations in p_genome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
 void Genome::RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (mutrun_count_ == 0)
 		NullGenomeAccessError();
 #endif
@@ -203,7 +203,7 @@ void Genome::RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_
 
 void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (mutrun_count_ == 0)
 		NullGenomeAccessError();
 #endif
@@ -220,7 +220,7 @@ void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_ref
 
 void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (mutrun_count_ == 0)
 		NullGenomeAccessError();
 #endif

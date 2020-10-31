@@ -1515,7 +1515,7 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 			// Check the tree for correctness; for now I will leave this enabled in the DEBUG case,
 			// because a bug was found in the k-d tree code in 2.4.1 that would have been caught by this.
 			// Eventually, when it is clear that this code is robust, this check can be disabled.
-#ifdef DEBUG
+#if DEBUG
 			int total_tree_count = 0;
 			
 			switch (spatiality_)

@@ -154,7 +154,7 @@ public:
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
 	inline MutationRun *WillCreateRun(int p_run_index)
 	{
-#ifdef DEBUG
+#if DEBUG
 		if (p_run_index < 0)
 			EIDOS_TERMINATION << "ERROR (Genome::WillCreateRun): (internal error) attempt to create a negative-index run." << EidosTerminate();
 		if (p_run_index >= mutrun_count_)
@@ -199,7 +199,7 @@ public:
 	
 	inline __attribute__((always_inline)) int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
 	{
-#ifdef DEBUG
+#if DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
@@ -220,7 +220,7 @@ public:
 	
 	inline void clear_to_empty(void)
 	{
-#ifdef DEBUG
+#if DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
@@ -262,7 +262,7 @@ public:
 	
 	inline __attribute__((always_inline)) bool contains_mutation(MutationIndex p_mutation_index)
 	{
-#ifdef DEBUG
+#if DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
@@ -271,7 +271,7 @@ public:
 	
 	inline __attribute__((always_inline)) Mutation *mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
 	{
-#ifdef DEBUG
+#if DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
@@ -296,7 +296,7 @@ public:
 	
 	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
 	{
-#ifdef DEBUG
+#if DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
@@ -325,11 +325,11 @@ public:
 		}
 		else
 		{
-#ifdef DEBUG
+#if DEBUG
 			if (mutrun_count_ == 0)
 				NullGenomeAccessError();
 #endif
-#ifdef DEBUG
+#if DEBUG
 			if ((mutrun_count_ != p_source_genome.mutrun_count_) || (mutrun_length_ != p_source_genome.mutrun_length_))
 				EIDOS_TERMINATION << "ERROR (Genome::copy_from_genome): (internal error) assignment from genome with different count/length." << EidosTerminate();
 #endif

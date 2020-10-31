@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
 		PrintUsageAndDie(false, true);
 	
 	// announce if we are running a debug build or are skipping runtime checks
-#ifdef DEBUG
+#if DEBUG
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	if (SLiM_verbosity_level >= 2)

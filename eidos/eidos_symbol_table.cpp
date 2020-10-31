@@ -171,7 +171,7 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 		else
 			chain_symbol_table_ = parent_symbol_table_;
 		
-#ifdef DEBUG
+#if DEBUG
 		if (table_type_ == EidosSymbolTableType::kEidosIntrinsicConstantsTable)
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::EidosSymbolTable): (internal error) the Eidos intrinsic constants table cannot have a parent." << EidosTerminate(nullptr);
 		if (chain_symbol_table_->table_type_ == EidosSymbolTableType::kLocalVariablesTable)
@@ -625,7 +625,7 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 
 void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (p_value->Invisible())
 		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_InitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << EidosTerminate(nullptr);
 	if (!table_type_is_constant_)

@@ -2528,7 +2528,7 @@
 {
 	BOOL isProfileAction = !isPlayAction;	// to avoid having to think in negatives
 	
-#ifdef DEBUG
+#if DEBUG
 	if (isProfileAction)
 	{
 		[profileButton setState:NSOffState];

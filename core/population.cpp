@@ -2082,7 +2082,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	// in SLiM's internal logic, not user error.  This method gets called a whole lot; every test makes a speed difference.  So disabling
 	// these checks seems to make sense.  Of course, if you want the checks on, just define DEBUG.
 	
-#ifdef DEBUG
+#if DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
 #endif
@@ -2099,7 +2099,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	if (child_genome_type == GenomeType::kAutosome)
 	{
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
-#ifdef DEBUG
+#if DEBUG
 		if (parent1_genome_type != GenomeType::kAutosome || parent2_genome_type != GenomeType::kAutosome)
 			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child genome types (case 1)." << EidosTerminate();
 #endif
@@ -2107,7 +2107,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	else
 	{
 		// SEX ONLY: If we're modeling sexual individuals, then there are various degenerate cases to be considered, since X and Y don't cross over, there are null chromosomes, etc.
-#ifdef DEBUG
+#if DEBUG
 		if (p_child_sex == IndividualSex::kHermaphrodite)
 			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A hermaphrodite child is requested but the child genome is not autosomal." << EidosTerminate();
 		if (parent1_genome_type == GenomeType::kAutosome || parent2_genome_type == GenomeType::kAutosome)
@@ -2177,14 +2177,14 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	
 	// check for null cases
 	bool child_genome_null = p_child_genome.IsNull();
-#ifdef DEBUG
+#if DEBUG
 	bool parent_genome_1_null = parent_genome_1->IsNull();
 	bool parent_genome_2_null = parent_genome_2->IsNull();
 #endif
 	
 	if (child_genome_null)
 	{
-#ifdef DEBUG
+#if DEBUG
 		if (!use_only_strand_1)
 		{
 			// If we're trying to cross over, both parental strands had better be null
@@ -2208,7 +2208,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		return;
 	}
 	
-#ifdef DEBUG
+#if DEBUG
 	if (use_only_strand_1 && parent_genome_1_null)
 		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Child genome is non-null, but the parental strand is null." << EidosTerminate();
 	
@@ -3338,7 +3338,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 {
 	// This is parallel to DoCrossoverMutation(), but is provided with parental genomes and breakpoints.
 	// It is called only by Subpopulation::ExecuteMethod_addRecombinant() to execute the user's plan.
-#ifdef DEBUG
+#if DEBUG
 	if (p_breakpoints.size() == 0)
 		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Called with an empty breakpoint array." << EidosTerminate();
 	if (!p_parent_genome_1 || !p_parent_genome_2)
@@ -3886,7 +3886,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #pragma unused(p_child_sex)
-#ifdef DEBUG
+#if DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
 #endif
@@ -5265,7 +5265,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		
 		// To tally using MutationRun, the refcounts of all active MutationRun objects should add up to the same
 		// total as the total number of Genome objects being tallied across.  Otherwise, something is very wrong.
-#ifdef DEBUG
+#if DEBUG
 		if (can_tally_runs)
 		{
 			slim_refcount_t total_genome_count = 0, tally_mutrun_ref_count = 0, total_mutrun_count = 0;

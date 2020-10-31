@@ -34,7 +34,7 @@
 // We have a bunch of behaviors that we want to do only when compiled DEBUG or EIDOS_GUI; #if tests everywhere are very ugly, so we make
 // some #defines here that help structure this.
 
-#if defined(DEBUG) || defined(EIDOS_GUI)
+#if DEBUG || defined(EIDOS_GUI)
 
 #define EIDOS_ENTRY_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(execution_log_indent_++) << method_name << " entered\n";
 #define EIDOS_EXIT_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(--execution_log_indent_) << method_name << " : return == " << *result_SP << "\n";
@@ -138,7 +138,7 @@ void EidosInterpreter::SetShouldLogExecution(bool p_log)
 	
 	if (logging_execution_)
 	{
-#if defined(DEBUG) || defined(EIDOS_GUI)
+#if DEBUG || defined(EIDOS_GUI)
 		// execution_log_ is allocated when logging execution is turned on; all use of execution_log_
 		// should be inside "if (logging_execution_)", so this should suffice.
 		if (!execution_log_)
@@ -685,7 +685,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 	
 	EidosTokenType token_type = p_lvalue_node->token_->token_type_;
 	
-#if defined(DEBUG) || defined(EIDOS_GUI)
+#if DEBUG || defined(EIDOS_GUI)
 	if (logging_execution_)
 	{
 		*execution_log_ << IndentString(execution_log_indent_) << "_AssignRValueToLValue() : lvalue token ";
@@ -1430,7 +1430,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		_DeprocessArgumentList(p_node);
 		
 		// If the code above supplied no return value, raise when in debug.  Not in debug, we crash.
-#ifdef DEBUG
+#if DEBUG
 		if (!result_SP)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) function " << *function_name << " returned nullptr." << EidosTerminate(call_identifier_token);
 #endif
@@ -2006,7 +2006,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 
 EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 {
-#if defined(DEBUG) || defined(EIDOS_GUI)
+#if DEBUG || defined(EIDOS_GUI)
 	if (logging_execution_)
 	{
 		// When logging execution, use the slow path so everything gets logged correctly
