@@ -258,6 +258,9 @@ class SLiMSim : public EidosDictionaryUnretained
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 private:
+	typedef EidosDictionaryUnretained super;
+
+private:
 	// the way we handle script blocks is complicated and is private even against SLiMgui
 	
 	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script

@@ -119,6 +119,9 @@ class InteractionType : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+private:
+	typedef EidosDictionaryUnretained super;
+
 #ifdef SLIMGUI
 public:
 #else

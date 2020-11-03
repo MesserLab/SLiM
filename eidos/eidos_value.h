@@ -320,6 +320,9 @@ inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const Eid
 
 class EidosValue_VOID : public EidosValue
 {
+private:
+	typedef EidosValue super;
+	
 protected:
 	virtual int Count_Virtual(void) const override;
 	
@@ -363,6 +366,9 @@ public:
 
 class EidosValue_NULL : public EidosValue
 {
+private:
+	typedef EidosValue super;
+
 protected:
 	virtual int Count_Virtual(void) const override;
 	
@@ -415,6 +421,9 @@ public:
 
 class EidosValue_Logical : public EidosValue
 {
+private:
+	typedef EidosValue super;
+
 protected:
 	eidos_logical_t *values_ = nullptr;
 	size_t count_ = 0, capacity_ = 0;
@@ -486,6 +495,9 @@ public:
 
 class EidosValue_Logical_const : public EidosValue_Logical
 {
+private:
+	typedef EidosValue_Logical super;
+
 protected:
 	virtual void _CopyDimensionsFromValue(const EidosValue *p_value) override;
 public:
@@ -521,6 +533,9 @@ public:
 
 class EidosValue_String : public EidosValue
 {
+private:
+	typedef EidosValue super;
+
 protected:
 	explicit inline EidosValue_String(bool p_singleton) : EidosValue(EidosValueType::kValueString, p_singleton) {}
 	
@@ -547,6 +562,9 @@ public:
 
 class EidosValue_String_vector : public EidosValue_String
 {
+private:
+	typedef EidosValue_String super;
+
 protected:
 	// this is not converted to a malloced buffer because unlike the other types, we can't get away with
 	// not initializing the memory belonging to a std::string, so the malloc strategy doesn't work
@@ -587,6 +605,9 @@ public:
 
 class EidosValue_String_singleton : public EidosValue_String
 {
+private:
+	typedef EidosValue_String super;
+
 protected:
 	std::string value_;
 	EidosScript *cached_script_ = nullptr;	// cached by executeLambda(), apply(), and sapply() to avoid multiple tokenize/parse overhead
@@ -640,6 +661,9 @@ public:
 
 class EidosValue_Int : public EidosValue
 {
+private:
+	typedef EidosValue super;
+
 protected:
 	explicit inline EidosValue_Int(bool p_singleton) : EidosValue(EidosValueType::kValueInt, p_singleton) {}
 	
@@ -665,6 +689,9 @@ public:
 
 class EidosValue_Int_vector : public EidosValue_Int
 {
+private:
+	typedef EidosValue_Int super;
+
 protected:
 	int64_t *values_ = nullptr;
 	size_t count_ = 0, capacity_ = 0;
@@ -732,6 +759,9 @@ public:
 
 class EidosValue_Int_singleton : public EidosValue_Int
 {
+private:
+	typedef EidosValue_Int super;
+
 protected:
 	int64_t value_;
 	
@@ -779,6 +809,9 @@ public:
 
 class EidosValue_Float : public EidosValue
 {
+private:
+	typedef EidosValue super;
+
 protected:
 	explicit inline EidosValue_Float(bool p_singleton) : EidosValue(EidosValueType::kValueFloat, p_singleton) {}
 
@@ -804,6 +837,9 @@ public:
 
 class EidosValue_Float_vector : public EidosValue_Float
 {
+private:
+	typedef EidosValue_Float super;
+
 protected:
 	double *values_ = nullptr;
 	size_t count_ = 0, capacity_ = 0;
@@ -869,6 +905,9 @@ public:
 
 class EidosValue_Float_singleton : public EidosValue_Float
 {
+private:
+	typedef EidosValue_Float super;
+
 protected:
 	double value_;
 	
@@ -924,6 +963,9 @@ public:
 
 class EidosValue_Object : public EidosValue
 {
+private:
+	typedef EidosValue super;
+
 protected:
 	const EidosClass *class_;		// can be gEidosObject_Class if the vector is empty
 	bool class_uses_retain_release_;	// cached from UsesRetainRelease() of class_; true until class_ is set, to catch errors
@@ -986,6 +1028,9 @@ public:
 
 class EidosValue_Object_vector : public EidosValue_Object
 {
+private:
+	typedef EidosValue_Object super;
+
 protected:
 	EidosObject **values_ = nullptr;		// these may use a retain/release system of ownership; see below
 	size_t count_ = 0, capacity_ = 0;
@@ -1209,6 +1254,9 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_
 
 class EidosValue_Object_singleton : public EidosValue_Object
 {
+private:
+	typedef EidosValue_Object super;
+
 protected:
 	EidosObject *value_;		// these may use a retain/release system of ownership; see below
 	

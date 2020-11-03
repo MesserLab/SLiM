@@ -120,6 +120,9 @@ class Subpopulation : public EidosDictionaryUnretained
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
 private:
+	typedef EidosDictionaryUnretained super;
+
+private:
 	
 #ifdef SLIM_WF_ONLY
 	gsl_ran_discrete_t *lookup_parent_ = nullptr;			// OWNED POINTER: lookup table for drawing a parent based upon fitness

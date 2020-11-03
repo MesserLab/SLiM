@@ -63,6 +63,9 @@ std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type);
 
 class SLiMEidosScript : public EidosScript
 {
+private:
+	typedef EidosScript super;
+
 public:
 	SLiMEidosScript(const SLiMEidosScript&) = delete;							// no copying
 	SLiMEidosScript& operator=(const SLiMEidosScript&) = delete;				// no copying
@@ -107,6 +110,9 @@ class SLiMEidosBlock : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+private:
+	typedef EidosDictionaryUnretained super;
+
 private:
 
 	EidosSymbolTableEntry self_symbol_;					// "self" : for fast setup of the symbol table
@@ -214,6 +220,10 @@ public:
 class SLiMTypeTable : public EidosTypeTable
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	
+private:
+	typedef EidosTypeTable super;
+
 public:
 	
 	SLiMTypeTable(const SLiMTypeTable&) = delete;										// no copying
@@ -236,6 +246,10 @@ public:
 class SLiMTypeInterpreter : public EidosTypeInterpreter
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+	
+private:
+	typedef EidosTypeInterpreter super;
+
 public:
 	
 	SLiMTypeInterpreter(const SLiMTypeInterpreter&) = delete;					// no copying

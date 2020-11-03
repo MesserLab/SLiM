@@ -66,7 +66,7 @@ development head:
 	add recipe 9.10, "Tracking the fate of background mutations"
 	add Image class to Eidos, based on lodepng
 	extend Dictionary with allKeys, addKeysAndValuesFrom(), clearKeysAndValues()
-	make superclass relationships explicit and documented; make Chromosome, SlimEidosBlock, and SLiMgui inherit from EidosDictionaryUnretained
+	make superclass relationships explicit and documented; make Chromosome, SLiMEidosBlock, and SLiMgui inherit from EidosDictionaryUnretained
 	move doc for setValue()/getValue() to the Eidos manual, remove all the duplicated doc for it in SLiM
 	show superclasses in the doc browser, with a hyperlink
 	change defineSpatialMap() to require a matrix (except in the 1D case), removing the gridSize parameter (breaking backward compatibility!), and reading the matrix in the right order (so it looks the same in SLiMgui as in the console)

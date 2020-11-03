@@ -35,9 +35,13 @@ class QtSLiMWindow;
 extern EidosClass *gSLiM_SLiMgui_Class;
 
 
-class SLiMgui : public EidosObject
+class SLiMgui : public EidosDictionaryUnretained
 {
     //	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
+    
+private:
+	typedef EidosDictionaryUnretained super;
+
 public:
 	
 	SLiMSim &sim_;								// We have a reference to our simulation object

@@ -41,6 +41,9 @@ class GenomicElement : public EidosObject
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+private:
+	typedef EidosObject super;
+
 public:
 	
 	EidosValue_SP self_value_;								// cached EidosValue object for speed

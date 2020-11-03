@@ -206,6 +206,9 @@ bool CompareEidosCallSignatures(const EidosCallSignature_CSP &p_i, const EidosCa
 
 class EidosFunctionSignature : public EidosCallSignature
 {
+private:
+	typedef EidosCallSignature super;
+
 public:
 	// internal function implementations
 	EidosInternalFunctionPtr internal_function_ = nullptr;
@@ -245,6 +248,9 @@ bool CompareEidosFunctionSignatures(const EidosFunctionSignature_CSP &p_i, const
 
 class EidosMethodSignature : public EidosCallSignature
 {
+private:
+	typedef EidosCallSignature super;
+
 public:
 	bool is_class_method = false;	// a bit unfortunate, but much faster to check this than to call a virtual function...
 	
@@ -266,6 +272,9 @@ public:
 
 class EidosInstanceMethodSignature : public EidosMethodSignature
 {
+private:
+	typedef EidosMethodSignature super;
+
 public:
 	bool accelerated_imp_;									// if true, the method has a special vectorized implementation
 	Eidos_AcceleratedMethodImp accelerated_imper_;			// a pointer to a (static member) function that handles the accelerated imp
@@ -291,6 +300,9 @@ public:
 
 class EidosClassMethodSignature : public EidosMethodSignature
 {
+private:
+	typedef EidosMethodSignature super;
+
 public:
 	EidosClassMethodSignature(const EidosClassMethodSignature&) = delete;						// no copying
 	EidosClassMethodSignature& operator=(const EidosClassMethodSignature&) = delete;			// no copying

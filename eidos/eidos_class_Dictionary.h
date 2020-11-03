@@ -46,6 +46,9 @@ extern EidosClass *gEidosDictionaryUnretained_Class;
 class EidosDictionaryUnretained : public EidosObject
 {
 private:
+	typedef EidosObject super;
+
+private:
 	// We keep a pointer to our hash table for values we are tracking.  The reason to use a pointer is
 	// that most clients of SLiM will not use getValue()/setValue() for most objects most of the time,
 	// so we want to keep that case as minimal as possible in terms of speed and memory footprint.
@@ -86,6 +89,9 @@ public:
 
 class EidosDictionaryUnretained_Class : public EidosClass
 {
+private:
+	typedef EidosClass super;
+
 public:
 	EidosDictionaryUnretained_Class(const EidosDictionaryUnretained_Class &p_original) = delete;	// no copy-construct
 	EidosDictionaryUnretained_Class& operator=(const EidosDictionaryUnretained_Class&) = delete;	// no copying
@@ -109,6 +115,9 @@ extern EidosClass *gEidosDictionaryRetained_Class;
 // This class is known in Eidos as "Dictionary"
 class EidosDictionaryRetained : public EidosDictionaryUnretained
 {
+private:
+	typedef EidosDictionaryUnretained super;
+
 private:
 	uint32_t refcount_ = 1;				// start life with a refcount of 1; the allocator does not need to call Retain()
 	
@@ -139,6 +148,9 @@ public:
 
 class EidosDictionaryRetained_Class : public EidosDictionaryUnretained_Class
 {
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
 public:
 	EidosDictionaryRetained_Class(const EidosDictionaryRetained_Class &p_original) = delete;	// no copy-construct
 	EidosDictionaryRetained_Class& operator=(const EidosDictionaryRetained_Class&) = delete;	// no copying

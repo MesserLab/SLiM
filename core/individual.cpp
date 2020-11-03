@@ -461,7 +461,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObject::GetProperty(p_property_id);
+			return super::GetProperty(p_property_id);
 	}
 }
 
@@ -726,7 +726,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			
 			// all others, including gID_none
 		default:
-			return EidosObject::SetProperty(p_property_id, p_value);
+			return super::SetProperty(p_property_id, p_value);
 	}
 }
 
@@ -944,7 +944,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 			if (p_method_id == gEidosID_setValue)
 				s_any_individual_dictionary_set_ = true;
 			
-			return EidosDictionaryUnretained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+			return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 		}
 	}
 }
@@ -1349,6 +1349,9 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 
 class Individual_Class : public EidosDictionaryUnretained_Class
 {
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
 public:
 	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
 	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
@@ -1383,7 +1386,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryUnretained_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
@@ -1420,7 +1423,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryUnretained_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

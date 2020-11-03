@@ -287,7 +287,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObject::GetProperty(p_property_id);
+			return super::GetProperty(p_property_id);
 	}
 }
 
@@ -348,7 +348,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 			
 		default:
 		{
-			return EidosObject::SetProperty(p_property_id, p_value);
+			return super::SetProperty(p_property_id, p_value);
 		}
 	}
 }
@@ -359,7 +359,7 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 	{
 		case gID_setMutationFractions:	return ExecuteMethod_setMutationFractions(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationMatrix:		return ExecuteMethod_setMutationMatrix(p_method_id, p_arguments, p_interpreter);
-		default:						return EidosDictionaryUnretained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:						return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -445,6 +445,9 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 
 class GenomicElementType_Class : public EidosDictionaryUnretained_Class
 {
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
 public:
 	GenomicElementType_Class(const GenomicElementType_Class &p_original) = delete;	// no copy-construct
 	GenomicElementType_Class& operator=(const GenomicElementType_Class&) = delete;	// no copying
@@ -476,7 +479,7 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Propert
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryUnretained_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
@@ -497,7 +500,7 @@ const std::vector<EidosMethodSignature_CSP> *GenomicElementType_Class::Methods(v
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryUnretained_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskVOID))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationMatrix, kEidosValueMaskVOID))->AddFloat("mutationMatrix"));

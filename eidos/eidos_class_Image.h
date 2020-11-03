@@ -35,6 +35,9 @@ extern EidosClass *gEidosImage_Class;
 class EidosImage : public EidosDictionaryRetained
 {
 private:
+	typedef EidosDictionaryRetained super;
+
+private:
 	enum Channel {
 		kRedChannel = 0,
 		kGreenChannel,

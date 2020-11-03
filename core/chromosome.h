@@ -51,6 +51,9 @@ class Chromosome : public EidosDictionaryRetained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
+private:
+	typedef EidosDictionaryRetained super;
+
 #ifdef SLIMGUI
 public:
 #else

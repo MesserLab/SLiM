@@ -71,7 +71,7 @@ EidosValue_SP SLiMgui::GetProperty(EidosGlobalStringID p_property_id)
 		
 		// all others, including gID_none
 		default:
-			return EidosObject::GetProperty(p_property_id);
+			return super::GetProperty(p_property_id);
 	}
 }
 
@@ -82,7 +82,7 @@ void SLiMgui::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 	{
 		default:
 		{
-			return EidosObject::SetProperty(p_property_id, p_value);
+			return super::SetProperty(p_property_id, p_value);
 		}
 	}
 }
@@ -93,7 +93,7 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	{
 		case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_interpreter);
 		case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_interpreter);
-		default:							return EidosObject::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:							return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -131,9 +131,12 @@ EidosValue_SP SLiMgui::ExecuteMethod_pauseExecution(EidosGlobalStringID p_method
 #pragma mark SLiMgui_Class
 #pragma mark -
 
-class SLiMgui_Class : public EidosClass
+class SLiMgui_Class : public EidosDictionaryUnretained_Class
 {
-	public:
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
 	SLiMgui_Class(const SLiMgui_Class &p_original) = delete;	// no copy-construct
 	SLiMgui_Class& operator=(const SLiMgui_Class&) = delete;	// no copying
 	inline SLiMgui_Class(void) { }
@@ -164,7 +167,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties(void) c
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back(static_cast<EidosPropertySignature *>((new EidosPropertySignature(gStr_pid, true,	kEidosValueMaskInt | kEidosValueMaskSingleton))));
 		
@@ -180,7 +183,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosClass::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath")));
 		methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID))));

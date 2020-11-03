@@ -355,7 +355,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObject::GetProperty(p_property_id);
+			return super::GetProperty(p_property_id);
 	}
 }
 
@@ -580,7 +580,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 			
 		default:
 		{
-			return EidosObject::SetProperty(p_property_id, p_value);
+			return super::SetProperty(p_property_id, p_value);
 		}
 	}
 }
@@ -628,7 +628,7 @@ EidosValue_SP Mutation::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, c
 	{
 		case gID_setSelectionCoeff:	return ExecuteMethod_setSelectionCoeff(p_method_id, p_arguments, p_interpreter);
 		case gID_setMutationType:	return ExecuteMethod_setMutationType(p_method_id, p_arguments, p_interpreter);
-		default:					return EidosDictionaryRetained::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		default:					return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -712,6 +712,9 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 
 class Mutation_Class : public EidosDictionaryRetained_Class
 {
+private:
+	typedef EidosDictionaryRetained_Class super;
+
 public:
 	Mutation_Class(const Mutation_Class &p_original) = delete;	// no copy-construct
 	Mutation_Class& operator=(const Mutation_Class&) = delete;	// no copying
@@ -743,7 +746,7 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosDictionaryRetained_Class::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isFixed,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_isFixed));
@@ -769,7 +772,7 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		methods = new std::vector<EidosMethodSignature_CSP>(*EidosDictionaryRetained_Class::Methods());
+		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskVOID))->AddFloat_S("selectionCoeff"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationType, kEidosValueMaskVOID))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

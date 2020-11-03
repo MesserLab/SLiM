@@ -1093,7 +1093,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosObject::GetProperty(p_property_id);
+			return super::GetProperty(p_property_id);
 	}
 }
 
@@ -1118,7 +1118,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 			
 			// all others, including gID_none
 		default:
-			return EidosObject::SetProperty(p_property_id, p_value);
+			return super::SetProperty(p_property_id, p_value);
 	}
 }
 
@@ -1132,6 +1132,9 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 
 class SLiMEidosBlock_Class : public EidosClass
 {
+private:
+	typedef EidosClass super;
+
 public:
 	SLiMEidosBlock_Class(const SLiMEidosBlock_Class &p_original) = delete;	// no copy-construct
 	SLiMEidosBlock_Class& operator=(const SLiMEidosBlock_Class&) = delete;	// no copying
@@ -1162,7 +1165,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_start,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
@@ -1347,7 +1350,7 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 
 EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std::string const &p_function_name, const EidosFunctionSignature *p_function_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
-	// call super; this should always be called, since it type-avaluates all arguments as a side effect
+	// call super; this should always be called, since it type-evaluates all arguments as a side effect
 	EidosTypeSpecifier ret = EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(p_function_name, p_function_signature, p_arguments);
 	
 	// Create any symbols defined as a side effect of this call, which happens after argument type-evaluation.
@@ -1374,7 +1377,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std:
 
 EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const EidosClass *p_target, const EidosMethodSignature *p_method_signature, const std::vector<EidosASTNode *> &p_arguments)
 {
-	// call super; this should always be called, since it type-avaluates all arguments as a side effect
+	// call super; this should always be called, since it type-evaluates all arguments as a side effect
 	EidosTypeSpecifier ret = EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(p_target, p_method_signature, p_arguments);
 	
 	// Create any symbols defined as a side effect of this call, which happens after argument type-evaluation.

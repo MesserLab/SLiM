@@ -68,6 +68,9 @@ class Mutation : public EidosDictionaryRetained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
+private:
+	typedef EidosDictionaryRetained super;
+
 public:
 	
 	MutationType *mutation_type_ptr_;					// mutation type identifier

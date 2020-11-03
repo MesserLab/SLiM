@@ -63,6 +63,10 @@ class MutationType : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+private:
+	typedef EidosDictionaryUnretained super;
+
+private:
 	EidosSymbolTableEntry self_symbol_;							// for fast setup of the symbol table
 
 public:

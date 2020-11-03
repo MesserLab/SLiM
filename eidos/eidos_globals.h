@@ -808,6 +808,7 @@ extern const std::string &gEidosStr_x;
 extern const std::string &gEidosStr_y;
 extern const std::string &gEidosStr_z;
 extern const std::string &gEidosStr_color;
+extern const std::string &gEidosStr_filePath;
 
 extern const std::string &gEidosStr_Mutation;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 extern const std::string &gEidosStr_Genome;		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
@@ -911,6 +912,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_y,
 	gEidosID_z,
 	gEidosID_color,
+	gEidosID_filePath,
 
 	gEidosID_Mutation,
 	gEidosID_Genome,

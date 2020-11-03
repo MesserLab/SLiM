@@ -196,7 +196,7 @@ EidosValue_SP EidosImage::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// all others, including gID_none
 		default:
-			return EidosDictionaryRetained::GetProperty(p_property_id);
+			return super::GetProperty(p_property_id);
 	}
 }
 
@@ -235,6 +235,9 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 
 class EidosImage_Class : public EidosDictionaryRetained_Class
 {
+private:
+	typedef EidosDictionaryRetained_Class super;
+
 public:
 	EidosImage_Class(const EidosImage_Class &p_original) = delete;	// no copy-construct
 	EidosImage_Class& operator=(const EidosImage_Class&) = delete;	// no copying
@@ -266,7 +269,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties(void
 	
 	if (!properties)
 	{
-		properties = new std::vector<EidosPropertySignature_CSP>(*EidosClass::Properties());
+		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_width,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_height,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
@@ -296,7 +299,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosImage_Class::Functions(void)
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		
-		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S("filePath"));
+		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S(gEidosStr_filePath));
 		
 		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
 	}

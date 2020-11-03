@@ -88,6 +88,10 @@ class Genome : public EidosObject
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
+private:
+	typedef EidosObject super;
+
+private:
 	EidosValue_SP self_value_;									// cached EidosValue object for speed
 	
 	Genome *patch_pointer_;										// used only by Subpopulation::ExecuteMethod_takeMigrants(); see that method

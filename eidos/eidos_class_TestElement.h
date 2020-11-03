@@ -36,6 +36,9 @@ extern EidosClass *gEidosTestElement_Class;
 class EidosTestElement : public EidosDictionaryRetained
 {
 private:
+	typedef EidosDictionaryRetained super;
+
+private:
 	int64_t yolk_;
 	
 public:
