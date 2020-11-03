@@ -962,8 +962,8 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
 	
 	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
-	EidosValue *format_value = p_arguments[2].get();
-	std::string format = format_value->StringAtIndex(0, nullptr);
+	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
+	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
 	
 	if (format == "codon")
 	{

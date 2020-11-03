@@ -1228,6 +1228,14 @@ std::string EidosValue_String_vector::StringAtIndex(int p_idx, const EidosToken 
 	return values_[p_idx];
 }
 
+const std::string &EidosValue_String_vector::StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const
+{
+	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::StringRefAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
+	
+	return values_[p_idx];
+}
+
 int64_t EidosValue_String_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
@@ -1310,6 +1318,14 @@ std::string EidosValue_String_singleton::StringAtIndex(int p_idx, const EidosTok
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
+	
+	return value_;
+}
+
+const std::string &EidosValue_String_singleton::StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const
+{
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::StringRefAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return value_;
 }

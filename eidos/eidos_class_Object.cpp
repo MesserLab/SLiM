@@ -558,7 +558,8 @@ EidosValue_SP EidosClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	EidosValue_String *propertyName_value = (EidosValue_String *)p_arguments[0].get();
+	const std::string &match_string = (has_match_string ? propertyName_value->StringRefAtIndex(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosPropertySignature_CSP> *properties = Properties();
 	bool signature_found = false;
 	
@@ -588,7 +589,8 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-	std::string match_string = (has_match_string ? p_arguments[0]->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	EidosValue_String *methodName_value = (EidosValue_String *)p_arguments[0].get();
+	const std::string &match_string = (has_match_string ? methodName_value->StringRefAtIndex(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 	bool signature_found = false;
 	

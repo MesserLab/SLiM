@@ -667,7 +667,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	{
 		case gEidosID_color:		// ACCELERATED
 		{
-			color_ = p_value.StringAtIndex(0, nullptr);
+			color_ = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
 			if (!color_.empty())
 			{
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
@@ -860,7 +860,7 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 {
 	if (p_source_size == 1)
 	{
-		std::string &&source_value = p_source.StringAtIndex(0, nullptr);
+		const std::string &source_value = ((EidosValue_String &)p_source).StringRefAtIndex(0, nullptr);
 		
 		if (source_value.empty())
 		{

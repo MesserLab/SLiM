@@ -159,9 +159,8 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_clearKeysAndValues(EidosG
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *key_value = p_arguments[0].get();
-	
-	std::string key = key_value->StringAtIndex(0, nullptr);
+	EidosValue_String *key_value = (EidosValue_String *)p_arguments[0].get();
+	const std::string &key = key_value->StringRefAtIndex(0, nullptr);
 	
 	if (!hash_symbols_)
 		return gStaticEidosValueNULL;
@@ -183,8 +182,8 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *key_value = p_arguments[0].get();
-	std::string key = key_value->StringAtIndex(0, nullptr);
+	EidosValue_String *key_value = (EidosValue_String *)p_arguments[0].get();
+	const std::string &key = key_value->StringRefAtIndex(0, nullptr);
 	EidosValue_SP value = p_arguments[1];
 	EidosValueType value_type = value->Type();
 	

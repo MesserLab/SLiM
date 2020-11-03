@@ -729,7 +729,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	
 	EidosValue *length_value = p_arguments[0].get();
 	EidosValue *basis_value = p_arguments[1].get();
-	EidosValue *format_value = p_arguments[2].get();
+	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
 	
 	// Get the sequence length to generate
 	int64_t length = length_value->IntAtIndex(0, nullptr);
@@ -771,7 +771,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	pC += pA;
 	
 	// Generate a result in the requested format
-	std::string &&format = format_value->StringAtIndex(0, nullptr);
+	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
 	
 	if ((format != "string") && (format != "char") && (format != "integer"))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires a format of 'string', 'char', or 'integer'." << EidosTerminate();
@@ -868,11 +868,11 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();
-	EidosValue *format_value = p_arguments[1].get();
+	EidosValue_String *format_value = (EidosValue_String *)p_arguments[1].get();
 	
 	int codons_length = codons_value->Count();
 	int length = codons_length * 3;
-	std::string &&format = format_value->StringAtIndex(0, nullptr);
+	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
 	
 	if (format == "char")
 	{

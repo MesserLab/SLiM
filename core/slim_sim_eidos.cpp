@@ -3407,7 +3407,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	}
 	else if (nucleotide_value->Type() == EidosValueType::kValueString)
 	{
-		std::string nuc_string = nucleotide_value->StringAtIndex(0, nullptr);
+		const std::string &nuc_string = ((EidosValue_String *)nucleotide_value)->StringRefAtIndex(0, nullptr);
 		
 		if (nuc_string == "A")		nucleotide = 0;
 		else if (nuc_string == "C")	nucleotide = 1;

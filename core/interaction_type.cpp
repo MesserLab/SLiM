@@ -3541,9 +3541,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *functionType_value = p_arguments[0].get();
+	EidosValue_String *functionType_value = (EidosValue_String *)p_arguments[0].get();
 	
-	std::string if_type_string = functionType_value->StringAtIndex(0, nullptr);
+	const std::string &if_type_string = functionType_value->StringRefAtIndex(0, nullptr);
 	IFType if_type;
 	int expected_if_param_count = 0;
 	std::vector<double> if_parameters;

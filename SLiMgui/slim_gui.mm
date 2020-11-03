@@ -103,8 +103,8 @@ EidosValue_SP SLiMgui::ExecuteMethod_openDocument(EidosGlobalStringID p_method_i
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	
-	EidosValue *filePath_value = p_arguments[0].get();
-	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	EidosValue_String *filePath_value = (EidosValue_String *)p_arguments[0].get();
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringRefAtIndex(0, nullptr)));
 	NSString *filePath = [NSString stringWithUTF8String:file_path.c_str()];
 	
 	[controller_ eidos_openDocument:filePath];

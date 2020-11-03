@@ -535,6 +535,7 @@ public:
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	
+	virtual const std::string &StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;		// const reference for speed
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
@@ -571,6 +572,7 @@ public:
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual const std::string &StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
@@ -604,6 +606,7 @@ public:
 	
 	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual const std::string &StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };

@@ -215,8 +215,8 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	EidosValue *filePath_value = p_arguments[0].get();
-	EidosImage *objectElement = new EidosImage(filePath_value->StringAtIndex(0, nullptr));
+	EidosValue_String *filePath_value = (EidosValue_String *)p_arguments[0].get();
+	EidosImage *objectElement = new EidosImage(filePath_value->StringRefAtIndex(0, nullptr));
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosImage_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it

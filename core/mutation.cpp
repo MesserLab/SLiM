@@ -539,7 +539,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 	{
 		case gID_nucleotide:
 		{
-			std::string nucleotide = p_value.StringAtIndex(0, nullptr);
+			const std::string &nucleotide = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
 			
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();

@@ -1707,8 +1707,8 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 	if (length > INT_MAX)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
 	
-	EidosValue *format_value = p_arguments[2].get();
-	std::string format = format_value->StringAtIndex(0, nullptr);
+	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
+	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
 	
 	if (format == "codon")
 		return sequence->NucleotidesAsCodonVector(start, end, /* p_force_vector */ false);

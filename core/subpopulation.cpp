@@ -5769,7 +5769,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	
 	if (sex_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+		const std::string &sex_string = ((EidosValue_String *)sex_value)->StringRefAtIndex(0, nullptr);
 		
 		if (sex_string == "M")			sex = IndividualSex::kMale;
 		else if (sex_string == "F")		sex = IndividualSex::kFemale;
@@ -6045,7 +6045,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	
 	if (sex_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+		const std::string &sex_string = ((EidosValue_String *)sex_value)->StringRefAtIndex(0, nullptr);
 		
 		if (sex_string == "M")			sex = IndividualSex::kMale;
 		else if (sex_string == "F")		sex = IndividualSex::kFemale;
@@ -6160,15 +6160,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *name_value = p_arguments[0].get();
-	EidosValue *spatiality_value = p_arguments[1].get();
+	EidosValue_String *name_value = (EidosValue_String *)p_arguments[0].get();
+	EidosValue_String *spatiality_value = (EidosValue_String *)p_arguments[1].get();
 	EidosValue *values = p_arguments[2].get();
 	EidosValue *interpolate_value = p_arguments[3].get();
 	EidosValue *value_range = p_arguments[4].get();
 	EidosValue *colors = p_arguments[5].get();
 	
-	std::string map_name = name_value->StringAtIndex(0, nullptr);
-	std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
+	const std::string &map_name = name_value->StringRefAtIndex(0, nullptr);
+	const std::string &spatiality_string = spatiality_value->StringRefAtIndex(0, nullptr);
 	bool interpolate = interpolate_value->LogicalAtIndex(0, nullptr);
 	
 	if (map_name.length() == 0)
@@ -6345,10 +6345,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *name_value = p_arguments[0].get();
+	EidosValue_String *name_value = (EidosValue_String *)p_arguments[0].get();
 	EidosValue *value_value = p_arguments[1].get();
 	
-	std::string map_name = name_value->StringAtIndex(0, nullptr);
+	const std::string &map_name = name_value->StringRefAtIndex(0, nullptr);
 	EidosValue *values = value_value;
 	
 	if (map_name.length() == 0)
@@ -6392,10 +6392,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *name_value = p_arguments[0].get();
+	EidosValue_String *name_value = (EidosValue_String *)p_arguments[0].get();
 	EidosValue *point_value = p_arguments[1].get();
 	
-	std::string map_name = name_value->StringAtIndex(0, nullptr);
+	const std::string &map_name = name_value->StringRefAtIndex(0, nullptr);
 	EidosValue *point = point_value;
 	
 	if (map_name.length() == 0)
