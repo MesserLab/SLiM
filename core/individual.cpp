@@ -990,7 +990,7 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	SLiMSim &sim = subpopulation_.population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "countOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
@@ -1070,8 +1070,12 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (p_elements_size == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	Individual *element0 = (Individual *)(p_elements[0]);
+	SLiMSim &sim = element0->subpopulation_.population_.sim_;
 	EidosValue *mutType_value = p_arguments[0].get();
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "sumOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
@@ -1137,7 +1141,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	SLiMSim &sim = subpopulation_.population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "uniqueMutationsOfType()");
 	
 	// This code is adapted from uniqueMutations and follows its logic closely

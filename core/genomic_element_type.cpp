@@ -368,7 +368,6 @@ EidosValue_SP GenomicElementType::ExecuteInstanceMethod(EidosGlobalStringID p_me
 EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	EidosValue *mutationTypes_value = p_arguments[0].get();
 	EidosValue *proportions_value = p_arguments[1].get();
 	
@@ -383,7 +382,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{ 
-		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, sim, "setMutationFractions()");
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, sim_, "setMutationFractions()");
 		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if ((proportion < 0) || !std::isfinite(proportion))		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
@@ -397,7 +396,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 		
 		// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
 		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
-			sim.pure_neutral_ = false;
+			sim_.pure_neutral_ = false;
 	}
 	
 	// Everything seems to be in order, so replace our mutation info with the new info
@@ -408,7 +407,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	InitializeDraws();
 	
 	// Notify interested parties of the change
-	sim.genomic_element_types_changed_ = true;
+	sim_.genomic_element_types_changed_ = true;
 	
 	return gStaticEidosValueVOID;
 }

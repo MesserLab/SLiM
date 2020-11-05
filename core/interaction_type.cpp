@@ -3121,17 +3121,16 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *subpops_value = p_arguments[0].get();
 	EidosValue *immediate_value = p_arguments[1].get();
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
 	
-	if ((sim.GenerationStage() == SLiMGenerationStage::kWFStage2GenerateOffspring) ||
-		(sim.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring))
+	if ((sim_.GenerationStage() == SLiMGenerationStage::kWFStage2GenerateOffspring) ||
+		(sim_.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring))
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << EidosTerminate();
 	
 	bool immediate = immediate_value->LogicalAtIndex(0, nullptr);
 	
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim.ThePopulation().subpops_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim_.ThePopulation().subpops_)
 			EvaluateSubpopulation(subpop_pair.second, immediate);
 	}
 	else
@@ -3630,9 +3629,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
 	
 	// mark that interaction types changed, so they get redisplayed in SLiMgui
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-	
-	sim.interaction_types_changed_ = true;
+	sim_.interaction_types_changed_ = true;
 	
 	return gStaticEidosValueVOID;
 }

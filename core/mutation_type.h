@@ -79,7 +79,7 @@ public:
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
 	
-	SLiMSim &sim_;								// We have a reference back to our simulation, for running type "s" DFE scripts
+	SLiMSim &sim_;								// We have a reference back to our simulation, for running type "s" DFE scripts and other purposes
 	
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes

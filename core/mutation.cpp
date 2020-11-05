@@ -649,7 +649,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	// since this selection coefficient came from the user, check and set pure_neutral_ and all_pure_neutral_DFE_
 	if (selection_coeff_ != 0.0)
 	{
-		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+		SLiMSim &sim = mutation_type_ptr_->sim_;
 		
 		sim.pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
 		mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
@@ -662,7 +662,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	}
 	else if (old_coeff != 0.0)	// && (selection_coeff_ == 0.0) implied by the "else"
 	{
-		SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+		SLiMSim &sim = mutation_type_ptr_->sim_;
 		
 		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
 		sim.nonneutral_change_counter_++;
@@ -681,7 +681,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	SLiMSim &sim = mutation_type_ptr_->sim_;
 	
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "setMutationType()");
 	

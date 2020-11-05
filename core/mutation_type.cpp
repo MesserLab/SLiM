@@ -715,14 +715,12 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 	dfe_strings_ = dfe_strings;
 	
 	// mark that mutation types changed, so they get redisplayed in SLiMgui
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-	
-	sim.mutation_types_changed_ = true;
+	sim_.mutation_types_changed_ = true;
 	
 	// check whether we are now using a DFE type that is non-neutral; check and set pure_neutral_ and all_pure_neutral_DFE_
 	if ((dfe_type_ != DFEType::kFixed) || (dfe_parameters_[0] != 0.0))
 	{
-		sim.pure_neutral_ = false;
+		sim_.pure_neutral_ = false;
 		all_pure_neutral_DFE_ = false;
 	}
 	
