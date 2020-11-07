@@ -1,0 +1,133 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  canceller:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+
+  CLI:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11.0]
+        include:
+          # Ubuntu with the oldest supported GCC.
+          - os: ubuntu-18.04
+            gcc: 4.8
+          # Ubuntu with the most recent GCC.
+          - os: ubuntu-20.04
+            gcc: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Choose GCC
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          # Install specific GCC version as the default.
+          sudo apt-get install gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
+          sudo update-alternatives \
+            --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
+
+      - name: Build (Debug)
+        run: |
+          mkdir Debug
+          cd Debug
+          cmake -D CMAKE_BUILD_TYPE=Debug ..
+          make -j 2
+
+      - name: Test (Debug)
+        run: |
+          cd Debug
+          ./eidos -testEidos
+          ./slim -testEidos
+          ./slim -testSLiM
+
+      - name: Build (Release)
+        run: |
+          mkdir Release
+          cd Release
+          cmake -D CMAKE_BUILD_TYPE=Release ..
+          make -j 2
+
+      - name: Test (Release)
+        run: |
+          cd Release
+          ./eidos -testEidos
+          ./slim -testEidos
+          ./slim -testSLiM
+
+  GUI:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu with the oldest supported Qt and GCC.
+          - os: ubuntu-18.04
+            qt: 5.9.5
+            gcc: 4.8
+          # Ubuntu with the most recent Qt and GCC.
+          - os: ubuntu-20.04
+            qt: 5.15.1
+            gcc: 10
+          # MacOS with oldest supported Qt.
+          - os: macos-10.15
+            qt: 5.9.5
+          # MacOS with most recent Qt.
+          - os: macos-10.15
+            qt: 5.15.1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Choose GCC
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get install gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
+          sudo update-alternatives \
+            --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version: ${{ matrix.qt }}
+
+      - name: Build (cmake)
+        run: |
+          # Just do a release build.
+          mkdir Release
+          cd Release
+          cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Release ..
+          make -j 2
+
+      - name: Build (qmake)
+        run: |
+          mkdir QtSLiM_QMAKE
+          cd QtSLiM_QMAKE
+          qmake ..
+          make -j 2
+
+  # Just test that the repository can be cloned on windows.
+  tests-windows:
+    runs-on: windows-2019
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
