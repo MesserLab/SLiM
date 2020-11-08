@@ -139,8 +139,8 @@
         <file>recipes/Recipe 17.2 - Overlaying neutral mutations.py</file>
         <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
         <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry II.txt</file>
-        <file>recipes/Recipe 17.4 - Detecting the "dip in diversity" (analyzing tree heights in Python) I.txt</file>
-        <file>recipes/Recipe 17.4 - Detecting the "dip in diversity" (analyzing tree heights in Python) II.py</file>
+        <file>recipes/Recipe 17.4 - Detecting the dip in diversity (analyzing tree heights in Python) I.txt</file>
+        <file>recipes/Recipe 17.4 - Detecting the dip in diversity (analyzing tree heights in Python) II.py</file>
         <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) I.txt</file>
         <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) II.py</file>
         <file>recipes/Recipe 17.6 - Measuring the coalescence time of a model.txt</file>
