@@ -555,7 +555,7 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const int64_t *p_int_buff
 				free(buffer_);
 				buffer_ = nullptr;
 				
-				throw std::out_of_range("integer nucleotide value out of range");
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): integer nucleotide value " << p_int_buffer[index + i] << " must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
 			}
 			
 			accumulator |= (nuc << (i * 2));
@@ -612,7 +612,7 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 				free(buffer_);
 				buffer_ = nullptr;
 				
-				throw std::out_of_range("char nucleotide value out of range");
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): character nucleotide value '" << nuc_char << "' must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
 			
 			accumulator |= (nuc << (i * 2));
@@ -650,7 +650,7 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::st
 				free(buffer_);
 				buffer_ = nullptr;
 				
-				throw std::out_of_range("string nucleotide value out of range");
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): string nucleotide character '" << nuc_string << "' must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
 			
 			accumulator |= (nuc << (i * 2));

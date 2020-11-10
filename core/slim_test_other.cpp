@@ -1299,9 +1299,9 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(-1); } ", 1, 57, "integer nucleotide values", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(4); } ", 1, 57, "integer nucleotide values", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides('AACAGTACGTTACAGGTACAD'); } ", 1, 57, "could not be opened or does not exist", __LINE__);	// file path!
-	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c(0,-1,2)); } ", 1, 57, "integer nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c(0,4,2)); } ", 1, 57, "integer nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c('A','D','T')); } ", 1, 57, "string nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c(0,-1,2)); } ", 1, 57, "integer nucleotide value", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c(0,4,2)); } ", 1, 57, "integer nucleotide value", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c('A','D','T')); } ", 1, 57, "string nucleotide character", __LINE__);
 	SLiMAssertScriptStop(nuc_model_start + "if (initializeAncestralNucleotides('A') == 1) stop(); } ", __LINE__);
 	SLiMAssertScriptStop(nuc_model_start + "if (initializeAncestralNucleotides(0) == 1) stop(); } ", __LINE__);
 	SLiMAssertScriptStop(nuc_model_start + "if (initializeAncestralNucleotides('ACGTACGT') == 8) stop(); } ", __LINE__);

@@ -122,11 +122,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			const EidosValue_Int_vector *int_vec = sequence_value->IntVector();
 			const int64_t *int_data = int_vec->data();
 			
-			try {
-				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
-			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): integer nucleotide values must be 0 (A), 1 (C), 2 (G), or 3 (T)." << EidosTerminate();
-			}
+			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 		}
 	}
 	else if (sequence_value_type == EidosValueType::kValueString)
@@ -136,11 +132,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			// A vector of characters has been provided, which must all be "A" / "C" / "G" / "T"
 			const std::vector<std::string> *string_vec = sequence_value->StringVector();
 			
-			try {
-				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
-			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): string nucleotide values must be 'A', 'C', 'G', or 'T'." << EidosTerminate();
-			}
+			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
 		}
 		else	// sequence_value_count == 1
 		{
@@ -190,11 +182,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 				if (fasta_sequence.length() == 0)
 					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
 				
-				try {
-					chromosome_->ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
-				} catch (...) {
-					EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides): FASTA sequence data must contain only the nucleotides ACGT." << EidosTerminate();
-				}
+				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
 			}
 		}
 	}
