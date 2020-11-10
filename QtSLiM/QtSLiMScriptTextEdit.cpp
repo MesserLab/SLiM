@@ -58,12 +58,12 @@
 //  QtSLiMTextEdit
 //
 
-QtSLiMTextEdit::QtSLiMTextEdit(const QString &text, QWidget *parent) : QTextEdit(text, parent)
+QtSLiMTextEdit::QtSLiMTextEdit(const QString &text, QWidget *p_parent) : QTextEdit(text, p_parent)
 {
     selfInit();
 }
 
-QtSLiMTextEdit::QtSLiMTextEdit(QWidget *parent) : QTextEdit(parent)
+QtSLiMTextEdit::QtSLiMTextEdit(QWidget *p_parent) : QTextEdit(p_parent)
 {
     selfInit();
 }
@@ -474,7 +474,7 @@ void QtSLiMTextEdit::scriptHelpOptionClick(QString searchString)
     helpWindow.enterSearchForString(searchString, true);
 }
 
-void QtSLiMTextEdit::mousePressEvent(QMouseEvent *event)
+void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
 {
     bool optionPressed = (optionClickEnabled && QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier));
     
@@ -487,7 +487,7 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *event)
         // QTextEdit::cursorForPosition(), which returns the closest cursor position
         // *between* characters, not which character was actually clicked on; see
         // https://www.qtcentre.org/threads/45645-QTextEdit-cursorForPosition()-and-character-at-mouse-pointer
-        QPointF localPos = event->localPos();
+        QPointF localPos = p_event->localPos();
         QPointF documentPos = localPos + QPointF(0, verticalScrollBar()->value());
         int characterPositionClicked = document()->documentLayout()->hitTest(documentPos, Qt::ExactHit);
         
@@ -556,22 +556,22 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *event)
         // all other cases go to super
         optionClickIntercepted = false;
         
-        QTextEdit::mousePressEvent(event);
+        QTextEdit::mousePressEvent(p_event);
     }
 }
 
-void QtSLiMTextEdit::mouseMoveEvent(QMouseEvent *event)
+void QtSLiMTextEdit::mouseMoveEvent(QMouseEvent *p_event)
 {
     // forward to super, as long as we did not intercept this mouse event
     if (!optionClickIntercepted)
-        QTextEdit::mouseMoveEvent(event);
+        QTextEdit::mouseMoveEvent(p_event);
 }
 
-void QtSLiMTextEdit::mouseReleaseEvent(QMouseEvent *event)
+void QtSLiMTextEdit::mouseReleaseEvent(QMouseEvent *p_event)
 {
     // forward to super, as long as we did not intercept this mouse event
     if (!optionClickIntercepted)
-        QTextEdit::mouseReleaseEvent(event);
+        QTextEdit::mouseReleaseEvent(p_event);
     
     optionClickIntercepted = false;
 }
@@ -592,10 +592,10 @@ void QtSLiMTextEdit::fixMouseCursor(void)
     }
 }
 
-void QtSLiMTextEdit::enterEvent(QEvent *event)
+void QtSLiMTextEdit::enterEvent(QEvent *p_event)
 {
     // forward to super
-    QTextEdit::enterEvent(event);
+    QTextEdit::enterEvent(p_event);
     
     // modifiersChanged() generally keeps our cursor correct, but we do it on enterEvent
     // as well just as a fallback; for example, if the mouse is inside us on launch and
@@ -1066,24 +1066,24 @@ void QtSLiMTextEdit::autoindentAfterNewline(void)
     }
 }
 
-void QtSLiMTextEdit::keyPressEvent(QKeyEvent *event)
+void QtSLiMTextEdit::keyPressEvent(QKeyEvent *p_event)
 {
     // Without a completer, we just call super
     if (!completer)
     {
-        QTextEdit::keyPressEvent(event);
+        QTextEdit::keyPressEvent(p_event);
         return;
     }
     
     if (completer->popup()->isVisible()) {
         // The following keys are forwarded by the completer to the widget
-       switch (event->key()) {
+       switch (p_event->key()) {
        case Qt::Key_Enter:
        case Qt::Key_Return:
        case Qt::Key_Escape:
        case Qt::Key_Tab:
        case Qt::Key_Backtab:
-            event->ignore();
+            p_event->ignore();
             return; // let the completer do default behavior
        default:
            break;
@@ -1092,16 +1092,16 @@ void QtSLiMTextEdit::keyPressEvent(QKeyEvent *event)
     
     // if we have a visible completer popup, the key pressed is not one of the special keys above (including escape)
     // our completion key shortcut is the escape key, so check for that now
-    bool isShortcut = ((event->modifiers() == Qt::NoModifier) && event->key() == Qt::Key_Escape); // escape
+    bool isShortcut = ((p_event->modifiers() == Qt::NoModifier) && p_event->key() == Qt::Key_Escape); // escape
     
     if (!isShortcut)
     {
         // any key other than escape and the special keys above causes the completion popup to hide
         completer->popup()->hide();
-        QTextEdit::keyPressEvent(event);
+        QTextEdit::keyPressEvent(p_event);
         
         // implement autoindent
-        if ((event->modifiers() == Qt::NoModifier) && ((event->key() == Qt::Key_Enter) || (event->key() == Qt::Key_Return)))
+        if ((p_event->modifiers() == Qt::NoModifier) && ((p_event->key() == Qt::Key_Enter) || (p_event->key() == Qt::Key_Return)))
             autoindentAfterNewline();
         
         return;
@@ -2301,7 +2301,7 @@ public:
     virtual QSize sizeHint() const override { return QSize(codeEditor->lineNumberAreaWidth(), 0); }
 
 protected:
-    virtual void paintEvent(QPaintEvent *event) override { codeEditor->lineNumberAreaPaintEvent(event); }
+    virtual void paintEvent(QPaintEvent *p_paintEvent) override { codeEditor->lineNumberAreaPaintEvent(p_paintEvent); }
 
 private:
     QtSLiMScriptTextEdit *codeEditor;
@@ -2312,12 +2312,12 @@ private:
 //  QtSLiMScriptTextEdit
 //
 
-QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(const QString &text, QWidget *parent) : QtSLiMTextEdit(text, parent)
+QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(const QString &text, QWidget *p_parent) : QtSLiMTextEdit(text, p_parent)
 {
     initializeLineNumbers();
 }
 
-QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(QWidget *parent) : QtSLiMTextEdit(parent)
+QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(QWidget *p_parent) : QtSLiMTextEdit(p_parent)
 {
     initializeLineNumbers();
 }
@@ -2575,13 +2575,13 @@ static QColor lineAreaNumber_Current = QtSLiMColorWithWhite(0.4, 1.0);
 //static QColor lineAreaNumber = QtSLiMColorWithHSV(0.0, 0.0, 0.4, 1.0);
 //static QColor lineAreaNumber_Current = QtSLiMColorWithHSV(1/6.0, 0.7, 1.0, 1.0);
 
-void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
+void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
 {
     if (contentsRect().width() <= 0)
         return;
     
     QPainter painter(lineNumberArea);
-    painter.fillRect(event->rect(), lineAreaBackground);
+    painter.fillRect(p_paintEvent->rect(), lineAreaBackground);
     int blockNumber = 0;
     QTextBlock block = document()->findBlockByNumber(blockNumber);
     int cursorBlockNumber = textCursor().blockNumber();

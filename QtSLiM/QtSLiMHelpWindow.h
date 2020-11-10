@@ -89,7 +89,7 @@ public:
     
 private:
     // singleton pattern
-    explicit QtSLiMHelpWindow(QWidget *parent = nullptr);
+    explicit QtSLiMHelpWindow(QWidget *p_parent = nullptr);
     QtSLiMHelpWindow(void) = delete;
     virtual ~QtSLiMHelpWindow(void) override;
     QtSLiMHelpWindow(const QtSLiMHelpWindow&) = delete;

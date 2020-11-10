@@ -30,7 +30,7 @@ class QtSLiMGraphView_2DSampleSFS : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_2DSampleSFS(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_2DSampleSFS(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_2DSampleSFS() override;
     
     virtual QString graphTitle(void) override;
@@ -39,7 +39,7 @@ public:
     virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
     virtual bool providesStringForData(void) override;
     virtual void appendStringForData(QString &string) override;    
-    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *p_event) override;
     virtual QString disableMessage(void) override;
     
 public slots:

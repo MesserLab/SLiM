@@ -29,7 +29,7 @@
 #include "subpopulation.h"
 
 
-QtSLiMGraphView_FrequencyTrajectory::QtSLiMGraphView_FrequencyTrajectory(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_FrequencyTrajectory::QtSLiMGraphView_FrequencyTrajectory(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     setXAxisRangeFromGeneration();
     

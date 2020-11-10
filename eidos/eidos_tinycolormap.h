@@ -117,7 +117,7 @@ namespace tinycolormap
 
     struct Color
     {
-        constexpr Color(double r, double g, double b) : data({{ r, g, b }}) {}
+        constexpr Color(double p_r, double p_g, double p_b) : data({{ p_r, p_g, p_b }}) {}
 
         std::array<double, 3> data;
 

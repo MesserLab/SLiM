@@ -57,7 +57,7 @@ QFont QtSLiMGraphView::labelFontOfPointSize(double size)
     return font;
 }
 
-QtSLiMGraphView::QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller) : QWidget(parent)
+QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : QWidget(p_parent)
 {
     controller_ = controller;
     
@@ -764,7 +764,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
 	}
 }
 
-void QtSLiMGraphView::paintEvent(QPaintEvent * /* event */)
+void QtSLiMGraphView::paintEvent(QPaintEvent * /* p_paintEvent */)
 {
 	QPainter painter(this);
     
@@ -783,11 +783,11 @@ void QtSLiMGraphView::graphWindowResized(void)
 	invalidateDrawingCache();
 }
 
-void QtSLiMGraphView::resizeEvent(QResizeEvent *event)
+void QtSLiMGraphView::resizeEvent(QResizeEvent *p_event)
 {
     // this override is private; subclassers should override graphWindowResized()
     graphWindowResized();
-    QWidget::resizeEvent(event);
+    QWidget::resizeEvent(p_event);
 }
 
 void QtSLiMGraphView::controllerRecycled(void)
@@ -864,7 +864,7 @@ QString QtSLiMGraphView::disableMessage(void)
     return "";
 }
 
-void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
+void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 {
     if (!controller_->invalidSimulation() && (controller_->sim->generation_ > 0)) // && ![[controller window] attachedSheet])
 	{
@@ -954,7 +954,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
         // we are responsible for adding a separator afterwards if needed
 		int preSubclassItemCount = contextMenu.actions().count();
 		
-		subclassAddItemsToMenu(contextMenu, event);
+		subclassAddItemsToMenu(contextMenu, p_event);
 		
 		if (preSubclassItemCount != contextMenu.actions().count())
             contextMenu.addSeparator();
@@ -975,7 +975,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *event)
 		}
         
         // Run the context menu synchronously
-        QPoint menuPos = (event ? event->globalPos() : QCursor::pos());
+        QPoint menuPos = (p_event ? p_event->globalPos() : QCursor::pos());
         QAction *action = contextMenu.exec(menuPos);
         
         // Act upon the chosen action; we just do it right here instead of dealing with slots

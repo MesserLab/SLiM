@@ -2164,7 +2164,7 @@ For more information, please refer to <http://unlicense.org>
  * Initialize array of round constants:
  * (first 32 bits of the fractional parts of the cube roots of the first 64 primes 2..311):
  */
-static const uint32_t k[] = {
+static const uint32_t SHA_k[] = {
 	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
 	0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
 	0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -2175,7 +2175,7 @@ static const uint32_t k[] = {
 	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-struct buffer_state {
+struct SHA_buffer_state {
 	const uint8_t * p;
 	size_t len;
 	size_t total_len;
@@ -2192,7 +2192,7 @@ static inline uint32_t right_rot(uint32_t value, unsigned int count)
 	return value >> count | value << (32 - count);
 }
 
-static void init_buf_state(struct buffer_state * state, const void * input, size_t len)
+static void init_buf_state(struct SHA_buffer_state * state, const void * input, size_t len)
 {
 	state->p = static_cast<const uint8_t *>(input);
 	state->len = len;
@@ -2202,7 +2202,7 @@ static void init_buf_state(struct buffer_state * state, const void * input, size
 }
 
 /* Return value: bool */
-static int calc_chunk(uint8_t chunk[CHUNK_SIZE], struct buffer_state * state)
+static int calc_chunk(uint8_t chunk[CHUNK_SIZE], struct SHA_buffer_state * state)
 {
 	size_t space_in_chunk;
 
@@ -2287,7 +2287,7 @@ void Eidos_calc_sha_256(uint8_t hash[32], const void *input, size_t len)
 	/* 512-bit chunks is what we will operate on. */
 	uint8_t chunk[64];
 
-	struct buffer_state state;
+	struct SHA_buffer_state state;
 
 	init_buf_state(&state, input, len);
 
@@ -2332,7 +2332,7 @@ void Eidos_calc_sha_256(uint8_t hash[32], const void *input, size_t len)
 				}
 				const uint32_t s1 = right_rot(ah[4], 6) ^ right_rot(ah[4], 11) ^ right_rot(ah[4], 25);
 				const uint32_t ch = (ah[4] & ah[5]) ^ (~ah[4] & ah[6]);
-				const uint32_t temp1 = ah[7] + s1 + ch + k[i << 4 | j] + w[j];
+				const uint32_t temp1 = ah[7] + s1 + ch + SHA_k[i << 4 | j] + w[j];
 				const uint32_t s0 = right_rot(ah[0], 2) ^ right_rot(ah[0], 13) ^ right_rot(ah[0], 22);
 				const uint32_t maj = (ah[0] & ah[1]) ^ (ah[0] & ah[2]) ^ (ah[1] & ah[2]);
 				const uint32_t temp2 = s0 + maj;

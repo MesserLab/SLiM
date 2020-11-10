@@ -22,7 +22,7 @@
 #include "QtSLiMWindow.h"
 
 
-QtSLiMGraphView_1DPopulationSFS::QtSLiMGraphView_1DPopulationSFS(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_1DPopulationSFS::QtSLiMGraphView_1DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     histogramBinCount_ = 10;
     allowBinCountRescale_ = true;

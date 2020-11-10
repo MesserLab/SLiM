@@ -25,8 +25,8 @@
 #include "QtSLiMAppDelegate.h"
 
 
-QtSLiMHaplotypeOptions::QtSLiMHaplotypeOptions(QWidget *parent) :
-    QDialog(parent),
+QtSLiMHaplotypeOptions::QtSLiMHaplotypeOptions(QWidget *p_parent) :
+    QDialog(p_parent),
     ui(new Ui::QtSLiMHaplotypeOptions)
 {
     ui->setupUi(this);

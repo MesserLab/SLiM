@@ -93,7 +93,7 @@ signals:
     void willClose(void);
     
 private slots:
-    virtual void closeEvent(QCloseEvent *event) override;
+    virtual void closeEvent(QCloseEvent *p_event) override;
     
 private:
     Ui::QtSLiMVariableBrowser *ui;

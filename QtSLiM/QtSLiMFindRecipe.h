@@ -39,7 +39,7 @@ class QtSLiMFindRecipe : public QDialog
     QStringList matchRecipeFilenames;
     
 public:
-    explicit QtSLiMFindRecipe(QWidget *parent = nullptr);
+    explicit QtSLiMFindRecipe(QWidget *p_parent = nullptr);
     virtual ~QtSLiMFindRecipe() override;
     
     QString selectedRecipeFilename(void);

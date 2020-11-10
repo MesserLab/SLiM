@@ -31,7 +31,7 @@ class QtSLiMAbout : public QDialog
     Q_OBJECT
     
 public:
-    explicit QtSLiMAbout(QWidget *parent = nullptr);
+    explicit QtSLiMAbout(QWidget *p_parent = nullptr);
     ~QtSLiMAbout();
     
 private:

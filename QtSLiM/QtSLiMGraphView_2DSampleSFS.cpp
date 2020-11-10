@@ -32,7 +32,7 @@
 #include "mutation_type.h"
 
 
-QtSLiMGraphView_2DSampleSFS::QtSLiMGraphView_2DSampleSFS(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_2DSampleSFS::QtSLiMGraphView_2DSampleSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     histogramBinCount_ = 21;        // this is the genome sample size + 1
     allowBinCountRescale_ = false;

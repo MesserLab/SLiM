@@ -33,7 +33,7 @@ static const int kMaxGLRects = 2000;				// 2000 rects
 static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 
 
-QtSLiMIndividualsWidget::QtSLiMIndividualsWidget(QWidget *parent, Qt::WindowFlags f) : QOpenGLWidget(parent, f)
+QtSLiMIndividualsWidget::QtSLiMIndividualsWidget(QWidget *p_parent, Qt::WindowFlags f) : QOpenGLWidget(p_parent, f)
 {
     displayMode = -1;	// don't know yet whether the model is spatial or not, which will determine our initial choice
     
@@ -1292,7 +1292,7 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *event)
+void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
 	SLiMSim *sim = controller->sim;
@@ -1328,7 +1328,7 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *event)
 	if (!disableAll && (sim->spatial_dimensionality_ > 0) && (displayMode == 1))
 	{
 		std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
-        QPoint viewPoint = event->pos();
+        QPoint viewPoint = p_event->pos();
 		
 		// our tile coordinates are in the OpenGL coordinate system, which has the origin at top left
 		//viewPoint.y = [self bounds].size.height - viewPoint.y;
@@ -1421,7 +1421,7 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *event)
     }
 	
     // Run the context menu synchronously
-    QAction *action = contextMenu.exec(event->globalPos());
+    QAction *action = contextMenu.exec(p_event->globalPos());
     
     // Act upon the chosen action; we just do it right here instead of dealing with slots
     if (action)

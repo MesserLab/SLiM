@@ -29,7 +29,7 @@
 #include "subpopulation.h"
 
 
-QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     setXAxisRangeFromGeneration();
     setDefaultYAxisRange();

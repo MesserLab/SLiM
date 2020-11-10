@@ -30,7 +30,7 @@ class QtSLiMGraphView_PopFitnessDist : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_PopFitnessDist(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_PopFitnessDist(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_PopFitnessDist() override;
     
     virtual QString graphTitle(void) override;

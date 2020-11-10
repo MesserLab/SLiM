@@ -96,7 +96,7 @@ static const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2
 static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
 
 
-QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *parent, Qt::WindowFlags f) : QOpenGLWidget(parent, f)
+QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *p_parent, Qt::WindowFlags f) : QOpenGLWidget(p_parent, f)
 {
     //[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
     
@@ -699,11 +699,11 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 								//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 								//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 								int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-								int16_t height = static_cast<int16_t>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
+								int16_t barHeight = static_cast<int16_t>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
 								
 								if ((xPos >= 0) && (xPos < displayPixelWidth))
-									if (height > heightBuffer[xPos])
-										heightBuffer[xPos] = height;
+									if (barHeight > heightBuffer[xPos])
+										heightBuffer[xPos] = barHeight;
 								
 								// tally this mutation as handled
 								//mutation->gui_scratch_reference_count_ = 1;
@@ -726,12 +726,12 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 						
 						for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
 						{
-							int height = heightBuffer[binIndex];
+							int barHeight = heightBuffer[binIndex];
 							
-							if (height)
+							if (barHeight)
 							{
 								QRect mutationTickRect(interiorRect.x() + binIndex, interiorRect.y(), 1, interiorRect.height());
-                                mutationTickRect.setTop(mutationTickRect.top() + interiorRect.height() - height);
+                                mutationTickRect.setTop(mutationTickRect.top() + interiorRect.height() - barHeight);
 								
 								SLIM_GL_DEFCOORDS(mutationTickRect);
 								SLIM_GL_PUSHRECT();
@@ -807,13 +807,13 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t height = static_cast<int16_t>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
+						int16_t barHeight = static_cast<int16_t>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
 						
 						if ((xPos >= 0) && (xPos < displayPixelWidth))
 						{
-							if (height > heightBuffer[xPos])
+							if (barHeight > heightBuffer[xPos])
 							{
-								heightBuffer[xPos] = height;
+								heightBuffer[xPos] = barHeight;
 								mutationBuffer[xPos] = mutationBlockIndex;
 							}
 						}
@@ -823,12 +823,12 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 				// Now plot the bars
 				for (int binIndex = 0; binIndex < displayPixelWidth; ++binIndex)
 				{
-					int height = heightBuffer[binIndex];
+					int barHeight = heightBuffer[binIndex];
 					
-					if (height)
+					if (barHeight)
 					{
                         QRect mutationTickRect(interiorRect.x() + binIndex, interiorRect.y(), 1, interiorRect.height());
-                        mutationTickRect.setTop(mutationTickRect.top() + interiorRect.height() - height);
+                        mutationTickRect.setTop(mutationTickRect.top() + interiorRect.height() - barHeight);
                         
 						const Mutation *mutation = mut_block_ptr + mutationBuffer[binIndex];
 						
@@ -1204,7 +1204,7 @@ void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMWindow *
     }
 }
 
-void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *event)
+void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
 	bool ready = (selectable_ && isEnabled() && !controller->invalidSimulation());
@@ -1219,10 +1219,10 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *event)
 		QRect contentRect = getContentRect();
 		QRect interiorRect = getInteriorRect();
 		QtSLiMRange displayedRange = getDisplayedRange();
-        QPoint curPoint = event->pos();
+        QPoint curPoint = p_event->pos();
 		
 		// Option-clicks just set the selection to the clicked genomic element, no questions asked
-        if (event->modifiers() & Qt::AltModifier)
+        if (p_event->modifiers() & Qt::AltModifier)
 		{
             if (contentRect.contains(curPoint))
 			{
@@ -1262,7 +1262,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *event)
 				trackingStartBase_ = selectionLastBase_;	// we're dragging the left knob, so the right knob is the tracking anchor
 				trackingLastBase_ = baseForPosition(curPoint.x() - trackingXAdjust_, interiorRect, displayedRange);	// instead of selectionFirstBase, so the selection does not change at all if the mouse does not move
 				
-				mouseMoveEvent(event);	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
+				mouseMoveEvent(p_event);	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
 				return;
 			}
 			else if (rightSelectionBar.contains(curPoint) || rightSelectionKnob.contains(curPoint))
@@ -1272,7 +1272,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *event)
 				trackingStartBase_ = selectionFirstBase_;	// we're dragging the right knob, so the left knob is the tracking anchor
 				trackingLastBase_ = baseForPosition(curPoint.x() - trackingXAdjust_, interiorRect, displayedRange);	// instead of selectionLastBase, so the selection does not change at all if the mouse does not move
 				
-				mouseMoveEvent(event);	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
+				mouseMoveEvent(p_event);	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
 				return;
 			}
 		}
@@ -1302,11 +1302,11 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *event)
 // - (void)setUpMarker:(SLiMSelectionMarker **)marker atBase:(slim_position_t)selectionBase isLeft:(BOOL)isLeftMarker
 // FIXME at present QtSLiM doesn't have the selection markers during tracking that SLiMgui has...
 
-void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *event)
+void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 {
     QRect interiorRect = getInteriorRect();
     QtSLiMRange displayedRange = getDisplayedRange();
-    QPoint curPoint = event->pos();
+    QPoint curPoint = p_event->pos();
 	
 	QPoint correctedPoint = QPoint(curPoint.x() - trackingXAdjust_, curPoint.y());
 	slim_position_t trackingNewBase = baseForPosition(correctedPoint.x(), interiorRect, displayedRange);
@@ -1365,24 +1365,24 @@ void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *event)
 	}
 }
 
-void QtSLiMChromosomeWidget::mouseMoveEvent(QMouseEvent *event)
+void QtSLiMChromosomeWidget::mouseMoveEvent(QMouseEvent *p_event)
 {
     if (selectable_ && isTracking_)
-		_mouseTrackEvent(event);
+		_mouseTrackEvent(p_event);
 }
 
-void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *event)
+void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *p_event)
 {
     if (selectable_ && isTracking_)
 	{
-        _mouseTrackEvent(event);
+        _mouseTrackEvent(p_event);
 		//[self removeSelectionMarkers];
 	}
 	
 	isTracking_ = false;
 }
 
-void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
+void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     
@@ -1454,7 +1454,7 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *event)
                 QAction *selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
                 
                 // Run the context menu synchronously
-                QAction *action = contextMenu.exec(event->globalPos());
+                QAction *action = contextMenu.exec(p_event->globalPos());
                 
                 // Act upon the chosen action; we just do it right here instead of dealing with slots
                 if (action)

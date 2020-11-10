@@ -59,7 +59,7 @@ class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
 	float *glArrayColors = nullptr;
     
 public:
-    explicit QtSLiMIndividualsWidget(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit QtSLiMIndividualsWidget(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMIndividualsWidget() override;
     
     void tileSubpopulations(std::vector<Subpopulation*> &selectedSubpopulations);
@@ -80,7 +80,7 @@ protected:
     void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
     void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality);
     
-    virtual void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
 };
 
 #endif // QTSLIMINDIVIDUALSWIDGET_H

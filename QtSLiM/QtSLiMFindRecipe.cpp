@@ -31,7 +31,7 @@
 #include <QDebug>
 
 
-QtSLiMFindRecipe::QtSLiMFindRecipe(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMFindRecipe)
+QtSLiMFindRecipe::QtSLiMFindRecipe(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSLiMFindRecipe)
 {
     ui->setupUi(this);
     

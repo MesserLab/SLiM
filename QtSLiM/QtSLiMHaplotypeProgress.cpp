@@ -23,8 +23,8 @@
 #include "QtSLiMAppDelegate.h"
 
 
-QtSLiMHaplotypeProgress::QtSLiMHaplotypeProgress(QWidget *parent) :
-    QDialog(parent),
+QtSLiMHaplotypeProgress::QtSLiMHaplotypeProgress(QWidget *p_parent) :
+    QDialog(p_parent),
     ui(new Ui::QtSLiMHaplotypeProgress)
 {
     ui->setupUi(this);

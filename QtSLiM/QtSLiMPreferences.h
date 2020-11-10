@@ -92,7 +92,7 @@ public:
     
 private:
     // singleton pattern
-    explicit QtSLiMPreferences(QWidget *parent = nullptr);
+    explicit QtSLiMPreferences(QWidget *p_parent = nullptr);
     QtSLiMPreferences() = default;
     ~QtSLiMPreferences();
     QtSLiMPreferences(const QtSLiMPreferencesNotifier&) = delete;

@@ -59,12 +59,12 @@ class QtSLiMGenerationLineEdit : public QLineEdit
     Q_OBJECT
     
 public:
-    QtSLiMGenerationLineEdit(const QString &contents, QWidget *parent = nullptr);
-    QtSLiMGenerationLineEdit(QWidget *parent = nullptr);
+    QtSLiMGenerationLineEdit(const QString &contents, QWidget *p_parent = nullptr);
+    QtSLiMGenerationLineEdit(QWidget *p_parent = nullptr);
     virtual	~QtSLiMGenerationLineEdit() override;
     
 protected:
-    virtual void focusInEvent(QFocusEvent *event) override;
+    virtual void focusInEvent(QFocusEvent *p_event) override;
     
 private:
     QtSLiMGenerationLineEdit() = delete;
@@ -81,7 +81,7 @@ class QtSLiMPlayControlsLayout : public QHBoxLayout
     Q_OBJECT
     
 public:
-    QtSLiMPlayControlsLayout(QWidget *parent): QHBoxLayout(parent) {}
+    QtSLiMPlayControlsLayout(QWidget *p_parent): QHBoxLayout(p_parent) {}
     QtSLiMPlayControlsLayout(): QHBoxLayout() {}
     virtual ~QtSLiMPlayControlsLayout() override;
 
@@ -98,7 +98,7 @@ QString stringForByteCount(uint64_t bytes);
 QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharFormat &format);
 
 // Running a panel to obtain numbers from the user
-QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QStringList captions, QStringList values);
+QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStringList captions, QStringList values);
 
 // A subclass of QPushButton that draws its image with antialiasing, for a better appearance
 class QtSLiMPushButton : public QPushButton
@@ -106,13 +106,13 @@ class QtSLiMPushButton : public QPushButton
     Q_OBJECT
     
 public:
-    QtSLiMPushButton(const QIcon &icon, const QString &text, QWidget *parent = nullptr) : QPushButton(icon, text, parent) {}
-    QtSLiMPushButton(const QString &text, QWidget *parent = nullptr) : QPushButton(text, parent) {}
-    QtSLiMPushButton(QWidget *parent = nullptr) : QPushButton(parent) {}
+    QtSLiMPushButton(const QIcon &p_icon, const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_icon, p_text, p_parent) {}
+    QtSLiMPushButton(const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_text, p_parent) {}
+    QtSLiMPushButton(QWidget *p_parent = nullptr) : QPushButton(p_parent) {}
     virtual ~QtSLiMPushButton(void) override {}
     
 protected:
-    virtual void paintEvent(QPaintEvent *paintEvent) override;
+    virtual void paintEvent(QPaintEvent *p_paintEvent) override;
 };
 
 // A subclass of QSplitterHandle that does some custom drawing
@@ -121,11 +121,11 @@ class QtSLiMSplitterHandle : public QSplitterHandle
     Q_OBJECT
     
 public:
-    QtSLiMSplitterHandle(Qt::Orientation orientation, QSplitter *parent) : QSplitterHandle(orientation, parent) {}
+    QtSLiMSplitterHandle(Qt::Orientation p_orientation, QSplitter *p_parent) : QSplitterHandle(p_orientation, p_parent) {}
     virtual ~QtSLiMSplitterHandle(void) override {}
     
 protected:
-    virtual void paintEvent(QPaintEvent *paintEvent) override;
+    virtual void paintEvent(QPaintEvent *p_paintEvent) override;
 };
 
 // A subclass of QSplitter that supplies a custom QSplitterHandle subclass
@@ -134,8 +134,8 @@ class QtSLiMSplitter : public QSplitter
     Q_OBJECT
     
 public:
-    QtSLiMSplitter(Qt::Orientation orientation, QWidget *parent = nullptr) : QSplitter(orientation, parent) {}
-    QtSLiMSplitter(QWidget *parent = nullptr) : QSplitter(parent) {}
+    QtSLiMSplitter(Qt::Orientation p_orientation, QWidget *p_parent = nullptr) : QSplitter(p_orientation, p_parent) {}
+    QtSLiMSplitter(QWidget *p_parent = nullptr) : QSplitter(p_parent) {}
     virtual ~QtSLiMSplitter(void) override {}
     
 protected:
@@ -148,11 +148,11 @@ class QtSLiMStatusBar : public QStatusBar
     Q_OBJECT
     
 public:
-    QtSLiMStatusBar(QWidget *parent = nullptr) : QStatusBar(parent) {}
+    QtSLiMStatusBar(QWidget *p_parent = nullptr) : QStatusBar(p_parent) {}
     virtual ~QtSLiMStatusBar(void) override {}
     
 protected:
-    virtual void paintEvent(QPaintEvent *paintEvent) override;
+    virtual void paintEvent(QPaintEvent *p_paintEvent) override;
 };
 
 // Used to create the dark app icon displayed when running a model

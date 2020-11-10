@@ -1642,8 +1642,8 @@ startAgain:
 // This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
 //
 
-QtSLiMHaplotypeView::QtSLiMHaplotypeView(QWidget *parent, Qt::WindowFlags f) :
-    QOpenGLWidget(parent, f)
+QtSLiMHaplotypeView::QtSLiMHaplotypeView(QWidget *p_parent, Qt::WindowFlags f) :
+    QOpenGLWidget(p_parent, f)
 {
 }
 
@@ -1689,7 +1689,7 @@ void QtSLiMHaplotypeView::paintGL()
     }
 }
 
-void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *event)
+void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
 {
     QMenu contextMenu("graph_menu", this);
     
@@ -1702,7 +1702,7 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *event)
     QAction *exportPlot = contextMenu.addAction("Export Plot...");
     
     // Run the context menu synchronously
-    QAction *action = contextMenu.exec(event->globalPos());
+    QAction *action = contextMenu.exec(p_event->globalPos());
     
     // Act upon the chosen action; we just do it right here instead of dealing with slots
     if (action)

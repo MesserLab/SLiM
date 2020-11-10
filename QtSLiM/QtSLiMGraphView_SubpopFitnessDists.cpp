@@ -27,7 +27,7 @@
 
 #include <QPainterPath>
 
-QtSLiMGraphView_SubpopFitnessDists::QtSLiMGraphView_SubpopFitnessDists(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_SubpopFitnessDists::QtSLiMGraphView_SubpopFitnessDists(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     histogramBinCount_ = 50;
     allowBinCountRescale_ = true;

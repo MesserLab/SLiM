@@ -66,8 +66,8 @@ public:
         OutputHighlighting
     };
     
-    QtSLiMTextEdit(const QString &text, QWidget *parent = nullptr);
-    QtSLiMTextEdit(QWidget *parent = nullptr);
+    QtSLiMTextEdit(const QString &text, QWidget *p_parent = nullptr);
+    QtSLiMTextEdit(QWidget *p_parent = nullptr);
     virtual ~QtSLiMTextEdit() override;
     
     // configuration
@@ -107,14 +107,14 @@ protected:
     // used to track that we are intercepting a mouse event
     bool optionClickEnabled = false;
     bool optionClickIntercepted = false;
-    virtual void mousePressEvent(QMouseEvent *event) override;
-    virtual void mouseMoveEvent(QMouseEvent *event) override;
-    virtual void mouseReleaseEvent(QMouseEvent *event) override;
+    virtual void mousePressEvent(QMouseEvent *p_event) override;
+    virtual void mouseMoveEvent(QMouseEvent *p_event) override;
+    virtual void mouseReleaseEvent(QMouseEvent *p_event) override;
     void scriptHelpOptionClick(QString searchString);
     
     // used to maintain the correct cursor (pointing hand when option is pressed)
     void fixMouseCursor(void);
-    virtual void enterEvent(QEvent *event) override;
+    virtual void enterEvent(QEvent *p_event) override;
     
     // keeping track of undo/redo availability
     bool undoAvailable_ = false;
@@ -173,8 +173,8 @@ class QtSLiMScriptTextEdit : public QtSLiMTextEdit
     Q_OBJECT
     
 public:
-    QtSLiMScriptTextEdit(const QString &text, QWidget *parent = nullptr);
-    QtSLiMScriptTextEdit(QWidget *parent = nullptr);
+    QtSLiMScriptTextEdit(const QString &text, QWidget *p_parent = nullptr);
+    QtSLiMScriptTextEdit(QWidget *p_parent = nullptr);
     virtual ~QtSLiMScriptTextEdit() override;
     
 public slots:
@@ -188,12 +188,12 @@ protected:
     // From here down is the machinery for providing line numbers
     // This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
 public:
-    void lineNumberAreaPaintEvent(QPaintEvent *event);
+    void lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent);
     int lineNumberAreaWidth(void);
 
 protected:
     void initializeLineNumbers(void);
-    virtual void resizeEvent(QResizeEvent *event) override;
+    virtual void resizeEvent(QResizeEvent *p_event) override;
 
 protected slots:
     virtual void displayFontPrefChanged() override;

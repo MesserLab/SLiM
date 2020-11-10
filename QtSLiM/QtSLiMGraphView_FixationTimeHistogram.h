@@ -30,7 +30,7 @@ class QtSLiMGraphView_FixationTimeHistogram : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_FixationTimeHistogram(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_FixationTimeHistogram(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_FixationTimeHistogram() override;
     
     virtual QString graphTitle(void) override;

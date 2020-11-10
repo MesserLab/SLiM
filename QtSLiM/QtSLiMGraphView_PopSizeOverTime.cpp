@@ -29,7 +29,7 @@
 #include "subpopulation.h"
 
 
-QtSLiMGraphView_PopSizeOverTime::QtSLiMGraphView_PopSizeOverTime(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_PopSizeOverTime::QtSLiMGraphView_PopSizeOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     setXAxisRangeFromGeneration();
     setDefaultYAxisRange();

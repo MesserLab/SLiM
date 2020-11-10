@@ -8548,9 +8548,9 @@ class json_pointer
 
     @since version 3.6.0
     */
-    json_pointer& operator/=(std::size_t array_index)
+    json_pointer& operator/=(std::size_t p_array_index)
     {
-        return *this /= std::to_string(array_index);
+        return *this /= std::to_string(p_array_index);
     }
 
     /*!

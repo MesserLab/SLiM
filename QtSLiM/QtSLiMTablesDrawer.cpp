@@ -462,13 +462,13 @@ void QtSLiMTablesDrawer::initializeUI(void)
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
 }
 
-void QtSLiMTablesDrawer::closeEvent(QCloseEvent *event)
+void QtSLiMTablesDrawer::closeEvent(QCloseEvent *p_event)
 {
     // send our close signal
     emit willClose();
     
     // use super's default behavior
-    QWidget::closeEvent(event);
+    QWidget::closeEvent(p_event);
 }
 
 

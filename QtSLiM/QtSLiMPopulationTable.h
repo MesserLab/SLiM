@@ -55,7 +55,7 @@ class QtSLiMPopulationTableHeaderView : public QHeaderView
     QIcon *icon_male_symbol = nullptr;
     
 public:
-    QtSLiMPopulationTableHeaderView(Qt::Orientation orientation, QWidget *parent = nullptr);
+    QtSLiMPopulationTableHeaderView(Qt::Orientation orientation, QWidget *p_parent = nullptr);
     virtual ~QtSLiMPopulationTableHeaderView() override;
     
     virtual void paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const override;

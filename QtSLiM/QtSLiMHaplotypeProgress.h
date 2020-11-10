@@ -32,7 +32,7 @@ class QtSLiMHaplotypeProgress : public QDialog
     Q_OBJECT
     
 public:
-    explicit QtSLiMHaplotypeProgress(QWidget *parent = nullptr);
+    explicit QtSLiMHaplotypeProgress(QWidget *p_parent = nullptr);
     virtual ~QtSLiMHaplotypeProgress() override;
     
     void runProgressWithGenomeCount(size_t genome_count, int stepCount);

@@ -33,8 +33,8 @@ class QtSLiMConsoleTextEdit : public QtSLiMTextEdit
     Q_OBJECT
     
 public:
-    QtSLiMConsoleTextEdit(const QString &text, QWidget *parent = nullptr);
-    QtSLiMConsoleTextEdit(QWidget *parent = nullptr);
+    QtSLiMConsoleTextEdit(const QString &text, QWidget *p_parent = nullptr);
+    QtSLiMConsoleTextEdit(QWidget *p_parent = nullptr);
     virtual ~QtSLiMConsoleTextEdit() override;
     
     static QTextCharFormat textFormatForColor(QColor color);
@@ -72,7 +72,7 @@ signals:
     
 protected:
     void selfInit(void);
-    virtual void keyPressEvent(QKeyEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *p_event) override;
     
     // handling input prompts and continuation
     QTextCursor lastPromptCursor;
@@ -82,7 +82,7 @@ protected:
     void elideContinuationPrompt(void);
     QString fullInputString(void);
     
-    virtual void scriptStringAndSelection(QString &scriptString, int &pos, int &len, int &offset) override;
+    virtual void scriptStringAndSelection(QString &scriptString, int &position, int &length, int &offset) override;
     
     // handling the command history
     QStringList history;
@@ -96,10 +96,10 @@ protected:
     // handling the selection and editability
     bool insideMouseTracking = false, sawSelectionChange = false;
     
-    virtual void mousePressEvent(QMouseEvent *event) override;
-    virtual void mouseReleaseEvent(QMouseEvent *event) override;
+    virtual void mousePressEvent(QMouseEvent *p_event) override;
+    virtual void mouseReleaseEvent(QMouseEvent *p_event) override;
     void handleSelectionChanged(void);
-    virtual void dragMoveEvent(QDragMoveEvent *event) override;
+    virtual void dragMoveEvent(QDragMoveEvent *p_event) override;
     
 signals:
     void selectionWasChangedDuringLastEvent(void);

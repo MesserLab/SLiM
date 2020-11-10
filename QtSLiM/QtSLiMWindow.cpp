@@ -750,12 +750,12 @@ void QtSLiMWindow::colorForGenomicElementType(GenomicElementType *elementType, s
 //  Document support
 //
 
-void QtSLiMWindow::closeEvent(QCloseEvent *event)
+void QtSLiMWindow::closeEvent(QCloseEvent *p_event)
 {
     if (maybeSave())
     {
         // We used to save the window size/position here, but now that is done in moveEvent() / resizeEvent()
-        event->accept();
+        p_event->accept();
         
         // We no longer get freed when we close, because we need to stick around to make the global menubar
         // work; see QtSLiMWindow::init().  So when we're closing, we now free up the resources we hold.
@@ -774,11 +774,11 @@ void QtSLiMWindow::closeEvent(QCloseEvent *event)
     }
     else
     {
-        event->ignore();
+        p_event->ignore();
     }
 }
 
-void QtSLiMWindow::moveEvent(QMoveEvent *event)
+void QtSLiMWindow::moveEvent(QMoveEvent *p_event)
 {
     if (donePositioning_)
     {
@@ -793,10 +793,10 @@ void QtSLiMWindow::moveEvent(QMoveEvent *event)
         //qDebug() << "moveEvent() after done positioning";
     }
     
-    QWidget::moveEvent(event);
+    QWidget::moveEvent(p_event);
 }
 
-void QtSLiMWindow::resizeEvent(QResizeEvent *event)
+void QtSLiMWindow::resizeEvent(QResizeEvent *p_event)
 {
     if (donePositioning_)
     {
@@ -811,12 +811,12 @@ void QtSLiMWindow::resizeEvent(QResizeEvent *event)
         //qDebug() << "resizeEvent() after done positioning";
     }
     
-    QWidget::resizeEvent(event);
+    QWidget::resizeEvent(p_event);
 }
 
-void QtSLiMWindow::showEvent(QShowEvent *event)
+void QtSLiMWindow::showEvent(QShowEvent *p_event)
 {
-    QWidget::showEvent(event);
+    QWidget::showEvent(p_event);
     
     if (!testAttribute(Qt::WA_DontShowOnScreen))
     {

@@ -28,7 +28,7 @@
 #include "subpopulation.h"
 
 
-QtSLiMGraphView_PopulationVisualization::QtSLiMGraphView_PopulationVisualization(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_PopulationVisualization::QtSLiMGraphView_PopulationVisualization(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     showXAxis_ = false;
     showYAxis_ = false;

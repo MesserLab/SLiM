@@ -36,7 +36,7 @@ class QtSLiMGraphView_FrequencyTrajectory : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_FrequencyTrajectory(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_FrequencyTrajectory(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_FrequencyTrajectory() override;
     
     virtual QString graphTitle(void) override;
@@ -44,7 +44,7 @@ public:
     virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
     virtual bool providesStringForData(void) override;
     virtual void appendStringForData(QString &string) override;    
-    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *p_event) override;
     virtual QString disableMessage(void) override;
     
 public slots:

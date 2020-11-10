@@ -276,7 +276,7 @@ QtSLiMPreferences &QtSLiMPreferences::instance(void)
     return *inst;
 }
 
-QtSLiMPreferences::QtSLiMPreferences(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMPreferences)
+QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSLiMPreferences)
 {
     ui->setupUi(this);
     

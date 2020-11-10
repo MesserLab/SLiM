@@ -56,7 +56,7 @@ public:
     static inline QFont fontForLegendLabels(void) { return labelFontOfPointSize(10); }
     static inline QColor gridLineColor(void) { return QtSLiMColorWithWhite(0.85, 1.0); }
     
-    QtSLiMGraphView(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView() override;
     
     virtual QString graphTitle(void) = 0;
@@ -104,7 +104,7 @@ protected:
     virtual QtSLiMLegendSpec legendKey(void);
     virtual QSize legendSize(QPainter &painter);
     virtual void drawLegend(QPainter &painter, QRect legendRect);
-    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event);
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *p_event);
     virtual QString disableMessage(void);
     
     // Adding new widgets at the bottom of the window
@@ -174,11 +174,11 @@ protected:
 	bool cachingNow_ = false;
     
 private:
-    virtual void paintEvent(QPaintEvent *event) override;
+    virtual void paintEvent(QPaintEvent *p_paintEvent) override;
     void drawContents(QPainter &painter);
     
-    virtual void resizeEvent(QResizeEvent *event) override;
-    virtual void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void resizeEvent(QResizeEvent *p_event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
     
     QString stringForData(void);    
 };

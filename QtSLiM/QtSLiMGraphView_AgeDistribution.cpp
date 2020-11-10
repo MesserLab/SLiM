@@ -31,7 +31,7 @@
 #include "subpopulation.h"
 
 
-QtSLiMGraphView_AgeDistribution::QtSLiMGraphView_AgeDistribution(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_AgeDistribution::QtSLiMGraphView_AgeDistribution(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     histogramBinCount_ = 10;        // max age (no age 0 since we display after generation increment); this rescales automatically
     allowBinCountRescale_ = false;

@@ -30,7 +30,7 @@ class QtSLiMGraphView_LossTimeHistogram : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_LossTimeHistogram(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_LossTimeHistogram(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_LossTimeHistogram() override;
     
     virtual QString graphTitle(void) override;

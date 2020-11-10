@@ -143,7 +143,7 @@ class QtSLiMHaplotypeView : public QOpenGLWidget, protected QOpenGLFunctions
     Q_OBJECT
     
 public:
-    explicit QtSLiMHaplotypeView(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit QtSLiMHaplotypeView(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMHaplotypeView(void) override;
     
     void setDelegate(QtSLiMHaplotypeManager *delegate) { delegate_ = delegate; delegate_->setParent(this); }
@@ -158,7 +158,7 @@ private:
     virtual void resizeGL(int w, int h) override;
     virtual void paintGL() override;
     
-    virtual void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
 };
 
 

@@ -32,7 +32,7 @@ class QtSLiMGraphView_FitnessOverTime : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_FitnessOverTime(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_FitnessOverTime(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_FitnessOverTime() override;
     
     virtual QString graphTitle(void) override;
@@ -40,7 +40,7 @@ public:
     virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
     virtual bool providesStringForData(void) override;
     virtual void appendStringForData(QString &string) override;    
-    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *p_event) override;
     
 public slots:
     virtual void invalidateDrawingCache(void) override;

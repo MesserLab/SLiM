@@ -217,7 +217,7 @@ void QtSLiMPopulationTableModel::reloadTable(void)
     endResetModel();
 }
 
-QtSLiMPopulationTableHeaderView::QtSLiMPopulationTableHeaderView(Qt::Orientation orientation, QWidget *parent) : QHeaderView(orientation, parent)
+QtSLiMPopulationTableHeaderView::QtSLiMPopulationTableHeaderView(Qt::Orientation orientation, QWidget *p_parent) : QHeaderView(orientation, p_parent)
 {
     icon_cloning_rate = new QIcon(":/buttons/Qt_cloning_rate.png");
     icon_selfing_rate = new QIcon(":/buttons/Qt_selfing_rate.png");

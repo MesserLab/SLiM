@@ -26,7 +26,7 @@
 #include "slim_globals.h"
 
 
-QtSLiMAbout::QtSLiMAbout(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMAbout)
+QtSLiMAbout::QtSLiMAbout(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSLiMAbout)
 {
     ui->setupUi(this);
     

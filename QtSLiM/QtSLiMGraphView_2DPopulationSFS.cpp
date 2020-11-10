@@ -25,7 +25,7 @@
 #include "mutation_type.h"
 
 
-QtSLiMGraphView_2DPopulationSFS::QtSLiMGraphView_2DPopulationSFS(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_2DPopulationSFS::QtSLiMGraphView_2DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     histogramBinCount_ = 20;
     allowBinCountRescale_ = true;

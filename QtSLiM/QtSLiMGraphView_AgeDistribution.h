@@ -30,7 +30,7 @@ class QtSLiMGraphView_AgeDistribution : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_AgeDistribution(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_AgeDistribution(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_AgeDistribution() override;
     
     virtual QString graphTitle(void) override;

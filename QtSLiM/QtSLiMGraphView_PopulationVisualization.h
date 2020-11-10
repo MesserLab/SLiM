@@ -30,13 +30,13 @@ class QtSLiMGraphView_PopulationVisualization : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_PopulationVisualization(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_PopulationVisualization(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_PopulationVisualization() override;
     
     virtual QString graphTitle(void) override;
     virtual QString aboutString(void) override;
     virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
-    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *event) override;
+    virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *p_event) override;
     virtual void appendStringForData(QString &string) override;
     
 public slots:

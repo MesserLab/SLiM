@@ -26,7 +26,7 @@
 #include "individual.h"
 
 
-QtSLiMGraphView_PopFitnessDist::QtSLiMGraphView_PopFitnessDist(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_PopFitnessDist::QtSLiMGraphView_PopFitnessDist(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     histogramBinCount_ = 50;
     allowBinCountRescale_ = true;

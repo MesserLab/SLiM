@@ -30,7 +30,7 @@ class QtSLiMGraphView_2DPopulationSFS : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_2DPopulationSFS(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_2DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_2DPopulationSFS() override;
     
     virtual QString graphTitle(void) override;

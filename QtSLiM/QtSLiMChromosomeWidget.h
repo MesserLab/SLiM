@@ -77,7 +77,7 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
 	std::vector<slim_objectid_t> display_muttypes_;     // if empty, display all mutation types; otherwise, display only the muttypes chosen
     
 public:
-    explicit QtSLiMChromosomeWidget(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit QtSLiMChromosomeWidget(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMChromosomeWidget() override;
     
     inline void setSelectable(bool p_flag) { selectable_ = p_flag; }
@@ -123,11 +123,11 @@ protected:
     void glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     void glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
     
-    virtual void mousePressEvent(QMouseEvent *event) override;
-    void _mouseTrackEvent(QMouseEvent *event);
-    virtual void mouseMoveEvent(QMouseEvent *event) override;
-    virtual void mouseReleaseEvent(QMouseEvent *event) override;
-    virtual void contextMenuEvent(QContextMenuEvent *event) override;
+    virtual void mousePressEvent(QMouseEvent *p_event) override;
+    void _mouseTrackEvent(QMouseEvent *p_event);
+    virtual void mouseMoveEvent(QMouseEvent *p_event) override;
+    virtual void mouseReleaseEvent(QMouseEvent *p_event) override;
+    virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
 };
 
 #endif // QTSLIMCHROMOSOMEWIDGET_H

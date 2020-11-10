@@ -231,19 +231,19 @@ QtSLiMWindow *QtSLiMAppDelegate::findMainWindow(const QString &fileName) const
 
 void QtSLiMAppDelegate::newFile_WF(void)
 {
-    QtSLiMWindow *activeWindow = activeQtSLiMWindow();
+    QtSLiMWindow *currentActiveWindow = activeQtSLiMWindow();
     QtSLiMWindow *window = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
     
-    window->tile(activeWindow);
+    window->tile(currentActiveWindow);
     window->show();
 }
 
 void QtSLiMAppDelegate::newFile_nonWF(void)
 {
-    QtSLiMWindow *activeWindow = activeQtSLiMWindow();
+    QtSLiMWindow *currentActiveWindow = activeQtSLiMWindow();
     QtSLiMWindow *window = new QtSLiMWindow(QtSLiMWindow::ModelType::nonWF);
     
-    window->tile(activeWindow);
+    window->tile(currentActiveWindow);
     window->show();
 }
 
@@ -543,14 +543,14 @@ void QtSLiMAppDelegate::prependToRecentFiles(const QString &fileName)
 //  Event filtering
 //
 
-bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
+bool QtSLiMAppDelegate::eventFilter(QObject *p_obj, QEvent *p_event)
 {
-    QEvent::Type type = event->type();
+    QEvent::Type type = p_event->type();
     
     if ((type == QEvent::KeyPress) || (type == QEvent::KeyRelease))
     {
         // emit modifier changed signals for use by the app
-        QKeyEvent *keyEvent = dynamic_cast<QKeyEvent *>(event);
+        QKeyEvent *keyEvent = dynamic_cast<QKeyEvent *>(p_event);
         
         if (keyEvent)
         {
@@ -587,7 +587,7 @@ bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
     else if (type == QEvent::FileOpen)
     {
         // the user has requested that a file be opened
-        QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
+        QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(p_event);
         QString filePath = openEvent->file();
         
         openFile(filePath, nullptr);
@@ -596,7 +596,7 @@ bool QtSLiMAppDelegate::eventFilter(QObject *obj, QEvent *event)
     }
     
     // standard event processing
-    return QObject::eventFilter(obj, event);
+    return QObject::eventFilter(p_obj, p_event);
 }
 
 
@@ -1010,10 +1010,10 @@ void QtSLiMAppDelegate::dispatch_close(void)
 {
     // We close the "active" window, which is a bit different from the front window
     // It can be nullptr; in that case it's hard to know what to do
-    QWidget *activeWindow = QApplication::activeWindow();
+    QWidget *currentActiveWindow = QApplication::activeWindow();
     
-    if (activeWindow)
-        activeWindow->close();
+    if (currentActiveWindow)
+        currentActiveWindow->close();
     else
         qApp->beep();
 }
@@ -1274,16 +1274,16 @@ void QtSLiMAppDelegate::dispatch_minimize(void)
 {
     // We minimize the "active" window, which is a bit different from the front window
     // It can be nullptr; in that case it's hard to know what to do
-    QWidget *activeWindow = QApplication::activeWindow();
+    QWidget *currentActiveWindow = QApplication::activeWindow();
     
-    if (activeWindow)
+    if (currentActiveWindow)
     {
-        bool isMinimized = activeWindow->windowState() & Qt::WindowMinimized;
+        bool isMinimized = currentActiveWindow->windowState() & Qt::WindowMinimized;
         
         if (isMinimized)
-            activeWindow->setWindowState((activeWindow->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+            currentActiveWindow->setWindowState((currentActiveWindow->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
         else
-            activeWindow->setWindowState(activeWindow->windowState() | Qt::WindowMinimized);    // Qt refuses to minimize Qt::Tool windows; see https://bugreports.qt.io/browse/QTBUG-86520
+            currentActiveWindow->setWindowState(currentActiveWindow->windowState() | Qt::WindowMinimized);    // Qt refuses to minimize Qt::Tool windows; see https://bugreports.qt.io/browse/QTBUG-86520
     }
     else
         qApp->beep();
@@ -1293,16 +1293,16 @@ void QtSLiMAppDelegate::dispatch_zoom(void)
 {
     // We zoom the "active" window, which is a bit different from the front window
     // It can be nullptr; in that case it's hard to know what to do
-    QWidget *activeWindow = QApplication::activeWindow();
+    QWidget *currentActiveWindow = QApplication::activeWindow();
     
-    if (activeWindow)
+    if (currentActiveWindow)
     {
-        bool isZoomed = activeWindow->windowState() & Qt::WindowMaximized;
+        bool isZoomed = currentActiveWindow->windowState() & Qt::WindowMaximized;
         
         if (isZoomed)
-            activeWindow->setWindowState((activeWindow->windowState() & ~Qt::WindowMaximized) | Qt::WindowActive);
+            currentActiveWindow->setWindowState((currentActiveWindow->windowState() & ~Qt::WindowMaximized) | Qt::WindowActive);
         else
-            activeWindow->setWindowState((activeWindow->windowState() | Qt::WindowMaximized) | Qt::WindowActive);
+            currentActiveWindow->setWindowState((currentActiveWindow->windowState() | Qt::WindowMaximized) | Qt::WindowActive);
     }
     else
         qApp->beep();
@@ -1513,11 +1513,11 @@ QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
     // perhaps based upon which window the cursor is in, for example; for the
     // activeWindowExcluding() method we want our window list to be the sole authority,
     // but for this method I don't think we do...?
-    QWidget *activeWindow = qApp->activeWindow();
-    QtSLiMWindow *activeQtSLiMWindow = qobject_cast<QtSLiMWindow *>(activeWindow);
+    QWidget *currentActiveWindow = qApp->activeWindow();
+    QtSLiMWindow *currentActiveQtSLiMWindow = qobject_cast<QtSLiMWindow *>(currentActiveWindow);
     
-    if (activeQtSLiMWindow)
-        return activeQtSLiMWindow;
+    if (currentActiveQtSLiMWindow)
+        return currentActiveQtSLiMWindow;
     
     // If that fails, use the last focused main window, as tracked by focusChanged()
     pruneWindowList();

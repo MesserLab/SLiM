@@ -289,7 +289,7 @@ QtSLiMVariableBrowser::~QtSLiMVariableBrowser()
     delete ui;
 }
 
-void QtSLiMVariableBrowser::closeEvent(QCloseEvent *event)
+void QtSLiMVariableBrowser::closeEvent(QCloseEvent *p_event)
 {
     // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
@@ -303,7 +303,7 @@ void QtSLiMVariableBrowser::closeEvent(QCloseEvent *event)
     emit willClose();
     
     // use super's default behavior
-    QWidget::closeEvent(event);
+    QWidget::closeEvent(p_event);
 }
 
 void QtSLiMVariableBrowser::reloadBrowser(bool nowValidState)

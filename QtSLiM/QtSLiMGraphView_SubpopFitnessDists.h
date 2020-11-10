@@ -32,7 +32,7 @@ class QtSLiMGraphView_SubpopFitnessDists : public QtSLiMGraphView
     Q_OBJECT
     
 public:
-    QtSLiMGraphView_SubpopFitnessDists(QWidget *parent, QtSLiMWindow *controller);
+    QtSLiMGraphView_SubpopFitnessDists(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_SubpopFitnessDists() override;
     
     virtual QString graphTitle(void) override;

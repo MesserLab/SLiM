@@ -54,7 +54,7 @@ public slots:
     
 private:
     // singleton pattern
-    explicit QtSLiMFindPanel(QWidget *parent = nullptr);
+    explicit QtSLiMFindPanel(QWidget *p_parent = nullptr);
     QtSLiMFindPanel(void) = delete;
     virtual ~QtSLiMFindPanel(void) override;
     QtSLiMFindPanel(const QtSLiMFindPanel&) = delete;

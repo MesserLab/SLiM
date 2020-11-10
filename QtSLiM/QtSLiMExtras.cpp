@@ -179,14 +179,14 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
 // thanks to https://stackoverflow.com/a/51807268/2752221
-QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(const QString &contents, QWidget *parent) : QLineEdit(contents, parent) { }
-QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(QWidget *parent) : QLineEdit(parent) { }
+QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(const QString &contents, QWidget *p_parent) : QLineEdit(contents, p_parent) { }
+QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(QWidget *p_parent) : QLineEdit(p_parent) { }
 QtSLiMGenerationLineEdit::~QtSLiMGenerationLineEdit() {}
 
-void QtSLiMGenerationLineEdit::focusInEvent(QFocusEvent *event)
+void QtSLiMGenerationLineEdit::focusInEvent(QFocusEvent *p_event)
 {
     // First let the base class process the event
-    QLineEdit::focusInEvent(event);
+    QLineEdit::focusInEvent(p_event);
     
     // Then select the text by a single shot timer, so that everything will
     // be processed before (calling selectAll() directly won't work)
@@ -412,10 +412,10 @@ QSize QtSLiMPlayControlsLayout::sizeHint() const
             continue;     // the profile button takes no space
         
         QLayoutItem *layoutItem = itemAt(i);
-        QSize sizeHint = layoutItem->sizeHint();
+        QSize itemSizeHint = layoutItem->sizeHint();
         
-        size.rwidth() += sizeHint.width();
-        size.rheight() = std::max(size.height(), sizeHint.height());
+        size.rwidth() += itemSizeHint.width();
+        size.rheight() = std::max(size.height(), itemSizeHint.height());
     }
     
     size.rwidth() += (n - 2) * spacing();   // -2 because we exclude spacing for the profile button
@@ -434,10 +434,10 @@ QSize QtSLiMPlayControlsLayout::minimumSize() const
             continue;     // the profile button takes no space
         
         QLayoutItem *layoutItem = itemAt(i);
-        QSize minimumSize = layoutItem->minimumSize();
+        QSize itemMinimumSize = layoutItem->minimumSize();
         
-        size.rwidth() += minimumSize.width();
-        size.rheight() = std::max(size.height(), minimumSize.height());
+        size.rwidth() += itemMinimumSize.width();
+        size.rheight() = std::max(size.height(), itemMinimumSize.height());
     }
     
     size.rwidth() += (n - 2) * spacing();   // -2 because we exclude spacing for the profile button
@@ -459,11 +459,11 @@ void QtSLiMPlayControlsLayout::setGeometry(const QRect &rect)
             continue;     // the profile button takes no space
         
         QLayoutItem *layoutItem = itemAt(i);
-        QSize sizeHint = layoutItem->sizeHint();
-        QRect geom(position, rect.y(), sizeHint.width(), sizeHint.height());
+        QSize itemSizeHint = layoutItem->sizeHint();
+        QRect geom(position, rect.y(), itemSizeHint.width(), itemSizeHint.height());
         
         layoutItem->setGeometry(geom);
-        position += sizeHint.width() + spacing();
+        position += itemSizeHint.width() + spacing();
         
         if (i == 1)
             playButtonRect = geom;
@@ -471,8 +471,8 @@ void QtSLiMPlayControlsLayout::setGeometry(const QRect &rect)
     
     // position the profile button; the button must lie inside the bounds of the parent widget due to clipping
     QLayoutItem *profileButton = itemAt(2);
-    QSize sizeHint = profileButton->sizeHint();
-    QRect geom(playButtonRect.left() + playButtonRect.width() - 22, rect.y() - 6, sizeHint.width(), sizeHint.height());
+    QSize itemSizeHint = profileButton->sizeHint();
+    QRect geom(playButtonRect.left() + playButtonRect.width() - 22, rect.y() - 6, itemSizeHint.width(), itemSizeHint.height());
     
     profileButton->setGeometry(geom);
 }
@@ -526,7 +526,7 @@ QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharForm
 // Running a panel to obtain numbers from the user
 // The goal here is to avoid a proliferation of dumb forms, by programmatically generating the UI
 
-QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QStringList captions, QStringList values)
+QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStringList captions, QStringList values)
 {
     if (captions.size() < 1)
         return QStringList();
@@ -537,7 +537,7 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QString
     }
     
     // make the dialog with an overall vertical layout
-    QDialog *dialog = new QDialog(parent);
+    QDialog *dialog = new QDialog(p_parent);
     QVBoxLayout *verticalLayout = new QVBoxLayout(dialog);
     
     // title label
@@ -636,7 +636,7 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *parent, QString title, QString
 // A subclass of QPushButton that draws its image at screen resolution, for a better appearance on Retina etc.
 // Turns out setting Qt::AA_UseHighDpiPixmaps fixes that issue; but this subclass also makes the buttons draw
 // correctly in Qt 5.14.2, where button icons are shifted right one pixel and then clipped in an ugly way.
-void QtSLiMPushButton::paintEvent(QPaintEvent * /* paintEvent */)
+void QtSLiMPushButton::paintEvent(QPaintEvent * /* p_paintEvent */)
 {
     QPainter painter(this);
     QRect bounds = rect();
@@ -662,7 +662,7 @@ void QtSLiMPushButton::paintEvent(QPaintEvent * /* paintEvent */)
 
 
 // A subclass of QSplitterHandle that does some custom drawing
-void QtSLiMSplitterHandle::paintEvent(QPaintEvent *paintEvent)
+void QtSLiMSplitterHandle::paintEvent(QPaintEvent *p_paintEvent)
 {
     QPainter painter(this);
     QRect bounds = rect();
@@ -721,13 +721,13 @@ void QtSLiMSplitterHandle::paintEvent(QPaintEvent *paintEvent)
 #endif
     
     // call super to overlay the splitter knob
-    QSplitterHandle::paintEvent(paintEvent);
+    QSplitterHandle::paintEvent(p_paintEvent);
 }
 
 
 // A subclass of QStatusBar that draws a top separator, so our splitters abut nicely
 // BCH 9/20/2020: this now draws the message as HTML text too, allowing colorized signatures
-void QtSLiMStatusBar::paintEvent(QPaintEvent * /*paintEvent*/)
+void QtSLiMStatusBar::paintEvent(QPaintEvent * /*p_paintEvent*/)
 {
     QPainter p(this);
     QRect bounds = rect();

@@ -22,7 +22,7 @@
 #include "QtSLiMWindow.h"
 
 
-QtSLiMGraphView_FixationTimeHistogram::QtSLiMGraphView_FixationTimeHistogram(QWidget *parent, QtSLiMWindow *controller) : QtSLiMGraphView(parent, controller)
+QtSLiMGraphView_FixationTimeHistogram::QtSLiMGraphView_FixationTimeHistogram(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
     histogramBinCount_ = 10;
     //allowBinCountRescale_ = true;     // not supported yet

@@ -34,7 +34,7 @@ class QtSLiMHaplotypeOptions : public QDialog
     Q_OBJECT
     
 public:
-    explicit QtSLiMHaplotypeOptions(QWidget *parent = nullptr);
+    explicit QtSLiMHaplotypeOptions(QWidget *p_parent = nullptr);
     virtual ~QtSLiMHaplotypeOptions() override;
     
     size_t genomeSampleSize(void);    // 0 indicates "all genomes"

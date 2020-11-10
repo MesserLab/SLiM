@@ -42,7 +42,7 @@ QtSLiMFindPanel &QtSLiMFindPanel::instance(void)
     return *inst;
 }
 
-QtSLiMFindPanel::QtSLiMFindPanel(QWidget *parent) : QDialog(parent), ui(new Ui::QtSLiMFindPanel)
+QtSLiMFindPanel::QtSLiMFindPanel(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSLiMFindPanel)
 {
     ui->setupUi(this);
     
@@ -146,11 +146,11 @@ QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiab
         //qDebug() << "targetTextEditRequireModifiable() found active window" << currentFocusWindow->windowTitle();
         
         // Given a target window, we target the focusWidget *if* it is a textedit
-        QWidget *focusWidget = currentFocusWindow->focusWidget();
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+        QWidget *windowFocusWidget = currentFocusWindow->focusWidget();
+        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(windowFocusWidget);
         
-//        if (focusWidget)
-//            qDebug() << "   focusWidget" << focusWidget << " " << focusWidget->objectName() << ", textEdit" << textEdit;
+//        if (windowFocusWidget)
+//            qDebug() << "   windowFocusWidget" << windowFocusWidget << " " << windowFocusWidget->objectName() << ", textEdit" << textEdit;
 //        else
 //            qDebug() << "   NO FOCUSWIDGET";
         
@@ -181,7 +181,7 @@ void QtSLiMFindPanel::showFindPanel(void)
     activateWindow();
 }
 
-void QtSLiMFindPanel::closeEvent(QCloseEvent *event)
+void QtSLiMFindPanel::closeEvent(QCloseEvent *p_event)
 {
     // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
@@ -192,7 +192,7 @@ void QtSLiMFindPanel::closeEvent(QCloseEvent *event)
     settings.endGroup();
     
     // use super's default behavior
-    QDialog::closeEvent(event);
+    QDialog::closeEvent(p_event);
 }
 
 bool QtSLiMFindPanel::findForwardWrapBeep(QTextEdit *target, bool forward, bool wrap, bool beepIfNotFound)

@@ -204,7 +204,7 @@ QtSLiMHelpWindow &QtSLiMHelpWindow::instance(void)
     return *inst;
 }
 
-QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *parent) : QWidget(parent, Qt::Window), ui(new Ui::QtSLiMHelpWindow)
+QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Window), ui(new Ui::QtSLiMHelpWindow)
 {
     ui->setupUi(this);
     interpolateSplitters();
@@ -490,7 +490,7 @@ void QtSLiMHelpWindow::enterSearchForString(QString searchString, bool titlesOnl
         searchFieldChanged();   // re-run explicitly
 }
 
-void QtSLiMHelpWindow::closeEvent(QCloseEvent *event)
+void QtSLiMHelpWindow::closeEvent(QCloseEvent *p_event)
 {
     // Save the window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
@@ -501,7 +501,7 @@ void QtSLiMHelpWindow::closeEvent(QCloseEvent *event)
     settings.endGroup();
     
     // use super's default behavior
-    QWidget::closeEvent(event);
+    QWidget::closeEvent(p_event);
 }
 
 // This is a helper method for addTopicsFromRTFFile:... that finds the right parent item to insert a given section index under.

@@ -156,7 +156,7 @@ signals:
     void activeWindowListChanged(void);
     
 private:
-    virtual bool eventFilter(QObject *obj, QEvent *event) override;
+    virtual bool eventFilter(QObject *p_obj, QEvent *p_event) override;
     
     QVector<QPointer<QWidget>> focusedWindowList;       // a list of all windows, from front to back
     void pruneWindowList(void);                         // remove all windows that are closed or hidden
