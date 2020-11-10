@@ -266,22 +266,22 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 	// First we calculate the mean edge length; we will consider this the optimum length
 	for (size_t subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 	{
-		double x = center_x[subpopIndex];
-		double y = center_y[subpopIndex];
+		double xc = center_x[subpopIndex];
+		double yc = center_y[subpopIndex];
 		
 		// If any node has a NaN value, that is an immediate disqualifier; I'm not sure how it happens, but it occasionally does
-		if (std::isnan(x) || std::isnan(y))
+		if (std::isnan(xc) || std::isnan(yc))
 			return -100000000;
 		
-		if (x < minx) minx = x;
-		if (y > maxy) maxy = y;
+		if (xc < minx) minx = xc;
+		if (yc > maxy) maxy = yc;
 		
 		for (size_t sourceIndex = subpopIndex + 1; sourceIndex < subpopCount; ++sourceIndex)
 		{
 			if (connected[subpopIndex * subpopCount + sourceIndex])
 			{
-				double dx = x - center_x[sourceIndex];
-				double dy = y - center_y[sourceIndex];
+				double dx = xc - center_x[sourceIndex];
+				double dy = yc - center_y[sourceIndex];
 				double distanceSquared = dx * dx + dy * dy;
 				double distance = sqrt(distanceSquared);
 				
@@ -306,13 +306,13 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 	// Score distances and crossings
 	for (size_t subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 	{
-		double x = center_x[subpopIndex];
-		double y = center_y[subpopIndex];
+		double xc = center_x[subpopIndex];
+		double yc = center_y[subpopIndex];
 		
 		for (size_t sourceIndex = subpopIndex + 1; sourceIndex < subpopCount; ++sourceIndex)
 		{
-			double dx = x - center_x[sourceIndex];
-			double dy = y - center_y[sourceIndex];
+			double dx = xc - center_x[sourceIndex];
+			double dy = yc - center_y[sourceIndex];
 			double distanceSquared = dx * dx + dy * dy;
 			double distance = sqrt(distanceSquared);
 			
@@ -331,8 +331,8 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 					for (size_t secondSource = secondSubpop + 1; secondSource < subpopCount; ++secondSource)
 						if (connected[secondSubpop * subpopCount + secondSource])
 						{
-							double x0 = x, x1 = center_x[sourceIndex], x2 = center_x[secondSubpop], x3 = center_x[secondSource];
-							double y0 = y, y1 = center_y[sourceIndex], y2 = center_y[secondSubpop], y3 = center_y[secondSource];
+							double x0 = xc, x1 = center_x[sourceIndex], x2 = center_x[secondSubpop], x3 = center_x[secondSource];
+							double y0 = yc, y1 = center_y[sourceIndex], y2 = center_y[secondSubpop], y3 = center_y[secondSource];
 							
 							// I test intersection with slightly shortened line segments, because I don't want endpoints that touch to be marked as intersections
 							if (is_line_intersection(x0*0.99 + x1*0.01, y0*0.99 + y1*0.01,
@@ -360,8 +360,8 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 	if (subpopCount == 0)
 		return;
 	
-	double width = 0.58, length = 0.58;		// allows for the radii of the vertices at max subpop size
-	double area = width * length;
+	double layout_width = 0.58, layout_length = 0.58;		// allows for the radii of the vertices at max subpop size
+	double area = layout_width * layout_length;
 	double k = sqrt(area / subpopCount);
 	double kSquared = k * k;
 	bool *connected;
@@ -420,13 +420,13 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 	// We do multiple separate runs from different starting configurations, to try to find the optimal solution
 	for (int trialIteration = 0; trialIteration < 50; ++trialIteration)
 	{
-		double temperature = width / 5.0;
+		double temperature = layout_width / 5.0;
 		
 		// initialize positions; this is basically the G := (V,E) step of the Fruchterman & Reingold algorithm
 		for (size_t subpopIndex = 0; subpopIndex < subpopCount; ++subpopIndex)
 		{
-			pos_x[subpopIndex] = (random() / static_cast<double>(INT32_MAX)) * width - width/2;
-			pos_y[subpopIndex] = (random() / static_cast<double>(INT32_MAX)) * length - length/2;
+			pos_x[subpopIndex] = (random() / static_cast<double>(INT32_MAX)) * layout_width - layout_width/2;
+			pos_y[subpopIndex] = (random() / static_cast<double>(INT32_MAX)) * layout_length - layout_length/2;
 		}
 		
 		// Then we do the core loop of the Fruchterman & Reingold algorithm, which calculates forces and displacements
@@ -502,10 +502,10 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 					pos_y[v] += (disp_y[v] / delta_magnitude) * temperature;
 				}
 				
-				if (pos_x[v] < -width/2) pos_x[v] = -width/2;
-				if (pos_y[v] < -length/2) pos_y[v] = -length/2;
-				if (pos_x[v] > width/2) pos_x[v] = width/2;
-				if (pos_y[v] > length/2) pos_y[v] = length/2;
+				if (pos_x[v] < -layout_width/2) pos_x[v] = -layout_width/2;
+				if (pos_y[v] < -layout_length/2) pos_y[v] = -layout_length/2;
+				if (pos_x[v] > layout_width/2) pos_x[v] = layout_width/2;
+				if (pos_y[v] > layout_length/2) pos_y[v] = layout_length/2;
 			}
 			
 			// reduce the temperature as the layout approaches a better configuration

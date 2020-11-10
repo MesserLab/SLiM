@@ -1015,9 +1015,9 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
     int topFrameWidth = previous->geometry().top() - previous->pos().y();
     if (!topFrameWidth)
         topFrameWidth = 40;
-    const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
-    if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + pos))
-        move(pos);
+    const QPoint position = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
+    if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + position))
+        move(position);
 }
 
 
@@ -1239,15 +1239,15 @@ void QtSLiMWindow::setScriptStringAndInitializeSimulation(std::string string)
     startNewSimulationFromScript();
 }
 
-QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *window)
+QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
 {
-    if (window)
+    if (p_window)
     {
-        QLayout *layout = window->layout();
+        QLayout *window_layout = p_window->layout();
         
-        if (layout && (layout->count() > 0))
+        if (window_layout && (window_layout->count() > 0))
         {
-            QLayoutItem *item = layout->itemAt(0);
+            QLayoutItem *item = window_layout->itemAt(0);
             
             if (item)
                 return qobject_cast<QtSLiMGraphView *>(item->widget());
@@ -1521,19 +1521,19 @@ void QtSLiMWindow::updateUIEnabling(void)
     // If there's an active window but it isn't us, we reflect that situation with a different method
     // Keep in mind that in Qt each QMainWindow has its own menu bar, its own actions, etc.; this is not global state!
     // This means we spend a little time updating menu enable states that are not visible anyway, but it's fast
-    QWidget *focusWidget = qApp->focusWidget();
-    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QWidget *currentFocusWidget = qApp->focusWidget();
+    QWidget *focusWindow = (currentFocusWidget ? currentFocusWidget->window() : nullptr);
     
     if (focusWindow == this) {
         //qDebug() << "updateMenuEnablingACTIVE()";
-        updateMenuEnablingACTIVE(focusWidget);
+        updateMenuEnablingACTIVE(currentFocusWidget);
     } else {
         //qDebug() << "updateMenuEnablingINACTIVE()";
-        updateMenuEnablingINACTIVE(focusWidget, focusWindow);
+        updateMenuEnablingINACTIVE(currentFocusWidget, focusWindow);
     }
 }
 
-void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
+void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 {
     ui->actionSave->setEnabled(true);
     ui->actionSaveAs->setEnabled(true);
@@ -1568,10 +1568,10 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *focusWidget)
     ui->actionDumpPopulationState->setEnabled(!invalidSimulation_);
     ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
     
-    updateMenuEnablingSHARED(focusWidget);
+    updateMenuEnablingSHARED(p_focusWidget);
 }
 
-void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *focusWindow)
+void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *focusWindow)
 {
     ui->actionSave->setEnabled(false);
     ui->actionSaveAs->setEnabled(false);
@@ -1616,15 +1616,15 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *foc
     ui->actionDumpPopulationState->setEnabled(false);
     ui->actionChangeWorkingDirectory->setEnabled(false);
     
-    updateMenuEnablingSHARED(focusWidget);
+    updateMenuEnablingSHARED(p_focusWidget);
 }
 
-void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *focusWidget)
+void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
 {
     // Here we update the enable state for menu items, such as cut/copy/paste, that go to
-    // the focusWidget whatever window it might be in; "first responder" in Cocoa parlance
-    QLineEdit *lE = dynamic_cast<QLineEdit*>(focusWidget);
-    QTextEdit *tE = dynamic_cast<QTextEdit*>(focusWidget);
+    // the p_focusWidget whatever window it might be in; "first responder" in Cocoa parlance
+    QLineEdit *lE = dynamic_cast<QLineEdit*>(p_focusWidget);
+    QTextEdit *tE = dynamic_cast<QTextEdit*>(p_focusWidget);
     QtSLiMTextEdit *stE = dynamic_cast<QtSLiMTextEdit *>(tE);
     bool hasEnabledDestination = (lE && lE->isEnabled()) || (tE && tE->isEnabled());
     bool hasEnabledModifiableDestination = (lE && lE->isEnabled() && !lE->isReadOnly()) ||
@@ -1653,7 +1653,7 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *focusWidget)
     ui->actionSelectAll->setEnabled(hasEnabledDestination);
     
     // actions handled by QtSLiMScriptTextEdit only
-    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(p_focusWidget);
     bool isModifiableScriptTextEdit = (scriptEdit && !scriptEdit->isReadOnly());
     
     ui->actionShiftLeft->setEnabled(isModifiableScriptTextEdit);
@@ -1819,33 +1819,33 @@ void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node
 void QtSLiMWindow::displayProfileResults(void)
 {
     // Make a new window to show the profile results
-    QWidget *window = new QWidget(this, Qt::Window);    // the profile window has us as a parent, but is still a standalone window
-    QString title = window->windowTitle();
+    QWidget *profile_window = new QWidget(this, Qt::Window);    // the profile window has us as a parent, but is still a standalone window
+    QString title = profile_window->windowTitle();
     
     if (title.length() == 0)
         title = "Untitled";
     
-    window->setWindowTitle("Profile Report for " + title);
-    window->setMinimumSize(500, 200);
-    window->resize(500, 600);
-    window->move(50, 50);
+    profile_window->setWindowTitle("Profile Report for " + title);
+    profile_window->setMinimumSize(500, 200);
+    profile_window->resize(500, 600);
+    profile_window->move(50, 50);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
-    window->setWindowIcon(QIcon());
+    profile_window->setWindowIcon(QIcon());
 #endif
     
     // make window actions for all global menu items
-    qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
+    qtSLiMAppDelegate->addActionsForGlobalMenuItems(profile_window);
     
     // Make a QTextEdit to hold the results
-    QHBoxLayout *layout = new QHBoxLayout;
+    QHBoxLayout *window_layout = new QHBoxLayout;
     QTextEdit *textEdit = new QTextEdit();
     
-    window->setLayout(layout);
+    profile_window->setLayout(window_layout);
     
-    layout->setMargin(0);
-    layout->setSpacing(0);
-    layout->addWidget(textEdit);
+    window_layout->setMargin(0);
+    window_layout->setSpacing(0);
+    window_layout->addWidget(textEdit);
     
     textEdit->setFrameStyle(QFrame::NoFrame);
     textEdit->setReadOnly(true);
@@ -2691,7 +2691,7 @@ void QtSLiMWindow::displayProfileResults(void)
     // Done, show the window
     tc.setPosition(0);
     textEdit->setTextCursor(tc);
-    window->show();    
+    profile_window->show();    
 }
 
 void QtSLiMWindow::startProfiling(void)
@@ -2878,8 +2878,8 @@ void QtSLiMWindow::_continuousPlay(void)
     // NOTE this code is parallel to the code in _continuousProfile()
 	if (!invalidSimulation_)
 	{
-        QElapsedTimer startTimer;
-        startTimer.start();
+        QElapsedTimer playStartTimer;
+        playStartTimer.start();
         
 		double speedSliderValue = ui->playSpeedSlider->value() / 100.0;     // scale is 0 to 100, since only integer values are allowed by QSlider
 		double intervalSinceStarting = continuousPlayElapsedTimer_.nsecsElapsed() / 1000000000.0;
@@ -2909,13 +2909,13 @@ void QtSLiMWindow::_continuousPlay(void)
 			
 			continuousPlayGenerationsCompleted_++;
 		}
-		while (!reachedEnd && (startTimer.nsecsElapsed() / 1000000000.0) < 0.02);
+		while (!reachedEnd && (playStartTimer.nsecsElapsed() / 1000000000.0) < 0.02);
 		
 		setReachedSimulationEnd(reachedEnd);
 		
 		if (!reachedSimulationEnd_ && (!generationPlayOn_ || !(sim->generation_ >= targetGeneration_)))
 		{
-            updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
+            updateAfterTickFull((playStartTimer.nsecsElapsed() / 1000000000.0) > 0.04);
 			continuousPlayInvocationTimer_.start(0);
 		}
 		else
@@ -2939,8 +2939,8 @@ void QtSLiMWindow::_continuousProfile(void)
 	// NOTE this code is parallel to the code in _continuousPlay()
 	if (!invalidSimulation_)
 	{
-        QElapsedTimer startTimer;
-        startTimer.start();
+        QElapsedTimer playStartTimer;
+        playStartTimer.start();
 		
 		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
@@ -2955,14 +2955,14 @@ void QtSLiMWindow::_continuousProfile(void)
 				
 				continuousPlayGenerationsCompleted_++;
 			}
-            while (!reachedEnd && (startTimer.nsecsElapsed() / 1000000000.0) < 0.02);
+            while (!reachedEnd && (playStartTimer.nsecsElapsed() / 1000000000.0) < 0.02);
 			
             setReachedSimulationEnd(reachedEnd);
 		}
 		
 		if (!reachedSimulationEnd_)
 		{
-            updateAfterTickFull((startTimer.nsecsElapsed() / 1000000000.0) > 0.04);
+            updateAfterTickFull((playStartTimer.nsecsElapsed() / 1000000000.0) > 0.04);
             continuousProfileInvocationTimer_.start(0);
 		}
 		else
@@ -3592,9 +3592,9 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                     scriptTE->setTextCursor(cursor);
                 });
                 
-                QFont font = jumpAction->font();
-                font.setBold(true);
-                jumpAction->setFont(font);
+                QFont action_font = jumpAction->font();
+                action_font.setBold(true);
+                jumpAction->setFont(action_font);
             }
             
             jumpActions.emplace_back(comment_start, jumpAction);
@@ -3775,24 +3775,24 @@ static bool rectIsOnscreen(QRect windowRect)
     return false;
 }
 
-void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
+void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *p_window)
 {
     // force geometry calculation, which is lazy
-    window->setAttribute(Qt::WA_DontShowOnScreen, true);
-    window->show();
-    window->hide();
-    window->setAttribute(Qt::WA_DontShowOnScreen, false);
+    p_window->setAttribute(Qt::WA_DontShowOnScreen, true);
+    p_window->show();
+    p_window->hide();
+    p_window->setAttribute(Qt::WA_DontShowOnScreen, false);
     
     // Now get the frame geometry; note that on X11 systems the window frame is often not included in frameGeometry(), even
     // though it's supposed to be, because it is simply not available from X.  We attempt to compensate by adding in the
     // height of the window title bar, although that entails making assumptions about the windowing system appearance.
-    QRect windowFrame = window->frameGeometry();
+    QRect windowFrame = p_window->frameGeometry();
     QRect mainWindowFrame = this->frameGeometry();
     bool drawerIsOpen = (!!tablesDrawerController);
     const int titleBarHeight = 30;
     QPoint unadjust;
     
-    if (windowFrame == window->geometry())
+    if (windowFrame == p_window->geometry())
     {
         windowFrame.adjust(0, -titleBarHeight, 0, 0);
         unadjust = QPoint(0, 30);
@@ -3811,7 +3811,7 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
         
         if (rectIsOnscreen(candidateFrame) && (candidateFrame.right() <= mainWindowFrame.right()))          // avoid going over to the right, to leave room for the tables drawer window
         {
-            window->move(candidateFrame.topLeft() + unadjust);
+            p_window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_bottom++;
             return;
         }
@@ -3826,7 +3826,7 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
         
         if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= mainWindowFrame.bottom()))    // doesn't overlap anybody else
         {
-            window->move(candidateFrame.topLeft() + unadjust);
+            p_window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_left++;
             return;
         }
@@ -3841,7 +3841,7 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
 		
         if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.right() <= mainWindowFrame.right()))    // doesn't overlap anybody else
         {
-            window->move(candidateFrame.topLeft() + unadjust);
+            p_window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_top++;
             return;
         }
@@ -3857,7 +3857,7 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
 		
         if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= mainWindowFrame.bottom()))   // doesn't overlap anybody else
         {
-            window->move(candidateFrame.topLeft() + unadjust);
+            p_window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_right++;
             return;
         }
@@ -3874,7 +3874,7 @@ void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *window)
 		
         if (rectIsOnscreen(candidateFrame)) // && (candidateFrame.bottom() <= drawerFrame.bottom()))    // doesn't overlap anybody else
         {
-            window->move(candidateFrame.topLeft() + unadjust);
+            p_window->move(candidateFrame.topLeft() + unadjust);
             openedGraphCount_right++;
             return;
         }
@@ -3890,18 +3890,18 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     
     // We have an image; note that it might be a "null image", however
     bool null = image.isNull();
-    int width = (null ? 288 : image.width());
-    int height = (null ? 288 : image.height());
+    int window_width = (null ? 288 : image.width());
+    int window_height = (null ? 288 : image.height());
     
-    QWidget *window = new QWidget(this, Qt::Window | Qt::Tool);    // the image window has us as a parent, but is still a standalone window
+    QWidget *image_window = new QWidget(this, Qt::Window | Qt::Tool);    // the image window has us as a parent, but is still a standalone window
     
-    window->setWindowTitle(fileInfo.fileName());
-    window->setFixedSize(width, height);
+    image_window->setWindowTitle(fileInfo.fileName());
+    image_window->setFixedSize(window_width, window_height);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
-    window->setWindowIcon(qtSLiMAppDelegate->genericDocumentIcon());    // doesn't seem to quite work; we get the SLiM document icon, inherited from parent presumably
+    image_window->setWindowIcon(qtSLiMAppDelegate->genericDocumentIcon());    // doesn't seem to quite work; we get the SLiM document icon, inherited from parent presumably
 #endif
-    window->setWindowFilePath(path);
+    image_window->setWindowFilePath(path);
     
     // Make the image view
     QLabel *imageView = new QLabel();
@@ -3920,13 +3920,13 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     // Install imageView in the window
     QVBoxLayout *topLayout = new QVBoxLayout;
     
-    window->setLayout(topLayout);
+    image_window->setLayout(topLayout);
     topLayout->setMargin(0);
     topLayout->setSpacing(0);
     topLayout->addWidget(imageView);
     
     // Make a file system watcher to update us when the image changes
-    QFileSystemWatcher *watcher = new QFileSystemWatcher(QStringList(path), window);
+    QFileSystemWatcher *watcher = new QFileSystemWatcher(QStringList(path), image_window);
     
     connect(watcher, &QFileSystemWatcher::fileChanged, imageView, [imageView](const QString &watched_path) {
         QImage watched_image(watched_path);
@@ -3989,15 +3989,15 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     });
     
     // Position the window nicely
-    positionNewSubsidiaryWindow(window);
+    positionNewSubsidiaryWindow(image_window);
     
     // make window actions for all global menu items
     // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent window's shortcuts
     //qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
     
-    window->setAttribute(Qt::WA_DeleteOnClose, true);
+    image_window->setAttribute(Qt::WA_DeleteOnClose, true);
     
-    return window;
+    return image_window;
 }
 
 QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
@@ -4005,21 +4005,21 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
     // Make a new window to show the graph
-    QWidget *window = new QWidget(this, Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
+    QWidget *graph_window = new QWidget(this, Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
     QString title = graphView->graphTitle();
     
-    window->setWindowTitle(title);
-    window->setMinimumSize(250, 250);
-    window->resize(300, 300);
+    graph_window->setWindowTitle(title);
+    graph_window->setMinimumSize(250, 250);
+    graph_window->resize(300, 300);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
-    window->setWindowIcon(QIcon());
+    graph_window->setWindowIcon(QIcon());
 #endif
     
     // Install graphView in the window
     QVBoxLayout *topLayout = new QVBoxLayout;
     
-    window->setLayout(topLayout);
+    graph_window->setLayout(topLayout);
     topLayout->setMargin(0);
     topLayout->setSpacing(0);
     topLayout->addWidget(graphView);
@@ -4038,7 +4038,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         buttonLayout->addItem(rightSpacer);
         
         // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
-        QtSLiMPushButton *actionButton = new QtSLiMPushButton(window);
+        QtSLiMPushButton *actionButton = new QtSLiMPushButton(graph_window);
         actionButton->setObjectName(QString::fromUtf8("actionButton"));
         actionButton->setMinimumSize(QSize(20, 20));
         actionButton->setMaximumSize(QSize(20, 20));
@@ -4073,36 +4073,36 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     graphView->addedToWindow();
     
     // force geometry calculation, which is lazy
-    window->setAttribute(Qt::WA_DontShowOnScreen, true);
-    window->show();
-    window->hide();
-    window->setAttribute(Qt::WA_DontShowOnScreen, false);
+    graph_window->setAttribute(Qt::WA_DontShowOnScreen, true);
+    graph_window->show();
+    graph_window->hide();
+    graph_window->setAttribute(Qt::WA_DontShowOnScreen, false);
     
     // If we added a button layout, give it room so the graph area is still square
     // Note this has to happen after forcing layout calculations
     if (buttonLayout)
     {
-        QSize contentSize = window->size();
-        QSize minSize = window->minimumSize();
+        QSize contentSize = graph_window->size();
+        QSize minSize = graph_window->minimumSize();
         int buttonLayoutHeight = buttonLayout->geometry().height();
         
         contentSize.setHeight(contentSize.height() + buttonLayoutHeight);
-        window->resize(contentSize);
+        graph_window->resize(contentSize);
         
         minSize.setHeight(minSize.height() + buttonLayoutHeight);
-        window->setMinimumSize(minSize);
+        graph_window->setMinimumSize(minSize);
     }
     
     // Position the window nicely
-    positionNewSubsidiaryWindow(window);
+    positionNewSubsidiaryWindow(graph_window);
     
     // make window actions for all global menu items
     // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent window's shortcuts
-    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(graph_window);
     
-    window->setAttribute(Qt::WA_DeleteOnClose, true);
+    graph_window->setAttribute(Qt::WA_DeleteOnClose, true);
     
-    return window;
+    return graph_window;
 }
 
 void QtSLiMWindow::graphPopupButtonRunMenu(void)

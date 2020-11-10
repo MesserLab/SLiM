@@ -61,7 +61,7 @@ class QtSLiMVariableBrowserDelegate : public QStyledItemDelegate
     Q_OBJECT
     
 public:
-    QtSLiMVariableBrowserDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+    QtSLiMVariableBrowserDelegate(QObject *p_parent = nullptr) : QStyledItemDelegate(p_parent) {}
     virtual ~QtSLiMVariableBrowserDelegate(void) override;
     
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
@@ -79,7 +79,7 @@ class QtSLiMVariableBrowser : public QWidget
 public:
     QtSLiMEidosConsole *parentEidosConsole = nullptr;     // a copy of parent with the correct class, for convenience
     
-    explicit QtSLiMVariableBrowser(QtSLiMEidosConsole *parent = nullptr);
+    explicit QtSLiMVariableBrowser(QtSLiMEidosConsole *p_parent = nullptr);
     virtual ~QtSLiMVariableBrowser() override;
     
     void reloadBrowser(bool nowValidState);

@@ -592,9 +592,9 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
     topItem->setForeground(0, QBrush(QtSLiMColorWithWhite(0.4, 1.0)));
     topItem->setSizeHint(0, QSize(20.0, 20.0));
     topItem->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
-    QFont font(topItem->font(0));
-    font.setBold(true);
-    topItem->setFont(0, font);
+    QFont itemFont(topItem->font(0));
+    itemFont.setBold(true);
+    topItem->setFont(0, itemFont);
     
     // Set up the current topic item that we are appending content into
     QtSLiMHelpItem *currentTopicItem = topItem;
@@ -949,9 +949,9 @@ void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
             // Hyperlink appearance, with blue underlined text
             superclassItem->setForeground(0, QBrush(QtSLiMColorWithHSV(0.65, 1.0, 0.8, 1.0)));
             
-            QFont font(superclassItem->font(0));
-            font.setUnderline(true);
-            superclassItem->setFont(0, font);
+            QFont itemFont(superclassItem->font(0));
+            itemFont.setUnderline(true);
+            superclassItem->setFont(0, itemFont);
         }
         else
         {

@@ -33,8 +33,8 @@
 //  QtSLiMOutputHighlighter
 //
 
-QtSLiMOutputHighlighter::QtSLiMOutputHighlighter(QTextDocument *parent) :
-    QSyntaxHighlighter(parent),
+QtSLiMOutputHighlighter::QtSLiMOutputHighlighter(QTextDocument *p_parent) :
+    QSyntaxHighlighter(p_parent),
     poundRegex(QString("^\\s*#[^\\n]*")),
     commentRegex(QString("//[^\\n]*")),
     globalRegex(QString("\\b[pgm][0-9]+\\b"))
@@ -94,7 +94,7 @@ void QtSLiMOutputHighlighter::highlightBlock(const QString &text)
 //  QtSLiMScriptHighlighter
 //
 
-QtSLiMScriptHighlighter::QtSLiMScriptHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent)
+QtSLiMScriptHighlighter::QtSLiMScriptHighlighter(QTextDocument *p_parent) : QSyntaxHighlighter(p_parent)
 {
     numberLiteralFormat.setForeground(QColor(28, 0, 207));
     stringLiteralFormat.setForeground(QColor(196, 26, 22));
@@ -105,7 +105,7 @@ QtSLiMScriptHighlighter::QtSLiMScriptHighlighter(QTextDocument *parent) : QSynta
     
     // listen for changes to our document's contents
     // FIXME technically we need to recache and stuff if setDocument() is called, but we never do that in QtSLiM
-    connect(parent, &QTextDocument::contentsChanged, this, &QtSLiMScriptHighlighter::documentContentsChanged);
+    connect(p_parent, &QTextDocument::contentsChanged, this, &QtSLiMScriptHighlighter::documentContentsChanged);
 }
 
 QtSLiMScriptHighlighter::~QtSLiMScriptHighlighter()

@@ -227,13 +227,13 @@ QtSLiMLegendSpec QtSLiMGraphView_SubpopFitnessDists::legendKey(void)
 	if (!showSubpops)
 		return QtSLiMLegendSpec();
 	
-    QtSLiMLegendSpec legendKey;
+    QtSLiMLegendSpec legend_key;
 
-    legendKey.push_back(QtSLiMLegendEntry("All", Qt::black));
+    legend_key.push_back(QtSLiMLegendEntry("All", Qt::black));
 	
 	if (drawSubpopsGray)
 	{
-        legendKey.push_back(QtSLiMLegendEntry("pX", QtSLiMColorWithWhite(0.5, 1.0)));
+        legend_key.push_back(QtSLiMLegendEntry("pX", QtSLiMColorWithWhite(0.5, 1.0)));
 	}
 	else
 	{
@@ -242,11 +242,11 @@ QtSLiMLegendSpec QtSLiMGraphView_SubpopFitnessDists::legendKey(void)
             slim_objectid_t subpop_id = subpop_pair.second->subpopulation_id_;
             QString labelString = QString("p%1").arg(subpop_id);
             
-            legendKey.push_back(QtSLiMLegendEntry(labelString, controller_->whiteContrastingColorForIndex(subpop_id)));
+            legend_key.push_back(QtSLiMLegendEntry(labelString, controller_->whiteContrastingColorForIndex(subpop_id)));
         }
 	}
 	
-	return legendKey;
+	return legend_key;
 }
 
 

@@ -35,7 +35,7 @@ class QtSLiMOutputHighlighter : public QSyntaxHighlighter
     Q_OBJECT
 
 public:
-    QtSLiMOutputHighlighter(QTextDocument *parent = nullptr);
+    QtSLiMOutputHighlighter(QTextDocument *p_parent = nullptr);
 
 protected:
     virtual void highlightBlock(const QString &text) override;
@@ -59,7 +59,7 @@ class QtSLiMScriptHighlighter : public QSyntaxHighlighter
     Q_OBJECT
 
 public:
-    QtSLiMScriptHighlighter(QTextDocument *parent = nullptr);
+    QtSLiMScriptHighlighter(QTextDocument *p_parent = nullptr);
     virtual ~QtSLiMScriptHighlighter() override;
 
 protected:

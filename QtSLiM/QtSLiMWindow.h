@@ -67,7 +67,7 @@ private:
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
     
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
-    Eidos_RNG_State sim_RNG = {};
+    Eidos_RNG_State sim_RNG;
     slim_pedigreeid_t sim_next_pedigree_id = 0;
     slim_mutationid_t sim_next_mutation_id = 0;
     bool sim_suppress_warnings = false;

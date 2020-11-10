@@ -56,14 +56,14 @@ QtSLiMGraphView_FrequencyTrajectory::QtSLiMGraphView_FrequencyTrajectory(QWidget
 void QtSLiMGraphView_FrequencyTrajectory::addedToWindow(void)
 {
     // Make our pop-up menu buttons
-    QHBoxLayout *layout = buttonLayout();
+    QHBoxLayout *button_layout = buttonLayout();
     
-    if (layout)
+    if (button_layout)
     {
-        subpopulationButton_ = newButtonInLayout(layout);
+        subpopulationButton_ = newButtonInLayout(button_layout);
         connect(subpopulationButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged);
         
-        mutationTypeButton_ = newButtonInLayout(layout);
+        mutationTypeButton_ = newButtonInLayout(button_layout);
         connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged);
         
         addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
@@ -96,77 +96,77 @@ void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
 
 void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 {
-	SLiMSim *sim = controller_->sim;
-	Population &population = sim->population_;
+    SLiMSim *sim = controller_->sim;
+    Population &population = sim->population_;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
     const MutationIndex *registry_iter_end = registry + registry_size;
-	
+    
 #ifdef SLIM_WF_ONLY
-	if (population.child_generation_valid_)
-	{
-		qDebug() << "child_generation_valid_ set in fetchDataForFinishedGeneration";
-		return;
-	}
+    if (population.child_generation_valid_)
+    {
+        qDebug() << "child_generation_valid_ set in fetchDataForFinishedGeneration";
+        return;
+    }
 #endif	// SLIM_WF_ONLY
-	
-	// Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
+    
+    // Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
     bool hasSubpop = true, hasMuttype = true;
     
-	if (!sim->SubpopulationWithID(selectedSubpopulationID_))
-		hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-	if (!sim->MutationTypeWithID(selectedMutationTypeIndex_))
-		hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
+    if (!sim->SubpopulationWithID(selectedSubpopulationID_))
+        hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
+    if (!sim->MutationTypeWithID(selectedMutationTypeIndex_))
+        hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     if (!hasSubpop || !hasMuttype)
         return;
-	
-	// Start by zeroing out the "updated" flags; this is how we find dead mutations
-	for (auto &pair_ref : frequencyHistoryDict_)
-		pair_ref.second->updated = false;
-	
+    
+    // Start by zeroing out the "updated" flags; this is how we find dead mutations
+    for (auto &pair_ref : frequencyHistoryDict_)
+        pair_ref.second->updated = false;
+    
     // Tally reference counts within selectedSubpopulationID_
     size_t subpop_total_genome_count = tallyGUIMutationReferences(selectedSubpopulationID_, selectedMutationTypeIndex_);
-	
+    
     if (subpop_total_genome_count == 0)
         subpop_total_genome_count = 1;  // refcounts will all be zero; prevent NAN values below, make them 0 instead
     
-	// Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
+    // Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     
-	for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
-	{
-		const Mutation *mutation = mut_block_ptr + *registry_iter;
-		slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
-		
-		if (refcount)
-		{
-			uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_genome_count);
+    for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
+    {
+        const Mutation *mutation = mut_block_ptr + *registry_iter;
+        slim_refcount_t refcount = mutation->gui_scratch_reference_count_;
+        
+        if (refcount)
+        {
+            uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_genome_count);
             slim_mutationid_t mutationID = mutation->mutation_id_;
             auto history_iter = frequencyHistoryDict_.find(mutationID);
-			
-			//NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, mutation->mutation_id_);
-			
-			if (history_iter != frequencyHistoryDict_.end())
-			{
-				// We have a history for this mutation, so we just need to add an entry; this sets the updated flag
+            
+            //NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, mutation->mutation_id_);
+            
+            if (history_iter != frequencyHistoryDict_.end())
+            {
+                // We have a history for this mutation, so we just need to add an entry; this sets the updated flag
                 MutationFrequencyHistory *history = history_iter->second;
                 
-				history->addEntry(value);
-			}
-			else
-			{
-				// No history, so we make one starting at this generation; this also sets the updated flag
-				// Note we use sim->generation_ - 1, because the generation counter has already been advanced to the next generation
-				MutationFrequencyHistory *history = new MutationFrequencyHistory(value, mutation, sim->generation_ - 1);
-				
+                history->addEntry(value);
+            }
+            else
+            {
+                // No history, so we make one starting at this generation; this also sets the updated flag
+                // Note we use sim->generation_ - 1, because the generation counter has already been advanced to the next generation
+                MutationFrequencyHistory *history = new MutationFrequencyHistory(value, mutation, sim->generation_ - 1);
+                
                 frequencyHistoryDict_.insert(std::pair<slim_mutationid_t, MutationFrequencyHistory *>(mutationID, history));
-			}
-		}
-	}
-	
-	// OK, now every mutation that has frequency >0 in our subpop has got a current entry.  But what about mutations that used to circulate,
-	// but don't any more?  These could still be active in a different subpop, or they might be gone – lost or fixed.  For the former case,
-	// we need to add an entry with frequency zero.  For the latter case, we need to put their history into "cold storage" for efficiency.
+            }
+        }
+    }
+    
+    // OK, now every mutation that has frequency >0 in our subpop has got a current entry.  But what about mutations that used to circulate,
+    // but don't any more?  These could still be active in a different subpop, or they might be gone – lost or fixed.  For the former case,
+    // we need to add an entry with frequency zero.  For the latter case, we need to put their history into "cold storage" for efficiency.
     std::vector<MutationFrequencyHistory *> historiesToAddToColdStorage;
     
     for (auto entry_iter : frequencyHistoryDict_)
@@ -175,36 +175,36 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
         
         if (!history->updated)
         {
-			slim_mutationid_t historyID = history->mutationID;
-			bool mutationStillExists = false;
-			
-			for (const MutationIndex *mutation_iter = registry; mutation_iter != registry_iter_end; ++mutation_iter)
-			{
-				const Mutation *mutation = mut_block_ptr + *mutation_iter;
-				slim_mutationid_t mutationID = mutation->mutation_id_;
-				
-				if (historyID == mutationID)
-				{
-					mutationStillExists = true;
-					break;
-				}
-			}
-			
-			if (mutationStillExists)
-			{
-				// The mutation is still around, so just add a zero entry for it
-				history->addEntry(0);
-			}
-			else
-			{
-				// The mutation is gone, so we need to put its history into cold storage, but we can't modify
-				// our dictionary since we are enumerating it, so we just make a record and do it below
+            slim_mutationid_t historyID = history->mutationID;
+            bool mutationStillExists = false;
+            
+            for (const MutationIndex *mutation_iter = registry; mutation_iter != registry_iter_end; ++mutation_iter)
+            {
+                const Mutation *mutation = mut_block_ptr + *mutation_iter;
+                slim_mutationid_t mutationID = mutation->mutation_id_;
+                
+                if (historyID == mutationID)
+                {
+                    mutationStillExists = true;
+                    break;
+                }
+            }
+            
+            if (mutationStillExists)
+            {
+                // The mutation is still around, so just add a zero entry for it
+                history->addEntry(0);
+            }
+            else
+            {
+                // The mutation is gone, so we need to put its history into cold storage, but we can't modify
+                // our dictionary since we are enumerating it, so we just make a record and do it below
                 historiesToAddToColdStorage.push_back(history);
-			}
-		}
-	}
-	
-	// Now, if historiesToAddToColdStorage is non-nil, we have histories to put into cold storage; do it now
+            }
+        }
+    }
+    
+    // Now, if historiesToAddToColdStorage is non-nil, we have histories to put into cold storage; do it now
     for (MutationFrequencyHistory *history : historiesToAddToColdStorage)
     {
         // The remaining tricky bit is that we have to figure out whether the vanished mutation was fixed or lost; we do this by
@@ -238,10 +238,10 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
         auto history_iter = frequencyHistoryDict_.find(mutationID);
         frequencyHistoryDict_.erase(history_iter);
     }
-	
-	//NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (int64_t)[frequencyHistoryDict count], (int64_t)[frequencyHistoryColdStorageLost count], (int64_t)[frequencyHistoryColdStorageFixed count]);
-	
-	lastGeneration_ = sim->generation_;
+    
+    //NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (int64_t)[frequencyHistoryDict count], (int64_t)[frequencyHistoryColdStorageLost count], (int64_t)[frequencyHistoryColdStorageFixed count]);
+    
+    lastGeneration_ = sim->generation_;
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged(int /* index */)
@@ -453,18 +453,18 @@ QtSLiMLegendSpec QtSLiMGraphView_FrequencyTrajectory::legendKey(void)
 	if (!useColorsForPlotting_)
 		return QtSLiMLegendSpec();
 	
-	QtSLiMLegendSpec legendKey;
+	QtSLiMLegendSpec legend_key;
 	
 	if (plotLostMutations_)
-		legendKey.push_back(QtSLiMLegendEntry("lost", Qt::red));
+		legend_key.push_back(QtSLiMLegendEntry("lost", Qt::red));
 	
 	if (plotFixedMutations_)
-		legendKey.push_back(QtSLiMLegendEntry("fixed", QtSLiMColorWithRGB(0.4, 0.4, 1.0, 1.0)));
+		legend_key.push_back(QtSLiMLegendEntry("fixed", QtSLiMColorWithRGB(0.4, 0.4, 1.0, 1.0)));
 	
 	if (plotActiveMutations_)
-		legendKey.push_back(QtSLiMLegendEntry("active", Qt::black));
+		legend_key.push_back(QtSLiMLegendEntry("active", Qt::black));
 	
-	return legendKey;
+	return legend_key;
 }
 
 bool QtSLiMGraphView_FrequencyTrajectory::providesStringForData(void)

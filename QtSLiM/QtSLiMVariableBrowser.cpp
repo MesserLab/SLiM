@@ -118,11 +118,11 @@ QVariant QtSLiMBrowserItem::data(int column, int role) const
         // there is an associated eidos_value, and the element_index is -1 (we're representing a whole vector)
         if (column == 1)
         {
-            EidosValueType type = eidos_value->Type();
-            std::string type_string = StringForEidosValueType(type);
+            EidosValueType value_type = eidos_value->Type();
+            std::string type_string = StringForEidosValueType(value_type);
             QString typeString = QString::fromStdString(type_string);
             
-            if (type == EidosValueType::kValueObject)
+            if (value_type == EidosValueType::kValueObject)
             {
                 EidosValue_Object *object_value = static_cast<EidosValue_Object *>(eidos_value.get());
                 const std::string &element_string = object_value->ElementType();
@@ -207,9 +207,9 @@ QVariant QtSLiMBrowserItem::data(int column, int role) const
 //  QtSLiMVariableBrowser
 //
 
-QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *parent) :
-    QWidget(parent, Qt::Window),    // the console window has us as a parent, but is still a standalone window
-    parentEidosConsole(parent),
+QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *p_parent) :
+    QWidget(p_parent, Qt::Window),    // the console window has us as a parent, but is still a standalone window
+    parentEidosConsole(p_parent),
     ui(new Ui::QtSLiMVariableBrowser)
 {
     ui->setupUi(this);
@@ -361,8 +361,8 @@ void QtSLiMVariableBrowser::reloadBrowser(bool nowValidState)
                     // figure out the correct row height, which we have to do after making a row item
                     if (QtSLiMVarBrowserRowHeight == 0)
                     {
-                        QRect rect = browserTree->visualItemRect(item);
-                        int defaultHeight = rect.height();
+                        QRect item_rect = browserTree->visualItemRect(item);
+                        int defaultHeight = item_rect.height();
                         QtSLiMVarBrowserRowHeight = (defaultHeight > 0) ? defaultHeight + 2 : -1;
                     }
                 }
@@ -571,10 +571,10 @@ void QtSLiMVariableBrowser::itemCollapsed(QTreeWidgetItem *item)
     clearSavedExpansionState();     // invalidate our saved expansion state
     
     // Take the children from item and free them
-    QList<QTreeWidgetItem *> children = item->takeChildren();
+    QList<QTreeWidgetItem *> item_children = item->takeChildren();
     
-    while (!children.isEmpty())
-        delete children.takeFirst();
+    while (!item_children.isEmpty())
+        delete item_children.takeFirst();
 }
 
 void QtSLiMVariableBrowser::expandEllipsisItem(QtSLiMBrowserItem *browserItem)

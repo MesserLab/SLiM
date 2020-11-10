@@ -46,7 +46,7 @@ class QtSLiMTablesDrawer : public QWidget
 public:
     QtSLiMWindow *parentSLiMWindow = nullptr;     // a copy of parent with the correct class, for convenience
     
-    explicit QtSLiMTablesDrawer(QtSLiMWindow *parent = nullptr);
+    explicit QtSLiMTablesDrawer(QtSLiMWindow *p_parent = nullptr);
     virtual ~QtSLiMTablesDrawer() override;
     
 signals:
@@ -79,11 +79,11 @@ class QtSLiMMutTypeTableModel : public QAbstractTableModel
     Q_OBJECT    
     
 public:
-    QtSLiMMutTypeTableModel(QObject *parent = nullptr);
+    QtSLiMMutTypeTableModel(QObject *p_parent = nullptr);
     virtual ~QtSLiMMutTypeTableModel() override;
 
-    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    virtual int rowCount(const QModelIndex &p_parent = QModelIndex()) const override;
+    virtual int columnCount(const QModelIndex &p_parent = QModelIndex()) const override;
 
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
@@ -96,11 +96,11 @@ class QtSLiMGETypeTypeTableModel : public QAbstractTableModel
     Q_OBJECT    
     
 public:
-    QtSLiMGETypeTypeTableModel(QObject *parent = nullptr);
+    QtSLiMGETypeTypeTableModel(QObject *p_parent = nullptr);
     virtual ~QtSLiMGETypeTypeTableModel() override;
 
-    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    virtual int rowCount(const QModelIndex &p_parent = QModelIndex()) const override;
+    virtual int columnCount(const QModelIndex &p_parent = QModelIndex()) const override;
 
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
@@ -113,11 +113,11 @@ class QtSLiMInteractionTypeTableModel : public QAbstractTableModel
     Q_OBJECT    
     
 public:
-    QtSLiMInteractionTypeTableModel(QObject *parent = nullptr);
+    QtSLiMInteractionTypeTableModel(QObject *p_parent = nullptr);
     virtual ~QtSLiMInteractionTypeTableModel() override;
 
-    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    virtual int rowCount(const QModelIndex &p_parent = QModelIndex()) const override;
+    virtual int columnCount(const QModelIndex &p_parent = QModelIndex()) const override;
 
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
@@ -130,11 +130,11 @@ class QtSLiMEidosBlockTableModel : public QAbstractTableModel
     Q_OBJECT    
     
 public:
-    QtSLiMEidosBlockTableModel(QObject *parent = nullptr);
+    QtSLiMEidosBlockTableModel(QObject *p_parent = nullptr);
     virtual ~QtSLiMEidosBlockTableModel() override;
 
-    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    virtual int rowCount(const QModelIndex &p_parent = QModelIndex()) const override;
+    virtual int columnCount(const QModelIndex &p_parent = QModelIndex()) const override;
 
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
@@ -152,7 +152,7 @@ class QtSLiMGETypeTypeTableDelegate : public QStyledItemDelegate
     Q_OBJECT
     
 public:
-    QtSLiMGETypeTypeTableDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+    QtSLiMGETypeTypeTableDelegate(QObject *p_parent = nullptr) : QStyledItemDelegate(p_parent) {}
     virtual ~QtSLiMGETypeTypeTableDelegate(void) override;
     
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;

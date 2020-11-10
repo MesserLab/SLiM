@@ -112,7 +112,7 @@ void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, co
 }
 
 
-QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *parent) : QObject(parent)
+QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
 {
     // Install a message handler; this seems useful for debugging
     qInstallMessageHandler(QtSLiM_MessageHandler);

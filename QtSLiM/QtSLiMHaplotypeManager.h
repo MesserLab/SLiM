@@ -56,7 +56,7 @@ public:
     static void CreateHaplotypePlot(QtSLiMWindow *controller);
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
-    QtSLiMHaplotypeManager(QObject *parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
+    QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
                            QtSLiMWindow *controller, size_t sampleSize, bool showProgress);
     ~QtSLiMHaplotypeManager(void);
     

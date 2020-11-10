@@ -225,9 +225,9 @@ bool QtSLiMFindPanel::findForwardWrapBeep(QTextEdit *target, bool forward, bool 
     // has been fixed, and it's unlikely to bite anyone – it's an edge case, and Find Previous is
     // relatively unusual.  But I've put this as a reminder, in case the bug gets reported to me.
     
-    bool result = target->find(findString, findFlags);
+    bool findResult = target->find(findString, findFlags);
     
-    if (!result && wrap)
+    if (!findResult && wrap)
     {
         // If we're wrapping around, do the wrap and try again
         QTextCursor originalCursor(target->textCursor());
@@ -237,20 +237,20 @@ bool QtSLiMFindPanel::findForwardWrapBeep(QTextEdit *target, bool forward, bool 
         else
             target->moveCursor(QTextCursor::End);
         
-        result = target->find(findString, findFlags);
+        findResult = target->find(findString, findFlags);
         
-        if (!result)
+        if (!findResult)
             target->setTextCursor(originalCursor);
     }
     
-    if (!result)
+    if (!findResult)
     {
         ui->statusText->setText("no match found ");
         if (beepIfNotFound)
             qApp->beep();
     }
     
-    return result;
+    return findResult;
 }
 
 void QtSLiMFindPanel::findNext(void)

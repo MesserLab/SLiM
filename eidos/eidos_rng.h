@@ -50,18 +50,18 @@ uint64_t Eidos_MT64_genrand64_int64(void);
 // matter.  This struct defines all of the variables associated with both RNGs; this is the complete Eidos RNG state.
 typedef struct
 {
-	unsigned long int rng_last_seed_;		// unsigned long int is the type used for seeds in the GSL
+	unsigned long int rng_last_seed_ = 0;		// unsigned long int is the type used for seeds in the GSL
 	
 	// GSL taus2 generator
-	gsl_rng *gsl_rng_;
+	gsl_rng *gsl_rng_ = nullptr;
 	
 	// MT64 generator; see below
-	uint64_t *mt_;							// buffer of Eidos_MT64_NN uint64_t
-	int mti_;
+	uint64_t *mt_ = nullptr;							// buffer of Eidos_MT64_NN uint64_t
+	int mti_ = 0;
 	
 	// random coin-flip generator; based on the MT64 generator now
-	int random_bool_bit_counter_;
-	uint64_t random_bool_bit_buffer_;
+	int random_bool_bit_counter_ = 0;
+	uint64_t random_bool_bit_buffer_ = 0;
 } Eidos_RNG_State;
 
 

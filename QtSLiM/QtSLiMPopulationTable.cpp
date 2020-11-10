@@ -25,11 +25,11 @@
 #include <QDebug>
 
 
-QtSLiMPopulationTableModel::QtSLiMPopulationTableModel(QObject *parent) : QAbstractTableModel(parent)
+QtSLiMPopulationTableModel::QtSLiMPopulationTableModel(QObject *p_parent) : QAbstractTableModel(p_parent)
 {
-    // parent must be a pointer to QtSLiMWindow, which holds our model information
-    if (dynamic_cast<QtSLiMWindow *>(parent) == nullptr)
-        throw parent;
+    // p_parent must be a pointer to QtSLiMWindow, which holds our model information
+    if (dynamic_cast<QtSLiMWindow *>(p_parent) == nullptr)
+        throw p_parent;
 }
 
 QtSLiMPopulationTableModel::~QtSLiMPopulationTableModel() 
@@ -51,9 +51,9 @@ int QtSLiMPopulationTableModel::columnCount(const QModelIndex & /* parent */) co
     return 6;
 }
 
-QVariant QtSLiMPopulationTableModel::data(const QModelIndex &index, int role) const
+QVariant QtSLiMPopulationTableModel::data(const QModelIndex &p_index, int role) const
 {
-    if (!index.isValid())
+    if (!p_index.isValid())
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
@@ -67,19 +67,19 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &index, int role) co
         Population &population = sim->population_;
         int subpopCount = static_cast<int>(population.subpops_.size());
         
-        if (index.row() < subpopCount)
+        if (p_index.row() < subpopCount)
         {
             auto popIter = population.subpops_.begin();
             
-            std::advance(popIter, index.row());
+            std::advance(popIter, p_index.row());
             slim_objectid_t subpop_id = popIter->first;
             Subpopulation *subpop = popIter->second;
             
-            if (index.column() == 0)
+            if (p_index.column() == 0)
             {
                 return QVariant(QString("p%1").arg(subpop_id));
             }
-            else if (index.column() == 1)
+            else if (p_index.column() == 1)
             {
                 return QVariant(QString("%1").arg(subpop->parent_subpop_size_));
             }
@@ -91,22 +91,22 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &index, int role) co
                 if (subpop->sex_enabled_)
                     total_offspring += subpop->gui_offspring_cloned_F_;		// avoid double-counting clones when we are modeling hermaphrodites
                 
-                if (index.column() == 2)
+                if (p_index.column() == 2)
                 {
                     if (!subpop->sex_enabled_ && (total_offspring > 0))
                         return QVariant(QString("%1").arg(subpop->gui_offspring_selfed_ / total_offspring, 0, 'f', 2));
                 }
-                else if (index.column() == 3)
+                else if (p_index.column() == 3)
                 {
                     if (total_offspring > 0)
                         return QVariant(QString("%1").arg(subpop->gui_offspring_cloned_F_ / total_offspring, 0, 'f', 2));
                 }
-                else if (index.column() == 4)
+                else if (p_index.column() == 4)
                 {
                     if (total_offspring > 0)
                         return QVariant(QString("%1").arg(subpop->gui_offspring_cloned_M_ / total_offspring, 0, 'f', 2));
                 }
-                else if (index.column() == 5)
+                else if (p_index.column() == 5)
                 {
                     if (subpop->sex_enabled_ && (subpop->parent_subpop_size_ > 0))
                         return QVariant(QString("%1").arg(1.0 - subpop->parent_first_male_index_ / static_cast<double>(subpop->parent_subpop_size_), 0, 'f', 2));
@@ -116,22 +116,22 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &index, int role) co
             }
             else	// sim->ModelType() == SLiMModelType::kModelTypeWF
             {
-                if (index.column() == 2)
+                if (p_index.column() == 2)
                 {
                     if (subpop->sex_enabled_)
                         return QVariant("—");
                     else
                         return QVariant(QString("%1").arg(subpop->selfing_fraction_, 0, 'f', 2));
                 }
-                else if (index.column() == 3)
+                else if (p_index.column() == 3)
                 {
                     return QVariant(QString("%1").arg(subpop->female_clone_fraction_, 0, 'f', 2));
                 }
-                else if (index.column() == 4)
+                else if (p_index.column() == 4)
                 {
                     return QVariant(QString("%1").arg(subpop->male_clone_fraction_, 0, 'f', 2));
                 }
-                else if (index.column() == 5)
+                else if (p_index.column() == 5)
                 {
                     if (subpop->sex_enabled_)
                         return QVariant(QString("%1").arg(subpop->parent_sex_ratio_, 0, 'f', 2));
@@ -143,7 +143,7 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &index, int role) co
     }
     else if (role == Qt::TextAlignmentRole)
     {
-        switch (index.column())
+        switch (p_index.column())
         {
         case 0: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
         case 1: return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
@@ -158,7 +158,7 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &index, int role) co
 }
 
 QVariant QtSLiMPopulationTableModel::headerData(int section,
-                                Qt::Orientation /* orientation */,
+                                Qt::Orientation /* p_orientation */,
                                 int role) const
 {
     if (role == Qt::DisplayRole)
@@ -217,7 +217,7 @@ void QtSLiMPopulationTableModel::reloadTable(void)
     endResetModel();
 }
 
-QtSLiMPopulationTableHeaderView::QtSLiMPopulationTableHeaderView(Qt::Orientation orientation, QWidget *p_parent) : QHeaderView(orientation, p_parent)
+QtSLiMPopulationTableHeaderView::QtSLiMPopulationTableHeaderView(Qt::Orientation p_orientation, QWidget *p_parent) : QHeaderView(p_orientation, p_parent)
 {
     icon_cloning_rate = new QIcon(":/buttons/Qt_cloning_rate.png");
     icon_selfing_rate = new QIcon(":/buttons/Qt_selfing_rate.png");
@@ -255,22 +255,22 @@ QtSLiMPopulationTableHeaderView::~QtSLiMPopulationTableHeaderView()
     }
 }
 
-void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const
+void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRect &p_rect, int p_logicalIndex) const
 {
     painter->save();
-    QHeaderView::paintSection(painter, rect, logicalIndex);
+    QHeaderView::paintSection(painter, p_rect, p_logicalIndex);
     painter->restore();
     
     painter->save();
     painter->setRenderHint(QPainter::SmoothPixmapTransform);
     
-    switch (logicalIndex)
+    switch (p_logicalIndex)
     {
     case 2:
     case 5:
     {
-        QIcon *icon = (logicalIndex == 2 ? icon_selfing_rate : icon_sex_ratio);
-        QPoint center = rect.center();
+        QIcon *icon = (p_logicalIndex == 2 ? icon_selfing_rate : icon_sex_ratio);
+        QPoint center = p_rect.center();
         
         icon->paint(painter, center.x() - 5, center.y() - 6, 12, 12);
         break;
@@ -279,7 +279,7 @@ void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRec
     {
         QIcon *icon1 = icon_cloning_rate;
         QIcon *icon2 = icon_female_symbol;
-        QPoint center = rect.center();
+        QPoint center = p_rect.center();
         
         icon1->paint(painter, center.x() - 11, center.y() - 6, 12, 12);
         icon2->paint(painter, center.x() + 1, center.y() - 6, 12, 12);
@@ -289,7 +289,7 @@ void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRec
     {
         QIcon *icon1 = icon_cloning_rate;
         QIcon *icon2 = icon_male_symbol;
-        QPoint center = rect.center();
+        QPoint center = p_rect.center();
         
         icon1->paint(painter, center.x() - 13, center.y() - 6, 12, 12);
         icon2->paint(painter, center.x() + 1, center.y() - 6, 12, 12);

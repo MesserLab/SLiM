@@ -68,14 +68,14 @@ QtSLiMGraphView_1DSampleSFS::QtSLiMGraphView_1DSampleSFS(QWidget *p_parent, QtSL
 void QtSLiMGraphView_1DSampleSFS::addedToWindow(void)
 {
     // Make our pop-up menu buttons
-    QHBoxLayout *layout = buttonLayout();
+    QHBoxLayout *button_layout = buttonLayout();
     
-    if (layout)
+    if (button_layout)
     {
-        subpopulation1Button_ = newButtonInLayout(layout);
+        subpopulation1Button_ = newButtonInLayout(button_layout);
         connect(subpopulation1Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_1DSampleSFS::subpopulation1PopupChanged);
         
-        mutationTypeButton_ = newButtonInLayout(layout);
+        mutationTypeButton_ = newButtonInLayout(button_layout);
         connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_1DSampleSFS::mutationTypePopupChanged);
         
         addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);

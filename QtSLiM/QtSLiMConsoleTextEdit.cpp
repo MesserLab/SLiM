@@ -535,19 +535,19 @@ void QtSLiMConsoleTextEdit::keyPressEvent(QKeyEvent *p_event)
             
             QTextCursor selection(textCursor());
             int anchor = std::max(selection.anchor(), lastPromptCursor.position());
-            int pos = std::max(selection.position(), lastPromptCursor.position());
+            int position = std::max(selection.position(), lastPromptCursor.position());
             
             selection.setPosition(anchor, QTextCursor::MoveAnchor);
-            selection.setPosition(pos, QTextCursor::KeepAnchor);
+            selection.setPosition(position, QTextCursor::KeepAnchor);
             setTextCursor(selection);
         }
     }
     else if (p_event->matches(QKeySequence::Backspace) || p_event->matches(QKeySequence::DeleteStartOfWord) || (p_event->key() == Qt::Key_Backspace))
     {
         // suppress backspace if it would backspace into the prompt; note QKeySequence::Backspace doesn't seem to work!
-        QTextCursor cursor(textCursor());
+        QTextCursor currentCursor(textCursor());
         
-        if ((cursor.position() == cursor.anchor()) && (cursor.position() == lastPromptCursor.position()))
+        if ((currentCursor.position() == currentCursor.anchor()) && (currentCursor.position() == lastPromptCursor.position()))
         {
             p_event->accept();
             return;

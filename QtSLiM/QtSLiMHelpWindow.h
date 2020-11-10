@@ -47,8 +47,8 @@ class QtSLiMHelpItem : public QTreeWidgetItem
 public:
     QTextDocumentFragment *doc_fragment = nullptr;
     
-    explicit QtSLiMHelpItem(QTreeWidget *parent) : QTreeWidgetItem(parent) {}
-    explicit QtSLiMHelpItem(QTreeWidgetItem *parent) : QTreeWidgetItem(parent) {}
+    explicit QtSLiMHelpItem(QTreeWidget *p_parent) : QTreeWidgetItem(p_parent) {}
+    explicit QtSLiMHelpItem(QTreeWidgetItem *p_parent) : QTreeWidgetItem(p_parent) {}
     virtual ~QtSLiMHelpItem() override;
 };
 
@@ -60,7 +60,7 @@ class QtSLiMHelpOutlineDelegate : public QStyledItemDelegate
     Q_OBJECT
     
 public:
-    QtSLiMHelpOutlineDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
+    QtSLiMHelpOutlineDelegate(QObject *p_parent = nullptr) : QStyledItemDelegate(p_parent) {}
     virtual ~QtSLiMHelpOutlineDelegate(void) override;
     
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;

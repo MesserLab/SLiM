@@ -336,9 +336,9 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 //  QtSLiMTablesDrawer
 //
 
-QtSLiMTablesDrawer::QtSLiMTablesDrawer(QtSLiMWindow *parent) :
-    QWidget(parent, Qt::Window),
-    parentSLiMWindow(parent),
+QtSLiMTablesDrawer::QtSLiMTablesDrawer(QtSLiMWindow *p_parent) :
+    QWidget(p_parent, Qt::Window),
+    parentSLiMWindow(p_parent),
     ui(new Ui::QtSLiMTablesDrawer)
 {
     ui->setupUi(this);
@@ -476,18 +476,18 @@ void QtSLiMTablesDrawer::closeEvent(QCloseEvent *p_event)
 //  Define models for the four table views
 //
 
-QtSLiMMutTypeTableModel::QtSLiMMutTypeTableModel(QObject *parent) : QAbstractTableModel(parent)
+QtSLiMMutTypeTableModel::QtSLiMMutTypeTableModel(QObject *p_parent) : QAbstractTableModel(p_parent)
 {
-    // parent must be a pointer to QtSLiMWindow, which holds our model information
-    if (dynamic_cast<QtSLiMWindow *>(parent) == nullptr)
-        throw parent;
+    // p_parent must be a pointer to QtSLiMWindow, which holds our model information
+    if (dynamic_cast<QtSLiMWindow *>(p_parent) == nullptr)
+        throw p_parent;
 }
 
 QtSLiMMutTypeTableModel::~QtSLiMMutTypeTableModel()
 {
 }
 
-int QtSLiMMutTypeTableModel::rowCount(const QModelIndex & /* parent */) const
+int QtSLiMMutTypeTableModel::rowCount(const QModelIndex & /* p_parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
     
@@ -497,14 +497,14 @@ int QtSLiMMutTypeTableModel::rowCount(const QModelIndex & /* parent */) const
     return 0;
 }
 
-int QtSLiMMutTypeTableModel::columnCount(const QModelIndex & /* parent */) const
+int QtSLiMMutTypeTableModel::columnCount(const QModelIndex & /* p_parent */) const
 {
     return 4;
 }
 
-QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &index, int role) const
+QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) const
 {
-    if (!index.isValid())
+    if (!p_index.isValid())
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
@@ -518,23 +518,23 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &index, int role) const
         std::map<slim_objectid_t,MutationType*> &mutationTypes = sim->mutation_types_;
         int mutationTypeCount = static_cast<int>(mutationTypes.size());
         
-        if (index.row() < mutationTypeCount)
+        if (p_index.row() < mutationTypeCount)
         {
             auto mutTypeIter = mutationTypes.begin();
             
-            std::advance(mutTypeIter, index.row());
+            std::advance(mutTypeIter, p_index.row());
             slim_objectid_t mutTypeID = mutTypeIter->first;
             MutationType *mutationType = mutTypeIter->second;
             
-            if (index.column() == 0)
+            if (p_index.column() == 0)
             {
                 return QVariant(QString("m%1").arg(mutTypeID));
             }
-            else if (index.column() == 1)
+            else if (p_index.column() == 1)
             {
                 return QVariant(QString("%1").arg(static_cast<double>(mutationType->dominance_coeff_), 0, 'f', 3));
             }
-            else if (index.column() == 2)
+            else if (p_index.column() == 2)
             {
                 switch (mutationType->dfe_type_)
                 {
@@ -546,7 +546,7 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &index, int role) const
                     case DFEType::kScript:			return QVariant(QString("script"));
                 }
             }
-            else if (index.column() == 3)
+            else if (p_index.column() == 3)
             {
                 QString paramString;
                 
@@ -597,10 +597,10 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &index, int role) const
         std::map<slim_objectid_t,MutationType*> &mutationTypes = sim->mutation_types_;
         int mutationTypeCount = static_cast<int>(mutationTypes.size());
         
-        if (index.row() < mutationTypeCount)
+        if (p_index.row() < mutationTypeCount)
         {
             auto mutTypeIter = mutationTypes.begin();
-            std::advance(mutTypeIter, index.row());
+            std::advance(mutTypeIter, p_index.row());
             
             // Display an image in the tooltip; thanks to https://stackoverflow.com/a/34300771/2752221
             QImage image = imageForMutationOrInteractionType(mutTypeIter->second, nullptr);
@@ -613,15 +613,15 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &index, int role) const
             if (dpi < 1.5)
                 image = image.scaled(QSize(77, 50), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
             
-            QByteArray data;
-            QBuffer buffer(&data);
+            QByteArray image_data;
+            QBuffer buffer(&image_data);
             image.save(&buffer, "PNG", 100);
-            return QString("<img width=77 height=50 src='data:image/png;base64, %0'>").arg(QString(data.toBase64()));
+            return QString("<img width=77 height=50 src='data:image/png;base64, %0'>").arg(QString(image_data.toBase64()));
         }
     }
     else if (role == Qt::TextAlignmentRole)
     {
-        switch (index.column())
+        switch (p_index.column())
         {
         case 0: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
         case 1: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
@@ -680,18 +680,18 @@ void QtSLiMMutTypeTableModel::reloadTable(void)
 }
 
 
-QtSLiMGETypeTypeTableModel::QtSLiMGETypeTypeTableModel(QObject *parent) : QAbstractTableModel(parent)
+QtSLiMGETypeTypeTableModel::QtSLiMGETypeTypeTableModel(QObject *p_parent) : QAbstractTableModel(p_parent)
 {
-    // parent must be a pointer to QtSLiMWindow, which holds our model information
-    if (dynamic_cast<QtSLiMWindow *>(parent) == nullptr)
-        throw parent;
+    // p_parent must be a pointer to QtSLiMWindow, which holds our model information
+    if (dynamic_cast<QtSLiMWindow *>(p_parent) == nullptr)
+        throw p_parent;
 }
 
 QtSLiMGETypeTypeTableModel::~QtSLiMGETypeTypeTableModel()
 {
 }
 
-int QtSLiMGETypeTypeTableModel::rowCount(const QModelIndex & /* parent */) const
+int QtSLiMGETypeTypeTableModel::rowCount(const QModelIndex & /* p_parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
     
@@ -701,14 +701,14 @@ int QtSLiMGETypeTypeTableModel::rowCount(const QModelIndex & /* parent */) const
     return 0;
 }
 
-int QtSLiMGETypeTypeTableModel::columnCount(const QModelIndex & /* parent */) const
+int QtSLiMGETypeTypeTableModel::columnCount(const QModelIndex & /* p_parent */) const
 {
     return 3;
 }
 
-QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &index, int role) const
+QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &p_index, int role) const
 {
-    if (!index.isValid())
+    if (!p_index.isValid())
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
@@ -722,19 +722,19 @@ QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &index, int role) co
         std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = sim->genomic_element_types_;
         int genomicElementTypeCount = static_cast<int>(genomicElementTypes.size());
         
-        if (index.row() < genomicElementTypeCount)
+        if (p_index.row() < genomicElementTypeCount)
         {
             auto genomicElementTypeIter = genomicElementTypes.begin();
             
-            std::advance(genomicElementTypeIter, index.row());
+            std::advance(genomicElementTypeIter, p_index.row());
             slim_objectid_t genomicElementTypeID = genomicElementTypeIter->first;
             GenomicElementType *genomicElementType = genomicElementTypeIter->second;
             
-            if (index.column() == 0)
+            if (p_index.column() == 0)
             {
                 return QVariant(QString("g%1").arg(genomicElementTypeID));
             }
-            else if (index.column() == 1)
+            else if (p_index.column() == 1)
             {
                 float red, green, blue, alpha;
                 
@@ -745,7 +745,7 @@ QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &index, int role) co
                 
                 return QVariant(geTypeRGB); // return the color as an unsigned int
             }
-            else if (index.column() == 2)
+            else if (p_index.column() == 2)
             {
                 QString paramString;
                 
@@ -766,7 +766,7 @@ QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &index, int role) co
     }
     else if (role == Qt::TextAlignmentRole)
     {
-        switch (index.column())
+        switch (p_index.column())
         {
         case 0: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
         case 1: return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
@@ -820,18 +820,18 @@ void QtSLiMGETypeTypeTableModel::reloadTable(void)
 }
 
 
-QtSLiMInteractionTypeTableModel::QtSLiMInteractionTypeTableModel(QObject *parent) : QAbstractTableModel(parent)
+QtSLiMInteractionTypeTableModel::QtSLiMInteractionTypeTableModel(QObject *p_parent) : QAbstractTableModel(p_parent)
 {
-    // parent must be a pointer to QtSLiMWindow, which holds our model information
-    if (dynamic_cast<QtSLiMWindow *>(parent) == nullptr)
-        throw parent;
+    // p_parent must be a pointer to QtSLiMWindow, which holds our model information
+    if (dynamic_cast<QtSLiMWindow *>(p_parent) == nullptr)
+        throw p_parent;
 }
 
 QtSLiMInteractionTypeTableModel::~QtSLiMInteractionTypeTableModel()
 {
 }
 
-int QtSLiMInteractionTypeTableModel::rowCount(const QModelIndex & /* parent */) const
+int QtSLiMInteractionTypeTableModel::rowCount(const QModelIndex & /* p_parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
     
@@ -841,14 +841,14 @@ int QtSLiMInteractionTypeTableModel::rowCount(const QModelIndex & /* parent */) 
     return 0;
 }
 
-int QtSLiMInteractionTypeTableModel::columnCount(const QModelIndex & /* parent */) const
+int QtSLiMInteractionTypeTableModel::columnCount(const QModelIndex & /* p_parent */) const
 {
     return 4;
 }
 
-QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &index, int role) const
+QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int role) const
 {
-    if (!index.isValid())
+    if (!p_index.isValid())
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
@@ -862,23 +862,23 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &index, int rol
         std::map<slim_objectid_t,InteractionType*> &interactionTypes = sim->interaction_types_;
         int interactionTypeCount = static_cast<int>(interactionTypes.size());
         
-        if (index.row() < interactionTypeCount)
+        if (p_index.row() < interactionTypeCount)
         {
             auto interactionTypeIter = interactionTypes.begin();
             
-            std::advance(interactionTypeIter, index.row());
+            std::advance(interactionTypeIter, p_index.row());
             slim_objectid_t interactionTypeID = interactionTypeIter->first;
             InteractionType *interactionType = interactionTypeIter->second;
             
-            if (index.column() == 0)
+            if (p_index.column() == 0)
             {
                 return QVariant(QString("i%1").arg(interactionTypeID));
             }
-            else if (index.column() == 1)
+            else if (p_index.column() == 1)
             {
                 return QVariant(QString("%1").arg(interactionType->max_distance_, 0, 'f', 3));
             }
-            else if (index.column() == 2)
+            else if (p_index.column() == 2)
             {
                 switch (interactionType->if_type_)
                 {
@@ -889,7 +889,7 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &index, int rol
                     case IFType::kCauchy:			return QVariant(QString("Cauchy"));
                 }
             }
-            else if (index.column() == 3)
+            else if (p_index.column() == 3)
             {
                 QString paramString;
                 
@@ -923,10 +923,10 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &index, int rol
         std::map<slim_objectid_t,InteractionType*> &interactionTypes = sim->interaction_types_;
         int interactionTypeCount = static_cast<int>(interactionTypes.size());
         
-        if (index.row() < interactionTypeCount)
+        if (p_index.row() < interactionTypeCount)
         {
             auto interactionTypeIter = interactionTypes.begin();
-            std::advance(interactionTypeIter, index.row());
+            std::advance(interactionTypeIter, p_index.row());
             
             // Display an image in the tooltip; thanks to https://stackoverflow.com/a/34300771/2752221
             QImage image = imageForMutationOrInteractionType(nullptr, interactionTypeIter->second);
@@ -939,15 +939,15 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &index, int rol
             if (dpi < 1.5)
                 image = image.scaled(QSize(77, 50), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
             
-            QByteArray data;
-            QBuffer buffer(&data);
+            QByteArray image_data;
+            QBuffer buffer(&image_data);
             image.save(&buffer, "PNG", 100);
-            return QString("<img width=77 height=50 src='data:image/png;base64, %0'>").arg(QString(data.toBase64()));
+            return QString("<img width=77 height=50 src='data:image/png;base64, %0'>").arg(QString(image_data.toBase64()));
         }
     }
     else if (role == Qt::TextAlignmentRole)
     {
-        switch (index.column())
+        switch (p_index.column())
         {
         case 0: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
         case 1: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
@@ -1005,18 +1005,18 @@ void QtSLiMInteractionTypeTableModel::reloadTable(void)
 }
 
 
-QtSLiMEidosBlockTableModel::QtSLiMEidosBlockTableModel(QObject *parent) : QAbstractTableModel(parent)
+QtSLiMEidosBlockTableModel::QtSLiMEidosBlockTableModel(QObject *p_parent) : QAbstractTableModel(p_parent)
 {
-    // parent must be a pointer to QtSLiMWindow, which holds our model information
-    if (dynamic_cast<QtSLiMWindow *>(parent) == nullptr)
-        throw parent;
+    // p_parent must be a pointer to QtSLiMWindow, which holds our model information
+    if (dynamic_cast<QtSLiMWindow *>(p_parent) == nullptr)
+        throw p_parent;
 }
 
 QtSLiMEidosBlockTableModel::~QtSLiMEidosBlockTableModel()
 {
 }
 
-int QtSLiMEidosBlockTableModel::rowCount(const QModelIndex & /* parent */) const
+int QtSLiMEidosBlockTableModel::rowCount(const QModelIndex & /* p_parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
     
@@ -1026,14 +1026,14 @@ int QtSLiMEidosBlockTableModel::rowCount(const QModelIndex & /* parent */) const
     return 0;
 }
 
-int QtSLiMEidosBlockTableModel::columnCount(const QModelIndex & /* parent */) const
+int QtSLiMEidosBlockTableModel::columnCount(const QModelIndex & /* p_parent */) const
 {
     return 4;
 }
 
-QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) const
+QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) const
 {
-    if (!index.isValid())
+    if (!p_index.isValid())
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
@@ -1047,11 +1047,11 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) co
         std::vector<SLiMEidosBlock*> &scriptBlocks = sim->AllScriptBlocks();
         int scriptBlockCount = static_cast<int>(scriptBlocks.size());
         
-        if (index.row() < scriptBlockCount)
+        if (p_index.row() < scriptBlockCount)
         {
-            SLiMEidosBlock *scriptBlock = scriptBlocks[static_cast<size_t>(index.row())];
+            SLiMEidosBlock *scriptBlock = scriptBlocks[static_cast<size_t>(p_index.row())];
             
-            if (index.column() == 0)
+            if (p_index.column() == 0)
             {
                 slim_objectid_t block_id = scriptBlock->block_id_;
                 
@@ -1062,7 +1062,7 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) co
                 else
                     return QVariant(QString("s%1").arg(block_id));
             }
-            else if (index.column() == 1)
+            else if (p_index.column() == 1)
             {
                 if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
                     return QVariant("—");
@@ -1071,7 +1071,7 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) co
                 else
                     return QVariant(QString("%1").arg(scriptBlock->start_generation_));
             }
-            else if (index.column() == 2)
+            else if (p_index.column() == 2)
             {
                 if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
                     return QVariant("—");
@@ -1080,7 +1080,7 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) co
                 else
                     return QVariant(QString("%1").arg(scriptBlock->end_generation_));
             }
-            else if (index.column() == 3)
+            else if (p_index.column() == 3)
             {
                 switch (scriptBlock->type_)
                 {
@@ -1114,9 +1114,9 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) co
         std::vector<SLiMEidosBlock*> &scriptBlocks = sim->AllScriptBlocks();
         int scriptBlockCount = static_cast<int>(scriptBlocks.size());
         
-        if (index.row() < scriptBlockCount)
+        if (p_index.row() < scriptBlockCount)
         {
-            SLiMEidosBlock *scriptBlock = scriptBlocks[static_cast<size_t>(index.row())];
+            SLiMEidosBlock *scriptBlock = scriptBlocks[static_cast<size_t>(p_index.row())];
             const char *script_string = scriptBlock->compound_statement_node_->token_->token_string_.c_str();
             QString q_script_string = QString::fromStdString(script_string);
             
@@ -1127,7 +1127,7 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &index, int role) co
     }
     else if (role == Qt::TextAlignmentRole)
     {
-        switch (index.column())
+        switch (p_index.column())
         {
         case 0: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
         case 1: return QVariant(Qt::AlignLeft | Qt::AlignVCenter);

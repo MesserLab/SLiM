@@ -49,7 +49,7 @@ class QtSLiMEidosConsole : public QWidget
 public:
     QtSLiMWindow *parentSLiMWindow = nullptr;     // a copy of parent with the correct class, for convenience
     
-    explicit QtSLiMEidosConsole(QtSLiMWindow *parent = nullptr);
+    explicit QtSLiMEidosConsole(QtSLiMWindow *p_parent = nullptr);
     virtual ~QtSLiMEidosConsole() override;
     
     // Enable/disable the user interface as the simulation's state changes

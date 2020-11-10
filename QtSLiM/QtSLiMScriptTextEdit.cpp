@@ -181,11 +181,11 @@ void QtSLiMTextEdit::outputSyntaxHighlightPrefChanged()
 
 void QtSLiMTextEdit::highlightError(int startPosition, int endPosition)
 {
-    QTextCursor cursor(document());
+    QTextCursor highlight_cursor(document());
     
-    cursor.setPosition(startPosition);
-    cursor.setPosition(endPosition, QTextCursor::KeepAnchor);
-    setTextCursor(cursor);
+    highlight_cursor.setPosition(startPosition);
+    highlight_cursor.setPosition(endPosition, QTextCursor::KeepAnchor);
+    setTextCursor(highlight_cursor);
     
     QPalette p = palette();
     p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
@@ -350,7 +350,7 @@ void QtSLiMTextEdit::checkScript(void)
     checkScriptSuppressSuccessResponse(false);
 }
 
-void QtSLiMTextEdit::_prettyprint_reformat(bool reformat)
+void QtSLiMTextEdit::_prettyprint_reformat(bool p_reformat)
 {
     if (isEnabled())
 	{
@@ -369,7 +369,7 @@ void QtSLiMTextEdit::_prettyprint_reformat(bool reformat)
 			std::string pretty;
 			bool success = false;
             
-            if (reformat)
+            if (p_reformat)
                 success = Eidos_reformatTokensFromScript(tokens, script, pretty);
             else
                 success = Eidos_prettyprintTokensFromScript(tokens, script, pretty);
@@ -379,15 +379,15 @@ void QtSLiMTextEdit::_prettyprint_reformat(bool reformat)
                 // We want to replace our text in a way that is undoable; to do this, we use the text cursor
                 QString replacementString = QString::fromStdString(pretty);
                 
-                QTextCursor &&cursor = textCursor();
+                QTextCursor &&replacement_cursor = textCursor();
                 
-                cursor.beginEditBlock();
-                cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
-                cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
-                cursor.insertText(replacementString);
-                cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
-                cursor.endEditBlock();
-                setTextCursor(cursor);
+                replacement_cursor.beginEditBlock();
+                replacement_cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                replacement_cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                replacement_cursor.insertText(replacementString);
+                replacement_cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+                replacement_cursor.endEditBlock();
+                setTextCursor(replacement_cursor);
             }
             else
                 qApp->beep();
@@ -718,14 +718,14 @@ EidosSymbolTable *QtSLiMTextEdit::symbolsFromBaseSymbols(EidosSymbolTable *baseS
     return baseSymbols;
 }
 
-void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &pos, int &len, int &offset)
+void QtSLiMTextEdit::scriptStringAndSelection(QString &scriptString, int &position, int &length, int &offset)
 {
     // by default, the entire contents of the textedit are considered "script"
     scriptString = toPlainText();
     
-    QTextCursor selection(textCursor());
-    pos = selection.selectionStart();
-    len = selection.selectionEnd() - pos;
+    QTextCursor selection_cursor(textCursor());
+    position = selection_cursor.selectionStart();
+    length = selection_cursor.selectionEnd() - position;
     offset = 0;
 }
 
@@ -1045,9 +1045,9 @@ void QtSLiMTextEdit::autoindentAfterNewline(void)
             QString lineString = previousLine.selectedText();
             QString whitespace;
             
-            for (int pos = 0; pos < lineString.length(); ++pos)
+            for (int position = 0; position < lineString.length(); ++position)
             {
-                QChar qch = lineString[pos];
+                QChar qch = lineString[position];
                 
                 if (qch.isSpace())
                     whitespace.append(qch);
@@ -2348,20 +2348,20 @@ QtSLiMScriptTextEdit::~QtSLiMScriptTextEdit()
 {
 }
 
-QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &cursor, bool &movedBack)
+QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &p_cursor, bool &movedBack)
 {
     // find the start and end of the blocks we're operating on
-    int anchor = cursor.anchor(), pos = cursor.position();
-    if (anchor > pos)
-        std::swap(anchor, pos);
+    int anchor = p_cursor.anchor(), position = p_cursor.position();
+    if (anchor > position)
+        std::swap(anchor, position);
     movedBack = false;
     
-    QTextCursor startBlockCursor(cursor);
+    QTextCursor startBlockCursor(p_cursor);
     startBlockCursor.setPosition(anchor, QTextCursor::MoveAnchor);
     startBlockCursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
-    QTextCursor endBlockCursor(cursor);
-    endBlockCursor.setPosition(pos, QTextCursor::MoveAnchor);
-    if (endBlockCursor.atBlockStart() && (pos > anchor))
+    QTextCursor endBlockCursor(p_cursor);
+    endBlockCursor.setPosition(position, QTextCursor::MoveAnchor);
+    if (endBlockCursor.atBlockStart() && (position > anchor))
     {
         // the selection includes the newline at the end of the last line; we need to move backward to avoid swallowing the following line
         endBlockCursor.movePosition(QTextCursor::PreviousBlock, QTextCursor::MoveAnchor);
@@ -2370,24 +2370,24 @@ QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &cursor, 
     endBlockCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::MoveAnchor);
     
     // select the whole lines we're operating on
-    cursor.beginEditBlock();
-    cursor.setPosition(startBlockCursor.position(), QTextCursor::MoveAnchor);
-    cursor.setPosition(endBlockCursor.position(), QTextCursor::KeepAnchor);
+    p_cursor.beginEditBlock();
+    p_cursor.setPosition(startBlockCursor.position(), QTextCursor::MoveAnchor);
+    p_cursor.setPosition(endBlockCursor.position(), QTextCursor::KeepAnchor);
     
     // separate the lines, remove a tab at the start of each, and rejoin them
-    QString selectedString = cursor.selectedText();
+    QString selectedString = p_cursor.selectedText();
     QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
     
-    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);
+    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated; use Qt::KeepEmptyParts instead of QString::KeepEmptyParts (introduced in 5.14)
 }
 
 void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
 {
      if (isEnabled() && !isReadOnly())
 	{
-        QTextCursor &&cursor = textCursor();
+        QTextCursor &&edit_cursor = textCursor();
         bool movedBack;
-        QStringList lines = linesForRoundedSelection(cursor, movedBack);
+        QStringList lines = linesForRoundedSelection(edit_cursor, movedBack);
         
         for (QString &line : lines)
             if (line.length() && (line[0] == '\t'))
@@ -2396,13 +2396,13 @@ void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
         QString replacementString = lines.join(QChar::ParagraphSeparator);
 		
         // end the editing block, producing one undo-able operation
-        cursor.insertText(replacementString);
-        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
+        edit_cursor.insertText(replacementString);
+        edit_cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
+        edit_cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
         if (movedBack)
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-		cursor.endEditBlock();
-        setTextCursor(cursor);
+            edit_cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+		edit_cursor.endEditBlock();
+        setTextCursor(edit_cursor);
 	}
 	else
 	{
@@ -2414,9 +2414,9 @@ void QtSLiMScriptTextEdit::shiftSelectionRight(void)
 {
     if (isEnabled() && !isReadOnly())
 	{
-        QTextCursor &&cursor = textCursor();
+        QTextCursor &&edit_cursor = textCursor();
         bool movedBack;
-        QStringList lines = linesForRoundedSelection(cursor, movedBack);
+        QStringList lines = linesForRoundedSelection(edit_cursor, movedBack);
         
         for (QString &line : lines)
             line.insert(0, '\t');
@@ -2424,13 +2424,13 @@ void QtSLiMScriptTextEdit::shiftSelectionRight(void)
         QString replacementString = lines.join(QChar::ParagraphSeparator);
 		
         // end the editing block, producing one undo-able operation
-        cursor.insertText(replacementString);
-        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
+        edit_cursor.insertText(replacementString);
+        edit_cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
+        edit_cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
         if (movedBack)
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-		cursor.endEditBlock();
-        setTextCursor(cursor);
+            edit_cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+		edit_cursor.endEditBlock();
+        setTextCursor(edit_cursor);
 	}
 	else
 	{
@@ -2442,9 +2442,9 @@ void QtSLiMScriptTextEdit::commentUncommentSelection(void)
 {
     if (isEnabled() && !isReadOnly())
 	{
-        QTextCursor &&cursor = textCursor();
+        QTextCursor &&edit_cursor = textCursor();
         bool movedBack;
-        QStringList lines = linesForRoundedSelection(cursor, movedBack);
+        QStringList lines = linesForRoundedSelection(edit_cursor, movedBack);
         
         // decide whether we are commenting or uncommenting; we are only uncommenting if every line spanned by the selection starts with "//"
 		bool uncommenting = true;
@@ -2473,13 +2473,13 @@ void QtSLiMScriptTextEdit::commentUncommentSelection(void)
         QString replacementString = lines.join(QChar::ParagraphSeparator);
 		
         // end the editing block, producing one undo-able operation
-        cursor.insertText(replacementString);
-        cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
+        edit_cursor.insertText(replacementString);
+        edit_cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, replacementString.length());
+        edit_cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, replacementString.length());
         if (movedBack)
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-		cursor.endEditBlock();
-        setTextCursor(cursor);
+            edit_cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+		edit_cursor.endEditBlock();
+        setTextCursor(edit_cursor);
 	}
 	else
 	{
@@ -2524,8 +2524,8 @@ void QtSLiMScriptTextEdit::updateLineNumberAreaWidth(int /* newBlockCount */)
 
 void QtSLiMScriptTextEdit::updateLineNumberArea(void)
 {
-    QRect rect = contentsRect();
-    lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
+    QRect contents_rect = contentsRect();
+    lineNumberArea->update(0, contents_rect.y(), lineNumberArea->width(), contents_rect.height());
     updateLineNumberAreaWidth(0);
     
     int dy = verticalScrollBar()->sliderPosition();
@@ -2550,7 +2550,7 @@ static QColor lineHighlightColor = QtSLiMColorWithHSV(3.6/6.0, 0.1, 1.0, 1.0);
 void QtSLiMScriptTextEdit::highlightCurrentLine()
 {
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
-    QList<QTextEdit::ExtraSelection> extraSelections;
+    QList<QTextEdit::ExtraSelection> extra_selections;
     
     if (!isReadOnly() && prefsNotifier.highlightCurrentLinePref()) {
         QTextEdit::ExtraSelection selection;
@@ -2559,10 +2559,10 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = textCursor();
         selection.cursor.clearSelection();
-        extraSelections.append(selection);
+        extra_selections.append(selection);
     }
     
-    setExtraSelections(extraSelections);
+    setExtraSelections(extra_selections);
 }
 
 // standard light appearance

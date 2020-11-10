@@ -32,9 +32,9 @@
 #include "QtSLiMExtras.h"
 
 
-QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *parent) :
-    QWidget(parent, Qt::Window),    // the console window has us as a parent, but is still a standalone window
-    parentSLiMWindow(parent),
+QtSLiMEidosConsole::QtSLiMEidosConsole(QtSLiMWindow *p_parent) :
+    QWidget(p_parent, Qt::Window),    // the console window has us as a parent, but is still a standalone window
+    parentSLiMWindow(p_parent),
     ui(new Ui::QtSLiMEidosConsole)
 {
     ui->setupUi(this);

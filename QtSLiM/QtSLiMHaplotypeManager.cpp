@@ -102,9 +102,9 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
     }
 }
 
-QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
+QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
                                                QtSLiMWindow *controller, size_t sampleSize, bool showProgress) :
-    QObject(parent)
+    QObject(p_parent)
 {
     controller_ = controller;
     

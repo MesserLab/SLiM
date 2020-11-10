@@ -129,9 +129,8 @@ QHBoxLayout *QtSLiMGraphView::buttonLayout(void)
     if (topLayout && (topLayout->count() >= 2))
     {
         QLayoutItem *layoutItem = topLayout->itemAt(1);
-        QHBoxLayout *buttonLayout = dynamic_cast<QHBoxLayout *>(layoutItem);
         
-        return buttonLayout;
+        return dynamic_cast<QHBoxLayout *>(layoutItem);
     }
     
     return nullptr;
@@ -141,21 +140,21 @@ QPushButton *QtSLiMGraphView::actionButton(void)
 {
     // Note this method makes assumptions about the layouts in the parent window
     // It needs to be kept parallel to QtSLiMWindow::graphWindowWithView()
-    QHBoxLayout *layout = buttonLayout();
-    int layoutCount = layout ? layout->count() : 0;
-    QLayoutItem *buttonItem = (layoutCount > 0) ? layout->itemAt(layoutCount - 1) : nullptr;
+    QHBoxLayout *enclosingLayout = buttonLayout();
+    int layoutCount = enclosingLayout ? enclosingLayout->count() : 0;
+    QLayoutItem *buttonItem = (layoutCount > 0) ? enclosingLayout->itemAt(layoutCount - 1) : nullptr;
     QWidget *buttonWidget = buttonItem ? buttonItem->widget() : nullptr;
     
     return qobject_cast<QPushButton *>(buttonWidget);
 }
 
-QComboBox *QtSLiMGraphView::newButtonInLayout(QHBoxLayout *layout)
+QComboBox *QtSLiMGraphView::newButtonInLayout(QHBoxLayout *p_layout)
 {
     QComboBox *button = new QComboBox(this);
     button->setEditable(false);
     button->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     button->setMinimumContentsLength(2);
-    layout->insertWidget(layout->count() - 2, button);  // left of the spacer and action button
+    p_layout->insertWidget(p_layout->count() - 2, button);  // left of the spacer and action button
     
     return button;
 }
@@ -590,12 +589,12 @@ void QtSLiMGraphView::drawHorizontalGridLines(QPainter &painter, QRect interiorR
 	}
 }
 
-void QtSLiMGraphView::drawMessage(QPainter &painter, QString messageString, QRect rect)
+void QtSLiMGraphView::drawMessage(QPainter &painter, QString messageString, QRect p_rect)
 {
     painter.setFont(QtSLiMGraphView::labelFontOfPointSize(16));
     painter.setBrush(QtSLiMColorWithWhite(0.4, 1.0));
     
-    painter.drawText(rect, Qt::AlignHCenter | Qt::AlignVCenter, messageString);
+    painter.drawText(p_rect, Qt::AlignHCenter | Qt::AlignVCenter, messageString);
 }
 
 void QtSLiMGraphView::drawGraph(QPainter &painter, QRect interiorRect)
@@ -617,17 +616,17 @@ QSize QtSLiMGraphView::legendSize(QPainter &painter)
 		return QSize();
 	
 	const int legendRowHeight = 15;
-	QSize legendSize = QSize(0, legendRowHeight * legendEntryCount - 6);
+	QSize legend_size = QSize(0, legendRowHeight * legendEntryCount - 6);
 	
     for (const QtSLiMLegendEntry &legendEntry : legend)
     {
         QString labelString = legendEntry.first;
         QRect labelBoundingBox = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelString);
         
-        legendSize.setWidth(std::max(legendSize.width(), 0 + (legendRowHeight - 6) + 5 + labelBoundingBox.width()));
+        legend_size.setWidth(std::max(legend_size.width(), 0 + (legendRowHeight - 6) + 5 + labelBoundingBox.width()));
     }
     
-	return legendSize;
+	return legend_size;
 }
 
 void QtSLiMGraphView::drawLegend(QPainter &painter, QRect legendRect)
@@ -663,9 +662,9 @@ void QtSLiMGraphView::drawLegendInInteriorRect(QPainter &painter, QRect interior
 {
     painter.setFont(QtSLiMGraphView::fontForLegendLabels());
     
-    QSize size = legendSize(painter);
-	int legendWidth = static_cast<int>(ceil(size.width()));
-	int legendHeight = static_cast<int>(ceil(size.height()));
+    QSize legend_size = legendSize(painter);
+	int legendWidth = static_cast<int>(ceil(legend_size.width()));
+	int legendHeight = static_cast<int>(ceil(legend_size.height()));
 	
 	if ((legendWidth > 0) && (legendHeight > 0))
 	{
@@ -847,12 +846,12 @@ QString QtSLiMGraphView::dateline(void)
 	return QString("# %1").arg(dateTimeString);
 }
 
-void QtSLiMGraphView::actionButtonRunMenu(QPushButton *actionButton)
+void QtSLiMGraphView::actionButtonRunMenu(QPushButton *p_actionButton)
 {
     contextMenuEvent(nullptr);
     
     // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
-    actionButton->setIcon(QIcon(":/buttons/action.png"));
+    p_actionButton->setIcon(QIcon(":/buttons/action.png"));
 }
 
 void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */)
@@ -1228,15 +1227,15 @@ void QtSLiMGraphView::setXAxisRangeFromGeneration(void)
 
 QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray)
 {
-    QtSLiMLegendSpec legendKey;
+    QtSLiMLegendSpec legend_key;
     
     // put "All" first, if it occurs in subpopsToDisplay
     if (std::find(subpopsToDisplay.begin(), subpopsToDisplay.end(), -1) != subpopsToDisplay.end())
-        legendKey.push_back(QtSLiMLegendEntry("All", Qt::black));
+        legend_key.push_back(QtSLiMLegendEntry("All", Qt::black));
 
     if (drawSubpopsGray)
     {
-        legendKey.push_back(QtSLiMLegendEntry("pX", QtSLiMColorWithWhite(0.5, 1.0)));
+        legend_key.push_back(QtSLiMLegendEntry("pX", QtSLiMColorWithWhite(0.5, 1.0)));
     }
     else
     {
@@ -1246,12 +1245,12 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
             {
                 QString labelString = QString("p%1").arg(subpop_id);
 
-                legendKey.push_back(QtSLiMLegendEntry(labelString, controller_->whiteContrastingColorForIndex(subpop_id)));
+                legend_key.push_back(QtSLiMLegendEntry(labelString, controller_->whiteContrastingColorForIndex(subpop_id)));
             }
         }
     }
 
-    return legendKey;
+    return legend_key;
 }
 
 QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
@@ -1263,10 +1262,10 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 	if (mutationTypeCount < 2)
 		return QtSLiMLegendSpec();
 	
-	QtSLiMLegendSpec legendKey;
+	QtSLiMLegendSpec legend_key;
 	
 	// first we put in placeholders
-    legendKey.resize(sim->mutation_types_.size());
+    legend_key.resize(sim->mutation_types_.size());
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
 	for (auto mutationTypeIter : sim->mutation_types_)
@@ -1274,13 +1273,13 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
         QString labelString = QString("m%1").arg(mutationType->mutation_type_id_);
-		QtSLiMLegendEntry &entry = legendKey[static_cast<size_t>(mutationTypeIndex)];
+		QtSLiMLegendEntry &entry = legend_key[static_cast<size_t>(mutationTypeIndex)];
         
         entry.first = labelString;
         entry.second = controller_->blackContrastingColorForIndex(mutationTypeIndex);
 	}
 	
-	return legendKey;
+	return legend_key;
 }
 
 void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth)
@@ -1391,15 +1390,15 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
     double patchWidth = (interiorRect.width() - intHeatMapMargins) / (double)xBinCount;
     double patchHeight = (interiorRect.height() - intHeatMapMargins) / (double)yBinCount;
     
-    for (int x = 0; x < xBinCount; ++x)
+    for (int xc = 0; xc < xBinCount; ++xc)
     {
-        for (int y = 0; y < yBinCount; ++y)
+        for (int yc = 0; yc < yBinCount; ++yc)
         {
-            double value = buffer[x + y * xBinCount];
-            double patchX1 = SLIM_SCREEN_ROUND(interiorRect.left() + patchWidth * x) + intHeatMapMargins;
-            double patchX2 = SLIM_SCREEN_ROUND(interiorRect.left() + patchWidth * (x + 1));
-            double patchY1 = SLIM_SCREEN_ROUND(interiorRect.top() + patchHeight * y) + intHeatMapMargins;
-            double patchY2 = SLIM_SCREEN_ROUND(interiorRect.top() + patchHeight * (y + 1));
+            double value = buffer[xc + yc * xBinCount];
+            double patchX1 = SLIM_SCREEN_ROUND(interiorRect.left() + patchWidth * xc) + intHeatMapMargins;
+            double patchX2 = SLIM_SCREEN_ROUND(interiorRect.left() + patchWidth * (xc + 1));
+            double patchY1 = SLIM_SCREEN_ROUND(interiorRect.top() + patchHeight * yc) + intHeatMapMargins;
+            double patchY2 = SLIM_SCREEN_ROUND(interiorRect.top() + patchHeight * (yc + 1));
             QRectF patchRect(patchX1, patchY1, patchX2 - patchX1, patchY2 - patchY1);
             
             if (generatingPDF_)

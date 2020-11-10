@@ -59,11 +59,11 @@ QtSLiMGraphView_AgeDistribution::QtSLiMGraphView_AgeDistribution(QWidget *p_pare
 void QtSLiMGraphView_AgeDistribution::addedToWindow(void)
 {
     // Make our pop-up menu buttons
-    QHBoxLayout *layout = buttonLayout();
+    QHBoxLayout *button_layout = buttonLayout();
     
-    if (layout)
+    if (button_layout)
     {
-        subpopulation1Button_ = newButtonInLayout(layout);
+        subpopulation1Button_ = newButtonInLayout(button_layout);
         connect(subpopulation1Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_AgeDistribution::subpopulation1PopupChanged);
         
         addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
@@ -199,15 +199,15 @@ QtSLiMLegendSpec QtSLiMGraphView_AgeDistribution::legendKey(void)
     
 	if (tallySexesSeparately)
     {
-        QtSLiMLegendSpec legendKey;
+        QtSLiMLegendSpec legend_key;
         
-        legendKey.resize(2);
-        legendKey[0].first = "M";
-        legendKey[0].second = controller_->blackContrastingColorForIndex(0);
-        legendKey[1].first = "F";
-        legendKey[1].second = controller_->blackContrastingColorForIndex(1);
+        legend_key.resize(2);
+        legend_key[0].first = "M";
+        legend_key[0].second = controller_->blackContrastingColorForIndex(0);
+        legend_key[1].first = "F";
+        legend_key[1].second = controller_->blackContrastingColorForIndex(1);
         
-        return legendKey;
+        return legend_key;
     }
     else
     {

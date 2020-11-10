@@ -74,17 +74,17 @@ QtSLiMGraphView_2DSampleSFS::QtSLiMGraphView_2DSampleSFS(QWidget *p_parent, QtSL
 void QtSLiMGraphView_2DSampleSFS::addedToWindow(void)
 {
     // Make our pop-up menu buttons
-    QHBoxLayout *layout = buttonLayout();
+    QHBoxLayout *button_layout = buttonLayout();
     
-    if (layout)
+    if (button_layout)
     {
-        subpopulation1Button_ = newButtonInLayout(layout);
+        subpopulation1Button_ = newButtonInLayout(button_layout);
         connect(subpopulation1Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DSampleSFS::subpopulation1PopupChanged);
         
-        subpopulation2Button_ = newButtonInLayout(layout);
+        subpopulation2Button_ = newButtonInLayout(button_layout);
         connect(subpopulation2Button_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DSampleSFS::subpopulation2PopupChanged);
         
-        mutationTypeButton_ = newButtonInLayout(layout);
+        mutationTypeButton_ = newButtonInLayout(button_layout);
         connect(mutationTypeButton_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QtSLiMGraphView_2DSampleSFS::mutationTypePopupChanged);
         
         addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
@@ -259,10 +259,10 @@ void QtSLiMGraphView_2DSampleSFS::appendStringForData(QString &string)
 {
 	uint64_t *plotData = mutation2DSFS();
 	
-    for (int y = 0; y < histogramBinCount_; ++y)
+    for (int yc = 0; yc < histogramBinCount_; ++yc)
     {
-        for (int x = 0; x < histogramBinCount_; ++x)
-            string.append(QString("%1, ").arg(plotData[x + y * histogramBinCount_]));
+        for (int xc = 0; xc < histogramBinCount_; ++xc)
+            string.append(QString("%1, ").arg(plotData[xc + yc * histogramBinCount_]));
         string.append("\n");
     }
 }

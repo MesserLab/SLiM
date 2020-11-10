@@ -581,13 +581,13 @@ void QtSLiMIndividualsWidget::cacheDisplayBufferForMapForSubpopulation(SpatialMa
 		double *values = background_map->values_;
 		bool interpolate = background_map->interpolate_;
 		
-		for (int y = 0; y < max_height; y++)
+		for (int yc = 0; yc < max_height; yc++)
 		{
-			for (int x = 0; x < max_width; x++)
+			for (int xc = 0; xc < max_width; xc++)
 			{
 				// Look up the nearest map point and get its value; interpolate if requested
-				double x_fraction = (x + 0.5) / max_width;		// pixel center
-				double y_fraction = (y + 0.5) / max_height;		// pixel center
+				double x_fraction = (xc + 0.5) / max_width;		// pixel center
+				double y_fraction = (yc + 0.5) / max_height;		// pixel center
 				double value;
 				
 				if (interpolate)
@@ -672,9 +672,9 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 			int min_coord = (spatiality_is_x ? bounds_x1 : bounds_y1);
 			int max_coord = (spatiality_is_x ? bounds_x2 : bounds_y2);
 			
-			for (int x = min_coord; x < max_coord; ++x)
+			for (int xc = min_coord; xc < max_coord; ++xc)
 			{
-				double x_fraction = (x + 0.5 - min_coord) / (max_coord - min_coord);	// values evaluated at pixel centers
+				double x_fraction = (xc + 0.5 - min_coord) / (max_coord - min_coord);	// values evaluated at pixel centers
 				double x_map = x_fraction * (xsize - 1);
 				int x1_map = static_cast<int>(floor(x_map));
 				int x2_map = static_cast<int>(ceil(x_map));
@@ -688,14 +688,14 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 				
 				if (spatiality_is_x)
 				{
-					x1 = x;
-					x2 = x + 1;
+					x1 = xc;
+					x2 = xc + 1;
 					y1 = bounds_y1;
 					y2 = bounds_y2;
 				}
 				else
 				{
-					y1 = (max_coord - 1) - x + min_coord;	// flip for y, to use Cartesian coordinates
+					y1 = (max_coord - 1) - xc + min_coord;	// flip for y, to use Cartesian coordinates
 					y2 = y1 + 1;
 					x1 = bounds_x1;
 					x2 = bounds_x2;
@@ -743,15 +743,15 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 		else
 		{
 			// No interpolation, so we can draw whole grid blocks
-			for (int x = 0; x < xsize; x++)
+			for (int xc = 0; xc < xsize; xc++)
 			{
-				double value = (spatiality_is_x ? values[x] : values[(xsize - 1) - x]);	// flip for y, to use Cartesian coordinates
+				double value = (spatiality_is_x ? values[xc] : values[(xsize - 1) - xc]);	// flip for y, to use Cartesian coordinates
 				int x1, x2, y1, y2;
 				
 				if (spatiality_is_x)
 				{
-					x1 = qRound(((x - 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
-					x2 = qRound(((x + 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
+					x1 = qRound(((xc - 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
+					x2 = qRound(((xc + 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
 					
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;
@@ -761,8 +761,8 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 				}
 				else
 				{
-					y1 = qRound(((x - 0.5) / (xsize - 1)) * bounds.height() + bounds.y());
-					y2 = qRound(((x + 0.5) / (xsize - 1)) * bounds.height() + bounds.y());
+					y1 = qRound(((xc - 0.5) / (xsize - 1)) * bounds.height() + bounds.y());
+					y2 = qRound(((xc + 0.5) / (xsize - 1)) * bounds.height() + bounds.y());
 					
 					if (y1 < bounds_y1) y1 = bounds_y1;
 					if (y2 > bounds_y2) y2 = bounds_y2;
@@ -834,12 +834,12 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 			// with some sort of OpenGL image-drawing method instead, but it's actually already
 			// remarkably fast, at least on my machine, and drawing an image with OpenGL seems very
 			// gross, and I tried it once before and couldn't get it to work well...
-			for (int y = 0; y < buf_height; y++)
+			for (int yc = 0; yc < buf_height; yc++)
 			{
 				// We flip the buffer vertically; it's the simplest way to get it into the right coordinate space
-				uint8_t *buf_ptr = display_buf + ((buf_height - 1) - y) * buf_width * 3;
+				uint8_t *buf_ptr = display_buf + ((buf_height - 1) - yc) * buf_width * 3;
 				
-				for (int x = 0; x < buf_width; x++)
+				for (int xc = 0; xc < buf_width; xc++)
 				{
 					float red = *(buf_ptr++) / 255.0f;
 					float green = *(buf_ptr++) / 255.0f;
@@ -848,17 +848,17 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 					
 					if (display_full_size)
 					{
-						left = bounds_x1 + x;
+						left = bounds_x1 + xc;
 						right = left + 1.0f;
-						top = bounds_y1 + y;
+						top = bounds_y1 + yc;
 						bottom = top + 1.0f;
 					}
 					else
 					{
-						left = bounds_x1 + x * scale_x;
-						right = bounds_x1 + (x + 1) * scale_x;
-						top = bounds_y1 + y * scale_y;
-						bottom = bounds_y1 + (y + 1) * scale_y;
+						left = bounds_x1 + xc * scale_x;
+						right = bounds_x1 + (xc + 1) * scale_x;
+						top = bounds_y1 + yc * scale_y;
+						bottom = bounds_y1 + (yc + 1) * scale_y;
 					}
 					
 					*(vertices++) = left;
@@ -904,22 +904,22 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 			double *values = background_map->values_;
 			int n_colors = background_map->n_colors_;
 			
-			for (int y = 0; y < ysize; y++)
+			for (int yc = 0; yc < ysize; yc++)
 			{
-				int y1 = qRound(((y - 0.5) / (ysize - 1)) * bounds.height() + bounds.y());
-				int y2 = qRound(((y + 0.5) / (ysize - 1)) * bounds.height() + bounds.y());
+				int y1 = qRound(((yc - 0.5) / (ysize - 1)) * bounds.height() + bounds.y());
+				int y2 = qRound(((yc + 0.5) / (ysize - 1)) * bounds.height() + bounds.y());
 				
 				if (y1 < bounds_y1) y1 = bounds_y1;
 				if (y2 > bounds_y2) y2 = bounds_y2;
 				
 				// Flip our display, since our coordinate system is flipped relative to our buffer
-				double *values_row = values + ((ysize - 1) - y) * xsize;
+				double *values_row = values + ((ysize - 1) - yc) * xsize;
 				
-				for (int x = 0; x < xsize; x++)
+				for (int xc = 0; xc < xsize; xc++)
 				{
-					double value = *(values_row + x);
-					int x1 = qRound(((x - 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
-					int x2 = qRound(((x + 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
+					double value = *(values_row + xc);
+					int x1 = qRound(((xc - 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
+					int x2 = qRound(((xc + 0.5) / (xsize - 1)) * bounds.width() + bounds.x());
 					
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;
