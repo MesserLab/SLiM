@@ -72,6 +72,9 @@ public:
 			hash_symbols_->clear();
 	}
 	
+	void SetKeyValue(const std::string &key, EidosValue_SP value);
+	
+	
 	//
 	// Eidos support
 	//

@@ -204,14 +204,14 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         textCursor().setBlockFormat(marginBlockFormat);
         insertPlainText(errorString);
         
-        if (!gEidosExecutingRuntimeScript &&
-                (gEidosCharacterStartOfErrorUTF16 >= 0) &&
-                (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16))
+        if (!gEidosErrorContext.executingRuntimeScript &&
+                (gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
+                (gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
 		{
 			// An error occurred, so let's try to highlight it in the input
             int promptEnd = lastPromptCursor.position();
-			int errorTokenStart = gEidosCharacterStartOfErrorUTF16 + promptEnd;
-			int errorTokenEnd = gEidosCharacterEndOfErrorUTF16 + promptEnd;
+			int errorTokenStart = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 + promptEnd;
+			int errorTokenEnd = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + promptEnd;
 			
             QTextCursor highlightCursor(lastPromptCursor);
             highlightCursor.setPosition(errorTokenStart, QTextCursor::MoveAnchor);

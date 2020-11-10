@@ -178,42 +178,36 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 {
 	// EvaluateInternalBlock() does not log execution, since it is not user-initiated
 	
-	bool saved_error_tracking = false;
-	int error_start_save;
-	int error_end_save;
-	int error_start_save_UTF16;
-	int error_end_save_UTF16;
-	EidosScript *current_script_save;
-	bool executing_runtime_script_save;
-	
 	// Internal blocks may be associated with their own script object; if so, the error tracking code needs to track that
 	// Note that if there is not a separate script block, then we do NOT set up an error context here; we assume that
 	// that has been done externally, just like EvaluateInterpreterBlock().
-	if ((p_script_for_block != nullptr) && (p_script_for_block != gEidosCurrentScript))
+	EidosValue_SP result_SP;
+	
+	if ((p_script_for_block != nullptr) && (p_script_for_block != gEidosErrorContext.currentScript))
 	{
 		// This script block is constructed at runtime and has its own script, so we need to redirect error tracking
-		error_start_save = gEidosCharacterStartOfError;
-		error_end_save = gEidosCharacterEndOfError;
-		error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
-		error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
-		current_script_save = gEidosCurrentScript;
-		executing_runtime_script_save = gEidosExecutingRuntimeScript;
+		EidosErrorContext error_context_save = gEidosErrorContext;
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_script_for_block, true};
 		
-		gEidosCharacterStartOfError = -1;
-		gEidosCharacterEndOfError = -1;
-		gEidosCharacterStartOfErrorUTF16 = -1;
-		gEidosCharacterEndOfErrorUTF16 = -1;
-		gEidosCurrentScript = p_script_for_block;
-		gEidosExecutingRuntimeScript = true;
+		// Same code as below, just bracketed by the error context save/restore
+		result_SP = FastEvaluateNode(root_node_);
 		
-		saved_error_tracking = true;
+		// if a next or break statement was hit and was not handled by a loop, throw an error
+		if (next_statement_hit_ || break_statement_hit_)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+		
+		// Restore the normal error context; note that a raise blows through this, of course, since we want the raise-catch
+		// machinery to report the error using the error information set up by the raise.
+		gEidosErrorContext = error_context_save;
 	}
-	
-	EidosValue_SP result_SP = FastEvaluateNode(root_node_);
-	
-	// if a next or break statement was hit and was not handled by a loop, throw an error
-	if (next_statement_hit_ || break_statement_hit_)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+	else
+	{
+		result_SP = FastEvaluateNode(root_node_);
+		
+		// if a next or break statement was hit and was not handled by a loop, throw an error
+		if (next_statement_hit_ || break_statement_hit_)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+	}
 	
 	// handle a return statement; we're at the top level, so there's not much to do
 	if (return_statement_hit_)
@@ -222,32 +216,6 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 	// EvaluateInternalBlock() does not send the result of execution to the output stream; EvaluateInterpreterBlock() does,
 	// because it is for interactive use, but EvaluateInternalBlock() is for internal use, and so interactive output
 	// is undesirable.  Eidos code that wants to generate output can always use print(), cat(), etc.
-	
-	// Restore the normal error context; note that a raise blows through this, of course, since we want the raise-catch
-	// machinery to report the error using the error information set up by the raise.
-	if (saved_error_tracking)
-	{
-		// The saved_error_tracking flag guarantees that these statements do not use unused variables.  Unfortunately,
-		// the compiler is not smart enough to know that, so I have to disable warnings across these lines.
-		// I could fix the warning by initializing the variables above, but this method is a performance bottleneck for
-		// callbacks and such, so I don't want to slow it down with unnecessary assignments.
-		#pragma GCC diagnostic push
-		#pragma GCC diagnostic ignored "-Wuninitialized"
-		#if (GNU_C >= 5)
-		#pragma GCC diagnostic ignored "-Wconditional-uninitialized"
-		#endif
-		#pragma clang diagnostic push
-		#pragma clang diagnostic ignored "-Wuninitialized"
-		#pragma clang diagnostic ignored "-Wconditional-uninitialized"
-		gEidosCharacterStartOfError = error_start_save;
-		gEidosCharacterEndOfError = error_end_save;
-		gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-		gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-		gEidosCurrentScript = current_script_save;
-		gEidosExecutingRuntimeScript = executing_runtime_script_save;
-		#pragma clang diagnostic pop
-		#pragma GCC diagnostic pop
-	}
 	
 	// EvaluateInternalBlock() does not log execution, since it is not user-initiated
 	
@@ -1308,20 +1276,10 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	// reported as occurring in the call to the function.  Here we save off the current
 	// error context and set up the error context for reporting errors inside the function,
 	// in case that is possible; see how exceptions are handled below.
-	int error_start_save = gEidosCharacterStartOfError;
-	int error_end_save = gEidosCharacterEndOfError;
-	int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
-	int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
-	EidosScript *current_script_save = gEidosCurrentScript;
-	bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+	EidosErrorContext error_context_save = gEidosErrorContext;
 	
 	// Execute inside try/catch so we can handle errors well
-	gEidosCharacterStartOfError = -1;
-	gEidosCharacterEndOfError = -1;
-	gEidosCharacterStartOfErrorUTF16 = -1;
-	gEidosCharacterEndOfErrorUTF16 = -1;
-	gEidosCurrentScript = p_function_signature.body_script_;
-	gEidosExecutingRuntimeScript = true;
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_function_signature.body_script_, true};
 	
 	try
 	{
@@ -1342,25 +1300,13 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the function's script.)
 		if (gEidosTerminateThrows)
-		{
-			gEidosCharacterStartOfError = error_start_save;
-			gEidosCharacterEndOfError = error_end_save;
-			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-			gEidosCurrentScript = current_script_save;
-			gEidosExecutingRuntimeScript = executing_runtime_script_save;
-		}
+			gEidosErrorContext = error_context_save;
 		
 		throw;
 	}
 	
 	// Restore the normal error context in the event that no exception occurring within the function
-	gEidosCharacterStartOfError = error_start_save;
-	gEidosCharacterEndOfError = error_end_save;
-	gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-	gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-	gEidosCurrentScript = current_script_save;
-	gEidosExecutingRuntimeScript = executing_runtime_script_save;
+	gEidosErrorContext = error_context_save;
 	
 	return result_SP;
 }
@@ -1404,7 +1350,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
+		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
 		_ProcessArgumentList(p_node, function_signature);
@@ -1439,7 +1385,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		function_signature->CheckReturn(*result_SP);
 		
 		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::RestoreErrorPosition(error_pos_save);
+		RestoreErrorPosition(error_pos_save);
 	}
 	else if (call_name_token_type == EidosTokenType::kTokenDot)
 	{
@@ -1480,7 +1426,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(call_identifier_token);
+		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
 		_ProcessArgumentList(p_node, method_signature);
@@ -1502,7 +1448,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		_DeprocessArgumentList(p_node);
 		
 		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::RestoreErrorPosition(error_pos_save);
+		RestoreErrorPosition(error_pos_save);
 	}
 	else
 	{
@@ -2030,13 +1976,13 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
+		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(second_child_token);
 		
 		// We offload the actual work to GetPropertyOfElements() to keep things simple here
 		result_SP = static_cast<EidosValue_Object *>(first_child_value.get())->GetPropertyOfElements(second_child_node->cached_stringID_);
 		
 		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::RestoreErrorPosition(error_pos_save);
+		RestoreErrorPosition(error_pos_save);
 		
 		EIDOS_EXIT_EXECUTION_LOG("Evaluate_MemberRef()");
 		return result_SP;
@@ -2066,13 +2012,13 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
+		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(second_child_token);
 		
 		// We offload the actual work to GetPropertyOfElements() to keep things simple here
 		result_SP = static_cast<EidosValue_Object *>(first_child_value)->GetPropertyOfElements(second_child_node->cached_stringID_);
 		
 		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::RestoreErrorPosition(error_pos_save);
+		RestoreErrorPosition(error_pos_save);
 	}
 	else
 	{
@@ -2090,13 +2036,13 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_MemberRef): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(operator_token);
 		
 		// If an error occurs inside a function or method call, we want to highlight the call
-		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(second_child_token);
+		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(second_child_token);
 		
 		// We offload the actual work to GetPropertyOfElements() to keep things simple here
 		result_SP = static_cast<EidosValue_Object *>(first_child_value.get())->GetPropertyOfElements(second_child_node->cached_stringID_);
 		
 		// Forget the function token, since it is not responsible for any future errors
-		EidosScript::RestoreErrorPosition(error_pos_save);
+		RestoreErrorPosition(error_pos_save);
 	}
 	
 	return result_SP;
@@ -4133,11 +4079,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		EidosASTNode *lvalue_node = p_node->children_[0];
 		EidosValue_SP rvalue = FastEvaluateNode(p_node->children_[1]);
 		
-		EidosErrorPosition error_pos_save = EidosScript::PushErrorPositionFromToken(operator_token);
+		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(operator_token);
 		
 		_AssignRValueToLValue(std::move(rvalue), lvalue_node);
 		
-		EidosScript::RestoreErrorPosition(error_pos_save);
+		RestoreErrorPosition(error_pos_save);
 	}
 	
 compoundAssignmentSuccess:
@@ -6133,7 +6079,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	next_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
-	EidosScript::PushErrorPositionFromToken(p_node->token_);
+	PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
@@ -6152,7 +6098,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	break_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
-	EidosScript::PushErrorPositionFromToken(p_node->token_);
+	PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
@@ -6173,7 +6119,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	return_statement_hit_ = true;
 	
 	// We set up the error state on our token so that if we don't get handled properly above, we are highlighted.
-	EidosScript::PushErrorPositionFromToken(p_node->token_);
+	PushErrorPositionFromToken(p_node->token_);
 	
 	EidosValue_SP result_SP;
 	

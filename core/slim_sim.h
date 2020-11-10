@@ -58,6 +58,7 @@ extern "C" {
 
 class EidosInterpreter;
 class Individual;
+class LogFile;
 struct ts_subpop_info;
 struct ts_mut_info;
 
@@ -287,6 +288,9 @@ private:
 	std::vector<SLiMEidosBlock*> cached_mutation_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_reproduction_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_userdef_functions_;
+	
+	// LogFile registry, for logging data out to a file
+	std::vector<LogFile *> log_file_registry_;										// OWNED POINTERS (under retain/release)
 	
 #ifdef SLIMGUI
 public:
@@ -699,6 +703,7 @@ public:
 #endif	// SLIM_WF_ONLY
 	
 	EidosValue_SP ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_createLogFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

@@ -41,16 +41,6 @@ extern bool gEidosLogTokens;
 extern bool gEidosLogAST;
 extern bool gEidosLogEvaluation;
 
-// a struct used for saving and restoring the error position in a stack-like manner;
-// see PushErrorPositionFromToken() and RestoreErrorPosition(), below
-typedef struct
-{
-	int characterStartOfError;
-	int characterEndOfError;
-	int characterStartOfErrorUTF16;
-	int characterEndOfErrorUTF16;
-} EidosErrorPosition;
-
 
 // A class representing an entire script and all associated tokenization and parsing baggage
 class EidosScript
@@ -99,35 +89,6 @@ public:
 	// Parsing methods; see grammar for definitions
 	void Consume(void);
 	void Match(EidosTokenType p_token_type, const char *p_context_cstr);
-	
-	// Setting the error position; call just before you throw, or better, pass the token to EidosTerminate()
-	static inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
-	{
-		EidosErrorPosition old_position = {gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16};
-		
-		gEidosCharacterStartOfError = p_naughty_token_->token_start_;
-		gEidosCharacterEndOfError = p_naughty_token_->token_end_;
-		gEidosCharacterStartOfErrorUTF16 = p_naughty_token_->token_UTF16_start_;
-		gEidosCharacterEndOfErrorUTF16 = p_naughty_token_->token_UTF16_end_;
-		
-		return old_position;
-	}
-	
-	static inline __attribute__((always_inline)) void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
-	{
-		gEidosCharacterStartOfError = p_saved_position.characterStartOfError;
-		gEidosCharacterEndOfError = p_saved_position.characterEndOfError;
-		gEidosCharacterStartOfErrorUTF16 = p_saved_position.characterStartOfErrorUTF16;
-		gEidosCharacterEndOfErrorUTF16 = p_saved_position.characterEndOfErrorUTF16;
-	}
-	
-	static inline __attribute__((always_inline)) void ClearErrorPosition(void)
-	{
-		gEidosCharacterStartOfError = -1;
-		gEidosCharacterEndOfError = -1;
-		gEidosCharacterStartOfErrorUTF16 = -1;
-		gEidosCharacterEndOfErrorUTF16 = -1;
-	}
 	
 	// Top-level parse method for the Eidos interpreter and other contexts
 	EidosASTNode *Parse_InterpreterBlock(bool p_allow_functions);

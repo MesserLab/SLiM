@@ -71,6 +71,7 @@ EidosValue_String_SP gStaticEidosValue_StringEmpty;
 EidosValue_String_SP gStaticEidosValue_StringSpace;
 EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
+EidosValue_String_SP gStaticEidosValue_StringComma;
 
 EidosClass *gEidosObject_Class = new EidosClass();
 

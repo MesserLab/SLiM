@@ -49,6 +49,8 @@
 		98090FA21B1B8B5800791DBF /* show_browser_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA01B1B8B5800791DBF /* show_browser_H.pdf */; };
 		98090FA31B1B8B5800791DBF /* show_browser.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98090FA11B1B8B5800791DBF /* show_browser.pdf */; };
 		98090FA61B1B978900791DBF /* EidosValueWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98090FA51B1B978900791DBF /* EidosValueWrapper.mm */; };
+		9809DFA02550F32500C4E82D /* log_file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9809DF9E2550F32500C4E82D /* log_file.cpp */; };
+		9809DFA12550F32500C4E82D /* log_file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9809DF9E2550F32500C4E82D /* log_file.cpp */; };
 		980DD51A1AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 980DD5181AAE42F900D5B7B8 /* GraphAxisRescaleSheet.xib */; };
 		980DD51D1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm in Sources */ = {isa = PBXBuildFile; fileRef = 980DD51C1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.mm */; };
 		981BAC6A1ACC6E8B0005BE94 /* eidos_script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981BAC681ACC6E8B0005BE94 /* eidos_script.cpp */; };
@@ -722,6 +724,8 @@
 		98090FA11B1B8B5800791DBF /* show_browser.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_browser.pdf; sourceTree = "<group>"; };
 		98090FA41B1B978900791DBF /* EidosValueWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EidosValueWrapper.h; sourceTree = "<group>"; };
 		98090FA51B1B978900791DBF /* EidosValueWrapper.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosValueWrapper.mm; sourceTree = "<group>"; };
+		9809DF9E2550F32500C4E82D /* log_file.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = log_file.cpp; sourceTree = "<group>"; };
+		9809DF9F2550F32500C4E82D /* log_file.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = log_file.h; sourceTree = "<group>"; };
 		9809F8BD24F32B3E00D312E4 /* eidos_tinycolormap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_tinycolormap.h; sourceTree = "<group>"; };
 		980DD5191AAE42F900D5B7B8 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphAxisRescaleSheet.xib; sourceTree = "<group>"; };
 		980DD51B1AB0B01F00D5B7B8 /* GraphView_MutationFrequencyTrajectory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphView_MutationFrequencyTrajectory.h; sourceTree = "<group>"; };
@@ -1384,6 +1388,8 @@
 				98AC617924BA34ED0001914C /* slim_sim_eidos.cpp */,
 				98DDAED5221765480038C133 /* slim_functions.h */,
 				98DDAED4221765480038C133 /* slim_functions.cpp */,
+				98AB597A1B2531F10077CB4A /* slim_eidos_block.h */,
+				98AB59791B2531F10077CB4A /* slim_eidos_block.cpp */,
 				98E9A6AD1A3CD5D3000AD4FC /* population.h */,
 				98E9A6AC1A3CD5D3000AD4FC /* population.cpp */,
 				98E9A6AA1A3CD5BB000AD4FC /* subpopulation.h */,
@@ -1412,8 +1418,8 @@
 				98DC39922127D52000025211 /* sparse_array.cpp */,
 				98DB3D6E1E6122AE00E2C200 /* interaction_type.h */,
 				98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */,
-				98AB597A1B2531F10077CB4A /* slim_eidos_block.h */,
-				98AB59791B2531F10077CB4A /* slim_eidos_block.cpp */,
+				9809DF9F2550F32500C4E82D /* log_file.h */,
+				9809DF9E2550F32500C4E82D /* log_file.cpp */,
 				98800DC31B7EDCB50046F5F9 /* slim_test.h */,
 				98800DC21B7EDCB50046F5F9 /* slim_test.cpp */,
 				9807C0F324BA21B7008CC658 /* slim_test_core.cpp */,
@@ -2522,6 +2528,7 @@
 				98332AC21FDBA53F00274FF0 /* xerbla.c in Sources */,
 				985724D51AD481070047C223 /* eidos_test.cpp in Sources */,
 				98332AB41FDBA1E100274FF0 /* blas.c in Sources */,
+				9809DFA02550F32500C4E82D /* log_file.cpp in Sources */,
 				989A5BE92525304100E7192D /* eidos_class_Dictionary.cpp in Sources */,
 				98C92AED1D0B07A6001C82BC /* individual.cpp in Sources */,
 				98ACDC9D253522B80038703F /* eidos_class_Object.cpp in Sources */,
@@ -2805,6 +2812,7 @@
 				9887946B1EA8804900AE0C8D /* SLiMPDFDocument.mm in Sources */,
 				98DE4C1C1B713F21004FDF5F /* ScriptMod_AddSubpop.mm in Sources */,
 				985724A21AD34B740047C223 /* eidos_functions.cpp in Sources */,
+				9809DFA12550F32500C4E82D /* log_file.cpp in Sources */,
 				9807661D244934A800F6CBB4 /* zutil.c in Sources */,
 				98C8214C1C7A983700548839 /* gauss.c in Sources */,
 				98D4C1E31A6F544B00FFB083 /* population.cpp in Sources */,

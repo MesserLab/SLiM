@@ -131,6 +131,20 @@ public:
 std::ostream &operator<<(std::ostream &p_outstream, const EidosToken &p_token);
 
 
+// Setting the error position; call just before you throw, or better, pass the token to EidosTerminate()
+inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
+{
+	EidosErrorPosition old_position = gEidosErrorContext.errorPosition;
+	
+	gEidosErrorContext.errorPosition.characterStartOfError = p_naughty_token_->token_start_;
+	gEidosErrorContext.errorPosition.characterEndOfError = p_naughty_token_->token_end_;
+	gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 = p_naughty_token_->token_UTF16_start_;
+	gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 = p_naughty_token_->token_UTF16_end_;
+	
+	return old_position;
+}
+
+
 #endif /* defined(__Eidos__eidos_token__) */
 
 

@@ -84,6 +84,7 @@ SOURCES += \
     genomic_element.cpp \
     individual.cpp \
     interaction_type.cpp \
+    log_file.cpp \
     mutation_run.cpp \
     mutation_type.cpp \
     mutation.cpp \
@@ -110,6 +111,7 @@ HEADERS += \
     individual.h \
     interaction_type.h \
     json.hpp \
+    log_file.h \
     mutation_run.h \
     mutation_type.h \
     mutation.h \

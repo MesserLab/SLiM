@@ -226,12 +226,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			// reported as occurring in the call to executeLambda().  Here we save off the current
 			// error context and set up the error context for reporting errors inside the lambda,
 			// in case that is possible; see how exceptions are handled below.
-			int error_start_save = gEidosCharacterStartOfError;
-			int error_end_save = gEidosCharacterEndOfError;
-			int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
-			int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
-			EidosScript *current_script_save = gEidosCurrentScript;
-			bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+			EidosErrorContext error_context_save = gEidosErrorContext;
 			
 			// We try to do tokenization and parsing once per script, by caching the script
 			if (!cached_dfe_script_)
@@ -239,12 +234,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 				std::string script_string = dfe_strings_[0];
 				cached_dfe_script_ = new EidosScript(script_string);
 				
-				gEidosCharacterStartOfError = -1;
-				gEidosCharacterEndOfError = -1;
-				gEidosCharacterStartOfErrorUTF16 = -1;
-				gEidosCharacterEndOfErrorUTF16 = -1;
-				gEidosCurrentScript = cached_dfe_script_;
-				gEidosExecutingRuntimeScript = true;
+				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_, true};
 				
 				try
 				{
@@ -254,14 +244,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 				catch (...)
 				{
 					if (gEidosTerminateThrows)
-					{
-						gEidosCharacterStartOfError = error_start_save;
-						gEidosCharacterEndOfError = error_end_save;
-						gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-						gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-						gEidosCurrentScript = current_script_save;
-						gEidosExecutingRuntimeScript = executing_runtime_script_save;
-					}
+						gEidosErrorContext = error_context_save;
 					
 					delete cached_dfe_script_;
 					cached_dfe_script_ = nullptr;
@@ -271,12 +254,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			}
 			
 			// Execute inside try/catch so we can handle errors well
-			gEidosCharacterStartOfError = -1;
-			gEidosCharacterEndOfError = -1;
-			gEidosCharacterStartOfErrorUTF16 = -1;
-			gEidosCharacterEndOfErrorUTF16 = -1;
-			gEidosCurrentScript = cached_dfe_script_;
-			gEidosExecutingRuntimeScript = true;
+			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_, true};
 			
 			try
 			{
@@ -306,25 +284,13 @@ double MutationType::DrawSelectionCoefficient(void) const
 				// don't throw, this catch block will never be hit; exit() will already have been called
 				// and the error will have been reported from the context of the lambda script string.)
 				if (gEidosTerminateThrows)
-				{
-					gEidosCharacterStartOfError = error_start_save;
-					gEidosCharacterEndOfError = error_end_save;
-					gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-					gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-					gEidosCurrentScript = current_script_save;
-					gEidosExecutingRuntimeScript = executing_runtime_script_save;
-				}
+					gEidosErrorContext = error_context_save;
 				
 				throw;
 			}
 			
 			// Restore the normal error context in the event that no exception occurring within the lambda
-			gEidosCharacterStartOfError = error_start_save;
-			gEidosCharacterEndOfError = error_end_save;
-			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-			gEidosCurrentScript = current_script_save;
-			gEidosExecutingRuntimeScript = executing_runtime_script_save;
+			gEidosErrorContext = error_context_save;
 			
 			return sel_coeff;
 		}

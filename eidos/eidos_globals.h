@@ -63,16 +63,6 @@ void Eidos_WarmUp(void);
 // This can be called at startup, after Eidos_WarmUp(), to define global constants from the command line
 void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
 
-// This should be called at the end of execution, or any other appropriate time, to flush buffered file append data
-void Eidos_FlushFiles(void);
-
-#define EIDOS_BUFFER_ZIP_APPENDS	1
-
-#if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
-extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// filename -> text
-bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring);
-#endif
-
 
 // This governs whether "Robin Hood Hashing" is used instead of std::unordered_map in key spots, for speed
 // Robin Hood Hashing is in robin_hood.h, and is by Martin Ankerl (https://github.com/martinus/robin-hood-hashing)
@@ -121,10 +111,38 @@ extern std::string gEidosContextCitation;
 // that get magically set up in various places and then get used in various completely different places.  This
 // is a big reason why Eidos is not thread-safe at present, and it's one of the trickiest parts of the code,
 // for no very good reason except that I haven't yet figured out the right way to fix it.  FIXME
-extern int gEidosCharacterStartOfError, gEidosCharacterEndOfError;
-extern int gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16;
-extern EidosScript *gEidosCurrentScript;
-extern bool gEidosExecutingRuntimeScript;
+
+// a small struct used for saving and restoring the error position in a stack-like manner
+typedef struct
+{
+	int characterStartOfError;
+	int characterEndOfError;
+	int characterStartOfErrorUTF16;
+	int characterEndOfErrorUTF16;
+} EidosErrorPosition;
+
+// a bigger struct used when saving and restoring not only the error position but also the script context
+typedef struct {
+	EidosErrorPosition errorPosition;
+	EidosScript *currentScript;
+	bool executingRuntimeScript;
+} EidosErrorContext;
+
+// this global struct contains the current error context
+extern EidosErrorContext gEidosErrorContext;
+
+// declared in eidos_token.h due to EidosToken dependency:
+// inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
+
+inline __attribute__((always_inline)) void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
+{
+	gEidosErrorContext.errorPosition = p_saved_position;
+}
+
+inline __attribute__((always_inline)) void ClearErrorPosition(void)
+{
+	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
+}
 
 extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by EidosTerminate()
 
@@ -299,8 +317,8 @@ void Eidos_PrepareForProfiling(void);
 void Eidos_PrintStacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
 
 // Print an offending line of script with carets indicating an error position
-void Eidos_ScriptErrorPosition(int p_start, int p_end, EidosScript *p_script);
-void Eidos_LogScriptError(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda);
+void Eidos_ScriptErrorPosition(const EidosErrorContext &p_error_context);
+void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_context);
 
 // If gEidosTerminateThrows == 0, << EidosTerminate causes a call to exit().  In that mode, output
 // related to termination output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode,
@@ -340,16 +358,11 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 
 // *******************************************************************************************************************
 //
-//	Utility functions
+//	File I/O functions
 //
 #pragma mark -
-#pragma mark Utility functions
+#pragma mark File I/O
 #pragma mark -
-
-// bzero() is deprecated, but memset() is not a perfect substitute, so this is a macro to use instead
-// this follows the standard bzero() declaration: void bzero(void *s, size_t n);
-// see https://stackoverflow.com/a/17097978/2752221 for some justification
-#define EIDOS_BZERO(s, n) memset((s), 0, (n))
 
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string Eidos_ResolvedPath(std::string p_path);
@@ -374,6 +387,39 @@ bool Eidos_SlashTmpExists(void);
 // Create a temporary file based upon a template filename; note that pattern is modified!
 int Eidos_mkstemps(char *p_pattern, int p_suffix_len);
 int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len);
+
+// Writing files with support for gzip compression and buffered flushing
+#define EIDOS_BUFFER_ZIP_APPENDS	1
+
+#if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
+extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// filename -> text
+bool _Eidos_FlushZipBuffer(const std::string &p_file_path, const std::string &p_outstring);
+#endif
+
+void Eidos_FlushFile(const std::string &p_file_path);
+void Eidos_FlushFiles(void);			// This should be called at the end of execution, or any other appropriate time, to flush buffered file append data
+
+enum class EidosFileFlush {
+	kNoFlush = 0,		// no flush, no matter what
+	kDefaultFlush,		// flush if the buffer is over a threshold number of bytes
+	kForceFlush			// flush, no matter what; not recommended with compression
+};
+
+void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::string *> p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option);
+
+
+// *******************************************************************************************************************
+//
+//	Utility functions
+//
+#pragma mark -
+#pragma mark Utility functions
+#pragma mark -
+
+// bzero() is deprecated, but memset() is not a perfect substitute, so this is a macro to use instead
+// this follows the standard bzero() declaration: void bzero(void *s, size_t n);
+// see https://stackoverflow.com/a/17097978/2752221 for some justification
+#define EIDOS_BZERO(s, n) memset((s), 0, (n))
 
 // Welch's t-test functions; sample means are returned in mean1 and mean2, which may be nullptr
 double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const double *p_set2, int p_count2, double *p_mean1, double *p_mean2);
@@ -919,7 +965,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 370		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 400		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN

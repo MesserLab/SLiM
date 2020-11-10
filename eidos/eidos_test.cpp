@@ -55,7 +55,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	EidosValue_SP result;
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	
-	gEidosCurrentScript = &script;
+	gEidosErrorContext.currentScript = &script;
 	
 	gEidosTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
@@ -66,8 +66,8 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during Tokenize(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		return;
 	}
 	
@@ -78,8 +78,8 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during ParseToAST(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		return;
 	}
 	
@@ -93,8 +93,8 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during EvaluateInterpreterBlock(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		
 		return;
 	}
@@ -134,8 +134,8 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 		//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	}
 	
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = nullptr;
+	gEidosErrorContext.executingRuntimeScript = false;
 }
 
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
@@ -145,7 +145,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 	
-	gEidosCurrentScript = &script;
+	gEidosErrorContext.currentScript = &script;
 	
 	try {
 		script.Tokenize();
@@ -166,7 +166,9 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		
 		if (raise_message.find(p_reason_snip) != std::string::npos)
 		{
-			if ((gEidosCharacterStartOfError == -1) || (gEidosCharacterEndOfError == -1) || !gEidosCurrentScript)
+			if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
+				(gEidosErrorContext.errorPosition.characterEndOfError == -1) ||
+				!gEidosErrorContext.currentScript)
 			{
 				gEidosTestFailureCount++;
 				
@@ -174,13 +176,13 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 				std::cerr << p_script_string << "   raise message: " << raise_message << std::endl;
 				std::cerr << "--------------------" << std::endl << std::endl;
 			}
-			else if (gEidosCharacterStartOfError != p_bad_position)
+			else if (gEidosErrorContext.errorPosition.characterStartOfError != p_bad_position)
 			{
 				gEidosTestFailureCount++;
 				
 				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected" << std::endl;
 				std::cerr << p_script_string << "   raise message: " << raise_message << std::endl;
-				Eidos_LogScriptError(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+				Eidos_LogScriptError(std::cerr, gEidosErrorContext);
 				std::cerr << "--------------------" << std::endl << std::endl;
 			}
 			else
@@ -207,8 +209,8 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		}
 	}
 	
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = nullptr;
+	gEidosErrorContext.executingRuntimeScript = false;
 }
 
 int RunEidosTests(void)

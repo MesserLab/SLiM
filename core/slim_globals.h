@@ -821,6 +821,24 @@ extern const std::string &gStr_Substitution;
 extern const std::string &gStr_InteractionType;
 extern const std::string &gStr_SLiMgui;
 
+extern const std::string &gStr_createLogFile;
+extern const std::string &gStr_logFiles;
+extern const std::string &gStr_LogFile;
+extern const std::string &gStr_logInterval;
+extern const std::string &gStr_addCustomColumn;
+extern const std::string &gStr_addGeneration;
+extern const std::string &gStr_addGenerationStage;
+extern const std::string &gStr_addMeanSDColumns;
+extern const std::string &gStr_addPopulationSexRatio;
+extern const std::string &gStr_addPopulationSize;
+extern const std::string &gStr_addSubpopulationSexRatio;
+extern const std::string &gStr_addSubpopulationSize;
+extern const std::string &gStr_flush;
+extern const std::string &gStr_logRow;
+extern const std::string &gStr_setLogInterval;
+extern const std::string &gStr_setFilePath;
+extern const std::string &gStr_context;
+
 extern const std::string &gStr_A;
 extern const std::string gStr_C;	// these nucleotide strings are not registered, no need
 extern const std::string gStr_G;
@@ -1122,6 +1140,24 @@ enum _SLiMGlobalStringID : int {
 	gID_Substitution,
 	gID_InteractionType,
 	gID_SLiMgui,
+	
+	gID_createLogFile,
+	gID_logFiles,
+	gID_LogFile,
+	gID_logInterval,
+	gID_addCustomColumn,
+	gID_addGeneration,
+	gID_addGenerationStage,
+	gID_addMeanSDColumns,
+	gID_addPopulationSexRatio,
+	gID_addPopulationSize,
+	gID_addSubpopulationSexRatio,
+	gID_addSubpopulationSize,
+	gID_flush,
+	gID_logRow,
+	gID_setLogInterval,
+	gID_setFilePath,
+	gID_context,
 	
 	gID_A,
 	gID_X,

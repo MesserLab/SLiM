@@ -120,7 +120,7 @@ int main(int argc, const char * argv[])
 	
 	// warm up and load the script
 	Eidos_WarmUp();
-	EidosScript::ClearErrorPosition();
+	ClearErrorPosition();
 	
 	EidosScript *script = nullptr;
 	
@@ -172,14 +172,14 @@ int main(int argc, const char * argv[])
 	}
 	
 	// set up top-level error-reporting info
-	gEidosCurrentScript = script;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = script;
+	gEidosErrorContext.executingRuntimeScript = false;
 	
 	script->Tokenize();
 	script->ParseInterpreterBlockToAST(true);
 	
 	// reset error position indicators used by SLiMgui
-	EidosScript::ClearErrorPosition();
+	ClearErrorPosition();
 
 	EidosSymbolTable *variable_symbols = new EidosSymbolTable(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());

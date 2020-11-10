@@ -28,6 +28,7 @@
 #include "individual.h"
 #include "polymorphism.h"
 #include "subpopulation.h"
+#include "log_file.h"
 
 #include <iostream>
 #include <iomanip>
@@ -193,7 +194,7 @@ void SLiMSim::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 void SLiMSim::InitializeFromFile(std::istream &p_infile)
 {
 	// Reset error position indicators used by SLiMgui
-	EidosScript::ClearErrorPosition();
+	ClearErrorPosition();
 	
 	// Read in the file; going through stringstream is fast...
 	std::stringstream buffer;
@@ -208,8 +209,8 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	script_ = new SLiMEidosScript(buffer.str());
 	
 	// Set up top-level error-reporting info
-	gEidosCurrentScript = script_;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = script_;
+	gEidosErrorContext.executingRuntimeScript = false;
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
@@ -225,11 +226,11 @@ void SLiMSim::InitializeFromFile(std::istream &p_infile)
 	}
 	
 	// Reset error position indicators used by SLiMgui
-	EidosScript::ClearErrorPosition();
+	ClearErrorPosition();
 	
 	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = nullptr;
+	gEidosErrorContext.executingRuntimeScript = false;
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by SLiMSim::InitializePopulationFromTextFile
@@ -3044,8 +3045,8 @@ bool SLiMSim::_RunOneGeneration(void)
 	generation_stage_ = SLiMGenerationStage::kStage0PreGeneration;
 	
 	// Define the current script around each generation execution, for error reporting
-	gEidosCurrentScript = script_;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = script_;
+	gEidosErrorContext.executingRuntimeScript = false;
 	
 	// Activate all registered script blocks at the beginning of the generation
 	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
@@ -3070,8 +3071,8 @@ bool SLiMSim::_RunOneGeneration(void)
 #endif
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -3538,13 +3539,18 @@ bool SLiMSim::_RunOneGenerationWF(void)
 				CrosscheckTreeSeqIntegrity();
 		}
 		
+		// LogFile output
+		for (LogFile *log_file : log_file_registry_)
+			log_file->GenerationEndCallout();
+		
+		// Advance the generation counter
 		cached_value_generation_.reset();
 		generation_++;
 		// note that tree_seq_generation_ was incremented earlier!
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -3981,6 +3987,11 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 				CrosscheckTreeSeqIntegrity();
 		}
 		
+		// LogFile output
+		for (LogFile *log_file : log_file_registry_)
+			log_file->GenerationEndCallout();
+		
+		// Advance the generation counter
 		cached_value_generation_.reset();
 		generation_++;
 		tree_seq_generation_++;
@@ -3990,8 +4001,8 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 			subpop_pair.second->IncrementIndividualAges();
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -4041,12 +4052,12 @@ bool SLiMSim::RunOneGeneration(void)
 			// when a raise occurs.  We don't want raises after RunOneGeneration() returns to be attributed to us,
 			// so we clear the script pointer.  We do NOT clear any of the error-reporting state, since it will
 			// be used by higher levels to select the error in the GUI.
-			gEidosCurrentScript = nullptr;
+			gEidosErrorContext.currentScript = nullptr;
 			return false;
 		}
 	}
 	
-	gEidosCurrentScript = nullptr;
+	gEidosErrorContext.currentScript = nullptr;
 #endif
 	
 	return false;

@@ -733,7 +733,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 
 void Subpopulation::CheckIndividualIntegrity(void)
 {
-	EidosScript::ClearErrorPosition();
+	ClearErrorPosition();
 	
 	if (population_.sim_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosNoBlockType)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();

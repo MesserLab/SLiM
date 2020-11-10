@@ -24,6 +24,7 @@
 #include "individual.h"
 #include "subpopulation.h"
 #include "polymorphism.h"
+#include "log_file.h"
 
 #include <iostream>
 #include <iomanip>
@@ -345,9 +346,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 		// check whether we are using a mutation type that is non-neutral; check and set pure_neutral_
 		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
 		{
-			SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-			
-			sim.pure_neutral_ = false;
+			pure_neutral_ = false;
 			// the mutation type's all_pure_neutral_DFE_ flag is presumably already set
 		}
 	}
@@ -1642,6 +1641,16 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_logFiles:
+		{
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_LogFile_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+            for (LogFile *logfile : log_file_registry_)
+				vec->push_object_element_RR(logfile);
+			
+			return result_SP;
+		}
 		case gID_modelType:
 		{
 			static EidosValue_SP static_model_type_string_WF;
@@ -1853,6 +1862,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 #endif	// SLIM_WF_ONLY
 			
 		case gID_addSubpop:						return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_interpreter);
+		case gID_createLogFile:					return ExecuteMethod_createLogFile(p_method_id, p_arguments, p_interpreter);
 		case gID_deregisterScriptBlock:			return ExecuteMethod_deregisterScriptBlock(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationFrequencies:
 		case gID_mutationCounts:				return ExecuteMethod_mutationFreqsCounts(p_method_id, p_arguments, p_interpreter);
@@ -1947,8 +1957,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	
 	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(subpopID_value, 0, 'p');
 	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-	Subpopulation *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpop_value, 0, sim, "addSubpopSplit()");
+	Subpopulation *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpop_value, 0, *this, "addSubpopSplit()");
 	
 	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
 	
@@ -1969,6 +1978,77 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	return symbol_entry.second;
 }
 #endif	// SLIM_WF_ONLY
+
+//	*********************	– (object<LogFile>$)createLogFile(string$ filePath, [Ns initialContents = NULL], [logical$ append = F], [logical$ compress = F], [string$ sep = ","], [Ni$ logInterval = NULL], [Ni$ flushInterval = NULL])
+EidosValue_SP SLiMSim::ExecuteMethod_createLogFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue_String *filePath_value = (EidosValue_String *)p_arguments[0].get();
+	EidosValue *initialContents_value = p_arguments[1].get();
+	EidosValue *append_value = p_arguments[2].get();
+	EidosValue *compress_value = p_arguments[3].get();
+	EidosValue_String *sep_value = (EidosValue_String *)p_arguments[4].get();
+	EidosValue *logInterval_value = p_arguments[5].get();
+	EidosValue *flushInterval_value = p_arguments[6].get();
+	
+	// process parameters
+	const std::string &filePath = filePath_value->StringRefAtIndex(0, nullptr);
+	std::vector<const std::string *> initialContents;
+	bool append = append_value->LogicalAtIndex(0, nullptr);
+	bool do_compress = compress_value->LogicalAtIndex(0, nullptr);
+	const std::string &sep = sep_value->StringRefAtIndex(0, nullptr);
+	bool autologging = false, explicitFlushing = false;
+	int64_t logInterval = 0, flushInterval = 0;
+	
+	if (initialContents_value->Type() != EidosValueType::kValueNULL)
+	{
+		EidosValue_String *ic_string_value = (EidosValue_String *)initialContents_value;
+		int ic_count = initialContents_value->Count();
+		
+		for (int ic_index = 0; ic_index < ic_count; ++ic_index)
+			initialContents.push_back(&ic_string_value->StringRefAtIndex(ic_index, nullptr));
+	}
+	
+	if (logInterval_value->Type() == EidosValueType::kValueNULL)
+	{
+		// NULL turns off autologging
+		autologging = false;
+		logInterval = 0;
+	}
+	else
+	{
+		autologging = true;
+		logInterval = logInterval_value->IntAtIndex(0, nullptr);
+	}
+	
+	if (flushInterval_value->Type() == EidosValueType::kValueNULL)
+	{
+		// NULL requests our automatic flushing behavior
+		explicitFlushing = false;
+		flushInterval = 0;
+	}
+	else
+	{
+		explicitFlushing = true;
+		flushInterval = flushInterval_value->IntAtIndex(0, nullptr);
+	}
+	
+	// Create the LogFile object
+	LogFile *logfile = new LogFile(*this);
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(logfile, gSLiM_LogFile_Class));
+	
+	// Add it to our registry; it has a retain count from new that we will take over at this point
+	log_file_registry_.push_back(logfile);
+	
+	// Configure it
+	logfile->SetLogInterval(autologging, logInterval);
+	logfile->SetFlushInterval(explicitFlushing, flushInterval);
+	logfile->ConfigureFile(filePath, initialContents, append, do_compress, sep);
+	
+	return result_SP;
+}
 
 //	*********************	- (void)deregisterScriptBlock(io<SLiMEidosBlock> scriptBlocks)
 //
@@ -3678,6 +3758,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_inSLiMgui,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_interactionTypes,		true,	kEidosValueMaskObject, gSLiM_InteractionType_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logFiles,				true,	kEidosValueMaskObject, gSLiM_LogFile_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,				true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,			true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
@@ -3707,6 +3788,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskVOID))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));

@@ -1241,6 +1241,25 @@ const std::string &gStr_Substitution = EidosRegisteredString("Substitution", gID
 const std::string &gStr_InteractionType = EidosRegisteredString("InteractionType", gID_InteractionType);
 const std::string &gStr_SLiMgui = EidosRegisteredString("SLiMgui", gID_SLiMgui);
 
+// strings for LogFile
+const std::string &gStr_createLogFile = EidosRegisteredString("createLogFile", gID_createLogFile);
+const std::string &gStr_logFiles = EidosRegisteredString("logFiles", gID_logFiles);
+const std::string &gStr_LogFile = EidosRegisteredString("LogFile", gID_LogFile);
+const std::string &gStr_logInterval = EidosRegisteredString("logInterval", gID_logInterval);
+const std::string &gStr_addCustomColumn = EidosRegisteredString("addCustomColumn", gID_addCustomColumn);
+const std::string &gStr_addGeneration = EidosRegisteredString("addGeneration", gID_addGeneration);
+const std::string &gStr_addGenerationStage = EidosRegisteredString("addGenerationStage", gID_addGenerationStage);
+const std::string &gStr_addMeanSDColumns = EidosRegisteredString("addMeanSDColumns", gID_addMeanSDColumns);
+const std::string &gStr_addPopulationSexRatio = EidosRegisteredString("addPopulationSexRatio", gID_addPopulationSexRatio);
+const std::string &gStr_addPopulationSize = EidosRegisteredString("addPopulationSize", gID_addPopulationSize);
+const std::string &gStr_addSubpopulationSexRatio = EidosRegisteredString("addSubpopulationSexRatio", gID_addSubpopulationSexRatio);
+const std::string &gStr_addSubpopulationSize = EidosRegisteredString("addSubpopulationSize", gID_addSubpopulationSize);
+const std::string &gStr_flush = EidosRegisteredString("flush", gID_flush);
+const std::string &gStr_logRow = EidosRegisteredString("logRow", gID_logRow);
+const std::string &gStr_setLogInterval = EidosRegisteredString("setLogInterval", gID_setLogInterval);
+const std::string &gStr_setFilePath = EidosRegisteredString("setFilePath", gID_setFilePath);
+const std::string &gStr_context = EidosRegisteredString("context", gID_context);
+
 // mostly other fixed strings
 const std::string &gStr_A = EidosRegisteredString("A", gID_A);
 const std::string gStr_C = "C";	// these nucleotide strings are not registered, no need

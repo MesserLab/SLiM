@@ -46,6 +46,39 @@ EidosDictionaryUnretained::EidosDictionaryUnretained(__attribute__((unused)) con
 	}
 }
 
+void EidosDictionaryUnretained::SetKeyValue(const std::string &key, EidosValue_SP value)
+{
+	EidosValueType value_type = value->Type();
+	
+	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
+	// See also Eidos_ExecuteFunction_defineConstant() and Eidos_ExecuteFunction_defineGlobal(), which enforce the same rule
+	if (value_type == EidosValueType::kValueObject)
+	{
+		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
+		
+		if (!value_class->UsesRetainRelease())
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::SetKeyValue): Dictionary can only accept object classes that are under retain/release memory management internally; class " << value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+	}
+	
+	if (value_type == EidosValueType::kValueNULL)
+	{
+		// Setting a key to NULL removes it from the map
+		if (hash_symbols_)
+			hash_symbols_->erase(key);
+	}
+	else
+	{
+		// Copy if necessary; see ExecuteMethod_Accelerated_setValue() for comments
+		if ((value->UseCount() != 1) || value->Invisible())
+			value = value->CopyValues();
+		
+		if (!hash_symbols_)
+			hash_symbols_ = new EidosDictionaryHashTable;
+		
+		(*hash_symbols_)[key] = value;
+	}
+}
+
 
 //
 // EidosDictionaryUnretained Eidos support
@@ -182,6 +215,8 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	// Note that this does not call SetKeyValue() for speed, and to avoid excess copying
+	
 	EidosValue_String *key_value = (EidosValue_String *)p_arguments[0].get();
 	const std::string &key = key_value->StringRefAtIndex(0, nullptr);
 	EidosValue_SP value = p_arguments[1];

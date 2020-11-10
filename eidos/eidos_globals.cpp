@@ -267,6 +267,7 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringSpace = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(" "));
 		gStaticEidosValue_StringAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("*"));
 		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**"));
+		gStaticEidosValue_StringComma = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(","));
 		
 		// Set up the built-in function map, which is immutable
 		EidosInterpreter::CacheBuiltInFunctionMap();
@@ -281,59 +282,6 @@ void Eidos_WarmUp(void)
 		// Check classes for mismatched duplicate interfaces
 		EidosClass::CheckForDuplicateMethodsOrProperties();
 	}
-}
-
-#if EIDOS_BUFFER_ZIP_APPENDS
-// This contains all unflushed append data for zip files written by writeFile(); see Eidos_FlushFiles() below
-std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
-
-// This flushes the bytes in outstring to the file at file_path, with gzip append
-bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring)
-{
-	gzFile gzf = z_gzopen(file_path.c_str(), "ab");
-	
-	if (!gzf)
-		return false;
-	
-	const char *outcstr = outstring.c_str();
-	size_t outcstr_length = outstring.length();
-	
-	// do the writing with zlib
-	bool success = false;
-	int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
-	
-	if (retval != -1)
-	{
-		retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
-		
-		if (retval != 0)
-		{
-			retval = gzclose_w(gzf);
-			
-			if (retval == Z_OK)
-				success = true;
-		}
-	}
-	
-	return success;
-}
-#endif
-
-// This flushes all outstanding buffered zip data to the appropriate files
-void Eidos_FlushFiles(void)
-{
-#if EIDOS_BUFFER_ZIP_APPENDS
-	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
-	for (auto &buffer_pair : gEidosBufferedZipAppendData)
-	{
-		bool result = _Eidos_FlushZipBuffer(buffer_pair.first, buffer_pair.second);
-		
-		if (!result)
-			std::cerr << "Flush of gzip data to file " << buffer_pair.first << " failed!" << std::endl;
-	}
-	
-	gEidosBufferedZipAppendData.clear();
-#endif
 }
 
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
@@ -529,10 +477,7 @@ std::string gEidosContextCitation;
 #pragma mark -
 
 // the part of the input file that caused an error; used to highlight the token or text that caused the error
-int gEidosCharacterStartOfError = -1, gEidosCharacterEndOfError = -1;
-int gEidosCharacterStartOfErrorUTF16 = -1, gEidosCharacterEndOfErrorUTF16 = -1;
-EidosScript *gEidosCurrentScript = nullptr;
-bool gEidosExecutingRuntimeScript = false;
+EidosErrorContext gEidosErrorContext = {{-1, -1, -1, -1}, nullptr, false};
 
 int gEidosErrorLine = -1, gEidosErrorLineCharacter = -1;
 
@@ -704,21 +649,25 @@ void Eidos_PrintStacktrace(FILE *p_out, unsigned int p_max_frames)
 	fflush(p_out);
 }
 
-void Eidos_ScriptErrorPosition(int p_start, int p_end, EidosScript *p_script)
+void Eidos_ScriptErrorPosition(const EidosErrorContext &p_error_context)
 {
+	EidosScript *currentScript = p_error_context.currentScript;
+	int errorStart = p_error_context.errorPosition.characterStartOfError;
+	int errorEnd = p_error_context.errorPosition.characterEndOfError;
+	
 	gEidosErrorLine = -1;
 	gEidosErrorLineCharacter = -1;
 	
-	if (p_script && (p_start >= 0) && (p_end >= p_start))
+	if (currentScript && (errorStart >= 0) && (errorEnd >= errorStart))
 	{
 		// figure out the script line and position
-		const std::string &script_string = p_script->String();
+		const std::string &script_string = currentScript->String();
 		int length = (int)script_string.length();
 		
-		if ((length >= p_start) && (length >= p_end))	// == is the EOF position, which we want to allow but have to treat carefully
+		if ((length >= errorStart) && (length >= errorEnd))	// == is the EOF position, which we want to allow but have to treat carefully
 		{
-			int lineStart = (p_start < length) ? p_start : length - 1;
-			int lineEnd = (p_end < length) ? p_end : length - 1;
+			int lineStart = (errorStart < length) ? errorStart : length - 1;
+			int lineEnd = (errorEnd < length) ? errorEnd : length - 1;
 			int lineNumber;
 			
 			for (; lineStart > 0; --lineStart)
@@ -736,23 +685,27 @@ void Eidos_ScriptErrorPosition(int p_start, int p_end, EidosScript *p_script)
 					lineNumber++;
 			
 			gEidosErrorLine = lineNumber;
-			gEidosErrorLineCharacter = p_start - lineStart;
+			gEidosErrorLineCharacter = errorStart - lineStart;
 		}
 	}
 }
 
-void Eidos_LogScriptError(std::ostream& p_out, int p_start, int p_end, EidosScript *p_script, bool p_inside_lambda)
+void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_context)
 {
-	if (p_script && (p_start >= 0) && (p_end >= p_start))
+	EidosScript *currentScript = p_error_context.currentScript;
+	int errorStart = p_error_context.errorPosition.characterStartOfError;
+	int errorEnd = p_error_context.errorPosition.characterEndOfError;
+	
+	if (currentScript && (errorStart >= 0) && (errorEnd >= errorStart))
 	{
 		// figure out the script line, print it, show the error position
-		const std::string &script_string = p_script->String();
+		const std::string &script_string = currentScript->String();
 		int length = (int)script_string.length();
 		
-		if ((length >= p_start) && (length >= p_end))	// == is the EOF position, which we want to allow but have to treat carefully
+		if ((length >= errorStart) && (length >= errorEnd))	// == is the EOF position, which we want to allow but have to treat carefully
 		{
-			int lineStart = (p_start < length) ? p_start : length - 1;
-			int lineEnd = (p_end < length) ? p_end : length - 1;
+			int lineStart = (errorStart < length) ? errorStart : length - 1;
+			int lineEnd = (errorEnd < length) ? errorEnd : length - 1;
 			int lineNumber;
 			
 			for (; lineStart > 0; --lineStart)
@@ -770,11 +723,11 @@ void Eidos_LogScriptError(std::ostream& p_out, int p_start, int p_end, EidosScri
 					lineNumber++;
 			
 			gEidosErrorLine = lineNumber;
-			gEidosErrorLineCharacter = p_start - lineStart;
+			gEidosErrorLineCharacter = errorStart - lineStart;
 			
 			p_out << std::endl << "Error on script line " << gEidosErrorLine << ", character " << gEidosErrorLineCharacter;
 			
-			if (p_inside_lambda)
+			if (p_error_context.executingRuntimeScript)
 				p_out << " (inside runtime script block)";
 			
 			p_out << ":" << std::endl << std::endl;
@@ -795,7 +748,7 @@ void Eidos_LogScriptError(std::ostream& p_out, int p_start, int p_end, EidosScri
 			p_out << std::endl;
 			
 			// Emit the error indicator line, again emitting three spaces where the script had a tab
-			for (int i = lineStart; i < p_start; ++i)
+			for (int i = lineStart; i < errorStart; ++i)
 			{
 				char script_char = script_string[i];
 				
@@ -808,7 +761,7 @@ void Eidos_LogScriptError(std::ostream& p_out, int p_start, int p_end, EidosScri
 			}
 			
 			// Emit the error indicator
-			for (int i = 0; i < p_end - p_start + 1; ++i)
+			for (int i = 0; i < errorEnd - errorStart + 1; ++i)
 				p_out << "^";
 			
 			p_out << std::endl;
@@ -820,7 +773,7 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token)
 {
 	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
-		EidosScript::PushErrorPositionFromToken(p_error_token);
+		PushErrorPositionFromToken(p_error_token);
 }
 
 EidosTerminate::EidosTerminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
@@ -831,7 +784,7 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token, bool p_print_bac
 {
 	// This is the end of the line, so we don't need to treat the error position as a stack
 	if (p_error_token)
-		EidosScript::PushErrorPositionFromToken(p_error_token);
+		PushErrorPositionFromToken(p_error_token);
 }
 
 void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
@@ -854,7 +807,10 @@ void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 		// In this case, EidosTerminate() does in fact terminate; this is appropriate when errors are simply fatal and there is no UI.
 		// In this case, we want to emit a diagnostic showing the line of script where the error occurred, if we can.
 		// This facility uses only the non-UTF16 positions, since it is based on std::string, so those positions can be ignored.
-		Eidos_LogScriptError(p_out, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+		Eidos_LogScriptError(p_out, gEidosErrorContext);
+		
+		// Try to flush any outstanding file buffers
+		Eidos_FlushFiles();
 		
 		exit(EXIT_FAILURE);
 	}
@@ -1145,7 +1101,7 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 
 
 #pragma mark -
-#pragma mark Utility functions
+#pragma mark File I/O
 #pragma mark -
 
 // resolve a leading ~ in a filesystem path to the user's home directory
@@ -1491,6 +1447,179 @@ int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len)
 	p_pattern[0] = '\0';
 	return -1;
 }
+
+#if EIDOS_BUFFER_ZIP_APPENDS
+// This contains all unflushed append data for zip files written by writeFile(); see Eidos_FlushFiles() below
+std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
+
+// This flushes the bytes in outstring to the file at file_path, with gzip append
+bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring)
+{
+	//std::cout << "_Eidos_FlushZipBuffer() called for " << file_path << std::endl;
+	
+	gzFile gzf = z_gzopen(file_path.c_str(), "ab");
+	
+	if (!gzf)
+		return false;
+	
+	const char *outcstr = outstring.c_str();
+	size_t outcstr_length = outstring.length();
+	
+	// do the writing with zlib
+	bool success = false;
+	int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+	
+	if (retval != -1)
+	{
+		retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+		
+		if (retval != 0)
+		{
+			retval = gzclose_w(gzf);
+			
+			if (retval == Z_OK)
+				success = true;
+		}
+	}
+	
+	return success;
+}
+#endif
+
+// This flushes a given file, if it is buffering zip output
+void Eidos_FlushFile(const std::string &p_file_path)
+{
+#if EIDOS_BUFFER_ZIP_APPENDS
+	auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
+	
+	if (buffer_iter != gEidosBufferedZipAppendData.end())
+	{
+		bool result = _Eidos_FlushZipBuffer(buffer_iter->first, buffer_iter->second);
+		
+		if (!result)
+			EIDOS_TERMINATION << "ERROR (Eidos_FlushFile): Flush of gzip data to file " << buffer_iter->first << " failed!" << EidosTerminate(nullptr);
+		
+		gEidosBufferedZipAppendData.erase(buffer_iter);
+	}
+#endif
+}
+
+// This flushes all outstanding buffered zip data to the appropriate files
+void Eidos_FlushFiles(void)
+{
+#if EIDOS_BUFFER_ZIP_APPENDS
+	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
+	for (auto &buffer_pair : gEidosBufferedZipAppendData)
+	{
+		bool result = _Eidos_FlushZipBuffer(buffer_pair.first, buffer_pair.second);
+		
+		if (!result)
+		{
+			// Note that we do this without a raise, because we often want to flush when we're already handling a raise; simpler to just log, the user will figure it out...
+			std::cerr << std::endl << "ERROR (Eidos_FlushFiles): Flush of gzip data to file " << buffer_pair.first << " failed!" << std::endl;
+		}
+	}
+	
+	gEidosBufferedZipAppendData.clear();
+#endif
+}
+
+void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::string *> p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option)
+{
+	// note that we add a newline after the last line in all cases, so that appending new content to a file produces correct line breaks
+	
+	if (p_compress)
+	{
+		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
+		#if EIDOS_BUFFER_ZIP_APPENDS
+		if (p_append)
+		{
+			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS is true
+			auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
+			
+			if (buffer_iter == gEidosBufferedZipAppendData.end())
+				buffer_iter = gEidosBufferedZipAppendData.emplace(std::pair<std::string, std::string>(p_file_path, "")).first;
+			
+			std::string &buffer = buffer_iter->second;
+			
+			// append lines to the buffer; this copies bytes, which is a bit inefficient but shouldn't matter in the big picture
+			for (const std::string *content_line : p_contents)
+			{
+				buffer.append(*content_line);
+				buffer.append(1, '\n');
+			}
+			
+			// if the buffer data exceeds a (somewhat arbitrary) 128K buffer maximum, write it out and remove the buffer entry
+			if ((p_flush_option == EidosFileFlush::kForceFlush) ||
+				((p_flush_option == EidosFileFlush::kDefaultFlush) && (buffer.length() > 1024L * 128L)))
+			{
+				bool result = _Eidos_FlushZipBuffer(p_file_path, buffer);
+				gEidosBufferedZipAppendData.erase(buffer_iter);
+				
+				if (!result)
+					EIDOS_TERMINATION << "#ERROR (Eidos_WriteToFile): could not flush zip buffer to file at path " << p_file_path << "." << EidosTerminate(nullptr);
+			}
+		}
+		else
+		#endif
+		{
+			// this code can handle both the append and the non-append case, but the append case may generate very low-quality
+			// compression (potentially even worse than the uncompressed data) due to having an excess of gzip headers
+			gzFile gzf = z_gzopen(p_file_path.c_str(), p_append ? "ab" : "wb");
+			
+			if (!gzf)
+				EIDOS_TERMINATION << "#ERROR (Eidos_WriteToFile): could not write to file at path " << p_file_path << "." << EidosTerminate(nullptr);
+			
+			std::ostringstream outstream;
+			
+			for (const std::string *content_line : p_contents)
+				outstream << *content_line << std::endl;
+			
+			std::string outstring = outstream.str();
+			const char *outcstr = outstring.c_str();
+			size_t outcstr_length = strlen(outcstr);
+			
+			// do the writing with zlib
+			bool failed = true;
+			int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+			
+			if (retval != -1)
+			{
+				retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+				
+				if (retval != 0)
+				{
+					retval = gzclose_w(gzf);
+					
+					if (retval == Z_OK)
+						failed = false;
+				}
+			}
+			
+			if (failed)
+				EIDOS_TERMINATION << "#ERROR (Eidos_WriteToFile): encountered zlib errors while writing to file at path " << p_file_path << "." << EidosTerminate(nullptr);
+		}
+	}
+	else
+	{
+		// no compression
+		std::ofstream file_stream(p_file_path.c_str(), p_append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
+		
+		if (!file_stream.is_open())
+			EIDOS_TERMINATION << "#ERROR (Eidos_WriteToFile): could not write to file at path " << p_file_path << "." << EidosTerminate(nullptr);
+		
+		for (const std::string *content_line : p_contents)
+			file_stream << *content_line << std::endl;
+		
+		if (file_stream.bad())
+			EIDOS_TERMINATION << "#ERROR (Eidos_WriteToFile): encountered stream errors while writing to file at path " << p_file_path << "." << EidosTerminate(nullptr);
+	}
+}
+
+
+#pragma mark -
+#pragma mark Utility functions
+#pragma mark -
 
 // Welch's t-test.  This function returns the p-value for a two-sided unpaired Welch's
 // t-test between two samples.  The null hypothesis is that the means of the two samples

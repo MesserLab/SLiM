@@ -2883,7 +2883,312 @@ Given this automatic invalidation, most simulations have no reason to call
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.8  Class Mutation\
+\f0\b\fs22 \cf2 \kerning1\expnd0\expndtw0 24.8  Class LogFile\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\b0 \cf2 24.8.1  
+\f2\fs18 LogFile
+\f1\fs22  properties\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 filePath => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The path of the log file being written to.  This may be changed with 
+\f3\fs18 setFilePath()
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 logInterval => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The interval for automatic logging; a new row of data will be logged every 
+\f3\fs18 logInterval
+\f4\fs20  generations.  This may be changed with 
+\f3\fs18 setLogInterval()
+\f4\fs20 .  If automatic logging has been disabled, this property will be 
+\f3\fs18 0
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 tag <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A user-defined 
+\f3\fs18 integer
+\f4\fs20  value.  The value of 
+\f3\fs18 tag
+\f4\fs20  is initially undefined, and it is an error to try to read it; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f3\fs18 tag
+\f4\fs20  is not used by SLiM; it is free for you to use.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 24.8.2  
+\f2\fs18 LogFile
+\f1\fs22  methods\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(void)addCustomColumn(string$\'a0columnName, string$\'a0source, [*\'a0context\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column with its name provided by 
+\f3\fs18 columnName
+\f4\fs20 .  The value for the column, when a given row is generated, will be produced by the code supplied in 
+\f3\fs18 source
+\f4\fs20 , which is expected to return either 
+\f3\fs18 NULL
+\f4\fs20  (which will write out 
+\f3\fs18 NA
+\f4\fs20 ), or a singleton value of any non-object type.\
+The 
+\f3\fs18 context
+\f4\fs20  parameter will be set up as a pseudo-parameter, named 
+\f3\fs18 context
+\f4\fs20 , when 
+\f3\fs18 source
+\f4\fs20  is called, allowing the same source code to be used to generate values for multiple data columns; you might, for example, provide the particular 
+\f3\fs18 Subpopulation
+\f4\fs20  object here that you wish 
+\f3\fs18 source
+\f4\fs20  to use for its calculations.  This is optional; if the default value of 
+\f3\fs18 NULL
+\f4\fs20  is used, then 
+\f3\fs18 context
+\f4\fs20  will be 
+\f3\fs18 NULL
+\f4\fs20  when 
+\f3\fs18 source
+\f4\fs20  is called.\
+See 
+\f3\fs18 addMeanSDColumns()
+\f4\fs20  for a useful variant.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addGeneration(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column that provides the generation number, named 
+\f3\fs18 generation
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addGenerationStage(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column that provides the generation cycle stage, named 
+\f3\fs18 gen_stage
+\f4\fs20 .  The stage is provided as a 
+\f3\fs18 string
+\f4\fs20 , and will typically be 
+\f3\fs18 "early"
+\f4\fs20 , 
+\f3\fs18 "late"
+\f4\fs20 , or 
+\f3\fs18 "end"
+\f4\fs20  (the latter used for the point in time at which end-of-generation automatic logging occurs).  If you call 
+\f3\fs18 logRow()
+\f4\fs20  during offspring generation (including from a 
+\f3\fs18 mateChoice()
+\f4\fs20 , 
+\f3\fs18 modifyChild()
+\f4\fs20 , 
+\f3\fs18 reproduction()
+\f4\fs20 , 
+\f3\fs18 recombination()
+\f4\fs20 , or 
+\f3\fs18 mutation()
+\f4\fs20  callback), this will be 
+\f3\fs18 "reproduction"
+\f4\fs20 ; if you call it during fitness evaluation, particularly from a 
+\f3\fs18 fitness()
+\f4\fs20  callback, this will be 
+\f3\fs18 "fitness"
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addKeysAndValuesFrom(object$\'a0source)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This 
+\f3\fs18 Dictionary
+\f4\fs20  method has an override in 
+\f3\fs18 LogFile
+\f4\fs20  to make it illegal to call, since 
+\f3\fs18 LogFile
+\f4\fs20  manages its 
+\f3\fs18 Dictionary
+\f4\fs20  entries.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addMeanSDColumns(string$\'a0columnName, string$\'a0source, [*\'a0context\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds two new data columns with names of 
+\f3\fs18 columnName_mean
+\f4\fs20  and 
+\f3\fs18 columnName_sd
+\f4\fs20 .  When a given row is generated, the code supplied in 
+\f3\fs18 source
+\f4\fs20  is expected to return either a zero-length vector of any type including 
+\f3\fs18 NULL
+\f4\fs20  (which will write out 
+\f3\fs18 NA
+\f4\fs20  to both columns), or a non-zero-length vector of 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  values.  In the latter case, the result vector will be summarized in the two columns by its mean and standard deviation respectively.  If the result vector has exactly one value, the standard deviation will be written as 
+\f3\fs18 NA
+\f4\fs20 .  The 
+\f3\fs18 context
+\f4\fs20  parameter is set up as a pseudo-parameter when 
+\f3\fs18 source
+\f4\fs20  is called, as described in 
+\f3\fs18 addCustomColumn()
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addPopulationSexRatio(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column that provides the population sex ratio M:(M+F), named 
+\f3\fs18 sex_ratio
+\f4\fs20 .  If the model is hermaphroditic, 
+\f3\fs18 NA
+\f4\fs20  will be written.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addPopulationSize(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column that provides the total population size, named 
+\f3\fs18 num_individuals
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addSubpopulationSexRatio(io<Subpopulation>$\'a0subpop)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column that provides the sex ratio M:(M+F) of the subpopulation 
+\f3\fs18 subpop
+\f4\fs20 , named 
+\f3\fs18 pX_sex_ratio
+\f4\fs20 .  If the subpopulation exists but has a size of zero, 
+\f3\fs18 NA
+\f4\fs20  will be written.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addSubpopulationSize(io<Subpopulation>$\'a0subpop)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column that provides the size of the subpopulation 
+\f3\fs18 subpop
+\f4\fs20 , named 
+\f3\fs18 pX_num_individuals
+\f4\fs20 .  If the subpopulation exists but has a size of zero, 
+\f3\fs18 0
+\f4\fs20  will be written.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)clearKeysAndValues(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This 
+\f3\fs18 Dictionary
+\f4\fs20  method has an override in 
+\f3\fs18 LogFile
+\f4\fs20  to make it illegal to call, since 
+\f3\fs18 LogFile
+\f4\fs20  manages its 
+\f3\fs18 Dictionary
+\f4\fs20  entries.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)flush(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Flushes all buffered data to the output file, synchronously.  This will make the contents of the file on disk be up-to-date with the running simulation.  Flushing frequently may entail a small performance penalty.  More importantly, if 
+\f3\fs18 .gz
+\f4\fs20  compression has been requested with 
+\f3\fs18 compress=T
+\f4\fs20  the size of the resulting file will be larger \'96 potentially much larger \'96 if 
+\f3\fs18 flush()
+\f4\fs20  is called frequently.  Note that automatic periodic flushing can be requested with the 
+\f3\fs18 flushInterval
+\f4\fs20  parameter to 
+\f3\fs18 createLogFile()
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)logRow(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This logs a new row of data, by evaluating all of the generators added to the 
+\f3\fs18 LogFile
+\f4\fs20  with 
+\f3\fs18 add...()
+\f4\fs20  calls.  Note that the new row may be buffered, and thus may not be written out to disk immediately; see 
+\f3\fs18 flush()
+\f4\fs20 .  This method may be used instead of, or in conjunction with, automatic logging.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setLogInterval([Ni$\'a0logInterval\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets the automatic logging interval.  A 
+\f3\fs18 logInterval
+\f4\fs20  of 
+\f3\fs18 NULL
+\f4\fs20  stops automatic logging immediately.  Other values request that a new row should be logged (as if 
+\f3\fs18 logRow()
+\f4\fs20  were called) at the end of every 
+\f3\fs18 logInterval
+\f4\fs20  generations (just before the generation count increment, in both WF and nonWF models), starting at the end of the generation in which 
+\f3\fs18 setLogInterval()
+\f4\fs20  was called.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setFilePath(string$\'a0filePath, [Ns\'a0initialContents\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Nl$\'a0compress\'a0=\'a0NULL], [Ns$\'a0sep\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Redirects the 
+\f3\fs18 LogFile
+\f4\fs20  to write new rows to a new 
+\f3\fs18 filePath
+\f4\fs20 .  Any rows that have been buffered but not flushed will be written to the previous file first, as if 
+\f3\fs18 flush()
+\f4\fs20  had been called.  With this call, new 
+\f3\fs18 initialContents
+\f4\fs20  may be supplied, which will either replace any existing file or will be appended to it, depending upon the value of 
+\f3\fs18 append
+\f4\fs20 .  New values may be supplied for 
+\f3\fs18 compress
+\f4\fs20  and 
+\f3\fs18 sep
+\f4\fs20 ; the meaning of these parameters is identical to their meaning in 
+\f3\fs18 createLogFile()
+\f4\fs20 , except that a value of 
+\f3\fs18 NULL
+\f4\fs20  for these means \'93do not change this setting from its previous value\'94.  In effect, then, this method lets you start a completely new log file at a new path, without having to create and configure a new 
+\f3\fs18 LogFile
+\f4\fs20  object.  The new file will be created (or appended) synchronously, with the specified initial contents.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, *\'a0value)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This 
+\f3\fs18 Dictionary
+\f4\fs20  method has an override in 
+\f3\fs18 LogFile
+\f4\fs20  to make it illegal to call, since 
+\f3\fs18 LogFile
+\f4\fs20  manages its 
+\f3\fs18 Dictionary
+\f4\fs20  entries.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 5.8  Class Mutation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\b0 \cf0 5.8.1  
@@ -3823,6 +4128,14 @@ This property has been deprecated, and may be removed in a future release of SLi
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 logFiles => (object<LogFile>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 LogFile
+\f4\fs20  objects being used in the simulation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 modelType => (string$)\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4004,9 +4317,7 @@ The spatial periodicity of the simulation, as specified in
 \f5 \
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (integer$)countOfMutationsOfType(io<MutationType>$\'a0mutType)
+\f3\fs18 \cf2 \'96\'a0\cf0 (integer$)countOfMutationsOfType(io<MutationType>$\'a0mutType)
 \f5 \
 \pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4019,6 +4330,96 @@ The spatial periodicity of the simulation, as specified in
 \f5\fs20 .
 \f4   This method is often used to determine whether an introduced mutation is still active (as opposed to being either lost or fixed).  This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f5 \
+\pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<LogFile>$)createLogFile(string$\'a0filePath, [Ns\'a0initialContents\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F], [string$\'a0sep\'a0=\'a0","], [Ni$\'a0logInterval\'a0=\'a0NULL], [Ni$\'a0flushInterval\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Creates and returns a new 
+\f3\fs18 LogFile
+\f4\fs20  object that logs data from the simulation (see the documentation for the 
+\f3\fs18 LogFile
+\f4\fs20  class for details).  Logged data will be written to the file at 
+\f3\fs18 filePath
+\f4\fs20 , overwriting any existing file at that path by default, or appending to it instead if 
+\f3\fs18 append
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (successive rows of the log table will always be appended to the previously written content, of course).  Before the header line for the log is written out, any 
+\f3\fs18 string
+\f4\fs20  elements in 
+\f3\fs18 initialContents
+\f4\fs20  will be written first, separated by newlines, allowing for a user-defined file header.  If 
+\f3\fs18 compress
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the contents will be compressed with 
+\f3\fs18 zlib
+\f4\fs20  as they are written, and the standard 
+\f3\fs18 .gz
+\f4\fs20  extension for gzip-compressed files will be appended to the filename in 
+\f3\fs18 filePath
+\f4\fs20  if it is not already present.\
+The 
+\f3\fs18 sep
+\f4\fs20  parameter specifies the separator between data values within a row.  The default of 
+\f3\fs18 ","
+\f4\fs20  will generate a \'93comma-separated value\'94 (CSV) file, while passing 
+\f3\fs18 sep="\\t"
+\f4\fs20  will use a tab separator instead to generate a \'93tab-separated value\'94 (TSV) file.  Other values for 
+\f3\fs18 sep
+\f4\fs20  may also be used, but are less standard.\
+LogTable supports periodic automatic logging of a new row of data, enabled by supplying a non-
+\f3\fs18 NULL
+\f4\fs20  value for 
+\f3\fs18 logInterval
+\f4\fs20 .  In this case, a new row will be logged (as if 
+\f3\fs18 logRow()
+\f4\fs20  were called on the 
+\f3\fs18 LogFile
+\f4\fs20 ) at the end of every 
+\f3\fs18 logInterval
+\f4\fs20  generations (just before the generation counter increments, in both WF and nonWF models), starting at the end of the generation in which the 
+\f3\fs18 LogFile
+\f4\fs20  was created.  A 
+\f3\fs18 logInterval
+\f4\fs20  of 
+\f3\fs18 1
+\f4\fs20  will cause automatic logging at the end of every generation, whereas a 
+\f3\fs18 logInterval
+\f4\fs20  of 
+\f3\fs18 NULL
+\f4\fs20  disables automatic logging.  Automatic logging can always be disabled or reconfigured later with the 
+\f3\fs18 LogFile
+\f4\fs20  method 
+\f3\fs18 setLogInterval()
+\f4\fs20 , or logging can be triggered manually by calling 
+\f3\fs18 logRow()
+\f4\fs20 .\
+When compression is enabled, 
+\f3\fs18 LogFile
+\f4\fs20  flushes new data lazily by default, for performance reasons, buffering data for multiple rows before writing to disk.  Passing a non-
+\f3\fs18 NULL
+\f4\fs20  value for 
+\f3\fs18 flushInterval
+\f4\fs20  requests a flush every 
+\f3\fs18 flushInterval
+\f4\fs20  rows (with a value of 
+\f3\fs18 1
+\f4\fs20  providing unbuffered operation).  Note that flushing very frequently will likely result in both lower performance and a larger final file size (in one simple test, 
+\f3\fs18 48943
+\f4\fs20  bytes instead of 
+\f3\fs18 4280
+\f4\fs20  bytes, or more than a 10\'d7 increase in size).  Alternatively, passing a very large value for 
+\f3\fs18 flushInterval
+\f4\fs20  will effectively disable automatic flushing, except at the end of the simulation (but be aware that this may use a large amount of memory for large log files).  In any case, the log file will be created immediately, with its requested initial contents; the initial write is not buffered.  When compression is not enabled, the 
+\f3\fs18 flushInterval
+\f4\fs20  setting is ignored.\
+The 
+\f3\fs18 LogFile
+\f4\fs20  documentation discusses how to configure and use 
+\f3\fs18 LogFile
+\f4\fs20  to write out the data you are interested in from your simulation; see section 24.9.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)deregisterScriptBlock(io<SLiMEidosBlock>\'a0scriptBlocks)\

@@ -56,8 +56,8 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new SLiMSim(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		return;
 	}
 	
@@ -74,8 +74,8 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneGeneration(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosCurrentScript = nullptr;
-		gEidosExecutingRuntimeScript = false;
+		gEidosErrorContext.currentScript = nullptr;
+		gEidosErrorContext.executingRuntimeScript = false;
 		return;
 	}
 	
@@ -87,8 +87,8 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	
 	//std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = nullptr;
+	gEidosErrorContext.executingRuntimeScript = false;
 }
 
 void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip, int p_lineNumber)
@@ -119,7 +119,9 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 		{
 			if (raise_message.find(p_reason_snip) != std::string::npos)
 			{
-				if ((gEidosCharacterStartOfError == -1) || (gEidosCharacterEndOfError == -1) || !gEidosCurrentScript)
+				if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
+					(gEidosErrorContext.errorPosition.characterEndOfError == -1) ||
+					!gEidosErrorContext.currentScript)
 				{
 					if ((p_bad_line == -1) && (p_bad_position == -1))
 					{
@@ -141,7 +143,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 				}
 				else
 				{
-					Eidos_ScriptErrorPosition(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
+					Eidos_ScriptErrorPosition(gEidosErrorContext);
 					
 					if ((gEidosErrorLine != p_bad_line) || (gEidosErrorLineCharacter != p_bad_position))
 					{
@@ -152,7 +154,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 						
 						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected" << std::endl;
 						std::cerr << "   raise message: " << raise_message << std::endl;
-						Eidos_LogScriptError(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+						Eidos_LogScriptError(std::cerr, gEidosErrorContext);
 						std::cerr << "--------------------" << std::endl << std::endl;
 					}
 					else
@@ -197,8 +199,8 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 	delete sim;
 	MutationRun::DeleteMutationRunFreeList();
 	
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = nullptr;
+	gEidosErrorContext.executingRuntimeScript = false;
 }
 
 void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
@@ -235,10 +237,12 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : stop() not reached" << std::endl;
 			std::cerr << "   raise message: " << raise_message << std::endl;
 			
-			if ((gEidosCharacterStartOfError != -1) && (gEidosCharacterEndOfError != -1) && gEidosCurrentScript)
+			if ((gEidosErrorContext.errorPosition.characterStartOfError != -1) &&
+				(gEidosErrorContext.errorPosition.characterEndOfError != -1) &&
+				gEidosErrorContext.currentScript)
 			{
-				Eidos_ScriptErrorPosition(gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript);
-				Eidos_LogScriptError(std::cerr, gEidosCharacterStartOfError, gEidosCharacterEndOfError, gEidosCurrentScript, gEidosExecutingRuntimeScript);
+				Eidos_ScriptErrorPosition(gEidosErrorContext);
+				Eidos_LogScriptError(std::cerr, gEidosErrorContext);
 			}
 			
 			std::cerr << "--------------------" << std::endl << std::endl;
@@ -254,8 +258,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 	delete sim;
 	MutationRun::DeleteMutationRunFreeList();
 	
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
+	gEidosErrorContext.currentScript = nullptr;
+	gEidosErrorContext.executingRuntimeScript = false;
 }
 
 

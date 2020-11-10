@@ -4097,6 +4097,29 @@ Returns the transpose
 \f1\fs18 NULL
 \f3\fs20  will be returned.
 \f2 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical$)flushFile(string$\'a0filePath)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Flushes buffered content to a file
+\f3\b0  specified by 
+\f1\fs18 filePath
+\f3\fs20 .  Normally, written data is buffered by 
+\f1\fs18 writeFile()
+\f3\fs20  if the 
+\f1\fs18 compress
+\f3\fs20  option of that function is 
+\f1\fs18 T
+\f3\fs20 , holding the data in memory rather than writing it to disk immediately.  This buffering improves both performance and file size; however, sometimes it is desirable to flush the buffered data to disk with 
+\f1\fs18 flush()
+\f3\fs20  so that the filesystem is up to date.  Note that flushing after every write is not recommended, since it will lose all of the benefits of buffering.  Calling 
+\f1\fs18 flushFile()
+\f3\fs20  for a path that has not been written to, or is not being buffered, will do nothing.  If the flush is successful, 
+\f1\fs18 T
+\f3\fs20  will be returned; if not, 
+\f1\fs18 F
+\f3\fs20  will be returned (but at present, an error will result instead).\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -4187,14 +4210,13 @@ See
 \f1\fs18 filePath
 \f3\fs20 ; if it is 
 \f1\fs18 F
-\f3\fs20  (the default), then the write will replace an existing file at that path.  If the write is successful, 
+\f3\fs20  (the default), then the write will replace an existing file at that path.\cf2   If the write is successful, 
 \f1\fs18 T
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
-\f3\fs20  will be returned.\
+\f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
-If 
+\cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
 \f1\fs18 T
@@ -4210,13 +4232,15 @@ If
 \f1\fs18 compress
 \f3\fs20  option is used in conjunction with 
 \f1\fs18 append==T
-\f3\fs20 , Eidos will accumulate data to append and flush it to the file in a delayed fashion (for performance reasons), and so appended data may not be visible in the file until later \'96 potentially not until the process ends (i.e., the end of the SLiM simulation, for example).  The 
+\f3\fs20 , Eidos will buffer data to append and flush it to the file in a delayed fashion (for performance reasons), and so appended data may not be visible in the file until later \'96 potentially not until the process ends (i.e., the end of the SLiM simulation, for example).  If that delay if undesirable, buffered data can be explicitly flushed to the filesystem with 
+\f1\fs18 flushFile()
+\f3\fs20 .  The 
 \f1\fs18 compress
 \f3\fs20  option was added in Eidos 2.4 (SLiM 3.4).  Note that 
 \f1\fs18 readFile()
 \f3\fs20  does not currently support reading in compressed data.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 Note that newline characters will be added at the ends of the lines in 
+\cf0 Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f3\fs20 .  If you do not wish to have newlines added, you should use 
 \f1\fs18 paste()

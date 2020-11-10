@@ -199,17 +199,12 @@ void QtSLiMTextEdit::selectErrorRange(void)
 {
 	// If there is error-tracking information set, and the error is not attributed to a runtime script
 	// such as a lambda or a callback, then we can highlight the error range
-	if (!gEidosExecutingRuntimeScript && (gEidosCharacterStartOfErrorUTF16 >= 0) && (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16))
-        highlightError(gEidosCharacterStartOfErrorUTF16, gEidosCharacterEndOfErrorUTF16 + 1);
+	if (!gEidosErrorContext.executingRuntimeScript && (gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) && (gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
+        highlightError(gEidosErrorContext.errorPosition.characterStartOfErrorUTF16, gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + 1);
 	
 	// In any case, since we are the ultimate consumer of the error information, we should clear out
 	// the error state to avoid misattribution of future errors
-	gEidosCharacterStartOfError = -1;
-	gEidosCharacterEndOfError = -1;
-	gEidosCharacterStartOfErrorUTF16 = -1;
-	gEidosCharacterEndOfErrorUTF16 = -1;
-	gEidosCurrentScript = nullptr;
-	gEidosExecutingRuntimeScript = false;
+    gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
 }
 
 QStatusBar *QtSLiMTextEdit::statusBarForWindow(void)

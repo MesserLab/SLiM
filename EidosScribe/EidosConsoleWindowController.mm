@@ -501,11 +501,14 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			[outputTextView appendSpacer];
 		}
 		
-		if (errorString && !gEidosExecutingRuntimeScript && (gEidosCharacterStartOfErrorUTF16 >= 0) && (gEidosCharacterEndOfErrorUTF16 >= gEidosCharacterStartOfErrorUTF16) && (scriptRange.location != NSNotFound))
+		if (errorString && !gEidosErrorContext.executingRuntimeScript &&
+			(gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
+			(gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16) &&
+			(scriptRange.location != NSNotFound))
 		{
 			// An error occurred, so let's try to highlight it in the input
-			int errorTokenStart = gEidosCharacterStartOfErrorUTF16 + (int)scriptRange.location;
-			int errorTokenEnd = gEidosCharacterEndOfErrorUTF16 + (int)scriptRange.location;
+			int errorTokenStart = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 + (int)scriptRange.location;
+			int errorTokenEnd = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + (int)scriptRange.location;
 			
 			NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
 			

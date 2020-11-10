@@ -84,6 +84,7 @@ extern EidosValue_String_SP gStaticEidosValue_StringEmpty;
 extern EidosValue_String_SP gStaticEidosValue_StringSpace;
 extern EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 extern EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
+extern EidosValue_String_SP gStaticEidosValue_StringComma;
 
 
 #pragma mark -

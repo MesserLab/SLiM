@@ -335,6 +335,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getwd",				Eidos_ExecuteFunction_getwd,		kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("deleteFile",		Eidos_ExecuteFunction_deleteFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("fileExists",		Eidos_ExecuteFunction_fileExists,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("flushFile",			Eidos_ExecuteFunction_flushFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S(gEidosStr_filePath));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setwd",				Eidos_ExecuteFunction_setwd,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("path"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
@@ -9148,24 +9149,14 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	// reported as occurring in the call to sapply().  Here we save off the current
 	// error context and set up the error context for reporting errors inside the lambda,
 	// in case that is possible; see how exceptions are handled below.
-	int error_start_save = gEidosCharacterStartOfError;
-	int error_end_save = gEidosCharacterEndOfError;
-	int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
-	int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
-	EidosScript *current_script_save = gEidosCurrentScript;
-	bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+	EidosErrorContext error_context_save = gEidosErrorContext;
 	
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
 		script = new EidosScript(lambda_value->StringAtIndex(0, nullptr));
 		
-		gEidosCharacterStartOfError = -1;
-		gEidosCharacterEndOfError = -1;
-		gEidosCharacterStartOfErrorUTF16 = -1;
-		gEidosCharacterEndOfErrorUTF16 = -1;
-		gEidosCurrentScript = script;
-		gEidosExecutingRuntimeScript = true;
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
 		try
 		{
@@ -9175,14 +9166,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
-			{
-				gEidosCharacterStartOfError = error_start_save;
-				gEidosCharacterEndOfError = error_end_save;
-				gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-				gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-				gEidosCurrentScript = current_script_save;
-				gEidosExecutingRuntimeScript = executing_runtime_script_save;
-			}
+				gEidosErrorContext = error_context_save;
 			
 			delete script;
 			
@@ -9195,12 +9179,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	
 	std::vector<EidosValue_SP> results;
 	
-	gEidosCharacterStartOfError = -1;
-	gEidosCharacterEndOfError = -1;
-	gEidosCharacterStartOfErrorUTF16 = -1;
-	gEidosCharacterEndOfErrorUTF16 = -1;
-	gEidosCurrentScript = script;
-	gEidosExecutingRuntimeScript = true;
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 	
 	try
 	{
@@ -9341,14 +9320,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-		{
-			gEidosCharacterStartOfError = error_start_save;
-			gEidosCharacterEndOfError = error_end_save;
-			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-			gEidosCurrentScript = current_script_save;
-			gEidosExecutingRuntimeScript = executing_runtime_script_save;
-		}
+			gEidosErrorContext = error_context_save;
 		
 		if (!lambda_value_singleton)
 			delete script;
@@ -9357,12 +9329,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	}
 	
 	// Restore the normal error context in the event that no exception occurring within the lambda
-	gEidosCharacterStartOfError = error_start_save;
-	gEidosCharacterEndOfError = error_end_save;
-	gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-	gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-	gEidosCurrentScript = current_script_save;
-	gEidosExecutingRuntimeScript = executing_runtime_script_save;
+	gEidosErrorContext = error_context_save;
 	
 	if (!lambda_value_singleton)
 		delete script;
@@ -10285,20 +10252,40 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 	return result_SP;
 }
 
-//	(logical$)writeFile(string$ filePath, string contents, [logical$ append = F], [logical$ compress = F])
-EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+//	(logical$)flushFile(string$ filePath)
+EidosValue_SP Eidos_ExecuteFunction_flushFile(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
-	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
-	// the second argument is the file contents to write
-	EidosValue *contents_value = p_arguments[1].get();
+	// note that writeFile() adds ".gz" to the filename if compression is specified and it is not already present; we don't,
+	// since we don't know if compression is on for this file; the user will therefore have to use the correct path
+	
+	// flush the contents out
+	Eidos_FlushFile(file_path);
+	
+	return gStaticEidosValue_LogicalT;	// we used to return F if we had a warning condition; now those are errors, so we always return T
+}
+
+//	(logical$)writeFile(string$ filePath, string contents, [logical$ append = F], [logical$ compress = F])
+EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue *filePath_value = p_arguments[0].get();
+	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string file_path = Eidos_ResolvedPath(base_path);
+	
+	// the second argument is the file contents to write, which we put into a vector
+	EidosValue_String *contents_value = (EidosValue_String *)p_arguments[1].get();
 	int contents_count = contents_value->Count();
+	std::vector<const std::string *> contents_buffer;
+	
+	for (int value_index = 0; value_index < contents_count; ++value_index)
+		contents_buffer.push_back(&contents_value->StringRefAtIndex(value_index, nullptr));
 	
 	// the third argument is an optional append flag, F by default
 	bool append = p_arguments[2]->LogicalAtIndex(0, nullptr);
@@ -10310,159 +10297,9 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 		file_path.append(".gz");
 	
 	// write the contents out
-	if (do_compress)
-	{
-		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
-		#if EIDOS_BUFFER_ZIP_APPENDS
-		if (append)
-		{
-			// the append case gets handled by _Eidos_FlushZipBuffer() if EIDOS_BUFFER_ZIP_APPENDS is true
-			auto buffer_iter = gEidosBufferedZipAppendData.find(file_path);
-			
-			if (buffer_iter == gEidosBufferedZipAppendData.end())
-				buffer_iter = gEidosBufferedZipAppendData.emplace(std::pair<std::string, std::string>(file_path, "")).first;
-			
-			std::string &buffer = buffer_iter->second;
-			
-			// append lines to the buffer; this copies bytes, which is a bit inefficient but shouldn't matter in the big picture
-			if (contents_count == 1)
-			{
-				buffer.append(contents_value->StringAtIndex(0, nullptr));
-				buffer.append(1, '\n');
-			}
-			else
-			{
-				const std::vector<std::string> &string_vec = *contents_value->StringVector();
-				
-				for (int value_index = 0; value_index < contents_count; ++value_index)
-				{
-					buffer.append(string_vec[value_index]);
-					buffer.append(1, '\n');
-				}
-			}
-			
-			// if the buffer data exceeds a (somewhat arbitrary) 128K buffer maximum, write it out and remove the buffer entry
-			bool result = true;
-			
-			if (buffer.length() > (1024L * 128L))
-			{
-				result = _Eidos_FlushZipBuffer(file_path, buffer);
-				gEidosBufferedZipAppendData.erase(buffer_iter);
-				
-				if (!result && !gEidosSuppressWarnings)
-					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not flush zip buffer to file at path " << file_path << "." << std::endl;
-				
-			}
-			
-			result_SP = result ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-		}
-		else
-		#endif
-		{
-			// this code can handle both the append and the non-append case, but the append case may generate very low-quality
-			// compression (potentially even worse than the uncompressed data) due to having an excess of gzip headers
-			gzFile gzf = z_gzopen(file_path.c_str(), append ? "ab" : "wb");
-			
-			if (!gzf)
-			{
-				if (!gEidosSuppressWarnings)
-					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
-				result_SP = gStaticEidosValue_LogicalF;
-			}
-			else
-			{
-				std::ostringstream outstream;
-				
-				if (contents_count == 1)
-				{
-					outstream << contents_value->StringAtIndex(0, nullptr) << std::endl;
-				}
-				else
-				{
-					const std::vector<std::string> &string_vec = *contents_value->StringVector();
-					
-					for (int value_index = 0; value_index < contents_count; ++value_index)
-						outstream << string_vec[value_index] << std::endl;
-				}
-				
-				std::string outstring = outstream.str();
-				const char *outcstr = outstring.c_str();
-				size_t outcstr_length = strlen(outcstr);
-				
-				// do the writing with zlib
-				bool failed = true;
-				int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
-				
-				if (retval != -1)
-				{
-					retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
-					
-					if (retval != 0)
-					{
-						retval = gzclose_w(gzf);
-						
-						if (retval == Z_OK)
-							failed = false;
-					}
-				}
-				
-				if (failed)
-					if (!gEidosSuppressWarnings)
-						p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered zlib errors while writing to file at path " << file_path << "." << std::endl;
-				
-				result_SP = failed ? gStaticEidosValue_LogicalF : gStaticEidosValue_LogicalT;
-			}
-		}
-	}
-	else
-	{
-		// no compression
-		std::ofstream file_stream(file_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
-		
-		if (!file_stream.is_open())
-		{
-			if (!gEidosSuppressWarnings)
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() could not write to file at path " << file_path << "." << std::endl;
-			result_SP = gStaticEidosValue_LogicalF;
-		}
-		else
-		{
-			if (contents_count == 1)
-			{
-				// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-				// Note that system() and writeTempFile() do not append this newline, to allow the user to exactly specify file contents,
-				// but with writeFile() appending seems more likely to me; we'll see if anybody squawks
-				file_stream << contents_value->StringAtIndex(0, nullptr) << std::endl;
-			}
-			else
-			{
-				const std::vector<std::string> &string_vec = *contents_value->StringVector();
-				
-				for (int value_index = 0; value_index < contents_count; ++value_index)
-				{
-					file_stream << string_vec[value_index];
-					
-					// Add newlines after all lines but the last
-					// BCH 27 January 2017: changed to add a newline after the last line, too, so appending new content to a file produces correct line breaks
-					//if (value_index + 1 < contents_count)
-					file_stream << std::endl;
-				}
-			}
-			
-			if (file_stream.bad())
-			{
-				if (!gEidosSuppressWarnings)
-					p_interpreter.ExecutionOutputStream() << "#WARNING (Eidos_ExecuteFunction_writeFile): function writeFile() encountered stream errors while writing to file at path " << file_path << "." << std::endl;
-				result_SP = gStaticEidosValue_LogicalF;
-			}
-			else
-			{
-				result_SP = gStaticEidosValue_LogicalT;
-			}
-		}
-	}
+	Eidos_WriteToFile(file_path, contents_buffer, append, do_compress, EidosFileFlush::kDefaultFlush);
 	
-	return result_SP;
+	return gStaticEidosValue_LogicalT;	// we used to return F if we had a warning condition; now those are errors, so we always return T
 }
 
 //	(string$)writeTempFile(string$ prefix, string$ suffix, string contents, [logical$ compress = F])
@@ -11248,24 +11085,14 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	// reported as occurring in the call to executeLambda().  Here we save off the current
 	// error context and set up the error context for reporting errors inside the lambda,
 	// in case that is possible; see how exceptions are handled below.
-	int error_start_save = gEidosCharacterStartOfError;
-	int error_end_save = gEidosCharacterEndOfError;
-	int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
-	int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
-	EidosScript *current_script_save = gEidosCurrentScript;
-	bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+	EidosErrorContext error_context_save = gEidosErrorContext;
 	
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
 		script = new EidosScript(lambdaSource_value->StringAtIndex(0, nullptr));
 		
-		gEidosCharacterStartOfError = -1;
-		gEidosCharacterEndOfError = -1;
-		gEidosCharacterStartOfErrorUTF16 = -1;
-		gEidosCharacterEndOfErrorUTF16 = -1;
-		gEidosCurrentScript = script;
-		gEidosExecutingRuntimeScript = true;
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
 		try
 		{
@@ -11285,14 +11112,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
-			{
-				gEidosCharacterStartOfError = error_start_save;
-				gEidosCharacterEndOfError = error_end_save;
-				gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-				gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-				gEidosCurrentScript = current_script_save;
-				gEidosExecutingRuntimeScript = executing_runtime_script_save;
-			}
+				gEidosErrorContext = error_context_save;
 			
 			delete script;
 			
@@ -11337,12 +11157,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	std::clock_t begin_clock = 0, end_clock = 0;
 	std::chrono::steady_clock::time_point begin_ts, end_ts;
 	
-	gEidosCharacterStartOfError = -1;
-	gEidosCharacterEndOfError = -1;
-	gEidosCharacterStartOfErrorUTF16 = -1;
-	gEidosCharacterEndOfErrorUTF16 = -1;
-	gEidosCurrentScript = script;
-	gEidosExecutingRuntimeScript = true;
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 	
 	try
 	{
@@ -11384,14 +11199,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-		{
-			gEidosCharacterStartOfError = error_start_save;
-			gEidosCharacterEndOfError = error_end_save;
-			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-			gEidosCurrentScript = current_script_save;
-			gEidosExecutingRuntimeScript = executing_runtime_script_save;
-		}
+			gEidosErrorContext = error_context_save;
 		
 		if (!lambdaSource_value_singleton)
 			delete script;
@@ -11400,12 +11208,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	}
 	
 	// Restore the normal error context in the event that no exception occurring within the lambda
-	gEidosCharacterStartOfError = error_start_save;
-	gEidosCharacterEndOfError = error_end_save;
-	gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-	gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-	gEidosCurrentScript = current_script_save;
-	gEidosExecutingRuntimeScript = executing_runtime_script_save;
+	gEidosErrorContext = error_context_save;
 	
 	if (timed)
 	{
@@ -11658,24 +11461,14 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// reported as occurring in the call to sapply().  Here we save off the current
 	// error context and set up the error context for reporting errors inside the lambda,
 	// in case that is possible; see how exceptions are handled below.
-	int error_start_save = gEidosCharacterStartOfError;
-	int error_end_save = gEidosCharacterEndOfError;
-	int error_start_save_UTF16 = gEidosCharacterStartOfErrorUTF16;
-	int error_end_save_UTF16 = gEidosCharacterEndOfErrorUTF16;
-	EidosScript *current_script_save = gEidosCurrentScript;
-	bool executing_runtime_script_save = gEidosExecutingRuntimeScript;
+	EidosErrorContext error_context_save = gEidosErrorContext;
 	
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
 		script = new EidosScript(lambda_value->StringAtIndex(0, nullptr));
 		
-		gEidosCharacterStartOfError = -1;
-		gEidosCharacterEndOfError = -1;
-		gEidosCharacterStartOfErrorUTF16 = -1;
-		gEidosCharacterEndOfErrorUTF16 = -1;
-		gEidosCurrentScript = script;
-		gEidosExecutingRuntimeScript = true;
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
 		try
 		{
@@ -11685,14 +11478,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
-			{
-				gEidosCharacterStartOfError = error_start_save;
-				gEidosCharacterEndOfError = error_end_save;
-				gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-				gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-				gEidosCurrentScript = current_script_save;
-				gEidosExecutingRuntimeScript = executing_runtime_script_save;
-			}
+				gEidosErrorContext = error_context_save;
 			
 			delete script;
 			
@@ -11706,12 +11492,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// Execute inside try/catch so we can handle errors well
 	std::vector<EidosValue_SP> results;
 	
-	gEidosCharacterStartOfError = -1;
-	gEidosCharacterEndOfError = -1;
-	gEidosCharacterStartOfErrorUTF16 = -1;
-	gEidosCharacterEndOfErrorUTF16 = -1;
-	gEidosCurrentScript = script;
-	gEidosExecutingRuntimeScript = true;
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 	
 	try
 	{
@@ -11798,14 +11579,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-		{
-			gEidosCharacterStartOfError = error_start_save;
-			gEidosCharacterEndOfError = error_end_save;
-			gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-			gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-			gEidosCurrentScript = current_script_save;
-			gEidosExecutingRuntimeScript = executing_runtime_script_save;
-		}
+			gEidosErrorContext = error_context_save;
 		
 		if (!lambda_value_singleton)
 			delete script;
@@ -11814,12 +11588,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	}
 	
 	// Restore the normal error context in the event that no exception occurring within the lambda
-	gEidosCharacterStartOfError = error_start_save;
-	gEidosCharacterEndOfError = error_end_save;
-	gEidosCharacterStartOfErrorUTF16 = error_start_save_UTF16;
-	gEidosCharacterEndOfErrorUTF16 = error_end_save_UTF16;
-	gEidosCurrentScript = current_script_save;
-	gEidosExecutingRuntimeScript = executing_runtime_script_save;
+	gEidosErrorContext = error_context_save;
 	
 	if (!lambda_value_singleton)
 		delete script;

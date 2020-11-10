@@ -630,24 +630,24 @@
 				
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-					bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+					std::string &&connector_string = propertySignature->PropertySymbol();
+					NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
+					NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
+					NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
+					NSUInteger docIndex = [docProperties indexOfObject:propertyString];
 					
-					if (!isSuperclassProperty)
+					if (docIndex != NSNotFound)
 					{
-						std::string &&connector_string = propertySignature->PropertySymbol();
-						NSString *connectorString = [NSString stringWithUTF8String:connector_string.c_str()];	// "<–>" or "=>"
-						NSString *propertyNameString = [NSString stringWithUTF8String:propertySignature->property_name_.c_str()];
-						NSString *propertyString = [NSString stringWithFormat:@"%@ %@", propertyNameString, connectorString];
-						NSUInteger docIndex = [docProperties indexOfObject:propertyString];
+						// If the property is defined in this class doc, consider it documented
+						[docProperties removeObjectAtIndex:docIndex];
+					}
+					else
+					{
+						// If the property is not defined in this class doc, then that is an error unless it is a superclass property
+						bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
 						
-						if (docIndex != NSNotFound)
-						{
-							[docProperties removeObjectAtIndex:docIndex];
-						}
-						else
-						{
+						if (!isSuperclassProperty)
 							NSLog(@"*** no documentation found for class %@ property %@", classString, propertyString);
-						}
 					}
 				}
 				
@@ -666,24 +666,24 @@
 				
 				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
-					bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
+					std::string &&prefix_string = methodSignature->CallPrefix();
+					NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "
+					NSString *methodNameString = [NSString stringWithUTF8String:methodSignature->call_name_.c_str()];
+					NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
+					NSUInteger docIndex = [docMethods indexOfObject:methodString];
 					
-					if (!isSuperclassMethod)
+					if (docIndex != NSNotFound)
 					{
-						std::string &&prefix_string = methodSignature->CallPrefix();
-						NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "
-						NSString *methodNameString = [NSString stringWithUTF8String:methodSignature->call_name_.c_str()];
-						NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
-						NSUInteger docIndex = [docMethods indexOfObject:methodString];
+						// If the method is defined in this class doc, consider it documented
+						[docMethods removeObjectAtIndex:docIndex];
+					}
+					else
+					{
+						// If the method is not defined in this class doc, then that is an error unless it is a superclass method
+						bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
 						
-						if (docIndex != NSNotFound)
-						{
-							[docMethods removeObjectAtIndex:docIndex];
-						}
-						else
-						{
+						if (!isSuperclassMethod)
 							NSLog(@"*** no documentation found for class %@ method %@", classString, methodString);
-						}
 					}
 				}
 				

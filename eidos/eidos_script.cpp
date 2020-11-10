@@ -94,9 +94,9 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	// set up error tracking for this script
 	// Note: Here and elsewhere in this method, if p_make_bad_tokens is set we do not do error tracking.  This
 	// is so that we don't overwrite valid error tracking info when we're tokenizing for internal purposes.
-	EidosScript *current_script_save = gEidosCurrentScript;
+	EidosScript *current_script_save = gEidosErrorContext.currentScript;
 	if (!p_make_bad_tokens)
-		gEidosCurrentScript = this;
+		gEidosErrorContext.currentScript = this;
 	
 	// delete all existing tokens
 	token_stream_.clear();
@@ -196,11 +196,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								break;
 							}
 							
-							gEidosCharacterStartOfError = token_start;
-							gEidosCharacterEndOfError = token_end;
-							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
-							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
-							
+							gEidosErrorContext.errorPosition = EidosErrorPosition{token_start, token_end, token_UTF16_start, token_UTF16_end};
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in custom-delimited string literal." << EidosTerminate();
 						}
 						
@@ -460,11 +456,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								break;
 							}
 							
-							gEidosCharacterStartOfError = token_start;
-							gEidosCharacterEndOfError = token_end;
-							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
-							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
-							
+							gEidosErrorContext.errorPosition = EidosErrorPosition{token_start, token_end, token_UTF16_start, token_UTF16_end};
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 						}
 						
@@ -488,11 +480,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 									break;
 								}
 								
-								gEidosCharacterStartOfError = token_start;
-								gEidosCharacterEndOfError = token_end;
-								gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
-								gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
-								
+								gEidosErrorContext.errorPosition = EidosErrorPosition{token_start, token_end, token_UTF16_start, token_UTF16_end};
 								EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unexpected EOF in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 							}
 							
@@ -522,11 +510,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								}
 								else
 								{
-									gEidosCharacterStartOfError = token_end + 1;
-									gEidosCharacterEndOfError = token_end + 2;
-									gEidosCharacterStartOfErrorUTF16 = token_UTF16_end + 1;
-									gEidosCharacterEndOfErrorUTF16 = token_UTF16_end + 1 + BYTE_WIDTHS[ch_esq];
-									
+									gEidosErrorContext.errorPosition = EidosErrorPosition{token_end + 1, token_end + 2, token_UTF16_end + 1, token_UTF16_end + 1 + BYTE_WIDTHS[ch_esq]};
 									EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal escape \\" << (char)ch_esq << " in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 								}
 							}
@@ -540,11 +524,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 								break;
 							}
 							
-							gEidosCharacterStartOfError = token_start;
-							gEidosCharacterEndOfError = token_end;
-							gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
-							gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
-							
+							gEidosErrorContext.errorPosition = EidosErrorPosition{token_start, token_end, token_UTF16_start, token_UTF16_end};
 							EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal newline in string literal " << (double_quoted ? "\"" : "'") << token_string << (double_quoted ? "\"" : "'") << "." << EidosTerminate();
 						}
 						else
@@ -603,11 +583,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			else
 			{
 				// during tokenization we don't treat the error position as a stack
-				gEidosCharacterStartOfError = token_start;
-				gEidosCharacterEndOfError = token_end;
-				gEidosCharacterStartOfErrorUTF16 = token_UTF16_start;
-				gEidosCharacterEndOfErrorUTF16 = token_UTF16_end;
-				
+				gEidosErrorContext.errorPosition = EidosErrorPosition{token_start, token_end, token_UTF16_start, token_UTF16_end};
 				EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): unrecognized token at '" << script_string_.substr(token_start, token_end - token_start + 1) << "'." << EidosTerminate();
 			}
 		}
@@ -661,7 +637,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	
 	// restore error tracking
 	if (!p_make_bad_tokens)
-		gEidosCurrentScript = current_script_save;
+		gEidosErrorContext.currentScript = current_script_save;
 }
 
 void EidosScript::Consume(void)
@@ -2216,8 +2192,8 @@ void EidosScript::ParseInterpreterBlockToAST(bool p_allow_functions, bool p_make
 	parse_make_bad_nodes_ = p_make_bad_nodes;
 	
 	// set up error tracking for this script
-	EidosScript *current_script_save = gEidosCurrentScript;
-	gEidosCurrentScript = this;
+	EidosScript *current_script_save = gEidosErrorContext.currentScript;
+	gEidosErrorContext.currentScript = this;
 	
 	// parse a new AST from our start token
 	parse_root_ = Parse_InterpreterBlock(p_allow_functions);
@@ -2232,7 +2208,7 @@ void EidosScript::ParseInterpreterBlockToAST(bool p_allow_functions, bool p_make
 	}
 	
 	// restore error tracking
-	gEidosCurrentScript = current_script_save;
+	gEidosErrorContext.currentScript = current_script_save;
 	parse_make_bad_nodes_ = false;
 }
 
