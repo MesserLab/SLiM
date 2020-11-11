@@ -14,7 +14,7 @@
     </p>
   </description>
   
-  <launchable type="desktop-id">org.messerlab.slim.desktop</launchable>
+  <launchable type="desktop-id">org.messerlab.slimgui.desktop</launchable>
   <screenshots>
     <screenshot type="default">
       <image>https://ibb.co/gRY6W4P</image>
