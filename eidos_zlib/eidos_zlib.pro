@@ -19,6 +19,7 @@ CONFIG += staticlib
 
 
 CONFIG -= qt
+CONFIG += c11
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1
 QMAKE_CFLAGS_RELEASE += -O3
 
