@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.messerlab.slim</id>
+  
+  <name>SLiM</name>
+  <summary>Evolutionary simulation framework for population genetics</summary>
+  
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+  
+  <description>
+    <p>
+      SLiM is an evolutionary simulation framework that combines a powerful engine for population genetic simulations with the capability of modeling arbitrarily complex evolutionary scenarios. Simulations are configured via the integrated Eidos scripting language that allows interactive control over practically every aspect of the simulated evolutionary scenarios. The underlying individual-based simulation engine is highly optimized to enable modeling of entire chromosomes in large populations. We also provide a graphical user interface on macOS and Linux for easy simulation set-up, interactive runtime control, and dynamical visualization of simulation output.
+    </p>
+  </description>
+  
+  <launchable type="desktop-id">org.messerlab.slim.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://ibb.co/gRY6W4P</image>
+    </screenshot>
+  </screenshots>
+</component>
