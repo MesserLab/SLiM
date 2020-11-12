@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+<mime-type type="text/slim">
+    <comment>SLiM evolutionary framework source file</comment>
+    <glob pattern="*.slim"/>
+    <generic-icon name="/usr/share/icons/hicolor/scalable/mimetypes/text-slim.svg"/>
+</mime-type>
+</mime-info>

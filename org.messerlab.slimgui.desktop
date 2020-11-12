@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Exec="/usr/bin/SLiMgui" %F
+Name=SLiMgui
+GenericName=The SLiM modeling environment.
+Icon=/usr/share/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
+StartupWMClass=slimgui
+Terminal=false
+Categories=Science;Biology;
+MimeType=text/slim;text/plain;
