@@ -3,6 +3,6 @@
 <mime-type type="text/slim">
     <comment>SLiM evolutionary framework source file</comment>
     <glob pattern="*.slim"/>
-    <icon name="/usr/share/icons/gnome/scalable/mimetypes/text-slim.svg"/>
+    <generic-icon name="/usr/share/icons/hicolor/scalable/mimetypes/text-slim.svg"/>
 </mime-type>
 </mime-info>
