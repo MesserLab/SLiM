@@ -63,7 +63,7 @@ public:
 	bool IsKindOfClass(const EidosClass *p_class_object) const;
 	bool IsMemberOfClass(const EidosClass *p_class_object) const;
 	
-	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints ElementType()
+	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints Class()->ElementType()
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);

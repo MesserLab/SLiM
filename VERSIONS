@@ -79,6 +79,8 @@ development head:
 	add a flushFile() function to Eidos to flush buffered content from writeFile()
 	add LogFile class for logging data to a CSV/TSV file, plus method createLogFile() and property logFiles on SLiMSim
 	policy change: errors during writeFile() are now errors, not warnings
+	added files to support Bryce Carson's new Fedora package installer
+	add serialize() method to Dictionary, make Dictionary -allKeys be in sorted order
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

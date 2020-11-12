@@ -426,9 +426,30 @@ void LogFile::GenerationEndCallout(void)
 	}
 }
 
+EidosValue_SP LogFile::AllKeys(void) const
+{
+	// We want to return the column names in order, so we have to override EidosDictionaryUnretained here
+	// Our column_names_ vector should correspond to EidosDictionaryUnretained's state, just with a fixed order
+	if (!header_logged_)
+		return gStaticEidosValue_String_ZeroVec;
+	
+	int column_count = (int)column_names_.size();
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(column_count);
+	
+	for (const std::string &column_name : column_names_)
+		string_result->PushString(column_name);
+	
+	return EidosValue_SP(string_result);
+}
+
 const EidosClass *LogFile::Class(void) const
 {
 	return gSLiM_LogFile_Class;
+}
+
+void LogFile::Print(std::ostream &p_ostream) const
+{
+	p_ostream << Class()->ElementType() << "<" << user_file_path_ << ">";
 }
 
 EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
@@ -437,21 +458,7 @@ EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
-		case gEidosID_allKeys:	// override of EidosDictionaryUnretained_Class
-		{
-			// We want to return the column names in order, so we have to override EidosDictionaryUnretained here
-			// Our column_names_ vector should correspond to EidosDictionaryUnretained's state, just with a fixed order
-			if (!header_logged_)
-				return gStaticEidosValue_String_ZeroVec;
-			
-			int column_count = (int)column_names_.size();
-			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(column_count);
-			
-			for (const std::string &column_name : column_names_)
-				string_result->PushString(column_name);
-			
-			return EidosValue_SP(string_result);
-		}
+		//case gEidosID_allKeys:	// not technically overridden here, but we override AllKeys() to provide new behavior
 		case gEidosID_filePath:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(user_file_path_));
 		case gID_logInterval:
@@ -878,7 +885,6 @@ const std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties(void) c
 	{
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
-		// properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_allKeys,				true,	kEidosValueMaskString)));	// override of EidosDictionaryUnretained_Class
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_filePath,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logInterval,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

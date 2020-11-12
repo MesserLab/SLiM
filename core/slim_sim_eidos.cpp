@@ -1524,6 +1524,11 @@ const EidosClass *SLiMSim::Class(void) const
 	return gSLiM_SLiMSim_Class;
 }
 
+void SLiMSim::Print(std::ostream &p_ostream) const
+{
+	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+}
+
 EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup

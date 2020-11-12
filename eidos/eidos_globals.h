@@ -435,6 +435,16 @@ bool Eidos_string_hasPrefix(std::string const &fullString, std::string const &pr
 bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &suffix);
 bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle);
 
+// Quote and escape a string
+enum class EidosStringQuoting {
+	kNoQuotes = 0,
+	kSingleQuotes,
+	kDoubleQuotes,
+	kChooseQuotes		// chooses single or double, whichever seems better
+};
+
+std::string Eidos_string_escaped(const std::string &unescapedString, EidosStringQuoting quoting);		// quotes and adds backslash escapes
+
 // Run a Unix command
 // BCH 13 December 2017: no longer used, commenting this out
 //std::string Eidos_Exec(const char *p_cmd);
@@ -827,6 +837,7 @@ extern const std::string &gEidosStr_setValue;
 extern const std::string &gEidosStr_allKeys;
 extern const std::string &gEidosStr_addKeysAndValuesFrom;
 extern const std::string &gEidosStr_clearKeysAndValues;
+extern const std::string &gEidosStr_serialize;
 
 extern const std::string &gEidosStr_Dictionary;
 
@@ -931,6 +942,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_allKeys,
 	gEidosID_addKeysAndValuesFrom,
 	gEidosID_clearKeysAndValues,
+	gEidosID_serialize,
 
 	gEidosID_Dictionary,
 

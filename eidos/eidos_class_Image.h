@@ -70,6 +70,7 @@ public:
 	// Eidos support
 	//
 	virtual const EidosClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 };

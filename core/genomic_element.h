@@ -67,6 +67,7 @@ public:
 	inline __attribute__((always_inline)) EidosValue_SP CachedEidosValue(void) { if (!self_value_) GenerateCachedEidosValue(); return self_value_; };
 	
 	virtual const EidosClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;

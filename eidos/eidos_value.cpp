@@ -1180,18 +1180,8 @@ void EidosValue_String::PrintValueAtIndex(const int p_idx, std::ostream &p_ostre
 {
 	const std::string &value = StringAtIndex(p_idx, nullptr);
 	
-	// Emit a quoted string.  Note that we do not attempt to escape characters so that the emitted string
-	// is a legal string for input into Eidos that would reproduce the original string, at present.
-	if (value.find('"') != std::string::npos)
-	{
-		// contains ", so let's use '
-		p_ostream << '\'' << value << '\'';
-	}
-	else
-	{
-		// does not contain ", so let's use that; double quotes are the default/standard
-		p_ostream << '"' << value << '"';
-	}
+	// Emit a quoted string with backslash escapes as needed
+	p_ostream << Eidos_string_escaped(value, EidosStringQuoting::kChooseQuotes);
 }
 
 
