@@ -3222,7 +3222,16 @@ void QtSLiMWindow::playOneStepClicked(void)
 void QtSLiMWindow::_playOneStep(void)
 {
     playOneStepClicked();
-    playOneStepInvocationTimer_.start(350); // milliseconds
+    
+    if (!reachedSimulationEnd_)
+    {
+        playOneStepInvocationTimer_.start(350); // milliseconds
+    }
+    else
+    {
+        // stop playing
+        playOneStepReleased();
+    }
 }
 
 void QtSLiMWindow::playOneStepPressed(void)
