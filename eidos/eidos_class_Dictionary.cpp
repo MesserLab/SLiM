@@ -46,6 +46,43 @@ EidosDictionaryUnretained::EidosDictionaryUnretained(__attribute__((unused)) con
 	}
 }
 
+std::string EidosDictionaryUnretained::Serialization(void) const
+{
+	// Loop through our key-value pairs and serialize them
+	if (!hash_symbols_)
+		return "";
+	
+	std::ostringstream ss;
+	
+	// We want to output our keys in the same order as allKeys, so we just use AllKeys()
+	EidosValue_SP all_keys = AllKeys();
+	EidosValue_String_vector *string_vec = dynamic_cast<EidosValue_String_vector *>(all_keys.get());
+	
+	if (!string_vec)
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization): (internal error) allKeys did not return a string vector." << EidosTerminate(nullptr);
+	
+	const std::vector<std::string> *all_key_strings = string_vec->StringVector();
+	
+	for (const std::string &key : *all_key_strings)
+	{
+		auto hash_iter = hash_symbols_->find(key);
+		
+		if (hash_iter == hash_symbols_->end())
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization): (internal error) allKeys did not return a string vector." << EidosTerminate(nullptr);
+		
+		const EidosValue_SP &value = hash_iter->second;
+		EidosStringQuoting key_quoting = EidosStringQuoting::kNoQuotes;
+		
+		// quote the key string only if it contains characters that will make parsing difficult/ambiguous
+		if (key.find_first_of("\"\'\\\r\n\t =;") != std::string::npos)
+			key_quoting = EidosStringQuoting::kDoubleQuotes;		// if we use quotes, always use double quotes, for ease of parsing
+		
+		ss << Eidos_string_escaped(key, key_quoting) << "=" << *value << ";";
+	}
+	
+	return ss.str();
+}
+
 void EidosDictionaryUnretained::SetKeyValue(const std::string &key, EidosValue_SP value)
 {
 	EidosValueType value_type = value->Type();
@@ -79,6 +116,22 @@ void EidosDictionaryUnretained::SetKeyValue(const std::string &key, EidosValue_S
 	}
 }
 
+EidosValue_SP EidosDictionaryUnretained::AllKeys(void) const
+{
+	if (!hash_symbols_)
+		return gStaticEidosValue_String_ZeroVec;
+	
+	int key_count = (int)hash_symbols_->size();
+	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(key_count);
+	
+	for (auto const &kv_pair : *hash_symbols_)
+		string_result->PushString(kv_pair.first);
+	
+	string_result->Sort(true);		// return keys in sorted order for convenience
+	
+	return EidosValue_SP(string_result);
+}
+
 
 //
 // EidosDictionaryUnretained Eidos support
@@ -92,6 +145,11 @@ const EidosClass *EidosDictionaryUnretained::Class(void) const
 	return gEidosDictionaryUnretained_Class;
 }
 
+void EidosDictionaryUnretained::Print(std::ostream &p_ostream) const
+{
+	p_ostream << "{" << Serialization() << "}";
+}
+
 EidosValue_SP EidosDictionaryUnretained::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
@@ -99,18 +157,7 @@ EidosValue_SP EidosDictionaryUnretained::GetProperty(EidosGlobalStringID p_prope
 	{
 			// constants
 		case gEidosID_allKeys:
-		{
-			if (!hash_symbols_)
-				return gStaticEidosValue_String_ZeroVec;
-			
-			int key_count = (int)hash_symbols_->size();
-			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(key_count);
-			
-			for (auto const &kv_pair : *hash_symbols_)
-				string_result->PushString(kv_pair.first);
-			
-			return EidosValue_SP(string_result);
-		}
+			return AllKeys();
 			
 			// all others, including gID_none
 		default:
@@ -126,6 +173,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteInstanceMethod(EidosGlobalString
 		case gEidosID_clearKeysAndValues:		return ExecuteMethod_clearKeysAndValues(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_getValue:					return ExecuteMethod_getValue(p_method_id, p_arguments, p_interpreter);
 		//case gEidosID_setValue:				return ExecuteMethod_Accelerated_setValue(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_serialize:				return ExecuteMethod_serialize(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
@@ -268,6 +316,14 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (string$)serialize(void)
+//
+EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Serialization()));
+}
+
 
 //
 //	EidosDictionaryUnretained_Class
@@ -316,6 +372,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S("source", nullptr));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddString_S("key"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString | kEidosValueMaskSingleton)));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

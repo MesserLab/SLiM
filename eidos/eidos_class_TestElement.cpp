@@ -56,6 +56,11 @@ const EidosClass *EidosTestElement::Class(void) const
 	return gEidosTestElement_Class;
 }
 
+void EidosTestElement::Print(std::ostream &p_ostream) const
+{
+	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+}
+
 EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED

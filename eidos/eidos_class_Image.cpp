@@ -96,6 +96,11 @@ const EidosClass *EidosImage::Class(void) const
 	return gEidosImage_Class;
 }
 
+void EidosImage::Print(std::ostream &p_ostream) const
+{
+	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+}
+
 void EidosImage::GetChannelMetrics(Channel p_channel, int64_t &p_pixel_stride, int64_t &p_pixel_suboffset)
 {
 	switch (p_channel)

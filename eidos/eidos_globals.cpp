@@ -2071,6 +2071,59 @@ bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const 
 	return (it != strHaystack.end() );
 }
 
+// quotes and adds backslash escapes
+std::string Eidos_string_escaped(const std::string &unescapedString, EidosStringQuoting quoting)
+{
+	bool use_single_quote = false, use_double_quote = false;
+	
+	if (quoting == EidosStringQuoting::kDoubleQuotes)
+		use_double_quote = true;
+	else if (quoting == EidosStringQuoting::kSingleQuotes)
+		use_single_quote = true;
+	else if (quoting == EidosStringQuoting::kChooseQuotes)
+	{
+		if (unescapedString.find('"') != std::string::npos)
+			use_single_quote = true;
+		else
+			use_double_quote = true;
+	}
+	
+	std::string escapedString;
+	
+	// add the opening quote
+	if (use_single_quote)
+		escapedString = '\'';
+	else if (use_double_quote)
+		escapedString = '"';
+	
+	// add characters from unquotedString one by one, escaping them if necessary; we do not do arbitrary unicode or control-character escapes
+	for (char ch : unescapedString)
+	{
+		if (ch == '\r')
+			escapedString += "\\r";
+		else if (ch == '\n')
+			escapedString += "\\n";
+		else if (ch == '\t')
+			escapedString += "\\t";
+		else if (ch == '\\')
+			escapedString += "\\\\";
+		else if ((ch == '\"') && use_double_quote)		// only escape double quotes if the exterior quotes are double
+			escapedString += "\\\"";
+		else if ((ch == '\'') && use_single_quote)		// only escape single quotes if the exterior quotes are single
+			escapedString += "\\\'";
+		else
+			escapedString += ch;
+	}
+	
+	// add the closing quote
+	if (use_single_quote)
+		escapedString += '\'';
+	else if (use_double_quote)
+		escapedString += '"';
+	
+	return escapedString;
+}
+
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
 /*std::string Eidos_Exec(const char *p_cmd)
 {
@@ -2454,6 +2507,7 @@ const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidos
 const std::string &gEidosStr_allKeys = EidosRegisteredString("allKeys", gEidosID_allKeys);
 const std::string &gEidosStr_addKeysAndValuesFrom = EidosRegisteredString("addKeysAndValuesFrom", gEidosID_addKeysAndValuesFrom);
 const std::string &gEidosStr_clearKeysAndValues = EidosRegisteredString("clearKeysAndValues", gEidosID_clearKeysAndValues);
+const std::string &gEidosStr_serialize = EidosRegisteredString("serialize", gEidosID_serialize);
 
 // strings for Dictionary (i.e., for EidosDictionaryRetained, which is the publicly visible class called "Dictionary" in Eidos)
 const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);

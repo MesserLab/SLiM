@@ -62,6 +62,7 @@ public:
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; }
 	
 	virtual const EidosClass *Class(void) const override;
+    virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;

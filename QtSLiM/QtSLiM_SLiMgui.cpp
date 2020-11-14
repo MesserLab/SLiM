@@ -56,6 +56,11 @@ const EidosClass *SLiMgui::Class(void) const
 	return gSLiM_SLiMgui_Class;
 }
 
+void SLiMgui::Print(std::ostream &p_ostream) const
+{
+	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+}
+
 EidosValue_SP SLiMgui::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup

@@ -110,10 +110,13 @@ public:
 	void AppendNewRow(void);
 	void GenerationEndCallout(void);
 	
+	virtual EidosValue_SP AllKeys(void) const override;	// provide keys in column order
+	
 	//
 	// Eidos support
 	//
 	virtual const EidosClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;

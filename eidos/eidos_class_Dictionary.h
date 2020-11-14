@@ -66,6 +66,10 @@ public:
 			delete hash_symbols_;
 	}
 	
+	virtual EidosValue_SP AllKeys(void) const;
+	
+	std::string Serialization(void) const;
+	
 	inline __attribute__((always_inline)) void RemoveAllKeys(void)
 	{
 		if (hash_symbols_)
@@ -79,6 +83,7 @@ public:
 	// Eidos support
 	//
 	virtual const EidosClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 	
@@ -87,6 +92,7 @@ public:
 	EidosValue_SP ExecuteMethod_clearKeysAndValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_getValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	static EidosValue_SP ExecuteMethod_Accelerated_setValue(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_serialize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
 
