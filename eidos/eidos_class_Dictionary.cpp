@@ -65,19 +65,27 @@ std::string EidosDictionaryUnretained::Serialization(void) const
 	
 	for (const std::string &key : *all_key_strings)
 	{
-		auto hash_iter = hash_symbols_->find(key);
-		
-		if (hash_iter == hash_symbols_->end())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization): (internal error) allKeys did not return a string vector." << EidosTerminate(nullptr);
-		
-		const EidosValue_SP &value = hash_iter->second;
+		// emit the key; quote the key string only if it contains characters that will make parsing difficult/ambiguous
 		EidosStringQuoting key_quoting = EidosStringQuoting::kNoQuotes;
 		
-		// quote the key string only if it contains characters that will make parsing difficult/ambiguous
 		if (key.find_first_of("\"\'\\\r\n\t =;") != std::string::npos)
 			key_quoting = EidosStringQuoting::kDoubleQuotes;		// if we use quotes, always use double quotes, for ease of parsing
 		
-		ss << Eidos_string_escaped(key, key_quoting) << "=" << *value << ";";
+		ss << Eidos_string_escaped(key, key_quoting) << "=";
+		
+		// emit the value
+		auto hash_iter = hash_symbols_->find(key);
+		
+		if (hash_iter == hash_symbols_->end())
+		{
+			// We assume that this is not an internal error, but is instead LogFile with a column that is NA;
+			// it returns all of its column names for AllKeys() even if they have NA as a value, so we play along
+			ss << "NA;";
+		}
+		else
+		{
+			ss << *(hash_iter->second) << ";";
+		}
 	}
 	
 	return ss.str();

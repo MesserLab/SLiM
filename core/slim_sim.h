@@ -91,6 +91,9 @@ enum class SLiMGenerationStage
 	kNonWFStage5RemoveFixedMutations,
 	kNonWFStage6ExecuteLateScripts,
 	kNonWFStage7AdvanceGenerationCounter,
+	
+	// end stage between generations; things in the Eidos console happen here
+	kStage8PostGeneration = 201,
 };
 
 enum class SLiMFileFormat

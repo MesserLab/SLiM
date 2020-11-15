@@ -108,6 +108,7 @@ EidosValue_SP LogFile::_GeneratedValue_GenerationStage(const LogFileGeneratorInf
 		case SLiMGenerationStage::kNonWFStage5RemoveFixedMutations: stage_string = "tally"; break;
 		case SLiMGenerationStage::kNonWFStage6ExecuteLateScripts: stage_string = "late"; break;
 		case SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter: stage_string = "end"; break;
+		case SLiMGenerationStage::kStage8PostGeneration: stage_string = "console"; break;
 	}
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(stage_string));
