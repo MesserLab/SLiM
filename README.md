@@ -1,3 +1,7 @@
+![SLiM on GitHub Actions:](https://github.com/MesserLab/SLiM/workflows/tests/badge.svg)
+![SLiM on Travis-CI:](https://travis-ci.com/MesserLab/SLiM.svg?branch=master)
+
+
 PLEASE NOTE THAT THE GITHUB VERSION OF SLiM IS PRERELEASE SOFTWARE THAT IS UNDER ACTIVE DEVELOPMENT!
 ---------------------------------------------------------------------------------------------
 It is strongly recommended that all end users of SLiM use the current release version, available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
