@@ -81,6 +81,7 @@ development head:
 	policy change: errors during writeFile() are now errors, not warnings
 	added files to support Bryce Carson's new Fedora package installer
 	add serialize() method to Dictionary, make Dictionary -allKeys be in sorted order
+	add mutationCountsInGenomes() and mutationFrequenciesInGenomes() methods for getting counts/frequencies within any sample of genomes
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

@@ -813,6 +813,28 @@ void _RunGenomeTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].countOfMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0:1].countOfMutationsOfType(1); stop(); }", __LINE__);
 	
+	// Test Genome + (float)mutationFrequenciesInGenomes([No<Mutation> mutations = NULL])
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { f = p1.genomes[integer(0)].mutationFrequenciesInGenomes(); stop(); }", 1, 275, "zero-length Genome vector", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes[0].mutationFrequenciesInGenomes(); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes.mutationFrequenciesInGenomes(); if (identical(f, sim.mutationFrequencies(NULL))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { f = p1.genomes[integer(0)].mutationFrequenciesInGenomes(object()); stop(); }", 1, 275, "zero-length Genome vector", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes[0].mutationFrequenciesInGenomes(object()); if (size(f) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes.mutationFrequenciesInGenomes(object()); if (size(f) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { f = p1.genomes[integer(0)].mutationFrequenciesInGenomes(sim.mutations); stop(); }", 1, 275, "zero-length Genome vector", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes[0].mutationFrequenciesInGenomes(sim.mutations); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes.mutationFrequenciesInGenomes(sim.mutations); if (identical(f, sim.mutationFrequencies(NULL))) stop(); }", __LINE__);
+	
+	// Test Genome + (integer)mutationCountsInGenomes([No<Mutation> mutations = NULL])
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { f = p1.genomes[integer(0)].mutationCountsInGenomes(); stop(); }", 1, 275, "zero-length Genome vector", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes[0].mutationCountsInGenomes(); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes.mutationCountsInGenomes(); if (identical(f, sim.mutationCounts(NULL))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { f = p1.genomes[integer(0)].mutationCountsInGenomes(object()); stop(); }", 1, 275, "zero-length Genome vector", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes[0].mutationCountsInGenomes(object()); if (size(f) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes.mutationCountsInGenomes(object()); if (size(f) == 0) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 { f = p1.genomes[integer(0)].mutationCountsInGenomes(sim.mutations); stop(); }", 1, 275, "zero-length Genome vector", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes[0].mutationCountsInGenomes(sim.mutations); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 { f = p1.genomes.mutationCountsInGenomes(sim.mutations); if (identical(f, sim.mutationCounts(NULL))) stop(); }", __LINE__);
+	
 	// Test Genome - (integer$)positionsOfMutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].positionsOfMutationsOfType(m1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { p1.genomes[0].positionsOfMutationsOfType(1); stop(); }", __LINE__);
