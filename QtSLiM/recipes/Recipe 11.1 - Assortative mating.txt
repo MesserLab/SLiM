@@ -1,18 +1,5 @@
 // Keywords: migration, dispersal, fitness()
 
-// Calculate the FST between two subpopulations
-function (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
-{
-	p1_p = sim.mutationFrequencies(subpop1);
-	p2_p = sim.mutationFrequencies(subpop2);
-	mean_p = (p1_p + p2_p) / 2.0;
-	H_t = 2.0 * mean_p * (1.0 - mean_p);
-	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
-	fst = 1.0 - H_s/H_t;
-	fst = fst[!isNAN(fst)];  // exclude muts where mean_p is 0.0 or 1.0
-	return mean(fst);
-}
-
 initialize() {
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -53,7 +40,8 @@ fitness(m2, p2) { return 0.2; }
 		return weights * sourceSubpop.getValue("weights2");
 }
 10000: late() {
-	sim.setValue("FST", sim.getValue("FST") + calcFST(p1, p2));
+	FST = calcFST(p1.genomes, p2.genomes);
+	sim.setValue("FST", sim.getValue("FST") + FST);
 }
 19999 late() {
 	cat("Mean FST at equilibrium: " + (sim.getValue("FST") / 10000));

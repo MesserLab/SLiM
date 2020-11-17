@@ -73,7 +73,7 @@ EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringComma;
 
-EidosClass *gEidosObject_Class = new EidosClass();
+EidosClass *gEidosObject_Class = nullptr;
 
 
 std::string StringForEidosValueType(const EidosValueType p_type)
@@ -141,7 +141,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosClas
 	if (p_object_class && (stripped_mask & kEidosValueMaskObject))
 	{
 		out_string += "<";
-		out_string += p_object_class->ElementType();
+		out_string += p_object_class->ClassName();
 		out_string += ">";
 	}
 	
@@ -1997,7 +1997,7 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 	// need to be found and patched when migration occurs in nonWF models, for technical reasons.  I apologize
 	// in advance to anyone who encounters this hack.  I have also added registered_for_patching_ here, to allow
 	// us to avoid patching self-references; see the comments on the constructor below.
-	const std::string *element_type = &(class_->ElementType());
+	const std::string *element_type = &(class_->ClassName());
 										
 	if (element_type == &gEidosStr_Mutation)
 	{
@@ -2046,7 +2046,7 @@ EidosValue_Object::~EidosValue_Object(void)
 	// See comment on EidosValue_Object::EidosValue_Object() above
 	if (registered_for_patching_)
 	{
-		const std::string *element_type = &(class_->ElementType());
+		const std::string *element_type = &(class_->ClassName());
 		
 		if (element_type == &gEidosStr_Mutation)
 		{
@@ -2137,7 +2137,7 @@ void EidosValue_Object::RaiseForClassMismatch(void) const
 
 const std::string &EidosValue_Object::ElementType(void) const
 {
-	return Class()->ElementType();
+	return Class()->ClassName();
 }
 
 EidosValue_SP EidosValue_Object::NewMatchingType(void) const

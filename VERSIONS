@@ -82,6 +82,8 @@ development head:
 	added files to support Bryce Carson's new Fedora package installer
 	add serialize() method to Dictionary, make Dictionary -allKeys be in sorted order
 	add mutationCountsInGenomes() and mutationFrequenciesInGenomes() methods for getting counts/frequencies within any sample of genomes
+	add a calcFST() function to SLiM to provide easy FST calculations; revise recipe 11.1 to use the new function
+	add a functionSource() function in Eidos to allow the user to see the Eidos source code for functions that are implemented in Eidos
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

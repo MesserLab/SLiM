@@ -19,10 +19,22 @@
 
 
 #include "slim_globals.h"
+
+#include "chromosome.h"
+#include "individual.h"
+#include "interaction_type.h"
+#include "genome.h"
+#include "genomic_element.h"
+#include "genomic_element_type.h"
+#include "log_file.h"
 #include "mutation.h"
-#include "mutation_run.h"
+#include "mutation_type.h"
+#include "slim_eidos_block.h"
 #include "slim_sim.h"
+#include "substitution.h"
 #include "subpopulation.h"
+
+#include "mutation_run.h"
 #include "sparse_array.h"
 
 #include <string>
@@ -293,6 +305,28 @@ void SLiM_WarmUp(void)
 	if (!been_here)
 	{
 		been_here = true;
+		
+		// Create the global class objects for all SLiM Eidos classes, from superclass to subclass
+		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
+		// and so that the global string names for the classes have already been set up by C++'s static initialization
+		gSLiM_Chromosome_Class =			new Chromosome_Class(			gStr_Chromosome,			gEidosDictionaryRetained_Class);
+		gSLiM_Individual_Class =			new Individual_Class(			gEidosStr_Individual,		gEidosDictionaryUnretained_Class);
+		gSLiM_InteractionType_Class =		new InteractionType_Class(		gStr_InteractionType,		gEidosDictionaryUnretained_Class);
+		gSLiM_Genome_Class =				new Genome_Class(				gEidosStr_Genome,			gEidosObject_Class);
+		gSLiM_GenomicElement_Class =		new GenomicElement_Class(		gStr_GenomicElement,		gEidosObject_Class);
+		gSLiM_GenomicElementType_Class =	new GenomicElementType_Class(	gStr_GenomicElementType,	gEidosDictionaryUnretained_Class);
+		gSLiM_LogFile_Class =				new LogFile_Class(				gStr_LogFile,				gEidosDictionaryRetained_Class);
+		gSLiM_Mutation_Class =				new Mutation_Class(				gEidosStr_Mutation,			gEidosDictionaryRetained_Class);
+		gSLiM_MutationType_Class =			new MutationType_Class(			gStr_MutationType,			gEidosDictionaryUnretained_Class);
+		gSLiM_SLiMEidosBlock_Class =		new SLiMEidosBlock_Class(		gStr_SLiMEidosBlock,		gEidosDictionaryUnretained_Class);
+		gSLiM_SLiMSim_Class =				new SLiMSim_Class(				gStr_SLiMSim,				gEidosDictionaryUnretained_Class);
+		gSLiM_Substitution_Class =			new Substitution_Class(			gStr_Substitution,			gEidosDictionaryRetained_Class);
+		gSLiM_Subpopulation_Class =			new Subpopulation_Class(		gStr_Subpopulation,			gEidosDictionaryUnretained_Class);
+		
+		// Tell all registered classes to initialize their dispatch tables; doing this here saves a flag check later
+		// Note that this can't be done in the EidosClass constructor because the vtable is not set up for the subclass yet
+		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
+			eidos_class->CacheDispatchTables();
 		
 		// Set up our shared pool for Mutation objects
 		SLiM_CreateMutationBlock();

@@ -1392,7 +1392,7 @@ const EidosClass *Chromosome::Class(void) const
 
 void Chromosome::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
@@ -2299,35 +2299,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 #pragma mark Chromosome_Class
 #pragma mark -
 
-class Chromosome_Class : public EidosDictionaryRetained_Class
-{
-private:
-	typedef EidosDictionaryRetained_Class super;
+EidosClass *gSLiM_Chromosome_Class = nullptr;
 
-public:
-	Chromosome_Class(const Chromosome_Class &p_original) = delete;	// no copy-construct
-	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
-	inline Chromosome_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_Chromosome_Class = new Chromosome_Class();
-
-
-const EidosClass *Chromosome_Class::Superclass(void) const
-{
-	return gEidosDictionaryRetained_Class;
-}
-
-const std::string &Chromosome_Class::ElementType(void) const
-{
-	return gStr_Chromosome;
-}
 
 const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void) const
 {

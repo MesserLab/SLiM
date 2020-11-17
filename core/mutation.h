@@ -163,6 +163,20 @@ inline __attribute__((always_inline)) bool CompareMutations(const Mutation *p_mu
 // support stream output of Mutation, for debugging
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation);
 
+class Mutation_Class : public EidosDictionaryRetained_Class
+{
+private:
+	typedef EidosDictionaryRetained_Class super;
+
+public:
+	Mutation_Class(const Mutation_Class &p_original) = delete;	// no copy-construct
+	Mutation_Class& operator=(const Mutation_Class&) = delete;	// no copying
+	inline Mutation_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
+
 
 //
 //		Mutation block allocation

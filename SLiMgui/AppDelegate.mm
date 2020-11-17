@@ -217,9 +217,12 @@ typedef enum SLiMLaunchAction
 	// Install our custom beep handler
 	Eidos_Beep = &Eidos_Beep_MACOS;
 	
-	// Warm up our back ends before anything else happens
+	// Warm up our back ends before anything else happens, including our own class objects
 	Eidos_WarmUp();
 	SLiM_WarmUp();
+	
+	gSLiM_SLiMgui_Class = new SLiMgui_Class(gStr_SLiMgui, gEidosDictionaryUnretained_Class);
+	gSLiM_SLiMgui_Class->CacheDispatchTables();
 	
 	// Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
 	app_cwd_ = Eidos_CurrentDirectory();

@@ -625,6 +625,20 @@ inline IndividualSex Subpopulation::SexOfIndividual(slim_popsize_t p_individual_
 	}
 }
 
+class Subpopulation_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
+	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
+	inline Subpopulation_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
+
 
 #endif /* defined(__SLiM__subpopulation__) */
 

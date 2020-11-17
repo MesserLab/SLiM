@@ -219,6 +219,23 @@ public:
 	friend Subpopulation;
 };
 
+class Individual_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
+	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
+	inline Individual_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+	
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
+	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+};
+
 
 #endif /* defined(__SLiM__individual__) */
 

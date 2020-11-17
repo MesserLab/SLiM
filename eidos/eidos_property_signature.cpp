@@ -94,7 +94,7 @@ bool EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 			// This check is applied only if the value contains elements, since an empty object does not know its type.
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)&p_value)->Class() != value_class_) && (p_value.Count() > 0))
 			{
-				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ClassName() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -149,7 +149,7 @@ void EidosPropertySignature::CheckResultValue(const EidosValue &p_value) const
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)&p_value)->Class() != value_class_) && (p_value.Count() > 0))
 			{
 				if (!((EidosValue_Object *)&p_value)->Class()->IsSubclassOfClass(value_class_))
-					EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckResultValue): (internal error) object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ClassName() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -191,7 +191,7 @@ void EidosPropertySignature::CheckAggregateResultValue(const EidosValue &p_value
 			if (value_type_ok && value_class_ && (((EidosValue_Object *)&p_value)->Class() != value_class_) && (p_value.Count() > 0))
 			{
 				if (!((EidosValue_Object *)&p_value)->Class()->IsSubclassOfClass(value_class_))
-					EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAggregateResultValue): (internal error) object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ElementType() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAggregateResultValue): (internal error) object value cannot be object element type " << p_value.ElementType() << " for " << PropertyType() << " property " << property_name_ << "; expected object element type " << value_class_->ClassName() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}

@@ -68,7 +68,7 @@ const EidosClass *GenomicElement::Class(void) const
 
 void GenomicElement::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
@@ -211,35 +211,8 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 #pragma mark GenomicElement_Class
 #pragma mark -
 
-class GenomicElement_Class : public EidosClass
-{
-private:
-	typedef EidosClass super;
+EidosClass *gSLiM_GenomicElement_Class = nullptr;
 
-public:
-	GenomicElement_Class(const GenomicElement_Class &p_original) = delete;	// no copy-construct
-	GenomicElement_Class& operator=(const GenomicElement_Class&) = delete;	// no copying
-	inline GenomicElement_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_GenomicElement_Class = new GenomicElement_Class();
-
-
-const EidosClass *GenomicElement_Class::Superclass(void) const
-{
-	return gEidosObject_Class;
-}
-
-const std::string &GenomicElement_Class::ElementType(void) const
-{
-	return gStr_GenomicElement;
-}
 
 const std::vector<EidosPropertySignature_CSP> *GenomicElement_Class::Properties(void) const
 {

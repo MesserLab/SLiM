@@ -24,6 +24,10 @@
 #include "eidos_interpreter.h"
 #include "eidos_object_pool.h"
 #include "eidos_ast_node.h"
+#include "eidos_class_Object.h"
+#include "eidos_class_Dictionary.h"
+#include "eidos_class_Image.h"
+#include "eidos_class_TestElement.h"
 
 #include <stdlib.h>
 #include <execinfo.h>
@@ -244,7 +248,6 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_Integer_ZeroVec = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 		gStaticEidosValue_Float_ZeroVec = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		gStaticEidosValue_String_ZeroVec = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
-		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosObject_Class));
 		
 		gStaticEidosValue_LogicalT = EidosValue_Logical_const::Static_EidosValue_Logical_T();
 		gStaticEidosValue_LogicalF = EidosValue_Logical_const::Static_EidosValue_Logical_F();
@@ -269,6 +272,19 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**"));
 		gStaticEidosValue_StringComma = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(","));
 		
+		// Create the global class objects for all Eidos classes, from superclass to subclass
+		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
+		// and so that the global string names for the classes have already been set up by C++'s static initialization
+		gEidosObject_Class =				new EidosClass(							gEidosStr_Object,			nullptr);
+		gEidosDictionaryUnretained_Class =	new EidosDictionaryUnretained_Class(	gEidosStr_DictionaryBase,	gEidosObject_Class);
+		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_Dictionary,		gEidosDictionaryUnretained_Class);
+		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,			gEidosDictionaryRetained_Class);
+		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,		gEidosDictionaryRetained_Class);
+		
+		// This has to be allocated after gEidosObject_Class has been initialized above; the other global permanents must be initialized
+		// before that point, however, since properties and method signatures may use some of those global permanent values
+		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosObject_Class));
+		
 		// Set up the built-in function map, which is immutable
 		EidosInterpreter::CacheBuiltInFunctionMap();
 		
@@ -276,6 +292,7 @@ void Eidos_WarmUp(void)
 		gEidosConstantsSymbolTable = new EidosSymbolTable(EidosSymbolTableType::kEidosIntrinsicConstantsTable, nullptr);
 		
 		// Tell all registered classes to initialize their dispatch tables; doing this here saves a flag check later
+		// Note that this can't be done in the EidosClass constructor because the vtable is not set up for the subclass yet
 		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 			eidos_class->CacheDispatchTables();
 		

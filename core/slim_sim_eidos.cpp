@@ -1526,7 +1526,7 @@ const EidosClass *SLiMSim::Class(void) const
 
 void SLiMSim::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
@@ -3560,35 +3560,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 #pragma mark SLiMSim_Class
 #pragma mark -
 
-class SLiMSim_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_SLiMSim_Class = nullptr;
 
-public:
-	SLiMSim_Class(const SLiMSim_Class &p_original) = delete;	// no copy-construct
-	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
-	inline SLiMSim_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
-
-
-const EidosClass *SLiMSim_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &SLiMSim_Class::ElementType(void) const
-{
-	return gStr_SLiMSim;
-}
 
 const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) const
 {

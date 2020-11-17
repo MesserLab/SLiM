@@ -446,6 +446,21 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 #endif
 
 
+class Chromosome_Class : public EidosDictionaryRetained_Class
+{
+private:
+	typedef EidosDictionaryRetained_Class super;
+
+public:
+	Chromosome_Class(const Chromosome_Class &p_original) = delete;	// no copy-construct
+	Chromosome_Class& operator=(const Chromosome_Class&) = delete;	// no copying
+	inline Chromosome_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
+
+
 #endif /* defined(__SLiM__chromosome__) */
 
 

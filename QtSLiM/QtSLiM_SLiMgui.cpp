@@ -58,7 +58,7 @@ const EidosClass *SLiMgui::Class(void) const
 
 void SLiMgui::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP SLiMgui::GetProperty(EidosGlobalStringID p_property_id)
@@ -136,35 +136,8 @@ EidosValue_SP SLiMgui::ExecuteMethod_pauseExecution(EidosGlobalStringID p_method
 #pragma mark SLiMgui_Class
 #pragma mark -
 
-class SLiMgui_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_SLiMgui_Class = nullptr;
 
-public:
-	SLiMgui_Class(const SLiMgui_Class &p_original) = delete;	// no copy-construct
-	SLiMgui_Class& operator=(const SLiMgui_Class&) = delete;	// no copying
-	inline SLiMgui_Class(void) { }
-	
-    virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_SLiMgui_Class = new SLiMgui_Class();
-
-
-const EidosClass *SLiMgui_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &SLiMgui_Class::ElementType(void) const
-{
-	return gStr_SLiMgui;
-}
 
 const std::vector<EidosPropertySignature_CSP> *SLiMgui_Class::Properties(void) const
 {

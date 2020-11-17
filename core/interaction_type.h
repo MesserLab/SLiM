@@ -258,6 +258,20 @@ public:
 	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
 };
 
+class InteractionType_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
+	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
+	inline InteractionType_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
+
 
 #endif /* __SLiM__interaction_type__ */
 

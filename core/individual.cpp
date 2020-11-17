@@ -158,7 +158,7 @@ const EidosClass *Individual::Class(void) const
 
 void Individual::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<p" << subpopulation_.subpopulation_id_ << ":i" << index_ << ">";
+	p_ostream << Class()->ClassName() << "<p" << subpopulation_.subpopulation_id_ << ":i" << index_ << ">";
 }
 
 EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
@@ -1351,38 +1351,8 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma mark Individual_Class
 #pragma mark -
 
-class Individual_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_Individual_Class = nullptr;
 
-public:
-	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
-	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
-	inline Individual_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-	
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
-	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-};
-
-EidosClass *gSLiM_Individual_Class = new Individual_Class();
-
-
-const EidosClass *Individual_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &Individual_Class::ElementType(void) const
-{
-	return gEidosStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
-}
 
 const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void) const
 {

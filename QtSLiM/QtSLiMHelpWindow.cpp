@@ -271,7 +271,7 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     
     for (EidosClass *class_object : EidosClass::RegisteredClasses(true, false))
     {
-        const std::string &element_type = class_object->ElementType();
+        const std::string &element_type = class_object->ClassName();
         
         if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
         {
@@ -299,7 +299,7 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     
     for (EidosClass *class_object : EidosClass::RegisteredClasses(false, true))
     {
-        const std::string &element_type = class_object->ElementType();
+        const std::string &element_type = class_object->ClassName();
         
         if (!Eidos_string_hasPrefix(element_type, "_"))		// internal classes are undocumented
         {
@@ -829,7 +829,7 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 	if (classObject == gEidosDictionaryRetained_Class)
 		superclassObject = gEidosObject_Class;
 	
-    const QString className = QString::fromStdString(classObject->ElementType());
+    const QString className = QString::fromStdString(classObject->ClassName());
 	const QString classKey = "Class " + className;
 	QtSLiMHelpItem *classDocumentation = findObjectWithKeySuffix(classKey, ui->topicOutlineView->invisibleRootItem());
     int classDocChildCount = classDocumentation ? classDocumentation->childCount() : 0;
@@ -855,18 +855,22 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
                 
 				for (const EidosPropertySignature_CSP &propertySignature : *classProperties)
 				{
-                    bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
+                    const std::string &&connector_string = propertySignature->PropertySymbol();
+                    const std::string &property_name_string = propertySignature->property_name_;
+                    QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
+                    int docIndex = docProperties.indexOf(property_string);
+                    
+                    if (docIndex != -1)
+                    {
+                        // If the property is defined in this class doc, consider it documented
+                        docProperties.removeAt(docIndex);
+                    }
+                    else
+                    {
+                        // If the property is not defined in this class doc, then that is an error unless it is a superclass property
+                        bool isSuperclassProperty = superclassProperties && (std::find(superclassProperties->begin(), superclassProperties->end(), propertySignature) != superclassProperties->end());
 					
-					if (!isSuperclassProperty)
-					{
-                        const std::string &&connector_string = propertySignature->PropertySymbol();
-                        const std::string &property_name_string = propertySignature->property_name_;
-                        QString property_string = QString::fromStdString(property_name_string) + QString("\u00A0") + QString::fromStdString(connector_string);
-                        int docIndex = docProperties.indexOf(property_string);
-                        
-                        if (docIndex != -1)
-                            docProperties.removeAt(docIndex);
-                        else
+                        if (!isSuperclassProperty)
                             qDebug() << "*** no documentation found for class " << className << " property " << property_string;
                     }
 				}
@@ -887,18 +891,22 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
                 
 				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
-					bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
+                    const std::string &&prefix_string = methodSignature->CallPrefix();
+                    const std::string &method_name_string = methodSignature->call_name_;
+                    QString method_string = QString::fromStdString(prefix_string) + QString::fromStdString(method_name_string) + QString("()");
+                    int docIndex = docMethods.indexOf(method_string);
+                    
+                    if (docIndex != -1)
+                    {
+						// If the method is defined in this class doc, consider it documented
+                        docMethods.removeAt(docIndex);
+                    }
+                    else
+                    {
+                        // If the method is not defined in this class doc, then that is an error unless it is a superclass method
+                        bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
 					
-					if (!isSuperclassMethod)
-					{
-						const std::string &&prefix_string = methodSignature->CallPrefix();
-						const std::string &method_name_string = methodSignature->call_name_;
-						QString method_string = QString::fromStdString(prefix_string) + QString::fromStdString(method_name_string) + QString("()");
-                        int docIndex = docMethods.indexOf(method_string);
-						
-						if (docIndex != -1)
-							docMethods.removeAt(docIndex);
-						else
+                        if (!isSuperclassMethod)
 							qDebug() << "*** no documentation found for class " << className << " method " << method_string;
 					}
 				}
@@ -926,14 +934,14 @@ void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
 	if (classObject == gEidosDictionaryRetained_Class)
 		superclassObject = gEidosObject_Class;
 	
-    const QString className = QString::fromStdString(classObject->ElementType());
+    const QString className = QString::fromStdString(classObject->ClassName());
 	const QString classKey = "Class " + className;
 	QtSLiMHelpItem *classDocumentation = findObjectWithKeySuffix(classKey, ui->topicOutlineView->invisibleRootItem());
     int classDocChildCount = classDocumentation ? classDocumentation->childCount() : 0;
 	
 	if (classDocumentation && (classDocumentation->doc_fragment == nullptr) && (classDocChildCount > 0))
 	{
-        QString superclassName = superclassObject ? QString::fromStdString(superclassObject->ElementType()) : QString("none");
+        QString superclassName = superclassObject ? QString::fromStdString(superclassObject->ClassName()) : QString("none");
         
         // Hide DictionaryBase by pretending our superclass is Dictionary
         if (superclassName == "DictionaryBase")

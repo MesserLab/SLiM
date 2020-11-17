@@ -58,7 +58,7 @@ const EidosClass *EidosTestElement::Class(void) const
 
 void EidosTestElement::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
@@ -193,36 +193,8 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 #pragma mark EidosTestElement_Class
 #pragma mark -
 
-class EidosTestElement_Class : public EidosDictionaryRetained_Class
-{
-private:
-	typedef EidosDictionaryRetained_Class super;
+EidosClass *gEidosTestElement_Class = nullptr;
 
-public:
-	EidosTestElement_Class(const EidosTestElement_Class &p_original) = delete;	// no copy-construct
-	EidosTestElement_Class& operator=(const EidosTestElement_Class&) = delete;	// no copying
-	inline EidosTestElement_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
-};
-
-EidosClass *gEidosTestElement_Class = new EidosTestElement_Class();
-
-
-const EidosClass *EidosTestElement_Class::Superclass(void) const
-{
-	return gEidosDictionaryRetained_Class;
-}
-
-const std::string &EidosTestElement_Class::ElementType(void) const
-{
-	return gEidosStr__TestElement;
-}
 
 const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Properties(void) const
 {

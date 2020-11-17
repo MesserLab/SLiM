@@ -130,7 +130,7 @@
 		
 		for (EidosClass *class_object : EidosClass::RegisteredClasses(true, false))
 		{
-			const std::string &element_type = class_object->ElementType();
+			const std::string &element_type = class_object->ClassName();
 			
 			if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
 				[self checkDocumentationOfClass:class_object];
@@ -606,7 +606,7 @@
 	if (classObject == gEidosDictionaryRetained_Class)
 		superclass = gEidosObject_Class;
 	
-	const std::string &className = classObject->ElementType();
+	const std::string &className = classObject->ClassName();
 	NSString *classString = [NSString stringWithUTF8String:className.c_str()];
 	NSString *classKey = [NSString stringWithFormat:@"Class %@", classString];
 	id classDocumentation = [self findObjectWithKeySuffix:classKey withinDictionary:[self effectiveTopicRoot]];

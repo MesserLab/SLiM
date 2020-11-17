@@ -733,6 +733,20 @@ public:
 	EidosValue_SP ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
+class SLiMSim_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	SLiMSim_Class(const SLiMSim_Class &p_original) = delete;	// no copy-construct
+	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
+	inline SLiMSim_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
+
 
 #endif /* defined(__SLiM__slim_sim__) */
 

@@ -3274,7 +3274,7 @@ const EidosClass *Subpopulation::Class(void) const
 
 void Subpopulation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<p" << subpopulation_id_ << ">";
+	p_ostream << Class()->ClassName() << "<p" << subpopulation_id_ << ">";
 }
 
 EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
@@ -6761,35 +6761,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID 
 #pragma mark Subpopulation_Class
 #pragma mark -
 
-class Subpopulation_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_Subpopulation_Class = nullptr;
 
-public:
-	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
-	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
-	inline Subpopulation_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_Subpopulation_Class = new Subpopulation_Class;
-
-
-const EidosClass *Subpopulation_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &Subpopulation_Class::ElementType(void) const
-{
-	return gStr_Subpopulation;
-}
 
 const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(void) const
 {

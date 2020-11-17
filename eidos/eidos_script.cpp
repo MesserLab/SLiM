@@ -2021,7 +2021,7 @@ EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *p_type_node)
 		
 		for (EidosClass *eidos_class : EidosClass::RegisteredClasses(true, true))
 		{
-			if (eidos_class->ElementType() == object_class)
+			if (eidos_class->ClassName() == object_class)
 			{
 				p_type_node->typespec_.object_class = eidos_class;
 				break;

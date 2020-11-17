@@ -1497,4 +1497,41 @@ The
 \f2\fs20  (a singleton string) will certainly be the most memory-efficient, and probably also the fastest.  Memory efficiency can be a significant consideration; the nucleotide sequence for a chromosome of length 10
 \fs13\fsmilli6667 \super 9
 \fs20 \nosupersub  will occupy approximately 1 GB of memory when stored as a singleton string (with one byte per nucleotide), and much more if stored in the other formats.  However, the other formats can be easier to work with in Eidos, and so may be preferable for relatively short chromosomes if you are manipulating the generated sequence.\
+\pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.3.  Population genetics utilities
+\f2\b0\fs20 \cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Genome>\'a0genomes1, object<Genome>\'a0genomes2)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
+Calculates the FST between two 
+\f1\fs18 Genome
+\f2\fs20  vectors \'96 typically, but not necessarily, the genomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher FST indicates greater genetic divergence between subpopulations.\
+The code for 
+\f1\fs18 calcFST()
+\f2\fs20  is just an Eidos implementation of Wright\'92s definition of FST:\
+FST = 1 - HS / HT\
+where HS is the average heterozygosity in the two subpopulations, and HT is the total heterozygosity when both subpopulations are combined.\
+The implementation of 
+\f1\fs18 calcFST()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  If mutations are stacked, the heterozygosity calculated is 
+\f3\i by mutation
+\f2\i0 , not 
+\f3\i by site
+\f2\i0 .  Similarly, if multiple 
+\f1\fs18 Mutation
+\f2\fs20  objects exist in different genomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
+\f1\fs18 Mutation
+\f2\fs20  object is treated separately for purposes of the heterozygosity calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of these choices will be negligible; however, in some models these distinctions may be important.\
+It is also worth noting that mutations that are at a frequency of 
+\f1\fs18 0.0
+\f2\fs20  or 
+\f1\fs18 1.0
+\f2\fs20  across the two subpopulations are excluded from the calculation, because HT for such mutations is zero and the result is therefore undefined.\
 }

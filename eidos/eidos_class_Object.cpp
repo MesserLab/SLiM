@@ -35,7 +35,7 @@
 #pragma mark EidosObject
 #pragma mark -
 
-// EidosObject::Class() is not defined, to make this an abstract base class; but of course its superclass is gEidosObject_Class
+// EidosObject::Class() is not defined, to make this an abstract base class; but of course its class is gEidosObject_Class
 /*const EidosClass *EidosObject::Class(void) const
 {
 	return gEidosObject_Class;
@@ -72,13 +72,13 @@ bool EidosObject::IsMemberOfClass(const EidosClass *p_class_object) const
 
 void EidosObject::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();
+	p_ostream << Class()->ClassName();
 }
 
 EidosValue_SP EidosObject::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty for " << Class()->ElementType() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty for " << Class()->ClassName() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -88,15 +88,15 @@ void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValu
 	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ClassName() << "." << EidosTerminate(nullptr);
 	
 	bool readonly = signature->read_only_;
 	
 	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
-		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ElementType() << "): attempt to set a new value for read-only property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassName() << "): attempt to set a new value for read-only property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
 	else
-		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ElementType() << "): (internal error) setting a new value for read-write property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassName() << "): (internal error) setting a new value for read-write property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 EidosValue_SP EidosObject::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -114,10 +114,10 @@ EidosValue_SP EidosObject::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			for (const EidosMethodSignature_CSP &method_sig : *methods)
 				if (method_sig->call_name_.compare(method_name) == 0)
-					EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ClassName() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw
-			EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ElementType() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ClassName() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
 		}
 	}
 }
@@ -130,7 +130,7 @@ EidosValue_SP EidosObject::ExecuteMethod_str(EidosGlobalStringID p_method_id, co
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	output_stream << Class()->ElementType() << ":" << std::endl;
+	output_stream << Class()->ClassName() << ":" << std::endl;
 	
 	const std::vector<EidosPropertySignature_CSP> *properties = Class()->Properties();
 	
@@ -225,7 +225,7 @@ EidosValue_SP EidosObject::ExecuteMethod_str(EidosGlobalStringID p_method_id, co
 EidosValue_SP EidosObject::ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused(p_function_name, p_arguments, p_interpreter)
-	EIDOS_TERMINATION << "ERROR (EidosObject::ContextDefinedFunctionDispatch for " << Class()->ElementType() << "): (internal error) unimplemented Context function dispatch." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObject::ContextDefinedFunctionDispatch for " << Class()->ClassName() << "): (internal error) unimplemented Context function dispatch." << EidosTerminate(nullptr);
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObject &p_element)
@@ -259,6 +259,10 @@ std::vector<EidosClass *> EidosClass::RegisteredClasses(bool p_builtin, bool p_c
 {
 	// EidosClass::EidosClassRegistry() contains every class that has an allocated EidosClass object; we want to filter that
 	std::vector<EidosClass *> &classRegistry = EidosClass::EidosClassRegistry();
+	
+	if (classRegistry.size() == 0)
+		std::cout << "EidosClass::RegisteredClasses() called before classes have been registered" << std::endl;
+	
 	std::vector<EidosClass *> filteredRegistry;
 	
 	for (EidosClass *class_object : classRegistry)
@@ -386,7 +390,7 @@ void EidosClass::CheckForDuplicateMethodsOrProperties(void)
 	}
 }
 
-EidosClass::EidosClass(void)
+EidosClass::EidosClass(std::string p_class_name, EidosClass *p_superclass) : class_name_(p_class_name), superclass_(p_superclass)
 {
 	// Every EidosClass instance gets added to a shared registry, so that Eidos can find them all
 	EidosClassRegistry().push_back(this);
@@ -395,11 +399,6 @@ EidosClass::EidosClass(void)
 bool EidosClass::UsesRetainRelease(void) const
 {
 	return false;
-}
-
-const EidosClass *EidosClass::Superclass(void) const
-{
-	return nullptr;		// FIXME maybe at some point we want to go the Objective-C route and make Class a subclass of Object?
 }
 
 bool EidosClass::IsSubclassOfClass(const EidosClass *p_class_object) const
@@ -418,15 +417,11 @@ bool EidosClass::IsSubclassOfClass(const EidosClass *p_class_object) const
 	return false;
 }
 
-const std::string &EidosClass::ElementType(void) const
-{
-	return gEidosStr_Object;
-}
-
 void EidosClass::CacheDispatchTables(void)
 {
+	// This can be called more than once during startup, because Eidos warms up and the SLiM warms up
 	if (dispatches_cached_)
-		EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) dispatch tables already initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
+		return;
 	
 	{
 		const std::vector<EidosPropertySignature_CSP> *properties = Properties();
@@ -440,7 +435,7 @@ void EidosClass::CacheDispatchTables(void)
 		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
 		// all properties should use explicitly registered strings, in the present design, so they should all be <= gEidosID_LastContextEntry
 		if ((int64_t)property_signatures_dispatch_capacity_ > (int64_t)gEidosID_LastContextEntry)
-			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) property dispatch table unreasonably large for class " << ElementType() << "." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) property dispatch table unreasonably large for class " << ClassName() << "." << EidosTerminate(nullptr);
 		
 		property_signatures_dispatch_ = (EidosPropertySignature_CSP *)calloc(property_signatures_dispatch_capacity_, sizeof(EidosPropertySignature_CSP));
 		
@@ -459,7 +454,7 @@ void EidosClass::CacheDispatchTables(void)
 		
 		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
 		if (method_signatures_dispatch_capacity_ > 512)
-			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ElementType() << "." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ClassName() << "." << EidosTerminate(nullptr);
 		
 		method_signatures_dispatch_ = (EidosMethodSignature_CSP *)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature_CSP));
 		
@@ -474,7 +469,7 @@ void EidosClass::CacheDispatchTables(void)
 
 void EidosClass::RaiseForDispatchUninitialized(void) const
 {
-	EIDOS_TERMINATION << "ERROR (EidosClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ElementType() << "." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosClass::RaiseForDispatchUninitialized): (internal error) dispatch tables not initialized for class " << ClassName() << "." << EidosTerminate(nullptr);
 }
 
 const std::vector<EidosPropertySignature_CSP> *EidosClass::Properties(void) const
@@ -542,10 +537,10 @@ EidosValue_SP EidosClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, Ei
 			
 			for (const EidosMethodSignature_CSP &method_sig : *methods)
 				if (method_sig->call_name_.compare(method_name) == 0)
-					EIDOS_TERMINATION << "ERROR (EidosClass::ExecuteClassMethod for " << ElementType() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosClass::ExecuteClassMethod for " << ClassName() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw
-			EIDOS_TERMINATION << "ERROR (EidosClass::ExecuteClassMethod for " << ElementType() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosClass::ExecuteClassMethod for " << ClassName() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
 		}
 	}
 }

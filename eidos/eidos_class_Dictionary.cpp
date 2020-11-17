@@ -102,7 +102,7 @@ void EidosDictionaryUnretained::SetKeyValue(const std::string &key, EidosValue_S
 		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
 		
 		if (!value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::SetKeyValue): Dictionary can only accept object classes that are under retain/release memory management internally; class " << value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::SetKeyValue): Dictionary can only accept object classes that are under retain/release memory management internally; class " << value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
 	}
 	
 	if (value_type == EidosValueType::kValueNULL)
@@ -285,7 +285,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
 		
 		if (!value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue): setValue() can only accept object classes that are under retain/release memory management internally; class " << value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue): setValue() can only accept object classes that are under retain/release memory management internally; class " << value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
 	}
 	
 	if (value_type == EidosValueType::kValueNULL)
@@ -340,18 +340,8 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 #pragma mark EidosDictionaryUnretained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryUnretained_Class = new EidosDictionaryUnretained_Class();
+EidosClass *gEidosDictionaryUnretained_Class = nullptr;
 
-
-const EidosClass *EidosDictionaryUnretained_Class::Superclass(void) const
-{
-	return gEidosObject_Class;
-}
-
-const std::string &EidosDictionaryUnretained_Class::ElementType(void) const
-{
-	return gEidosStr_DictionaryBase;
-}
 
 const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties(void) const
 {
@@ -455,18 +445,8 @@ const EidosClass *EidosDictionaryRetained::Class(void) const
 #pragma mark EidosDictionaryRetained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryRetained_Class = new EidosDictionaryRetained_Class();
+EidosClass *gEidosDictionaryRetained_Class = nullptr;
 
-
-const EidosClass *EidosDictionaryRetained_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &EidosDictionaryRetained_Class::ElementType(void) const
-{
-	return gEidosStr_Dictionary;
-}
 
 const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Functions(void) const
 {

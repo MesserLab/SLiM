@@ -78,6 +78,20 @@ public:
 	EidosValue_SP ExecuteMethod_pauseExecution(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
+class SLiMgui_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	SLiMgui_Class(const SLiMgui_Class &p_original) = delete;	// no copy-construct
+	SLiMgui_Class& operator=(const SLiMgui_Class&) = delete;	// no copying
+	inline SLiMgui_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
+
 
 #endif /* __SLiM__slim_gui__ */
 

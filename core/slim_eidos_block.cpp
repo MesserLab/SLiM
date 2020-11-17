@@ -1007,7 +1007,7 @@ const EidosClass *SLiMEidosBlock::Class(void) const
 
 void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<";
+	p_ostream << Class()->ClassName() << "<";
 	
 	if (start_generation_ > 0)
 	{
@@ -1130,34 +1130,8 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 #pragma mark SLiMEidosBlock_Class
 #pragma mark -
 
-class SLiMEidosBlock_Class : public EidosClass
-{
-private:
-	typedef EidosClass super;
+EidosClass *gSLiM_SLiMEidosBlock_Class = nullptr;
 
-public:
-	SLiMEidosBlock_Class(const SLiMEidosBlock_Class &p_original) = delete;	// no copy-construct
-	SLiMEidosBlock_Class& operator=(const SLiMEidosBlock_Class&) = delete;	// no copying
-	inline SLiMEidosBlock_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-};
-
-EidosClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
-
-
-const EidosClass *SLiMEidosBlock_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &SLiMEidosBlock_Class::ElementType(void) const
-{
-	return gStr_SLiMEidosBlock;
-}
 
 const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(void) const
 {

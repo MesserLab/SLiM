@@ -98,7 +98,7 @@ const EidosClass *EidosImage::Class(void) const
 
 void EidosImage::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 void EidosImage::GetChannelMetrics(Channel p_channel, int64_t &p_pixel_stride, int64_t &p_pixel_suboffset)
@@ -238,35 +238,8 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 #pragma mark EidosImage_Class
 #pragma mark -
 
-class EidosImage_Class : public EidosDictionaryRetained_Class
-{
-private:
-	typedef EidosDictionaryRetained_Class super;
+EidosClass *gEidosImage_Class = nullptr;
 
-public:
-	EidosImage_Class(const EidosImage_Class &p_original) = delete;	// no copy-construct
-	EidosImage_Class& operator=(const EidosImage_Class&) = delete;	// no copying
-	inline EidosImage_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
-};
-
-EidosClass *gEidosImage_Class = new EidosImage_Class();
-
-
-const EidosClass *EidosImage_Class::Superclass(void) const
-{
-	return gEidosDictionaryRetained_Class;
-}
-
-const std::string &EidosImage_Class::ElementType(void) const
-{
-	return gEidosStr_Image;
-}
 
 const std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties(void) const
 {
