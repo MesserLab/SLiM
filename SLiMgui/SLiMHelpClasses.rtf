@@ -3208,6 +3208,15 @@ See
 \f4\fs20  calls.  Note that the new row may be buffered, and thus may not be written out to disk immediately; see 
 \f3\fs18 flush()
 \f4\fs20 .  This method may be used instead of, or in conjunction with, automatic logging.\
+You can get the 
+\f3\fs18 LogFile
+\f4\fs20  instance, in order to call 
+\f3\fs18 logRow()
+\f4\fs20  on it, from 
+\f3\fs18 sim.logFiles
+\f4\fs20 , or you can remember it in a global constant with 
+\f3\fs18 defineConstant()
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setLogInterval([Ni$\'a0logInterval\'a0=\'a0NULL])\
