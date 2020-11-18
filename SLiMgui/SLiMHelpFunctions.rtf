@@ -1504,23 +1504,81 @@ The
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Genome>\'a0genomes1, object<Genome>\'a0genomes2)\
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Genome>\'a0genomes1, object<Genome>\'a0genomes2, \cf2 [No<Mutation>\'a0muts\'a0=\'a0NULL]\cf0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Calculates the FST between two 
+Calculates the 
+\f3\i \kerning1\expnd0\expndtw0 F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub  between two 
 \f1\fs18 Genome
-\f2\fs20  vectors \'96 typically, but not necessarily, the genomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher FST indicates greater genetic divergence between subpopulations.\
+\f2\fs20  vectors \'96 typically, but not necessarily, the genomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher 
+\f3\i \kerning1\expnd0\expndtw0 F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub  indicates greater genetic divergence between subpopulations.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 The calculation is done using only the mutations in 
+\f1\fs18 muts
+\f2\fs20 ; if 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , all mutations are used.  The 
+\f1\fs18 muts
+\f2\fs20  parameter can therefore be used to calculate the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  only at a specific locus (by passing a single mutation), or only within a specific window along the chromosome (by passing only the subset of mutations within the desired window), or only for a particular mutation type (by passing only mutations of that type); the default behavior, for 
+\f1\fs18 muts
+\f2\fs20  of 
+\f1\fs18 NULL
+\f2\fs20 , provides the genome-wide 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub , which is often used to assess the overall level of genetic divergence between sister species or allopatric subpopulations.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The code for 
 \f1\fs18 calcFST()
-\f2\fs20  is just an Eidos implementation of Wright\'92s definition of FST:\
-FST = 1 - HS / HT\
-where HS is the average heterozygosity in the two subpopulations, and HT is the total heterozygosity when both subpopulations are combined.\
+\f2\fs20  is just an Eidos implementation of Wright\'92s definition of 
+\f3\i \kerning1\expnd0\expndtw0 F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub :\
+
+\f3\i \kerning1\expnd0\expndtw0 F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub  = 1 - 
+\f3\i H
+\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub  / 
+\f3\i H
+\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub \
+where 
+\f3\i H
+\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub  is the average heterozygosity in the two subpopulations, and 
+\f3\i H
+\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub  is the total heterozygosity when both subpopulations are combined.\kerning1\expnd0\expndtw0   In this implementation, the two genome vectors are weighted equally, not weighted by their size.\expnd0\expndtw0\kerning0
+\
 The implementation of 
 \f1\fs18 calcFST()
 \f2\fs20 , viewable with 
 \f1\fs18 functionSource()
-\f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  If mutations are stacked, the heterozygosity calculated is 
+\f2\fs20 , treats every mutation in 
+\f1\fs18 \kerning1\expnd0\expndtw0 muts
+\f2\fs20 \expnd0\expndtw0\kerning0
+ as independent in the heterozygosity calculations.  If mutations are stacked, the heterozygosity calculated is 
 \f3\i by mutation
 \f2\i0 , not 
 \f3\i by site
@@ -1533,5 +1591,9 @@ It is also worth noting that mutations that are at a frequency of
 \f1\fs18 0.0
 \f2\fs20  or 
 \f1\fs18 1.0
-\f2\fs20  across the two subpopulations are excluded from the calculation, because HT for such mutations is zero and the result is therefore undefined.\
+\f2\fs20  across the two subpopulations are excluded from the calculation, because 
+\f3\i H
+\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
+\fs20 \expnd0\expndtw0\kerning0
+\nosupersub  for such mutations is zero and the result is therefore undefined.\
 }

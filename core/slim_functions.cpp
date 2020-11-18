@@ -32,8 +32,8 @@
 // formatting of the code looks nice in Xcode; they are used only by SLiMSim::SLiMFunctionSignatures().
 const char *gSLiMSourceCode_calcFST = 
 R"({
-	p1_p = genomes1.mutationFrequenciesInGenomes();
-	p2_p = genomes2.mutationFrequenciesInGenomes();
+	p1_p = genomes1.mutationFrequenciesInGenomes(muts);
+	p2_p = genomes2.mutationFrequenciesInGenomes(muts);
 	mean_p = (p1_p + p2_p) / 2.0;
 	H_t = 2.0 * mean_p * (1.0 - mean_p);
 	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
@@ -61,7 +61,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(v
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		
 		// Built-in SLiM functions implemented with Eidos code
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 	}
 	
 	return &sim_func_signatures_;
