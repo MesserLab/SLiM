@@ -22,6 +22,9 @@
 #include "slim_globals.h"
 #include "slim_sim.h"
 #include "genome.h"
+#include "mutation.h"
+#include "mutation_type.h"
+#include "individual.h"
 #include "eidos_rng.h"
 
 #include <string>
@@ -30,6 +33,8 @@
 
 // Source code for built-in functions that are implemented in Eidos.  These strings are globals mostly so the
 // formatting of the code looks nice in Xcode; they are used only by SLiMSim::SLiMFunctionSignatures().
+
+// (float$)calcFST(object<Genome> genomes1, object<Genome> genomes2, [No<Mutation> muts = NULL])
 const char *gSLiMSourceCode_calcFST = 
 R"({
 	p1_p = genomes1.mutationFrequenciesInGenomes(muts);
@@ -40,6 +45,14 @@ R"({
 	fst = 1.0 - H_s/H_t;
 	fst = fst[!isNAN(fst)];  // exclude muts where mean_p is 0.0 or 1.0
 	return mean(fst);
+})";
+
+// (float$)calcVA(object<Individual> individuals, object<MutationType> mutType)
+const char *gSLiMSourceCode_calcVA = 
+R"({
+	additiveEffects = individuals.sumOfMutationsOfType(mutType);
+	V_A = var(additiveEffects);
+	return V_A;
 })";
 
 
@@ -62,6 +75,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(v
 		
 		// Built-in SLiM functions implemented with Eidos code
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddObject_S("mutType", gSLiM_MutationType_Class));
 	}
 	
 	return &sim_func_signatures_;

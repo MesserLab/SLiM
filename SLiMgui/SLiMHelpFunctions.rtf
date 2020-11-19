@@ -1548,8 +1548,9 @@ The code for
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub :\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \kerning1\expnd0\expndtw0 F
+\f3\i \cf2 \kerning1\expnd0\expndtw0 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1596,4 +1597,31 @@ It is also worth noting that mutations that are at a frequency of
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  for such mutations is zero and the result is therefore undefined.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcVA(object<Individual>\'a0individuals, object<MutationType>$\'a0mutType)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates 
+\f3\i V
+\f2\i0\fs13\fsmilli6667 \sub A
+\fs20 \nosupersub , the additive genetic variance, among a vector 
+\f1\fs18 individuals
+\f2\fs20 , in a particular mutation type 
+\f1\fs18 mutType
+\f2\fs20  that represents quantitative trait loci (QTLs) influencing a quantitative phenotypic trait.\
+This function assumes that mutations of type 
+\f1\fs18 mutType
+\f2\fs20  encode their effect size upon the quantitative trait in their 
+\f1\fs18 selectionCoeff
+\f2\fs20  property, as is fairly standard in SLiM (see, e.g., section 13.2).  The implementation of 
+\f1\fs18 calcVA()
+\f2\fs20 , which is viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , is quite simple; if effect sizes are stored elsewhere (such as with 
+\f1\fs18 setValue()
+\f2\fs20 , as in section 13.5), a new user-defined function following the pattern of 
+\f1\fs18 calcVA()
+\f2\fs20  can easily be written.\expnd0\expndtw0\kerning0
+\
 }
