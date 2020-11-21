@@ -460,12 +460,18 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		}
 		
 		// Patch virtual_token to contain the range from beginning to end of the script block
-		const int32_t token_end = compound_statement_node->token_->token_end_;
-		const int32_t token_UTF16_end = compound_statement_node->token_->token_UTF16_end_;
-		
-		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
-		
-		slim_script_block_node->ReplaceTokenWithToken(new EidosToken(slim_script_block_node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
+		if (compound_statement_node)
+		{
+			const int32_t token_end = compound_statement_node->token_->token_end_;
+			const int32_t token_UTF16_end = compound_statement_node->token_->token_UTF16_end_;
+			
+			std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
+			
+			slim_script_block_node->ReplaceTokenWithToken(new EidosToken(slim_script_block_node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
+		}
+		else if (!parse_make_bad_nodes_)
+			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): (internal error) missing compound_statement_node" << EidosTerminate(current_token_);
+
 	}
 	catch (...)
 	{
