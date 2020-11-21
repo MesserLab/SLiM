@@ -85,6 +85,9 @@ development head:
 	add a calcFST() function to SLiM to provide easy FST calculations; revise recipe 11.1 to use the new function
 	add a functionSource() function in Eidos to allow the user to see the Eidos source code for functions that are implemented in Eidos
 	add a calcVA() function to SLiM to calculate additive genetic variance for quantitative traints
+	added arm64 build for Apple Silicon
+	add a calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta() functions to SLiM, add optional windowing to calcFST()
+	revise recipe 14.1 to use calcHeterozygosity() instead of using custom code
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

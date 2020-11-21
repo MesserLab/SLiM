@@ -34,9 +34,26 @@
 // Source code for built-in functions that are implemented in Eidos.  These strings are globals mostly so the
 // formatting of the code looks nice in Xcode; they are used only by SLiMSim::SLiMFunctionSignatures().
 
-// (float$)calcFST(object<Genome> genomes1, object<Genome> genomes2, [No<Mutation> muts = NULL])
+// (float$)calcFST(object<Genome> genomes1, object<Genome> genomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcFST = 
 R"({
+	// handle windowing
+	if (!isNULL(start) & !isNULL(end))
+	{
+		if (start > end)
+			stop("ERROR (calcFST()): start must be less than or equal to end");
+		if (isNULL(muts))
+			muts = sim.mutations;
+		mpos = muts.position;
+		muts = muts[(mpos >= start) & (mpos <= end)];
+		length = end - start + 1;
+	}
+	else if (!isNULL(start) | !isNULL(end))
+	{
+		stop("ERROR (calcFST()): start and end must both be NULL or both be non-NULL");
+	}
+	
+	// do the calculation
 	p1_p = genomes1.mutationFrequenciesInGenomes(muts);
 	p2_p = genomes2.mutationFrequenciesInGenomes(muts);
 	mean_p = (p1_p + p2_p) / 2.0;
@@ -47,12 +64,100 @@ R"({
 	return mean(fst);
 })";
 
-// (float$)calcVA(object<Individual> individuals, object<MutationType> mutType)
+// (float$)calcVA(object<Individual> individuals, object<MutationType>$ mutType)
 const char *gSLiMSourceCode_calcVA = 
 R"({
-	additiveEffects = individuals.sumOfMutationsOfType(mutType);
-	V_A = var(additiveEffects);
-	return V_A;
+	return var(individuals.sumOfMutationsOfType(mutType));
+})";
+
+// (float$)calcPairHeterozygosity(object<Genome>$ genome1, object<Genome>$ genome2, [Ni$ start = NULL], [Ni$ end = NULL], [l$ infiniteSites = T])
+const char *gSLiMSourceCode_calcPairHeterozygosity = 
+R"({
+	muts1 = genome1.mutations;
+	muts2 = genome2.mutations;
+	length = sim.chromosome.lastPosition + 1;
+
+	// handle windowing
+	if (!isNULL(start) & !isNULL(end))
+	{
+		if (start > end)
+			stop("ERROR (calcPairHeterozygosity()): start must be less than or equal to end");
+		m1pos = muts1.position;
+		m2pos = muts2.position;
+		muts1 = muts1[(m1pos >= start) & (m1pos <= end)];
+		muts2 = muts2[(m2pos >= start) & (m2pos <= end)];
+		length = end - start + 1;
+	}
+	else if (!isNULL(start) | !isNULL(end))
+	{
+		stop("ERROR (calcPairHeterozygosity()): start and end must both be NULL or both be non-NULL");
+	}
+
+	// do the calculation
+	unshared = setSymmetricDifference(muts1, muts2);
+	if (!infiniteSites)
+		unshared = unique(unshared.position, preserveOrder=F);
+
+	return size(unshared) / length;
+})";
+
+// (float$)calcHeterozygosity(o<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+const char *gSLiMSourceCode_calcHeterozygosity = 
+R"({
+	length = sim.chromosome.lastPosition + 1;
+
+	// handle windowing
+	if (!isNULL(start) & !isNULL(end))
+	{
+		if (start > end)
+			stop("ERROR (calcHeterozygosity()): start must be less than or equal to end");
+		if (isNULL(muts))
+			muts = sim.mutations;
+		mpos = muts.position;
+		muts = muts[(mpos >= start) & (mpos <= end)];
+		length = end - start + 1;
+	}
+	else if (!isNULL(start) | !isNULL(end))
+	{
+		stop("ERROR (calcHeterozygosity()): start and end must both be NULL or both be non-NULL");
+	}
+
+	// do the calculation
+	p = genomes.mutationFrequenciesInGenomes(muts);
+	heterozygosity = 2 * sum(p * (1 - p)) / length;
+	return heterozygosity;
+})";
+
+// (float$)calcWattersonsTheta(o<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+const char *gSLiMSourceCode_calcWattersonsTheta = 
+R"({
+	if (isNULL(muts))
+		muts = sim.mutations;
+
+	// handle windowing
+	if (!isNULL(start) & !isNULL(end))
+	{
+		if (start > end)
+			stop("ERROR (calcWattersonsTheta()): start must be less than or equal to end");
+		mpos = muts.position;
+		muts = muts[(mpos >= start) & (mpos <= end)];
+		length = end - start + 1;
+	}
+	else if (!isNULL(start) | !isNULL(end))
+	{
+		stop("ERROR (calcWattersonsTheta()): start and end must both be NULL or both be non-NULL");
+	}
+
+	// narrow down to the mutations that are actually present in the genomes and aren't fixed
+	p = genomes.mutationFrequenciesInGenomes(muts);
+	muts = muts[(p != 0.0) & (p != 1.0)];
+
+	// do the calculation
+	k = size(muts);
+	n = genomes.size();
+	a_n = sum(1 / 1:(n-1));
+	theta = (k / a_n) / (sim.chromosome.lastPosition + 1);
+	return theta;
 })";
 
 
@@ -74,8 +179,11 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(v
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		
 		// Built-in SLiM functions implemented with Eidos code
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddObject_S("mutType", gSLiM_MutationType_Class));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("genome1", gSLiM_Genome_Class)->AddObject_S("genome2", gSLiM_Genome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 	}
 	
 	return &sim_func_signatures_;

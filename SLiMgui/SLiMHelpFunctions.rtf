@@ -1504,23 +1504,19 @@ The
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Genome>\'a0genomes1, object<Genome>\'a0genomes2, \cf2 [No<Mutation>\'a0muts\'a0=\'a0NULL]\cf0 )\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Genome>\'a0genomes1, object<Genome>\'a0genomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Calculates the 
-\f3\i \kerning1\expnd0\expndtw0 F
+\f2\fs20 \cf2 Calculates the 
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \expnd0\expndtw0\kerning0
-\nosupersub  between two 
+\fs20 \nosupersub  between two 
 \f1\fs18 Genome
 \f2\fs20  vectors \'96 typically, but not necessarily, the genomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher 
-\f3\i \kerning1\expnd0\expndtw0 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \expnd0\expndtw0\kerning0
-\nosupersub  indicates greater genetic divergence between subpopulations.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 The calculation is done using only the mutations in 
+\fs20 \nosupersub  indicates greater genetic divergence between subpopulations.\
+The calculation is done using only the mutations in 
 \f1\fs18 muts
 \f2\fs20 ; if 
 \f1\fs18 muts
@@ -1531,26 +1527,30 @@ Calculates the
 \f2\fs20  parameter can therefore be used to calculate the 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub  only at a specific locus (by passing a single mutation), or only within a specific window along the chromosome (by passing only the subset of mutations within the desired window), or only for a particular mutation type (by passing only mutations of that type); the default behavior, for 
-\f1\fs18 muts
+\fs20 \nosupersub  only for a particular mutation type (by passing only mutations of that type).\
+The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
+\f1\fs18 start
+\f2\fs20 , 
+\f1\fs18 end
+\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
 \f2\fs20  of 
 \f1\fs18 NULL
 \f2\fs20 , provides the genome-wide 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub , which is often used to assess the overall level of genetic divergence between sister species or allopatric subpopulations.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 The code for 
 \f1\fs18 calcFST()
 \f2\fs20  is just an Eidos implementation of Wright\'92s definition of 
-\f3\i \kerning1\expnd0\expndtw0 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \expnd0\expndtw0\kerning0
-\nosupersub :\
+\fs20 \nosupersub :\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 \kerning1\expnd0\expndtw0 F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1562,24 +1562,23 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-where 
-\f3\i H
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
+\f3\i \expnd0\expndtw0\kerning0
+H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
-\fs20 \expnd0\expndtw0\kerning0
-\nosupersub  is the average heterozygosity in the two subpopulations, and 
-\f3\i H
+\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
+\f3\i \expnd0\expndtw0\kerning0
+H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
-\fs20 \expnd0\expndtw0\kerning0
-\nosupersub  is the total heterozygosity when both subpopulations are combined.\kerning1\expnd0\expndtw0   In this implementation, the two genome vectors are weighted equally, not weighted by their size.\expnd0\expndtw0\kerning0
-\
+\fs20 \nosupersub  is the total heterozygosity when both subpopulations are combined.  In this implementation, the two genome vectors are weighted equally, not weighted by their size.\
 The implementation of 
 \f1\fs18 calcFST()
 \f2\fs20 , viewable with 
 \f1\fs18 functionSource()
 \f2\fs20 , treats every mutation in 
-\f1\fs18 \kerning1\expnd0\expndtw0 muts
-\f2\fs20 \expnd0\expndtw0\kerning0
- as independent in the heterozygosity calculations.  If mutations are stacked, the heterozygosity calculated is 
+\f1\fs18 muts
+\f2\fs20  as independent in the heterozygosity calculations.  If mutations are stacked, the heterozygosity calculated is 
 \f3\i by mutation
 \f2\i0 , not 
 \f3\i by site
@@ -1593,13 +1592,115 @@ It is also worth noting that mutations that are at a frequency of
 \f2\fs20  or 
 \f1\fs18 1.0
 \f2\fs20  across the two subpopulations are excluded from the calculation, because 
-\f3\i H
+\f3\i \expnd0\expndtw0\kerning0
+H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
-\fs20 \expnd0\expndtw0\kerning0
-\nosupersub  for such mutations is zero and the result is therefore undefined.\
+\fs20 \nosupersub  for such mutations is zero and the result is therefore undefined.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcVA(object<Individual>\'a0individuals, object<MutationType>$\'a0mutType)\
+\f1\fs18 \cf2 (float$)calcHeterozygosity(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the heterozygosity for a vector of genomes, based upon the frequencies of mutations in the genomes.  Often 
+\f1\fs18 genomes
+\f2\fs20  will be all of the genomes in a subpopulation, or in the entire population, but any genome vector may be used.  By default, with 
+\f1\fs18 muts=NULL
+\f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
+\f1\fs18 muts
+\f2\fs20 .\
+The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
+\f1\fs18 start
+\f2\fs20 , 
+\f1\fs18 end
+\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  of 
+\f1\fs18 NULL
+\f2\fs20 , provides the genome-wide heterozygosity.\
+The implementation of 
+\f1\fs18 calcHeterozygosity()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  One could regard this choice as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this choice will be negligible; however, in some models this distinction may be important.  See 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20  for further discussion.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcPairHeterozygosity(object<Genome>$\'a0genome1, object<Genome>$\'a0genome2, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0infiniteSites\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the heterozygosity for a pair of genomes; these will typically be the two genomes of a diploid individual (
+\f1\fs18 individual.genome1
+\f2\fs20  and 
+\f1\fs18 individual.genome2
+\f2\fs20 ), but any two genomes may be supplied.\
+The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
+\f1\fs18 start
+\f2\fs20 , 
+\f1\fs18 end
+\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  of 
+\f1\fs18 NULL
+\f2\fs20 , provides the genome-wide heterozygosity.\
+The implementation of 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , treats every mutation as independent in the heterozygosity calculations by default (i.e., with 
+\f1\fs18 infiniteSites=T
+\f2\fs20 ).  If mutations are stacked, the heterozygosity calculated therefore depends upon the number of 
+\f3\i unshared mutations
+\f2\i0 , not the number of 
+\f3\i differing sites
+\f2\i0 .  Similarly, if multiple 
+\f1\fs18 Mutation
+\f2\fs20  objects exist in different genomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
+\f1\fs18 Mutation
+\f2\fs20  object is treated separately for purposes of the heterozygosity calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this choice will be negligible; however, in some models this distinction may be important.  The behavior of 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20  can be switched to calculate based upon the number of differing sites, rather than the number of unshared mutations, by passing 
+\f1\fs18 infiniteSites=F
+\f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcWattersonsTheta(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates Watterson\'92s theta (a metric of genetic diversity comparable to heterozygosity) for a vector of genomes, based upon the mutations in the genomes.  Often 
+\f1\fs18 genomes
+\f2\fs20  will be all of the genomes in a subpopulation, or in the entire population, but any genome vector may be used.  By default, with 
+\f1\fs18 muts=NULL
+\f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
+\f1\fs18 muts
+\f2\fs20 .\
+The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
+\f1\fs18 start
+\f2\fs20 , 
+\f1\fs18 end
+\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  of 
+\f1\fs18 NULL
+\f2\fs20 , provides the genome-wide Watterson\'92s theta.\
+The implementation of 
+\f1\fs18 calcWattersonsTheta()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  One could regard this choice as embodying an infinite-sites interpretation of the segregating mutations, as with 
+\f1\fs18 calcHeterozygosity()
+\f2\fs20 .  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20  for further discussion.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcVA(object<Individual>\'a0individuals, object<MutationType>$\'a0mutType)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -1622,6 +1723,5 @@ This function assumes that mutations of type
 \f1\fs18 setValue()
 \f2\fs20 , as in section 13.5), a new user-defined function following the pattern of 
 \f1\fs18 calcVA()
-\f2\fs20  can easily be written.\expnd0\expndtw0\kerning0
-\
+\f2\fs20  can easily be written.\
 }
