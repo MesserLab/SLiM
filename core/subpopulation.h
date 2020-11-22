@@ -185,6 +185,8 @@ public:
 	std::vector<Individual *> nonWF_offspring_individuals_;
 #endif  // SLIM_NONWF_ONLY
 	
+	std::vector<int32_t> lifetime_reproductive_output_;		// the lifetime reproductive output of all individuals that died in the last mortality event; cleared each generation
+	
 #ifdef SLIM_WF_ONLY
 	std::vector<SLiMEidosBlock*> registered_mate_choice_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 #endif	// SLIM_WF_ONLY
@@ -369,6 +371,7 @@ public:
 	double ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index);
 	
 #ifdef SLIM_WF_ONLY
+	void TallyLifetimeReproductiveOutput(void);
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 #endif	// SLIM_WF_ONLY
 	

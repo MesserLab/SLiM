@@ -1166,7 +1166,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+						new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1234,7 +1234,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1312,7 +1312,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_count];
 					new_child->migrant_ = false;
 					
-					new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+					new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1591,7 +1591,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
+					new_child->TrackParentage(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1659,7 +1659,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+					new_child->TrackParentage(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1788,7 +1788,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1816,7 +1816,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1858,7 +1858,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1912,7 +1912,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -5140,6 +5140,12 @@ void Population::AssessMutationRuns(void)
 // step forward a generation: make the children become the parents
 void Population::SwapGenerations(void)
 {
+	// record lifetime reproductive outputs for all parents before swapping, including in subpops being removed
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		subpop_pair.second->TallyLifetimeReproductiveOutput();
+	for (Subpopulation *subpop : removed_subpops_)
+		subpop->TallyLifetimeReproductiveOutput();
+	
 	// dispose of any freed subpops
 	if (removed_subpops_.size())
 	{

@@ -2922,6 +2922,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 }
 
 #ifdef SLIM_WF_ONLY
+void Subpopulation::TallyLifetimeReproductiveOutput(void)
+{
+	lifetime_reproductive_output_.clear();
+	
+	for (Individual *ind : parent_individuals_)
+		lifetime_reproductive_output_.push_back(ind->reproductive_output_);
+}
+
 void Subpopulation::SwapChildAndParentGenomes(void)
 {
 	bool will_need_new_children = false;
@@ -2942,6 +2950,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	// Clear out any dictionary values and color values stored in what are now the child individuals; since this is per-individual it
 	// takes a significant amount of time, so we try to minimize the overhead by doing it only when these facilities have been used
 	// BCH 6 April 2019: likewise, now, with resetting tags in individuals and genomes to the "unset" value
+	// BCH 21 November 2020: likewise, now, for resetting reproductive output
 	if (Individual::s_any_individual_dictionary_set_)
 	{
 		for (Individual *child : child_individuals_)
@@ -2964,6 +2973,9 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 			child->genome2_->tag_value_ = SLIM_TAG_UNSET_VALUE;
 		}
 	}
+	
+	for (Individual *child : child_individuals_)
+		child->reproductive_output_ = 0;
 	
 	// The parents now have the values that used to belong to the children.
 	parent_subpop_size_ = child_subpop_size_;
@@ -3171,6 +3183,10 @@ void Subpopulation::ViabilitySelection(void)
 	int females_deceased = 0;
 	bool individuals_died = false;
 	
+	// clear lifetime reproductive outputs, in preparation for new values
+	lifetime_reproductive_output_.clear();
+	
+	// do mortality
 	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
 	{
 		Individual *individual = individual_data[individual_index];
@@ -3206,6 +3222,8 @@ void Subpopulation::ViabilitySelection(void)
 			if (sex_enabled_)
 				if (individual->sex_ == IndividualSex::kFemale)
 					females_deceased++;
+			
+			lifetime_reproductive_output_.push_back(individual->reproductive_output_);
 			
 			FreeSubpopGenome(genome1);
 			FreeSubpopGenome(genome2);
@@ -3429,6 +3447,17 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				vec->push_float(migrant_pair.second);
 			
 			return result_SP;
+		}
+		case gID_lifetimeReproductiveOutput:
+		{
+			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_;
+			int lifetime_rep_count = (int)lifetime_rep.size();
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count);
+			
+			for (int value_index = 0; value_index < lifetime_rep_count; ++value_index)
+				int_result->set_int_no_check(lifetime_rep[value_index], value_index);
+			
+			return EidosValue_SP(int_result);
 		}
 		case gID_selfingRate:
 		{
@@ -3796,7 +3825,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
-	individual->TrackPedigreeWithParents(*parent, *parent);
+	individual->TrackParentage(*parent, *parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -3896,7 +3925,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
 	
-	individual->TrackPedigreeWithParents(*parent1, *parent2);
+	individual->TrackParentage(*parent1, *parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -3981,7 +4010,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	
-	individual->TrackPedigreeWithoutParents();
+	individual->TrackParentageWithoutParents();
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4173,7 +4202,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
-	individual->TrackPedigreeWithoutParents();
+	individual->TrackParentageWithoutParents();
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4457,7 +4486,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
-	individual->TrackPedigreeWithParents(*parent, *parent);
+	individual->TrackParentage(*parent, *parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -6778,6 +6807,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,				true,	kEidosValueMaskObject, gSLiM_Individual_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutput,	true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));

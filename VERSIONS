@@ -88,6 +88,7 @@ development head:
 	added arm64 build for Apple Silicon
 	add a calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta() functions to SLiM, add optional windowing to calcFST()
 	revise recipe 14.1 to use calcHeterozygosity() instead of using custom code
+	add reproductiveOutput (Individual) and lifetimeReproductiveOutput (Subpopulation) properties to track individual reproductive output
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

@@ -100,6 +100,8 @@ public:
 	slim_age_t age_;					// the age of the individual, in generations; -1 in WF models
 #endif  // SLIM_NONWF_ONLY
 	
+	int32_t reproductive_output_;		// the number of offspring for which this individual has been a parent, so far
+	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
 	eidos_logical_t migrant_;			// T if the individual has migrated in the current generation, F otherwise
@@ -129,7 +131,7 @@ public:
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
-	inline __attribute__((always_inline)) void TrackPedigreeWithParents(Individual &p_parent1, Individual &p_parent2)
+	inline __attribute__((always_inline)) void TrackParentage(Individual &p_parent1, Individual &p_parent2)
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
 		
@@ -143,11 +145,14 @@ public:
 		pedigree_g2_ = p_parent1.pedigree_p2_;
 		pedigree_g3_ = p_parent2.pedigree_p1_;
 		pedigree_g4_ = p_parent2.pedigree_p2_;
+		
+		p_parent1.reproductive_output_++;
+		p_parent2.reproductive_output_++;
 	}
 	
-	// This alternative to TrackPedigreeWithParents() is used when the parents are not known, as in
+	// This alternative to TrackParentage() is used when the parents are not known, as in
 	// addEmpty() and addRecombined(); the unset ivars are set to -1 by the Individual constructor
-	inline __attribute__((always_inline)) void TrackPedigreeWithoutParents()
+	inline __attribute__((always_inline)) void TrackParentageWithoutParents()
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
 		
@@ -188,6 +193,7 @@ public:
 #ifdef SLIM_NONWF_ONLY
 	static EidosValue *GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size);
 #endif  // SLIM_NONWF_ONLY
+	static EidosValue *GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size);

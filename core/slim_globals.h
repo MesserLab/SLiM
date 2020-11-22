@@ -627,6 +627,7 @@ extern const std::string &gStr_chromosomeType;
 extern const std::string &gStr_genomicElementTypes;
 extern const std::string &gStr_inSLiMgui;
 extern const std::string &gStr_interactionTypes;
+extern const std::string &gStr_lifetimeReproductiveOutput;
 extern const std::string &gStr_modelType;
 extern const std::string &gStr_nucleotideBased;
 extern const std::string &gStr_scriptBlocks;
@@ -658,6 +659,7 @@ extern const std::string &gStr_age;
 extern const std::string &gStr_pedigreeID;
 extern const std::string &gStr_pedigreeParentIDs;
 extern const std::string &gStr_pedigreeGrandparentIDs;
+extern const std::string &gStr_reproductiveOutput;
 extern const std::string &gStr_genomePedigreeID;
 extern const std::string &gStr_reciprocal;
 extern const std::string &gStr_sexSegregation;
@@ -949,6 +951,7 @@ enum _SLiMGlobalStringID : int {
 	gID_genomicElementTypes,
 	gID_inSLiMgui,
 	gID_interactionTypes,
+	gID_lifetimeReproductiveOutput,
 	gID_modelType,
 	gID_nucleotideBased,
 	gID_scriptBlocks,
@@ -980,6 +983,7 @@ enum _SLiMGlobalStringID : int {
 	gID_pedigreeID,
 	gID_pedigreeParentIDs,
 	gID_pedigreeGrandparentIDs,
+	gID_reproductiveOutput,
 	gID_genomePedigreeID,
 	gID_reciprocal,
 	gID_sexSegregation,

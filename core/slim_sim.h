@@ -377,7 +377,7 @@ private:
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
-	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
+	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackParentage()
 	//bool pedigrees_enabled_ = false;				// BCH 3 Sept. 2020: this flag is deprecated; pedigree tracking is now ALWAYS ENABLED
 	
 	// continuous space support
