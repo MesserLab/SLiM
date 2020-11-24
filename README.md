@@ -1,8 +1,9 @@
 **SLiM on GitHub:** ![SLiM on GitHub Actions:](https://github.com/MesserLab/SLiM/workflows/tests/badge.svg)
 
 **SLiM on Travis-CI:** ![SLiM on Travis-CI:](https://travis-ci.com/MesserLab/SLiM.svg?branch=master)
-  
-  
+
+**SLiM on COPR:** [![Copr build status](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/)
+
 ---------------------------------------------------------------------------------------------
 PLEASE NOTE THAT THE GITHUB VERSION OF SLiM IS PRERELEASE SOFTWARE THAT IS UNDER ACTIVE DEVELOPMENT!
 ---------------------------------------------------------------------------------------------
