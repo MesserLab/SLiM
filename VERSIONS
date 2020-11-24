@@ -89,6 +89,8 @@ development head:
 	add a calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta() functions to SLiM, add optional windowing to calcFST()
 	revise recipe 14.1 to use calcHeterozygosity() instead of using custom code
 	add reproductiveOutput (Individual) and lifetimeReproductiveOutput (Subpopulation) properties to track individual reproductive output
+	add a new recipe 4.2.5, "Automatic logging with LogFile" (the old one became 4.2.6)
+	add a new recipe 16.19, "Range expansion in a stepping-stone model"
 	
 
 version 3.4 (build 2438; Eidos version 2.4):

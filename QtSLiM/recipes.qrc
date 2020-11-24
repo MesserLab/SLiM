@@ -6,7 +6,8 @@
         <file>recipes/Recipe 4.2.2 - Basic output, Random population sample.txt</file>
         <file>recipes/Recipe 4.2.3 - Basic output, Sampling individuals rather than genomes.txt</file>
         <file>recipes/Recipe 4.2.4 - Basic output, Substitutions.txt</file>
-        <file>recipes/Recipe 4.2.5 - Basic output, Custom output with Eidos.txt</file>
+        <file>recipes/Recipe 4.2.5 - Basic output, Automatic logging with LogFile.txt</file>
+        <file>recipes/Recipe 4.2.6 - Basic output, Custom output with Eidos.txt</file>
         <file>recipes/Recipe 5.1.1 - Subpopulation size, Instantaneous changes.txt</file>
         <file>recipes/Recipe 5.1.2 - Subpopulation size, Exponential growth I.txt</file>
         <file>recipes/Recipe 5.1.2 - Subpopulation size, Exponential growth II.txt</file>
@@ -135,6 +136,7 @@
         <file>recipes/Recipe 16.16 - Alternation of generations.txt</file>
         <file>recipes/Recipe 16.17 - Meiotic drive.txt</file>
         <file>recipes/Recipe 16.18 - A spatial epidemiological S-I-R model.txt</file>
+        <file>recipes/Recipe 16.19 - Range expansion in a stepping-stone model.txt</file>
         <file>recipes/Recipe 17.1 - A minimal tree-seq model.txt</file>
         <file>recipes/Recipe 17.2 - Overlaying neutral mutations.py</file>
         <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
