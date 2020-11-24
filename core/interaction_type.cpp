@@ -2555,7 +2555,7 @@ const EidosClass *InteractionType::Class(void) const
 
 void InteractionType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<i" << interaction_type_id_ << ">";
+	p_ostream << Class()->ClassName() << "<i" << interaction_type_id_ << ">";
 }
 
 EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
@@ -3920,35 +3920,8 @@ EidosValue_SP InteractionType::ExecuteMethod_unevaluate(EidosGlobalStringID p_me
 #pragma mark InteractionType_Class
 #pragma mark -
 
-class InteractionType_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_InteractionType_Class = nullptr;
 
-public:
-	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
-	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
-	inline InteractionType_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_InteractionType_Class = new InteractionType_Class();
-
-
-const EidosClass *InteractionType_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &InteractionType_Class::ElementType(void) const
-{
-	return gStr_InteractionType;
-}
 
 const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties(void) const
 {

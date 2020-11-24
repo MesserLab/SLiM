@@ -200,6 +200,20 @@ public:
 // support stream output of MutationType, for debugging
 std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutation_type);
 
+class MutationType_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	MutationType_Class(const MutationType_Class &p_original) = delete;	// no copy-construct
+	MutationType_Class& operator=(const MutationType_Class&) = delete;	// no copying
+	inline MutationType_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
+
 
 #endif /* defined(__SLiM__mutation_type__) */
 

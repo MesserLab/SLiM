@@ -748,6 +748,11 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptRaise("functionSignature(3.5);", 0, "cannot be type");
 	EidosAssertScriptRaise("functionSignature(_Test(7));", 0, "cannot be type");
 	
+	// functionSource()
+	EidosAssertScriptSuccess("functionSource('foo');", gStaticEidosValueVOID);	 // does not throw at present
+	EidosAssertScriptSuccess("functionSource('mean');", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess("functionSource('source');", gStaticEidosValueVOID);
+	
 	// ls()
 	EidosAssertScriptSuccess("ls();", gStaticEidosValueVOID);
 	EidosAssertScriptSuccess("ls(F);", gStaticEidosValueVOID);

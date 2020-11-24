@@ -1166,7 +1166,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+						new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1234,7 +1234,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1312,7 +1312,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_count];
 					new_child->migrant_ = false;
 					
-					new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+					new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1591,7 +1591,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
+					new_child->TrackParentage(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1659,7 +1659,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					new_child->TrackPedigreeWithParents(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+					new_child->TrackParentage(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1788,7 +1788,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1816,7 +1816,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1858,7 +1858,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -1912,7 +1912,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
-								new_child->TrackPedigreeWithParents(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -5140,6 +5140,12 @@ void Population::AssessMutationRuns(void)
 // step forward a generation: make the children become the parents
 void Population::SwapGenerations(void)
 {
+	// record lifetime reproductive outputs for all parents before swapping, including in subpops being removed
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		subpop_pair.second->TallyLifetimeReproductiveOutput();
+	for (Subpopulation *subpop : removed_subpops_)
+		subpop->TallyLifetimeReproductiveOutput();
+	
 	// dispose of any freed subpops
 	if (removed_subpops_.size())
 	{
@@ -5508,6 +5514,47 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 	}
 }
 
+slim_refcount_t Population::TallyMutationReferences(std::vector<Genome*> *p_genomes_to_tally)
+{
+	// first zero out the refcounts in all registered Mutation objects
+	SLiM_ZeroRefcountBlock(mutation_registry_);
+	
+	// then increment the refcounts through all pointers to Mutation in all genomes
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	slim_popsize_t genome_count = (slim_popsize_t)p_genomes_to_tally->size();
+	std::vector<Genome *> &genomes = *p_genomes_to_tally;
+	slim_refcount_t total_genome_count = 0;
+	
+	for (slim_popsize_t i = 0; i < genome_count; i++)							// child genomes
+	{
+		Genome &genome = *genomes[i];
+		
+		if (!genome.IsNull())
+		{
+			int mutrun_count = genome.mutrun_count_;
+			
+			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			{
+				MutationRun *mutrun = genome.mutruns_[run_index].get();
+				const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+				const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+				
+				for (; genome_iter != genome_end_iter; ++genome_iter)
+					++(*(refcount_block_ptr + *genome_iter));
+			}
+			
+			total_genome_count++;	// count only non-null genomes to determine fixation
+		}
+	}
+	
+	// set up the cache info; we have messed up any cached tallies
+	last_tallied_subpops_.clear();
+	cached_tally_genome_count_ = 0;
+	
+	// return the total genome count tallied (not counting null genomes)
+	return total_genome_count;
+}
+
 slim_refcount_t Population::TallyMutationReferences_FAST(void)
 {
 	// first zero out the refcounts in all registered Mutation objects
@@ -5552,6 +5599,183 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	}
 	
 	return total_genome_count;
+}
+
+EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count)
+{
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	double denominator = 1.0 / total_genome_count;
+	EidosValue_SP result_SP;
+	
+	// BCH 10/3/2020: Note that we now have to worry about being asked for the frequency of mutations that are
+	// not in the registry, and might be fixed or lost.  We handle this in the first major case below, where
+	// a vector of mutations was given.  It could be a marginal issue in the second major case, where NULL was
+	// passed for the mutation vector, because the registry can temporarily contain mutations in the state
+	// MutationState::kRemovedWithSubstitution, immediately after removeMutations(substitute=T); if that is
+	// a potential issue, registry_needs_consistency_check_ will be true, and we treat it specially.
+	
+	if (mutations_value->Type() != EidosValueType::kValueNULL)
+	{
+		// a vector of mutations was given, so loop through them and take their tallies
+		int mutations_count = mutations_value->Count();
+		
+		if (mutations_count == 1)
+		{
+			// Handle the one-mutation case separately so we can return a singleton
+			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
+			int8_t mut_state = mut->state_;
+			double freq;
+			
+			if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
+			else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
+			else													freq = 1.0;
+			
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(freq));
+		}
+		else
+		{
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(mutations_count);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int value_index = 0; value_index < mutations_count; ++value_index)
+			{
+				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
+				int8_t mut_state = mut->state_;
+				double freq;
+				
+				if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
+				else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
+				else													freq = 1.0;
+				
+				float_result->set_float_no_check(freq, value_index);
+			}
+		}
+	}
+	else if (MutationRegistryNeedsCheck())
+	{
+		// no mutation vector was given, so return all frequencies from the registry
+		// this is the same as the case below, except MutationState::kRemovedWithSubstitution is possible
+		int registry_size;
+		const MutationIndex *registry = MutationRegistry(&registry_size);
+		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
+		
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(registry_size);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int registry_index = 0; registry_index < registry_size; registry_index++)
+		{
+			MutationIndex mut_index = registry[registry_index];
+			int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
+			double freq;
+			
+			if (mut_state == MutationState::kInRegistry)		freq = *(refcount_block_ptr + mut_index) * denominator;
+			else /* MutationState::kRemovedWithSubstitution */	freq = 1.0;
+			
+			float_result->set_float_no_check(freq, registry_index);
+		}
+	}
+	else
+	{
+		// no mutation vector was given, so return all frequencies from the registry
+		int registry_size;
+		const MutationIndex *registry = MutationRegistry(&registry_size);
+		
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(registry_size);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int registry_index = 0; registry_index < registry_size; registry_index++)
+		float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) * denominator, registry_index);
+	}
+	
+	return result_SP;
+}
+
+EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_value, int total_genome_count)
+{
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	EidosValue_SP result_SP;
+	
+	// BCH 10/3/2020: Note that we now have to worry about being asked for the frequency of mutations that are
+	// not in the registry, and might be fixed or lost.  We handle this in the first major case below, where
+	// a vector of mutations was given.  It could be a marginal issue in the second major case, where NULL was
+	// passed for the mutation vector, because the registry can temporarily contain mutations in the state
+	// MutationState::kRemovedWithSubstitution, immediately after removeMutations(substitute=T); if that is
+	// a potential issue, registry_needs_consistency_check_ will be true, and we treat it specially.
+	
+	if (mutations_value->Type() != EidosValueType::kValueNULL)
+	{
+		// a vector of mutations was given, so loop through them and take their tallies
+		int mutations_count = mutations_value->Count();
+		
+		if (mutations_count == 1)
+		{
+			// Handle the one-mutation case separately so we can return a singleton
+			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
+			int8_t mut_state = mut->state_;
+			slim_refcount_t count;
+			
+			if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
+			else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
+			else													count = total_genome_count;
+			
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(count));
+		}
+		else
+		{
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(mutations_count);
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int value_index = 0; value_index < mutations_count; ++value_index)
+			{
+				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
+				int8_t mut_state = mut->state_;
+				slim_refcount_t count;
+				
+				if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
+				else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
+				else													count = total_genome_count;
+				
+				int_result->set_int_no_check(count, value_index);
+			}
+		}
+	}
+	else if (MutationRegistryNeedsCheck())
+	{
+		// no mutation vector was given, so return all frequencies from the registry
+		// this is the same as the case below, except MutationState::kRemovedWithSubstitution is possible
+		int registry_size;
+		const MutationIndex *registry = MutationRegistry(&registry_size);
+		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
+		
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(registry_size);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int registry_index = 0; registry_index < registry_size; registry_index++)
+		{
+			MutationIndex mut_index = registry[registry_index];
+			int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
+			slim_refcount_t count;
+			
+			if (mut_state == MutationState::kInRegistry)		count = *(refcount_block_ptr + mut_index);
+			else /* MutationState::kRemovedWithSubstitution */	count = total_genome_count;
+			
+			int_result->set_int_no_check(count, registry_index);
+		}
+	}
+	else
+	{
+		// no mutation vector was given, so return all frequencies from the registry
+		int registry_size;
+		const MutationIndex *registry = MutationRegistry(&registry_size);
+		
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(registry_size);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int registry_index = 0; registry_index < registry_size; registry_index++)
+		int_result->set_int_no_check(*(refcount_block_ptr + registry[registry_index]), registry_index);
+	}
+	
+	return result_SP;
 }
 
 // handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()

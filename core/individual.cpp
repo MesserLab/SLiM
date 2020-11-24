@@ -50,7 +50,7 @@ Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individu
 #ifdef SLIM_NONWF_ONLY
 	age_(p_age),
 #endif  // SLIM_NONWF_ONLY
-	index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
+	reproductive_output_(0), index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
 {
 #ifndef SLIM_NONWF_ONLY
 #pragma unused(p_age)
@@ -158,7 +158,7 @@ const EidosClass *Individual::Class(void) const
 
 void Individual::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<p" << subpopulation_.subpopulation_id_ << ":i" << index_ << ">";
+	p_ostream << Class()->ClassName() << "<p" << subpopulation_.subpopulation_id_ << ":i" << index_ << ">";
 }
 
 EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
@@ -247,6 +247,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			vec->set_int_no_check(pedigree_g4_, 3);
 			
 			return EidosValue_SP(vec);
+		}
+		case gID_reproductiveOutput:				// ACCELERATED
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(reproductive_output_));
 		}
 		case gID_spatialPosition:
 		{
@@ -529,6 +533,20 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size
 	return int_result;
 }
 #endif  // SLIM_NONWF_ONLY
+
+EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->reproductive_output_, value_index);
+	}
+	
+	return int_result;
+}
 
 EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size)
 {
@@ -1351,38 +1369,8 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma mark Individual_Class
 #pragma mark -
 
-class Individual_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_Individual_Class = nullptr;
 
-public:
-	Individual_Class(const Individual_Class &p_original) = delete;	// no copy-construct
-	Individual_Class& operator=(const Individual_Class&) = delete;	// no copying
-	inline Individual_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-	
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
-	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-};
-
-EidosClass *gSLiM_Individual_Class = new Individual_Class();
-
-
-const EidosClass *Individual_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &Individual_Class::ElementType(void) const
-{
-	return gEidosStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
-}
 
 const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void) const
 {
@@ -1411,6 +1399,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reproductiveOutput,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_reproductiveOutput));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,		true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_color));

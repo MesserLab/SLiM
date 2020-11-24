@@ -3548,6 +3548,9 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		generation_++;
 		// note that tree_seq_generation_ was incremented earlier!
 		
+		// Use a special generation stage for the interstitial space between generations, when Eidos console input runs
+		generation_stage_ = SLiMGenerationStage::kStage8PostGeneration;
+		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosErrorContext.currentScript = nullptr;
 		gEidosErrorContext.executingRuntimeScript = false;
@@ -3999,6 +4002,9 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpop_pair.second->IncrementIndividualAges();
+		
+		// Use a special generation stage for the interstitial space between generations, when Eidos console input runs
+		generation_stage_ = SLiMGenerationStage::kStage8PostGeneration;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosErrorContext.currentScript = nullptr;

@@ -135,7 +135,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 							if ((argument_class == gEidosObject_Class) && (argument->Count() == 0))
 								break;
 							
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ClassName() << "." << EidosTerminate(nullptr);
 						}
 					}
 					break;
@@ -310,7 +310,7 @@ void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_i
 							break;
 						
 						if (!argument_class->IsSubclassOfClass(signature_class))
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ElementType() << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ClassName() << "." << EidosTerminate(nullptr);
 					}
 				}
 				break;
@@ -413,7 +413,7 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
 				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
-					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassName() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -471,7 +471,7 @@ void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
 				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
-					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ElementType() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassName() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -585,6 +585,40 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosClass *p_return_class, const std::string &p_delegate_name)
 	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), internal_function_(p_function_ptr), delegate_name_(p_delegate_name)
 {
+}
+
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask)
+	: EidosCallSignature(p_function_name, p_return_mask)
+{
+	ProcessEidosScript(p_script_string);
+}
+
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const EidosClass *p_return_class)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class)
+{
+	ProcessEidosScript(p_script_string);
+}
+
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const std::string &p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask), delegate_name_(p_delegate_name)
+{
+	ProcessEidosScript(p_script_string);
+}
+
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const EidosClass *p_return_class, const std::string &p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), delegate_name_(p_delegate_name)
+{
+	ProcessEidosScript(p_script_string);
+}
+
+void EidosFunctionSignature::ProcessEidosScript(const std::string &p_script_string)
+{
+	EidosScript *source_script = new EidosScript(p_script_string);
+	
+	source_script->Tokenize();
+	source_script->ParseInterpreterBlockToAST(false);
+	
+	body_script_ = source_script;
 }
 
 EidosFunctionSignature::~EidosFunctionSignature(void)

@@ -91,6 +91,9 @@ enum class SLiMGenerationStage
 	kNonWFStage5RemoveFixedMutations,
 	kNonWFStage6ExecuteLateScripts,
 	kNonWFStage7AdvanceGenerationCounter,
+	
+	// end stage between generations; things in the Eidos console happen here
+	kStage8PostGeneration = 201,
 };
 
 enum class SLiMFileFormat
@@ -374,7 +377,7 @@ private:
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
-	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackPedigreeWithParents()
+	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackParentage()
 	//bool pedigrees_enabled_ = false;				// BCH 3 Sept. 2020: this flag is deprecated; pedigree tracking is now ALWAYS ENABLED
 	
 	// continuous space support
@@ -728,6 +731,20 @@ public:
 	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+};
+
+class SLiMSim_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	SLiMSim_Class(const SLiMSim_Class &p_original) = delete;	// no copy-construct
+	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
+	inline SLiMSim_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 

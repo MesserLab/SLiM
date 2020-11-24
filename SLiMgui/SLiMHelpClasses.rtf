@@ -1118,6 +1118,84 @@ If
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 +\'a0(integer)mutationCountsInGenomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Return an 
+\f3\fs18 integer
+\f4\fs20  vector with the frequency counts of all of the 
+\f3\fs18 Mutation
+\f4\fs20  objects passed in 
+\f3\fs18 mutations
+\f4\fs20 , within the target 
+\f3\fs18 Genome
+\f4\fs20  vector.  If the optional 
+\f3\fs18 mutations
+\f4\fs20  argument is 
+\f3\fs18 NULL
+\f4\fs20  (the default), frequency counts will be returned for all of the active 
+\f3\fs18 Mutation
+\f4\fs20  objects in the simulation \'96 the same 
+\f3\fs18 Mutation
+\f4\fs20  objects, and in the same order, as would be returned by the 
+\f3\fs18 mutations
+\f4\fs20  property of 
+\f3\fs18 sim
+\f4\fs20 , in other words.\
+See the 
+\f3\fs18 +mutationFrequenciesInGenomes()
+\f4\fs20  method to obtain 
+\f3\fs18 float
+\f4\fs20  frequencies instead of 
+\f3\fs18 integer
+\f4\fs20  counts.  See also the 
+\f3\fs18 SLiMSim
+\f4\fs20  methods 
+\f3\fs18 mutationCounts()
+\f4\fs20  and 
+\f3\fs18 mutationFrequencies()
+\f4\fs20 , which may be more efficient for getting counts/frequencies for whole subpopulations or for the whole simulation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(float)mutationFrequenciesInGenomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Return a 
+\f3\fs18 float
+\f4\fs20  vector with the frequencies of all of the 
+\f3\fs18 Mutation
+\f4\fs20  objects passed in 
+\f3\fs18 mutations
+\f4\fs20 , within the target 
+\f3\fs18 Genome
+\f4\fs20  vector.  If the optional 
+\f3\fs18 mutations
+\f4\fs20  argument is 
+\f3\fs18 NULL
+\f4\fs20  (the default), frequencies will be returned for all of the active 
+\f3\fs18 Mutation
+\f4\fs20  objects in the simulation \'96 the same 
+\f3\fs18 Mutation
+\f4\fs20  objects, and in the same order, as would be returned by the 
+\f3\fs18 mutations
+\f4\fs20  property of 
+\f3\fs18 sim
+\f4\fs20 , in other words.\
+See the 
+\f3\fs18 +mutationCountsInGenomes()
+\f4\fs20  method to obtain 
+\f3\fs18 integer
+\f4\fs20  counts instead of 
+\f3\fs18 float
+\f4\fs20  frequencies.  See also the 
+\f3\fs18 SLiMSim
+\f4\fs20  methods 
+\f3\fs18 mutationCounts()
+\f4\fs20  and 
+\f3\fs18 mutationFrequencies()
+\f4\fs20 , which may be more efficient for getting counts/frequencies for whole subpopulations or for the whole simulation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 \'96
 \f5 \'a0
 \f3 (object<Mutation>)mutationsOfType(io<MutationType>$\'a0mutType)
@@ -1921,9 +1999,24 @@ In nonWF models, this flag is
 \f3\fs18 -1
 \f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\expnd0\expndtw0\kerning0
 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 reproductiveOutput => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The number of offspring for which this individual has been a parent.  If an individual is a parent by cloning or selfing, or as 
+\f1\i both
+\f4\i0  parents for a biparental mating, this value is incremented by two.  Involvement of an individual as a parent for an 
+\f3\fs18 addRecombinant()
+\f4\fs20  call does not change this property\'92s value, since the reproductive contribution in that case is unclear; one conduct separate bookkeeping for that case if necessary.\
+This property is only useful in nonWF models, since in WF models the parental generation dies immediately after reproduction, giving no opportunity to query this property.  For WF models (and nonWF models, too), see the 
+\f3\fs18 Subpopulation
+\f4\fs20  property 
+\f3\fs18 lifetimeReproductiveOutput
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 sex => (string$)\
+\f3\fs18 \cf0 sex => (string$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The sex of the individual.  This will be 
@@ -3130,6 +3223,15 @@ See
 \f4\fs20  calls.  Note that the new row may be buffered, and thus may not be written out to disk immediately; see 
 \f3\fs18 flush()
 \f4\fs20 .  This method may be used instead of, or in conjunction with, automatic logging.\
+You can get the 
+\f3\fs18 LogFile
+\f4\fs20  instance, in order to call 
+\f3\fs18 logRow()
+\f4\fs20  on it, from 
+\f3\fs18 sim.logFiles
+\f4\fs20 , or you can remember it in a global constant with 
+\f3\fs18 defineConstant()
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setLogInterval([Ni$\'a0logInterval\'a0=\'a0NULL])\
@@ -4475,8 +4577,14 @@ See the
 \f3\fs18 float
 \f4\fs20  frequencies instead of 
 \f3\fs18 integer
-\f4\fs20  counts.
-\f5 \
+\f4\fs20  counts.\cf2   See also the 
+\f3\fs18 Genome
+\f4\fs20  methods 
+\f3\fs18 mutationCountsInGenomes()
+\f4\fs20  and 
+\f3\fs18 mutationFrequenciesInGenomes()
+\f4\fs20 .
+\f5 \cf0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(float)mutationFrequencies(No<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
@@ -4517,8 +4625,14 @@ See the
 \f3\fs18 integer
 \f4\fs20  counts instead of 
 \f3\fs18 float
-\f4\fs20  frequencies.
-\f5 \
+\f4\fs20  frequencies.\cf2   See also the 
+\f3\fs18 Genome
+\f4\fs20  methods 
+\f3\fs18 mutationCountsInGenomes()
+\f4\fs20  and 
+\f3\fs18 mutationFrequenciesInGenomes()
+\f4\fs20 .
+\f5 \cf0 \
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
@@ -5587,6 +5701,16 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 subsetIndividuals()
 \f4\fs20  for fast ways to get a subset of the individuals in a subpopulation.
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 lifetimeReproductiveOutput => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The value of the 
+\f3\fs18 Individual
+\f4\fs20  property 
+\f3\fs18 reproductiveOutput
+\f4\fs20  for all individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This allows access to the lifetime reproductive output of individuals in the subpopulation at the end of their lives.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 selfingRate => (float$)\

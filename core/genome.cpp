@@ -524,7 +524,7 @@ const EidosClass *Genome::Class(void) const
 
 void Genome::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<";
+	p_ostream << Class()->ClassName() << "<";
 	
 	switch (genome_type_)
 	{
@@ -1993,43 +1993,8 @@ size_t Genome::MemoryUsageForMutrunBuffers(void)
 #pragma mark Genome_Class
 #pragma mark -
 
-class Genome_Class : public EidosClass
-{
-private:
-	typedef EidosClass super;
+EidosClass *gSLiM_Genome_Class = nullptr;
 
-public:
-	Genome_Class(const Genome_Class &p_original) = delete;	// no copy-construct
-	Genome_Class& operator=(const Genome_Class&) = delete;	// no copying
-	inline Genome_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-	
-	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
-	EidosValue_SP ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-	EidosValue_SP ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-	EidosValue_SP ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-	EidosValue_SP ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-	EidosValue_SP ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-	EidosValue_SP ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
-};
-
-EidosClass *gSLiM_Genome_Class = new Genome_Class();
-
-
-const EidosClass *Genome_Class::Superclass(void) const
-{
-	return gEidosObject_Class;
-}
-
-const std::string &Genome_Class::ElementType(void) const
-{
-	return gEidosStr_Genome;		// in Eidos; see EidosValue_Object::EidosValue_Object()
-}
 
 const std::vector<EidosPropertySignature_CSP> *Genome_Class::Properties(void) const
 {
@@ -2067,6 +2032,8 @@ const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMutations));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_mutationCountsInGenomes, kEidosValueMaskInt))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_mutationFrequenciesInGenomes, kEidosValueMaskFloat))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readFromMS, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_S("mutationType", gSLiM_MutationType_Class));
@@ -2087,16 +2054,18 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 {
 	switch (p_method_id)
 	{
-		case gID_addMutations:			return ExecuteMethod_addMutations(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_addMutations:					return ExecuteMethod_addMutations(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_addNewDrawnMutation:
-		case gID_addNewMutation:		return ExecuteMethod_addNewMutation(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_addNewMutation:				return ExecuteMethod_addNewMutation(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_mutationCountsInGenomes:
+		case gID_mutationFrequenciesInGenomes:	return ExecuteMethod_mutationFreqsCountsInGenomes(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_output:
 		case gID_outputMS:
-		case gID_outputVCF:				return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_readFromMS:			return ExecuteMethod_readFromMS(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_readFromVCF:			return ExecuteMethod_readFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_removeMutations:		return ExecuteMethod_removeMutations(p_method_id, p_target, p_arguments, p_interpreter);
-		default:						return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_outputVCF:						return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_readFromMS:					return ExecuteMethod_readFromMS(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_readFromVCF:					return ExecuteMethod_readFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_removeMutations:				return ExecuteMethod_removeMutations(p_method_id, p_target, p_arguments, p_interpreter);
+		default:								return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
 }
 
@@ -2782,6 +2751,51 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	}
 	
 	return retval;
+}
+
+//	*********************	+ (float)mutationFrequenciesInGenomes([No<Mutation> mutations = NULL])
+//	*********************	+ (integer)mutationCountsInGenomes([No<Mutation> mutations = NULL])
+//
+EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *mutations_value = p_arguments[0].get();
+	
+	// get our target vector, handle the zero-length case, and do a pre-check for null genomes so we don't have to worry about it later on
+	int target_size = p_target->Count();
+	
+	if (target_size == 0)
+	{
+		// With a zero-length target, frequencies are undefined so it is an error; to keep life simple, we make it an error for counts too
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot calculate counts/frequencies in a zero-length Genome vector (divide by zero)." << EidosTerminate();
+	}
+	
+	static std::vector<Genome *> target_genomes;	// prevent reallocation by using a static
+	
+	target_genomes.clear();
+	target_genomes.reserve(target_size);
+	
+	for (int target_index = 0; target_index < target_size; ++target_index)
+	{
+		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
+		
+		if (target_genome->IsNull())
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot be called on a null genome." << EidosTerminate();
+		
+		target_genomes.push_back(target_genome);
+	}
+	
+	Genome *genome_0 = target_genomes[0];
+	Population &population = genome_0->subpop_->population_;
+	
+	// Have the Population tally for the target genomes
+	population.TallyMutationReferences(&target_genomes);
+	
+	// Use the back-end code in Population to do the counting
+	if (p_method_id == gID_mutationFrequenciesInGenomes)
+		return population.Eidos_FrequenciesForTalliedMutations(mutations_value, target_size);
+	else
+		return population.Eidos_CountsForTalliedMutations(mutations_value, target_size);
 }
 
 //	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])

@@ -1359,16 +1359,16 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		{
 			result_SP = function_signature->internal_function_(p_node->argument_cache_->argument_buffer_, *this);
 		}
+		else if (function_signature->body_script_)
+		{
+			result_SP = DispatchUserDefinedFunction(*function_signature, p_node->argument_cache_->argument_buffer_);
+		}
 		else if (!function_signature->delegate_name_.empty())
 		{
 			if (eidos_context_)
 				result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, p_node->argument_cache_->argument_buffer_, *this);
 			else
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
-		}
-		else if (function_signature->body_script_)
-		{
-			result_SP = DispatchUserDefinedFunction(*function_signature, p_node->argument_cache_->argument_buffer_);
 		}
 		else
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);

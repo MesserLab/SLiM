@@ -93,6 +93,15 @@ std::string EidosStringFormat(const std::string& format, Args ... args)
 }
 
 
+// Source code for built-in functions that are implemented in Eidos.  These strings are globals mostly so the
+// formatting of the code looks nice in Xcode; they are used only by EidosInterpreter::BuiltInFunctions().
+const char *gEidosSourceCode_source =
+R"({
+	_executeLambda_OUTER(paste(readFile(filePath), '\n'));
+	return;
+})";
+
+
 //
 //	Construct our built-in function map
 //
@@ -312,6 +321,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr__executeLambda_OUTER,	Eidos_ExecuteFunction__executeLambda_OUTER,	kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("lambdaSource")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional | kEidosValueMaskSingleton, "timed", nullptr, gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("exists",			Eidos_ExecuteFunction_exists,		kEidosValueMaskLogical))->AddString("symbol"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSignature",	Eidos_ExecuteFunction_functionSignature,	kEidosValueMaskVOID))->AddString_OSN("functionName", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSource",	Eidos_ExecuteFunction_functionSource,	kEidosValueMaskVOID))->AddString_S("functionName"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID))->AddLogical_OS("showSymbolTables", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskVOID)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL)->AddLogical_OS("removeConstants", gStaticEidosValue_LogicalF));
@@ -346,17 +356,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		//	built-in user-defined functions
 		//
-		{
-			EidosFunctionSignature *source_signature = (EidosFunctionSignature *)(new EidosFunctionSignature("source",	nullptr,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath);
-			EidosScript *source_script = new EidosScript("{ _executeLambda_OUTER(paste(readFile(filePath), '\\n')); return; }");
-			
-			source_script->Tokenize();
-			source_script->ParseInterpreterBlockToAST(false);
-			
-			source_signature->body_script_ = source_script;
-			
-			signatures->emplace_back(source_signature);
-		}
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("source",	gEidosSourceCode_source,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
 		
 		
 		// ************************************************************************************
@@ -10973,7 +10973,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 		const EidosClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();
 		
 		if (!x_value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineConstant): defineConstant() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineConstant): defineConstant() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
 	}
 	
 	symbols.DefineConstantForSymbol(symbol_id, x_value_sp);
@@ -10999,7 +10999,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineGlobal(const std::vector<EidosValue_SP
 		const EidosClass *x_value_class = ((EidosValue_Object *)x_value_sp.get())->Class();
 		
 		if (!x_value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineGlobal): defineGlobal() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineGlobal): defineGlobal() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
 	}
 	
 	symbols.DefineGlobalForSymbol(symbol_id, x_value_sp);
@@ -11041,7 +11041,13 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const std::vector<EidosValue_SP> &p_a
 	// that causes re-entrancy into the Eidos engine, this call is rather dangerous.  See the comments on those
 	// functions for further details.
 	if (function_signature->internal_function_)
+	{
 		result_SP = function_signature->internal_function_(arguments, p_interpreter);
+	}
+	else if (function_signature->body_script_)
+	{
+		result_SP = p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments);
+	}
 	else if (!function_signature->delegate_name_.empty())
 	{
 		EidosContext *context = p_interpreter.Context();
@@ -11050,10 +11056,6 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const std::vector<EidosValue_SP> &p_a
 			result_SP = context->ContextDefinedFunctionDispatch(function_name, arguments, p_interpreter);
 		else
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): (internal error) function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
-	}
-	else if (function_signature->body_script_)
-	{
-		result_SP = p_interpreter.DispatchUserDefinedFunction(*function_signature, arguments);
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): (internal error) unbound function " << function_name << "." << EidosTerminate(nullptr);
@@ -11316,6 +11318,47 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosVal
 	
 	if (function_name_specified && !signature_found)
 		output_stream << "No function signature found for \"" << match_string << "\"." << std::endl;
+	
+	return gStaticEidosValueVOID;
+}
+
+//	(void)functionSource(s$ functionName)
+EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue *functionName_value = p_arguments[0].get();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	std::string match_string = functionName_value->StringAtIndex(0, nullptr);
+	
+	// function_map_ is already alphabetized since maps keep sorted order
+	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
+	
+	for (auto functionPairIter : function_map)
+	{
+		const EidosFunctionSignature *iter_signature = functionPairIter.second.get();
+		
+		if (iter_signature->call_name_.compare(match_string) != 0)
+			continue;
+		
+		output_stream << *iter_signature;
+		
+		if (iter_signature->body_script_ && iter_signature->user_defined_)
+		{
+			output_stream << " <user-defined>";
+		}
+		
+		output_stream << std::endl;
+		
+		if (iter_signature->body_script_)
+			output_stream << iter_signature->body_script_->String() << std::endl;
+		else
+			output_stream << "no Eidos source available (implemented in C++)" << std::endl;
+		
+		return gStaticEidosValueVOID;
+	}
+	
+	output_stream << "No function found for \"" << match_string << "\"." << std::endl;
 	
 	return gStaticEidosValueVOID;
 }

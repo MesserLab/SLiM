@@ -63,7 +63,7 @@ public:
 	bool IsKindOfClass(const EidosClass *p_class_object) const;
 	bool IsMemberOfClass(const EidosClass *p_class_object) const;
 	
-	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints Class()->ElementType()
+	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints Class()->ClassName()
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);
@@ -103,6 +103,9 @@ extern EidosClass *gEidosObject_Class;
 class EidosClass
 {
 private:
+	const std::string class_name_;	// this is the element type for vectors of this class
+	EidosClass *superclass_;		// this is the EidosClass object representing our superclass
+	
 	static std::vector<EidosClass *> &EidosClassRegistry(void);
 
 protected:
@@ -124,16 +127,15 @@ public:
 	EidosClass(const EidosClass &p_original) = delete;		// no copy-construct
 	EidosClass& operator=(const EidosClass&) = delete;		// no copying
 	
-	EidosClass(void);
+	EidosClass(std::string p_class_name, EidosClass *p_superclass);
 	inline virtual ~EidosClass(void) { }
 	
 	virtual bool UsesRetainRelease(void) const;
 	
 	inline const EidosClass *Class(void) const { return this; }
-	virtual const EidosClass *Superclass(void) const;
+	inline const std::string &ClassName(void) const { return class_name_; };
+	inline const EidosClass *Superclass(void) const { return superclass_; }
 	bool IsSubclassOfClass(const EidosClass *p_class_object) const;
-	
-	virtual const std::string &ElementType(void) const;
 	
 	// We now use dispatch tables to look up our property and method signatures; this is faster than the old switch() dispatch
 	void CacheDispatchTables(void);

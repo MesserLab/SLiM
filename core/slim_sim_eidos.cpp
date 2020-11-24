@@ -1526,7 +1526,7 @@ const EidosClass *SLiMSim::Class(void) const
 
 void SLiMSim::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
@@ -2122,6 +2122,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		int requested_subpop_count = subpops_value->Count();
 		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry since TallyMutationReferences() can't re-enter here
 		
+		subpops_to_tally.clear();
+		
 		if (requested_subpop_count)
 		{
 			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
@@ -2129,162 +2131,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		}
 		
 		total_genome_count = population_.TallyMutationReferences(&subpops_to_tally, false);
-		subpops_to_tally.clear();
 	}
 	
 	// OK, now construct our result vector from the tallies for just the requested mutations
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	double denominator = 1.0 / total_genome_count;
-	EidosValue_SP result_SP;
-	
-	// BCH 10/3/2020: Note that we now have to worry about being asked for the frequency of mutations that are
-	// not in the registry, and might be fixed or lost.  We handle this in the first major case below, where
-	// a vector of mutations was given.  It could be a marginal issue in the second major case, where NULL was
-	// passed for the mutation vector, because the registry can temporarily contain mutations in the state
-	// MutationState::kRemovedWithSubstitution, immediately after removeMutations(substitute=T); if that is
-	// a potential issue, population_.registry_needs_consistency_check_ will be true, and we treat it specially.
-	
-	if (mutations_value->Type() != EidosValueType::kValueNULL)
-	{
-		// a vector of mutations was given, so loop through them and take their tallies
-		int mutations_count = mutations_value->Count();
-		
-		if (mutations_count == 1)
-		{
-			// Handle the one-mutation case separately so we can return a singleton
-			if (p_method_id == gID_mutationFrequencies)
-			{
-				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
-				int8_t mut_state = mut->state_;
-				double freq;
-				
-				if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
-				else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
-				else													freq = 1.0;
-				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(freq));
-			}
-			else // p_method_id == gID_mutationCounts
-			{
-				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr));
-				int8_t mut_state = mut->state_;
-				slim_refcount_t count;
-				
-				if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
-				else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
-				else													count = total_genome_count;
-				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(count));
-			}
-		}
-		else
-		{
-			if (p_method_id == gID_mutationFrequencies)
-			{
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(mutations_count);
-				result_SP = EidosValue_SP(float_result);
-				
-				for (int value_index = 0; value_index < mutations_count; ++value_index)
-				{
-					Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
-					int8_t mut_state = mut->state_;
-					double freq;
-					
-					if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
-					else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
-					else													freq = 1.0;
-					
-					float_result->set_float_no_check(freq, value_index);
-				}
-			}
-			else // p_method_id == gID_mutationCounts
-			{
-				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(mutations_count);
-				result_SP = EidosValue_SP(int_result);
-				
-				for (int value_index = 0; value_index < mutations_count; ++value_index)
-				{
-					Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr));
-					int8_t mut_state = mut->state_;
-					slim_refcount_t count;
-					
-					if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
-					else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
-					else													count = total_genome_count;
-					
-					int_result->set_int_no_check(count, value_index);
-				}
-			}
-		}
-	}
-	else if (population_.MutationRegistryNeedsCheck())
-	{
-		// no mutation vector was given, so return all frequencies from the registry
-		// this is the same as the case below, except MutationState::kRemovedWithSubstitution is possible
-		int registry_size;
-		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
-		
-		if (p_method_id == gID_mutationFrequencies)
-		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(registry_size);
-			result_SP = EidosValue_SP(float_result);
-			
-			for (int registry_index = 0; registry_index < registry_size; registry_index++)
-			{
-				MutationIndex mut_index = registry[registry_index];
-				int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
-				double freq;
-				
-				if (mut_state == MutationState::kInRegistry)		freq = *(refcount_block_ptr + mut_index) * denominator;
-				else /* MutationState::kRemovedWithSubstitution */	freq = 1.0;
-				
-				float_result->set_float_no_check(freq, registry_index);
-			}
-		}
-		else // p_method_id == gID_mutationCounts
-		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(registry_size);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int registry_index = 0; registry_index < registry_size; registry_index++)
-			{
-				MutationIndex mut_index = registry[registry_index];
-				int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
-				slim_refcount_t count;
-				
-				if (mut_state == MutationState::kInRegistry)		count = *(refcount_block_ptr + mut_index);
-				else /* MutationState::kRemovedWithSubstitution */	count = total_genome_count;
-				
-				int_result->set_int_no_check(count, registry_index);
-			}
-		}
-	}
-	else
-	{
-		// no mutation vector was given, so return all frequencies from the registry
-		int registry_size;
-		const MutationIndex *registry = population_.MutationRegistry(&registry_size);
-		
-		if (p_method_id == gID_mutationFrequencies)
-		{
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(registry_size);
-			result_SP = EidosValue_SP(float_result);
-			
-			for (int registry_index = 0; registry_index < registry_size; registry_index++)
-				float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) * denominator, registry_index);
-		}
-		else // p_method_id == gID_mutationCounts
-		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(registry_size);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int registry_index = 0; registry_index < registry_size; registry_index++)
-				int_result->set_int_no_check(*(refcount_block_ptr + registry[registry_index]), registry_index);
-		}
-	}
-	
-	return result_SP;
+	// We now have utility methods on Population that do this for us
+	if (p_method_id == gID_mutationFrequencies)
+		return population_.Eidos_FrequenciesForTalliedMutations(mutations_value, total_genome_count);
+	else // p_method_id == gID_mutationCounts
+		return population_.Eidos_CountsForTalliedMutations(mutations_value, total_genome_count);
 }
 
 //	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
@@ -3706,35 +3560,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 #pragma mark SLiMSim_Class
 #pragma mark -
 
-class SLiMSim_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_SLiMSim_Class = nullptr;
 
-public:
-	SLiMSim_Class(const SLiMSim_Class &p_original) = delete;	// no copy-construct
-	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
-	inline SLiMSim_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_SLiMSim_Class = new SLiMSim_Class();
-
-
-const EidosClass *SLiMSim_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &SLiMSim_Class::ElementType(void) const
-{
-	return gStr_SLiMSim;
-}
 
 const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) const
 {
@@ -3783,8 +3610,8 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskVOID))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF));

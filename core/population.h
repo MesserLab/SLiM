@@ -200,7 +200,12 @@ public:
 	
 	// count the total number of times that each Mutation in the registry is referenced by a population, and set total_genome_count_ to the maximum possible number of references (i.e. fixation)
 	slim_refcount_t TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
+	slim_refcount_t TallyMutationReferences(std::vector<Genome*> *p_genomes_to_tally);
 	slim_refcount_t TallyMutationReferences_FAST(void);
+	
+	// Eidos back-end code that counts up tallied mutations, working with TallyMutationReferences()
+	EidosValue_SP Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
+	EidosValue_SP Eidos_CountsForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
 	
 	// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
 	void RemoveAllFixedMutations(void);

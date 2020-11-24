@@ -50,13 +50,13 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>257</width>
+            <width>270</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>257</width>
+            <width>270</width>
             <height>130</height>
            </size>
           </property>

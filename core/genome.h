@@ -427,6 +427,29 @@ public:
 	friend GenomeWalker;
 };
 
+class Genome_Class : public EidosClass
+{
+private:
+	typedef EidosClass super;
+
+public:
+	Genome_Class(const Genome_Class &p_original) = delete;	// no copy-construct
+	Genome_Class& operator=(const Genome_Class&) = delete;	// no copying
+	inline Genome_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+	
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
+	EidosValue_SP ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+};
+
 // This class allows clients of Genome to walk the mutations inside a Genome without needing to know about MutationRun.
 class GenomeWalker
 {

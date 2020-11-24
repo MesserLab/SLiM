@@ -95,7 +95,6 @@ public:
 	EidosValue_SP ExecuteMethod_serialize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
-
 class EidosDictionaryUnretained_Class : public EidosClass
 {
 private:
@@ -104,10 +103,7 @@ private:
 public:
 	EidosDictionaryUnretained_Class(const EidosDictionaryUnretained_Class &p_original) = delete;	// no copy-construct
 	EidosDictionaryUnretained_Class& operator=(const EidosDictionaryUnretained_Class&) = delete;	// no copying
-	inline EidosDictionaryUnretained_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
+	inline EidosDictionaryUnretained_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
@@ -163,10 +159,7 @@ private:
 public:
 	EidosDictionaryRetained_Class(const EidosDictionaryRetained_Class &p_original) = delete;	// no copy-construct
 	EidosDictionaryRetained_Class& operator=(const EidosDictionaryRetained_Class&) = delete;	// no copying
-	inline EidosDictionaryRetained_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
+	inline EidosDictionaryRetained_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 	

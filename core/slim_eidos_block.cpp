@@ -460,12 +460,18 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		}
 		
 		// Patch virtual_token to contain the range from beginning to end of the script block
-		const int32_t token_end = compound_statement_node->token_->token_end_;
-		const int32_t token_UTF16_end = compound_statement_node->token_->token_UTF16_end_;
-		
-		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
-		
-		slim_script_block_node->ReplaceTokenWithToken(new EidosToken(slim_script_block_node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
+		if (compound_statement_node)
+		{
+			const int32_t token_end = compound_statement_node->token_->token_end_;
+			const int32_t token_UTF16_end = compound_statement_node->token_->token_UTF16_end_;
+			
+			std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
+			
+			slim_script_block_node->ReplaceTokenWithToken(new EidosToken(slim_script_block_node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
+		}
+		else if (!parse_make_bad_nodes_)
+			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): (internal error) missing compound_statement_node" << EidosTerminate(current_token_);
+
 	}
 	catch (...)
 	{
@@ -1007,7 +1013,7 @@ const EidosClass *SLiMEidosBlock::Class(void) const
 
 void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<";
+	p_ostream << Class()->ClassName() << "<";
 	
 	if (start_generation_ > 0)
 	{
@@ -1130,34 +1136,8 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 #pragma mark SLiMEidosBlock_Class
 #pragma mark -
 
-class SLiMEidosBlock_Class : public EidosClass
-{
-private:
-	typedef EidosClass super;
+EidosClass *gSLiM_SLiMEidosBlock_Class = nullptr;
 
-public:
-	SLiMEidosBlock_Class(const SLiMEidosBlock_Class &p_original) = delete;	// no copy-construct
-	SLiMEidosBlock_Class& operator=(const SLiMEidosBlock_Class&) = delete;	// no copying
-	inline SLiMEidosBlock_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-};
-
-EidosClass *gSLiM_SLiMEidosBlock_Class = new SLiMEidosBlock_Class();
-
-
-const EidosClass *SLiMEidosBlock_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &SLiMEidosBlock_Class::ElementType(void) const
-{
-	return gStr_SLiMEidosBlock;
-}
 
 const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(void) const
 {

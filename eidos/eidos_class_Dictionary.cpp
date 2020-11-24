@@ -65,19 +65,27 @@ std::string EidosDictionaryUnretained::Serialization(void) const
 	
 	for (const std::string &key : *all_key_strings)
 	{
-		auto hash_iter = hash_symbols_->find(key);
-		
-		if (hash_iter == hash_symbols_->end())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization): (internal error) allKeys did not return a string vector." << EidosTerminate(nullptr);
-		
-		const EidosValue_SP &value = hash_iter->second;
+		// emit the key; quote the key string only if it contains characters that will make parsing difficult/ambiguous
 		EidosStringQuoting key_quoting = EidosStringQuoting::kNoQuotes;
 		
-		// quote the key string only if it contains characters that will make parsing difficult/ambiguous
 		if (key.find_first_of("\"\'\\\r\n\t =;") != std::string::npos)
 			key_quoting = EidosStringQuoting::kDoubleQuotes;		// if we use quotes, always use double quotes, for ease of parsing
 		
-		ss << Eidos_string_escaped(key, key_quoting) << "=" << *value << ";";
+		ss << Eidos_string_escaped(key, key_quoting) << "=";
+		
+		// emit the value
+		auto hash_iter = hash_symbols_->find(key);
+		
+		if (hash_iter == hash_symbols_->end())
+		{
+			// We assume that this is not an internal error, but is instead LogFile with a column that is NA;
+			// it returns all of its column names for AllKeys() even if they have NA as a value, so we play along
+			ss << "NA;";
+		}
+		else
+		{
+			ss << *(hash_iter->second) << ";";
+		}
 	}
 	
 	return ss.str();
@@ -94,7 +102,7 @@ void EidosDictionaryUnretained::SetKeyValue(const std::string &key, EidosValue_S
 		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
 		
 		if (!value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::SetKeyValue): Dictionary can only accept object classes that are under retain/release memory management internally; class " << value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::SetKeyValue): Dictionary can only accept object classes that are under retain/release memory management internally; class " << value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
 	}
 	
 	if (value_type == EidosValueType::kValueNULL)
@@ -277,7 +285,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
 		
 		if (!value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue): setValue() can only accept object classes that are under retain/release memory management internally; class " << value_class->ElementType() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue): setValue() can only accept object classes that are under retain/release memory management internally; class " << value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
 	}
 	
 	if (value_type == EidosValueType::kValueNULL)
@@ -332,18 +340,8 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 #pragma mark EidosDictionaryUnretained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryUnretained_Class = new EidosDictionaryUnretained_Class();
+EidosClass *gEidosDictionaryUnretained_Class = nullptr;
 
-
-const EidosClass *EidosDictionaryUnretained_Class::Superclass(void) const
-{
-	return gEidosObject_Class;
-}
-
-const std::string &EidosDictionaryUnretained_Class::ElementType(void) const
-{
-	return gEidosStr_DictionaryBase;
-}
 
 const std::vector<EidosPropertySignature_CSP> *EidosDictionaryUnretained_Class::Properties(void) const
 {
@@ -447,18 +445,8 @@ const EidosClass *EidosDictionaryRetained::Class(void) const
 #pragma mark EidosDictionaryRetained_Class
 #pragma mark -
 
-EidosClass *gEidosDictionaryRetained_Class = new EidosDictionaryRetained_Class();
+EidosClass *gEidosDictionaryRetained_Class = nullptr;
 
-
-const EidosClass *EidosDictionaryRetained_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &EidosDictionaryRetained_Class::ElementType(void) const
-{
-	return gEidosStr_Dictionary;
-}
 
 const std::vector<EidosFunctionSignature_CSP> *EidosDictionaryRetained_Class::Functions(void) const
 {

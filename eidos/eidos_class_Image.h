@@ -75,6 +75,20 @@ public:
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
 };
 
+class EidosImage_Class : public EidosDictionaryRetained_Class
+{
+private:
+	typedef EidosDictionaryRetained_Class super;
+
+public:
+	EidosImage_Class(const EidosImage_Class &p_original) = delete;	// no copy-construct
+	EidosImage_Class& operator=(const EidosImage_Class&) = delete;	// no copying
+	inline EidosImage_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
+};
+
 
 #endif /* defined(__Eidos__eidos_class_image__) */
 

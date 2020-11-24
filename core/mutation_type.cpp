@@ -344,7 +344,7 @@ const EidosClass *MutationType::Class(void) const
 
 void MutationType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<m" << mutation_type_id_ << ">";
+	p_ostream << Class()->ClassName() << "<m" << mutation_type_id_ << ">";
 }
 
 EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
@@ -701,35 +701,8 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 #pragma mark MutationType_Class
 #pragma mark -
 
-class MutationType_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_MutationType_Class = nullptr;
 
-public:
-	MutationType_Class(const MutationType_Class &p_original) = delete;	// no copy-construct
-	MutationType_Class& operator=(const MutationType_Class&) = delete;	// no copying
-	inline MutationType_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_MutationType_Class = new MutationType_Class();
-
-
-const EidosClass *MutationType_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &MutationType_Class::ElementType(void) const
-{
-	return gStr_MutationType;
-}
 
 const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(void) const
 {

@@ -236,7 +236,7 @@ const EidosClass *GenomicElementType::Class(void) const
 
 void GenomicElementType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<g" << genomic_element_type_id_ << ">";
+	p_ostream << Class()->ClassName() << "<g" << genomic_element_type_id_ << ">";
 }
 
 EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
@@ -442,35 +442,8 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 #pragma mark GenomicElementType_Class
 #pragma mark -
 
-class GenomicElementType_Class : public EidosDictionaryUnretained_Class
-{
-private:
-	typedef EidosDictionaryUnretained_Class super;
+EidosClass *gSLiM_GenomicElementType_Class = nullptr;
 
-public:
-	GenomicElementType_Class(const GenomicElementType_Class &p_original) = delete;	// no copy-construct
-	GenomicElementType_Class& operator=(const GenomicElementType_Class&) = delete;	// no copying
-	inline GenomicElementType_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_GenomicElementType_Class = new GenomicElementType_Class();
-
-
-const EidosClass *GenomicElementType_Class::Superclass(void) const
-{
-	return gEidosDictionaryUnretained_Class;
-}
-
-const std::string &GenomicElementType_Class::ElementType(void) const
-{
-	return gStr_GenomicElementType;
-}
 
 const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Properties(void) const
 {

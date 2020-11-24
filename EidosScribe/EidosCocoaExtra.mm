@@ -139,7 +139,7 @@
 				
 				if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
 				{
-					const std::string &obj_type_name = arg_obj_class->ElementType();
+					const std::string &obj_type_name = arg_obj_class->ClassName();
 					NSString *objTypeName = [NSString stringWithUTF8String:obj_type_name.c_str()];
 					
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"<" attributes:typeAttrs] autorelease]];

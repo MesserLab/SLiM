@@ -185,6 +185,8 @@ public:
 	std::vector<Individual *> nonWF_offspring_individuals_;
 #endif  // SLIM_NONWF_ONLY
 	
+	std::vector<int32_t> lifetime_reproductive_output_;		// the lifetime reproductive output of all individuals that died in the last mortality event; cleared each generation
+	
 #ifdef SLIM_WF_ONLY
 	std::vector<SLiMEidosBlock*> registered_mate_choice_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental
 #endif	// SLIM_WF_ONLY
@@ -369,6 +371,7 @@ public:
 	double ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index);
 	
 #ifdef SLIM_WF_ONLY
+	void TallyLifetimeReproductiveOutput(void);
 	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
 #endif	// SLIM_WF_ONLY
 	
@@ -624,6 +627,20 @@ inline IndividualSex Subpopulation::SexOfIndividual(slim_popsize_t p_individual_
 			return IndividualSex::kMale;
 	}
 }
+
+class Subpopulation_Class : public EidosDictionaryUnretained_Class
+{
+private:
+	typedef EidosDictionaryUnretained_Class super;
+
+public:
+	Subpopulation_Class(const Subpopulation_Class &p_original) = delete;	// no copy-construct
+	Subpopulation_Class& operator=(const Subpopulation_Class&) = delete;	// no copying
+	inline Subpopulation_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+};
 
 
 #endif /* defined(__SLiM__subpopulation__) */

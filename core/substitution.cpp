@@ -72,7 +72,7 @@ const EidosClass *Substitution::Class(void) const
 
 void Substitution::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ElementType() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
+	p_ostream << Class()->ClassName() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
 }
 
 EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
@@ -369,35 +369,8 @@ EidosValue_SP Substitution::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 #pragma mark Substitution_Class
 #pragma mark -
 
-class Substitution_Class : public EidosDictionaryRetained_Class
-{
-private:
-	typedef EidosDictionaryRetained_Class super;
+EidosClass *gSLiM_Substitution_Class = nullptr;
 
-public:
-	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
-	Substitution_Class& operator=(const Substitution_Class&) = delete;	// no copying
-	inline Substitution_Class(void) { }
-	
-	virtual const EidosClass *Superclass(void) const override;
-	virtual const std::string &ElementType(void) const override;
-	
-	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
-	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
-};
-
-EidosClass *gSLiM_Substitution_Class = new Substitution_Class();
-
-
-const EidosClass *Substitution_Class::Superclass(void) const
-{
-	return gEidosDictionaryRetained_Class;
-}
-
-const std::string &Substitution_Class::ElementType(void) const
-{
-	return gStr_Substitution;
-}
 
 const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(void) const
 {
