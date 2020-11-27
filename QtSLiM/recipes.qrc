@@ -137,6 +137,7 @@
         <file>recipes/Recipe 16.17 - Meiotic drive.txt</file>
         <file>recipes/Recipe 16.18 - A spatial epidemiological S-I-R model.txt</file>
         <file>recipes/Recipe 16.19 - Range expansion in a stepping-stone model.txt</file>
+        <file>recipes/Recipe 16.20 - Logistic population growth with the Beverton-Holt model.txt</file>
         <file>recipes/Recipe 17.1 - A minimal tree-seq model.txt</file>
         <file>recipes/Recipe 17.2 - Overlaying neutral mutations.py</file>
         <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
