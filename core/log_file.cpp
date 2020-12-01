@@ -20,6 +20,10 @@
 
 #include "log_file.h"
 
+#include <utility>
+#include <algorithm>
+#include <vector>
+
 #include "slim_globals.h"
 #include "slim_sim.h"
 #include "subpopulation.h"

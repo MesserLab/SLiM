@@ -20,6 +20,10 @@
 
 #include "eidos_class_Object.h"
 
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "eidos_interpreter.h"
 #include "eidos_value.h"
 #include "eidos_class_Object.h"

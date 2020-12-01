@@ -2927,7 +2927,7 @@ void Subpopulation::TallyLifetimeReproductiveOutput(void)
 	lifetime_reproductive_output_MH_.clear();
 	lifetime_reproductive_output_F_.clear();
 	
-	if (population_.sim_.sex_enabled_)
+	if (population_.sim_.SexEnabled())
 	{
 		for (Individual *ind : parent_individuals_)
 		{
