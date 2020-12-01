@@ -138,6 +138,7 @@ SOURCES += \
     QtSLiMGraphView_2DPopulationSFS.cpp \
     QtSLiMGraphView_2DSampleSFS.cpp \
     QtSLiMGraphView_AgeDistribution.cpp \
+    QtSLiMGraphView_LifetimeReproduction.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_PopSizeOverTime.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
@@ -179,6 +180,7 @@ HEADERS += \
     QtSLiMGraphView_2DPopulationSFS.h \
     QtSLiMGraphView_2DSampleSFS.h \
     QtSLiMGraphView_AgeDistribution.h \
+    QtSLiMGraphView_LifetimeReproduction.h \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_PopSizeOverTime.h \
     QtSLiMGraphView_SubpopFitnessDists.h \

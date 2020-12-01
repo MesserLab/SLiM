@@ -185,7 +185,9 @@ public:
 	std::vector<Individual *> nonWF_offspring_individuals_;
 #endif  // SLIM_NONWF_ONLY
 	
-	std::vector<int32_t> lifetime_reproductive_output_;		// the lifetime reproductive output of all individuals that died in the last mortality event; cleared each generation
+	// the lifetime reproductive output of all individuals that died in the last mortality event; cleared each generation
+	std::vector<int32_t> lifetime_reproductive_output_MH_;		// males / hermaphrodites
+	std::vector<int32_t> lifetime_reproductive_output_F_;		// females
 	
 #ifdef SLIM_WF_ONLY
 	std::vector<SLiMEidosBlock*> registered_mate_choice_callbacks_;		// NOT OWNED: valid only during EvolveSubpopulation; callbacks used when this subpop is parental

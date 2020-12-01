@@ -40,6 +40,7 @@
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
 #include "QtSLiMGraphView_AgeDistribution.h"
+#include "QtSLiMGraphView_LifetimeReproduction.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
 #include "QtSLiMGraphView_FitnessOverTime.h"
 #include "QtSLiMGraphView_PopSizeOverTime.h"
@@ -4165,6 +4166,9 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     QAction *graphAgeDistribution = contextMenu.addAction("Graph Age Distribution");
     graphAgeDistribution->setEnabled(!disableAll);
     
+    QAction *graphLifetimeReproduction = contextMenu.addAction("Graph Lifetime Reproductive Output");
+    graphLifetimeReproduction->setEnabled(!disableAll);
+    
     QAction *graphPopSizeVsTime = contextMenu.addAction("Graph Population Size ~ Time");
     graphPopSizeVsTime->setEnabled(!disableAll);
     
@@ -4206,6 +4210,8 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
         if (action == graphAgeDistribution)
             graphView = new QtSLiMGraphView_AgeDistribution(this, this);
+        if (action == graphLifetimeReproduction)
+            graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
         if (action == graphPopSizeVsTime)
             graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
         if (action == graphPopVisualization)

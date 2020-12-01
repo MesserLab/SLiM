@@ -628,6 +628,8 @@ extern const std::string &gStr_genomicElementTypes;
 extern const std::string &gStr_inSLiMgui;
 extern const std::string &gStr_interactionTypes;
 extern const std::string &gStr_lifetimeReproductiveOutput;
+extern const std::string &gStr_lifetimeReproductiveOutputM;
+extern const std::string &gStr_lifetimeReproductiveOutputF;
 extern const std::string &gStr_modelType;
 extern const std::string &gStr_nucleotideBased;
 extern const std::string &gStr_scriptBlocks;
@@ -952,6 +954,8 @@ enum _SLiMGlobalStringID : int {
 	gID_inSLiMgui,
 	gID_interactionTypes,
 	gID_lifetimeReproductiveOutput,
+	gID_lifetimeReproductiveOutputM,
+	gID_lifetimeReproductiveOutputF,
 	gID_modelType,
 	gID_nucleotideBased,
 	gID_scriptBlocks,

@@ -2924,10 +2924,24 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 #ifdef SLIM_WF_ONLY
 void Subpopulation::TallyLifetimeReproductiveOutput(void)
 {
-	lifetime_reproductive_output_.clear();
+	lifetime_reproductive_output_MH_.clear();
+	lifetime_reproductive_output_F_.clear();
 	
-	for (Individual *ind : parent_individuals_)
-		lifetime_reproductive_output_.push_back(ind->reproductive_output_);
+	if (population_.sim_.sex_enabled_)
+	{
+		for (Individual *ind : parent_individuals_)
+		{
+			if (ind->sex_ == IndividualSex::kFemale)
+				lifetime_reproductive_output_F_.push_back(ind->reproductive_output_);
+			else
+				lifetime_reproductive_output_MH_.push_back(ind->reproductive_output_);
+		}
+	}
+	else
+	{
+		for (Individual *ind : parent_individuals_)
+			lifetime_reproductive_output_MH_.push_back(ind->reproductive_output_);
+	}
 }
 
 void Subpopulation::SwapChildAndParentGenomes(void)
@@ -3184,7 +3198,8 @@ void Subpopulation::ViabilitySelection(void)
 	bool individuals_died = false;
 	
 	// clear lifetime reproductive outputs, in preparation for new values
-	lifetime_reproductive_output_.clear();
+	lifetime_reproductive_output_MH_.clear();
+	lifetime_reproductive_output_F_.clear();
 	
 	// do mortality
 	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
@@ -3220,10 +3235,21 @@ void Subpopulation::ViabilitySelection(void)
 			Genome *genome2 = genome_data[individual_index * 2 + 1];
 			
 			if (sex_enabled_)
+			{
 				if (individual->sex_ == IndividualSex::kFemale)
+				{
 					females_deceased++;
-			
-			lifetime_reproductive_output_.push_back(individual->reproductive_output_);
+					lifetime_reproductive_output_F_.push_back(individual->reproductive_output_);
+				}
+				else
+				{
+					lifetime_reproductive_output_MH_.push_back(individual->reproductive_output_);
+				}
+			}
+			else
+			{
+				lifetime_reproductive_output_MH_.push_back(individual->reproductive_output_);
+			}
 			
 			FreeSubpopGenome(genome1);
 			FreeSubpopGenome(genome2);
@@ -3450,7 +3476,39 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lifetimeReproductiveOutput:
 		{
-			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_;
+			std::vector<int32_t> &lifetime_rep_M = lifetime_reproductive_output_MH_;
+			std::vector<int32_t> &lifetime_rep_F = lifetime_reproductive_output_F_;
+			int lifetime_rep_count_M = (int)lifetime_rep_M.size();
+			int lifetime_rep_count_F = (int)lifetime_rep_F.size();
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count_M + lifetime_rep_count_F);
+			
+			for (int value_index = 0; value_index < lifetime_rep_count_M; ++value_index)
+				int_result->set_int_no_check(lifetime_rep_M[value_index], value_index);
+			for (int value_index = 0; value_index < lifetime_rep_count_F; ++value_index)
+				int_result->set_int_no_check(lifetime_rep_F[value_index], value_index + lifetime_rep_count_M);
+			
+			return EidosValue_SP(int_result);
+		}
+		case gID_lifetimeReproductiveOutputM:
+		{
+			if (!population_.sim_.SexEnabled())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputM is not defined since separate sexes are not enabled." << EidosTerminate();
+			
+			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_MH_;
+			int lifetime_rep_count = (int)lifetime_rep.size();
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count);
+			
+			for (int value_index = 0; value_index < lifetime_rep_count; ++value_index)
+				int_result->set_int_no_check(lifetime_rep[value_index], value_index);
+			
+			return EidosValue_SP(int_result);
+		}
+		case gID_lifetimeReproductiveOutputF:
+		{
+			if (!population_.sim_.SexEnabled())
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputF is not defined since separate sexes are not enabled." << EidosTerminate();
+			
+			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_F_;
 			int lifetime_rep_count = (int)lifetime_rep.size();
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count);
 			
@@ -6801,20 +6859,22 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 	{
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,					true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,				true,	kEidosValueMaskObject, gSLiM_Individual_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,			true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,	true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutput,	true,	kEidosValueMaskInt)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,				true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,				true,	kEidosValueMaskFloat)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_individualCount));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,						false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_tag));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,				false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_fitnessScaling));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,								true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,					true,	kEidosValueMaskObject, gSLiM_Individual_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,				true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,		true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutput,		true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutputM,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutputF,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,						true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_individualCount));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_tag));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_fitnessScaling));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}

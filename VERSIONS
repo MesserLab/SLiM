@@ -92,6 +92,7 @@ development head:
 	add a new recipe 4.2.5, "Automatic logging with LogFile" (the old one became 4.2.6)
 	add a new recipe 16.19, "Range expansion in a stepping-stone model"
 	add a new recipe 16.20, "Logistic population growth with the Beverton–Holt model"
+	add lifetime reproductive output plot to QtSLiM; change the reproductive output logging to separate by sex, add lifetimeReproductiveOutputM and lifetimeReproductiveOutputF properties to cover that
 	
 
 version 3.4 (build 2438; Eidos version 2.4):
