@@ -115,7 +115,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
     
     if (!sim->SubpopulationWithID(selectedSubpopulationID_))
         hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-    if (!sim->MutationTypeWithID(selectedMutationTypeIndex_))
+    if (!sim->MutationTypeWithIndex(selectedMutationTypeIndex_))
         hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     if (!hasSubpop || !hasMuttype)
         return;
@@ -344,7 +344,7 @@ QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
         
         if (!controller_->sim->SubpopulationWithID(selectedSubpopulationID_))
             hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-        if (!controller_->sim->MutationTypeWithID(selectedMutationTypeIndex_))
+        if (!controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_))
             hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
         if (!hasSubpop || !hasMuttype)
             return "no\ndata";

@@ -198,7 +198,7 @@ QString QtSLiMGraphView_2DSampleSFS::disableMessage(void)
     {
         Subpopulation *subpop1 = controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_);
         Subpopulation *subpop2 = controller_->sim->SubpopulationWithID(selectedSubpopulation2ID_);
-        MutationType *muttype = controller_->sim->MutationTypeWithID(selectedMutationTypeIndex_);
+        MutationType *muttype = controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !subpop2 || !muttype)
             return "no\ndata";
@@ -329,7 +329,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         // Find our subpops and mutation type
         Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
         Subpopulation *subpop2 = sim->SubpopulationWithID(selectedSubpopulation2ID_);
-        MutationType *muttype = sim->MutationTypeWithID(selectedMutationTypeIndex_);
+        MutationType *muttype = sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !subpop2 || !muttype)
             return nullptr;

@@ -579,6 +579,12 @@ public:
 		auto id_iter = mutation_types_.find(p_muttype_id);
 		return (id_iter == mutation_types_.end()) ? nullptr : id_iter->second;
 	}
+    inline MutationType *MutationTypeWithIndex(int p_muttype_index) {
+        for (const std::pair<const slim_objectid_t,MutationType*> &muttype_pair : mutation_types_)
+            if (muttype_pair.second->mutation_type_index_ == p_muttype_index)
+                return muttype_pair.second;
+		return nullptr;
+	}
 	inline GenomicElementType *GenomicElementTypeTypeWithID(slim_objectid_t p_getype_id) {
 		auto id_iter = genomic_element_types_.find(p_getype_id);
 		return (id_iter == genomic_element_types_.end()) ? nullptr : id_iter->second;
