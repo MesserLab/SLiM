@@ -70,7 +70,8 @@ private:
 	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
-	// be accessed through the read-only pedigree properties.  Genome pedigree IDs are also maintained in parallel; see genome.h.
+	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
+	// If these are maintained, genome pedigree IDs are also maintained in parallel; see genome.h.
 	slim_pedigreeid_t pedigree_id_;		// the id of this individual
 	slim_pedigreeid_t pedigree_p1_;		// the id of parent 1
 	slim_pedigreeid_t pedigree_p2_;		// the id of parent 2
@@ -78,6 +79,7 @@ private:
 	slim_pedigreeid_t pedigree_g2_;		// the id of grandparent 2
 	slim_pedigreeid_t pedigree_g3_;		// the id of grandparent 3
 	slim_pedigreeid_t pedigree_g4_;		// the id of grandparent 4
+	int32_t reproductive_output_;		// the number of offspring for which this individual has been a parent, so far
 	
 public:
 	
@@ -99,8 +101,6 @@ public:
 #ifdef SLIM_NONWF_ONLY
 	slim_age_t age_;					// the age of the individual, in generations; -1 in WF models
 #endif  // SLIM_NONWF_ONLY
-	
-	int32_t reproductive_output_;		// the number of offspring for which this individual has been a parent, so far
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed

@@ -45,12 +45,12 @@ bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
 Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) :
-	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1),
+	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
 	cached_fitness_UNSAFE_(p_fitness), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
 #ifdef SLIM_NONWF_ONLY
 	age_(p_age),
 #endif  // SLIM_NONWF_ONLY
-	reproductive_output_(0), index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
+	index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
 {
 #ifndef SLIM_NONWF_ONLY
 #pragma unused(p_age)
@@ -226,10 +226,16 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 #endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
+			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
 		case gID_pedigreeParentIDs:
 		{
+			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeParentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
 			
 			vec->set_int_no_check(pedigree_p1_, 0);
@@ -239,6 +245,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_pedigreeGrandparentIDs:
 		{
+			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeGrandparentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
 			
 			vec->set_int_no_check(pedigree_g1_, 0);
@@ -250,6 +259,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_reproductiveOutput:				// ACCELERATED
 		{
+			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(reproductive_output_));
 		}
 		case gID_spatialPosition:
@@ -486,8 +498,18 @@ EidosValue *Individual::GetProperty_Accelerated_index(EidosObject **p_values, si
 EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	size_t value_index = 0;
 	
-	for (size_t value_index = 0 ; value_index < p_values_size; ++value_index)
+	// check that pedigrees are enabled, once
+	if (value_index < p_values_size)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		int_result->set_int_no_check(value->pedigree_id_, value_index);
+		++value_index;
+	}
+	
+	for ( ; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
@@ -536,6 +558,9 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size
 
 EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size)
 {
+	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_.population_.sim_.PedigreesEnabledByUser())
+		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
+	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1057,11 +1082,17 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	EidosValue *individuals_value = p_arguments[0].get();
 	
 	int individuals_count = individuals_value->Count();
+	bool pedigree_tracking_enabled = subpopulation_.population_.sim_.PedigreesEnabledByUser();
 	
 	if (individuals_count == 1)
 	{
 		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(0, nullptr));
-		double relatedness = RelatednessToIndividual(*ind);
+		double relatedness;
+		
+		if (pedigree_tracking_enabled)
+			relatedness = RelatednessToIndividual(*ind);
+		else
+			relatedness = (ind == this) ? 1.0 : 0.0;
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(relatedness));
 	}
@@ -1069,12 +1100,25 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(individuals_count);
 		
-		for (int value_index = 0; value_index < individuals_count; ++value_index)
+		if (pedigree_tracking_enabled)
 		{
-			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
-			double relatedness = RelatednessToIndividual(*ind);
-			
-			float_result->set_float_no_check(relatedness, value_index);
+			for (int value_index = 0; value_index < individuals_count; ++value_index)
+			{
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				double relatedness = RelatednessToIndividual(*ind);
+				
+				float_result->set_float_no_check(relatedness, value_index);
+			}
+		}
+		else
+		{
+			for (int value_index = 0; value_index < individuals_count; ++value_index)
+			{
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				double relatedness = (ind == this) ? 1.0 : 0.0;
+				
+				float_result->set_float_no_check(relatedness, value_index);
+			}
 		}
 		
 		return EidosValue_SP(float_result);

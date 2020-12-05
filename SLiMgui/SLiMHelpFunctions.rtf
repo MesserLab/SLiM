@@ -810,10 +810,44 @@ Configure options for the simulation.  If
 \f2\fs20  is called at all then it must be called before any other initialization function (except 
 \f1\fs18 initializeSLiMModelType()
 \f2\fs20 ), so that SLiM knows from the outset which optional features are enabled and which are not.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 The 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 keepPedigrees
-\f2\fs20  used to enabled an optional pedigree-tracking facility in SLiM.  Beginning in SLiM 3.5, that facility is now always enabled, and the flag is ignored.\
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 , SLiM will keep pedigree information for every individual in the simulation, tracking the identity of its parents and grandparents.  This allows individuals to assess their degree of pedigree-based relatedness to other individuals (see 
+\f1\fs18 Individual
+\f2\fs20 \'92s 
+\f1\fs18 relatedness()
+\f2\fs20  method), as well as allowing a model to find \'93trios\'94 (two parents and an offspring they generated) using the pedigree properties of 
+\f1\fs18 Individual
+\f2\fs20 .  As a side effect of 
+\f1\fs18 keepPedigrees
+\f2\fs20  being 
+\f1\fs18 T
+\f2\fs20 , the 
+\f1\fs18 pedigreeID
+\f2\fs20 , 
+\f1\fs18 pedigreeParentIDs
+\f2\fs20 , and 
+\f1\fs18 pedigreeGrandparentIDs
+\f2\fs20  properties of 
+\f1\fs18 Individual
+\f2\fs20  will have defined values, as will the 
+\f1\fs18 genomePedigreeID
+\f2\fs20  property of 
+\f1\fs18 Genome
+\f2\fs20 .  Note that pedigree-based relatedness doesn\'92t necessarily correspond to genetic relatedness, due to effects such as assortment and recombination.  Beginning in SLiM 3.5, 
+\f1\fs18 keepPedigrees=T
+\f2\fs20  also enables tracking of individual reproductive output, available through the 
+\f1\fs18 reproductiveOutput
+\f2\fs20  property of 
+\f1\fs18 Individual
+\f2\fs20  (see section 24.6.1) and the 
+\f1\fs18 lifetimeReproductiveOutput
+\f2\fs20  property of 
+\f1\fs18 Subpopulation
+\f2\fs20  (see section 24.14.1).\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 If 
 \f1\fs18 dimensionality
@@ -1548,9 +1582,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub :\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1562,8 +1595,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i \expnd0\expndtw0\kerning0
 H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
@@ -1715,13 +1747,13 @@ This function assumes that mutations of type
 \f1\fs18 mutType
 \f2\fs20  encode their effect size upon the quantitative trait in their 
 \f1\fs18 selectionCoeff
-\f2\fs20  property, as is fairly standard in SLiM (see, e.g., section 13.2).  The implementation of 
+\f2\fs20  property, as is fairly standard in SLiM.  The implementation of 
 \f1\fs18 calcVA()
 \f2\fs20 , which is viewable with 
 \f1\fs18 functionSource()
 \f2\fs20 , is quite simple; if effect sizes are stored elsewhere (such as with 
 \f1\fs18 setValue()
-\f2\fs20 , as in section 13.5), a new user-defined function following the pattern of 
+\f2\fs20 ), a new user-defined function following the pattern of 
 \f1\fs18 calcVA()
 \f2\fs20  can easily be written.\
 }

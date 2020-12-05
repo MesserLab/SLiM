@@ -1682,7 +1682,16 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i[0:1].uniqueMutationsOfType(1); stop(); }", __LINE__);
 	
 	// Test optional pedigree stuff
-	std::string gen1_setup_rel("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
+	std::string gen1_setup_norel("initialize() { initializeSLiMOptions(F); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
+	std::string gen1_setup_rel("initialize() { initializeSLiMOptions(T); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
+	
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeID == -1)) stop(); }", 1, 296, "is not available", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeParentIDs == -1)) stop(); }", 1, 296, "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeGrandparentIDs == -1)) stop(); }", 1, 296, "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 { if (all(p1.individuals.genomes.genomePedigreeID == -1)) stop(); }", 1, 304, "is not available", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) == 0.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_norel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) == 0.0)) stop(); }", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.pedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.pedigreeParentIDs != -1)) stop(); }", __LINE__);

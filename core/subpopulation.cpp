@@ -596,6 +596,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq)
 {
 	SLiMSim &sim = population_.sim_;
+	bool pedigrees_enabled = sim.PedigreesEnabled();
 	bool recording_tree_sequence = p_record_in_treeseq && sim.RecordingTreeSequence();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
@@ -686,7 +687,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			}
 			
 			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, gSLiM_next_pedigree_id++, genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0);
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -714,7 +715,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 			genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 			
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, gSLiM_next_pedigree_id++, genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
+			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -783,10 +784,13 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
 		
-		if (individual->pedigree_id_ == -1)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
-		if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
+		if (population_.sim_.PedigreesEnabled())
+		{
+			if (individual->pedigree_id_ == -1)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
+			if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
+		}
 		
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 		if (model_type == SLiMModelType::kModelTypeWF)
@@ -908,7 +912,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
 			
-			if (child_generation_valid_)
+			if (population_.sim_.PedigreesEnabled() && child_generation_valid_)
 			{
 				if (individual->pedigree_id_ == -1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
@@ -2924,23 +2928,26 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 #ifdef SLIM_WF_ONLY
 void Subpopulation::TallyLifetimeReproductiveOutput(void)
 {
-	lifetime_reproductive_output_MH_.clear();
-	lifetime_reproductive_output_F_.clear();
-	
-	if (population_.sim_.SexEnabled())
+	if (population_.sim_.PedigreesEnabled())
 	{
-		for (Individual *ind : parent_individuals_)
+		lifetime_reproductive_output_MH_.clear();
+		lifetime_reproductive_output_F_.clear();
+		
+		if (population_.sim_.SexEnabled())
 		{
-			if (ind->sex_ == IndividualSex::kFemale)
-				lifetime_reproductive_output_F_.push_back(ind->reproductive_output_);
-			else
+			for (Individual *ind : parent_individuals_)
+			{
+				if (ind->sex_ == IndividualSex::kFemale)
+					lifetime_reproductive_output_F_.push_back(ind->reproductive_output_);
+				else
+					lifetime_reproductive_output_MH_.push_back(ind->reproductive_output_);
+			}
+		}
+		else
+		{
+			for (Individual *ind : parent_individuals_)
 				lifetime_reproductive_output_MH_.push_back(ind->reproductive_output_);
 		}
-	}
-	else
-	{
-		for (Individual *ind : parent_individuals_)
-			lifetime_reproductive_output_MH_.push_back(ind->reproductive_output_);
 	}
 }
 
@@ -2988,8 +2995,11 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		}
 	}
 	
-	for (Individual *child : child_individuals_)
-		child->reproductive_output_ = 0;
+	if (population_.sim_.PedigreesEnabled())
+	{
+		for (Individual *child : child_individuals_)
+			child->reproductive_output_ = 0;
+	}
 	
 	// The parents now have the values that used to belong to the children.
 	parent_subpop_size_ = child_subpop_size_;
@@ -3196,10 +3206,14 @@ void Subpopulation::ViabilitySelection(void)
 	int survived_individual_index = 0;
 	int females_deceased = 0;
 	bool individuals_died = false;
+	bool pedigrees_enabled = population_.sim_.PedigreesEnabled();
 	
 	// clear lifetime reproductive outputs, in preparation for new values
-	lifetime_reproductive_output_MH_.clear();
-	lifetime_reproductive_output_F_.clear();
+	if (pedigrees_enabled)
+	{
+		lifetime_reproductive_output_MH_.clear();
+		lifetime_reproductive_output_F_.clear();
+	}
 	
 	// do mortality
 	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
@@ -3234,12 +3248,19 @@ void Subpopulation::ViabilitySelection(void)
 			Genome *genome1 = genome_data[individual_index * 2];
 			Genome *genome2 = genome_data[individual_index * 2 + 1];
 			
-			if (sex_enabled_)
+			if (pedigrees_enabled)
 			{
-				if (individual->sex_ == IndividualSex::kFemale)
+				if (sex_enabled_)
 				{
-					females_deceased++;
-					lifetime_reproductive_output_F_.push_back(individual->reproductive_output_);
+					if (individual->sex_ == IndividualSex::kFemale)
+					{
+						females_deceased++;
+						lifetime_reproductive_output_F_.push_back(individual->reproductive_output_);
+					}
+					else
+					{
+						lifetime_reproductive_output_MH_.push_back(individual->reproductive_output_);
+					}
 				}
 				else
 				{
@@ -3248,7 +3269,8 @@ void Subpopulation::ViabilitySelection(void)
 			}
 			else
 			{
-				lifetime_reproductive_output_MH_.push_back(individual->reproductive_output_);
+				if (sex_enabled_ && (individual->sex_ == IndividualSex::kFemale))
+					females_deceased++;
 			}
 			
 			FreeSubpopGenome(genome1);
@@ -3476,6 +3498,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lifetimeReproductiveOutput:
 		{
+			if (!population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			std::vector<int32_t> &lifetime_rep_M = lifetime_reproductive_output_MH_;
 			std::vector<int32_t> &lifetime_rep_F = lifetime_reproductive_output_F_;
 			int lifetime_rep_count_M = (int)lifetime_rep_M.size();
@@ -3491,6 +3516,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lifetimeReproductiveOutputM:
 		{
+			if (!population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutputM is not available because pedigree recording has not been enabled." << EidosTerminate();
 			if (!population_.sim_.SexEnabled())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputM is not defined since separate sexes are not enabled." << EidosTerminate();
 			
@@ -3505,6 +3532,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lifetimeReproductiveOutputF:
 		{
+			if (!population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutputF is not available because pedigree recording has not been enabled." << EidosTerminate();
 			if (!population_.sim_.SexEnabled())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputF is not defined since separate sexes are not enabled." << EidosTerminate();
 			
@@ -3856,6 +3885,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
 	
+	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -3883,7 +3913,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
-	individual->TrackParentage(*parent, *parent);
+	if (pedigrees_enabled)
+		individual->TrackParentage(*parent, *parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -3938,6 +3969,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may not be called from a nested callback." << EidosTerminate();
 	
+	bool pedigrees_enabled = sim.PedigreesEnabled();
 	bool prevent_incidental_selfing = sim.PreventIncidentalSelfing();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
@@ -3983,7 +4015,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
 	
-	individual->TrackParentage(*parent1, *parent2);
+	if (pedigrees_enabled)
+		individual->TrackParentage(*parent1, *parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4060,6 +4093,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
 	
 	// Make the new individual as a candidate
+	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -4068,7 +4102,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	
-	individual->TrackParentageWithoutParents();
+	if (pedigrees_enabled)
+		individual->TrackParentageWithoutParents();
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4116,6 +4151,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called from a nested callback." << EidosTerminate();
 	
+	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -4260,7 +4296,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
-	individual->TrackParentageWithoutParents();
+	if (pedigrees_enabled)
+		individual->TrackParentageWithoutParents();
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4515,6 +4552,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may not be called from a nested callback." << EidosTerminate();
 	
+	bool pedigrees_enabled = sim.PedigreesEnabled();
 	Chromosome &chromosome = sim.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -4544,7 +4582,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
-	individual->TrackParentage(*parent, *parent);
+	if (pedigrees_enabled)
+		individual->TrackParentage(*parent, *parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())

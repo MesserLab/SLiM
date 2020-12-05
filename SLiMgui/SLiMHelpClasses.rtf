@@ -712,15 +712,19 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
 genomePedigreeID => (integer$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 A unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 genomePedigreeID
+\f4\fs20  is a unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
 \f3\fs18 genomePedigreeID
 \f4\fs20  of a given genome will be equal to either 
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.\expnd0\expndtw0\kerning0
+\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1973,29 +1977,41 @@ In nonWF models, this flag is
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeID => (integer$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 A unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.\expnd0\expndtw0\kerning0
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 pedigreeID
+\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeParentIDs => (integer)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Contains the values of 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 pedigreeParentIDs
+\f4\fs20  contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  Parental values may be 
+\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  If pedigree tracking is not on, this property is unavailable.  Parental values may be 
 \f3\fs18 -1
 \f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeGrandparentIDs => (integer)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Contains the values of 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 pedigreeGrandparentIDs
+\f4\fs20  contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  Grandparental values may be 
+\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  If pedigree tracking is not on, this property is unavailable.  Grandparental values may be 
 \f3\fs18 -1
 \f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\expnd0\expndtw0\kerning0
 \
@@ -2004,11 +2020,15 @@ In nonWF models, this flag is
 \f3\fs18 \cf2 \kerning1\expnd0\expndtw0 reproductiveOutput => (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The number of offspring for which this individual has been a parent.  If an individual is a parent by cloning or selfing, or as 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 reproductiveOutput
+\f4\fs20  contains the number of offspring for which this individual has been a parent.  If pedigree tracking is not on, this property is unavailable.  If an individual is a parent by cloning or selfing, or as 
 \f1\i both
 \f4\i0  parents for a biparental mating, this value is incremented by two.  Involvement of an individual as a parent for an 
 \f3\fs18 addRecombinant()
-\f4\fs20  call does not change this property\'92s value, since the reproductive contribution in that case is unclear; one conduct separate bookkeeping for that case if necessary.\
+\f4\fs20  call does not change this property\'92s value, since the reproductive contribution in that case is unclear; one must conduct separate bookkeeping for that case if necessary.\
 This property is only useful in nonWF models, since in WF models the parental generation dies immediately after reproduction, giving no opportunity to query this property.  For WF models (and nonWF models, too), see the 
 \f3\fs18 Subpopulation
 \f4\fs20  property 
@@ -2294,7 +2314,7 @@ See the description of the
 \f5 \'a0
 \f3 individuals)
 \f5 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a vector containing the degrees of relatedness between the receiver and each of the individuals in 
 \f3\fs18 individuals
@@ -2308,7 +2328,11 @@ See the description of the
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
-\f4\fs20  are actually the same individual.  Otherwise, this method will use the pedigree information described in section 24.6.1 to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
+\f4\fs20  are actually the same individual; this facility works even if SLiM\'92s optional pedigree tracking is turned off (in which case all other relatedness values will be 
+\f3\fs18 0.0
+\f4\fs20 .  Otherwise, if pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , this method will use the pedigree information to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
@@ -2316,7 +2340,7 @@ See the description of the
 \f3\fs18 0.125
 \f4\fs20  towards the total relatedness, for a maximum value of 
 \f3\fs18 0.5
-\f4\fs20  with four shared grandparents.  If grandparental information in unavailable, then if parental information is available it is used, with each parent shared by 
+\f4\fs20  with four shared grandparents.  If grandparental information is unavailable, then if parental information is available it is used, with each parent shared by 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
@@ -2333,8 +2357,7 @@ See the description of the
 \f4\fs20  are the same individual, the relatedness will be 
 \f3\fs18 1.0
 \f4\fs20  in all cases.\cf0 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
+Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -4521,7 +4544,7 @@ The
 \f3\fs18 LogFile
 \f4\fs20  documentation discusses how to configure and use 
 \f3\fs18 LogFile
-\f4\fs20  to write out the data you are interested in from your simulation; see section 24.9.\
+\f4\fs20  to write out the data you are interested in from your simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)deregisterScriptBlock(io<SLiMEidosBlock>\'a0scriptBlocks)\
@@ -4790,7 +4813,9 @@ Beginning with SLiM 3.3, the
 \f3\fs18 F
 \f4\fs20 ) by default, to preserve backward compatibility; if it is turned on (
 \f3\fs18 T
-\f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.\
+\f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 .\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
@@ -4909,7 +4934,11 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
-\f4\fs20 ).\
+\f4\fs20 ) 
+\f1\i and
+\f4\i0  if SLiM\'92s optional pedigree tracking has been turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 .\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 This method can also be used to read tree-sequence (
@@ -5416,7 +5445,7 @@ Whichever way of specifying the generation set is used,
 \f3\fs18 block
 \f4\fs20  may continue to be executed during the current life cycle stage even after it has been rescheduled, unless it is made inactive using its 
 \f3\fs18 active
-\f4\fs20  property, and similarly, the block may not execute during the current life cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the generation and life cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\cf2   Also, as mentioned in section 21.7, script blocks which are open-ended (i.e., with no specified end generation), are not used in determining whether the end of the simulation has been reached (because then the simulation would run forever); if you reschedule a block to be open-ended, and to start after the end of the last closed-ended block, the rescheduled block will therefore not run at all (just as such a block would not run at all in other circumstances, too).\cf0 \
+\f4\fs20  property, and similarly, the block may not execute during the current life cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the generation and life cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\cf2   Also, script blocks which are open-ended (i.e., with no specified end generation), are not used in determining whether the end of the simulation has been reached (because then the simulation would run forever); if you reschedule a block to be open-ended, and to start after the end of the last closed-ended block, the rescheduled block will therefore not run at all (just as such a block would not run at all in other circumstances, too).\cf0 \
 Note that new script blocks can also be created and scheduled using the 
 \f3\fs18 register...()
 \f4\fs20  methods of 
@@ -5706,31 +5735,43 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 \cf2 lifetimeReproductiveOutput => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The value of the 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 lifetimeReproductiveOutput
+\f4\fs20  contains the value of the 
 \f3\fs18 Individual
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
-\f4\fs20  for all individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This allows access to the lifetime reproductive output of individuals in the subpopulation at the end of their lives.\
+\f4\fs20  for all individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This allows access to the lifetime reproductive output of individuals in the subpopulation at the end of their lives.  If pedigree tracking is not on, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 lifetimeReproductiveOutputF => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The value of the 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 lifetimeReproductiveOutputF
+\f4\fs20  contains the value of the 
 \f3\fs18 Individual
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
-\f4\fs20  for all female individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled.\
+\f4\fs20  for all female individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 lifetimeReproductiveOutputM => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The value of the 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 lifetimeReproductiveOutputM
+\f4\fs20  contains the value of the 
 \f3\fs18 Individual
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
-\f4\fs20  for all male individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled.\
+\f4\fs20  for all male individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 selfingRate => (float$)\

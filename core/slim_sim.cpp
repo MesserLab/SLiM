@@ -86,6 +86,13 @@ static const char *SLIM_TREES_FILE_VERSION = "0.5";				// SLiM 3.5.x onward, wit
 
 SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMSim_Class))), x_experiments_enabled_(false)
 {
+#ifdef SLIMGUI
+	// Pedigree recording is always enabled when running under SLiMgui, so that the various graphs all work
+	// However, as with tree-sequence recording, the fact that it is enabled is not user-visible unless the user enables it
+	pedigrees_enabled_ = true;
+	pedigrees_enabled_by_SLiM_ = true;
+#endif
+	
 	// Create our Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
 	chromosome_ = new Chromosome(this);
 	
@@ -702,10 +709,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				int64_t pedigree_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 				slim_pedigreeid_t pedigree_id = SLiMCastToPedigreeIDOrRaise(pedigree_long);
 				
-				individual.SetPedigreeID(pedigree_id);
-				individual.genome1_->SetGenomeID(pedigree_id * 2);
-				individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
-				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+				if (PedigreesEnabled())
+				{
+					individual.SetPedigreeID(pedigree_id);
+					individual.genome1_->SetGenomeID(pedigree_id * 2);
+					individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
+					gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+				}
 			}
 			
 			iss >> sub;			// individual sex identifier (F/M/H) – added in SLiM 2.1, so we need to be robust if it is missing
@@ -1404,14 +1414,18 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			if (p + sizeof(slim_pedigreeid_t) + sizeof(total_mutations) > buf_end)
 				break;
 			
-			int individual_index = genome_index / 2;
-			Individual &individual = *subpop->parent_individuals_[individual_index];
-			slim_pedigreeid_t pedigree_id = *(slim_pedigreeid_t *)p;
+			if (PedigreesEnabled())
+			{
+				int individual_index = genome_index / 2;
+				Individual &individual = *subpop->parent_individuals_[individual_index];
+				slim_pedigreeid_t pedigree_id = *(slim_pedigreeid_t *)p;
+				
+				individual.SetPedigreeID(pedigree_id);
+				individual.genome1_->SetGenomeID(pedigree_id * 2);
+				individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
+				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+			}
 			
-			individual.SetPedigreeID(pedigree_id);
-			individual.genome1_->SetGenomeID(pedigree_id * 2);
-			individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
-			gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 			p += sizeof(slim_pedigreeid_t);
 		}
 		
@@ -7529,6 +7543,9 @@ void SLiMSim::TSXC_Enable(void)
 	running_coalescence_checks_ = false;
 	running_treeseq_crosschecks_ = true;
 	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
+	
+	pedigrees_enabled_ = true;
+	pedigrees_enabled_by_SLiM_ = true;
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
