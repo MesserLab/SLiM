@@ -1,7 +1,6 @@
 // Keywords: range expansion, colonization, population spread, migration
 
 initialize() {
-	setSeed(1630032933481);
 	defineConstant("K", 1000);   // carrying capacity per subpop
 	defineConstant("N", 10);     // number of subpopulations
 	defineConstant("M", 0.01);   // migration probability
