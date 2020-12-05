@@ -505,6 +505,9 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_value
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
+		if (!value->subpopulation_.population_.sim_.PedigreesEnabledByUser())
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+		
 		int_result->set_int_no_check(value->pedigree_id_, value_index);
 		++value_index;
 	}
