@@ -3330,6 +3330,8 @@ void QtSLiMWindow::recycleClicked(void)
     
     updateAfterTickFull(true);
     
+    ui->scriptTextEdit->setPalette(style()->standardPalette());     // clear any error highlighting
+    
     // A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
     // at the moment that we recycled.  Then we reset a change counter that we use to know if we have changed relative to
     // the recycle point, so we can highlight the recycle button to show that the executing script is out of date.
