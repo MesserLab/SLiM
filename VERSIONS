@@ -9,7 +9,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 development head:
 	added build instructions for Windows WSL, thanks to Bernard Kim (no code change)
-	fix some issues with recipe 14.8 (live plotting in R) with platform-dependent paths, lack of PDF viewing support in QtSLiM, etc.
+	fix some issues with recipes 13.5 and 14.8 (involving live plotting in R) with platform-dependent paths, lack of PDF viewing support in QtSLiM, etc.
 	fix bug with precedence for operator ^, which needs to be higher than unary - to follow standard mathematical convention (GitHub #99)
 	add a tabulate() function to Eidos, more or less parallel to that in R
 	speed up match() for large x vectors, using unordered_map; goes from O(N*M) to O(N+M)

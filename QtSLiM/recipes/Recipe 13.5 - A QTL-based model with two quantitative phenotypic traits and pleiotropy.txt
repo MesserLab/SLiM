@@ -30,6 +30,14 @@ initialize() {
 	print(QTL_mu);
 	catn("\nQTL DFE variance-covariance matrix: ");
 	print(QTL_sigma);
+	
+	// find Rscript
+	if (fileExists("/usr/bin/Rscript"))
+		defineConstant("RSCRIPT", "/usr/bin/Rscript");
+	else if (fileExists("/usr/local/bin/Rscript"))
+		defineConstant("RSCRIPT", "/usr/local/bin/Rscript");
+	else
+		stop("Couldn't find Rscript.");
 }
 
 1 late() {
@@ -109,7 +117,7 @@ late() {
 		'}', sep="\n");
 	
 	scriptPath = writeTempFile("plot_", ".R", rstr);
-	system("/usr/bin/Rscript", args=scriptPath);
+	system(RSCRIPT, args=scriptPath);
 	
 	// keep running until we get within 10% of both optima
 	if ((abs(p0_mean - QTL_optima[0]) > abs(0.1 * QTL_optima[0])) |
