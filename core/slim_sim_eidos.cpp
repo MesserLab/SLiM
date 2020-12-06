@@ -139,11 +139,28 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			const std::string &sequence_string = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
 			bool contains_only_nuc = true;
 			
+			// OK, we do a weird thing here.  We want to try to construct a NucleotideArray
+			// from sequence_string, which throws with EIDOS_TERMINATION if it fails, but
+			// we want to actually catch that exception even if we're running at the
+			// command line, where EIDOS_TERMINATION normally calls exit().  So we actually
+			// play around with the error-handling state to make it do what we want it to do.
+			// This is very naughty and should be redesigned, but right now I'm not seeing
+			// the right redesign strategy, so... hacking it for now.  Parallel code is at
+			// Chromosome::ExecuteMethod_setAncestralNucleotides()
+			bool save_gEidosTerminateThrows = gEidosTerminateThrows;
+			gEidosTerminateThrows = true;
+			
 			try {
 				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
 			} catch (...) {
 				contains_only_nuc = false;
+				
+				// clean up the error state since we don't want this throw to be reported
+				gEidosTermination.clear();
+				gEidosTermination.str("");
 			}
+			
+			gEidosTerminateThrows = save_gEidosTerminateThrows;
 			
 			if (!contains_only_nuc)
 			{

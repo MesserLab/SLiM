@@ -1885,7 +1885,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 			// command line, where EIDOS_TERMINATION normally calls exit().  So we actually
 			// play around with the error-handling state to make it do what we want it to do.
 			// This is very naughty and should be redesigned, but right now I'm not seeing
-			// the right redesign strategy, so... hacking it for now.
+			// the right redesign strategy, so... hacking it for now.  Parallel code is at
+			// SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides()
 			bool save_gEidosTerminateThrows = gEidosTerminateThrows;
 			gEidosTerminateThrows = true;
 			
