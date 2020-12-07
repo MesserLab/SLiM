@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+version 3.5 (build 2663; Eidos version 2.5):
 	added build instructions for Windows WSL, thanks to Bernard Kim (no code change)
 	fix some issues with recipes 13.5 and 14.8 (involving live plotting in R) with platform-dependent paths, lack of PDF viewing support in QtSLiM, etc.
 	fix bug with precedence for operator ^, which needs to be higher than unary - to follow standard mathematical convention (GitHub #99)
@@ -96,7 +99,6 @@ development head:
 	minor bugfix for recipe 14.7; use L instead of L-1 for chromosome length
 	back out the earlier (9/4/2020) change making pedigree tracking always on, because the performance hit was too large; so the keepPedigrees flag to initializeSLiMOptions() now does something again
 	put the reproductiveOutput/lifetimeReproductiveOutput properties under keepPedigrees=T, be more strict about requiring keepPedigrees=T to see/access any pedigree information at the user level
-	
 
 version 3.4 (build 2438; Eidos version 2.4):
 	fix a subtle bug in which mutation IDs used by mutations read in from a .trees file could be re-used, producing a conflict, if the mutations were not ancestral to any extant genome -- biting you if you wrote a .trees file out again at the end
