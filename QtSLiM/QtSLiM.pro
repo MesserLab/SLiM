@@ -18,7 +18,7 @@ QMAKE_INFO_PLIST = QtSLiM_Info.plist
 ICON = QtSLiM_AppIcon.icns
 QMAKE_TARGET_BUNDLE_PREFIX = "edu.MesserLab"
 QMAKE_BUNDLE = "QtSLiM"		# This governs the location of our prefs, which we keep under edu.MesserLab.QtSLiM
-VERSION = 3.4
+VERSION = 3.5
 
 docIconFiles.files = $$PWD/QtSLiM_DocIcon.icns
 docIconFiles.path = Contents/Resources
