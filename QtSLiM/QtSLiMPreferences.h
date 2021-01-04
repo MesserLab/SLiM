@@ -35,7 +35,7 @@ public:
     
     // Get the current pref values, falling back on defaults
     int appStartupPref(void) const;               // 0 == do nothing, 1 == create a new window, 2 == run an open panel
-    QFont displayFontPref(int *tabWidth = nullptr) const;
+    QFont displayFontPref(double *tabWidth = nullptr) const;
     bool scriptSyntaxHighlightPref(void) const;
     bool outputSyntaxHighlightPref(void) const;
     bool showLineNumbersPref(void) const;

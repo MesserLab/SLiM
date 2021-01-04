@@ -95,11 +95,15 @@ void QtSLiMTextEdit::selfInit(void)
     
     // set up the script and output textedits
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
+    double tabWidth = 0;
     QFont scriptFont = prefs.displayFontPref(&tabWidth);
     
     setFont(scriptFont);
-    setTabStopWidth(tabWidth);    // deprecated in 5.10; should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    setTabStopDistance(tabWidth);               // added in 5.10
+#endif
 }
 
 QtSLiMTextEdit::~QtSLiMTextEdit()
@@ -130,11 +134,15 @@ void QtSLiMTextEdit::setOptionClickEnabled(bool enabled)
 void QtSLiMTextEdit::displayFontPrefChanged()
 {
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
+    double tabWidth = 0;
     QFont displayFont = prefs.displayFontPref(&tabWidth);
     
     setFont(displayFont);
-    setTabStopWidth(tabWidth);      // deprecated in 5.10
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    setTabStopDistance(tabWidth);               // added in 5.10
+#endif
 }
 
 void QtSLiMTextEdit::scriptSyntaxHighlightPrefChanged()
@@ -2505,8 +2513,11 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
         ++digits;
     }
 
-    //int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
-    int space = 13 + fontMetrics().width("9") * digits;                 // deprecated (in 5.11, I assume)
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+    int space = 13 + fontMetrics().width("9") * digits;                 // deprecated in 5.11
+#else
+    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
+#endif
     
     return space;
 }

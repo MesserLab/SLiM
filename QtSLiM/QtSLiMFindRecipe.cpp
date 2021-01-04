@@ -48,10 +48,14 @@ QtSLiMFindRecipe::QtSLiMFindRecipe(QWidget *p_parent) : QDialog(p_parent), ui(ne
 	
     // set up the script preview with syntax coloring and tab stops
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
+    double tabWidth = 0;
     
     ui->scriptPreviewTextEdit->setFont(prefs.displayFontPref(&tabWidth));
-    ui->scriptPreviewTextEdit->setTabStopWidth(tabWidth);                   // deprecated in 5.10
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    ui->scriptPreviewTextEdit->setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    ui->scriptPreviewTextEdit->setTabStopDistance(tabWidth);               // added in 5.10
+#endif
     
     if (prefs.scriptSyntaxHighlightPref())
         new QtSLiMScriptHighlighter(ui->scriptPreviewTextEdit->document());

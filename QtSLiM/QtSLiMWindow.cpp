@@ -51,7 +51,7 @@
 
 #include <QCoreApplication>
 #include <QFontDatabase>
-#include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QtDebug>
 #include <QMessageBox>
 #include <QTextEdit>
@@ -1907,13 +1907,20 @@ void QtSLiMWindow::displayProfileResults(void)
     menlo11_d.setFont(menlo11);
     
     // Adjust the tab width to the monospace font we have chosen
-    int tabWidth = 0;
-    QFontMetrics fm(menlo11);
+    double tabWidth = 0;
+    QFontMetricsF fm(menlo11);
     
-    //tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
-    tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+    tabWidth = fm.width("   ");                // deprecated in 5.11
+#else
+    tabWidth = fm.horizontalAdvance("   ");    // added in Qt 5.11
+#endif
     
-    textEdit->setTabStopWidth(tabWidth);        // deprecated in 5.10
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    textEdit->setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    textEdit->setTabStopDistance(tabWidth);               // added in 5.10
+#endif
     
     // Build the report attributed string
     QString startDateString = profileStartDate_.toString("M/d/yy, h:mm:ss AP");

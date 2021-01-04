@@ -22,6 +22,7 @@
 #include "ui_QtSLiMPreferences.h"
 
 #include <QSettings>
+#include <QFontMetricsF>
 #include <QDebug>
 
 #include "QtSLiMAppDelegate.h"
@@ -93,7 +94,7 @@ int QtSLiMPreferencesNotifier::appStartupPref(void) const
     return settings.value(QtSLiMAppStartupAction, QVariant(1)).toInt();
 }
 
-QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth) const
+QFont QtSLiMPreferencesNotifier::displayFontPref(double *tabWidth) const
 {
     QFont &defaultFont = defaultDisplayFont();
     QString defaultFamily = defaultFont.family();
@@ -108,10 +109,13 @@ QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth) const
     
     if (tabWidth)
     {
-        QFontMetrics fm(font);
+        QFontMetricsF fm(font);
         
-        //*tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
-        *tabWidth = fm.width("   ");                 // deprecated in 5.11
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        *tabWidth = fm.width("   ");                // deprecated in 5.11
+#else
+        *tabWidth = fm.horizontalAdvance("   ");    // added in Qt 5.11
+#endif
     }
     
     return font;
