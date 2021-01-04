@@ -5560,7 +5560,8 @@ This method may only be called if tree sequence recording has been turned on wit
 \f4\fs20  to obtain up-to-date information.  However, the speed penalty of doing this in every generation would be large, and most models do not need this level of precision; usually it is sufficient to know that the model has coalesced, without knowing whether that happened in the current generation or in a recent preceding generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T])\
+\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No<Dictionary>$\'a0metadata\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
@@ -5581,9 +5582,18 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \f4\fs20  for 
 \f3\fs18 includeModel
 \f4\fs20  suppresses output of the full script.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 A 
+\f3\fs18 Dictionary
+\f4\fs20  object containing user-generated metadata may be supplied with the 
+\f3\fs18 metadata
+\f4\fs20  parameter.  If present, this dictionary will be serialized as JSON and attached to the saved tree sequence.  If 
+\f3\fs18 pyslim
+\f4\fs20  is used to read the tree sequence in Python, this metadata will automatically be deserialized and made available.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals)\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Permanently adds the individuals specified by 

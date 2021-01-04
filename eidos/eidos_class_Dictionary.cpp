@@ -21,6 +21,7 @@
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
 #include "eidos_value.h"
+#include "json.hpp"
 
 #include <utility>
 #include <algorithm>
@@ -90,6 +91,41 @@ std::string EidosDictionaryUnretained::Serialization(void) const
 	}
 	
 	return ss.str();
+}
+
+nlohmann::json EidosDictionaryUnretained::JSONRepresentation(void) const
+{
+	nlohmann::json json_object;
+	
+	// We want to output our keys in the same order as allKeys, so we just use AllKeys()
+	EidosValue_SP all_keys = AllKeys();
+	EidosValue_String_vector *string_vec = dynamic_cast<EidosValue_String_vector *>(all_keys.get());
+	
+	if (!string_vec)
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization): (internal error) allKeys did not return a string vector." << EidosTerminate(nullptr);
+	
+	const std::vector<std::string> *all_key_strings = string_vec->StringVector();
+	
+	for (const std::string &key : *all_key_strings)
+	{
+		// get the value
+		auto hash_iter = hash_symbols_->find(key);
+		
+		if (hash_iter == hash_symbols_->end())
+		{
+			// We assume that this is not an internal error, but is instead LogFile with a column that is NA;
+			// it returns all of its column names for AllKeys() even if they have NA as a value, so we play along
+			json_object[key] = nullptr;
+		}
+		else
+		{
+			EidosValue *value = hash_iter->second.get();
+			
+			json_object[key] = value->JSONRepresentation();
+		}
+	}
+	
+	return json_object;
 }
 
 void EidosDictionaryUnretained::SetKeyValue(const std::string &key, EidosValue_SP value)

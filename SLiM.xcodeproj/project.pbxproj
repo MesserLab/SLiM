@@ -929,7 +929,6 @@
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		98606AEC1DED0DCD00821CFF /* mutation_run.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_run.cpp; sourceTree = "<group>"; };
 		98606AED1DED0DCD00821CFF /* mutation_run.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_run.h; sourceTree = "<group>"; };
-		9866319421260DD3008F8F40 /* json.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = json.hpp; sourceTree = "<group>"; };
 		986764A92089066A00E81B2E /* tables.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tables.h; path = treerec/tskit/tables.h; sourceTree = "<group>"; };
 		986926D21AA1337A0000E138 /* graph_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu_H.pdf; sourceTree = "<group>"; };
 		986926D31AA1337A0000E138 /* graph_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu.pdf; sourceTree = "<group>"; };
@@ -1024,6 +1023,8 @@
 		98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeManager.mm; sourceTree = "<group>"; };
 		98B40DFD1FB436120046F695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeOptionsSheet.xib; sourceTree = "<group>"; };
 		98B40E001FB452440046F695 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SLiMHaplotypeProgressSheet.xib; sourceTree = "<group>"; };
+		98B8AF8625A2BE7200C95D66 /* json.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = json.hpp; sourceTree = "<group>"; };
+		98B8AF8725A2BE7200C95D66 /* json_fwd.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = json_fwd.hpp; sourceTree = "<group>"; };
 		98C0943C1B7663DF00766A9A /* female_symbol.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = female_symbol.pdf; sourceTree = "<group>"; };
 		98C0943D1B7663DF00766A9A /* male_symbol.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = male_symbol.pdf; sourceTree = "<group>"; };
 		98C820E11C7A980000548839 /* build.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = build.h; sourceTree = "<group>"; };
@@ -1425,7 +1426,6 @@
 				9807C0F324BA21B7008CC658 /* slim_test_core.cpp */,
 				985F3EE924BA27EC00E712E0 /* slim_test_genetics.cpp */,
 				9807C0F724BA21E3008CC658 /* slim_test_other.cpp */,
-				9866319421260DD3008F8F40 /* json.hpp */,
 			);
 			path = core;
 			sourceTree = "<group>";
@@ -1578,6 +1578,8 @@
 				9893C7E11CDFCF0D0029AC94 /* eidos_type_table.cpp */,
 				9893C7E81CDFE9870029AC94 /* eidos_type_interpreter.h */,
 				9893C7E71CDFE9870029AC94 /* eidos_type_interpreter.cpp */,
+				98B8AF8725A2BE7200C95D66 /* json_fwd.hpp */,
+				98B8AF8625A2BE7200C95D66 /* json.hpp */,
 				98235687252FDD120096A745 /* lodepng.h */,
 				98235681252FDCF50096A745 /* lodepng.cpp */,
 				98186DB8254A8B1600F9118C /* robin_hood.h */,

@@ -23,7 +23,7 @@
 
 #include "eidos_globals.h"
 #include "eidos_class_Object.h"
-
+#include "json_fwd.hpp"
 
 
 #include "eidos_globals.h"
@@ -69,6 +69,7 @@ public:
 	virtual EidosValue_SP AllKeys(void) const;
 	
 	std::string Serialization(void) const;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	inline __attribute__((always_inline)) void RemoveAllKeys(void)
 	{

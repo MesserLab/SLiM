@@ -6368,7 +6368,7 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 	}
 }
 
-void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
+void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryRetained *p_metadata_dict)
 {
     int ret = 0;
 
@@ -6378,6 +6378,22 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables)
     // leaving other keys that might already be there.
     // But that's being a headache, so we're skipping it.
     nlohmann::json metadata;
+	
+	// Add user-defined metadata under the SLiM key.
+	// @petrelharp:
+	//	- is this where you intended it to go?
+	//	- is this a good key to use for it?  or "user_data", or "user_metadata", or...?  don't want people to confuse this with tskit metadata, right?
+	//	- the code here adds the key only if a dictionary of metadata was supplied; you could do "if (!p_metadata_dict) metadata["SLIM"]["metadata"] = nullptr;" to add a null value for the key if you wish, so it is always present
+	if (p_metadata_dict)
+	{
+		nlohmann::json user_metadata = p_metadata_dict->JSONRepresentation();
+		
+		metadata["SLIM"]["metadata"] = user_metadata;
+		
+		// for debugging
+		//std::cout << "JSON metadata: " << std::endl << user_metadata.dump(4) << std::endl;
+	}
+	
     if (ModelType() == SLiMModelType::kModelTypeWF) {
         metadata["SLiM"]["model_type"] = "WF";
         if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
@@ -6872,7 +6888,7 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 #endif
 }
 
-void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model)
+void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryRetained *p_metadata_dict)
 {
 #if DEBUG
 	if (!recording_tree_)
@@ -6965,7 +6981,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
     WriteProvenanceTable(&output_tables, /* p_use_newlines */ p_binary, p_include_model);
 
     // Add top-level metadata and metadata schema
-    WriteTreeSequenceMetadata(&output_tables);
+    WriteTreeSequenceMetadata(&output_tables, p_metadata_dict);
 	
 	// Write out the copied tables
     if (p_binary)

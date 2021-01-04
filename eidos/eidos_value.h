@@ -44,6 +44,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_class_Object.h"
 #include "eidos_class_Dictionary.h"
+#include "json_fwd.hpp"
 
 
 // EidosValues must be allocated out of the global pool, for speed.  See eidos_object_pool.h.  When Eidos disposes of an object,
@@ -179,6 +180,7 @@ public:
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	void Print(std::ostream &p_ostream) const;				// standard printing; same as operator<<
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const = 0;
+	virtual nlohmann::json JSONRepresentation(void) const = 0;
 	
 	// object invisibility; note invisibility should only be changed on uniquely owned objects, to avoid side effects
 	inline __attribute__((always_inline)) bool Invisible(void) const							{ return invisible_; }
@@ -338,6 +340,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
@@ -385,6 +388,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
@@ -446,6 +450,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual const EidosValue_Logical *LogicalVector(void) const override { return this; }
 	virtual EidosValue_Logical *LogicalVector_Mutable(void) override { return this; }
@@ -550,6 +555,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual const std::string &StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;		// const reference for speed
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
@@ -678,6 +684,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
@@ -826,6 +833,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
@@ -1006,6 +1014,7 @@ public:
 	inline __attribute__((always_inline)) const EidosClass *Class(void) const { return class_; }
 	inline __attribute__((always_inline)) bool UsesRetainRelease(void) const { return class_uses_retain_release_; }
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;

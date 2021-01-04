@@ -30,6 +30,7 @@
 #include "eidos_class_Dictionary.h"
 #include "eidos_class_Image.h"
 #include "eidos_class_TestElement.h"
+#include "json.hpp"
 
 
 //
@@ -77,6 +78,12 @@ bool EidosObject::IsMemberOfClass(const EidosClass *p_class_object) const
 void EidosObject::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassName();
+}
+
+nlohmann::json EidosObject::JSONRepresentation(void) const
+{
+	// undefined, raises; subclass that know how to serialize themselves can override
+	EIDOS_TERMINATION << "ERROR (EidosObject::JSONRepresentation): objects, apart from Dictionary objects, cannot be converted to JSON." << EidosTerminate(nullptr);
 }
 
 EidosValue_SP EidosObject::GetProperty(EidosGlobalStringID p_property_id)
