@@ -3584,6 +3584,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 continue;
             
             comment = comment.trimmed();
+            comment = comment.replace("&", "&&");   // quote ampersands since Qt uses them as keyboard shortcut escapes
             
             int32_t comment_start = token.token_UTF16_start_;
             int32_t comment_end = token.token_UTF16_end_ + 1;
@@ -3676,6 +3677,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 // Remove trailing whitespace, replace tabs with spaces, etc.
                 decl = decl.simplified();
                 comment = comment.trimmed();
+                comment = comment.replace("&", "&&");   // quote ampersands since Qt uses them as keyboard shortcut escapes
                 
                 if (comment.length() > 0)
                     decl = decl + "  —  " + comment;
