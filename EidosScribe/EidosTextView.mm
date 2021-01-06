@@ -2031,7 +2031,7 @@
 			[completions addObject:candidate];
 	}
 #else
-	// This is part-based completion, where iTr will complete to initializeTreeSequence() and iGTy
+	// This is part-based completion, where iTr will complete to initializeTreeSeq() and iGTy
 	// will complete to initializeGenomicElementType().  To do this, we use a special comparator
 	// that returns a score for the quality of the match, and then we sort all matches by score.
 	std::vector<int64_t> scores;
