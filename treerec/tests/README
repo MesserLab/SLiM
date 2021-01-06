@@ -7,7 +7,7 @@ To add a new test:
         ```
         source("testing_utils.slim");
         ```
-        in `initialize()` (this calls `InitializeTreeSequence()` and defines functions);
+        in `initialize()` (this calls `initializeTreeSeq()` and defines functions);
         and then call
         ```
         outputMutationResult();
