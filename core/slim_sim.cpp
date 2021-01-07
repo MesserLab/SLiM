@@ -5099,7 +5099,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	for (; (ret == 1) && fully_coalesced; ret = tsk_tree_next(&t))
 	{
 #if 0
-		// If we didn't retain FIRST_GEN ancestors, or remember genomes, >1 root would mean not coalesced
+		// If we didn't retain first-generation lineages, or remember genomes, >1 root would mean not coalesced
 		if (t.right_sib[t.left_root] != TSK_NULL)
 		{
 			fully_coalesced = false;
@@ -6117,8 +6117,6 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	// The key is the pedigree ID, so we can look up remembered individuals quickly; the value
 	// is the index of that pedigree ID in the list of remembered individuals, so we can
 	// look up the metadata for the remembered individual and patch it with new information.
-	// Also making it so we don't use this map at all if we're adding first-gen individuals,
-	// since we know they are not already remembered.
 	// BCH 28 Jan. 2020: My previous optimization turns out to be quite slow in one case: when
 	// p_num_individuals == 1, because the user is adding just a single remembered individual
 	// to the list.  When this is done many times (as in my #116 test case!), the overhead of
