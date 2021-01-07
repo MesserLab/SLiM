@@ -10,6 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 	update to JSON for Modern C++ version 3.9.1
 	add metadata= parameter to outputTreeSeq(), to support user-generated metadata on the tree sequence
+	add an F-distribution drawing function, rf(), following R, by request
 
 
 version 3.5 (build 2663; Eidos version 2.5):

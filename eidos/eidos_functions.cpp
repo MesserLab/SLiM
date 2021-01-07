@@ -189,6 +189,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",			Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rdunif",			Eidos_ExecuteFunction_rdunif,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt_O("min", gStaticEidosValue_Integer0)->AddInt_O("max", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rf",				Eidos_ExecuteFunction_rf,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("d1")->AddNumeric("d2"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgeom",				Eidos_ExecuteFunction_rgeom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddFloat("p"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			Eidos_ExecuteFunction_rlnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("meanlog", gStaticEidosValue_Float0)->AddNumeric_O("sdlog", gStaticEidosValue_Float1));
@@ -5686,6 +5687,74 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 			double mu = arg_mu->FloatAtIndex(draw_index, nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_exponential(EIDOS_GSL_RNG, mu), draw_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(float)rf(integer$ n, numeric d1, numeric d2)
+EidosValue_SP Eidos_ExecuteFunction_rf(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	EidosValue *arg_d1 = p_arguments[1].get();
+	EidosValue *arg_d2 = p_arguments[2].get();
+	int arg_d1_count = arg_d1->Count();
+	int arg_d2_count = arg_d2->Count();
+	bool d1_singleton = (arg_d1_count == 1);
+	bool d2_singleton = (arg_d2_count == 1);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	if (!d1_singleton && (arg_d1_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d1 to be of length 1 or n." << EidosTerminate(nullptr);
+	if (!d2_singleton && (arg_d2_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d2 to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	double d1_0 = (arg_d1_count ? arg_d1->FloatAtIndex(0, nullptr) : 0.0);
+	double d2_0 = (arg_d2_count ? arg_d2->FloatAtIndex(0, nullptr) : 0.0);
+	
+	if (d1_singleton && d2_singleton)
+	{
+		if (d1_0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d1 > 0.0 (" << EidosStringForFloat(d1_0) << " supplied)." << EidosTerminate(nullptr);
+		if (d2_0 <= 0.0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d2 > 0.0 (" << EidosStringForFloat(d2_0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_draws == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_fdist(EIDOS_GSL_RNG, d1_0, d2_0)));
+		}
+		else
+		{
+			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
+			result_SP = EidosValue_SP(float_result);
+			
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+				float_result->set_float_no_check(gsl_ran_fdist(EIDOS_GSL_RNG, d1_0, d2_0), draw_index);
+		}
+	}
+	else
+	{
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+		{
+			double d1 = (d1_singleton ? d1_0 : arg_d1->FloatAtIndex(draw_index, nullptr));
+			double d2 = (d2_singleton ? d2_0 : arg_d2->FloatAtIndex(draw_index, nullptr));
+			
+			if (d1 <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d1 > 0.0 (" << EidosStringForFloat(d1) << " supplied)." << EidosTerminate(nullptr);
+			if (d2 <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d2 > 0.0 (" << EidosStringForFloat(d2) << " supplied)." << EidosTerminate(nullptr);
+			
+			float_result->set_float_no_check(gsl_ran_fdist(EIDOS_GSL_RNG, d1, d2), draw_index);
 		}
 	}
 	

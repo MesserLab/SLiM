@@ -595,6 +595,24 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess("dgamma(0.1, NAN, 1);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptRaise("dgamma(0.1, 1/100, NAN);", 0, "requires shape > 0.0");
 	
+	// rf()
+	EidosAssertScriptSuccess("rf(0, 10, 15);", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("rf(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
+	EidosAssertScriptSuccess("setSeed(0); abs(rf(1, 2, 3) - c(0.568968)) < 0.0001;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("setSeed(0); abs(rf(3, 2, 3) - c(0.568968, 0.533479, 0.316429)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(rf(3, 2, 4) - c(0.588202, 0.486162, 0.295787)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(rf(3, c(2,2,2), 4) - c(0.588202, 0.486162, 0.295787)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptSuccess("setSeed(0); abs(rf(3, 2, c(4,4,4)) - c(0.588202, 0.486162, 0.295787)) < 0.0001;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true}));
+	EidosAssertScriptRaise("rf(-1, 10, 15);", 0, "requires n to be");
+	EidosAssertScriptRaise("rf(2, 0, 15);", 0, "requires d1 > 0.0");
+	EidosAssertScriptRaise("rf(2, 10, 0);", 0, "requires d2 > 0.0");
+	EidosAssertScriptRaise("rf(2, c(10,0), 15);", 0, "requires d1 > 0.0");
+	EidosAssertScriptRaise("rf(2, 10, c(15,0));", 0, "requires d2 > 0.0");
+	EidosAssertScriptRaise("rf(2, c(0.1, 10, 1), 10.0);", 0, "requires d1 to be of length");
+	EidosAssertScriptRaise("rf(2, 10.0, c(0.1, 10, 1));", 0, "requires d2 to be of length");
+	EidosAssertScriptSuccess("rf(1, NAN, 15);", gStaticEidosValue_FloatNAN);
+	EidosAssertScriptSuccess("rf(1, 10, NAN);", gStaticEidosValue_FloatNAN);
+	
 	// rgamma()
 	EidosAssertScriptSuccess("rgamma(0, 0, 1000);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rgamma(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);

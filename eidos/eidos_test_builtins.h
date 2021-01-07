@@ -1126,6 +1126,12 @@ if (abs(m - 5) > 0.07) stop('Mismatch in expectation vs. realization of rexp() -
 // ***********************************************************************************************
 
 setSeed(asInteger(clock() * 100000));
+m = mean(rf(10000, 4, 6));	// expectation is 1.5
+if (abs(m - 1.5) > 0.15) stop('Mismatch in expectation vs. realization of rf() - could be random chance (but very unlikely), rerun test');
+
+// ***********************************************************************************************
+
+setSeed(asInteger(clock() * 100000));
 m = mean(rgamma(10000, 5, 0.3));	// expectation is 5
 if (abs(m - 5) > 0.4) stop('Mismatch in expectation vs. realization of rgamma() - could be random chance (but very unlikely), rerun test');
 
