@@ -5560,7 +5560,7 @@ This method may only be called if tree sequence recording has been turned on wit
 \f4\fs20  to obtain up-to-date information.  However, the speed penalty of doing this in every generation would be large, and most models do not need this level of precision; usually it is sufficient to know that the model has coalesced, without knowing whether that happened in the current generation or in a recent preceding generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No<Dictionary>$\'a0metadata\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No$\'a0metadata\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5587,9 +5587,33 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \f3\fs18 Dictionary
 \f4\fs20  object containing user-generated metadata may be supplied with the 
 \f3\fs18 metadata
-\f4\fs20  parameter.  If present, this dictionary will be serialized as JSON and attached to the saved tree sequence.  If 
+\f4\fs20  parameter.  If present, this dictionary will be serialized as JSON and attached to the saved tree sequence under a key named 
+\f3\fs18 user_metadata
+\f4\fs20 , within the 
+\f3\fs18 SLiM
+\f4\fs20  key.  If 
 \f3\fs18 pyslim
-\f4\fs20  is used to read the tree sequence in Python, this metadata will automatically be deserialized and made available.\
+\f4\fs20  is used to read the tree sequence in Python, this metadata will automatically be deserialized and made available at 
+\f3\fs18 ts.metadata["SLiM"]["user_metadata"]
+\f4\fs20 .  This metadata dictionary is not used by SLiM, or by 
+\f3\fs18 pyslim
+\f4\fs20 , 
+\f3\fs18 tskit
+\f4\fs20 , or 
+\f3\fs18 msprime
+\f4\fs20 ; you may use it for any purpose you wish.  Note that 
+\f3\fs18 metadata
+\f4\fs20  may actually be any subclass of 
+\f3\fs18 Dictionary
+\f4\fs20 , such as the 
+\f3\fs18 SLiMSim
+\f4\fs20  simulation object 
+\f3\fs18 sim
+\f4\fs20 , or a 
+\f3\fs18 LogFile
+\f4\fs20  instance.  However, only the keys and values contained by the object\'92s 
+\f3\fs18 Dictionary
+\f4\fs20  superclass state will be serialized into the metadata; properties of the subclass will be ignored.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
