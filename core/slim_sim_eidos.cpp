@@ -3539,12 +3539,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	- (void)treeSeqRememberIndividuals(object<Individual> individuals)
+//	*********************	- (void)treeSeqRememberIndividuals(object<Individual> individuals, [logical$ permanent = T])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue_Object *individuals_value = (EidosValue_Object *)p_arguments[0].get();
+    EidosValue_Object *permanent_value = (EidosValue_Object *)p_arguments[1].get();
 	int ind_count = individuals_value->Count();
 	
 	if (!recording_tree_)
@@ -3556,17 +3557,20 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
+	bool permanent = permanent_value->LogicalAtIndex(0, nullptr); 
+	uint32_t flag = permanent ? SLIM_TSK_INDIVIDUAL_REMEMBERED : SLIM_TSK_INDIVIDUAL_RETAINED;
+	
 	if (individuals_value->Count() == 1)
 	{
 		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
-		AddIndividualsToTable(&ind, 1, &tables_, SLIM_TSK_INDIVIDUAL_REMEMBERED);
+		AddIndividualsToTable(&ind, 1, &tables_, flag);
 	}
 	else
 	{
 		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
 		EidosObject * const *oe_buffer = ind_vector->data();
 		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-		AddIndividualsToTable(ind_buffer, ind_count, &tables_, SLIM_TSK_INDIVIDUAL_REMEMBERED);
+		AddIndividualsToTable(ind_buffer, ind_count, &tables_, flag);
 	}
 	
 	return gStaticEidosValueVOID;
@@ -3703,7 +3707,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", nullptr, gStaticEidosValueNULL)->AddLogical_OS("_binary", gStaticEidosValue_LogicalT));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

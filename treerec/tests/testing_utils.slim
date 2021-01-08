@@ -110,7 +110,35 @@ function (void)outputMutationTypes([s$ outputFile="test_output/slim_no_mutation_
             }
         }
     }
-    return;
+}
+
+function (void)addIndividuals(
+    [No<Individual> individuals=NULL],
+    [s$ store="remember"], 
+    [s$ outputFile="test_output/slim_individual_output.txt"]
+) {
+    /* * *
+     * For each individual in `individuals`, write out a line to the outputFile
+     * `store` is expected to be "remember", "retain", or "output" to indicate whether
+     * this individual should have been permanently remembered, simply retained, or
+     * is an individual written during (final) output of the whole population
+     * * */
+    for (i in individuals) {
+        writeFile(
+            outputFile,
+            "#Individual:" + store +
+            " " + paste(i.pedigreeID) +
+            " " + paste(i.subpopulation.id) +
+            " " + paste(i.x, i.y, i.z, sep=",") +
+            " " + paste(i.genome1.genomePedigreeID, i.genome2.genomePedigreeID, sep=","),
+            append=T);
+    }
+}
+
+function (void)outputIndividuals([s$ outputFile="test_output/slim_individual_output.txt"]) {
+    for (pop in sim.subpopulations) {
+        addIndividuals(pop.individuals, "output", outputFile);
+    }
 }
 
 initializeTreeSeq();

@@ -28,32 +28,6 @@ class TestWithMutations(TestSlimOutput):
                 slim[pos][genome].append(mut)
         return slim
 
-    def get_ts(self):
-        if False:
-            # read in from text
-            node_file = open("test_output/NodeTable.txt", "r")
-            edge_file = open("test_output/EdgeTable.txt", "r")
-            site_file = open("test_output/SiteTable.txt", "r")
-            mutation_file = open("test_output/MutationTable.txt", "r")
-            individual_file = open("test_output/IndividualTable.txt", "r")
-            population_file = open("test_output/PopulationTable.txt", "r")
-            text_ts = msprime.load_text(nodes=node_file, edges=edge_file, 
-                                   sites=site_file, mutations=mutation_file,
-                                   individuals=individual_file,
-                                   populations=population_file,
-                                   base64_metadata=False)
-
-            print("******* Text input.")
-            yield text_ts
-        # and binary
-        bin_ts = pyslim.load("test_output/test_output.trees")
-        print("******** Binary input.")
-        yield bin_ts
-        # and nonsimplified binary
-        print("******** Unsimplified binary.")
-        bin_nonsip_ts = pyslim.load("test_output/test_output.unsimplified.trees")
-        yield bin_nonsip_ts
-
     def test_ts_slim_consistency(self):
         # load tree sequence
         for ts in self.get_ts():

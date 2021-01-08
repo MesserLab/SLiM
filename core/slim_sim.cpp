@@ -6098,13 +6098,18 @@ void SLiMSim::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 
 void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, uint32_t p_flags)
 {
-    // We use currently use this function in two ways, depending on p_flags:
-    //  1. (SLIM_TSK_INDIVIDUAL_REMEMBERED) to retain individuals to be forever remembered, or
-    //  2. (SLIM_TSK_INDIVIDUAL_ALIVE) to retain the final generation in the tree sequence.
-    // So, in case (1) we set the REMEMBERED flag,
-    // and in case (2) we set the ALIVE flag.  Individuals who are permanently
-    // remembered but still alive when the tree sequence is written out will
-    // have this method called on them twice, first (1), then (2), so they get both flags set.
+	// We use currently use this function in two ways, depending on p_flags:
+	//  1. (SLIM_TSK_INDIVIDUAL_REMEMBERED) for individuals to be permanently
+	//      remembered, or
+	//  2. (SLIM_TSK_INDIVIDUAL_RETAINED) for individuals to be retained only while
+	//      some of their genome (i.e. any of their nodes) exists in the tree sequence, or
+	//  3. (SLIM_TSK_INDIVIDUAL_ALIVE) to output the final generation in the tree sequence.
+	// So, in case (1) we set the REMEMBERED flag, in case (2) we set the RETAINED flag,
+	// and in case (3) we set the ALIVE flag.
+	// Note that this function can be called multiple times for the same set of
+	// individuals. In the most extreme case, individuals who are remembered, then
+	// permanently remembered but still alive when the tree sequence is written out will
+	// have this method called on them three times, and they get all flags set.
 
 	// do this so that we can access the internal tables from outside, by passing in nullptr
 	if (p_tables == nullptr)
@@ -6588,7 +6593,9 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	j["metadata"]["individuals"]["flags"]["16"]["name"] = "SLIM_TSK_INDIVIDUAL_ALIVE";
 	j["metadata"]["individuals"]["flags"]["16"]["description"] = "the individual was alive at the time the file was written";
 	j["metadata"]["individuals"]["flags"]["17"]["name"] = "SLIM_TSK_INDIVIDUAL_REMEMBERED";
-	j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be remembered";
+	j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be permanently remembered";
+	j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_RETAINED";
+	j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was requested by the user to be retained only if its nodes continue to exist in the tree sequence";
 	
 	std::string provenance_str;
 	
@@ -8298,9 +8305,10 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	for (size_t mut_index = 0; mut_index < tables_.mutations.num_rows; ++mut_index)
 		tables_.mutations.time[mut_index] -= time_adjustment;
 	
-	// allocate and set up the tree_sequence object that contains all the tree sequences
+	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
-	// that are not presently alive, so we have to tread carefully; the individual table is the list of who is actually alive
+	// that are not presently alive, so we have to tread carefully; the actually alive individuals are flagged with 
+	// SLIM_TSK_INDIVIDUAL_ALIVE in the individuals table (there may also be remembered and retained individuals in there too)
 	tsk_treeseq_t *ts;
 	int ret = 0;
 	
@@ -8334,38 +8342,23 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_free()", ret);
 	free(ts);
 	
-	// Figure out how many remembered genomes we have; each remembered individual has two remembered genomes
-	// First-generation individuals are also "remembered" in the present design, and so must be included
-	size_t remembered_genome_count = 0;
-	
-	for (tsk_id_t j = 0; (size_t) j < tables_.individuals.num_rows; j++)
-	{
-		uint32_t flags = tables_.individuals.flags[j];
-		if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-			remembered_genome_count += 2;
-	}
-	
-	// Set up the remembered genomes, which are (we assume) the first remembered_genome_count node table entries
-	// We could instead simply loop over the nodes and see if the individual they point to is remembered, which would
-	// not require that remembered genomes be the first rows in the node table, if we ever want to relax that assumption.
+	// Set up the remembered genomes by looking though the list of nodes and their individuals
 	if (remembered_genomes_.size() != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): (internal error) remembered_genomes_ is not empty." << EidosTerminate();
 	
-	// BCH 4/27/2019: remembered_genomes_ are always the first remembered_genome_count entries in the node table...
-	for (size_t i = 0; i < remembered_genome_count; ++i)
-		remembered_genomes_.push_back((tsk_id_t)i);
-	
-	// ...but we should check that they are all in the individuals table, and either Remembered or FirstGen...
-	for (size_t i = 0; i < remembered_genome_count; ++i)
+	for (tsk_id_t j = 0; (size_t) j < tables_.nodes.num_rows; j++)
 	{
-		assert((tsk_size_t)i < tables_.nodes.num_rows);
-		tsk_id_t ind = tables_.nodes.individual[i];
-		assert((ind >= 0) && ((tsk_size_t)ind < tables_.individuals.num_rows));
-		tsk_flags_t __attribute__((__unused__)) ind_flags = tables_.individuals.flags[ind];
-		assert(ind_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED);
+		tsk_id_t ind = tables_.nodes.individual[j];
+		if (ind >=0)
+		{
+		    uint32_t flags = tables_.individuals.flags[ind];
+			if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
+			    remembered_genomes_.push_back(j);
+		}
 	}
-	
-	// ... and then we should sort them to match the order of the individual table, so that they satisfy
+	assert(remembered_genomes_.size() % 2 == 0);
+
+	// Sort them to match the order of the individual table, so that they satisfy
 	// the invariants asserted in SLiMSim::AddIndividualsToTable(); see the comments there
 	std::sort(remembered_genomes_.begin(), remembered_genomes_.end(), [this](tsk_id_t l, tsk_id_t r) {
 		tsk_id_t l_ind = tables_.nodes.individual[l];
@@ -8378,12 +8371,12 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	// Clear ALIVE flags
 	FixAliveIndividuals(&tables_);
 	
-	// Remove individuals that are not remembered
+	// Remove individuals that are not remembered or retained
     std::vector<tsk_id_t> individual_map;
     for (tsk_id_t j = 0; (size_t) j < tables_.individuals.num_rows; j++)
     {
         uint32_t flags = tables_.individuals.flags[j];
-        if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
+        if (flags & (SLIM_TSK_INDIVIDUAL_REMEMBERED | SLIM_TSK_INDIVIDUAL_RETAINED))
             individual_map.push_back(j);
     }
     ReorderIndividualTable(&tables_, individual_map, false);
