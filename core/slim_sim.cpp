@@ -6110,71 +6110,56 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	if (p_tables == nullptr)
 		p_tables = &tables_;
 	
-	// construct the map of currently remembered individuals first; these are not really just those
-	// that are "remembered", but all individuals that are currently in the tables
+	// first, construct the map of individuals currently in the individuals table; this
+	// is remembered individuals as well as others in the table for other reasons
 	// BCH 16 Nov. 2019: Making this into an unordered_map for faster lookup; this can end up
 	// being accessed for a large number of individuals, making for an O(N*M) bottleneck.
-	// The key is the pedigree ID, so we can look up remembered individuals quickly; the value
-	// is the index of that pedigree ID in the list of remembered individuals, so we can
-	// look up the metadata for the remembered individual and patch it with new information.
+	// The key is the pedigree ID, so we can look up tabled individuals quickly; the value
+	// is the index of that pedigree ID in the list of tabled individuals, so we can
+	// look up the metadata for the tabled individual and patch it with new information.
 	// BCH 28 Jan. 2020: My previous optimization turns out to be quite slow in one case: when
 	// p_num_individuals == 1, because the user is adding just a single remembered individual
 	// to the list.  When this is done many times (as in my #116 test case!), the overhead of
 	// building a whole std::unordered_map for a single lookup proves to be a big problem --
-	// a large percentage of total runtime, which it used to be negligible.  This seems like
+	// a large percentage of total runtime, when it used to be negligible.  This seems like
 	// a case that might well arise in real-world use, so I'm optimizing it by re-introducing
 	// the old std::vector code, used only when p_num_individuals < 5 (a wild guess at a
 	// heuristic).  This makes the code a bit messy, but it's simple really: we just use one
 	// of two data structures, std::vector or std::unordered_map, to do our lookups based on
 	// how many lookups we anticipate doing.
 	bool using_std_vector = (p_num_individuals < 5);
-    std::vector<slim_pedigreeid_t> remembered_individuals;												// used when using_std_vector==true
+    std::vector<slim_pedigreeid_t> tabled_individuals;												// used when using_std_vector==true
 #if EIDOS_ROBIN_HOOD_HASHING
-	robin_hood::unordered_flat_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;	// used when using_std_vector==false
+	robin_hood::unordered_flat_map<slim_pedigreeid_t, slim_popsize_t> tabled_individuals_lookup;	// used when using_std_vector==false
 	typedef robin_hood::pair<slim_pedigreeid_t, slim_popsize_t> MAP_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
-	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> remembered_individuals_lookup;				// used when using_std_vector==false
+	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> tabled_individuals_lookup;				// used when using_std_vector==false
 	typedef std::pair<slim_pedigreeid_t, slim_popsize_t> MAP_PAIR;
 #endif
 	
+	// BCH 8 Jan. 2021: We used to add individuals to the individuals map by looping over
+	// remembered_genomes_.  That was complicated; finding the individuals for the genomes,
+	// making sure to add them only once even though there are two genomes per individual,
+	// etc.  @hyanwong pointed out that we can simply loop over the individuals table instead,
+	// since our goal is simply to add all of those individuals anyway.  This also removes
+	// a brittle reliance on remembered_genomes_ being in the same order as the individuals
+	// table.
 	if (using_std_vector)
 	{
-		slim_pedigreeid_t last_added_id = -1;
-		
-		for (tsk_id_t nid : remembered_genomes_) 
+		for (tsk_size_t individual_index = 0; individual_index < p_tables->individuals.num_rows; individual_index++)
 		{
-			tsk_id_t tsk_individual = p_tables->nodes.individual[nid];
-			assert((tsk_individual >= 0) && ((tsk_size_t)tsk_individual < p_tables->individuals.num_rows));
+			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
 			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
-			slim_pedigreeid_t metadata_id = metadata_rec->pedigree_id_;
-			
-			// remembered_genomes_ has two entries per individual; we want to work with individuals, so we filter
-			if (metadata_id != last_added_id)
-			{
-				remembered_individuals.push_back(metadata_rec->pedigree_id_);
-				last_added_id = metadata_id;
-			}
+			tabled_individuals.push_back(metadata_rec->pedigree_id_);
 		}
 	}
 	else
 	{
-		slim_pedigreeid_t last_added_id = -1;
-		slim_popsize_t added_count = 0;
-		
-		for (tsk_id_t nid : remembered_genomes_) 
+		for (tsk_size_t individual_index = 0; individual_index < p_tables->individuals.num_rows; individual_index++)
 		{
-			tsk_id_t tsk_individual = p_tables->nodes.individual[nid];
-			assert((tsk_individual >= 0) && ((tsk_size_t)tsk_individual < p_tables->individuals.num_rows));
+			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
 			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
-			slim_pedigreeid_t metadata_id = metadata_rec->pedigree_id_;
-			
-			// remembered_genomes_ has two entries per individual; we want to work with individuals, so we filter
-			if (metadata_id != last_added_id)
-			{
-				remembered_individuals_lookup.emplace(MAP_PAIR(metadata_id, added_count));
-				last_added_id = metadata_id;
-				added_count++;
-			}
+			tabled_individuals_lookup.emplace(MAP_PAIR(metadata_rec->pedigree_id_, tsk_individual));
 		}
 	}
 	
@@ -6198,19 +6183,19 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
         if (using_std_vector)
         {
             // this case has a slow lookup (linear search), but the vector is fast to build
-            auto ind_pos = std::find(remembered_individuals.begin(), remembered_individuals.end(), ped_id);
+            auto ind_pos = std::find(tabled_individuals.begin(), tabled_individuals.end(), ped_id);
             
-            if (ind_pos == remembered_individuals.end())
+            if (ind_pos == tabled_individuals.end())
                 tsk_individual = TSK_NULL;	// not in the table already
             else
-                tsk_individual = (tsk_id_t)std::distance(remembered_individuals.begin(), ind_pos);
+                tsk_individual = (tsk_id_t)std::distance(tabled_individuals.begin(), ind_pos);
         }
         else
         {
             // this case has a fast search (hash table), but the unordered_map is slow to build
-            auto ind_pos = remembered_individuals_lookup.find(ped_id);
+            auto ind_pos = tabled_individuals_lookup.find(ped_id);
             
-            if (ind_pos == remembered_individuals_lookup.end())
+            if (ind_pos == tabled_individuals_lookup.end())
                 tsk_individual = TSK_NULL;	// not in the table already
             else
                 tsk_individual = ind_pos->second;
