@@ -6159,7 +6159,8 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		{
 			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
 			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
-			tabled_individuals_lookup.emplace(MAP_PAIR(metadata_rec->pedigree_id_, tsk_individual));
+			slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;	// need a temp to avoid compile error due to reference to packed struct field
+			tabled_individuals_lookup.emplace(MAP_PAIR(pedigree_id, tsk_individual));
 		}
 	}
 	
