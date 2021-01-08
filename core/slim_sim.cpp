@@ -6383,7 +6383,7 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	{
 		nlohmann::json user_metadata = p_metadata_dict->JSONRepresentation();
 		
-		metadata["SLIM"]["user_metadata"] = user_metadata;
+		metadata["SLiM"]["user_metadata"] = user_metadata;
 		
 		//std::cout << "JSON metadata: " << std::endl << user_metadata.dump(4) << std::endl;
 	}
