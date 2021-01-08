@@ -283,9 +283,11 @@ int RunEidosTests(void)
 	_RunFunctionMathTests_setDifferenceSymmetricDifference();
 	_RunFunctionMathTests_s_through_z();
 	_RunFunctionMatrixArrayTests();
-	_RunFunctionStatisticsTests();
+	_RunFunctionStatisticsTests_a_through_p();
+	_RunFunctionStatisticsTests_q_through_z();
 	_RunFunctionDistributionTests();
-	_RunFunctionVectorConstructionTests();
+	_RunFunctionVectorConstructionTests_a_through_r();
+	_RunFunctionVectorConstructionTests_s_through_z();
 	_RunFunctionValueInspectionManipulationTests_a_through_f();
 	_RunFunctionValueInspectionManipulationTests_g_through_l();
 	_RunFunctionValueInspectionManipulationTests_m_through_r();

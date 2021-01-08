@@ -26,7 +26,7 @@
 
 
 #pragma mark vector construction
-void _RunFunctionVectorConstructionTests(void)
+void _RunFunctionVectorConstructionTests_a_through_r(void)
 {
 	// c()
 	EidosAssertScriptSuccess("c();", gStaticEidosValueNULL);
@@ -197,7 +197,10 @@ void _RunFunctionVectorConstructionTests(void)
 	EidosAssertScriptSuccess("repEach(object(), 5);", gStaticEidosValue_Object_ZeroVec);
 	EidosAssertScriptRaise("repEach(object(), c(5, 3));", 0, "requires that parameter");
 	EidosAssertScriptSuccess("repEach(object(), integer(0));", gStaticEidosValue_Object_ZeroVec);
-	
+}
+
+void _RunFunctionVectorConstructionTests_s_through_z(void)
+{
 	// sample() – since this function treats parameter x type-agnostically, we'll test integers only (and NULL a little bit)
 	EidosAssertScriptSuccess("sample(NULL, 0, T);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("sample(NULL, 0, F);", gStaticEidosValueNULL);

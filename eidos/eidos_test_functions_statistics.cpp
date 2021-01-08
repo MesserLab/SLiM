@@ -24,7 +24,7 @@
 
 
 #pragma mark statistics
-void _RunFunctionStatisticsTests(void)
+void _RunFunctionStatisticsTests_a_through_p(void)
 {
 	// cor()
 	EidosAssertScriptRaise("cor(T, T);", 0, "cannot be type");
@@ -291,7 +291,10 @@ void _RunFunctionStatisticsTests(void)
 	EidosAssertScriptSuccess("identical(pmin(matrix(5:1, nrow=1), matrix(1:5, nrow=1)), matrix(c(1,2,3,2,1), nrow=1));", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("identical(pmin(matrix(1:5), array(3:7, c(1,5,1))), array(c(3,4,5,5,5), c(1,5,1)));", 10, "same vector/matrix/array dimensions");
 	EidosAssertScriptSuccess("identical(pmin(array(5:1, c(1,5,1)), array(1:5, c(1,5,1))), array(c(1,2,3,2,1), c(1,5,1)));", gStaticEidosValue_LogicalT);
-	
+}
+
+void _RunFunctionStatisticsTests_q_through_z(void)
+{
 	// quantile()
 	EidosAssertScriptRaise("quantile(integer(0));", 0, "x to have length greater than 0");
 	EidosAssertScriptRaise("quantile(float(0));", 0, "x to have length greater than 0");
