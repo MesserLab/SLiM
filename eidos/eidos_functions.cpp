@@ -97,7 +97,7 @@ std::string EidosStringFormat(const std::string& format, Args ... args)
 // formatting of the code looks nice in Xcode; they are used only by EidosInterpreter::BuiltInFunctions().
 const char *gEidosSourceCode_source =
 R"({
-	_executeLambda_OUTER(paste(readFile(filePath), '\n'));
+	_executeLambda_OUTER(paste(readFile(filePath), sep='\n'));
 	return;
 })";
 
