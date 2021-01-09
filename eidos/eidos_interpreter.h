@@ -128,57 +128,93 @@ public:
 	// These process the arguments for a call node (either a function call or a method call), ignoring the first child
 	// node since that is the call name node, not an argument node.  Named arguments and default arguments are handled
 	// here, and a final argument list is placed into the argument_cache_'s argument_buffer_, in the node, for use.
-	// Note that recursion in Eidos code will end up re-using the same argument buffer for all of the levels of
-	// recursion; this might seem dangerous, but is in fact safe, since by the time _ProcessArgumentList() gets called
-	// for a recursive call all of the arguments to the higher-level call will have been placed into a symbol name,
-	// and the argument buffer will no longer be used or needed by the higher-level call for any purpose at all,
-	// including keeping a retain on the values – the symbol table will do that.  However, this design will need to be
-	// revisited if we ever parallelize execution of Eidos code itself, to use separate argument buffers per thread.
+	// Note that recursion in Eidos code requires the use of separately allocated argument buffers for the recursive
+	// calls; slow, but presumably an edge case for typical code.  If Eidos interpretation is ever made multithreaded,
+	// the argument_buffer_in_use_ flag will need to be governed by a lock.
 	void _CreateArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature);
 	
-	void _ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
+	std::vector<EidosValue_SP> *_ProcessArgumentList(const EidosASTNode *p_node, const EidosCallSignature *p_call_signature)
 	{
-			EidosASTNode_ArgumentCache *argument_cache_ = p_node->argument_cache_;	// the argument cache lives on the call node itself, conventionally
+		EidosASTNode_ArgumentCache *argument_cache = p_node->argument_cache_;	// the argument cache lives on the call node itself, conventionally
+		std::vector<EidosValue_SP> *argument_buffer = nullptr;
+		
+		// Allocate and configure an argument cache struct if we don't already have one
+		if (!argument_cache)
+		{
+			// We don't already have an argument cache, so create one and use it
+			_CreateArgumentList(p_node, p_call_signature);
+			argument_cache = p_node->argument_cache_;
+			argument_buffer = &argument_cache->argument_buffer_;
+			argument_cache->argument_buffer_in_use_ = true;
+		}
+		else if (argument_cache->argument_buffer_in_use_)
+		{
+			// We have an argument cache, but its argument buffer is already in use, so make a new temporary one
+			argument_buffer = new std::vector<EidosValue_SP>;
+			argument_buffer->resize(argument_cache->argument_buffer_.size());	// fill with nullptr up to the required size
 			
-			// Allocate and configure an argument cache struct if we don't already have one
-			if (!argument_cache_)
-			{
-				_CreateArgumentList(p_node, p_call_signature);
-				argument_cache_ = p_node->argument_cache_;
-			}
+			// Copy the non-filled (default/constant) arguments into the temporary argument buffer
+			for (uint8_t no_fill_index : argument_cache->no_fill_index_)
+				(*argument_buffer)[no_fill_index] = argument_cache->argument_buffer_[no_fill_index];
+		}
+		else
+		{
+			// We have an argument cache, and its argument buffer is not already in use, so use it now
+			argument_buffer = &argument_cache->argument_buffer_;
+			argument_cache->argument_buffer_in_use_ = true;
+		}
+		
+		std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
+		
+		// Now our argument cache is all ready to use; we just need to fill and type-check arguments
+		for (const EidosASTNode_ArgumentFill &fill : fill_info)
+		{
+			// Get the argument value by evaluating the AST node responsible for providing it
+			EidosValue_SP arg_value = FastEvaluateNode(fill.fill_node_);
 			
-			std::vector<EidosValue_SP> &arg_buffer = argument_cache_->argument_buffer_;
-			std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache_->fill_info_;
+			// Type-check the value; note that default/constant arguments are type-checked during signature construction
+			p_call_signature->CheckArgument(arg_value.get(), fill.signature_index_);
 			
-			// Now our argument cache is all ready to use; we just need to fill and type-check arguments
-			for (const EidosASTNode_ArgumentFill &fill : fill_info)
-			{
-				// Get the argument value by evaluating the AST node responsible for providing it
-				EidosValue_SP arg_value = FastEvaluateNode(fill.fill_node_);
-				
-				// Type-check the value; note that default/constant arguments are type-checked during signature construction
-				p_call_signature->CheckArgument(arg_value.get(), fill.signature_index_);
-				
-				// Move the argument value into the argument buffer
-				arg_buffer[fill.fill_index_] = std::move(arg_value);
-			}
-			
-			// call CheckArguments() to double-check for errors when in DEBUG; this can be removed eventually, it's just for the transition to the new argument buffers
-		#if DEBUG
-			p_call_signature->CheckArguments(arg_buffer);
-		#endif
+			// Move the argument value into the argument buffer
+			(*argument_buffer)[fill.fill_index_] = std::move(arg_value);
+		}
+		
+		// call CheckArguments() to double-check for errors when in DEBUG; this can be removed eventually, it's just for the transition to the new argument buffers
+#if DEBUG
+		p_call_signature->CheckArguments(*argument_buffer);
+#endif
+		
+		return argument_buffer;
 	}
 	
-	inline void _DeprocessArgumentList(const EidosASTNode *p_node)
+	inline void _DeprocessArgumentList(const EidosASTNode *p_node, std::vector<EidosValue_SP> *p_argument_buffer)
 	{
-		EidosASTNode_ArgumentCache *argument_cache_ = p_node->argument_cache_;
-		std::vector<EidosValue_SP> &arg_buffer = argument_cache_->argument_buffer_;
-		std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache_->fill_info_;
+		EidosASTNode_ArgumentCache *argument_cache = p_node->argument_cache_;
 		
-		// Loop through the fill indices and reset the shared pointers so the EidosValues get released in a timely fashion
-		// Note that we leave the non-fill indices alone; they are default values and constants that will get reused next time
-		for (const EidosASTNode_ArgumentFill &fill : fill_info)
-			arg_buffer[fill.fill_index_].reset();
+#if DEBUG
+		if (!argument_cache)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_DeprocessArgumentList): (internal) missing argument cache." << EidosTerminate(nullptr);
+#endif
+		
+		if (p_argument_buffer == &argument_cache->argument_buffer_)
+		{
+			// We're deprocessing the argument list inside the argument cache, so we just want to nil out the filled entries
+			std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
+			
+			// Loop through the fill indices and reset the shared pointers so the EidosValues get released in a timely fashion
+			// Note that we leave the non-fill indices alone; they are default values and constants that will get reused next time
+			for (const EidosASTNode_ArgumentFill &fill : fill_info)
+				(*p_argument_buffer)[fill.fill_index_].reset();
+			
+			// The argument cache's argument buffer is no longer in use
+			argument_cache->argument_buffer_in_use_ = false;
+		}
+		else
+		{
+			// We're deprocessing a heap-allocated argument buffer created due to recursion; free everything
+			// The argument cache's argument buffer remains in use, by the root call of the recursion
+			delete p_argument_buffer;
+		}
 	}
 	
 	EidosValue_SP DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments);

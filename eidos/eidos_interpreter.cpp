@@ -1051,6 +1051,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 	
 	std::vector<EidosValue_SP> &arg_buffer = argument_cache->argument_buffer_;
 	std::vector<EidosASTNode_ArgumentFill> &fill_info = argument_cache->fill_info_;
+	std::vector<uint8_t> &no_fill_index = argument_cache->no_fill_index_;
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
 	// Run through the argument nodes, reserve space for them in the arguments buffer, and evaluate default/constant values once for all calls
@@ -1086,6 +1087,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 				{
 					// if a cached literal value is available for the node, we don't need to evaluate it at runtime, we can use the cached value forever
 					p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
+					no_fill_index.push_back((uint8_t)arg_buffer.size());
 					arg_buffer.push_back(child->cached_literal_value_);
 				}
 				else
@@ -1155,6 +1157,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
 #endif
 						
+						no_fill_index.push_back((uint8_t)arg_buffer.size());
 						arg_buffer.emplace_back(default_value);
 					}
 					
@@ -1181,6 +1184,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 			{
 				// if a cached literal value is available for the node, we don't need to evaluate it at runtime, we can use the cached value forever
 				p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
+				no_fill_index.push_back((uint8_t)arg_buffer.size());
 				arg_buffer.push_back(child->cached_literal_value_);
 			}
 			else
@@ -1249,6 +1253,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
 #endif
 			
+			no_fill_index.push_back((uint8_t)arg_buffer.size());
 			arg_buffer.emplace_back(default_value);
 		}
 		
@@ -1353,27 +1358,27 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
-		_ProcessArgumentList(p_node, function_signature);
+		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, function_signature);
 		
 		if (function_signature->internal_function_)
 		{
-			result_SP = function_signature->internal_function_(p_node->argument_cache_->argument_buffer_, *this);
+			result_SP = function_signature->internal_function_(*argument_buffer, *this);
 		}
 		else if (function_signature->body_script_)
 		{
-			result_SP = DispatchUserDefinedFunction(*function_signature, p_node->argument_cache_->argument_buffer_);
+			result_SP = DispatchUserDefinedFunction(*function_signature, *argument_buffer);
 		}
 		else if (!function_signature->delegate_name_.empty())
 		{
 			if (eidos_context_)
-				result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, p_node->argument_cache_->argument_buffer_, *this);
+				result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, *argument_buffer, *this);
 			else
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
 		}
 		else
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
 		
-		_DeprocessArgumentList(p_node);
+		_DeprocessArgumentList(p_node, argument_buffer);
 		
 		// If the code above supplied no return value, raise when in debug.  Not in debug, we crash.
 #if DEBUG
@@ -1429,23 +1434,23 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		EidosErrorPosition error_pos_save = PushErrorPositionFromToken(call_identifier_token);
 		
 		// Argument processing
-		_ProcessArgumentList(p_node, method_signature);
+		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, method_signature);
 		
 		// If the method is a class method, dispatch it to the class object
 		if (method_signature->is_class_method)
 		{
 			// Note that starting in Eidos 1.1 we pass method_object to ExecuteClassMethod(), to allow class methods to
 			// act as non-multicasting methods that operate on the whole target vector.  BCH 11 June 2016
-			result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), p_node->argument_cache_->argument_buffer_, *this);
+			result_SP = method_object->Class()->ExecuteClassMethod(method_id, method_object.get(), *argument_buffer, *this);
 			
 			method_signature->CheckReturn(*result_SP);
 		}
 		else
 		{
-			result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, p_node->argument_cache_->argument_buffer_, *this);
+			result_SP = method_object->ExecuteMethodCall(method_id, (EidosInstanceMethodSignature *)method_signature, *argument_buffer, *this);
 		}
 		
-		_DeprocessArgumentList(p_node);
+		_DeprocessArgumentList(p_node, argument_buffer);
 		
 		// Forget the function token, since it is not responsible for any future errors
 		RestoreErrorPosition(error_pos_save);

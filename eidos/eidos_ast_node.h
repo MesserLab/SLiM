@@ -59,6 +59,8 @@ struct EidosASTNode_ArgumentCache
 {
 	std::vector<EidosValue_SP> argument_buffer_;						// a buffer big enough to hold all arguments, pre-filled with all default/constant argument values
 	std::vector<EidosASTNode_ArgumentFill> fill_info_;					// a buffer of information about arguments in argument_buffer_ needing to be filled at dispatch time
+	std::vector<uint8_t> no_fill_index_;								// a buffer of indexes for arguments in argument_buffer_ that are default/constant and not filled
+	bool argument_buffer_in_use_;										// prevents argument_buffer_ from being overwritten by recursion
 };
 
 // A class representing a node in a parse tree for a script
