@@ -33,14 +33,14 @@ do
     if [ -e "test_output/slim_no_mutation_output.txt" ]
     then
         echo "  Testing no-mutation output."
-        python3 -m nose test_no_mutation_output.py || exit 1
+        python3 -m pytest test_no_mutation_output.py || exit 1
         TESTED="yes"
     fi
 
     if [ -e "test_output/slim_mutation_output.txt" ]
     then
         echo "  Testing with-mutation output."
-        python3 -m nose test_mutation_output.py || exit 1
+        python3 -m pytest test_mutation_output.py || exit 1
         TESTED="yes"
     fi
 

@@ -12,13 +12,13 @@ class TestWithMutations(TestSlimOutput):
         slim = {}
         for header in slim_file:
             headstring = header.split()
-            self.assertEqual(headstring[0], "#Genome:")
+            assert headstring[0] == "#Genome:"
             genome = int(headstring[1])
             mutations = slim_file.readline().split()
-            self.assertEqual(mutations[0], "Mutations:")
+            assert mutations[0] == "Mutations:"
             mutations = [int(u) for u in mutations[1:]]
             positions = slim_file.readline().split()
-            self.assertEqual(positions[0], "Positions:")
+            assert positions[0] == "Positions:"
             positions = [int(u) for u in positions[1:]]
             for pos, mut in zip(positions, mutations):
                 if pos not in slim:
@@ -67,11 +67,11 @@ class TestWithMutations(TestSlimOutput):
             #  indexed by position, then SLiM ID
             slim = self.read_test_mutation_output(filename="test_output/slim_mutation_output.txt")
             pos = -1
-            for var in ts.variants(impute_missing_data=True):
+            for var in ts.variants(isolated_as_missing=False):
                 pos += 1
                 while pos < int(var.position):
                     # invariant sites: no genotypes
-                    self.assertTrue(pos not in slim)
+                    assert pos not in slim
                     pos += 1
                 print("-----------------")
                 print("pos:", pos)
@@ -85,8 +85,8 @@ class TestWithMutations(TestSlimOutput):
                         print("msp:", msp_genotypes)
                         if (pos not in slim) or (j not in slim[pos]):
                             # no mutations at this site
-                            self.assertEqual(msp_genotypes, [''])
+                            assert msp_genotypes == ['']
                         else:
                             print("slim:", slim[pos][j])
-                            self.assertEqual(set(msp_genotypes), set([str(x) for x in slim[pos][j]]))
+                            assert set(msp_genotypes) == set([str(x) for x in slim[pos][j]])
 
