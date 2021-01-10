@@ -1,6 +1,7 @@
 initialize() {
 
     initializeSLiMModelType("nonWF");
+    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
 
     // TREE SEQUENCE TEST OUTPUT
     source("marked_mutations_setup.slim");

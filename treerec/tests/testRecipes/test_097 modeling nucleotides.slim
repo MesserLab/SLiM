@@ -1,6 +1,7 @@
 // modeling nucleotides.slim : ^Weighted selection coefficient total: (.*)$
 
 initialize() {
+    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
     source("testing_utils.slim");
 	defineConstant("C", 100);      // number of loci
 	
