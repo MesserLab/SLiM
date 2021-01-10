@@ -10,14 +10,14 @@ class TestNoMutations(TestSlimOutput):
             slim_file = open(filename, "r")
             slim = []
             for header in slim_file:
-                self.assertEqual(header[0:12], "MutationType")
+                assert header[0:12] == "MutationType"
                 mut, pos = header[12:].split()
                 pos = int(pos)
                 if pos == len(slim):
                     slim.append({})
                 slim_ids = [int(u) for u in slim_file.readline().split()]
                 for u in slim_ids:
-                    self.assertTrue(u in ids)
+                    assert u in ids
                 slim[pos][mut] = [ids[u] for u in slim_ids]
             return slim
 
@@ -50,13 +50,13 @@ class TestNoMutations(TestSlimOutput):
             if len(y[a]) > 0:
                 a_labels = []
                 for u in y[a]:
-                    self.assertTrue(u in x)
-                    self.assertTrue(u not in all_ids)
+                    assert u in x
+                    assert u not in all_ids
                     all_ids.append(u)
                     a_labels.append(x[u])
                 print('IDs sharing mutation', a, ":", y[a])
                 print('labels of roots in from tree:', a_labels)
-                self.assertEqual(len(set(a_labels)), 1)
+                assert len(set(a_labels)) == 1
 
     def test_ts_slim_consistency(self):
         # load tree sequence
