@@ -14,4 +14,4 @@ initialize() {
 		newSize = 2000;
 	p1.setSubpopulationSize(asInteger(newSize));
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

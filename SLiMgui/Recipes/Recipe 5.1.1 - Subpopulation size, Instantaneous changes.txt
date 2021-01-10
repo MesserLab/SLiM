@@ -10,4 +10,4 @@ initialize() {
 1 { sim.addSubpop("p1", 1000); }
 1000 { p1.setSubpopulationSize(100); }
 2000 { p1.setSubpopulationSize(1000); }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

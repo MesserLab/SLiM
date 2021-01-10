@@ -22,4 +22,4 @@ initialize() {
 	p2.setMigrationRates(p3, 0.01 * p3Progress);
 }
 2000 { p2.setSubpopulationSize(0); }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

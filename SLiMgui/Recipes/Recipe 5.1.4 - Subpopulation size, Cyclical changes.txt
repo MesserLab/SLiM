@@ -12,4 +12,4 @@ initialize() {
 	newSize = cos((sim.generation - 1) / 100) * 500 + 1000;
 	p1.setSubpopulationSize(asInteger(newSize));
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

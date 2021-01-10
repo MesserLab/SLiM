@@ -15,4 +15,4 @@ initialize() {
 	newSize = asInteger(100 * meanFitness);
 	p1.setSubpopulationSize(newSize);
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

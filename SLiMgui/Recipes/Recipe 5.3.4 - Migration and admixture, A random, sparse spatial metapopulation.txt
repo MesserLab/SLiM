@@ -41,4 +41,4 @@ initialize() {
 	target_subpop = sample(sim.subpopulations, 1);
 	sample(target_subpop.genomes, 10).addNewDrawnMutation(m2, 20000);
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }
