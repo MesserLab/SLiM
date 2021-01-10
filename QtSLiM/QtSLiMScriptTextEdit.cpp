@@ -93,7 +93,7 @@ void QtSLiMTextEdit::selfInit(void)
     // Get notified of modifier key changes, so we can change our cursor
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::modifiersChanged, this, &QtSLiMTextEdit::modifiersChanged);
     
-    // set up the script and output textedits
+    // set up tab stops based on the display font
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
     double tabWidth = 0;
     QFont scriptFont = prefs.displayFontPref(&tabWidth);
@@ -104,6 +104,9 @@ void QtSLiMTextEdit::selfInit(void)
 #else
     setTabStopDistance(tabWidth);               // added in 5.10
 #endif
+    
+    // refuse rich-text pastes
+    setAcceptRichText(false);
 }
 
 QtSLiMTextEdit::~QtSLiMTextEdit()
