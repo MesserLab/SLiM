@@ -67,7 +67,7 @@ class TestWithMutations(TestSlimOutput):
             #  indexed by position, then SLiM ID
             slim = self.read_test_mutation_output(filename="test_output/slim_mutation_output.txt")
             pos = -1
-            for var in ts.variants(impute_missing_data=True):
+            for var in ts.variants(isolated_as_missing=False):
                 pos += 1
                 while pos < int(var.position):
                     # invariant sites: no genotypes
