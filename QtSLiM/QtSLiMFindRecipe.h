@@ -42,8 +42,7 @@ public:
     explicit QtSLiMFindRecipe(QWidget *p_parent = nullptr);
     virtual ~QtSLiMFindRecipe() override;
     
-    QString selectedRecipeFilename(void);
-    QString selectedRecipeScript(void);
+    QStringList selectedRecipeFilenames(void);
     
 protected:
     void loadRecipes(void);

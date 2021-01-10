@@ -74,20 +74,19 @@ QtSLiMFindRecipe::~QtSLiMFindRecipe()
     delete ui;
 }
 
-QString QtSLiMFindRecipe::selectedRecipeFilename(void)
+QStringList QtSLiMFindRecipe::selectedRecipeFilenames(void)
 {
-    const QList<QListWidgetItem *> &selectedItems = ui->matchListWidget->selectedItems();
+    QList<QListWidgetItem *> selectedItems = ui->matchListWidget->selectedItems();
+    QStringList selectedFilenames;
     
-    if (selectedItems.size() == 1)
-        return selectedItems[0]->text();
+    for (QListWidgetItem *selectedItem : selectedItems)
+    {
+        int selectedRow = ui->matchListWidget->row(selectedItem);
+        
+        selectedFilenames.append(matchRecipeFilenames[selectedRow]);
+    }
     
-    // We should always have a selection when this is called, actually
-    return QString("");
-}
-
-QString QtSLiMFindRecipe::selectedRecipeScript(void)
-{
-    return ui->scriptPreviewTextEdit->toPlainText();
+    return selectedFilenames;
 }
 
 void QtSLiMFindRecipe::loadRecipes(void)
@@ -193,9 +192,13 @@ void QtSLiMFindRecipe::validateOK(void)
 
 void QtSLiMFindRecipe::updatePreview(void)
 {
-	if (ui->matchListWidget->selectedItems().size() == 0)
+    if (ui->matchListWidget->selectedItems().size() == 0)
 	{
         ui->scriptPreviewTextEdit->clear();
+	}
+    else if (ui->matchListWidget->selectedItems().size() > 1)
+	{
+        ui->scriptPreviewTextEdit->setPlainText("// Multiple recipes selected");
 	}
 	else
 	{

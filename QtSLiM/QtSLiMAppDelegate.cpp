@@ -631,14 +631,27 @@ void QtSLiMAppDelegate::findRecipe(void)
     
     if (result == QDialog::Accepted)
     {
-        QString resourceName = findRecipePanel.selectedRecipeFilename();
-        QString recipeScript = findRecipePanel.selectedRecipeScript();
-        QString trimmedName = resourceName;
+        QStringList resourceNames = findRecipePanel.selectedRecipeFilenames();
         
-        if (trimmedName.endsWith(".txt"))
-            trimmedName.chop(4);
-        
-        openRecipeWithName(trimmedName, recipeScript, nullptr);
+        for (QString resourceName : resourceNames)
+        {
+            qDebug() << "recipe name:" << resourceName;
+            
+            QString resourcePath = ":/recipes/" + resourceName;
+            QFile recipeFile(resourcePath);
+            
+            if (recipeFile.open(QFile::ReadOnly | QFile::Text))
+            {
+                QTextStream recipeTextStream(&recipeFile);
+                QString recipeScript = recipeTextStream.readAll();
+                QString trimmedName = resourceName;
+                
+                if (trimmedName.endsWith(".txt"))
+                    trimmedName.chop(4);
+                
+                openRecipeWithName(trimmedName, recipeScript, nullptr);
+            }
+        }
     }
 }
 
@@ -653,6 +666,8 @@ void QtSLiMAppDelegate::openRecipe(void)
         
         if (resourceName.length())
         {
+            qDebug() << "recipe name:" << resourceName;
+            
             QString resourcePath = ":/recipes/" + resourceName;
             QFile recipeFile(resourcePath);
             
