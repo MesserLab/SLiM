@@ -3,6 +3,7 @@
 // A test script for cloning
 //
 initialize() {
+    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
     source("testing_utils.slim");
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);

@@ -4,6 +4,7 @@
 //
 
 initialize() {
+    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
     source("testing_utils.slim");
 	defineConstant("L", 1e6);
 	defineConstant("mu", 1e-7);

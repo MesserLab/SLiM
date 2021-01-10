@@ -4,6 +4,7 @@
 //
 initialize() {
     // TREE SEQUENCE TEST OUTPUT
+    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
     source("marked_mutations_setup.slim");
 
 	initializeGenomicElementType("g1", m1, 1.0);

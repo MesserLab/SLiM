@@ -3,6 +3,7 @@
 // A test script using a cyclically varying subpop size
 //
 initialize() {
+    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
     source("testing_utils.slim");
 	initializeMutationRate(1e-6);
 	initializeMutationType("m1", 0.5, "f", 0.0);

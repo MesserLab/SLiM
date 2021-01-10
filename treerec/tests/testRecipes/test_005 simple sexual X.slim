@@ -3,6 +3,7 @@
 // A test script for the simple X chromosome case
 //
 initialize() {
+    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
     source("testing_utils.slim");
 	initializeSex('X');
 	initializeMutationRate(1e-6);
