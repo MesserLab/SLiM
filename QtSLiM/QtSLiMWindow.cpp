@@ -1201,7 +1201,7 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
 
         // We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
         sim_RNG = gEidos_RNG;
-        EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+        gEidos_RNG = Eidos_RNG_State();     // zero it out
 
         // We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
         sim_next_pedigree_id = 0;
@@ -2806,7 +2806,7 @@ void QtSLiMWindow::didExecuteScript(void)
 {
     // Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
     sim_RNG = gEidos_RNG;
-    EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+    gEidos_RNG = Eidos_RNG_State();     // zero it out
 
     // Swap out our pedigree id and mutation id counters; see -eidosConsoleWindowControllerWillExecuteScript
     // Setting to -100000 here is not necessary, but will maybe help find bugs...

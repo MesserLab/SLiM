@@ -59,8 +59,8 @@
 
 // Check the Qt version and display an error if it is unacceptable
 // We enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled
-#if (QT_VERSION < 0x050905)
-#error "SLiMgui requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS recommended)."
+#if (QT_VERSION < QT_VERSION_CHECK(5, 9, 5))
+#error "SLiMgui requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS or 5.15 LTS recommended)."
 #endif
 
 

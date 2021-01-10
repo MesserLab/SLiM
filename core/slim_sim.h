@@ -582,10 +582,10 @@ public:
 		return (id_iter == mutation_types_.end()) ? nullptr : id_iter->second;
 	}
 #ifdef SLIMGUI
-    inline MutationType *MutationTypeWithIndex(int p_muttype_index) {
-        for (const std::pair<const slim_objectid_t,MutationType*> &muttype_pair : mutation_types_)
-            if (muttype_pair.second->mutation_type_index_ == p_muttype_index)
-                return muttype_pair.second;
+	inline MutationType *MutationTypeWithIndex(int p_muttype_index) {
+		for (const std::pair<const slim_objectid_t,MutationType*> &muttype_pair : mutation_types_)
+			if (muttype_pair.second->mutation_type_index_ == p_muttype_index)
+				return muttype_pair.second;
 		return nullptr;
 	}
 #endif

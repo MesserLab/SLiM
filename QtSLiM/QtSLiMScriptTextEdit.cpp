@@ -2386,7 +2386,11 @@ QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &p_cursor
     QString selectedString = p_cursor.selectedText();
     QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
     
-    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated; use Qt::KeepEmptyParts instead of QString::KeepEmptyParts (introduced in 5.14)
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated in 5.14
+#else
+    return selectedString.split(lineEndMatch, Qt::KeepEmptyParts);          // added in 5.14
+#endif
 }
 
 void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
