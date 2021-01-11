@@ -970,10 +970,9 @@ If
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nif$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F])
 \f4 \cf0 \kerning1\expnd0\expndtw0 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function.\
+\f2\fs20 \cf2 Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function.\
 The 
 \f1\fs18 recordMutations
 \f2\fs20  flag controls whether information about individual mutations is recorded or not.  Such recording takes time and memory, and so can be turned off if only the tree sequence itself is needed, but it is turned on by default since mutation recording is generally useful.\
@@ -1015,17 +1014,15 @@ The
 \f1\fs18 NULL
 \f2\fs20  and 
 \f1\fs18 simplificationInterval
-\f2\fs20  may be set to the interval, in generations, between simplifications.  This may provide more reliable performance, but the interval must be chosen carefully to avoid exceeding the available memory.  Again, 
+\f2\fs20  may be set to the interval, in generations, between simplifications.  This may provide more reliable performance, but the interval must be chosen carefully to avoid exceeding the available memory.  The 
 \f1\fs18 simplificationInterval
-\f2\fs20  may be a very large number to specify that simplification should never occur (not 
+\f2\fs20  value may be a very large number to specify that simplification should never occur (not 
 \f1\fs18 INF
 \f2\fs20 , though, since it is an 
 \f1\fs18 integer
 \f2\fs20  value), or 
-\f1\fs18 0
-\f2\fs20  (or 
 \f1\fs18 1
-\f2\fs20 ) to simplify every generation.  Finally \'96 the third option \'96 both parameters may be non-
+\f2\fs20  to simplify every generation.  Finally \'96 the third option \'96 both parameters may be non-
 \f1\fs18 NULL
 \f2\fs20 , in which case 
 \f1\fs18 simplificationRatio
@@ -1041,11 +1038,24 @@ The
 \f1\fs18 20
 \f2\fs20 ; this is chosen to be relatively frequent, and thus unlikely to lead to a memory overflow, but it can result in rather slow spool-up for models where the equilibrium simplification interval, as determined by the simplification ratio, is much longer.  It can therefore be helpful to set a larger initial interval so that the early part of the model run is not excessively bogged down in simplification.\
 The 
+\f1\fs18 checkCoalescence
+\f2\fs20  parameter controls whether a check for full coalescence is conducted after each simplification.  If a model will call 
+\f1\fs18 treeSeqCoalesced()
+\f2\fs20  to check for coalescence during its execution, 
+\f1\fs18 checkCoalescence
+\f2\fs20  should be set to 
+\f1\fs18 T
+\f2\fs20 .  Since the coalescence checks entail a performance penalty, the default of 
+\f1\fs18 F
+\f2\fs20  is preferable otherwise.  See the documentation for 
+\f1\fs18 treeSeqCoalesced()
+\f2\fs20  for further discussion.\
+The 
 \f1\fs18 runCrosschecks
 \f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.2.  Nucleotide utilities\
+\f0\b\fs22 \cf0 3.2.  Nucleotide utilities\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -1582,8 +1592,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub :\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1595,7 +1606,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i \expnd0\expndtw0\kerning0
 H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
