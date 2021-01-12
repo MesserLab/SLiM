@@ -5670,7 +5670,7 @@ If
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 permanent
-\f4\fs20  will instead mark the individuals only for (temporary) retention: their genomes will not be added to the sample, and they will appear in the final tree sequence only if they are genetic ancestors of individuals in the sample.  Permanent remembering takes priority, such that calling this function with 
+\f4\fs20  will instead mark the individuals only for (temporary) retention: their genomes will not be added to the sample, and they will appear in the final tree sequence only if one of their nodes is retained across simplification (e.g., if they are the most recent common genetic ancestor of some pair of genomes in the sample).  Permanent remembering takes priority, such that calling this function with 
 \f3\fs18 permanent=F
 \f4\fs20  on an individual that has previously been permanently remembered will not remove it from the sample.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
