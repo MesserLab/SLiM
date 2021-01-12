@@ -77,7 +77,7 @@ extern "C" {
 static const char *SLIM_TREES_FILE_VERSION_INITIAL __attribute__((unused)) = "0.1";		// SLiM 3.0, before the Inidividual table, etc.; UNSUPPORTED
 static const char *SLIM_TREES_FILE_VERSION_PRENUC = "0.2";		// before introduction of nucleotides
 static const char *SLIM_TREES_FILE_VERSION_POSTNUC = "0.3";		// SLiM 3.3.x, with the added nucleotide field in MutationMetadataRec
-static const char *SLIM_TREES_FILE_VERSION_HASH = "0.4";        // SLiM 3.4.x, with the new model_hash key in provenance
+static const char *SLIM_TREES_FILE_VERSION_HASH = "0.4";		// SLiM 3.4.x, with the new model_hash key in provenance
 static const char *SLIM_TREES_FILE_VERSION = "0.5";				// SLiM 3.5.x onward, with information in metadata instead of provenance
 
 #pragma mark -
@@ -390,7 +390,7 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 	}
 	
 	// invalidate interactions, since any cached interaction data depends on the subpopulations and individuals
-    for (auto iter : interaction_types_)
+	for (auto iter : interaction_types_)
 		iter.second->Invalidate();
 	
 	// then we dispose of all existing subpopulations, mutations, etc.
@@ -626,7 +626,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		}
 		
 		// look up the mutation type from its index
-        MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
+		MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
 		
 		if (!mutation_type_ptr) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined." << EidosTerminate();
@@ -790,7 +790,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		std::string &&subpop_id_string = sub.substr(0, pos);
 		slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
 		
-        Subpopulation *subpop = SubpopulationWithID(subpop_id);
+		Subpopulation *subpop = SubpopulationWithID(subpop_id);
 		
 		if (!subpop)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
@@ -1292,7 +1292,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		}
 		
 		// look up the mutation type from its index
-        MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
+		MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
 		
 		if (!mutation_type_ptr) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << EidosTerminate();
@@ -1375,7 +1375,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(genome_index);
 		
 		// Look up the subpopulation
-        Subpopulation *subpop = SubpopulationWithID(subpop_id);
+		Subpopulation *subpop = SubpopulationWithID(subpop_id);
 		
 		if (!subpop)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
@@ -1761,8 +1761,8 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 		// check that the mutation type id matches, if requested
 		// this is now a bit tricky, with the NULL mut-type option, indicated by -2.  The rules now are:
 		//
-		//    if -2 is requested, -2 callbacks are all you get
-		//    if anything other than -2 is requested (including -1), -2 callbacks will not be returned
+		// * if -2 is requested, -2 callbacks are all you get
+		// * if anything other than -2 is requested (including -1), -2 callbacks will not be returned
 		//
 		// so -2 callbacks are treated in a completely separate manner; they are never returned with other callbacks
 		slim_objectid_t mutation_type_id = script_block->mutation_type_id_;
@@ -3377,7 +3377,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 			population_.UniqueMutationRuns();
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-        for (auto iter : interaction_types_)
+		for (auto iter : interaction_types_)
 			iter.second->Invalidate();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
@@ -3713,7 +3713,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		executing_block_type_ = old_executing_block_type;
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-        for (auto iter : interaction_types_)
+		for (auto iter : interaction_types_)
 			iter.second->Invalidate();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
@@ -3820,7 +3820,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-        for (auto iter : interaction_types_)
+		for (auto iter : interaction_types_)
 			iter.second->Invalidate();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
@@ -4825,7 +4825,7 @@ void SLiMSim::ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vect
 				p_individual_map.push_back(j);
 			}
 		}
-        assert(p_individual_map.size() == p_tables->individuals.num_rows);
+		assert(p_individual_map.size() == p_tables->individuals.num_rows);
 	}
 	
 	// Make a copy of p_tables->individuals, from which we will copy rows back to p_tables->individuals
@@ -4981,9 +4981,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 	WritePopulationTable(&tables_);
 	
 	// sort the table collection
-    int flags = TSK_NO_CHECK_INTEGRITY;
+	int flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
-    flags = 0;
+	flags = 0;
 #endif
 	
 #if 0
@@ -5179,7 +5179,7 @@ void SLiMSim::SetCurrentNewIndividual(__attribute__((unused))Individual *p_indiv
 	//current_new_individual_ = p_individual;
 	
 	// Remember the current table position so we can return to it later in RetractNewIndividual()
-    RecordTablePosition();
+	RecordTablePosition();
 }
 
 void SLiMSim::RetractNewIndividual()
@@ -5197,18 +5197,18 @@ void SLiMSim::RetractNewIndividual()
 	// around the code since it seems to keep coming back...
 	//current_new_individual_ = nullptr;
 	
-    tsk_table_collection_truncate(&tables_, &table_position_);
+	tsk_table_collection_truncate(&tables_, &table_position_);
 }
 
 void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, 
-        const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome)
+		const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome)
 {
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewGenome): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
-    // This records information about an individual in both the Node and Edge tables.
+	// This records information about an individual in both the Node and Edge tables.
 
 	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
@@ -5225,12 +5225,12 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
 	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_genome->subpop_->subpopulation_id_,
-                                        TSK_NULL, metadata, (tsk_size_t)metadata_length);
+		TSK_NULL, metadata, (tsk_size_t)metadata_length);
 	if (offspringTSKID < 0) handle_error("tsk_node_table_add_row", offspringTSKID);
 	
 	p_new_genome->tsk_node_id_ = offspringTSKID;
 	
-    // if there is no parent then no need to record edges
+	// if there is no parent then no need to record edges
 	if (!p_initial_parental_genome && !p_second_parental_genome)
 		return;
 	
@@ -5274,21 +5274,21 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewDerivedState): (internal error) tree sequence mutation recording method called with recording off." << EidosTerminate();
 #endif
 	
-    // This records information in the Site and Mutation tables.
-    // This is called whenever a new mutation is added to a genome.  Because
-    // mutation stacking makes things complicated, this hook supplies not just
-    // the new mutation, but the entire new derived state – all of the
-    // mutations that exist at the given position in the given genome,
-    // post-addition.  This derived state may involve the removal of some
-    // ancestral mutations (or may not), in addition to the new mutation that
-    // was added.  The new state is not even guaranteed to be different from
-    // the ancestral state; because of the way new mutations are added in some
-    // paths (with bulk operations) we may not know.  This method will also be
-    // called when a mutation is removed from a given genome; if no mutations
-    // remain at the given position, p_derived_mutations will be empty.  The
-    // vector of mutations passed in here is reused internally, so this method
-    // must not keep a pointer to it; any information that needs to be kept
-    // from it must be copied out.  See treerec/implementation.md for more.
+	// This records information in the Site and Mutation tables.
+	// This is called whenever a new mutation is added to a genome.  Because
+	// mutation stacking makes things complicated, this hook supplies not just
+	// the new mutation, but the entire new derived state – all of the
+	// mutations that exist at the given position in the given genome,
+	// post-addition.  This derived state may involve the removal of some
+	// ancestral mutations (or may not), in addition to the new mutation that
+	// was added.  The new state is not even guaranteed to be different from
+	// the ancestral state; because of the way new mutations are added in some
+	// paths (with bulk operations) we may not know.  This method will also be
+	// called when a mutation is removed from a given genome; if no mutations
+	// remain at the given position, p_derived_mutations will be empty.  The
+	// vector of mutations passed in here is reused internally, so this method
+	// must not keep a pointer to it; any information that needs to be kept
+	// from it must be copied out.  See treerec/implementation.md for more.
 	
 	// BCH 4/29/2018: Null genomes should never contain any mutations at all,
 	// including fixed mutations; the simplest thing is to just disallow derived
@@ -5296,28 +5296,28 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	if (p_genome->IsNull())
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RecordNewDerivedState): new derived states cannot be recorded for null genomes." << EidosTerminate();
 	
-    tsk_id_t genomeTSKID = p_genome->tsk_node_id_;
+	tsk_id_t genomeTSKID = p_genome->tsk_node_id_;
 
-    // Identify any previous mutations at this site in this genome, and add a new site.
+	// Identify any previous mutations at this site in this genome, and add a new site.
 	// This site may already exist, but we add it anyway, and deal with that in deduplicate_sites().
-    double tsk_position = (double) p_position;
+	double tsk_position = (double) p_position;
 
-    tsk_id_t site_id = tsk_site_table_add_row(&tables_.sites, tsk_position, NULL, 0, NULL, 0);
+	tsk_id_t site_id = tsk_site_table_add_row(&tables_.sites, tsk_position, NULL, 0, NULL, 0);
 	if (site_id < 0) handle_error("tsk_site_table_add_row", site_id);
 	
-    // form derived state
+	// form derived state
 	static std::vector<slim_mutationid_t> derived_mutation_ids;
 	static std::vector<MutationMetadataRec> mutation_metadata;
 	MutationMetadataRec metadata_rec;
 	
 	derived_mutation_ids.clear();
-    mutation_metadata.clear();
+	mutation_metadata.clear();
 	for (Mutation *mutation : p_derived_mutations)
 	{
 		derived_mutation_ids.push_back(mutation->mutation_id_);
 		MetadataForMutation(mutation, &metadata_rec);
-        mutation_metadata.push_back(metadata_rec);
-    }
+		mutation_metadata.push_back(metadata_rec);
+	}
 	
 	// find and incorporate any fixed mutations at this position, which exist in all new derived states but are not included by SLiM
 	// BCH 5/14/2019: Note that this means that derived states will be recorded that look "stacked" even when those mutations would
@@ -5338,16 +5338,16 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	}
 	
 	// add the mutation table row with the final derived state and metadata
-    char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
-    size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
-    char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
-    size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
+	char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
+	size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
+	char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
+	size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
 	double time = -(double) (tree_seq_generation_ + tree_seq_generation_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_generation_offset_
-    int ret = tsk_mutation_table_add_row(&tables_.mutations, site_id, genomeTSKID, TSK_NULL, 
-                    time,
-                    derived_muts_bytes, (tsk_size_t)derived_state_length,
-                    mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
+	int ret = tsk_mutation_table_add_row(&tables_.mutations, site_id, genomeTSKID, TSK_NULL, 
+					time,
+					derived_muts_bytes, (tsk_size_t)derived_state_length,
+					mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
 }
 
@@ -5383,16 +5383,16 @@ void SLiMSim::CheckAutoSimplification(void)
 			// but that seems like overkill; adding together the number of rows in all the tables should be a
 			// reasonable proxy, and this whole thing is just a heuristic that needs to be tailored anyway.
 			uint64_t old_table_size = (uint64_t)tables_.nodes.num_rows;
-            old_table_size += (uint64_t)tables_.edges.num_rows;
-            old_table_size += (uint64_t)tables_.sites.num_rows;
-            old_table_size += (uint64_t)tables_.mutations.num_rows;
+			old_table_size += (uint64_t)tables_.edges.num_rows;
+			old_table_size += (uint64_t)tables_.sites.num_rows;
+			old_table_size += (uint64_t)tables_.mutations.num_rows;
 			
 			SimplifyTreeSequence();
 			
 			uint64_t new_table_size = (uint64_t)tables_.nodes.num_rows;
-            new_table_size += (uint64_t)tables_.edges.num_rows;
-            new_table_size += (uint64_t)tables_.sites.num_rows;
-            new_table_size += (uint64_t)tables_.mutations.num_rows;
+			new_table_size += (uint64_t)tables_.edges.num_rows;
+			new_table_size += (uint64_t)tables_.sites.num_rows;
+			new_table_size += (uint64_t)tables_.mutations.num_rows;
 			double ratio = old_table_size / (double)new_table_size;
 			
 			//std::cout << "auto-simplified in generation " << generation_ << "; old size " << old_table_size << ", new size " << new_table_size;
@@ -5436,13 +5436,13 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 										std::string PopulationFileName,
 										std::string ProvenanceFileName)
 {
-    FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "r");
-    FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "r");
-    FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "r");
-    FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "r");
+	FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "r");
+	FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "r");
+	FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "r");
+	FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "r");
 	FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "r");
 	FILE *MspTxtPopulationTable = fopen(PopulationFileName.c_str(), "r");
-    FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "r");
+	FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "r");
 	
 	int ret = tsk_table_collection_init(&tables_, TSK_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
@@ -5456,7 +5456,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 									 MspTxtIndividualTable,
 									 MspTxtPopulationTable,
 									 MspTxtProvenanceTable);
-    if (ret < 0) handle_error("read_from_ascii :: table_collection_load_text", ret);
+	if (ret < 0) handle_error("read_from_ascii :: table_collection_load_text", ret);
 	
 	// Parse the provenance info just to find out the file version, which we need for mutation metadata parsing
 	slim_generation_t metadata_gen;
@@ -5728,7 +5728,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		}
 	}
 
-    // not sure if we need to do this here, but it doesn't hurt
+	// not sure if we need to do this here, but it doesn't hurt
 	RecordTablePosition();
 	
 	// We are done with our private copy of the table collection
@@ -5745,11 +5745,11 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	int ret = tsk_table_collection_copy(p_tables, &tables_copy, 0);
 	if (ret < 0) handle_error("convert_to_ascii", ret);
 	
-    /********************************************************
-     * Make the data stored in the tables readable as ASCII.
-     ********************************************************/
+	/********************************************************
+	 * Make the data stored in the tables readable as ASCII.
+	 ********************************************************/
 	
-    /***  Notes: ancestral states are always zero-length, so we don't need to Ascii-ify Site Table ***/
+	/***  Notes: ancestral states are always zero-length, so we don't need to Ascii-ify Site Table ***/
 	
 	// this buffer is used for converting double values to strings
 	static char *double_buf = NULL;
@@ -5757,7 +5757,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	if (!double_buf)
 		double_buf = (char *)malloc(40 *sizeof(char));
 	
-    /***  Ascii-ify Mutation Table ***/
+	/***  Ascii-ify Mutation Table ***/
 	{
 		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
 		
@@ -6098,13 +6098,18 @@ void SLiMSim::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 
 void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, uint32_t p_flags)
 {
-    // We use currently use this function in two ways, depending on p_flags:
-    //  1. (SLIM_TSK_INDIVIDUAL_REMEMBERED) to retain individuals to be forever remembered, or
-    //  2. (SLIM_TSK_INDIVIDUAL_ALIVE) to retain the final generation in the tree sequence.
-    // So, in case (1) we set the REMEMBERED flag,
-    // and in case (2) we set the ALIVE flag.  Individuals who are permanently
-    // remembered but still alive when the tree sequence is written out will
-    // have this method called on them twice, first (1), then (2), so they get both flags set.
+	// We use currently use this function in two ways, depending on p_flags:
+	//  1. (SLIM_TSK_INDIVIDUAL_REMEMBERED) for individuals to be permanently
+	//      remembered, or
+	//  2. (SLIM_TSK_INDIVIDUAL_RETAINED) for individuals to be retained only while
+	//      some of their genome (i.e. any of their nodes) exists in the tree sequence, or
+	//  3. (SLIM_TSK_INDIVIDUAL_ALIVE) to output the final generation in the tree sequence.
+	// So, in case (1) we set the REMEMBERED flag, in case (2) we set the RETAINED flag,
+	// and in case (3) we set the ALIVE flag.
+	// Note that this function can be called multiple times for the same set of
+	// individuals. In the most extreme case, individuals who are remembered, then
+	// permanently remembered but still alive when the tree sequence is written out will
+	// have this method called on them three times, and they get all flags set.
 
 	// do this so that we can access the internal tables from outside, by passing in nullptr
 	if (p_tables == nullptr)
@@ -6128,7 +6133,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	// of two data structures, std::vector or std::unordered_map, to do our lookups based on
 	// how many lookups we anticipate doing.
 	bool using_std_vector = (p_num_individuals < 5);
-    std::vector<slim_pedigreeid_t> tabled_individuals;												// used when using_std_vector==true
+	std::vector<slim_pedigreeid_t> tabled_individuals;												// used when using_std_vector==true
 #if EIDOS_ROBIN_HOOD_HASHING
 	robin_hood::unordered_flat_map<slim_pedigreeid_t, slim_popsize_t> tabled_individuals_lookup;	// used when using_std_vector==false
 	typedef robin_hood::pair<slim_pedigreeid_t, slim_popsize_t> MAP_PAIR;
@@ -6166,98 +6171,98 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	
 	// loop over individuals and add entries to the individual table; if they are already
 	// there, we just need to update their metadata, location, etc.
-    for (size_t j = 0; j < p_num_individuals; j++)
-    {
-        Individual *ind = p_individual[j];
-        slim_pedigreeid_t ped_id = ind->PedigreeID();
+	for (size_t j = 0; j < p_num_individuals; j++)
+	{
+		Individual *ind = p_individual[j];
+		slim_pedigreeid_t ped_id = ind->PedigreeID();
 
-        std::vector<double> location;
-        location.push_back(ind->spatial_x_);
-        location.push_back(ind->spatial_y_);
-        location.push_back(ind->spatial_z_);
-        
-        IndividualMetadataRec metadata_rec;
-        MetadataForIndividual(ind, &metadata_rec);
+		std::vector<double> location;
+		location.push_back(ind->spatial_x_);
+		location.push_back(ind->spatial_y_);
+		location.push_back(ind->spatial_z_);
+		
+		IndividualMetadataRec metadata_rec;
+		MetadataForIndividual(ind, &metadata_rec);
 		
 		tsk_id_t tsk_individual;
 		
-        if (using_std_vector)
-        {
-            // this case has a slow lookup (linear search), but the vector is fast to build
-            auto ind_pos = std::find(tabled_individuals.begin(), tabled_individuals.end(), ped_id);
-            
-            if (ind_pos == tabled_individuals.end())
-                tsk_individual = TSK_NULL;	// not in the table already
-            else
-                tsk_individual = (tsk_id_t)std::distance(tabled_individuals.begin(), ind_pos);
-        }
-        else
-        {
-            // this case has a fast search (hash table), but the unordered_map is slow to build
-            auto ind_pos = tabled_individuals_lookup.find(ped_id);
-            
-            if (ind_pos == tabled_individuals_lookup.end())
-                tsk_individual = TSK_NULL;	// not in the table already
-            else
-                tsk_individual = ind_pos->second;
-        }
+		if (using_std_vector)
+		{
+			// this case has a slow lookup (linear search), but the vector is fast to build
+			auto ind_pos = std::find(tabled_individuals.begin(), tabled_individuals.end(), ped_id);
+			
+			if (ind_pos == tabled_individuals.end())
+				tsk_individual = TSK_NULL;	// not in the table already
+			else
+				tsk_individual = (tsk_id_t)std::distance(tabled_individuals.begin(), ind_pos);
+		}
+		else
+		{
+			// this case has a fast search (hash table), but the unordered_map is slow to build
+			auto ind_pos = tabled_individuals_lookup.find(ped_id);
+			
+			if (ind_pos == tabled_individuals_lookup.end())
+				tsk_individual = TSK_NULL;	// not in the table already
+			else
+				tsk_individual = ind_pos->second;
+		}
 		
-        if (tsk_individual == TSK_NULL) {
-            // This individual is not already in the tables.
-            tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
-                    p_flags, location.data(), (uint32_t)location.size(), 
-                    (char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
-            if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
-            
-            // Update node table
-            assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-                   && ind->genome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
-            p_tables->nodes.individual[ind->genome1_->tsk_node_id_] = tsk_individual;
-            p_tables->nodes.individual[ind->genome2_->tsk_node_id_] = tsk_individual;
+		if (tsk_individual == TSK_NULL) {
+			// This individual is not already in the tables.
+			tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
+					p_flags, location.data(), (uint32_t)location.size(), 
+					(char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
+			if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
+			
+			// Update node table
+			assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
+				   && ind->genome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
+			p_tables->nodes.individual[ind->genome1_->tsk_node_id_] = tsk_individual;
+			p_tables->nodes.individual[ind->genome2_->tsk_node_id_] = tsk_individual;
 
-            // update remembered genomes
-            if (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-            {
-                remembered_genomes_.push_back(ind->genome1_->tsk_node_id_);
-                remembered_genomes_.push_back(ind->genome2_->tsk_node_id_);
-            }
-        } else {
-            // This individual is already there; we need to update the information.
-            assert(((size_t)tsk_individual < p_tables->individuals.num_rows)
-                   && (location.size()
-                       == (p_tables->individuals.location_offset[tsk_individual + 1]
-                           - p_tables->individuals.location_offset[tsk_individual]))
-                   && (sizeof(IndividualMetadataRec)
-                       == (p_tables->individuals.metadata_offset[tsk_individual + 1]
-                           - p_tables->individuals.metadata_offset[tsk_individual])));
-            
+			// update remembered genomes
+			if (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
+			{
+				remembered_genomes_.push_back(ind->genome1_->tsk_node_id_);
+				remembered_genomes_.push_back(ind->genome2_->tsk_node_id_);
+			}
+		} else {
+			// This individual is already there; we need to update the information.
+			assert(((size_t)tsk_individual < p_tables->individuals.num_rows)
+				   && (location.size()
+					   == (p_tables->individuals.location_offset[tsk_individual + 1]
+						   - p_tables->individuals.location_offset[tsk_individual]))
+				   && (sizeof(IndividualMetadataRec)
+					   == (p_tables->individuals.metadata_offset[tsk_individual + 1]
+						   - p_tables->individuals.metadata_offset[tsk_individual])));
+			
 			// BCH 4/29/2019: This assert is, we think, not technically necessary – the code
 			// would work even if it were violated.  But it's a nice invariant to guarantee,
 			// and right now it is always true.
 			assert((p_tables->nodes.individual[ind->genome1_->tsk_node_id_]
-                     == tsk_individual)
-                   && (p_tables->nodes.individual[ind->genome2_->tsk_node_id_]
-                       == tsk_individual));
+					 == tsk_individual)
+				   && (p_tables->nodes.individual[ind->genome2_->tsk_node_id_]
+					   == tsk_individual));
 			
 			memcpy(p_tables->individuals.location
 				   + p_tables->individuals.location_offset[tsk_individual],
 				   location.data(), location.size() * sizeof(double));
-            memcpy(p_tables->individuals.metadata
-                    + p_tables->individuals.metadata_offset[tsk_individual],
-                    &metadata_rec, sizeof(IndividualMetadataRec));
+			memcpy(p_tables->individuals.metadata
+					+ p_tables->individuals.metadata_offset[tsk_individual],
+					&metadata_rec, sizeof(IndividualMetadataRec));
 			p_tables->individuals.flags[tsk_individual] |= p_flags;
 			
-            // Check node table
-            assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-                   && ind->genome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
+			// Check node table
+			assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
+				   && ind->genome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
 			
 			// BCH 4/29/2019: These asserts are, we think, not technically necessary – the code
 			// would work even if they were violated.  But they're a nice invariant to guarantee,
 			// and right now they are always true.
-            assert(p_tables->nodes.individual[ind->genome1_->tsk_node_id_] == (tsk_id_t)tsk_individual);
-            assert(p_tables->nodes.individual[ind->genome2_->tsk_node_id_] == (tsk_id_t)tsk_individual);
-        }
-    }
+			assert(p_tables->nodes.individual[ind->genome1_->tsk_node_id_] == (tsk_id_t)tsk_individual);
+			assert(p_tables->nodes.individual[ind->genome2_->tsk_node_id_] == (tsk_id_t)tsk_individual);
+		}
+	}
 }
 
 void SLiMSim::AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables)
@@ -6266,7 +6271,7 @@ void SLiMSim::AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables
 	// through simplify and can be revived when loading saved state
 	for (auto subpop_iter : population_.subpops_)
 	{
-        AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(), subpop_iter.second->parent_individuals_.size(), p_tables, SLIM_TSK_INDIVIDUAL_ALIVE);
+		AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(), subpop_iter.second->parent_individuals_.size(), p_tables, SLIM_TSK_INDIVIDUAL_ALIVE);
 	}
 }
 
@@ -6354,14 +6359,14 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 
 void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict)
 {
-    int ret = 0;
+	int ret = 0;
 
-    //////
-    // Top-level (tree sequence) metadata:
-    // In the future, we might need to *add* to the metadata *and also* the schema,
-    // leaving other keys that might already be there.
-    // But that's being a headache, so we're skipping it.
-    nlohmann::json metadata;
+	//////
+	// Top-level (tree sequence) metadata:
+	// In the future, we might need to *add* to the metadata *and also* the schema,
+	// leaving other keys that might already be there.
+	// But that's being a headache, so we're skipping it.
+	nlohmann::json metadata;
 	
 	// Add user-defined metadata under the SLiM key, if it was supplied by the user
 	// See https://github.com/MesserLab/SLiM/issues/122
@@ -6374,100 +6379,100 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		//std::cout << "JSON metadata: " << std::endl << user_metadata.dump(4) << std::endl;
 	}
 	
-    if (ModelType() == SLiMModelType::kModelTypeWF) {
-        metadata["SLiM"]["model_type"] = "WF";
-        if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
-            metadata["SLiM"]["stage"] = "early";
-        } else {
-            assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
-            metadata["SLiM"]["stage"] = "late";
-        }
-    } else {
-        assert(ModelType() == SLiMModelType::kModelTypeNonWF);
-        metadata["SLiM"]["model_type"] = "nonWF";
-        if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
-            metadata["SLiM"]["stage"] = "early";
-        } else {
-            assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
-            metadata["SLiM"]["stage"] = "late";
-        }
-    }
-    metadata["SLiM"]["generation"] = Generation();
+	if (ModelType() == SLiMModelType::kModelTypeWF) {
+		metadata["SLiM"]["model_type"] = "WF";
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+			metadata["SLiM"]["stage"] = "early";
+		} else {
+			assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
+			metadata["SLiM"]["stage"] = "late";
+		}
+	} else {
+		assert(ModelType() == SLiMModelType::kModelTypeNonWF);
+		metadata["SLiM"]["model_type"] = "nonWF";
+		if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+			metadata["SLiM"]["stage"] = "early";
+		} else {
+			assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+			metadata["SLiM"]["stage"] = "late";
+		}
+	}
+	metadata["SLiM"]["generation"] = Generation();
 	metadata["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
-    if (spatial_dimensionality_ == 0) {
-        metadata["SLiM"]["spatial_dimensionality"] = "";
-    } else if (spatial_dimensionality_ == 1) {
-        metadata["SLiM"]["spatial_dimensionality"] = "x";
-    } else if (spatial_dimensionality_ == 2) {
-        metadata["SLiM"]["spatial_dimensionality"] = "xy";
-    } else {
-        metadata["SLiM"]["spatial_dimensionality"] = "xyz";
-    }
-    if (periodic_x_ & periodic_y_ & periodic_z_) {
-        metadata["SLiM"]["spatial_periodicity"] = "xyz";
-    } else if (periodic_x_ & periodic_y_) {
-        metadata["SLiM"]["spatial_periodicity"] = "xy";
-    } else if (periodic_x_ & periodic_z_) {
-        metadata["SLiM"]["spatial_periodicity"] = "xz";
-    } else if (periodic_y_ & periodic_z_) {
-        metadata["SLiM"]["spatial_periodicity"] = "yz";
-    } else if (periodic_x_) {
-        metadata["SLiM"]["spatial_periodicity"] = "x";
-    } else if (periodic_y_) {
-        metadata["SLiM"]["spatial_periodicity"] = "y";
-    } else if (periodic_z_) {
-        metadata["SLiM"]["spatial_periodicity"] = "z";
-    } else {
-        metadata["SLiM"]["spatial_periodicity"] = "";
-    }
+	if (spatial_dimensionality_ == 0) {
+		metadata["SLiM"]["spatial_dimensionality"] = "";
+	} else if (spatial_dimensionality_ == 1) {
+		metadata["SLiM"]["spatial_dimensionality"] = "x";
+	} else if (spatial_dimensionality_ == 2) {
+		metadata["SLiM"]["spatial_dimensionality"] = "xy";
+	} else {
+		metadata["SLiM"]["spatial_dimensionality"] = "xyz";
+	}
+	if (periodic_x_ & periodic_y_ & periodic_z_) {
+		metadata["SLiM"]["spatial_periodicity"] = "xyz";
+	} else if (periodic_x_ & periodic_y_) {
+		metadata["SLiM"]["spatial_periodicity"] = "xy";
+	} else if (periodic_x_ & periodic_z_) {
+		metadata["SLiM"]["spatial_periodicity"] = "xz";
+	} else if (periodic_y_ & periodic_z_) {
+		metadata["SLiM"]["spatial_periodicity"] = "yz";
+	} else if (periodic_x_) {
+		metadata["SLiM"]["spatial_periodicity"] = "x";
+	} else if (periodic_y_) {
+		metadata["SLiM"]["spatial_periodicity"] = "y";
+	} else if (periodic_z_) {
+		metadata["SLiM"]["spatial_periodicity"] = "z";
+	} else {
+		metadata["SLiM"]["spatial_periodicity"] = "";
+	}
 	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? true : false;
 	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? true : false;
-    std::string new_metadata_str = metadata.dump();
+	std::string new_metadata_str = metadata.dump();
 
-    ret = tsk_table_collection_set_metadata(
-            p_tables, new_metadata_str.c_str(), (tsk_size_t)new_metadata_str.length());
-    if (ret != 0)
-        handle_error("tsk_table_collection_set_metadata", ret);
+	ret = tsk_table_collection_set_metadata(
+			p_tables, new_metadata_str.c_str(), (tsk_size_t)new_metadata_str.length());
+	if (ret != 0)
+		handle_error("tsk_table_collection_set_metadata", ret);
 
-    // As above, we maybe ought to edit the metadata schema adding our keys,
-    // but then comparing tables is a headache; see tskit#763
-    ret = tsk_table_collection_set_metadata_schema(
-            p_tables, gSLiM_tsk_metadata_schema.c_str(), (tsk_size_t)gSLiM_tsk_metadata_schema.length());
-    if (ret != 0)
-        handle_error("tsk_table_collection_set_metadata_schema", ret);
+	// As above, we maybe ought to edit the metadata schema adding our keys,
+	// but then comparing tables is a headache; see tskit#763
+	ret = tsk_table_collection_set_metadata_schema(
+			p_tables, gSLiM_tsk_metadata_schema.c_str(), (tsk_size_t)gSLiM_tsk_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_table_collection_set_metadata_schema", ret);
 
-    ////////////
-    // Set metadata schema on each table
-    ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
-            gSLiM_tsk_edge_metadata_schema.c_str(),
-            (tsk_size_t)gSLiM_tsk_edge_metadata_schema.length());
-    if (ret != 0)
-        handle_error("tsk_edge_table_set_metadata_schema", ret);
-    ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
-            gSLiM_tsk_site_metadata_schema.c_str(),
-            (tsk_size_t)gSLiM_tsk_site_metadata_schema.length());
-    if (ret != 0)
-        handle_error("tsk_site_table_set_metadata_schema", ret);
-    ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
-            gSLiM_tsk_mutation_metadata_schema.c_str(),
-            (tsk_size_t)gSLiM_tsk_mutation_metadata_schema.length());
-    if (ret != 0)
-        handle_error("tsk_mutation_table_set_metadata_schema", ret);
-    ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
-            gSLiM_tsk_node_metadata_schema.c_str(),
-            (tsk_size_t)gSLiM_tsk_node_metadata_schema.length());
-    if (ret != 0)
-        handle_error("tsk_node_table_set_metadata_schema", ret);
-    ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
-            gSLiM_tsk_individual_metadata_schema.c_str(),
-            (tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
-    if (ret != 0)
-        handle_error("tsk_individual_table_set_metadata_schema", ret);
-    ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
-            gSLiM_tsk_population_metadata_schema.c_str(),
-            (tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
-    if (ret != 0)
-        handle_error("tsk_population_table_set_metadata_schema", ret);
+	////////////
+	// Set metadata schema on each table
+	ret = tsk_edge_table_set_metadata_schema(&p_tables->edges,
+			gSLiM_tsk_edge_metadata_schema.c_str(),
+			(tsk_size_t)gSLiM_tsk_edge_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_edge_table_set_metadata_schema", ret);
+	ret = tsk_site_table_set_metadata_schema(&p_tables->sites,
+			gSLiM_tsk_site_metadata_schema.c_str(),
+			(tsk_size_t)gSLiM_tsk_site_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_site_table_set_metadata_schema", ret);
+	ret = tsk_mutation_table_set_metadata_schema(&p_tables->mutations,
+			gSLiM_tsk_mutation_metadata_schema.c_str(),
+			(tsk_size_t)gSLiM_tsk_mutation_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_mutation_table_set_metadata_schema", ret);
+	ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
+			gSLiM_tsk_node_metadata_schema.c_str(),
+			(tsk_size_t)gSLiM_tsk_node_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_node_table_set_metadata_schema", ret);
+	ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
+			gSLiM_tsk_individual_metadata_schema.c_str(),
+			(tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_individual_table_set_metadata_schema", ret);
+	ret = tsk_population_table_set_metadata_schema(&p_tables->populations,
+			gSLiM_tsk_population_metadata_schema.c_str(),
+			(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_population_table_set_metadata_schema", ret);
 }
 
 void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model)
@@ -6477,10 +6482,10 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	size_t timestamp_size = 64;
 	char buffer[timestamp_size];
 	struct tm* tm_info;
-    // NOTE: since file version 0.5, we do *not* read information
-    // back out of the provenance table, but get it from metadata instead.
-    // But, we still want to record how the tree sequence was produced in
-    // provenance, so the code remains much the same.
+	// NOTE: since file version 0.5, we do *not* read information
+	// back out of the provenance table, but get it from metadata instead.
+	// But, we still want to record how the tree sequence was produced in
+	// provenance, so the code remains much the same.
 	
 #if 0
 	// Old provenance generation code, making a JSON string by hand; this is file_version 0.1
@@ -6532,51 +6537,51 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	
 	j["parameters"]["command"] = cli_params_;
 
-    // note high overlap with WriteTreeSequenceMetadata
-    if (ModelType() == SLiMModelType::kModelTypeWF) {
-        j["parameters"]["model_type"] = "WF";
-        if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
-            j["parameters"]["stage"] = "early";
-        } else {
-            assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
-            j["parameters"]["stage"] = "late";
-        }
-    } else {
-        assert(ModelType() == SLiMModelType::kModelTypeNonWF);
-        j["parameters"]["model_type"] = "nonWF";
-        if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
-            j["parameters"]["stage"] = "early";
-        } else {
-            assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
-            j["parameters"]["stage"] = "late";
-        }
-    }
-    if (spatial_dimensionality_ == 0) {
-        j["parameters"]["spatial_dimensionality"] = "";
-    } else if (spatial_dimensionality_ == 1) {
-        j["parameters"]["spatial_dimensionality"] = "x";
-    } else if (spatial_dimensionality_ == 2) {
-        j["parameters"]["spatial_dimensionality"] = "xy";
-    } else {
-        j["parameters"]["spatial_dimensionality"] = "xyz";
-    }
-    if (periodic_x_ & periodic_y_ & periodic_z_) {
-        j["parameters"]["spatial_periodicity"] = "xyz";
-    } else if (periodic_x_ & periodic_y_) {
-        j["parameters"]["spatial_periodicity"] = "xy";
-    } else if (periodic_x_ & periodic_z_) {
-        j["parameters"]["spatial_periodicity"] = "xz";
-    } else if (periodic_y_ & periodic_z_) {
-        j["parameters"]["spatial_periodicity"] = "yz";
-    } else if (periodic_x_) {
-        j["parameters"]["spatial_periodicity"] = "x";
-    } else if (periodic_y_) {
-        j["parameters"]["spatial_periodicity"] = "y";
-    } else if (periodic_z_) {
-        j["parameters"]["spatial_periodicity"] = "z";
-    } else {
-        j["parameters"]["spatial_periodicity"] = "";
-    }
+	// note high overlap with WriteTreeSequenceMetadata
+	if (ModelType() == SLiMModelType::kModelTypeWF) {
+		j["parameters"]["model_type"] = "WF";
+		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+			j["parameters"]["stage"] = "early";
+		} else {
+			assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
+			j["parameters"]["stage"] = "late";
+		}
+	} else {
+		assert(ModelType() == SLiMModelType::kModelTypeNonWF);
+		j["parameters"]["model_type"] = "nonWF";
+		if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+			j["parameters"]["stage"] = "early";
+		} else {
+			assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+			j["parameters"]["stage"] = "late";
+		}
+	}
+	if (spatial_dimensionality_ == 0) {
+		j["parameters"]["spatial_dimensionality"] = "";
+	} else if (spatial_dimensionality_ == 1) {
+		j["parameters"]["spatial_dimensionality"] = "x";
+	} else if (spatial_dimensionality_ == 2) {
+		j["parameters"]["spatial_dimensionality"] = "xy";
+	} else {
+		j["parameters"]["spatial_dimensionality"] = "xyz";
+	}
+	if (periodic_x_ & periodic_y_ & periodic_z_) {
+		j["parameters"]["spatial_periodicity"] = "xyz";
+	} else if (periodic_x_ & periodic_y_) {
+		j["parameters"]["spatial_periodicity"] = "xy";
+	} else if (periodic_x_ & periodic_z_) {
+		j["parameters"]["spatial_periodicity"] = "xz";
+	} else if (periodic_y_ & periodic_z_) {
+		j["parameters"]["spatial_periodicity"] = "yz";
+	} else if (periodic_x_) {
+		j["parameters"]["spatial_periodicity"] = "x";
+	} else if (periodic_y_) {
+		j["parameters"]["spatial_periodicity"] = "y";
+	} else if (periodic_z_) {
+		j["parameters"]["spatial_periodicity"] = "z";
+	} else {
+		j["parameters"]["spatial_periodicity"] = "";
+	}
 	j["parameters"]["separate_sexes"] = sex_enabled_ ? true : false;
 	j["parameters"]["nucleotide_based"] = nucleotide_based_ ? true : false;
 
@@ -6588,7 +6593,9 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	j["metadata"]["individuals"]["flags"]["16"]["name"] = "SLIM_TSK_INDIVIDUAL_ALIVE";
 	j["metadata"]["individuals"]["flags"]["16"]["description"] = "the individual was alive at the time the file was written";
 	j["metadata"]["individuals"]["flags"]["17"]["name"] = "SLIM_TSK_INDIVIDUAL_REMEMBERED";
-	j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be remembered";
+	j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be permanently remembered";
+	j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_RETAINED";
+	j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was requested by the user to be retained only if its nodes continue to exist in the tree sequence";
 	
 	std::string provenance_str;
 	
@@ -6726,123 +6733,123 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 	*p_remembered_genome_count = (size_t)rem_count_ll;
 #else
 	// New provenance reading code, using the JSON for Modern C++ library (json.hpp); 
-    
+	
 	std::string model_type_str;
 	long long gen_ll;
 
-    ////////////
-    // Format 0.5: using top-level metadata
-    try {
-        // Note: we *could* parse the metadata schema (which is json),
-        // but instead we'll just try parsing the metadata.
-        // std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
-        // nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
+	////////////
+	// Format 0.5: using top-level metadata
+	try {
+		// Note: we *could* parse the metadata schema (which is json),
+		// but instead we'll just try parsing the metadata.
+		// std::string metadata_schema_str(p_tables->metadata_schema, p_tables->metadata_schema_length);
+		// nlohmann::json metadata_schema = nlohmann::json::parse(metadata_schema_str);
 
-        std::string metadata_str(p_tables->metadata, p_tables->metadata_length);
-        auto metadata = nlohmann::json::parse(metadata_str);
-        model_type_str = metadata["SLiM"]["model_type"];
-        gen_ll = metadata["SLiM"]["generation"];
-        auto file_version_03 = metadata["SLiM"]["file_version"];
+		std::string metadata_str(p_tables->metadata, p_tables->metadata_length);
+		auto metadata = nlohmann::json::parse(metadata_str);
+		model_type_str = metadata["SLiM"]["model_type"];
+		gen_ll = metadata["SLiM"]["generation"];
+		auto file_version_03 = metadata["SLiM"]["file_version"];
 		if (file_version_03 == SLIM_TREES_FILE_VERSION)
 			*p_file_version = 5;
-        else
+		else
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim; this file cannot be read." << EidosTerminate();
-    } catch (...) {
-    ///////////////////////
-    // Previous formats: everything is in provenance
+	} catch (...) {
+	///////////////////////
+	// Previous formats: everything is in provenance
 
-        tsk_provenance_table_t &provenance_table = p_tables->provenances;
-        tsk_size_t num_rows = provenance_table.num_rows;
-        
-        if (num_rows <= 0)
-            EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): no SLiM metadata; this file cannot be read." << EidosTerminate();
-        
-        // find the last record that is a SLiM provenance entry; we allow entries after ours, on the assumption that they have preserved SLiM-compliance
-        int slim_record_index = num_rows - 1;
-        
-        for (; slim_record_index >= 0; --slim_record_index)
-        {
-            char *record = provenance_table.record + provenance_table.record_offset[slim_record_index];
-            tsk_size_t record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
-            std::string record_str(record, record_len);
-            
-            try {
-                auto j = nlohmann::json::parse(record_str);
-                
-                // for an entry to be acceptable, it has to have a "program": "SLiM" entry (file_version 0.1) or a "software"/"name": "SLiM" entry (file_version 0.2)
-                if ((j["program"] == "SLiM") || (j["software"]["name"] == "SLiM"))
-                    break;
-                continue;
-            } catch (...) {
-                continue;
-            }
-        }
-        
-        if (slim_record_index == -1)
-            EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): no SLiM provenance table entry found; this file cannot be read." << EidosTerminate();
-        
-        //char *slim_timestamp = provenance_table.timestamp + provenance_table.timestamp_offset[slim_record_index];
-        char *slim_record = provenance_table.record + provenance_table.record_offset[slim_record_index];
-        tsk_size_t slim_record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
-        std::string slim_record_str(slim_record, slim_record_len);
-        auto j = nlohmann::json::parse(slim_record_str);
-        
-        //std::cout << "Read provenance:\n" << slim_record_str << std::endl;
-        
-        auto file_version_01 = j["file_version"];
-        auto file_version_02 = j["slim"]["file_version"];
-        
-        if (file_version_01.is_string() && (file_version_01 == "0.1"))
-        {
-            // We actually don't have any chance of being able to read SLiM 3.0 .trees files in, I guess;
-            // all the new individuals table stuff, the addition of the population table, etc., mean that
-            // it would just be a huge headache to try to do this.  So let's throw an error up front.
-            EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): file_version is 0.1 in .trees file; this file cannot be read.  SLiM 3.1 and later cannot read saved .trees files from prior versions of SLiM; sorry." << EidosTerminate();
-            
-            /*
-            try {
-                model_type_str = j["model_type"];
-                gen_ll = j["generation"];
-                //rem_count_ll = j["remembered_node_count"];	// no longer using this key
-            }
-            catch (...)
-            {
-                EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): error reading provenance value (file_version 0.1); this file cannot be read." << EidosTerminate();
-            }
-             */
-        }
-        else if (file_version_02.is_string())
-        {
-            // File version 0.2 was before the addition of nucleotides, so MutationMetadataRec_PRENUC will need to be used
-            // File version 0.3 supports nucleotides, using MutationMetadataRec
-            // File version 0.4 adds the model_hash key in provenance
-            // File version >= 0.5 uses top-level metadata, but we don't write that out when writing text, so we end up here and get the info from provenance
-            if (file_version_02 == SLIM_TREES_FILE_VERSION_PRENUC)
-                *p_file_version = 2;
-            else if (file_version_02 == SLIM_TREES_FILE_VERSION_POSTNUC)
-                *p_file_version = 3;
-            else if (file_version_02 == SLIM_TREES_FILE_VERSION_HASH)
-                *p_file_version = 4;
-            else if (file_version_02 == SLIM_TREES_FILE_VERSION)
-                *p_file_version = 5;
+		tsk_provenance_table_t &provenance_table = p_tables->provenances;
+		tsk_size_t num_rows = provenance_table.num_rows;
+		
+		if (num_rows <= 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): no SLiM metadata; this file cannot be read." << EidosTerminate();
+		
+		// find the last record that is a SLiM provenance entry; we allow entries after ours, on the assumption that they have preserved SLiM-compliance
+		int slim_record_index = num_rows - 1;
+		
+		for (; slim_record_index >= 0; --slim_record_index)
+		{
+			char *record = provenance_table.record + provenance_table.record_offset[slim_record_index];
+			tsk_size_t record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
+			std::string record_str(record, record_len);
+			
+			try {
+				auto j = nlohmann::json::parse(record_str);
+				
+				// for an entry to be acceptable, it has to have a "program": "SLiM" entry (file_version 0.1) or a "software"/"name": "SLiM" entry (file_version 0.2)
+				if ((j["program"] == "SLiM") || (j["software"]["name"] == "SLiM"))
+					break;
+				continue;
+			} catch (...) {
+				continue;
+			}
+		}
+		
+		if (slim_record_index == -1)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): no SLiM provenance table entry found; this file cannot be read." << EidosTerminate();
+		
+		//char *slim_timestamp = provenance_table.timestamp + provenance_table.timestamp_offset[slim_record_index];
+		char *slim_record = provenance_table.record + provenance_table.record_offset[slim_record_index];
+		tsk_size_t slim_record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
+		std::string slim_record_str(slim_record, slim_record_len);
+		auto j = nlohmann::json::parse(slim_record_str);
+		
+		//std::cout << "Read provenance:\n" << slim_record_str << std::endl;
+		
+		auto file_version_01 = j["file_version"];
+		auto file_version_02 = j["slim"]["file_version"];
+		
+		if (file_version_01.is_string() && (file_version_01 == "0.1"))
+		{
+			// We actually don't have any chance of being able to read SLiM 3.0 .trees files in, I guess;
+			// all the new individuals table stuff, the addition of the population table, etc., mean that
+			// it would just be a huge headache to try to do this.  So let's throw an error up front.
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): file_version is 0.1 in .trees file; this file cannot be read.  SLiM 3.1 and later cannot read saved .trees files from prior versions of SLiM; sorry." << EidosTerminate();
+			
+			/*
+			try {
+				model_type_str = j["model_type"];
+				gen_ll = j["generation"];
+				//rem_count_ll = j["remembered_node_count"];	// no longer using this key
+			}
+			catch (...)
+			{
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): error reading provenance value (file_version 0.1); this file cannot be read." << EidosTerminate();
+			}
+			 */
+		}
+		else if (file_version_02.is_string())
+		{
+			// File version 0.2 was before the addition of nucleotides, so MutationMetadataRec_PRENUC will need to be used
+			// File version 0.3 supports nucleotides, using MutationMetadataRec
+			// File version 0.4 adds the model_hash key in provenance
+			// File version >= 0.5 uses top-level metadata, but we don't write that out when writing text, so we end up here and get the info from provenance
+			if (file_version_02 == SLIM_TREES_FILE_VERSION_PRENUC)
+				*p_file_version = 2;
+			else if (file_version_02 == SLIM_TREES_FILE_VERSION_POSTNUC)
+				*p_file_version = 3;
+			else if (file_version_02 == SLIM_TREES_FILE_VERSION_HASH)
+				*p_file_version = 4;
+			else if (file_version_02 == SLIM_TREES_FILE_VERSION)
+				*p_file_version = 5;
 			else
-                EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim; this file cannot be read." << EidosTerminate();
-            
-            try {
-                model_type_str = j["parameters"]["model_type"];
-                gen_ll = j["slim"]["generation"];
-                //rem_count_ll = j["slim"]["remembered_node_count"];	// no longer using this key
-            }
-            catch (...)
-            {
-                EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): error reading provenance value (file_version " << file_version_02 << "); this file cannot be read." << EidosTerminate();
-            }
-        }
-        else
-        {
-            EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): missing or corrupted file version; this file cannot be read." << EidosTerminate();
-        }
-    }
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim; this file cannot be read." << EidosTerminate();
+			
+			try {
+				model_type_str = j["parameters"]["model_type"];
+				gen_ll = j["slim"]["generation"];
+				//rem_count_ll = j["slim"]["remembered_node_count"];	// no longer using this key
+			}
+			catch (...)
+			{
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): error reading provenance value (file_version " << file_version_02 << "); this file cannot be read." << EidosTerminate();
+			}
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): missing or corrupted file version; this file cannot be read." << EidosTerminate();
+		}
+	}
 	
 	// check the model type; at the moment we do not require the model type to match what we are running, but we issue a warning on a mismatch
 	if ((model_type_str != "WF") && (model_type_str != "nonWF"))
@@ -6875,9 +6882,9 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
-    // If p_binary, then write out to that path;
-    // otherwise, create p_recording_tree_path as a directory,
-    // and write out to text files in that directory
+	// If p_binary, then write out to that path;
+	// otherwise, create p_recording_tree_path as a directory,
+	// and write out to text files in that directory
 	int ret = 0;
 	
 	// Standardize the path, resolving a leading ~ and maybe other things
@@ -6890,24 +6897,24 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// First we simplify, on the original table collection; we considered doing this on the copy,
 	// but then the copy takes longer and the simplify's work is lost, and there doesn't seem to
 	// be a compelling case for leaving the original tables unsimplified.
-    if (p_simplify)
+	if (p_simplify)
 	{
-        SimplifyTreeSequence();
-    }
+		SimplifyTreeSequence();
+	}
 	else
 	{
-        // this is done by SimplifyTreeSequence() but we need to do in any case
-        int flags = TSK_NO_CHECK_INTEGRITY;
+		// this is done by SimplifyTreeSequence() but we need to do in any case
+		int flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
-        flags = 0;
+		flags = 0;
 #endif
 		ret = tsk_table_collection_sort(&tables_, /* edge_start */ NULL, /* flags */ flags);
-        if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+		if (ret < 0) handle_error("tsk_table_collection_sort", ret);
 		
-        // Remove redundant sites we added
-        ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
-        if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
-    }
+		// Remove redundant sites we added
+		ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
+		if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+	}
 	
 	// Copy the table collection so that modifications we do for writing don't affect the original tables
 	tsk_table_collection_t output_tables;
@@ -6953,18 +6960,18 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	for (size_t node_index = 0; node_index < output_tables.nodes.num_rows; ++node_index)
 		output_tables.nodes.time[node_index] += time_adjustment;
 
-    for (size_t mut_index = 0; mut_index < output_tables.mutations.num_rows; ++mut_index)
-        output_tables.mutations.time[mut_index] += time_adjustment;
+	for (size_t mut_index = 0; mut_index < output_tables.mutations.num_rows; ++mut_index)
+		output_tables.mutations.time[mut_index] += time_adjustment;
 	
 	// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
 	// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
-    WriteProvenanceTable(&output_tables, /* p_use_newlines */ p_binary, p_include_model);
+	WriteProvenanceTable(&output_tables, /* p_use_newlines */ p_binary, p_include_model);
 
-    // Add top-level metadata and metadata schema
-    WriteTreeSequenceMetadata(&output_tables, p_metadata_dict);
+	// Add top-level metadata and metadata schema
+	WriteTreeSequenceMetadata(&output_tables, p_metadata_dict);
 	
 	// Write out the copied tables
-    if (p_binary)
+	if (p_binary)
 	{
 		// derived state data must be in ASCII (or unicode) on disk, according to tskit policy
 		DerivedStatesToAscii(&output_tables);
@@ -6992,16 +6999,16 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			
 			// kastore owns buffer now, so we do not free it
 		}
-    }
+	}
 	else
 	{
-        std::string error_string;
-        bool success = Eidos_CreateDirectory(path, &error_string);
+		std::string error_string;
+		bool success = Eidos_CreateDirectory(path, &error_string);
 		
 		if (success)
 		{
-            // first translate the bytes we've put into mutation derived state into printable ascii
-            TreeSequenceDataToAscii(&output_tables);
+			// first translate the bytes we've put into mutation derived state into printable ascii
+			TreeSequenceDataToAscii(&output_tables);
 			
 			std::string NodeFileName = path + "/NodeTable.txt";
 			std::string EdgeFileName = path + "/EdgeTable.txt";
@@ -7053,7 +7060,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		{
 			EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): unable to create output folder for treeSeqOutput() (" << error_string << ")" << EidosTerminate();
 		}
-    }
+	}
 	
 	// Done with our tables copy
 	tsk_table_collection_free(&output_tables);
@@ -7306,9 +7313,9 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				for (Genome *genome : iter.second->parent_genomes_)
 					samples.push_back(genome->tsk_node_id_);
 			
-            int flags = TSK_NO_CHECK_INTEGRITY;
+			int flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
-            flags = 0;
+			flags = 0;
 #endif
 			ret = tsk_table_collection_sort(tables_copy, /* edge_start */ NULL, /* flags */ flags);
 			if (ret < 0) handle_error("tsk_table_collection_sort", ret);
@@ -7318,7 +7325,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			
 			ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS | TSK_KEEP_INPUT_ROOTS, NULL);
 			if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
-            
+			
 		// must build indexes before compute mutation parents
 		ret = tsk_table_collection_build_index(tables_copy, 0);
 		if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
@@ -8124,7 +8131,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		memcpy(&metadata, metadata_ptr, sizeof(MutationMetadataRec));
 		
 		// look up the mutation type from its index
-        MutationType *mutation_type_ptr = MutationTypeWithID(metadata.mutation_type_id_);
+		MutationType *mutation_type_ptr = MutationTypeWithID(metadata.mutation_type_id_);
 		
 		if (!mutation_type_ptr) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateMutationsFromTabulation): mutation type m" << metadata.mutation_type_id_ << " has not been defined." << EidosTerminate();
@@ -8298,9 +8305,10 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	for (size_t mut_index = 0; mut_index < tables_.mutations.num_rows; ++mut_index)
 		tables_.mutations.time[mut_index] -= time_adjustment;
 	
-	// allocate and set up the tree_sequence object that contains all the tree sequences
+	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
-	// that are not presently alive, so we have to tread carefully; the individual table is the list of who is actually alive
+	// that are not presently alive, so we have to tread carefully; the actually alive individuals are flagged with 
+	// SLIM_TSK_INDIVIDUAL_ALIVE in the individuals table (there may also be remembered and retained individuals in there too)
 	tsk_treeseq_t *ts;
 	int ret = 0;
 	
@@ -8334,38 +8342,23 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_free()", ret);
 	free(ts);
 	
-	// Figure out how many remembered genomes we have; each remembered individual has two remembered genomes
-	// First-generation individuals are also "remembered" in the present design, and so must be included
-	size_t remembered_genome_count = 0;
-	
-	for (tsk_id_t j = 0; (size_t) j < tables_.individuals.num_rows; j++)
-	{
-		uint32_t flags = tables_.individuals.flags[j];
-		if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-			remembered_genome_count += 2;
-	}
-	
-	// Set up the remembered genomes, which are (we assume) the first remembered_genome_count node table entries
-	// We could instead simply loop over the nodes and see if the individual they point to is remembered, which would
-	// not require that remembered genomes be the first rows in the node table, if we ever want to relax that assumption.
+	// Set up the remembered genomes by looking though the list of nodes and their individuals
 	if (remembered_genomes_.size() != 0)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): (internal error) remembered_genomes_ is not empty." << EidosTerminate();
 	
-	// BCH 4/27/2019: remembered_genomes_ are always the first remembered_genome_count entries in the node table...
-	for (size_t i = 0; i < remembered_genome_count; ++i)
-		remembered_genomes_.push_back((tsk_id_t)i);
-	
-	// ...but we should check that they are all in the individuals table, and either Remembered or FirstGen...
-	for (size_t i = 0; i < remembered_genome_count; ++i)
+	for (tsk_id_t j = 0; (size_t) j < tables_.nodes.num_rows; j++)
 	{
-		assert((tsk_size_t)i < tables_.nodes.num_rows);
-		tsk_id_t ind = tables_.nodes.individual[i];
-		assert((ind >= 0) && ((tsk_size_t)ind < tables_.individuals.num_rows));
-		tsk_flags_t __attribute__((__unused__)) ind_flags = tables_.individuals.flags[ind];
-		assert(ind_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED);
+		tsk_id_t ind = tables_.nodes.individual[j];
+		if (ind >=0)
+		{
+			uint32_t flags = tables_.individuals.flags[ind];
+			if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
+				remembered_genomes_.push_back(j);
+		}
 	}
-	
-	// ... and then we should sort them to match the order of the individual table, so that they satisfy
+	assert(remembered_genomes_.size() % 2 == 0);
+
+	// Sort them to match the order of the individual table, so that they satisfy
 	// the invariants asserted in SLiMSim::AddIndividualsToTable(); see the comments there
 	std::sort(remembered_genomes_.begin(), remembered_genomes_.end(), [this](tsk_id_t l, tsk_id_t r) {
 		tsk_id_t l_ind = tables_.nodes.individual[l];
@@ -8378,15 +8371,15 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	// Clear ALIVE flags
 	FixAliveIndividuals(&tables_);
 	
-	// Remove individuals that are not remembered
-    std::vector<tsk_id_t> individual_map;
-    for (tsk_id_t j = 0; (size_t) j < tables_.individuals.num_rows; j++)
-    {
-        uint32_t flags = tables_.individuals.flags[j];
-        if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-            individual_map.push_back(j);
-    }
-    ReorderIndividualTable(&tables_, individual_map, false);
+	// Remove individuals that are not remembered or retained
+	std::vector<tsk_id_t> individual_map;
+	for (tsk_id_t j = 0; (size_t) j < tables_.individuals.num_rows; j++)
+	{
+		uint32_t flags = tables_.individuals.flags[j];
+		if (flags & (SLIM_TSK_INDIVIDUAL_REMEMBERED | SLIM_TSK_INDIVIDUAL_RETAINED))
+			individual_map.push_back(j);
+	}
+	ReorderIndividualTable(&tables_, individual_map, false);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -8465,7 +8458,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 
 slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
-    int ret;
+	int ret;
 
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitBinaryFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
@@ -8492,13 +8485,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	{
 		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
 		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
-        kastore_t store;
+		kastore_t store;
 
-        ret = kastore_open(&store, p_file, "r", 0);
-        if (ret != 0) {
-            kastore_close(&store);
-            handle_error("kastore_open", ret);
-        }
+		ret = kastore_open(&store, p_file, "r", 0);
+		if (ret != 0) {
+			kastore_close(&store);
+			handle_error("kastore_open", ret);
+		}
 		
 		ret = kastore_gets_int8(&store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
 		if (ret != 0)
@@ -8512,7 +8505,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 		chromosome_->AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
 		
 		// buffer is owned by kastore and is freed by closing the store
-        kastore_close(&store);
+		kastore_close(&store);
 	}
 
 	// make the corresponding SLiM objects

@@ -5,7 +5,7 @@ class TestNoMutations(TestSlimOutput):
     def read_no_mutation_output(self, ids,
                                 filename="test_output/slim_no_mutation_output.txt"):
             # slim will be indexed by position,
-            # and contain a dict indexted by mutation type giving the indivs
+            # and contain a dict indexed by mutation type giving the indivs
             # inheriting that mut at that position
             slim_file = open(filename, "r")
             slim = []
@@ -20,25 +20,6 @@ class TestNoMutations(TestSlimOutput):
                     assert u in ids
                 slim[pos][mut] = [ids[u] for u in slim_ids]
             return slim
-
-    def get_ts(self):
-        # TODO include more tables so text input/output works
-        if False:
-            # read in from text 
-            node_file = open("test_output/NodeTable.txt", "r")
-            edge_file = open("test_output/EdgeTable.txt", "r")
-            text_ts = msprime.load_text(nodes=node_file, edges=edge_file, 
-                                   base64_metadata=False)
-            print("******* Text input.")
-            yield text_ts
-        # and binary
-        bin_ts = pyslim.load("test_output/test_output.trees")
-        print("******** Binary input.")
-        yield bin_ts
-        # and nonsimplified binary
-        print("******** Unsimplified binary.")
-        bin_nonsip_ts = pyslim.load("test_output/test_output.unsimplified.trees")
-        yield bin_nonsip_ts
 
     def check_consistency(self, x, y):
         # here y is an iterable of disjoint lists of ids (determined by indivs

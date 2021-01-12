@@ -5564,15 +5564,17 @@ This method may only be called if tree sequence recording has been turned on wit
 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
 \f3\fs18 initializeTreeSeq()
 \f4\fs20 .  If 
 \f3\fs18 simplify
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  A binary tree sequence file will be written to the specified path; a filename extension of 
+\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  (Note that if simplification is not done, then all genomes since the last simplification will be marked as samples in the resulting tree sequence.)  A binary tree sequence file will be written to the specified path; a filename extension of 
 \f3\fs18 .trees
 \f4\fs20  is suggested for this type of file.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Normally, the full SLiM script used to generate the tree sequence is written out to the provenance entry of the tree sequence file, to the 
 \f3\fs18 model
 \f4\fs20  subkey of the 
@@ -5617,18 +5619,30 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals)\
+\'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals\kerning1\expnd0\expndtw0 , [logical$\'a0permanent\'a0=\'a0T]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Permanently adds the individuals specified by 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Mark the individuals specified by 
 \f3\fs18 individuals
-\f4\fs20  to the sample retained across tree sequence table simplification.  This method may only be called if tree sequence recording has been turned on with 
+\f4\fs20  to be retained across tree sequence table simplification.  This method may only be called if tree sequence recording has been turned on with 
 \f3\fs18 initializeTreeSeq()
 \f4\fs20 .  All currently living individuals are always retained across simplification; this method does not need to be called, and indeed should not be called, for that purpose.  Instead, 
 \f3\fs18 treeSeqRememberIndividuals()
-\f4\fs20  is for 
-\f1\i permanently
-\f4\i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
+\f4\fs20  allows any individual, including dead individuals, to be retained in the final tree sequence.  Typically this would be used, for example, to retain particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
+If 
+\f3\fs18 permanent
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), then the specified individuals will be permanently remembered: their genomes will be added to the current sample, and they will always be present in the tree sequence.  Supplying 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 permanent
+\f4\fs20  will instead mark the individuals only for (temporary) retention: their genomes will not be added to the sample, and they will appear in the final tree sequence only if they are genetic ancestors of individuals in the sample.  Permanent remembering takes priority, such that calling this function with 
+\f3\fs18 permanent=F
+\f4\fs20  on an individual that has previously been permanently remembered will not remove it from the sample.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The metadata (age, location, etc) that are stored in the resulting tree sequence are those values present at either (a) the final generation, if the individual is alive at the end of the simulation, or (b) the last time that the individual was remembered, if not.  Calling 
 \f3\fs18 treeSeqRememberIndividuals()
 \f4\fs20  on an individual that is already remembered will cause the archived information about the remembered individual to be updated to reflect the individual\'92s current state.  A case where this is particularly important is for the spatial location of individuals in continuous-space models.  SLiM automatically remembers the individuals that comprise the first generation of any new subpopulation created with 

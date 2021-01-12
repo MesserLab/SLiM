@@ -44,6 +44,13 @@ do
         TESTED="yes"
     fi
 
+    if [ -e "test_output/slim_individual_output.txt" ]
+    then
+        echo "  Testing individual output."
+        python3 -m pytest test_individual_output.py || exit 1
+        TESTED="yes"
+    fi
+
     if [ "$TESTED" = "no" ]
     then
         echo "    ERROR: no test output."

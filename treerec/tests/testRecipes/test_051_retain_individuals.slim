@@ -1,0 +1,50 @@
+// A test script to check that some retained individuals are output in the TS
+// uses a modified version of the standard continuous space recipe, so that
+// we can check on the x,y position of individuals.
+
+initialize() {
+	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
+    source("marked_mutations_setup.slim");
+    initializeGenomicElementType("g1", m1, 1.0);
+    initializeGenomicElement(g1, 0, 9);
+    initializeMutationRate(0.0);
+    initializeRecombinationRate(0.2);    
+}
+1 {
+    sim.addSubpop("p1", 500);
+    // TREE SEQUENCE TEST OUTPUT
+    initializeMarks(n_marks);
+}
+
+1 late() {
+    // initial positions are random in ([0,1], [0,1])
+	p1.individuals.x = runif(p1.individualCount);
+	p1.individuals.y = runif(p1.individualCount);
+}
+modifyChild() {
+	// draw a child position near the first parent, within bounds
+	do child.x = parent1.x + rnorm(1, 0, 0.02);
+	while ((child.x < 0.0) | (child.x > 1.0));
+	
+	do child.y = parent1.y + rnorm(1, 0, 0.02);
+	while ((child.y < 0.0) | (child.y > 1.0));
+	
+	return T;
+}
+
+50 late() {
+    // retain but do not permanently remember all the individuals in this generation
+    sim.treeSeqRememberIndividuals(p1.individuals, permanent=F);
+    addIndividuals(p1.individuals, "retain");
+}
+
+100 late() {
+    // retain but do not permanently remember all the individuals in this generation
+    sim.treeSeqRememberIndividuals(p1.individuals, permanent=F);
+    addIndividuals(p1.individuals, "retain");
+}
+
+200 late() {
+    outputIndividuals();
+    outputMutationResult(); // required to output TS
+}
