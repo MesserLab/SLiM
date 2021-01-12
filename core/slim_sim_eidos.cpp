@@ -1784,6 +1784,12 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 				cached_value_generation_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
 			return cached_value_generation_;
 		}
+		case gID_generationStage:
+		{
+			SLiMGenerationStage generation_stage = GenerationStage();
+			std::string generation_stage_str = StringForSLiMGenerationStage(generation_stage);
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(generation_stage_str));
+		}
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -3663,6 +3669,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeffX,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generation,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generationStage,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);

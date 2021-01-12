@@ -331,6 +331,12 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX = 0.2; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation; } ", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop, __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.generationStage == 'early') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.generationStage == 'early') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 late() { if (sim.generationStage == 'late') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "modifyChild(p1) { if (sim.generationStage == 'reproduction') stop(); } 2 {}", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "fitness(m1) { if (sim.generationStage == 'fitness') stop(); } 100 {}", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { sim.generationStage = 'early'; } ", 1, 236, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.genomicElementTypes == g1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.genomicElementTypes = g1; } ", 1, 240, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);

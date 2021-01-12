@@ -92,28 +92,7 @@ EidosValue_SP LogFile::_GeneratedValue_GenerationStage(const LogFileGeneratorInf
 {
 #pragma unused(p_generator_info)
 	SLiMGenerationStage generation_stage = sim_.GenerationStage();
-	std::string stage_string;
-	
-	switch (generation_stage)
-	{
-			// some of these are not user-visible since there is no way to make a row log out during them (no callbacks)
-		case SLiMGenerationStage::kStage0PreGeneration: stage_string = "begin"; break;
-		case SLiMGenerationStage::kWFStage1ExecuteEarlyScripts: stage_string = "early"; break;
-		case SLiMGenerationStage::kWFStage2GenerateOffspring: stage_string = "reproduction"; break;
-		case SLiMGenerationStage::kWFStage3RemoveFixedMutations: stage_string = "tally"; break;
-		case SLiMGenerationStage::kWFStage4SwapGenerations: stage_string = "swap"; break;
-		case SLiMGenerationStage::kWFStage5ExecuteLateScripts: stage_string = "late"; break;
-		case SLiMGenerationStage::kWFStage6CalculateFitness: stage_string = "fitness"; break;
-		case SLiMGenerationStage::kWFStage7AdvanceGenerationCounter: stage_string = "end"; break;
-		case SLiMGenerationStage::kNonWFStage1GenerateOffspring: stage_string = "reproduction"; break;
-		case SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts: stage_string = "early"; break;
-		case SLiMGenerationStage::kNonWFStage3CalculateFitness: stage_string = "fitness"; break;
-		case SLiMGenerationStage::kNonWFStage4SurvivalSelection: stage_string = "selection"; break;
-		case SLiMGenerationStage::kNonWFStage5RemoveFixedMutations: stage_string = "tally"; break;
-		case SLiMGenerationStage::kNonWFStage6ExecuteLateScripts: stage_string = "late"; break;
-		case SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter: stage_string = "end"; break;
-		case SLiMGenerationStage::kStage8PostGeneration: stage_string = "console"; break;
-	}
+	std::string stage_string = StringForSLiMGenerationStage(generation_stage);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(stage_string));
 }

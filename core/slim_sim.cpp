@@ -73,6 +73,32 @@ extern "C" {
 }
 #endif
 
+std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage)
+{
+	switch (p_stage)
+	{
+		// some of these are not user-visible
+		case SLiMGenerationStage::kStage0PreGeneration: return "begin";
+		case SLiMGenerationStage::kWFStage1ExecuteEarlyScripts: return "early";
+		case SLiMGenerationStage::kWFStage2GenerateOffspring: return "reproduction";
+		case SLiMGenerationStage::kWFStage3RemoveFixedMutations: return "tally";
+		case SLiMGenerationStage::kWFStage4SwapGenerations: return "swap";
+		case SLiMGenerationStage::kWFStage5ExecuteLateScripts: return "late";
+		case SLiMGenerationStage::kWFStage6CalculateFitness: return "fitness";
+		case SLiMGenerationStage::kWFStage7AdvanceGenerationCounter: return "end";
+		case SLiMGenerationStage::kNonWFStage1GenerateOffspring: return "reproduction";
+		case SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts: return "early";
+		case SLiMGenerationStage::kNonWFStage3CalculateFitness: return "fitness";
+		case SLiMGenerationStage::kNonWFStage4SurvivalSelection: return "selection";
+		case SLiMGenerationStage::kNonWFStage5RemoveFixedMutations: return "tally";
+		case SLiMGenerationStage::kNonWFStage6ExecuteLateScripts: return "late";
+		case SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter: return "end";
+		case SLiMGenerationStage::kStage8PostGeneration: return "console";
+	}
+	
+	EIDOS_TERMINATION << "ERROR (StringForSLiMGenerationStage): (internal) unrecognized generation stage." << EidosTerminate();
+}
+
 // This is the version written to the provenance table of .trees files
 static const char *SLIM_TREES_FILE_VERSION_INITIAL __attribute__((unused)) = "0.1";		// SLiM 3.0, before the Inidividual table, etc.; UNSUPPORTED
 static const char *SLIM_TREES_FILE_VERSION_PRENUC = "0.2";		// before introduction of nucleotides

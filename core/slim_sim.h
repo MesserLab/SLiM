@@ -96,6 +96,8 @@ enum class SLiMGenerationStage
 	kStage8PostGeneration = 201,
 };
 
+std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage);
+
 enum class SLiMFileFormat
 {
 	kFileNotFound = -1,

@@ -15,6 +15,8 @@ development head:
 	fix segfault-causing bug in Eidos argument processing for certain recursive calling patterns
 	tweak recipes to not use outputFull() when the output would be very large, to avoid long output delays
 	enable multiple selection in the Find Recipe panel
+	add a [permanent=T] optional flag to treeSeqRememberIndividuals() to allow for individuals to be "retained" rather than "remembered", thanks to Yan Wong
+	add a generationStage property to SLiMSim to access the current generation cycle stage
 
 
 version 3.5 (build 2663; Eidos version 2.5):

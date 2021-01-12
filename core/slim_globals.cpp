@@ -1088,6 +1088,7 @@ const std::string &gStr_subpopulations = EidosRegisteredString("subpopulations",
 const std::string &gStr_substitutions = EidosRegisteredString("substitutions", gID_substitutions);
 const std::string &gStr_dominanceCoeffX = EidosRegisteredString("dominanceCoeffX", gID_dominanceCoeffX);
 const std::string &gStr_generation = EidosRegisteredString("generation", gID_generation);
+const std::string &gStr_generationStage = EidosRegisteredString("generationStage", gID_generationStage);
 const std::string &gStr_colorSubstitution = EidosRegisteredString("colorSubstitution", gID_colorSubstitution);
 const std::string &gStr_tag = EidosRegisteredString("tag", gID_tag);
 const std::string &gStr_tagF = EidosRegisteredString("tagF", gID_tagF);
