@@ -516,6 +516,8 @@ inline std::vector<int64_t> EidosSortIndexes<double>(const double *p_v, size_t p
 	return idx;
 }
 
+extern int gEidosFloatOutputPrecision;		// precision used for output of float values in Eidos; not user-visible at present
+
 std::string EidosStringForFloat(double p_value);
 
 // Fisher-Yates Shuffle: choose a random subset of a std::vector, without replacement.

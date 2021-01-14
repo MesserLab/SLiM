@@ -831,6 +831,7 @@ extern const std::string &gStr_createLogFile;
 extern const std::string &gStr_logFiles;
 extern const std::string &gStr_LogFile;
 extern const std::string &gStr_logInterval;
+extern const std::string &gStr_precision;
 extern const std::string &gStr_addCustomColumn;
 extern const std::string &gStr_addGeneration;
 extern const std::string &gStr_addGenerationStage;
@@ -1158,6 +1159,7 @@ enum _SLiMGlobalStringID : int {
 	gID_logFiles,
 	gID_LogFile,
 	gID_logInterval,
+	gID_precision,
 	gID_addCustomColumn,
 	gID_addGeneration,
 	gID_addGenerationStage,

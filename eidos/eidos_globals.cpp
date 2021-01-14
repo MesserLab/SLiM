@@ -73,6 +73,8 @@ bool eidos_do_memory_checks = true;
 
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
+int gEidosFloatOutputPrecision = 6;
+
 
 #pragma mark -
 #pragma mark Profiling support
@@ -2171,6 +2173,7 @@ std::string EidosStringForFloat(double p_value)
 	{
 		// could probably use std::to_string() instead, but need to think about precision etc.
 		std::ostringstream ss;
+		ss << std::setprecision(gEidosFloatOutputPrecision);
 		ss << p_value;
 		return ss.str();
 	}

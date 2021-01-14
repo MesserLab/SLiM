@@ -1287,6 +1287,7 @@ const std::string &gStr_createLogFile = EidosRegisteredString("createLogFile", g
 const std::string &gStr_logFiles = EidosRegisteredString("logFiles", gID_logFiles);
 const std::string &gStr_LogFile = EidosRegisteredString("LogFile", gID_LogFile);
 const std::string &gStr_logInterval = EidosRegisteredString("logInterval", gID_logInterval);
+const std::string &gStr_precision = EidosRegisteredString("precision", gID_precision);
 const std::string &gStr_addCustomColumn = EidosRegisteredString("addCustomColumn", gID_addCustomColumn);
 const std::string &gStr_addGeneration = EidosRegisteredString("addGeneration", gID_addGeneration);
 const std::string &gStr_addGenerationStage = EidosRegisteredString("addGenerationStage", gID_addGenerationStage);

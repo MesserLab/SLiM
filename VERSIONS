@@ -17,6 +17,7 @@ development head:
 	enable multiple selection in the Find Recipe panel
 	add a [permanent=T] optional flag to treeSeqRememberIndividuals() to allow for individuals to be "retained" rather than "remembered", thanks to Yan Wong
 	add a generationStage property to SLiMSim to access the current generation cycle stage
+	add a precision property to LogFile to govern the floating-point precision of its output (for other types of output, format() can often be used to get a specific output precision)
 
 
 version 3.5 (build 2663; Eidos version 2.5):
