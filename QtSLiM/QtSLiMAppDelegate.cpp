@@ -333,22 +333,37 @@ QtSLiMWindow *QtSLiMAppDelegate::openFile(const QString &fileName, QtSLiMWindow 
 
 void QtSLiMAppDelegate::openRecipeWithName(const QString &recipeName, const QString &recipeScript, QtSLiMWindow *requester)
 {
-    if (!requester)
-        requester = activeQtSLiMWindow();
-    
-    if (requester && requester->windowIsReuseable())
+    if (recipeName.endsWith(".py"))
     {
-        requester->loadRecipe(recipeName, recipeScript);
-        return;
+        // Python recipes live in GitHub and get opened in the user's browser.  This seems like the best solution;
+        // we don't want SLiMgui to become a Python IDE, so we don't want to open them in-app, but there is no
+        // good cross-platform solution for opening them in an app that makes sense, or even for revealing them
+        // on the desktop.  See https://github.com/MesserLab/SLiM/issues/137 for discussion.
+        QString urlString = "https://raw.githubusercontent.com/MesserLab/SLiM/master/QtSLiM/recipes/";
+        urlString.append(recipeName);
+        
+        QDesktopServices::openUrl(QUrl(urlString, QUrl::TolerantMode));
     }
-    
-    QtSLiMWindow *window = new QtSLiMWindow(recipeName, recipeScript);
-    if (!window->isRecipe) {
-        delete window;
-        return;
+    else
+    {
+        // SLiM recipes get opened in a new window (or reusing the current window, if applicable)
+        if (!requester)
+            requester = activeQtSLiMWindow();
+        
+        if (requester && requester->windowIsReuseable())
+        {
+            requester->loadRecipe(recipeName, recipeScript);
+            return;
+        }
+        
+        QtSLiMWindow *window = new QtSLiMWindow(recipeName, recipeScript);
+        if (!window->isRecipe) {
+            delete window;
+            return;
+        }
+        window->tile(requester);
+        window->show();
     }
-    window->tile(requester);
-    window->show();
 }
 
 
