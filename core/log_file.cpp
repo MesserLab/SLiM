@@ -496,7 +496,7 @@ void LogFile::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			if ((value < 1) || (value > 22))
 				EIDOS_TERMINATION << "ERROR (LogFile::SetProperty): property precision must be in [1,22]." << EidosTerminate();
 			
-			float_precision_ = value;
+			float_precision_ = (int)value;
 			
 			return;
 		}

@@ -47,6 +47,7 @@
 #include <limits>
 #include <cmath>
 #include <utility>
+#include <iomanip>
 #include <sys/param.h>
 
 // added for Eidos_mkstemps() and Eidos_SlashTmpExists()
