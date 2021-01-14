@@ -3,8 +3,9 @@
 // A test script using a cyclically varying subpop size
 //
 initialize() {
-    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
-    source("testing_utils.slim");
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+    initializeTreeSeq();
 	initializeMutationRate(1e-6);
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -19,9 +20,9 @@ initialize() {
 	p1.setSubpopulationSize(asInteger(newSize));
 }
 100 {
-    chooseAncestralSamples(5);
+	addAncestralSamples(5);
 }
 500 late() { 
-    outputMutationResult();
-    cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
+	outputMutationResult();
+	cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
 }

@@ -3,8 +3,9 @@
 // A test script using a linear island neutral model
 //
 initialize() {
-    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
-    source("testing_utils.slim");
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+    initializeTreeSeq();
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -21,9 +22,9 @@ initialize() {
 		sim.subpopulations[i-1].setMigrationRates(i+1, 0.05);
 }
 100 {
-    chooseAncestralSamples(5);
+	addAncestralSamples(5);
 }
 500 late() { 
-    outputMutationResult();
-    cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
+	outputMutationResult();
+	cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
 }

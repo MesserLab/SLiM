@@ -3,8 +3,9 @@
 // A test script for cloning
 //
 initialize() {
-    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
-    source("testing_utils.slim");
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+    initializeTreeSeq();
 	initializeSex("A");
 	initializeMutationRate(1e-7);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -18,8 +19,8 @@ initialize() {
 	p1.setCloningRate(1.0);
 }
 100 {
-    chooseAncestralSamples(5);
+	addAncestralSamples(5);
 }
 500 late() { 
-    outputMutationResult();
+	outputMutationResult();
 }

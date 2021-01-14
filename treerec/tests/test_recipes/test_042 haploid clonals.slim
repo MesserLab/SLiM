@@ -4,8 +4,9 @@
 //
 
 initialize() {
-    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
-    source("testing_utils.slim");
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+    initializeTreeSeq();
 	defineConstant("L", 1e6);
 	defineConstant("mu", 1e-7);
 	defineConstant("N", 500);
@@ -30,8 +31,8 @@ late() {
 	sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
 5 {
-    chooseAncestralSamples(5);
+	addAncestralSamples(5);
 }
 9 late() { 
-    outputMutationResult();
+	outputMutationResult();
 }

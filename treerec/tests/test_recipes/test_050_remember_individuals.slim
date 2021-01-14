@@ -4,20 +4,21 @@
 
 initialize() {
 	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
-    source("marked_mutations_setup.slim");
-    initializeGenomicElementType("g1", m1, 1.0);
-    initializeGenomicElement(g1, 0, 9);
-    initializeMutationRate(0.0);
-    initializeRecombinationRate(0.2);    
+	source("init_marked_mutations.slim");
+    initializeTreeSeq();
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 9);
+	initializeMutationRate(0.0);
+	initializeRecombinationRate(0.2);
 }
 1 {
-    sim.addSubpop("p1", 500);
-    // TREE SEQUENCE TEST OUTPUT
-    initializeMarks(n_marks);
+	sim.addSubpop("p1", 500);
+	// TREE SEQUENCE TEST OUTPUT
+	initializeMarks(n_marks);
 }
 
 1 late() {
-    // initial positions are random in ([0,1], [0,1])
+	// initial positions are random in ([0,1], [0,1])
 	p1.individuals.x = runif(p1.individualCount);
 	p1.individuals.y = runif(p1.individualCount);
 }
@@ -33,12 +34,13 @@ modifyChild() {
 }
 
 50 late() {
-    // permanently remember the first 5 individuals
-    sim.treeSeqRememberIndividuals(p1.individuals[1:5], permanent=T);
-    addIndividuals(p1.individuals[1:5]);
+	// permanently remember the first 5 individuals
+	sim.treeSeqRememberIndividuals(p1.individuals[1:5], permanent=T);
+	addIndividuals(p1.individuals[1:5]);
 }
 
 200 late() {
-    outputIndividuals();
-    outputMutationResult(); // required to output TS
+	outputIndividuals();
+	outputMutationResult();
+	sim.simulationFinished();
 }
