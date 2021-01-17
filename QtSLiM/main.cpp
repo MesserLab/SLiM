@@ -183,15 +183,13 @@ int main(int argc, char *argv[])
     // Tell Qt to use high-DPI pixmaps for icons
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     
-    // On macOS, turn off the automatic quit on last window close
-    // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-    // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-    // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-    // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-    // the other spots in the code related to this mess.
-    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
+    // On macOS, turn off the automatic quit on last window close, for Qt 5.15.2.
+    // Builds against older Qt versions will just quit on the last window close, because
+    // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-    app.setQuitOnLastWindowClosed(true);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
+    app.setQuitOnLastWindowClosed(false);
+#endif
 #endif
     
     // Parse the command line

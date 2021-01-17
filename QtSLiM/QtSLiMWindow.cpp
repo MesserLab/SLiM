@@ -198,20 +198,20 @@ QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScrip
 
 void QtSLiMWindow::init(void)
 {
+    // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2.
+    // However, Qt's treatment of the menu bar seems to be a bit buggy unless a main window exists.
+    // That main window can be hidden; it just needs to exist.  So here we just allow our main
+    // window(s) to leak,so that Qt is happy.  This sucks, obviously, but really it seems unlikely
+    // to matter.  The window will notice its zombified state when it is closed, and will free
+    // resources and mark itself as a zombie so it doesn't get included in the Window menu, etc.
+    // Builds against older Qt versions will just quit on the last window close, because
+    // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-    // On macOS we want to stay running when the last main window closes, following platform UI guidelines.
-    // However, Qt's treatment of the menu bar seems to be a bit buggy unless a main window exists.  That
-    // main window can be hidden; it just needs to exist.  So here we just allow our main window(s) to leak,
-    // so that Qt is happy.  This sucks, obviously, but really it seems unlikely to matter.  The window will
-    // notice its zombified state when it is closed, and will free resources and mark itself as a zombie so
-    // it doesn't get included in the Window menu, etc.
-    // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-    // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-    // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-    // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-    // the other spots in the code related to this mess.
-    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
+    // no set of the attribute on Qt 5.15.2; we will *not* delete on close
+#else
     setAttribute(Qt::WA_DeleteOnClose);
+#endif
 #else
     setAttribute(Qt::WA_DeleteOnClose);
 #endif
@@ -678,6 +678,60 @@ QtSLiMWindow::~QtSLiMWindow()
     }
 }
 
+void QtSLiMWindow::invalidateUI(void)
+{
+    // This is called only on macOS, when a window closes.  We can't be deleted, because
+    // that screws up the global menu bar.  Instead, we need to go into a zombie state,
+    // by freeing up our graph windows, console, etc., but remain allocated (but hidden).
+    // The main goal is erasing all traces of us in the user interface; freeing the
+    // maximal amount of memory is less of a concern, since we're not talking about
+    // that much memory anyway.
+    
+    // First set a flag indicating that we're going into zombie mode
+    isZombieWindow_ = true;
+    
+    // Stop all timers, so we don't try to play in the background
+    continuousPlayElapsedTimer_.invalidate();
+    continuousPlayInvocationTimer_.stop();
+    continuousProfileInvocationTimer_.stop();
+    playOneStepInvocationTimer_.stop();
+    
+    continuousPlayOn_ = false;
+    profilePlayOn_ = false;
+    nonProfilePlayOn_ = false;
+    generationPlayOn_ = false;
+    
+    // Recycle to throw away any bulky simulation state; set the default script first to avoid errors
+    ui->scriptTextEdit->setPlainText(QString::fromStdString(defaultWFScriptString()));
+    recycleClicked();
+    
+    // Close the variable browser and Eidos console
+    if (consoleController)
+    {
+        QtSLiMVariableBrowser *browser = consoleController->variableBrowser();
+        
+        if (browser)
+            browser->close();
+        
+        consoleController->close();
+    }
+    
+    // Close the tables drawer
+    if (tablesDrawerController)
+        tablesDrawerController->close();
+    
+    // Close all other subsidiary windows
+    const QObjectList &child_objects = children();
+    
+    for (QObject *child_object : child_objects)
+    {
+        QWidget *child_widget = qobject_cast<QWidget *>(child_object);
+        
+        if (child_widget && child_widget->isVisible() && (child_widget->windowFlags() & Qt::Window))
+            child_widget->close();
+    }
+}
+
 const QColor &QtSLiMWindow::blackContrastingColorForIndex(int index)
 {
     static std::vector<QColor> colorArray;
@@ -758,20 +812,17 @@ void QtSLiMWindow::closeEvent(QCloseEvent *p_event)
         // We used to save the window size/position here, but now that is done in moveEvent() / resizeEvent()
         p_event->accept();
         
-        // We no longer get freed when we close, because we need to stick around to make the global menubar
-        // work; see QtSLiMWindow::init().  So when we're closing, we now free up the resources we hold.
-        // This should close and free all auxiliary windows, while leaving us alive.
-        // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-        // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-        // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-        // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-        // the other spots in the code related to this mess.
-        // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
-        
-        // This function was still under development, and has been removed; the idea was to tear down unneeded
-        // UI on the window being permanently hidden, like graph views, Eidos console, object tables window,
-        // variable browser, haplotype plots... but there wasn't really any useful, debugged code yet.
-        //invalidate();
+        // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2.
+        // In that case, we no longer get freed when we close, because we need to stick around
+        // to make the global menubar work; see QtSLiMWindow::init().  So when we're closing,
+        // we now free up the resources we hold and mark ourselves as a zombie window.
+        // Builds against older Qt versions will just quit on the last window close, because
+        // QTBUG-86874 and QTBUG-86875 prevent this from working.
+#ifdef __APPLE__
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
+        invalidateUI();
+#endif
+#endif
     }
     else
     {
@@ -1536,6 +1587,7 @@ void QtSLiMWindow::updateUIEnabling(void)
 
 void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 {
+    ui->actionClose->setEnabled(true);
     ui->actionSave->setEnabled(true);
     ui->actionSaveAs->setEnabled(true);
     ui->actionRevertToSaved->setEnabled(!isUntitled);
@@ -1574,6 +1626,9 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 
 void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *focusWindow)
 {
+    QWidget *currentActiveWindow = QApplication::activeWindow();
+    ui->actionClose->setEnabled(currentActiveWindow ? true : false);
+    
     ui->actionSave->setEnabled(false);
     ui->actionSaveAs->setEnabled(false);
     ui->actionRevertToSaved->setEnabled(false);
@@ -1709,7 +1764,7 @@ void QtSLiMWindow::updateWindowMenu(void)
     {
         QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
         
-        if (mainWin)
+        if (mainWin && !mainWin->isZombieWindow_)
         {
             QString title = mainWin->windowTitle();
             
@@ -3305,16 +3360,19 @@ void QtSLiMWindow::generationChanged(void)
 void QtSLiMWindow::recycleClicked(void)
 {
     // If the user has requested autosaves, act on that; these calls run modal, blocking panels
-    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
-    
-    if (prefsNotifier.autosaveOnRecyclePref())
+    if (!isZombieWindow_)
     {
-        if (!isUntitled)
-            saveFile(currentFile);
-        else if (prefsNotifier.showSaveIfUntitledPref())
-            saveAs();
-        //else
-        //    qApp->beep();
+        QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+        
+        if (prefsNotifier.autosaveOnRecyclePref())
+        {
+            if (!isUntitled)
+                saveFile(currentFile);
+            else if (prefsNotifier.showSaveIfUntitledPref())
+                saveAs();
+            //else
+            //    qApp->beep();
+        }
     }
     
     // Now do the recycle

@@ -196,17 +196,6 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     // Set the application icon; this fixes the app icon in the dock/toolbar/whatever,
     // even if the right icon is not attached for display in the desktop environment
     app->setWindowIcon(appIcon_);
-    
-#ifdef __APPLE__
-    // On macOS, make the global menu bar for use when no other window is open
-    // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-    // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-    // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-    // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-    // the other spots in the code related to this mess.
-    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
-    //makeGlobalMenuBar();
-#endif
 }
 
 QtSLiMAppDelegate::~QtSLiMAppDelegate(void)
@@ -1011,15 +1000,13 @@ void QtSLiMAppDelegate::dispatch_quit(void)
     {
         qApp->closeAllWindows();
         
+        // On macOS, explicitly quit since last window close doesn't auto-quit, for Qt 5.15.2.
+        // Builds against older Qt versions will just quit on the last window close, because
+        // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-        // On macOS, simply closing all windows doesn't suffice; we need to explicitly quit
-        // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-        // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-        // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-        // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-        // the other spots in the code related to this mess.
-        // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
-        //qApp->quit();
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
+        qApp->quit();
+#endif
 #endif
     }
 }
@@ -1386,92 +1373,6 @@ void QtSLiMAppDelegate::dispatch_helpStickSoftware(void)
     QDesktopServices::openUrl(QUrl("http://www.sticksoftware.com/", QUrl::TolerantMode));
 }
 
-void QtSLiMAppDelegate::makeGlobalMenuBar(void)
-{
-#ifdef __APPLE__
-    // Make a global menubar that gets used when no window is open, on macOS
-    // We do this only on demand because otherwise Qt seem to get confused about the automatic menu item repositioning
-    // It's really gross to have to duplicate the menu structure here in code, but I don't see an easy way to copy existing menus
-    if (!windowlessMenuBar)
-    {
-        windowlessMenuBar = new QMenuBar(nullptr);
-        QMenu *fileMenu = new QMenu("File", windowlessMenuBar);
-        
-        windowlessMenuBar->addMenu(fileMenu);
-        
-        fileMenu->addAction("About SLiMgui", this, &QtSLiMAppDelegate::dispatch_about);
-        fileMenu->addAction("Preferences...", this, &QtSLiMAppDelegate::dispatch_preferences, Qt::CTRL + Qt::Key_Comma);
-        fileMenu->addSeparator();
-        fileMenu->addAction("New", this, &QtSLiMAppDelegate::dispatch_newWF, Qt::CTRL + Qt::Key_N);
-        fileMenu->addAction("New (nonWF)", this, &QtSLiMAppDelegate::dispatch_newNonWF, Qt::CTRL + Qt::SHIFT + Qt::Key_N);
-        fileMenu->addAction("Open...", this, &QtSLiMAppDelegate::dispatch_open, Qt::CTRL + Qt::Key_O);
-        QMenu *openRecent = fileMenu->addMenu("Open Recent");
-        QMenu *openRecipe = fileMenu->addMenu("Open Recipe");
-        fileMenu->addSeparator();
-        fileMenu->addAction("Close", this, &QtSLiMAppDelegate::dispatch_close, Qt::CTRL + Qt::Key_W);
-        QAction *actionSave = fileMenu->addAction("Save");
-        actionSave->setShortcut(Qt::CTRL + Qt::Key_S);
-        actionSave->setEnabled(false);
-        QAction *actionSaveAs = fileMenu->addAction("Save As...");
-        actionSaveAs->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_S);
-        actionSaveAs->setEnabled(false);
-        fileMenu->addAction("Revert to Saved")->setEnabled(false);
-        fileMenu->addSeparator();
-        fileMenu->addAction("Quit SLiMgui", this, &QtSLiMAppDelegate::dispatch_quit, Qt::CTRL + Qt::Key_Q);
-        
-        setUpRecentsMenu(openRecent);
-        
-        QAction *findRecipeAction = openRecipe->addAction("Find Recipe...");
-        findRecipeAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_O);
-        openRecipe->addSeparator();
-        setUpRecipesMenu(openRecipe, findRecipeAction);
-        
-        QMenu *editMenu = new QMenu("Edit", windowlessMenuBar);
-        
-        windowlessMenuBar->addMenu(editMenu);
-        
-        editMenu->addAction("Undo", this, &QtSLiMAppDelegate::dispatch_undo, Qt::CTRL + Qt::Key_Z)->setEnabled(false);
-        editMenu->addAction("Redo", this, &QtSLiMAppDelegate::dispatch_redo, Qt::CTRL + Qt::SHIFT + Qt::Key_Z)->setEnabled(false);
-        editMenu->addSeparator();
-        editMenu->addAction("Cut", this, &QtSLiMAppDelegate::dispatch_cut, Qt::CTRL + Qt::Key_X)->setEnabled(false);
-        editMenu->addAction("Copy", this, &QtSLiMAppDelegate::dispatch_copy, Qt::CTRL + Qt::Key_C)->setEnabled(false);
-        editMenu->addAction("Paste", this, &QtSLiMAppDelegate::dispatch_paste, Qt::CTRL + Qt::Key_V)->setEnabled(false);
-        editMenu->addAction("Delete", this, &QtSLiMAppDelegate::dispatch_delete)->setEnabled(false);
-        editMenu->addAction("Select All", this, &QtSLiMAppDelegate::dispatch_selectAll, Qt::CTRL + Qt::Key_A)->setEnabled(false);
-        editMenu->addSeparator();
-        
-        QMenu *findMenu = editMenu->addMenu("Find");
-        
-        findMenu->addAction("Find...", this, &QtSLiMAppDelegate::dispatch_findShow, Qt::CTRL + Qt::Key_F);
-        findMenu->addAction("Find Next", this, &QtSLiMAppDelegate::dispatch_findNext, Qt::CTRL + Qt::Key_G)->setEnabled(false);
-        findMenu->addAction("Find Previous", this, &QtSLiMAppDelegate::dispatch_findPrevious, Qt::CTRL + Qt::SHIFT + Qt::Key_G)->setEnabled(false);
-        findMenu->addAction("Replace && Find", this, &QtSLiMAppDelegate::dispatch_replaceAndFind, Qt::CTRL + Qt::ALT + Qt::Key_G)->setEnabled(false);
-        findMenu->addAction("Use Selection for Find", this, &QtSLiMAppDelegate::dispatch_useSelectionForFind, Qt::CTRL + Qt::Key_E)->setEnabled(false);
-        findMenu->addAction("Use Selection for Replace", this, &QtSLiMAppDelegate::dispatch_useSelectionForReplace, Qt::CTRL + Qt::ALT + Qt::Key_E)->setEnabled(false);
-        findMenu->addAction("Jump to Selection", this, &QtSLiMAppDelegate::dispatch_jumpToSelection, Qt::CTRL + Qt::Key_J)->setEnabled(false);
-        findMenu->addAction("Jump to Line", this, &QtSLiMAppDelegate::dispatch_jumpToLine, Qt::CTRL + Qt::Key_L)->setEnabled(false);
-        
-        QMenu *helpMenu = new QMenu("Help", windowlessMenuBar);
-        
-        windowlessMenuBar->addMenu(helpMenu);
-        
-        helpMenu->addAction("SLiMgui Help", this, &QtSLiMAppDelegate::dispatch_help);
-        helpMenu->addAction("SLiMgui Workshops", this, &QtSLiMAppDelegate::dispatch_helpWorkshops);
-        helpMenu->addSeparator();
-        helpMenu->addAction("Send Feedback on SLiM", this, &QtSLiMAppDelegate::dispatch_helpFeedback);
-        helpMenu->addAction("Mailing List: slim-announce", this, &QtSLiMAppDelegate::dispatch_helpSLiMAnnounce);
-        helpMenu->addAction("Mailing List: slim-discuss", this, &QtSLiMAppDelegate::dispatch_helpSLiMDiscuss);
-        helpMenu->addSeparator();
-        helpMenu->addAction("SLiM Home Page", this, &QtSLiMAppDelegate::dispatch_helpSLiMHome);
-        helpMenu->addAction("SLiM-Extras on GitHub", this, &QtSLiMAppDelegate::dispatch_helpSLiMExtras);
-        helpMenu->addSeparator();
-        helpMenu->addAction("About the Messer Lab", this, &QtSLiMAppDelegate::dispatch_helpMesserLab)->setMenuRole(QAction::NoRole);
-        helpMenu->addAction("About Ben Haller", this, &QtSLiMAppDelegate::dispatch_helpBenHaller)->setMenuRole(QAction::NoRole);
-        helpMenu->addAction("About Stick Software", this, &QtSLiMAppDelegate::dispatch_helpStickSoftware)->setMenuRole(QAction::NoRole);
-    }
-#endif
-}
-
 
 //
 //  Active QtSLiMWindow tracking
@@ -1530,7 +1431,17 @@ void QtSLiMAppDelegate::pruneWindowList(void)
         QPointer<QWidget> &focused_window_ptr = focusedWindowList[listIndex];
         
         if (focused_window_ptr && focused_window_ptr->isVisible() && !focused_window_ptr->isHidden())
-            continue;
+        {
+            // prune zombie windows
+            bool isZombie = false;
+            QtSLiMWindow *qtSLiMWindow = qobject_cast<QtSLiMWindow *>(focused_window_ptr);
+            
+            if (qtSLiMWindow)
+                isZombie = qtSLiMWindow->isZombieWindow_;
+            
+            if (!isZombie)
+                continue;
+        }
         
         // prune
         focusedWindowList.removeAt(listIndex);

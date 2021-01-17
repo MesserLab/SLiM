@@ -162,9 +162,6 @@ private:
     void pruneWindowList(void);                         // remove all windows that are closed or hidden
     bool queuedActiveWindowUpdate = false;
     
-    void makeGlobalMenuBar(void);                       // make the global menu bar, for use with no main windows open; macOS only, does nothing on other platforms
-    QMenuBar *windowlessMenuBar = nullptr;
-    
     void updateRecentFileActions(void);
     void openRecentFile(void);
     void clearRecentFiles(void);

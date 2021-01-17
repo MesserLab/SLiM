@@ -106,6 +106,7 @@ private:
     int openedGraphCount_bottom = 0;
     
 public:
+    bool isZombieWindow_ = false;   // set when the UI is invalidated, to avoid various issues
     bool isUntitled = false, isRecipe = false, isTransient = false;
     QString currentFile;
     
@@ -324,6 +325,8 @@ protected:
     
 private:
     void glueUI(void);
+    void invalidateUI(void);
+    
     Ui::QtSLiMWindow *ui;
 };
 
