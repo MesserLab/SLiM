@@ -43,6 +43,9 @@ class QtSLiMAppDelegate : public QObject
     std::string app_cwd_;       // the app's current working directory
     bool launchedFromShell_;	// true if launched from shell, false if launched from Finder/other
     
+    bool closeRejected_ = false;    // true if the user cancels the close of a window, to prevent quit
+    bool inDarkMode_ = false;
+    
     QIcon appIcon_;
     QIcon appIconHighlighted_;
     QIcon slimDocumentIcon_;
@@ -87,6 +90,8 @@ public:
     
 public slots:
     void appDidFinishLaunching(QtSLiMWindow *initialWindow);
+    
+    void closeRejected(void) { closeRejected_ = true; }
     
     void findRecipe(void);
     void openRecipe(void);
@@ -154,6 +159,7 @@ public slots:
 signals:
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);
     void activeWindowListChanged(void);
+    void applicationPaletteChanged(void);
     
 private:
     virtual bool eventFilter(QObject *p_obj, QEvent *p_event) override;

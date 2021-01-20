@@ -12,9 +12,12 @@
 #include "eidos_globals.h"
 #include "eidos_symbol_table.h"
 
+// Include objc headers if needed for macos_ForceLightMode()
 #ifdef __APPLE__
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
 #include <objc/runtime.h>
-#include  <objc/message.h>
+#include <objc/message.h>
+#endif
 #endif
 
 #if SLIM_LEAK_CHECKING
@@ -44,7 +47,16 @@ static void clean_up_leak_false_positives(void)
 // which do not use the custom Info.plist at this time.  The custom Info.plist is
 // necessary because this function, for some reason, does not succeed in forcing light
 // mode when QtSLiM is built with qmake at the command line.
+// BCH 1/17/2021: We now try to force light mode only when compiled against a Qt version
+// earlier than 5.15.2 (since Qt did not support dark mode well prior to that version).
+// Since the double-click install version is built against 5.15.2, this should mean that
+// most macOS users get dark mode support.  The NSRequiresAquaSystemAppearance key in our
+// QtSLiM_Info.plist file, which was set to <true/> to force light mode, has been
+// removed.  As per the above comment, this may mean that macOS builds against a Qt version
+// earlier than 5.15.2 will not succeed in forcing light mode.  For this reason and others,
+// we now require Qt 5.15.2 when building on macOS (see QtSLiMAppDelegate.cpp).
 #ifdef __APPLE__
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
 static void macos_ForceLightMode(void)
 {
     // First we need to make an NSString with value @"NSAppearanceNameAqua"; 1 is NSASCIIStringEncoding
@@ -118,6 +130,7 @@ static void macos_ForceLightMode(void)
         ((void (*)(id, SEL, id))objc_msgSend)(sharedApplication, selector_setAppearance, aquaAppearance);
 }
 #endif
+#endif
 
 
 int main(int argc, char *argv[])
@@ -175,9 +188,14 @@ int main(int argc, char *argv[])
         }
     }
     
-    // On macOS, force light mode appearance
+    // On macOS, force light mode appearance.  BCH 1/17/2021: We now try to force light mode only when
+    // compiled against a Qt version earlier than 5.15.2 (since Qt did not support dark mode well prior
+    // to that version).  Since the double-click install version is built against 5.15.2, this should
+    // mean that most macOS users get dark mode support.
 #ifdef __APPLE__
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
     macos_ForceLightMode();
+#endif
 #endif
     
     // Tell Qt to use high-DPI pixmaps for icons

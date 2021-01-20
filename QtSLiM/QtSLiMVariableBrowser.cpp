@@ -175,7 +175,12 @@ QVariant QtSLiMBrowserItem::data(int column, int role) const
     }
     else if (role == Qt::ForegroundRole)
     {
-        return QBrush(is_eidos_constant ? Qt::darkGray : Qt::black);
+        bool inDarkMode = QtSLiMInDarkMode();
+        
+        if (inDarkMode)
+            return QBrush(is_eidos_constant ? Qt::gray : Qt::white);
+        else
+            return QBrush(is_eidos_constant ? Qt::darkGray : Qt::black);
     }
     else if (role == Qt::FontRole)
     {

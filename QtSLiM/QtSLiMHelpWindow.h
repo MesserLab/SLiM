@@ -46,10 +46,13 @@ class QtSLiMHelpItem : public QTreeWidgetItem
     
 public:
     QTextDocumentFragment *doc_fragment = nullptr;
+    bool is_top_level = false;
     
     explicit QtSLiMHelpItem(QTreeWidget *p_parent) : QTreeWidgetItem(p_parent) {}
     explicit QtSLiMHelpItem(QTreeWidgetItem *p_parent) : QTreeWidgetItem(p_parent) {}
     virtual ~QtSLiMHelpItem() override;
+    
+    virtual QVariant data(int column, int role) const override;
 };
 
 
@@ -86,6 +89,9 @@ public:
     static QtSLiMHelpWindow &instance(void);
     
     void enterSearchForString(QString searchString, bool titlesOnly = true);
+    
+protected slots:
+    void applicationPaletteChanged(void);
     
 private:
     // singleton pattern

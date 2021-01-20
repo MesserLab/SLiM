@@ -59,6 +59,10 @@ public:
     virtual ~QtSLiMPopulationTableHeaderView() override;
     
     virtual void paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const override;
+    
+protected:
+    void freeCachedIcons(void);
+    void cacheIcons(void);
 };
 
 

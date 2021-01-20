@@ -2344,6 +2344,7 @@ void QtSLiMScriptTextEdit::initializeLineNumbers(void)
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(updateLineNumberArea()));
     
     connect(this, &QtSLiMScriptTextEdit::cursorPositionChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
     
     // Watch prefs for line numbering and highlighting
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
@@ -2559,11 +2560,11 @@ void QtSLiMScriptTextEdit::resizeEvent(QResizeEvent *e)
     lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
 }
 
-// standard blue highlight
+// light appearance: standard blue highlight
 static QColor lineHighlightColor = QtSLiMColorWithHSV(3.6/6.0, 0.1, 1.0, 1.0);
 
-// alternate yellow highlight
-//static QColor lineHighlightColor = QtSLiMColorWithHSV(1/6.0, 0.2, 1.0, 1.0);
+// dark appearance: dark blue highlight
+static QColor lineHighlightColor_DARK = QtSLiMColorWithHSV(4.0/6.0, 0.5, 0.30, 1.0);
 
 void QtSLiMScriptTextEdit::highlightCurrentLine()
 {
@@ -2571,9 +2572,10 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
     QList<QTextEdit::ExtraSelection> extra_selections;
     
     if (!isReadOnly() && prefsNotifier.highlightCurrentLinePref()) {
+        bool inDarkMode = QtSLiMInDarkMode();
         QTextEdit::ExtraSelection selection;
         
-        selection.format.setBackground(lineHighlightColor);
+        selection.format.setBackground(inDarkMode ? lineHighlightColor_DARK : lineHighlightColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = textCursor();
         selection.cursor.clearSelection();
@@ -2583,23 +2585,24 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
     setExtraSelections(extra_selections);
 }
 
-// standard light appearance
+// light appearance
 static QColor lineAreaBackground = QtSLiMColorWithWhite(0.92, 1.0);
 static QColor lineAreaNumber = QtSLiMColorWithWhite(0.75, 1.0);
-static QColor lineAreaNumber_Current = QtSLiMColorWithWhite(0.4, 1.0);
+static QColor lineAreaNumberCurrent = QtSLiMColorWithWhite(0.4, 1.0);
 
-// alternate darker appearance
-//static QColor lineAreaBackground = Qt::lightGray;
-//static QColor lineAreaNumber = QtSLiMColorWithHSV(0.0, 0.0, 0.4, 1.0);
-//static QColor lineAreaNumber_Current = QtSLiMColorWithHSV(1/6.0, 0.7, 1.0, 1.0);
+// dark appearance
+static QColor lineAreaBackground_DARK = QtSLiMColorWithWhite(0.08, 1.0);
+static QColor lineAreaNumber_DARK = QtSLiMColorWithWhite(0.25, 1.0);
+static QColor lineAreaNumberCurrent_DARK = QtSLiMColorWithWhite(0.6, 1.0);
 
 void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
 {
     if (contentsRect().width() <= 0)
         return;
     
+    bool inDarkMode = QtSLiMInDarkMode();
     QPainter painter(lineNumberArea);
-    painter.fillRect(p_paintEvent->rect(), lineAreaBackground);
+    painter.fillRect(p_paintEvent->rect(), inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
     int blockNumber = 0;
     QTextBlock block = document()->findBlockByNumber(blockNumber);
     int cursorBlockNumber = textCursor().blockNumber();
@@ -2607,20 +2610,20 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     int translate_y = -verticalScrollBar()->sliderPosition();
     
     // Draw the numbers (displaying the current line number in col_1)
-    painter.setPen(lineAreaNumber);
+    painter.setPen(inDarkMode ? lineAreaNumber_DARK : lineAreaNumber);
     
     while (block.isValid())
     {
         if (block.isVisible())
         {
-            if (cursorBlockNumber == blockNumber) painter.setPen(lineAreaNumber_Current);
+            if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumberCurrent_DARK : lineAreaNumberCurrent);
             
             QRectF blockBounds = this->document()->documentLayout()->blockBoundingRect(block);
             
             QString number = QString::number(blockNumber + 1);
             painter.drawText(-7, blockBounds.top() + translate_y, lineNumberArea->width(), fontMetrics().height(), Qt::AlignRight, number);
             
-            if (cursorBlockNumber == blockNumber) painter.setPen(lineAreaNumber);
+            if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumber_DARK : lineAreaNumber);
         }
 
         block = block.next();

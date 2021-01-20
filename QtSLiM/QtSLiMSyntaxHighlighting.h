@@ -40,7 +40,13 @@ public:
 protected:
     virtual void highlightBlock(const QString &text) override;
 
+protected slots:
+    void paletteChanged(void);
+    
 private:
+    bool cachedTextFormats = false;
+    bool cachedForDarkMode = false;
+    
     QRegularExpression poundRegex;
     QTextCharFormat poundDirectiveFormat;
     
@@ -67,8 +73,11 @@ protected:
     
 protected slots:
     void documentContentsChanged(void);
+    void paletteChanged(void);
     
 private:
+    bool cachedTextFormats = false;
+    bool cachedForDarkMode = false;
     QTextCharFormat numberLiteralFormat;
     QTextCharFormat stringLiteralFormat;
     QTextCharFormat commentFormat;

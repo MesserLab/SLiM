@@ -53,6 +53,14 @@ QColor QtSLiMColorWithHSV(double p_hue, double p_saturation, double p_value, dou
 void RGBForFitness(double fitness, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGreen, float *colorBlue, double scalingFactor);
 
+
+// Whether we're in "dark mode" for user interface rendering
+bool QtSLiMInDarkMode(void);    
+
+// Standard paths for our images, ending in _H for highlighted, and then in _DARK for dark mode icons, and then in .png
+QString QtSLiMImagePath(QString baseName, bool highlighted);
+
+
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
 class QtSLiMGenerationLineEdit : public QLineEdit
 {
@@ -100,7 +108,7 @@ QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharForm
 // Running a panel to obtain numbers from the user
 QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStringList captions, QStringList values);
 
-// A subclass of QPushButton that draws its image with antialiasing, for a better appearance
+// A subclass of QPushButton that draws its image with antialiasing, for a better appearance, and handles dark mode appearance
 class QtSLiMPushButton : public QPushButton
 {
     Q_OBJECT
@@ -109,10 +117,25 @@ public:
     QtSLiMPushButton(const QIcon &p_icon, const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_icon, p_text, p_parent) {}
     QtSLiMPushButton(const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_text, p_parent) {}
     QtSLiMPushButton(QWidget *p_parent = nullptr) : QPushButton(p_parent) {}
-    virtual ~QtSLiMPushButton(void) override {}
+    virtual ~QtSLiMPushButton(void) override;
+    
+    void qtslimSetBaseName(QString baseName) { qtslimSetIcon(baseName, false); }
+    void qtslimSetHighlight(bool highlighted);
+    void qtslimSetIcon(QString baseName, bool highlighted);
     
 protected:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
+    
+    QString qtslimBaseName;                 // base name, such as "foo"
+    bool qtslimHighlighted = false;         // highlighted state (appends _H to the base name)
+    
+    QIcon *qtslimIcon = nullptr;
+    QIcon *qtslimIcon_H = nullptr;
+    QIcon *qtslimIcon_DARK = nullptr;
+    QIcon *qtslimIcon_H_DARK = nullptr;
+    
+    void qtslimFreeCachedIcons(void);
+    QIcon *qtslimIconForState(bool highlighted, bool darkMode);
 };
 
 // A subclass of QSplitterHandle that does some custom drawing

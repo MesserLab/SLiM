@@ -846,12 +846,12 @@ QString QtSLiMGraphView::dateline(void)
 	return QString("# %1").arg(dateTimeString);
 }
 
-void QtSLiMGraphView::actionButtonRunMenu(QPushButton *p_actionButton)
+void QtSLiMGraphView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
 {
     contextMenuEvent(nullptr);
     
     // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
-    p_actionButton->setIcon(QIcon(":/buttons/action.png"));
+    p_actionButton->qtslimSetHighlight(false);
 }
 
 void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */)

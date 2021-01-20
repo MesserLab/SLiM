@@ -58,9 +58,23 @@
 
 
 // Check the Qt version and display an error if it is unacceptable
-// We enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled
+#ifdef __APPLE__
+// On macOS we enforce Qt 5.15.2 as a hard limit; macOS does not have Qt preinstalled, and there is
+// not much reason for anybody to use a version prior to 5.15.2 for a build.  5.15.2 is the only
+// LTS version with support for macOS 11, dark mode, and various other things we want.  However,
+// if you need to build against an earlier Qt version (because you're using a macOS version earlier
+// than 10.13, perhaps), you can comment out this #error line and your build will probably work;
+// just note that that configuration is unsupported.
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
+#error "SLiMgui on macOS requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 recommended)."
+#endif
+#else
+// On Linux we enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled.
+// We don't rely on any specific post 5.9.5 features on Linux, and the best Qt version on Linux is
+// probably the version that a given distro has chosen to preinstall.
 #if (QT_VERSION < QT_VERSION_CHECK(5, 9, 5))
-#error "SLiMgui requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS or 5.15 LTS recommended)."
+#error "SLiMgui on Linux requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS or 5.15 LTS recommended)."
+#endif
 #endif
 
 
@@ -70,7 +84,7 @@ static std::string Eidos_Beep_QT(std::string p_sound_name);
 QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
 
 
-// A custom message handler that we can use, optionally, for deubgging.  This is useful if Qt is emitting a warning and you don't know
+// A custom message handler that we can use, optionally, for debugging.  This is useful if Qt is emitting a warning and you don't know
 // where it's coming from; turn on the use of the message handler, and then set a breakpoint inside it, perhaps conditional on msg.
 void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -108,6 +122,8 @@ void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, co
         // Log a backtrace after each message
         Eidos_PrintStacktrace(stderr, 20);
 #endif
+        
+        fflush(stderr);
     }
 }
 
@@ -200,6 +216,7 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
 
 QtSLiMAppDelegate::~QtSLiMAppDelegate(void)
 {
+    qtSLiMAppDelegate = nullptr;    // kill the global shared instance, for safety
 }
 
 
@@ -601,6 +618,15 @@ bool QtSLiMAppDelegate::eventFilter(QObject *p_obj, QEvent *p_event)
         
         return true;    // filter this event, i.e., prevent any further Qt handling of it
     }
+    else if (type == QEvent::ApplicationPaletteChange)
+    {
+        if (inDarkMode_ != QtSLiMInDarkMode())
+        {
+            inDarkMode_ = QtSLiMInDarkMode();
+            //qDebug() << "inDarkMode_ == " << inDarkMode_;
+            emit applicationPaletteChanged();
+        }
+    }
     
     // standard event processing
     return QObject::eventFilter(p_obj, p_event);
@@ -616,6 +642,9 @@ void QtSLiMAppDelegate::appDidFinishLaunching(QtSLiMWindow *initialWindow)
     // Display a startup message in the initial window's status bar
     if (initialWindow)
         initialWindow->displayStartupMessage();
+    
+    // Cache our dark mode flag so we can respond to palette changes later
+    inDarkMode_ = QtSLiMInDarkMode();
 }
 
 void QtSLiMAppDelegate::lastWindowClosed(void)
@@ -998,16 +1027,20 @@ void QtSLiMAppDelegate::dispatch_quit(void)
 {
     if (qApp)
     {
+        closeRejected_ = false;
         qApp->closeAllWindows();
         
-        // On macOS, explicitly quit since last window close doesn't auto-quit, for Qt 5.15.2.
-        // Builds against older Qt versions will just quit on the last window close, because
-        // QTBUG-86874 and QTBUG-86875 prevent this from working.
+        if (!closeRejected_)
+        {
+            // On macOS, explicitly quit since last window close doesn't auto-quit, for Qt 5.15.2.
+            // Builds against older Qt versions will just quit on the last window close, because
+            // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
-        qApp->quit();
+            qApp->quit();
 #endif
 #endif
+        }
     }
 }
 

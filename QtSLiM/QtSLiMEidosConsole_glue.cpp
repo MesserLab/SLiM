@@ -44,6 +44,15 @@ void QtSLiMEidosConsole::glueUI(void)
 
     connect(ui->clearOutputButton, &QPushButton::clicked, ui->consoleTextEdit, &QtSLiMConsoleTextEdit::clearToPrompt);
     
+    // set up QtSLiMPushButton "base names" for all buttons
+    ui->checkScriptButton->qtslimSetBaseName("check");
+    ui->prettyprintButton->qtslimSetBaseName("prettyprint");
+    ui->scriptHelpButton->qtslimSetBaseName("syntax_help");
+    ui->browserButton->qtslimSetBaseName("show_browser");
+    ui->executeSelectionButton->qtslimSetBaseName("execute_selection");
+    ui->executeAllButton->qtslimSetBaseName("execute_script");
+    ui->clearOutputButton->qtslimSetBaseName("delete");
+    
     // set up all icon-based QPushButtons to change their icon as they track
     connect(ui->checkScriptButton, &QPushButton::pressed, this, &QtSLiMEidosConsole::checkScriptPressed);
     connect(ui->checkScriptButton, &QPushButton::released, this, &QtSLiMEidosConsole::checkScriptReleased);
@@ -73,59 +82,59 @@ void QtSLiMEidosConsole::glueUI(void)
 
 void QtSLiMEidosConsole::checkScriptPressed(void)
 {
-    ui->checkScriptButton->setIcon(QIcon(":/buttons/check_H.png"));
+    ui->checkScriptButton->qtslimSetHighlight(true);
 }
 void QtSLiMEidosConsole::checkScriptReleased(void)
 {
-    ui->checkScriptButton->setIcon(QIcon(":/buttons/check.png"));
+    ui->checkScriptButton->qtslimSetHighlight(false);
 }
 void QtSLiMEidosConsole::prettyprintPressed(void)
 {
-    ui->prettyprintButton->setIcon(QIcon(":/buttons/prettyprint_H.png"));
+    ui->prettyprintButton->qtslimSetHighlight(true);
 }
 void QtSLiMEidosConsole::prettyprintReleased(void)
 {
-    ui->prettyprintButton->setIcon(QIcon(":/buttons/prettyprint.png"));
+    ui->prettyprintButton->qtslimSetHighlight(false);
 }
 void QtSLiMEidosConsole::scriptHelpPressed(void)
 {
-    ui->scriptHelpButton->setIcon(QIcon(":/buttons/syntax_help_H.png"));
+    ui->scriptHelpButton->qtslimSetHighlight(true);
 }
 void QtSLiMEidosConsole::scriptHelpReleased(void)
 {
-    ui->scriptHelpButton->setIcon(QIcon(":/buttons/syntax_help.png"));
+    ui->scriptHelpButton->qtslimSetHighlight(false);
 }
 void QtSLiMEidosConsole::showBrowserPressed(void)
 {
-    ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser.png" : ":/buttons/show_browser_H.png"));
+    ui->browserButton->qtslimSetHighlight(!ui->browserButton->isChecked());
 }
 void QtSLiMEidosConsole::showBrowserReleased(void)
 {
-    ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser_H.png" : ":/buttons/show_browser.png"));
+    ui->browserButton->qtslimSetHighlight(ui->browserButton->isChecked());
 }
 void QtSLiMEidosConsole::executeSelectionPressed(void)
 {
-    ui->executeSelectionButton->setIcon(QIcon(":/buttons/execute_selection_H.png"));
+    ui->executeSelectionButton->qtslimSetHighlight(true);
 }
 void QtSLiMEidosConsole::executeSelectionReleased(void)
 {
-    ui->executeSelectionButton->setIcon(QIcon(":/buttons/execute_selection.png"));
+    ui->executeSelectionButton->qtslimSetHighlight(false);
 }
 void QtSLiMEidosConsole::executeAllPressed(void)
 {
-    ui->executeAllButton->setIcon(QIcon(":/buttons/execute_script_H.png"));
+    ui->executeAllButton->qtslimSetHighlight(true);
 }
 void QtSLiMEidosConsole::executeAllReleased(void)
 {
-    ui->executeAllButton->setIcon(QIcon(":/buttons/execute_script.png"));
+    ui->executeAllButton->qtslimSetHighlight(false);
 }
 void QtSLiMEidosConsole::clearOutputPressed(void)
 {
-    ui->clearOutputButton->setIcon(QIcon(":/buttons/delete_H.png"));
+    ui->clearOutputButton->qtslimSetHighlight(true);
 }
 void QtSLiMEidosConsole::clearOutputReleased(void)
 {
-    ui->clearOutputButton->setIcon(QIcon(":/buttons/delete.png"));
+    ui->clearOutputButton->qtslimSetHighlight(false);
 }
 
 

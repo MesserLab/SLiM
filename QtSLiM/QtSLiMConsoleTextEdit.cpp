@@ -92,7 +92,9 @@ void QtSLiMConsoleTextEdit::scriptStringAndSelection(QString &scriptString, int 
 
 void QtSLiMConsoleTextEdit::showWelcome(void)
 {
-    setCurrentCharFormat(textFormatForColor(Qt::black));
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    setCurrentCharFormat(textFormatForColor(inDarkMode ? Qt::white : Qt::black));
     
     QString welcomeMessage;
     welcomeMessage = welcomeMessage + "Eidos version " + EIDOS_VERSION_STRING + NEWLINE + NEWLINE;		// EIDOS VERSION
@@ -113,8 +115,9 @@ void QtSLiMConsoleTextEdit::showWelcome(void)
 
 void QtSLiMConsoleTextEdit::showPrompt(QChar promptChar)
 {
-    QTextCharFormat promptAttrs = textFormatForColor(QtSLiMColorWithRGB(170/255.0, 13/255.0, 145/255.0, 1.0));
-    QTextCharFormat inputAttrs = textFormatForColor(QtSLiMColorWithRGB(28/255.0, 0/255.0, 207/255.0, 1.0));
+    bool inDarkMode = QtSLiMInDarkMode();
+    QTextCharFormat promptAttrs = textFormatForColor(inDarkMode ? QColor(220, 83, 185) : QColor(170, 13, 145));
+    QTextCharFormat inputAttrs = textFormatForColor(inDarkMode ? QColor(115, 145, 255) : QColor(28, 0, 207));
     
     moveCursor(QTextCursor::End);
     setCurrentCharFormat(promptAttrs);
@@ -163,25 +166,27 @@ void QtSLiMConsoleTextEdit::showContinuationPrompt(void)
 
 void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString, QString tokenString, QString parseString, QString executionString)
 {
+    bool inDarkMode = QtSLiMInDarkMode();
+    
     moveCursor(QTextCursor::End);
     insertPlainText(NEWLINE);
     
     if (tokenString.length())
     {
         moveCursor(QTextCursor::End);
-        setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(100/255.0, 56/255.0, 32/255.0, 1.0)));
+        setCurrentCharFormat(textFormatForColor(inDarkMode ? QColor(100, 56, 32) : QColor(100, 56, 32)));
         insertPlainText(tokenString);
     }
     if (parseString.length())
     {
         moveCursor(QTextCursor::End);
-        setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(0/255.0, 116/255.0, 0/255.0, 1.0)));
+        setCurrentCharFormat(textFormatForColor(inDarkMode ? QColor(90, 210, 90) : QColor(0, 116, 0)));
         insertPlainText(parseString);
     }
     if (executionString.length())
     {
         moveCursor(QTextCursor::End);
-        setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(63/255.0, 110/255.0, 116/255.0, 1.0)));
+        setCurrentCharFormat(textFormatForColor(inDarkMode ? QColor(70, 205, 216) : QColor(63, 110, 116)));
         insertPlainText(executionString);
     }
     if (result.length())
@@ -189,7 +194,7 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         QTextBlockFormat plainBlockFormat;
         
         moveCursor(QTextCursor::End);
-        setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(0/255.0, 0/255.0, 0/255.0, 1.0)));
+        setCurrentCharFormat(textFormatForColor(inDarkMode ? QColor(255, 255, 255) : QColor(0, 0, 0)));
         textCursor().setBlockFormat(plainBlockFormat);
         insertPlainText(result);
     }
@@ -200,7 +205,7 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         marginBlockFormat.setBottomMargin(BLOCK_MARGIN);
         
         moveCursor(QTextCursor::End);
-        setCurrentCharFormat(textFormatForColor(QtSLiMColorWithRGB(196/255.0, 26/255.0, 22/255.0, 1.0)));
+        setCurrentCharFormat(textFormatForColor(inDarkMode ? QColor(220, 98, 90) : QColor(196, 26, 22)));
         textCursor().setBlockFormat(marginBlockFormat);
         insertPlainText(errorString);
         
@@ -219,7 +224,7 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
             
             QTextCharFormat highlightFormat;
             highlightFormat.setForeground(QBrush(Qt::black));
-            highlightFormat.setBackground(QBrush(QColor(QColor(Qt::red).lighter(120))));
+            highlightFormat.setBackground(QBrush(inDarkMode ? QColor(220, 98, 90) : QColor(QColor(Qt::red).lighter(120))));
             
             highlightCursor.setCharFormat(highlightFormat);
             
@@ -294,7 +299,8 @@ void QtSLiMConsoleTextEdit::elideContinuationPrompt(void)
 	// two spaces at the beginning of continuation lines is mirrored in fullInputString, below.
 	if (isContinuationPrompt)
 	{
-        QTextCharFormat inputAttrs = textFormatForColor(QtSLiMColorWithRGB(28/255.0, 0/255.0, 207/255.0, 1.0));
+        bool inDarkMode = QtSLiMInDarkMode();
+        QTextCharFormat inputAttrs = textFormatForColor(inDarkMode ? QColor(115, 145, 255) : QColor(28, 0, 207));
         QTextCursor fixCursor(lastPromptCursor);
         fixCursor.setPosition(lastPromptCursor.anchor(), QTextCursor::MoveAnchor);
         fixCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);

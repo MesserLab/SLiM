@@ -71,7 +71,7 @@ public slots:
     virtual void controllerSelectionChanged(void);
     virtual void controllerGenerationFinished(void);
     virtual void updateAfterTick(void);
-    void actionButtonRunMenu(QPushButton *actionButton);
+    void actionButtonRunMenu(QtSLiMPushButton *actionButton);
     
 protected:
     QtSLiMWindow *controller_ = nullptr;

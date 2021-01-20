@@ -23,6 +23,7 @@
 
 #include <QCoreApplication>
 #include <QKeyEvent>
+#include <QDebug>
 
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiMEidosConsole.h"
@@ -60,6 +61,27 @@ void QtSLiMWindow::glueUI(void)
     //connect(ui->graphPopupButton, &QPushButton::clicked, this, &QtSLiMWindow::graphPopupButtonClicked); // this button runs when it is pressed
     connect(ui->changeDirectoryButton, &QPushButton::clicked, this, &QtSLiMWindow::changeDirectoryClicked);
 
+    // set up QtSLiMPushButton "base names" for all buttons
+    ui->playOneStepButton->qtslimSetBaseName("play_step");
+    ui->playButton->qtslimSetBaseName("play");
+    ui->profileButton->qtslimSetBaseName("profile");
+    ui->recycleButton->qtslimSetBaseName("recycle");
+    ui->toggleDrawerButton->qtslimSetBaseName("open_type_drawer");
+    ui->showMutationsButton->qtslimSetBaseName("show_mutations");
+    ui->showFixedSubstitutionsButton->qtslimSetBaseName("show_fixed");
+    ui->showChromosomeMapsButton->qtslimSetBaseName("show_recombination");
+    ui->showGenomicElementsButton->qtslimSetBaseName("show_genomicelements");
+    ui->checkScriptButton->qtslimSetBaseName("check");
+    ui->prettyprintButton->qtslimSetBaseName("prettyprint");
+    ui->scriptHelpButton->qtslimSetBaseName("syntax_help");
+    ui->consoleButton->qtslimSetBaseName("show_console");
+    ui->browserButton->qtslimSetBaseName("show_browser");
+    ui->jumpToPopupButton->qtslimSetBaseName("jump_to");
+    ui->clearOutputButton->qtslimSetBaseName("delete");
+    ui->dumpPopulationButton->qtslimSetBaseName("dump_output");
+    ui->graphPopupButton->qtslimSetBaseName("graph_submenu");
+    ui->changeDirectoryButton->qtslimSetBaseName("change_folder");
+    
     // set up all icon-based QPushButtons to change their icon as they track
     connect(ui->playOneStepButton, &QPushButton::pressed, this, &QtSLiMWindow::playOneStepPressed);
     connect(ui->playOneStepButton, &QPushButton::released, this, &QtSLiMWindow::playOneStepReleased);
@@ -205,123 +227,123 @@ void QtSLiMWindow::recycleReleased(void)
 }
 void QtSLiMWindow::toggleDrawerPressed(void)
 {
-    ui->toggleDrawerButton->setIcon(QIcon(ui->toggleDrawerButton->isChecked() ? ":/buttons/open_type_drawer.png" : ":/buttons/open_type_drawer_H.png"));
+    ui->toggleDrawerButton->qtslimSetHighlight(!ui->toggleDrawerButton->isChecked());
 }
 void QtSLiMWindow::toggleDrawerReleased(void)
 {
-    ui->toggleDrawerButton->setIcon(QIcon(ui->toggleDrawerButton->isChecked() ? ":/buttons/open_type_drawer_H.png" : ":/buttons/open_type_drawer.png"));
+    ui->toggleDrawerButton->qtslimSetHighlight(ui->toggleDrawerButton->isChecked());
 }
 void QtSLiMWindow::showMutationsPressed(void)
 {
-    ui->showMutationsButton->setIcon(QIcon(ui->showMutationsButton->isChecked() ? ":/buttons/show_mutations.png" : ":/buttons/show_mutations_H.png"));
+    ui->showMutationsButton->qtslimSetHighlight(!ui->showMutationsButton->isChecked());
 }
 void QtSLiMWindow::showMutationsReleased(void)
 {
-    ui->showMutationsButton->setIcon(QIcon(ui->showMutationsButton->isChecked() ? ":/buttons/show_mutations_H.png" : ":/buttons/show_mutations.png"));
+    ui->showMutationsButton->qtslimSetHighlight(ui->showMutationsButton->isChecked());
 }
 void QtSLiMWindow::showFixedSubstitutionsPressed(void)
 {
-    ui->showFixedSubstitutionsButton->setIcon(QIcon(ui->showFixedSubstitutionsButton->isChecked() ? ":/buttons/show_fixed.png" : ":/buttons/show_fixed_H.png"));
+    ui->showFixedSubstitutionsButton->qtslimSetHighlight(!ui->showFixedSubstitutionsButton->isChecked());
 }
 void QtSLiMWindow::showFixedSubstitutionsReleased(void)
 {
-    ui->showFixedSubstitutionsButton->setIcon(QIcon(ui->showFixedSubstitutionsButton->isChecked() ? ":/buttons/show_fixed_H.png" : ":/buttons/show_fixed.png"));
+    ui->showFixedSubstitutionsButton->qtslimSetHighlight(ui->showFixedSubstitutionsButton->isChecked());
 }
 void QtSLiMWindow::showChromosomeMapsPressed(void)
 {
-    ui->showChromosomeMapsButton->setIcon(QIcon(ui->showChromosomeMapsButton->isChecked() ? ":/buttons/show_recombination.png" : ":/buttons/show_recombination_H.png"));
+    ui->showChromosomeMapsButton->qtslimSetHighlight(!ui->showChromosomeMapsButton->isChecked());
 }
 void QtSLiMWindow::showChromosomeMapsReleased(void)
 {
-    ui->showChromosomeMapsButton->setIcon(QIcon(ui->showChromosomeMapsButton->isChecked() ? ":/buttons/show_recombination_H.png" : ":/buttons/show_recombination.png"));
+    ui->showChromosomeMapsButton->qtslimSetHighlight(ui->showChromosomeMapsButton->isChecked());
 }
 void QtSLiMWindow::showGenomicElementsPressed(void)
 {
-    ui->showGenomicElementsButton->setIcon(QIcon(ui->showGenomicElementsButton->isChecked() ? ":/buttons/show_genomicelements.png" : ":/buttons/show_genomicelements_H.png"));
+    ui->showGenomicElementsButton->qtslimSetHighlight(!ui->showGenomicElementsButton->isChecked());
 }
 void QtSLiMWindow::showGenomicElementsReleased(void)
 {
-    ui->showGenomicElementsButton->setIcon(QIcon(ui->showGenomicElementsButton->isChecked() ? ":/buttons/show_genomicelements_H.png" : ":/buttons/show_genomicelements.png"));
+    ui->showGenomicElementsButton->qtslimSetHighlight(ui->showGenomicElementsButton->isChecked());
 }
 void QtSLiMWindow::checkScriptPressed(void)
 {
-    ui->checkScriptButton->setIcon(QIcon(":/buttons/check_H.png"));
+    ui->checkScriptButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::checkScriptReleased(void)
 {
-    ui->checkScriptButton->setIcon(QIcon(":/buttons/check.png"));
+    ui->checkScriptButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::prettyprintPressed(void)
 {
-    ui->prettyprintButton->setIcon(QIcon(":/buttons/prettyprint_H.png"));
+    ui->prettyprintButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::prettyprintReleased(void)
 {
-    ui->prettyprintButton->setIcon(QIcon(":/buttons/prettyprint.png"));
+    ui->prettyprintButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::scriptHelpPressed(void)
 {
-    ui->scriptHelpButton->setIcon(QIcon(":/buttons/syntax_help_H.png"));
+    ui->scriptHelpButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::scriptHelpReleased(void)
 {
-    ui->scriptHelpButton->setIcon(QIcon(":/buttons/syntax_help.png"));
+    ui->scriptHelpButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::showConsolePressed(void)
 {
-    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console.png" : ":/buttons/show_console_H.png"));
+    ui->consoleButton->qtslimSetHighlight(!ui->consoleButton->isChecked());
 }
 void QtSLiMWindow::showConsoleReleased(void)
 {
-    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
+    ui->consoleButton->qtslimSetHighlight(ui->consoleButton->isChecked());
 }
 void QtSLiMWindow::showBrowserPressed(void)
 {
-    ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser.png" : ":/buttons/show_browser_H.png"));
+    ui->browserButton->qtslimSetHighlight(!ui->browserButton->isChecked());
 }
 void QtSLiMWindow::showBrowserReleased(void)
 {
-    ui->browserButton->setIcon(QIcon(ui->browserButton->isChecked() ? ":/buttons/show_browser_H.png" : ":/buttons/show_browser.png"));
+    ui->browserButton->qtslimSetHighlight(ui->browserButton->isChecked());
 }
 void QtSLiMWindow::jumpToPopupButtonPressed(void)
 {
-    ui->jumpToPopupButton->setIcon(QIcon(":/buttons/jump_to_H.png"));
+    ui->jumpToPopupButton->qtslimSetHighlight(true);
     jumpToPopupButtonRunMenu();  // this button runs its menu when it is pressed, so make that call here
 }
 void QtSLiMWindow::jumpToPopupButtonReleased(void)
 {
-    ui->jumpToPopupButton->setIcon(QIcon(":/buttons/jump_to.png"));
+    ui->jumpToPopupButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::clearOutputPressed(void)
 {
-    ui->clearOutputButton->setIcon(QIcon(":/buttons/delete_H.png"));
+    ui->clearOutputButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::clearOutputReleased(void)
 {
-    ui->clearOutputButton->setIcon(QIcon(":/buttons/delete.png"));
+    ui->clearOutputButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::dumpPopulationPressed(void)
 {
-    ui->dumpPopulationButton->setIcon(QIcon(":/buttons/dump_output_H.png"));
+    ui->dumpPopulationButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::dumpPopulationReleased(void)
 {
-    ui->dumpPopulationButton->setIcon(QIcon(":/buttons/dump_output.png"));
+    ui->dumpPopulationButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::graphPopupButtonPressed(void)
 {
-    ui->graphPopupButton->setIcon(QIcon(":/buttons/graph_submenu_H.png"));
+    ui->graphPopupButton->qtslimSetHighlight(true);
     graphPopupButtonRunMenu();  // this button runs its menu when it is pressed, so make that call here
 }
 void QtSLiMWindow::graphPopupButtonReleased(void)
 {
-    ui->graphPopupButton->setIcon(QIcon(":/buttons/graph_submenu.png"));
+    ui->graphPopupButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::changeDirectoryPressed(void)
 {
-    ui->changeDirectoryButton->setIcon(QIcon(":/buttons/change_folder_H.png"));
+    ui->changeDirectoryButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::changeDirectoryReleased(void)
 {
-    ui->changeDirectoryButton->setIcon(QIcon(":/buttons/change_folder.png"));
+    ui->changeDirectoryButton->qtslimSetHighlight(false);
 }

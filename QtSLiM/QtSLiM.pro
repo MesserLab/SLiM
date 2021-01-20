@@ -233,6 +233,7 @@ else: unix:!android: target.path = /usr/local/bin
 
 RESOURCES += \
     buttons.qrc \
+    buttons_DARK.qrc \
     icons.qrc \
     recipes.qrc \
     help.qrc

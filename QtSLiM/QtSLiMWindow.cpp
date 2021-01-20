@@ -621,7 +621,9 @@ void QtSLiMWindow::initializeUI(void)
 void QtSLiMWindow::displayStartupMessage(void)
 {
     // Set the initial status bar message; called by QtSLiMAppDelegate::appDidFinishLaunching()
-    QString message("<font color='#555555' style='font-size: 11px;'>SLiM %1, %2 build.</font>");
+    bool inDarkMode = QtSLiMInDarkMode();
+    QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'>SLiM %1, %2 build.</font>"
+                               : "<font color='#555555' style='font-size: 11px;'>SLiM %1, %2 build.</font>");
     
     ui->statusBar->showMessage(message.arg(QString(SLIM_VERSION_STRING)).arg(
 #if DEBUG
@@ -827,6 +829,7 @@ void QtSLiMWindow::closeEvent(QCloseEvent *p_event)
     else
     {
         p_event->ignore();
+        qtSLiMAppDelegate->closeRejected();
     }
 }
 
@@ -1438,7 +1441,9 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
             ui->statusBar->clearMessage();
         else
         {
-            QString message("<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>");
+            bool inDarkMode = QtSLiMInDarkMode();
+            QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>"
+                                       : "<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>");
             
             if (sim)
             {
@@ -1509,7 +1514,7 @@ void QtSLiMWindow::updatePlayButtonIcon(bool pressed)
 {
     bool highlighted = ui->playButton->isChecked() ^ pressed;
     
-    ui->playButton->setIcon(QIcon(highlighted ? ":/buttons/play_H.png" : ":/buttons/play.png"));
+    ui->playButton->qtslimSetHighlight(highlighted);
 }
 
 void QtSLiMWindow::updateProfileButtonIcon(bool pressed)
@@ -1517,17 +1522,17 @@ void QtSLiMWindow::updateProfileButtonIcon(bool pressed)
     bool highlighted = ui->profileButton->isChecked() ^ pressed;
     
     if (profilePlayOn_)
-        ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_R.png" : ":/buttons/profile_RH.png"));    // flipped intentionally
+        ui->profileButton->qtslimSetIcon("profile_R", !highlighted);    // flipped intentionally
     else
-        ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
+        ui->profileButton->qtslimSetIcon("profile", highlighted);
 }
 
 void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
 {
     if (slimChangeCount)
-        ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_GH.png" : ":/buttons/recycle_G.png"));
+        ui->recycleButton->qtslimSetIcon("recycle_G", pressed);
     else
-        ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_H.png" : ":/buttons/recycle.png"));
+        ui->recycleButton->qtslimSetIcon("recycle", pressed);
 }
 
 void QtSLiMWindow::updateUIEnabling(void)
@@ -3299,13 +3304,13 @@ void QtSLiMWindow::_playOneStep(void)
 
 void QtSLiMWindow::playOneStepPressed(void)
 {
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step_H.png"));
+    ui->playOneStepButton->qtslimSetHighlight(true);
     _playOneStep();
 }
 
 void QtSLiMWindow::playOneStepReleased(void)
 {
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step.png"));
+    ui->playOneStepButton->qtslimSetHighlight(false);
     playOneStepInvocationTimer_.stop();
 }
 
@@ -3451,7 +3456,7 @@ void QtSLiMWindow::toggleDrawerToggled(void)
     
     bool newValue = ui->toggleDrawerButton->isChecked();
     
-    ui->toggleDrawerButton->setIcon(QIcon(newValue ? ":/buttons/open_type_drawer_H.png" : ":/buttons/open_type_drawer.png"));
+    ui->toggleDrawerButton->qtslimSetHighlight(newValue);
 
     if (!tablesDrawerController)
     {
@@ -3496,7 +3501,7 @@ void QtSLiMWindow::showMutationsToggled(void)
     
     bool newValue = ui->showMutationsButton->isChecked();
     
-    ui->showMutationsButton->setIcon(QIcon(newValue ? ":/buttons/show_mutations_H.png" : ":/buttons/show_mutations.png"));
+    ui->showMutationsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsMutations)
 	{
@@ -3512,7 +3517,7 @@ void QtSLiMWindow::showFixedSubstitutionsToggled(void)
     
     bool newValue = ui->showFixedSubstitutionsButton->isChecked();
     
-    ui->showFixedSubstitutionsButton->setIcon(QIcon(newValue ? ":/buttons/show_fixed_H.png" : ":/buttons/show_fixed.png"));
+    ui->showFixedSubstitutionsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsFixedSubstitutions)
 	{
@@ -3528,7 +3533,7 @@ void QtSLiMWindow::showChromosomeMapsToggled(void)
     
     bool newValue = ui->showChromosomeMapsButton->isChecked();
     
-    ui->showChromosomeMapsButton->setIcon(QIcon(newValue ? ":/buttons/show_recombination_H.png" : ":/buttons/show_recombination.png"));
+    ui->showChromosomeMapsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsRateMaps)
 	{
@@ -3544,7 +3549,7 @@ void QtSLiMWindow::showGenomicElementsToggled(void)
     
     bool newValue = ui->showGenomicElementsButton->isChecked();
     
-    ui->showGenomicElementsButton->setIcon(QIcon(newValue ? ":/buttons/show_genomicelements_H.png" : ":/buttons/show_genomicelements.png"));
+    ui->showGenomicElementsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsGenomicElements)
 	{
@@ -3567,7 +3572,7 @@ void QtSLiMWindow::showConsoleClicked(void)
     // we're about to toggle the visibility, so set our checked state accordingly
     ui->consoleButton->setChecked(!consoleController->isVisible());
     
-    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
+    ui->consoleButton->qtslimSetHighlight(ui->consoleButton->isChecked());
     
     if (ui->consoleButton->isChecked())
     {
@@ -4131,10 +4136,11 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 "	border: 0px;\n"
 "}"));
         QIcon icon4;
-        icon4.addFile(QString::fromUtf8(":/buttons/action.png"), QSize(), QIcon::Normal, QIcon::Off);
-        icon4.addFile(QString::fromUtf8(":/buttons/action_H.png"), QSize(), QIcon::Normal, QIcon::On);
+        icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
+        icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
         actionButton->setIcon(icon4);
         actionButton->setIconSize(QSize(20, 20));
+        actionButton->qtslimSetBaseName("action");
         actionButton->setCheckable(true);
         actionButton->setFlat(true);
 #if QT_CONFIG(tooltip)
@@ -4142,8 +4148,8 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 #endif // QT_CONFIG(tooltip)
         buttonLayout->addWidget(actionButton);
         
-        connect(actionButton, &QPushButton::pressed, graphView, [actionButton, graphView]() { actionButton->setIcon(QIcon(":/buttons/action_H.png")); graphView->actionButtonRunMenu(actionButton); });
-        connect(actionButton, &QPushButton::released, graphView, [actionButton]() { actionButton->setIcon(QIcon(":/buttons/action.png")); });
+        connect(actionButton, &QPushButton::pressed, graphView, [actionButton, graphView]() { actionButton->qtslimSetHighlight(true); graphView->actionButtonRunMenu(actionButton); });
+        connect(actionButton, &QPushButton::released, graphView, [actionButton]() { actionButton->qtslimSetHighlight(false); });
         
         actionButton->setEnabled(!invalidSimulation() && (sim->generation_ > 0));
     }
