@@ -380,18 +380,18 @@ QRect QtSLiMIndividualsWidget::spatialDisplayBoundsForSubpopulation(Subpopulatio
 
 void QtSLiMIndividualsWidget::drawViewFrameInBounds(QRect bounds)
 {
-	int ox = bounds.left(), oy = bounds.top();
+    int ox = bounds.left(), oy = bounds.top();
     bool inDarkMode = QtSLiMInDarkMode();
-	
+    
     if (inDarkMode)
         glColor3f(0.067f, 0.067f, 0.067f);
     else
         glColor3f(0.77f, 0.77f, 0.77f);
     
-	glRecti(ox, oy, ox + 1, oy + bounds.height());
-	glRecti(ox + 1, oy, ox + bounds.width() - 1, oy + 1);
-	glRecti(ox + bounds.width() - 1, oy, ox + bounds.width(), oy + bounds.height());
-	glRecti(ox + 1, oy + bounds.height() - 1, ox + bounds.width() - 1, oy + bounds.height());
+    glRecti(ox, oy, ox + 1, oy + bounds.height());
+    glRecti(ox + 1, oy, ox + bounds.width() - 1, oy + 1);
+    glRecti(ox + bounds.width() - 1, oy, ox + bounds.width(), oy + bounds.height());
+    glRecti(ox + 1, oy + bounds.height() - 1, ox + bounds.width() - 1, oy + bounds.height());
 }
 
 void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds)
