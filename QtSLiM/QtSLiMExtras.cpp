@@ -663,6 +663,21 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStri
 }
 
 
+// A subclass of QPushButton that draws its image with antialiasing, for a better appearance; used for the About panel
+// See QtSLiMPushButton below for further comments; it uses the same approach, with additional bells and whistles
+void QtSLiMIconView::paintEvent(QPaintEvent * /* p_paintEvent */)
+{
+    QPainter painter(this);
+    QRect bounds = rect();
+    
+    // This uses the icon to draw, which works because of Qt::AA_UseHighDpiPixmaps
+    painter.save();
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    icon().paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+    painter.restore();
+}
+
+
 // A subclass of QPushButton that draws its image at screen resolution, for a better appearance on Retina etc.
 // Turns out setting Qt::AA_UseHighDpiPixmaps fixes that issue; but this subclass also makes the buttons draw
 // correctly in Qt 5.14.2, where button icons are shifted right one pixel and then clipped in an ugly way.

@@ -108,6 +108,21 @@ QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharForm
 // Running a panel to obtain numbers from the user
 QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStringList captions, QStringList values);
 
+// A subclass of QPushButton that draws its image with antialiasing, for a better appearance; used for the About panel
+class QtSLiMIconView : public QPushButton
+{
+    Q_OBJECT
+    
+public:
+    QtSLiMIconView(const QIcon &p_icon, const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_icon, p_text, p_parent) {}
+    QtSLiMIconView(const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_text, p_parent) {}
+    QtSLiMIconView(QWidget *p_parent = nullptr) : QPushButton(p_parent) {}
+    virtual ~QtSLiMIconView(void) override {}
+    
+protected:
+    virtual void paintEvent(QPaintEvent *p_paintEvent) override;
+};
+
 // A subclass of QPushButton that draws its image with antialiasing, for a better appearance, and handles dark mode appearance
 class QtSLiMPushButton : public QPushButton
 {
