@@ -37,6 +37,14 @@ QMAKE_BUNDLE_DATA += docIconFiles
 # DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900    # disables all the APIs deprecated before Qt 5.9.0
 
+
+# Bring in flag settings from the environment; see https://stackoverflow.com/a/17578151/2752221
+# Right now I do this only in QtSLiM.pro, to bring a CXXFLAGS setting in from GitHub Actions, but
+# these lines could be added to the other .pro files too if that proves useful.
+QMAKE_CXXFLAGS += $$(CXXFLAGS)
+QMAKE_CFLAGS += $$(CFLAGS)
+
+
 # Set up to build QtSLiM; note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
