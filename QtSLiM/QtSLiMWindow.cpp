@@ -273,6 +273,10 @@ void QtSLiMWindow::init(void)
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
     QTimer::singleShot(0, [this]() { ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
     
+    // watch for a change to light mode / dark mode, to customize display of the play speed slider for example
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMWindow::applicationPaletteChanged);
+    applicationPaletteChanged();
+    
     // Instantiate the help panel up front so that it responds instantly; slows down our launch, but it seems better to me...
     QtSLiMHelpWindow::instance();
     
@@ -616,6 +620,81 @@ void QtSLiMWindow::initializeUI(void)
     
     // Set up the Window menu, which updates on demand
     connect(ui->menuWindow, &QMenu::aboutToShow, this, &QtSLiMWindow::updateWindowMenu);
+}
+
+void QtSLiMWindow::applicationPaletteChanged(void)
+{
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    // Custom colors for the play slider; note that this completely overrides the style sheet in the .ui file!
+    if (inDarkMode)
+    {
+        ui->playSpeedSlider->setStyleSheet(
+                    R"V0G0N(
+                    QSlider::groove:horizontal {
+                        border: 1px solid #606060;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #808080;
+                        margin: 2px 0;
+                    }
+                    QSlider::groove:horizontal:disabled {
+                        border: 1px solid #505050;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #606060;
+                        margin: 2px 0;
+                    }
+                    
+                    QSlider::handle:horizontal {
+                        background: #f0f0f0;
+                        border: 1px solid #b0b0b0;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    }
+                    QSlider::handle:horizontal:disabled {
+                        background: #606060;
+                        border: 1px solid #505050;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    })V0G0N");
+    }
+    else
+    {
+        ui->playSpeedSlider->setStyleSheet(
+                    R"V0G0N(
+                    QSlider::groove:horizontal {
+                        border: 1px solid #888888;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #a0a0a0;
+                        margin: 2px 0;
+                    }
+                    QSlider::groove:horizontal:disabled {
+                        border: 1px solid #cccccc;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #e0e0e0;
+                        margin: 2px 0;
+                    }
+                    
+                    QSlider::handle:horizontal {
+                        background: #ffffff;
+                        border: 1px solid #909090;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    }
+                    QSlider::handle:horizontal:disabled {
+                        background: #ffffff;
+                        border: 1px solid #d0d0d0;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    })V0G0N");
+    }
 }
 
 void QtSLiMWindow::displayStartupMessage(void)
@@ -3400,7 +3479,7 @@ void QtSLiMWindow::recycleClicked(void)
     
     updateAfterTickFull(true);
     
-    ui->scriptTextEdit->setPalette(style()->standardPalette());     // clear any error highlighting
+    ui->scriptTextEdit->setPalette(ui->scriptTextEdit->qtslimStandardPalette());     // clear any error highlighting
     
     // A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
     // at the moment that we recycled.  Then we reset a change counter that we use to know if we have changed relative to
@@ -4127,14 +4206,6 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         actionButton->setMinimumSize(QSize(20, 20));
         actionButton->setMaximumSize(QSize(20, 20));
         actionButton->setFocusPolicy(Qt::NoFocus);
-        actionButton->setStyleSheet(QString::fromUtf8("QPushButton:pressed {\n"
-"	background-color: #00000000;\n"
-"	border: 0px;\n"
-"}\n"
-"QPushButton:checked {\n"
-"	background-color: #00000000;\n"
-"	border: 0px;\n"
-"}"));
         QIcon icon4;
         icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
         icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);

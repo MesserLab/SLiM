@@ -249,6 +249,8 @@ public slots:
     //
     
 private slots:
+    void applicationPaletteChanged(void);
+    
     bool save(void);
     bool saveAs(void);
     void revert(void);

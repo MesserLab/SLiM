@@ -114,9 +114,9 @@ class QtSLiMPushButton : public QPushButton
     Q_OBJECT
     
 public:
-    QtSLiMPushButton(const QIcon &p_icon, const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_icon, p_text, p_parent) {}
-    QtSLiMPushButton(const QString &p_text, QWidget *p_parent = nullptr) : QPushButton(p_text, p_parent) {}
-    QtSLiMPushButton(QWidget *p_parent = nullptr) : QPushButton(p_parent) {}
+    QtSLiMPushButton(const QIcon &p_icon, const QString &p_text, QWidget *p_parent = nullptr);
+    QtSLiMPushButton(const QString &p_text, QWidget *p_parent = nullptr);
+    QtSLiMPushButton(QWidget *p_parent = nullptr);
     virtual ~QtSLiMPushButton(void) override;
     
     void qtslimSetBaseName(QString baseName) { qtslimSetIcon(baseName, false); }
@@ -124,6 +124,7 @@ public:
     void qtslimSetIcon(QString baseName, bool highlighted);
     
 protected:
+    void sharedInit(void);
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
     
     QString qtslimBaseName;                 // base name, such as "foo"

@@ -21,6 +21,7 @@
 #define QTSLIMSCRIPTTEXTEDIT_H
 
 #include <QTextEdit>
+#include <QPalette>
 
 #include "eidos_interpreter.h"
 #include "eidos_type_interpreter.h"
@@ -79,6 +80,8 @@ public:
     // highlight errors
     void highlightError(int startPosition, int endPosition);   
     void selectErrorRange(void);
+    QPalette qtslimStandardPalette(void);
+    QPalette qtslimErrorPalette(void);
     
     // undo/redo availability; named to avoid future collision with QTextEdit for this obvious feature
     bool qtslimIsUndoAvailable(void) { return undoAvailable_; }

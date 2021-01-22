@@ -76,8 +76,12 @@ void QtSLiMTextEdit::selfInit(void)
     connect(this, &QTextEdit::copyAvailable, this, [this](bool b) { copyAvailable_ = b; });
     
     // clear the custom error background color whenever the selection changes
-    connect(this, &QTextEdit::selectionChanged, this, [this]() { setPalette(style()->standardPalette()); });
-    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() { setPalette(style()->standardPalette()); });
+    connect(this, &QTextEdit::selectionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
+    
+    // because we mess with the palette, we have to reset it on dark mode changes; this resets the error
+    // highlighting if it is set up, which is a bug, but not one worth worrying about I suppose...
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
     
     // clear the status bar on a selection change
     connect(this, &QTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
@@ -198,10 +202,7 @@ void QtSLiMTextEdit::highlightError(int startPosition, int endPosition)
     highlight_cursor.setPosition(endPosition, QTextCursor::KeepAnchor);
     setTextCursor(highlight_cursor);
     
-    QPalette p = palette();
-    p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
-    p.setColor(QPalette::HighlightedText, QColor(Qt::black));
-    setPalette(p);
+    setPalette(qtslimErrorPalette());
     
     // note that this custom selection color is cleared by a connection to QTextEdit::selectionChanged()
 }
@@ -216,6 +217,22 @@ void QtSLiMTextEdit::selectErrorRange(void)
 	// In any case, since we are the ultimate consumer of the error information, we should clear out
 	// the error state to avoid misattribution of future errors
     gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+}
+
+QPalette QtSLiMTextEdit::qtslimStandardPalette(void)
+{
+    // Returns the standard palette for QtSLiMTextEdit, which could depend on platform and dark mode
+    return qApp->palette(this);
+}
+
+QPalette QtSLiMTextEdit::qtslimErrorPalette(void)
+{
+    // Returns a palette for QtSLiMTextEdit for highlighting errors, which could depend on platform and dark mode
+    // Note that this is based on the current palette, and derives only the highlight color
+    QPalette p = palette();
+    p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
+    p.setColor(QPalette::HighlightedText, QColor(Qt::black));
+    return p;
 }
 
 QStatusBar *QtSLiMTextEdit::statusBarForWindow(void)

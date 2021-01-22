@@ -4,6 +4,8 @@
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QStyle>
+#include <QStyleFactory>
 #include <QDebug>
 
 #include <locale>
@@ -132,6 +134,61 @@ static void macos_ForceLightMode(void)
 #endif
 #endif
 
+// This function switches the app to a dark theme, regardless of OS settings.  This is not the same as
+// "dark mode" on macOS, and should probably never be used on macOS; it's for Linux, where getting
+// Qt-based apps to obey the windowing system's preferred theme can be a battle.
+// Credit is due to Josip Medved at https://www.medo64.com/2020/08/dark-mode-for-qt-application/
+#ifndef __APPLE__
+static void linux_ForceDarkMode(void)
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    
+    // Josip writes "Just start with a good style (i.e. Fusion) and adjust its palette."  I think he
+    // sets the style to Fusion because some styles don't adjust to a changed palette well; they
+    // just have their own hard-coded palette.  Commenting out this line on macOS, for example,
+    // many UI elements look correctly "dark" but scrollers retain their "light" appearance.  So, it's
+    // not ideal to override whatever the default style would be, but it seems necessary to guarantee
+    // good results.  I've decided to make this subject to a user pref.
+    if (prefs.forceFusionStylePref())
+    {
+        qApp->setStyle(QStyleFactory::create("Fusion"));
+    }
+    
+    // These numbers are modified from those provided by Josip, to better match the macOS dark mode
+    // appearance for consistency, so that our icons, syntax highlighting colors, etc., work well
+    if (prefs.forceDarkModePref())
+    {
+        QPalette newPalette;
+        newPalette.setColor(QPalette::Window,          QColor( 49,  50,  51));
+        newPalette.setColor(QPalette::WindowText,      QColor(255, 255, 255));
+        newPalette.setColor(QPalette::Base,            QColor( 29,  30,  31));
+        newPalette.setColor(QPalette::AlternateBase,   QColor(  9,  10,  11));
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 12, 0))
+        newPalette.setColor(QPalette::PlaceholderText, QColor(101, 101, 101));
+#endif
+        newPalette.setColor(QPalette::Text,            QColor(255, 255, 255));
+        newPalette.setColor(QPalette::Button,          QColor( 49,  50,  51));
+        newPalette.setColor(QPalette::ButtonText,      QColor(255, 255, 255));
+        newPalette.setColor(QPalette::BrightText,      QColor(255, 255, 255));
+        newPalette.setColor(QPalette::Highlight,       QColor( 22,  86, 114));
+        newPalette.setColor(QPalette::HighlightedText, QColor(255, 255, 255));
+        
+        newPalette.setColor(QPalette::Light,           QColor( 75,  75,  75));
+        newPalette.setColor(QPalette::Midlight,        QColor( 60,  60,  60));
+        //QPalette::Button should fall approximately midway here
+        newPalette.setColor(QPalette::Mid,             QColor( 35,  35,  35));
+        newPalette.setColor(QPalette::Dark,            QColor( 25,  25,  25));
+        newPalette.setColor(QPalette::Shadow,          QColor( 0,    0,   0));
+        
+        newPalette.setColor(QPalette::Disabled, QPalette::Text,         QColor(101, 101, 101));
+        newPalette.setColor(QPalette::Disabled, QPalette::WindowText,   QColor(101, 101, 101));
+        newPalette.setColor(QPalette::Disabled, QPalette::ButtonText,   QColor(101, 101, 101));
+        
+        qApp->setPalette(newPalette);
+    }
+}
+#endif
+
 
 int main(int argc, char *argv[])
 {
@@ -196,6 +253,12 @@ int main(int argc, char *argv[])
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
     macos_ForceLightMode();
 #endif
+#endif
+    
+    // On Linux, force dark mode appearance if the user has chosen that.  This is Linux-only because
+    // on macOS we follow the macOS dark mode setting, and Qt largely follows it for us.
+#ifndef __APPLE__
+    linux_ForceDarkMode();
 #endif
     
     // Tell Qt to use high-DPI pixmaps for icons

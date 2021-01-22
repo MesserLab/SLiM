@@ -675,6 +675,35 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStri
 // If the corresponding image file does not exist, an error message will be logged to the console, and the
 // button will probably not draw properly.  All button images should be exactly the same size.
 
+QtSLiMPushButton::QtSLiMPushButton(const QIcon &p_icon, const QString &p_text, QWidget *p_parent) : QPushButton(p_icon, p_text, p_parent)
+{
+    sharedInit();
+}
+
+QtSLiMPushButton::QtSLiMPushButton(const QString &p_text, QWidget *p_parent) : QPushButton(p_text, p_parent)
+{
+    sharedInit();
+}
+
+QtSLiMPushButton::QtSLiMPushButton(QWidget *p_parent) : QPushButton(p_parent)
+{
+    sharedInit();
+}
+
+void QtSLiMPushButton::sharedInit(void)
+{
+    // This button class is designed to work with icon images that include a border and background,
+    // and typically include a transparent background, so we use a style sheet to enforce that
+    setStyleSheet(QString::fromUtf8("QPushButton:pressed {\n"
+                                    "	background-color: #00000000;\n"
+                                    "	border: 0px;\n"
+                                    "}\n"
+                                    "QPushButton:checked {\n"
+                                    "	background-color: #00000000;\n"
+                                    "	border: 0px;\n"
+                                    "}"));
+}
+
 QtSLiMPushButton::~QtSLiMPushButton(void)
 {
     qtslimFreeCachedIcons();

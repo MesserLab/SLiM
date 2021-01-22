@@ -27,7 +27,7 @@ development head:
 	make SLiMgui on macOS not quit on the last window closing, following standard macOS user interface guidelines; requires Qt 5.15.2 due to Qt bugs
 	SLiMgui: fix syntax coloring bug (keywords not colored properly)
 	SLiMgui: fix missing color boxes in the help to show WF/nonWF/nuc properties/methods
-	add dark mode support for SLiMgui
+	add dark mode support for SLiMgui, for both macOS (tied to the OS setting) and Linux (with a checkbox in the prefs)
 
 
 version 3.5 (build 2663; Eidos version 2.5):

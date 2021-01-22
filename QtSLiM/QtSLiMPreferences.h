@@ -35,6 +35,8 @@ public:
     
     // Get the current pref values, falling back on defaults
     int appStartupPref(void) const;               // 0 == do nothing, 1 == create a new window, 2 == run an open panel
+    bool forceDarkModePref(void);
+    bool forceFusionStylePref(void);
     QFont displayFontPref(double *tabWidth = nullptr) const;
     bool scriptSyntaxHighlightPref(void) const;
     bool outputSyntaxHighlightPref(void) const;
@@ -63,6 +65,8 @@ private:
     
 private slots:
     void startupRadioChanged();
+    void forceDarkModeToggled();
+    void forceFusionStyleToggled();
     void fontChanged(const QFont &font);
     void fontSizeChanged(int newSize);
     void syntaxHighlightScriptToggled();

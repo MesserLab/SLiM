@@ -82,16 +82,6 @@
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;check script syntax&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-           </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
              <normaloff>:/buttons/check.png</normaloff>
@@ -127,16 +117,6 @@ QPushButton:checked {
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
            </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
@@ -174,16 +154,6 @@ QPushButton:checked {
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;scripting help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-           </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
              <normaloff>:/buttons/syntax_help.png</normaloff>
@@ -219,16 +189,6 @@ QPushButton:checked {
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
            </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
@@ -289,16 +249,6 @@ QPushButton:checked {
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;execute selection&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-           </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
              <normaloff>:/buttons/execute_selection.png</normaloff>
@@ -337,16 +287,6 @@ QPushButton:checked {
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;execute full script&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
            </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
@@ -400,16 +340,6 @@ QPushButton:checked {
            </property>
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear output log&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
            </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
@@ -467,14 +397,14 @@ QPushButton:checked {
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QtSLiMScriptTextEdit</class>
-   <extends>QTextEdit</extends>
-   <header>QtSLiMScriptTextEdit.h</header>
-  </customwidget>
-  <customwidget>
    <class>QtSLiMPushButton</class>
    <extends>QPushButton</extends>
    <header>QtSLiMExtras.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QtSLiMScriptTextEdit</class>
+   <extends>QTextEdit</extends>
+   <header>QtSLiMScriptTextEdit.h</header>
   </customwidget>
   <customwidget>
    <class>QtSLiMConsoleTextEdit</class>
