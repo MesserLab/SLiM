@@ -71,6 +71,8 @@ jobs:
 
   GUI:
     runs-on: ${{ matrix.os }}
+    env:
+      CXXFLAGS: -D NO_QT_VERSION_ERROR
     defaults:
       run:
         shell: bash

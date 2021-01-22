@@ -57,14 +57,19 @@
 #include "slim_globals.h"
 
 
-// Check the Qt version and display an error if it is unacceptable
+// Check the Qt version and display an error if it is unacceptable.  This can be turned off with
+// -D NO_QT_VERSION_ERROR; at present, that is used to allow GitHub Actions to test version
+// combinations that are not officially supported.  I do not recommend that end users use this flag.
+#ifdef NO_QT_VERSION_ERROR
+#warning "Qt version check for SLiMgui disabled by -D NO_QT_VERSION_ERROR"
+#else
 #ifdef __APPLE__
 // On macOS we enforce Qt 5.15.2 as a hard limit; macOS does not have Qt preinstalled, and there is
 // not much reason for anybody to use a version prior to 5.15.2 for a build.  5.15.2 is the only
 // LTS version with support for macOS 11, dark mode, and various other things we want.  However,
 // if you need to build against an earlier Qt version (because you're using a macOS version earlier
-// than 10.13, perhaps), you can comment out this #error line and your build will probably work;
-// just note that that configuration is unsupported.
+// than 10.13, perhaps), you can disable this check using the above flag and your build will probably
+// work; just note that that configuration is unsupported.
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
 #error "SLiMgui on macOS requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 recommended)."
 #endif
@@ -74,6 +79,7 @@
 // probably the version that a given distro has chosen to preinstall.
 #if (QT_VERSION < QT_VERSION_CHECK(5, 9, 5))
 #error "SLiMgui on Linux requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS or 5.15 LTS recommended)."
+#endif
 #endif
 #endif
 
