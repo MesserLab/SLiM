@@ -633,6 +633,15 @@ bool QtSLiMAppDelegate::eventFilter(QObject *p_obj, QEvent *p_event)
             emit applicationPaletteChanged();
         }
     }
+    else if (type == QEvent::StatusTip)
+    {
+        // These are events that Qt sends to itself, to display "status tips" in the status bar for widgets the
+        // mouse is over, like buttons and menu bar items.  This is not a feature I presently want to use, and
+        // on Linux these events get sent even when the tip is empty, and cause the status bar to be cleared
+        // for no apparent reason.  So I'm going to just disable these events for now.
+
+        return true;    // filter this event, i.e., prevent any further Qt handling of it
+    }
     
     // standard event processing
     return QObject::eventFilter(p_obj, p_event);
