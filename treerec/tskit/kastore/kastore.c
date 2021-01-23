@@ -733,7 +733,7 @@ static int KAS_WARN_UNUSED
 kastore_gets_type(
     kastore_t *self, const char *key, void **array, size_t *array_len, int type)
 {
-    int loaded_type = 0;	// fix for warning; see kastore issue #142
+    int loaded_type;
     int ret;
 
     ret = kastore_get(self, key, strlen(key), array, array_len, &loaded_type);

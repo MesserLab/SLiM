@@ -25,7 +25,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -36,7 +35,7 @@
  * ======================================================== */
 
 void
-tsk_vargen_print_state(tsk_vargen_t *self, FILE *out)
+tsk_vargen_print_state(const tsk_vargen_t *self, FILE *out)
 {
     tsk_size_t j;
 
@@ -103,60 +102,79 @@ out:
     return ret;
 }
 
+static int
+vargen_init_samples_and_index_map(tsk_vargen_t *self, const tsk_treeseq_t *tree_sequence,
+    const tsk_id_t *samples, size_t num_samples, size_t num_samples_alloc,
+    tsk_flags_t options)
+{
+    int ret = 0;
+    const tsk_flags_t *flags = tree_sequence->tables->nodes.flags;
+    size_t j, num_nodes;
+    bool impute_missing = !!(options & TSK_ISOLATED_NOT_MISSING);
+    tsk_id_t u;
+
+    num_nodes = tsk_treeseq_get_num_nodes(tree_sequence);
+    self->alt_samples = malloc(num_samples_alloc * sizeof(*samples));
+    self->alt_sample_index_map = malloc(num_nodes * sizeof(*self->alt_sample_index_map));
+    if (self->alt_samples == NULL || self->alt_sample_index_map == NULL) {
+        ret = TSK_ERR_NO_MEMORY;
+        goto out;
+    }
+    memcpy(self->alt_samples, samples, num_samples * sizeof(*samples));
+    memset(self->alt_sample_index_map, 0xff,
+        num_nodes * sizeof(*self->alt_sample_index_map));
+    /* Create the reverse mapping */
+    for (j = 0; j < num_samples; j++) {
+        u = samples[j];
+        if (u < 0 || u >= (tsk_id_t) num_nodes) {
+            ret = TSK_ERR_OUT_OF_BOUNDS;
+            goto out;
+        }
+        if (self->alt_sample_index_map[u] != TSK_NULL) {
+            ret = TSK_ERR_DUPLICATE_SAMPLE;
+            goto out;
+        }
+        /* We can only detect missing data for samples */
+        if (!impute_missing && !(flags[u] & TSK_NODE_IS_SAMPLE)) {
+            ret = TSK_ERR_MUST_IMPUTE_NON_SAMPLES;
+            goto out;
+        }
+        self->alt_sample_index_map[samples[j]] = (tsk_id_t) j;
+    }
+out:
+    return ret;
+}
+
 int
-tsk_vargen_init(tsk_vargen_t *self, tsk_treeseq_t *tree_sequence, tsk_id_t *samples,
-    size_t num_samples, const char **alleles, tsk_flags_t options)
+tsk_vargen_init(tsk_vargen_t *self, const tsk_treeseq_t *tree_sequence,
+    const tsk_id_t *samples, size_t num_samples, const char **alleles,
+    tsk_flags_t options)
 {
     int ret = TSK_ERR_NO_MEMORY;
     tsk_flags_t tree_options;
-    const tsk_flags_t *flags = tree_sequence->tables->nodes.flags;
-    size_t j, num_nodes, num_samples_alloc, max_alleles_limit;
-    bool impute_missing = !!(options & TSK_ISOLATED_NOT_MISSING);
+    size_t num_samples_alloc, max_alleles_limit;
     tsk_size_t max_alleles;
-    tsk_id_t u;
 
-    assert(tree_sequence != NULL);
+    tsk_bug_assert(tree_sequence != NULL);
     memset(self, 0, sizeof(tsk_vargen_t));
 
     if (samples == NULL) {
-        self->sample_index_map_allocated = false;
+        self->samples = tsk_treeseq_get_samples(tree_sequence);
         self->num_samples = tsk_treeseq_get_num_samples(tree_sequence);
         self->sample_index_map = tsk_treeseq_get_sample_index_map(tree_sequence);
         num_samples_alloc = self->num_samples;
     } else {
-        self->sample_index_map_allocated = true;
         /* Take a copy of the samples for simplicity */
-        num_nodes = tsk_treeseq_get_num_nodes(tree_sequence);
         /* We can have num_samples = 0 here, so guard against malloc(0) */
         num_samples_alloc = num_samples + 1;
-        self->samples = malloc(num_samples_alloc * sizeof(*self->samples));
-        self->sample_index_map = malloc(num_nodes * sizeof(*self->sample_index_map));
-        if (self->samples == NULL || self->sample_index_map == NULL) {
-            ret = TSK_ERR_NO_MEMORY;
+        ret = vargen_init_samples_and_index_map(
+            self, tree_sequence, samples, num_samples, num_samples_alloc, options);
+        if (ret != 0) {
             goto out;
         }
-        memcpy(self->samples, samples, num_samples * sizeof(*self->samples));
-        memset(
-            self->sample_index_map, 0xff, num_nodes * sizeof(*self->sample_index_map));
-        /* Create the reverse mapping */
-        for (j = 0; j < num_samples; j++) {
-            u = samples[j];
-            if (u < 0 || u >= (tsk_id_t) num_nodes) {
-                ret = TSK_ERR_OUT_OF_BOUNDS;
-                goto out;
-            }
-            if (self->sample_index_map[u] != TSK_NULL) {
-                ret = TSK_ERR_DUPLICATE_SAMPLE;
-                goto out;
-            }
-            /* We can only detect missing data for samples */
-            if (!impute_missing && !(flags[u] & TSK_NODE_IS_SAMPLE)) {
-                ret = TSK_ERR_MUST_IMPUTE_NON_SAMPLES;
-                goto out;
-            }
-            self->sample_index_map[samples[j]] = (tsk_id_t) j;
-        }
+        self->samples = samples;
         self->num_samples = num_samples;
+        self->sample_index_map = self->alt_sample_index_map;
     }
     self->num_sites = tsk_treeseq_get_num_sites(tree_sequence);
     self->tree_sequence = tree_sequence;
@@ -208,7 +226,7 @@ tsk_vargen_init(tsk_vargen_t *self, tsk_treeseq_t *tree_sequence, tsk_id_t *samp
     /* When a list of samples is given, we use the traversal based algorithm
      * and turn off the sample list tracking in the tree */
     tree_options = 0;
-    if (self->samples == NULL) {
+    if (self->alt_samples == NULL) {
         tree_options = TSK_SAMPLE_LISTS;
     } else {
         self->traversal_stack = malloc(
@@ -242,11 +260,9 @@ tsk_vargen_free(tsk_vargen_t *self)
     tsk_safe_free(self->variant.alleles);
     tsk_safe_free(self->variant.allele_lengths);
     tsk_safe_free(self->user_alleles_mem);
-    tsk_safe_free(self->samples);
+    tsk_safe_free(self->alt_samples);
+    tsk_safe_free(self->alt_sample_index_map);
     tsk_safe_free(self->traversal_stack);
-    if (self->sample_index_map_allocated) {
-        tsk_safe_free(self->sample_index_map);
-    }
     return 0;
 }
 
@@ -299,7 +315,7 @@ tsk_vargen_update_genotypes_i8_sample_list(
     tsk_id_t index, stop;
     int ret = 0;
 
-    assert(derived < INT8_MAX);
+    tsk_bug_assert(derived < INT8_MAX);
 
     index = list_left[node];
     if (index != TSK_NULL) {
@@ -332,7 +348,7 @@ tsk_vargen_update_genotypes_i16_sample_list(
     tsk_id_t index, stop;
     int ret = 0;
 
-    assert(derived < INT16_MAX);
+    tsk_bug_assert(derived < INT16_MAX);
 
     index = list_left[node];
     if (index != TSK_NULL) {
@@ -404,8 +420,8 @@ tsk_vargen_visit_i8(tsk_vargen_t *self, tsk_id_t sample_index, tsk_id_t derived)
     int ret = 0;
     int8_t *restrict genotypes = self->variant.genotypes.i8;
 
-    assert(derived < INT8_MAX);
-    assert(sample_index != -1);
+    tsk_bug_assert(derived < INT8_MAX);
+    tsk_bug_assert(sample_index != -1);
     if (genotypes[sample_index] == (int8_t) derived) {
         ret = TSK_ERR_INCONSISTENT_MUTATIONS;
         goto out;
@@ -422,8 +438,8 @@ tsk_vargen_visit_i16(tsk_vargen_t *self, tsk_id_t sample_index, tsk_id_t derived
     int ret = 0;
     int16_t *restrict genotypes = self->variant.genotypes.i16;
 
-    assert(derived < INT16_MAX);
-    assert(sample_index != -1);
+    tsk_bug_assert(derived < INT16_MAX);
+    tsk_bug_assert(sample_index != -1);
     if (genotypes[sample_index] == (int16_t) derived) {
         ret = TSK_ERR_INCONSISTENT_MUTATIONS;
         goto out;
@@ -517,11 +533,11 @@ tsk_vargen_update_site(tsk_vargen_t *self)
     tsk_size_t j, num_missing;
     int no_longer_missing;
     tsk_variant_t *var = &self->variant;
-    tsk_site_t *site = var->site;
+    const tsk_site_t *site = var->site;
     tsk_mutation_t mutation;
     bool genotypes16 = !!(self->options & TSK_16_BIT_GENOTYPES);
     bool impute_missing = !!(self->options & TSK_ISOLATED_NOT_MISSING);
-    bool by_traversal = self->samples != NULL;
+    bool by_traversal = self->alt_samples != NULL;
     int (*update_genotypes)(tsk_vargen_t *, tsk_id_t, tsk_id_t);
     tsk_size_t (*mark_missing)(tsk_vargen_t *);
 
