@@ -5677,22 +5677,56 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 
 \f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Mark the individuals specified by 
 \f3\fs18 individuals
-\f4\fs20  to be retained across tree sequence table simplification.  This method may only be called if tree sequence recording has been turned on with 
+\f4\fs20  to be kept across tree sequence table simplification.  This method may only be called if tree sequence recording has been turned on with 
 \f3\fs18 initializeTreeSeq()
-\f4\fs20 .  All currently living individuals are always retained across simplification; this method does not need to be called, and indeed should not be called, for that purpose.  Instead, 
+\f4\fs20 .  All currently living individuals are always kept across simplification; this method does not need to be called, and indeed should not be called, for that purpose.  Instead, 
 \f3\fs18 treeSeqRememberIndividuals()
-\f4\fs20  allows any individual, including dead individuals, to be retained in the final tree sequence.  Typically this would be used, for example, to retain particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
-If 
+\f4\fs20  allows any individual, including dead individuals, to be kept in the final tree sequence.  Typically this would be used, for example, to keep particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
+There are two ways to keep individuals across simplification.  If 
 \f3\fs18 permanent
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), then the specified individuals will be permanently remembered: their genomes will be added to the current sample, and they will always be present in the tree sequence.  Supplying 
+\f4\fs20  (the default), then the specified individuals will be permanently remembered: their genomes will be added to the current sample, and they will always be present in the tree sequence.  Permanently remembering a large number of individuals will, of course, markedly increase memory usage and runtime.\
+Supplying 
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 permanent
-\f4\fs20  will instead mark the individuals only for (temporary) retention: their genomes will not be added to the sample, and they will appear in the final tree sequence only if one of their nodes is retained across simplification (e.g., if they are the most recent common genetic ancestor of some pair of genomes in the sample).  Permanent remembering takes priority, such that calling this function with 
+\f4\fs20  will instead mark the individuals only for (temporary) retention: their genomes will not be added to the sample, and they will appear in the final tree sequence only if one of their genomes is retained across simplification.  In other words, the rule of thumb for retained individuals is simple: if a genome is kept by simplification, the genome\'92s corresponding individual is kept also, 
+\f1\i if
+\f4\i0  it is retained.  Note that permanent remembering takes priority; calling this function with 
 \f3\fs18 permanent=F
 \f4\fs20  on an individual that has previously been permanently remembered will not remove it from the sample.\
+The behavior of simplification for individuals retained with 
+\f3\fs18 permanent=F
+\f4\fs20  depends upon the value of the 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  flag passed to 
+\f3\fs18 initializeTreeSeq()
+\f4\fs20 ; here we will discuss the behavior of that flag in detail.  First of all, genomes are 
+\f1\i always
+\f4\i0  removed by simplification if they are not ancestral to the sample, unless their individual has been permanently remembered.  If 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), they are 
+\f1\i also
+\f4\i0  removed if they are not a branch point (i.e., a coalescent node or most recent common ancestor) in the tree sequence.  In some cases it may be useful to retain a genome and its associated individual when it is simply an intermediate node in the ancestry (i.e., in the middle of a branch).  This can be done by setting 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  to 
+\f3\fs18 F
+\f4\fs20  in your call to 
+\f3\fs18 initializeTreeSeq()
+\f4\fs20 .  In this case, ancestral genomes that are intermediate (\'93unary nodes\'94, in 
+\f3\fs18 tskit
+\f4\fs20  parlance) and are within a retained individual are kept, along with the retained individual itself.  Since setting 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  to 
+\f3\fs18 F
+\f4\fs20  will prevent the unary nodes for retained individuals from being pruned, simplification may often be unable to prune very much at all from the tree sequence, and memory usage and runtime may increase rapidly.  This setting should therefore be used only with caution; it is rarely necessary.  See the 
+\f3\fs18 pyslim
+\f4\fs20  documentation for further discussion of retaining and remembering individuals and the effects of the 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  flag.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 The metadata (age, location, etc) that are stored in the resulting tree sequence are those values present at either (a) the final generation, if the individual is alive at the end of the simulation, or (b) the last time that the individual was remembered, if not.  Calling 

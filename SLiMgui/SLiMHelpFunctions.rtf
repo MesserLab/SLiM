@@ -968,7 +968,8 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
-(void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nif$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F])
+(void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nif$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F], [logical$\'a0\kerning1\expnd0\expndtw0 retainCoalescentOnly\expnd0\expndtw0\kerning0
+\'a0=\'a0T])
 \f4 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1053,6 +1054,21 @@ The
 The 
 \f1\fs18 runCrosschecks
 \f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
+The 
+\f1\fs18 retainCoalescentOnly
+\f2\fs20  parameter controls how, exactly, simplification of the tree-sequence data is performed in SLiM (both for auto-simplification and for calls to 
+\f1\fs18 treeSeqSimplify()
+\f2\fs20 ).  The default of 
+\f1\fs18 T
+\f2\fs20  should work for almost all users of tree-sequence recording; changing it to 
+\f1\fs18 F
+\f2\fs20  may dramatically increase memory usage and runtime, without benefit for most users.  More specifically, this parameter controls the behavior of simplification for individuals and genomes that have been \'93retained\'94 by calling 
+\f1\fs18 treeSeqRememberIndividuals()
+\f2\fs20  with the parameter 
+\f1\fs18 permanent=F
+\f2\fs20 .  See the documentation of 
+\f1\fs18 treeSeqRememberIndividuals()
+\f2\fs20  for further discussion (section 24.13.2).\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.2.  Nucleotide utilities\
