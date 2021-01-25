@@ -115,9 +115,9 @@ typedef struct _tsk_ls_hmm_t {
     double *values;
     size_t num_values;
     size_t max_values;
-    /* Number of machine words per node fitch set. */
-    size_t num_fitch_words;
-    uint64_t *fitch_sets;
+    /* Number of machine words per node optimal value set. */
+    size_t num_optimal_value_set_words;
+    uint64_t *optimal_value_sets;
     /* The parent transition; used during compression */
     tsk_id_t *transition_parent;
     /* The number of samples directly subtended by a transition */

@@ -92,14 +92,14 @@ typedef struct {
     tsk_flags_t flags;
     /** @brief Spatial location. The number of dimensions is defined by
      * ``location_length``. */
-    double *location;
+    const double *location;
     /** @brief Number of spatial dimensions. */
     tsk_size_t location_length;
     /** @brief Metadata. */
     const char *metadata;
     /** @brief Size of the metadata in bytes. */
     tsk_size_t metadata_length;
-    tsk_id_t *nodes;
+    const tsk_id_t *nodes;
     tsk_size_t nodes_length;
 } tsk_individual_t;
 
@@ -203,7 +203,7 @@ typedef struct {
     const char *metadata;
     /** @brief Metadata length in bytes. */
     tsk_size_t metadata_length;
-    tsk_mutation_t *mutations;
+    const tsk_mutation_t *mutations;
     tsk_size_t mutations_length;
 } tsk_site_t;
 
@@ -629,6 +629,39 @@ typedef struct _tsk_table_sorter_t {
     tsk_id_t *site_id_map;
 } tsk_table_sorter_t;
 
+/* Structs for IBD finding.
+ * TODO: document properly
+ * */
+
+typedef struct _tsk_segment_t {
+    double left;
+    double right;
+    struct _tsk_segment_t *next;
+    tsk_id_t node;
+} tsk_segment_t;
+
+typedef struct {
+    tsk_id_t *pairs;
+    size_t num_pairs;
+    size_t num_nodes;
+    size_t num_unique_nodes_in_pair;
+    int64_t *pair_map;
+    double sequence_length;
+    tsk_table_collection_t *tables;
+    tsk_segment_t **ibd_segments_head;
+    tsk_segment_t **ibd_segments_tail;
+    tsk_blkalloc_t segment_heap;
+    bool *is_sample;
+    tsk_id_t *paired_nodes_index;
+    double min_length;
+    double max_time;
+    tsk_segment_t **ancestor_map_head;
+    tsk_segment_t **ancestor_map_tail;
+    tsk_segment_t *segment_queue;
+    size_t segment_queue_size;
+    size_t max_segment_queue_size;
+} tsk_ibd_finder_t;
+
 /****************************************************************************/
 /* Common function options */
 /****************************************************************************/
@@ -660,6 +693,7 @@ typedef struct _tsk_table_sorter_t {
 #define TSK_REDUCE_TO_SITE_TOPOLOGY (1 << 3)
 #define TSK_KEEP_UNARY (1 << 4)
 #define TSK_KEEP_INPUT_ROOTS (1 << 5)
+#define TSK_KEEP_UNARY_IN_INDIVIDUALS (1 << 6)
 
 /* Flags for check_integrity */
 #define TSK_CHECK_EDGE_ORDERING (1 << 0)
@@ -687,6 +721,17 @@ typedef struct _tsk_table_sorter_t {
 /* Flags for union() */
 #define TSK_UNION_NO_CHECK_SHARED (1 << 0)
 #define TSK_UNION_NO_ADD_POP (1 << 1)
+
+/* Flags for table collection equals */
+#define TSK_CMP_IGNORE_TS_METADATA (1 << 0)
+#define TSK_CMP_IGNORE_PROVENANCE (1 << 1)
+#define TSK_CMP_IGNORE_METADATA (1 << 2)
+#define TSK_CMP_IGNORE_TIMESTAMPS (1 << 3)
+
+/* Flags for tables collection clear */
+#define TSK_CLEAR_METADATA_SCHEMAS (1 << 0)
+#define TSK_CLEAR_TS_METADATA_AND_SCHEMA (1 << 1)
+#define TSK_CLEAR_PROVENANCE (1 << 2)
 
 /****************************************************************************/
 /* Function signatures */
@@ -746,7 +791,7 @@ of the columns in this table.
     or a negative value on failure.
 */
 tsk_id_t tsk_individual_table_add_row(tsk_individual_table_t *self, tsk_flags_t flags,
-    double *location, tsk_size_t location_length, const char *metadata,
+    const double *location, tsk_size_t location_length, const char *metadata,
     tsk_size_t metadata_length);
 
 /**
@@ -776,12 +821,27 @@ int tsk_individual_table_truncate(tsk_individual_table_t *self, tsk_size_t num_r
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns,
+and their metadata schemas are byte-wise identical.
+
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata or metadata schemas in the comparison.
+
+@endrst
+
 @param self A pointer to a tsk_individual_table_t object.
 @param other A pointer to a tsk_individual_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_individual_table_equals(
-    tsk_individual_table_t *self, tsk_individual_table_t *other);
+bool tsk_individual_table_equals(const tsk_individual_table_t *self,
+    const tsk_individual_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -801,8 +861,8 @@ Indexes that are present are also copied to the destination table.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_individual_table_copy(
-    tsk_individual_table_t *self, tsk_individual_table_t *dest, tsk_flags_t options);
+int tsk_individual_table_copy(const tsk_individual_table_t *self,
+    tsk_individual_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -821,7 +881,7 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_individual_table_get_row(
-    tsk_individual_table_t *self, tsk_id_t index, tsk_individual_t *row);
+    const tsk_individual_table_t *self, tsk_id_t index, tsk_individual_t *row);
 
 /**
 @brief Set the metadata schema
@@ -848,19 +908,20 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_individual_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_individual_table_print_state(tsk_individual_table_t *self, FILE *out);
+void tsk_individual_table_print_state(const tsk_individual_table_t *self, FILE *out);
 
 /** @} */
 
 /* Undocumented methods */
 
 int tsk_individual_table_set_columns(tsk_individual_table_t *self, tsk_size_t num_rows,
-    tsk_flags_t *flags, double *location, tsk_size_t *location_length,
-    const char *metadata, tsk_size_t *metadata_length);
+    const tsk_flags_t *flags, const double *location, const tsk_size_t *location_length,
+    const char *metadata, const tsk_size_t *metadata_length);
 int tsk_individual_table_append_columns(tsk_individual_table_t *self,
-    tsk_size_t num_rows, tsk_flags_t *flags, double *location,
-    tsk_size_t *location_length, const char *metadata, tsk_size_t *metadata_length);
-int tsk_individual_table_dump_text(tsk_individual_table_t *self, FILE *out);
+    tsk_size_t num_rows, const tsk_flags_t *flags, const double *location,
+    const tsk_size_t *location_length, const char *metadata,
+    const tsk_size_t *metadata_length);
+int tsk_individual_table_dump_text(const tsk_individual_table_t *self, FILE *out);
 int tsk_individual_table_set_max_rows_increment(
     tsk_individual_table_t *self, tsk_size_t max_rows_increment);
 int tsk_individual_table_set_max_metadata_length_increment(
@@ -949,11 +1010,27 @@ int tsk_node_table_truncate(tsk_node_table_t *self, tsk_size_t num_rows);
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns,
+and their metadata schemas are byte-wise identical.
+
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata or metadata schemas in the comparison.
+
+@endrst
+
 @param self A pointer to a tsk_node_table_t object.
 @param other A pointer to a tsk_node_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_node_table_equals(tsk_node_table_t *self, tsk_node_table_t *other);
+bool tsk_node_table_equals(
+    const tsk_node_table_t *self, const tsk_node_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -972,7 +1049,7 @@ be supplied to avoid leaking memory.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_node_table_copy(
-    tsk_node_table_t *self, tsk_node_table_t *dest, tsk_flags_t options);
+    const tsk_node_table_t *self, tsk_node_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -990,7 +1067,8 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
     values in the specified row.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_node_table_get_row(tsk_node_table_t *self, tsk_id_t index, tsk_node_t *row);
+int tsk_node_table_get_row(
+    const tsk_node_table_t *self, tsk_id_t index, tsk_node_t *row);
 
 /**
 @brief Set the metadata schema
@@ -1015,7 +1093,7 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_node_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_node_table_print_state(tsk_node_table_t *self, FILE *out);
+void tsk_node_table_print_state(const tsk_node_table_t *self, FILE *out);
 
 /** @} */
 
@@ -1026,12 +1104,12 @@ int tsk_node_table_set_max_rows_increment(
 int tsk_node_table_set_max_metadata_length_increment(
     tsk_node_table_t *self, tsk_size_t max_metadata_length_increment);
 int tsk_node_table_set_columns(tsk_node_table_t *self, tsk_size_t num_rows,
-    tsk_flags_t *flags, double *time, tsk_id_t *population, tsk_id_t *individual,
-    const char *metadata, tsk_size_t *metadata_length);
+    const tsk_flags_t *flags, const double *time, const tsk_id_t *population,
+    const tsk_id_t *individual, const char *metadata, const tsk_size_t *metadata_length);
 int tsk_node_table_append_columns(tsk_node_table_t *self, tsk_size_t num_rows,
-    tsk_flags_t *flags, double *time, tsk_id_t *population, tsk_id_t *individual,
-    const char *metadata, tsk_size_t *metadata_length);
-int tsk_node_table_dump_text(tsk_node_table_t *self, FILE *out);
+    const tsk_flags_t *flags, const double *time, const tsk_id_t *population,
+    const tsk_id_t *individual, const char *metadata, const tsk_size_t *metadata_length);
+int tsk_node_table_dump_text(const tsk_node_table_t *self, FILE *out);
 
 /**
 @defgroup EDGE_TABLE_API_GROUP Edge table API.
@@ -1059,8 +1137,7 @@ TSK_NO_METADATA
 @endrst
 
 @param self A pointer to an uninitialised tsk_edge_table_t object.
-@param options Allocation time options. Currently unused; should be
-    set to zero to ensure compatibility with later versions of tskit.
+@param options Allocation time options.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_edge_table_init(tsk_edge_table_t *self, tsk_flags_t options);
@@ -1124,11 +1201,27 @@ int tsk_edge_table_truncate(tsk_edge_table_t *self, tsk_size_t num_rows);
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns,
+and their metadata schemas are byte-wise identical.
+
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata or metadata schemas in the comparison.
+
+@endrst
+
 @param self A pointer to a tsk_edge_table_t object.
 @param other A pointer to a tsk_edge_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_edge_table_equals(tsk_edge_table_t *self, tsk_edge_table_t *other);
+bool tsk_edge_table_equals(
+    const tsk_edge_table_t *self, const tsk_edge_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -1147,7 +1240,7 @@ be supplied to avoid leaking memory.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_edge_table_copy(
-    tsk_edge_table_t *self, tsk_edge_table_t *dest, tsk_flags_t options);
+    const tsk_edge_table_t *self, tsk_edge_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -1165,7 +1258,8 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
     values in the specified row.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_edge_table_get_row(tsk_edge_table_t *self, tsk_id_t index, tsk_edge_t *row);
+int tsk_edge_table_get_row(
+    const tsk_edge_table_t *self, tsk_id_t index, tsk_edge_t *row);
 
 /**
 @brief Set the metadata schema
@@ -1190,7 +1284,7 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_edge_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_edge_table_print_state(tsk_edge_table_t *self, FILE *out);
+void tsk_edge_table_print_state(const tsk_edge_table_t *self, FILE *out);
 
 /** @} */
 
@@ -1200,13 +1294,13 @@ int tsk_edge_table_set_max_rows_increment(
     tsk_edge_table_t *self, tsk_size_t max_rows_increment);
 int tsk_edge_table_set_max_metadata_length_increment(
     tsk_edge_table_t *self, tsk_size_t max_metadata_length_increment);
-int tsk_edge_table_set_columns(tsk_edge_table_t *self, tsk_size_t num_rows, double *left,
-    double *right, tsk_id_t *parent, tsk_id_t *child, const char *metadata,
-    tsk_size_t *metadata_length);
+int tsk_edge_table_set_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
+    const double *left, const double *right, const tsk_id_t *parent,
+    const tsk_id_t *child, const char *metadata, const tsk_size_t *metadata_length);
 int tsk_edge_table_append_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
-    double *left, double *right, tsk_id_t *parent, tsk_id_t *child, const char *metadata,
-    tsk_size_t *metadata_length);
-int tsk_edge_table_dump_text(tsk_edge_table_t *self, FILE *out);
+    const double *left, const double *right, const tsk_id_t *parent,
+    const tsk_id_t *child, const char *metadata, const tsk_size_t *metadata_length);
+int tsk_edge_table_dump_text(const tsk_edge_table_t *self, FILE *out);
 
 int tsk_edge_table_squash(tsk_edge_table_t *self);
 
@@ -1294,12 +1388,27 @@ int tsk_migration_table_truncate(tsk_migration_table_t *self, tsk_size_t num_row
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns,
+and their metadata schemas are byte-wise identical.
+
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata or metadata schemas in the comparison.
+
+@endrst
+
 @param self A pointer to a tsk_migration_table_t object.
 @param other A pointer to a tsk_migration_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_migration_table_equals(
-    tsk_migration_table_t *self, tsk_migration_table_t *other);
+bool tsk_migration_table_equals(const tsk_migration_table_t *self,
+    const tsk_migration_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -1318,7 +1427,7 @@ be supplied to avoid leaking memory.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_migration_table_copy(
-    tsk_migration_table_t *self, tsk_migration_table_t *dest, tsk_flags_t options);
+    const tsk_migration_table_t *self, tsk_migration_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -1337,7 +1446,7 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_migration_table_get_row(
-    tsk_migration_table_t *self, tsk_id_t index, tsk_migration_t *row);
+    const tsk_migration_table_t *self, tsk_id_t index, tsk_migration_t *row);
 
 /**
 @brief Set the metadata schema
@@ -1362,24 +1471,25 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_migration_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_migration_table_print_state(tsk_migration_table_t *self, FILE *out);
+void tsk_migration_table_print_state(const tsk_migration_table_t *self, FILE *out);
 
 /** @} */
 
 /* Undocumented methods */
 
-int tsk_migration_table_init(tsk_migration_table_t *self, tsk_flags_t options);
 int tsk_migration_table_set_max_rows_increment(
     tsk_migration_table_t *self, tsk_size_t max_rows_increment);
 int tsk_migration_table_set_max_metadata_length_increment(
     tsk_migration_table_t *self, tsk_size_t max_metadata_length_increment);
 int tsk_migration_table_set_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
-    double *left, double *right, tsk_id_t *node, tsk_id_t *source, tsk_id_t *dest,
-    double *time, const char *metadata, tsk_size_t *metadata_length);
+    const double *left, const double *right, const tsk_id_t *node,
+    const tsk_id_t *source, const tsk_id_t *dest, const double *time,
+    const char *metadata, const tsk_size_t *metadata_length);
 int tsk_migration_table_append_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
-    double *left, double *right, tsk_id_t *node, tsk_id_t *source, tsk_id_t *dest,
-    double *time, const char *metadata, tsk_size_t *metadata_length);
-int tsk_migration_table_dump_text(tsk_migration_table_t *self, FILE *out);
+    const double *left, const double *right, const tsk_id_t *node,
+    const tsk_id_t *source, const tsk_id_t *dest, const double *time,
+    const char *metadata, const tsk_size_t *metadata_length);
+int tsk_migration_table_dump_text(const tsk_migration_table_t *self, FILE *out);
 
 /**
 @defgroup SITE_TABLE_API_GROUP Site table API.
@@ -1461,11 +1571,27 @@ int tsk_site_table_truncate(tsk_site_table_t *self, tsk_size_t num_rows);
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns,
+and their metadata schemas are byte-wise identical.
+
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata or metadata schemas in the comparison.
+
+@endrst
+
 @param self A pointer to a tsk_site_table_t object.
 @param other A pointer to a tsk_site_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_site_table_equals(tsk_site_table_t *self, tsk_site_table_t *other);
+bool tsk_site_table_equals(
+    const tsk_site_table_t *self, const tsk_site_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -1484,7 +1610,7 @@ be supplied to avoid leaking memory.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_site_table_copy(
-    tsk_site_table_t *self, tsk_site_table_t *dest, tsk_flags_t options);
+    const tsk_site_table_t *self, tsk_site_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -1502,7 +1628,8 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
     values in the specified row.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_site_table_get_row(tsk_site_table_t *self, tsk_id_t index, tsk_site_t *row);
+int tsk_site_table_get_row(
+    const tsk_site_table_t *self, tsk_id_t index, tsk_site_t *row);
 
 /**
 @brief Set the metadata schema
@@ -1527,7 +1654,7 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_site_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_site_table_print_state(tsk_site_table_t *self, FILE *out);
+void tsk_site_table_print_state(const tsk_site_table_t *self, FILE *out);
 
 /** @} */
 
@@ -1540,12 +1667,14 @@ int tsk_site_table_set_max_metadata_length_increment(
 int tsk_site_table_set_max_ancestral_state_length_increment(
     tsk_site_table_t *self, tsk_size_t max_ancestral_state_length_increment);
 int tsk_site_table_set_columns(tsk_site_table_t *self, tsk_size_t num_rows,
-    double *position, const char *ancestral_state, tsk_size_t *ancestral_state_length,
-    const char *metadata, tsk_size_t *metadata_length);
+    const double *position, const char *ancestral_state,
+    const tsk_size_t *ancestral_state_length, const char *metadata,
+    const tsk_size_t *metadata_length);
 int tsk_site_table_append_columns(tsk_site_table_t *self, tsk_size_t num_rows,
-    double *position, const char *ancestral_state, tsk_size_t *ancestral_state_length,
-    const char *metadata, tsk_size_t *metadata_length);
-int tsk_site_table_dump_text(tsk_site_table_t *self, FILE *out);
+    const double *position, const char *ancestral_state,
+    const tsk_size_t *ancestral_state_length, const char *metadata,
+    const tsk_size_t *metadata_length);
+int tsk_site_table_dump_text(const tsk_site_table_t *self, FILE *out);
 
 /**
 @defgroup MUTATION_TABLE_API_GROUP Mutation table API.
@@ -1630,11 +1759,27 @@ int tsk_mutation_table_truncate(tsk_mutation_table_t *self, tsk_size_t num_rows)
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns,
+and their metadata schemas are byte-wise identical.
+
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata or metadata schemas in the comparison.
+
+@endrst
+
 @param self A pointer to a tsk_mutation_table_t object.
 @param other A pointer to a tsk_mutation_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_mutation_table_equals(tsk_mutation_table_t *self, tsk_mutation_table_t *other);
+bool tsk_mutation_table_equals(const tsk_mutation_table_t *self,
+    const tsk_mutation_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -1653,7 +1798,7 @@ be supplied to avoid leaking memory.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_mutation_table_copy(
-    tsk_mutation_table_t *self, tsk_mutation_table_t *dest, tsk_flags_t options);
+    const tsk_mutation_table_t *self, tsk_mutation_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -1672,7 +1817,7 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_mutation_table_get_row(
-    tsk_mutation_table_t *self, tsk_id_t index, tsk_mutation_t *row);
+    const tsk_mutation_table_t *self, tsk_id_t index, tsk_mutation_t *row);
 
 /**
 @brief Set the metadata schema
@@ -1697,7 +1842,7 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_mutation_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_mutation_table_print_state(tsk_mutation_table_t *self, FILE *out);
+void tsk_mutation_table_print_state(const tsk_mutation_table_t *self, FILE *out);
 
 /** @} */
 
@@ -1710,23 +1855,16 @@ int tsk_mutation_table_set_max_metadata_length_increment(
 int tsk_mutation_table_set_max_derived_state_length_increment(
     tsk_mutation_table_t *self, tsk_size_t max_derived_state_length_increment);
 int tsk_mutation_table_set_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
-    tsk_id_t *site, tsk_id_t *node, tsk_id_t *parent, double *time,
-    const char *derived_state, tsk_size_t *derived_state_length, const char *metadata,
-    tsk_size_t *metadata_length);
+    const tsk_id_t *site, const tsk_id_t *node, const tsk_id_t *parent,
+    const double *time, const char *derived_state,
+    const tsk_size_t *derived_state_length, const char *metadata,
+    const tsk_size_t *metadata_length);
 int tsk_mutation_table_append_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
-    tsk_id_t *site, tsk_id_t *node, tsk_id_t *parent, double *time,
-    const char *derived_state, tsk_size_t *derived_state_length, const char *metadata,
-    tsk_size_t *metadata_length);
-bool tsk_mutation_table_equals(tsk_mutation_table_t *self, tsk_mutation_table_t *other);
-int tsk_mutation_table_clear(tsk_mutation_table_t *self);
-int tsk_mutation_table_truncate(tsk_mutation_table_t *self, tsk_size_t num_rows);
-int tsk_mutation_table_copy(
-    tsk_mutation_table_t *self, tsk_mutation_table_t *dest, tsk_flags_t options);
-int tsk_mutation_table_free(tsk_mutation_table_t *self);
-int tsk_mutation_table_dump_text(tsk_mutation_table_t *self, FILE *out);
-void tsk_mutation_table_print_state(tsk_mutation_table_t *self, FILE *out);
-int tsk_mutation_table_get_row(
-    tsk_mutation_table_t *self, tsk_id_t index, tsk_mutation_t *row);
+    const tsk_id_t *site, const tsk_id_t *node, const tsk_id_t *parent,
+    const double *time, const char *derived_state,
+    const tsk_size_t *derived_state_length, const char *metadata,
+    const tsk_size_t *metadata_length);
+int tsk_mutation_table_dump_text(const tsk_mutation_table_t *self, FILE *out);
 
 /**
 @defgroup POPULATION_TABLE_API_GROUP Population table API.
@@ -1803,12 +1941,29 @@ int tsk_population_table_truncate(tsk_population_table_t *self, tsk_size_t num_r
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns,
+and their metadata schemas are byte-wise identical.
+
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata in the comparison. Note that as metadata is the
+    only column in the population table, two population tables are considered
+    equal if they have the same number of rows if this flag is specified.
+
+@endrst
+
 @param self A pointer to a tsk_population_table_t object.
 @param other A pointer to a tsk_population_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_population_table_equals(
-    tsk_population_table_t *self, tsk_population_table_t *other);
+bool tsk_population_table_equals(const tsk_population_table_t *self,
+    const tsk_population_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -1826,8 +1981,8 @@ be supplied to avoid leaking memory.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_population_table_copy(
-    tsk_population_table_t *self, tsk_population_table_t *dest, tsk_flags_t options);
+int tsk_population_table_copy(const tsk_population_table_t *self,
+    tsk_population_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -1846,7 +2001,7 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_population_table_get_row(
-    tsk_population_table_t *self, tsk_id_t index, tsk_population_t *row);
+    const tsk_population_table_t *self, tsk_id_t index, tsk_population_t *row);
 
 /**
 @brief Set the metadata schema
@@ -1871,7 +2026,7 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_population_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_population_table_print_state(tsk_population_table_t *self, FILE *out);
+void tsk_population_table_print_state(const tsk_population_table_t *self, FILE *out);
 
 /** @} */
 
@@ -1882,10 +2037,10 @@ int tsk_population_table_set_max_rows_increment(
 int tsk_population_table_set_max_metadata_length_increment(
     tsk_population_table_t *self, tsk_size_t max_metadata_length_increment);
 int tsk_population_table_set_columns(tsk_population_table_t *self, tsk_size_t num_rows,
-    const char *metadata, tsk_size_t *metadata_offset);
+    const char *metadata, const tsk_size_t *metadata_offset);
 int tsk_population_table_append_columns(tsk_population_table_t *self,
-    tsk_size_t num_rows, const char *metadata, tsk_size_t *metadata_offset);
-int tsk_population_table_dump_text(tsk_population_table_t *self, FILE *out);
+    tsk_size_t num_rows, const char *metadata, const tsk_size_t *metadata_offset);
+int tsk_population_table_dump_text(const tsk_population_table_t *self, FILE *out);
 
 /**
 @defgroup PROVENANCE_TABLE_API_GROUP Provenance table API.
@@ -1966,12 +2121,27 @@ int tsk_provenance_table_truncate(tsk_provenance_table_t *self, tsk_size_t num_r
 @brief Returns true if the data in the specified table is identical to the data
        in this table.
 
+@rst
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) tables are
+considered equal if they are byte-wise identical in all columns.
+
+TSK_CMP_IGNORE_TIMESTAMPS
+    Do not include the timestamp column when comparing provenance
+    tables.
+
+@endrst
+
 @param self A pointer to a tsk_provenance_table_t object.
 @param other A pointer to a tsk_provenance_table_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table is equal to this table.
 */
-bool tsk_provenance_table_equals(
-    tsk_provenance_table_t *self, tsk_provenance_table_t *other);
+bool tsk_provenance_table_equals(const tsk_provenance_table_t *self,
+    const tsk_provenance_table_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table into the specified destination.
@@ -1989,8 +2159,8 @@ be supplied to avoid leaking memory.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_provenance_table_copy(
-    tsk_provenance_table_t *self, tsk_provenance_table_t *dest, tsk_flags_t options);
+int tsk_provenance_table_copy(const tsk_provenance_table_t *self,
+    tsk_provenance_table_t *dest, tsk_flags_t options);
 
 /**
 @brief Get the row at the specified index.
@@ -2009,7 +2179,7 @@ next operation that modifies the table (e.g., by adding a new row), but not afte
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_provenance_table_get_row(
-    tsk_provenance_table_t *self, tsk_id_t index, tsk_provenance_t *row);
+    const tsk_provenance_table_t *self, tsk_id_t index, tsk_provenance_t *row);
 
 /**
 @brief Print out the state of this table to the specified stream.
@@ -2021,7 +2191,7 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_provenance_table_t object.
 @param out The stream to write the summary to.
 */
-void tsk_provenance_table_print_state(tsk_provenance_table_t *self, FILE *out);
+void tsk_provenance_table_print_state(const tsk_provenance_table_t *self, FILE *out);
 
 /** @} */
 
@@ -2034,17 +2204,12 @@ int tsk_provenance_table_set_max_timestamp_length_increment(
 int tsk_provenance_table_set_max_record_length_increment(
     tsk_provenance_table_t *self, tsk_size_t max_record_length_increment);
 int tsk_provenance_table_set_columns(tsk_provenance_table_t *self, tsk_size_t num_rows,
-    char *timestamp, tsk_size_t *timestamp_offset, char *record,
-    tsk_size_t *record_offset);
+    const char *timestamp, const tsk_size_t *timestamp_offset, const char *record,
+    const tsk_size_t *record_offset);
 int tsk_provenance_table_append_columns(tsk_provenance_table_t *self,
-    tsk_size_t num_rows, char *timestamp, tsk_size_t *timestamp_offset, char *record,
-    tsk_size_t *record_offset);
-int tsk_provenance_table_dump_text(tsk_provenance_table_t *self, FILE *out);
-void tsk_provenance_table_print_state(tsk_provenance_table_t *self, FILE *out);
-bool tsk_provenance_table_equals(
-    tsk_provenance_table_t *self, tsk_provenance_table_t *other);
-int tsk_provenance_table_get_row(
-    tsk_provenance_table_t *self, tsk_id_t index, tsk_provenance_t *row);
+    tsk_size_t num_rows, const char *timestamp, const tsk_size_t *timestamp_offset,
+    const char *record, const tsk_size_t *record_offset);
+int tsk_provenance_table_dump_text(const tsk_provenance_table_t *self, FILE *out);
 
 /****************************************************************************/
 /* Table collection .*/
@@ -2092,34 +2257,76 @@ int tsk_table_collection_init(tsk_table_collection_t *self, tsk_flags_t options)
 int tsk_table_collection_free(tsk_table_collection_t *self);
 
 /**
-@brief Clears all tables in this table collection.
+@brief Clears data tables (and optionally provenances and metadata) in
+this table collection.
 
 @rst
+By default this operation clears all tables except the provenance table, retaining
+table metadata schemas and the tree-sequnce level metadata and schema.
+
+**Options**
+
+Options can be specified by providing one or more of the following bitwise
+flags:
+
+TSK_CLEAR_PROVENANCE
+    Additionally clear the provenance table
+TSK_CLEAR_METADATA_SCHEMAS
+    Additionally clear the table metadata schemas
+TSK_CLEAR_TS_METADATA_AND_SCHEMA
+    Additionally clear the tree-sequence metadata and schema
+
 No memory is freed as a result of this operation; please use
 :c:func:`tsk_table_collection_free` to free internal resources.
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
+@param options Bitwise clearing options
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_table_collection_clear(tsk_table_collection_t *self);
+int tsk_table_collection_clear(tsk_table_collection_t *self, tsk_flags_t options);
 
 /**
-@brief Returns true if the data in the specified table collection is identical to the
-data in this table.
+@brief Returns true if the data in the specified table collection is equal
+    to the data in this table collection.
 
 @rst
-Returns true if the data in all of the table columns are byte-by-byte equal
-and the sequence lengths of the two table collections are equal. Indexes are not
-considered when determining equality, since they are derived from the basic data.
+
+Returns true if the two table collections are equal. The indexes are
+not considered as these are derived from the tables. We also do not
+consider the ``file_uuid``, since it is a property of the file that set
+of tables is stored in.
+
+**Options**
+
+Options to control the comparison can be specified by providing one or
+more of the following bitwise flags. By default (options=0) two table
+collections are considered equal if all of the tables are byte-wise
+identical, and the sequence lengths, metadata and metadata schemas
+of the two table collections are identical.
+
+TSK_CMP_IGNORE_PROVENANCE
+    Do not include the provenance table in comparison.
+TSK_CMP_IGNORE_METADATA
+    Do not include metadata when comparing the table collections.
+    This includes both the top-level tree sequence metadata as well as the
+    metadata for each of the tables (i.e, TSK_CMP_IGNORE_TS_METADATA is implied).
+    All metadata schemas are also ignored.
+TSK_CMP_IGNORE_TS_METADATA
+    Do not include the top-level tree sequence metadata and metadata schemas
+    in the comparison.
+TSK_CMP_IGNORE_TIMESTAMPS
+    Do not include the timestamp information when comparing the provenance
+    tables. This has no effect if TSK_CMP_IGNORE_PROVENANCE is specified.
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
 @param other A pointer to a tsk_table_collection_t object.
+@param options Bitwise comparison options.
 @return Return true if the specified table collection is equal to this table.
 */
-bool tsk_table_collection_equals(
-    tsk_table_collection_t *self, tsk_table_collection_t *other);
+bool tsk_table_collection_equals(const tsk_table_collection_t *self,
+    const tsk_table_collection_t *other, tsk_flags_t options);
 
 /**
 @brief Copies the state of this table collection into the specified destination.
@@ -2137,8 +2344,8 @@ be supplied to avoid leaking memory.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_table_collection_copy(
-    tsk_table_collection_t *self, tsk_table_collection_t *dest, tsk_flags_t options);
+int tsk_table_collection_copy(const tsk_table_collection_t *self,
+    tsk_table_collection_t *dest, tsk_flags_t options);
 
 /**
 @brief Print out the state of this table collection to the specified stream.
@@ -2150,7 +2357,7 @@ on and may change arbitrarily between versions.
 @param self A pointer to a tsk_table_collection_t object.
 @param out The stream to write the summary to.
 */
-void tsk_table_collection_print_state(tsk_table_collection_t *self, FILE *out);
+void tsk_table_collection_print_state(const tsk_table_collection_t *self, FILE *out);
 
 /**
 @brief Load a table collection from a file path.
@@ -2338,7 +2545,7 @@ int tsk_table_collection_dumpf(
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_record_num_rows(
-    tsk_table_collection_t *self, tsk_bookmark_t *bookmark);
+    const tsk_table_collection_t *self, tsk_bookmark_t *bookmark);
 
 /**
 @brief Truncates the tables in this table collection according to the specified bookmark.
@@ -2421,7 +2628,7 @@ TSK_NO_CHECK_INTEGRITY
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_sort(
-    tsk_table_collection_t *self, tsk_bookmark_t *start, tsk_flags_t options);
+    tsk_table_collection_t *self, const tsk_bookmark_t *start, tsk_flags_t options);
 
 /**
 @brief Simplify the tables to remove redundant information.
@@ -2465,6 +2672,9 @@ TSK_KEEP_INPUT_ROOTS
     By default simplify removes all topology ancestral the MRCAs of the samples.
     This option inserts edges from these MRCAs back to the roots of the input
     trees.
+TSK_KEEP_UNARY_IN_INDIVDUALS
+    This acts like TSK_KEEP_UNARY (and is mutually exclusive with that flag). It
+    keeps unary nodes, but only if the unary node is referenced from an individual.
 
 .. note:: Migrations are currently not supported by simplify, and an error will
     be raised if we attempt call simplify on a table collection with greater
@@ -2489,7 +2699,7 @@ completes.
     between nodes IDs in the table collection before and after simplification.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_table_collection_simplify(tsk_table_collection_t *self, tsk_id_t *samples,
+int tsk_table_collection_simplify(tsk_table_collection_t *self, const tsk_id_t *samples,
     tsk_size_t num_samples, tsk_flags_t options, tsk_id_t *node_map);
 
 /**
@@ -2526,7 +2736,7 @@ nodes (and individuals and populations) reordered.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_subset(
-    tsk_table_collection_t *self, tsk_id_t *nodes, tsk_size_t num_nodes);
+    tsk_table_collection_t *self, const tsk_id_t *nodes, tsk_size_t num_nodes);
 
 /**
 @brief Forms the node-wise union of two table collections.
@@ -2581,7 +2791,8 @@ will be added to self).
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_union(tsk_table_collection_t *self,
-    tsk_table_collection_t *other, tsk_id_t *other_node_mapping, tsk_flags_t options);
+    const tsk_table_collection_t *other, const tsk_id_t *other_node_mapping,
+    tsk_flags_t options);
 
 /**
 @brief Set the metadata
@@ -2628,7 +2839,8 @@ life-cycle.
     set to zero to ensure compatibility with later versions of tskit.
 @return Return true if there is an index present for this table collection.
 */
-bool tsk_table_collection_has_index(tsk_table_collection_t *self, tsk_flags_t options);
+bool tsk_table_collection_has_index(
+    const tsk_table_collection_t *self, tsk_flags_t options);
 
 /**
 @brief Deletes the indexes for this table collection.
@@ -2663,6 +2875,26 @@ collection. Any existing index is first dropped using
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_build_index(tsk_table_collection_t *self, tsk_flags_t options);
+
+/**
+@brief Sets the edge insertion/removal index for this table collection
+
+@rst
+This method sets the edge insertion/removal index for this table collection
+The index arrays should have the same number of edges that are in the
+edge table. The index is not checked for validity.
+
+See the :ref:`sec_c_api_table_indexes` section for details on the index
+life-cycle.
+@endrst
+
+@param self A pointer to a tsk_table_collection_t object.
+@param edge_insertion_order Array of tsk_id_t edge ids.
+@param edge_removal_order Array of tsk_id_t edge ids.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_table_collection_set_indexes(tsk_table_collection_t *self,
+    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
 
 /**
 @brief Runs integrity checks on this table collection.
@@ -2723,7 +2955,7 @@ TSK_NO_CHECK_POPULATION_REFS
    success.
 */
 tsk_id_t tsk_table_collection_check_integrity(
-    tsk_table_collection_t *self, tsk_flags_t options);
+    const tsk_table_collection_t *self, tsk_flags_t options);
 
 /** @} */
 
@@ -2732,7 +2964,6 @@ tsk_id_t tsk_table_collection_check_integrity(
 int tsk_table_collection_link_ancestors(tsk_table_collection_t *self, tsk_id_t *samples,
     tsk_size_t num_samples, tsk_id_t *ancestors, tsk_size_t num_ancestors,
     tsk_flags_t options, tsk_edge_table_t *result);
-
 int tsk_table_collection_deduplicate_sites(
     tsk_table_collection_t *tables, tsk_flags_t options);
 int tsk_table_collection_compute_mutation_parents(
@@ -2804,7 +3035,7 @@ See :c:func:`tsk_table_collection_sort` for details on the ``start`` parameter.
 @param start The position in the tables at which sorting starts.
 @return Return 0 on success or a negative value on failure.
 */
-int tsk_table_sorter_run(struct _tsk_table_sorter_t *self, tsk_bookmark_t *start);
+int tsk_table_sorter_run(struct _tsk_table_sorter_t *self, const tsk_bookmark_t *start);
 
 /**
 @brief Free the internal memory for the specified table sorter.
@@ -2818,6 +3049,17 @@ int tsk_table_sorter_free(struct _tsk_table_sorter_t *self);
 
 int tsk_squash_edges(
     tsk_edge_t *edges, tsk_size_t num_edges, tsk_size_t *num_output_edges);
+
+/* IBD finder API. This is experimental and the interface may change. */
+int tsk_ibd_finder_init(tsk_ibd_finder_t *ibd_finder, tsk_table_collection_t *tables,
+    tsk_id_t *pairs, tsk_size_t num_pairs);
+int tsk_ibd_finder_set_min_length(tsk_ibd_finder_t *self, double min_length);
+int tsk_ibd_finder_set_max_time(tsk_ibd_finder_t *self, double max_time);
+int tsk_ibd_finder_free(tsk_ibd_finder_t *self);
+int tsk_ibd_finder_run(tsk_ibd_finder_t *ibd_finder);
+int tsk_ibd_finder_get_ibd_segments(tsk_ibd_finder_t *ibd_finder, tsk_id_t pair_index,
+    tsk_segment_t **ret_ibd_segments_head);
+void tsk_ibd_finder_print_state(tsk_ibd_finder_t *self, FILE *out);
 
 #ifdef __cplusplus
 }

@@ -32,7 +32,7 @@ extern "C" {
 
 #include <tskit/trees.h>
 
-int tsk_convert_newick(tsk_tree_t *tree, tsk_id_t root, size_t precision,
+int tsk_convert_newick(const tsk_tree_t *tree, tsk_id_t root, size_t precision,
     tsk_flags_t options, size_t buffer_size, char *buffer);
 
 #ifdef __cplusplus
