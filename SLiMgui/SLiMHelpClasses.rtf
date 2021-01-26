@@ -5722,7 +5722,7 @@ The behavior of simplification for individuals retained with
 \f3\fs18 retainCoalescentOnly
 \f4\fs20  to 
 \f3\fs18 F
-\f4\fs20  will prevent the unary nodes for retained individuals from being pruned, simplification may often be unable to prune very much at all from the tree sequence, and memory usage and runtime may increase rapidly.  This setting should therefore be used only with caution; it is rarely necessary.  See the 
+\f4\fs20  will prevent the unary nodes for retained individuals from being pruned, simplification may often be unable to prune very much at all from the tree sequence, and memory usage and runtime may increase rapidly.  If you are retaining many individuals, this setting should therefore be used only with caution; it is not necessary if you are purely interested in the most recent common ancestors.  See the 
 \f3\fs18 pyslim
 \f4\fs20  documentation for further discussion of retaining and remembering individuals and the effects of the 
 \f3\fs18 retainCoalescentOnly

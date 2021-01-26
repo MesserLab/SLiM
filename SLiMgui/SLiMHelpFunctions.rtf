@@ -1058,17 +1058,19 @@ The
 \f1\fs18 retainCoalescentOnly
 \f2\fs20  parameter controls how, exactly, simplification of the tree-sequence data is performed in SLiM (both for auto-simplification and for calls to 
 \f1\fs18 treeSeqSimplify()
-\f2\fs20 ).  The default of 
-\f1\fs18 T
-\f2\fs20  should work for almost all users of tree-sequence recording; changing it to 
-\f1\fs18 F
-\f2\fs20  may dramatically increase memory usage and runtime, without benefit for most users.  More specifically, this parameter controls the behavior of simplification for individuals and genomes that have been \'93retained\'94 by calling 
+\f2\fs20 ).  More specifically, this parameter controls the behavior of simplification for individuals and genomes that have been \'93retained\'94 by calling 
 \f1\fs18 treeSeqRememberIndividuals()
 \f2\fs20  with the parameter 
 \f1\fs18 permanent=F
-\f2\fs20 .  See the documentation of 
+\f2\fs20 .  The default of 
+\f1\fs18 retainCoalescentOnly=T
+\f2\fs20  helps to keep the number of retained individuals relatively small, which is helpful if your simulation regularly flags many individuals for retaining.  In this case, changing 
+\f1\fs18 retainCoalescentOnly
+\f2\fs20  to 
+\f1\fs18 F
+\f2\fs20  may dramatically increase memory usage and runtime, in a similar way to permanently remembering all the individuals.  See the documentation of 
 \f1\fs18 treeSeqRememberIndividuals()
-\f2\fs20  for further discussion (section 24.13.2).\
+\f2\fs20  for further discussion.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.2.  Nucleotide utilities\
