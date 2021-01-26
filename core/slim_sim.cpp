@@ -7362,6 +7362,8 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		}
 		
 		// allocate and set up the tree_sequence object that contains all the tree sequences
+		// BCH 1/25/2021: changing tsk_vargen_init() call from (ts->samples, ts->num_samples)
+		// to (NULL, 0); they mean the same thing and it avoids a copy of the samples vector.
 		tsk_treeseq_t *ts;
 		
 		ts = (tsk_treeseq_t *)malloc(sizeof(tsk_treeseq_t));
@@ -7372,7 +7374,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		tsk_vargen_t *vg;
 		
 		vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-		ret = tsk_vargen_init(vg, ts, ts->samples, ts->num_samples, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
+		ret = tsk_vargen_init(vg, ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_alloc()", ret);
 		
 		// crosscheck by looping through variants
@@ -8037,10 +8039,12 @@ void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 void SLiMSim::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts)
 {
 	// allocate and set up the vargen object we'll use to walk through variants
+	// BCH 1/25/2021: changing tsk_vargen_init() call from (p_ts->samples, p_ts->num_samples)
+	// to (NULL, 0); they mean the same thing and it avoids a copy of the samples vector.
 	tsk_vargen_t *vg;
 	
 	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-	int ret = tsk_vargen_init(vg, p_ts, p_ts->samples, p_ts->num_samples, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
+	int ret = tsk_vargen_init(vg, p_ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
 	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_vargen_init()", ret);
 	
 	// set up a map from sample indices in the vargen to Genome objects; the sample
@@ -8207,10 +8211,12 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 		return;
 	
 	// allocate and set up the vargen object we'll use to walk through variants
+	// BCH 1/25/2021: changing tsk_vargen_init() call from (p_ts->samples, p_ts->num_samples)
+	// to (NULL, 0); they mean the same thing and it avoids a copy of the samples vector.
 	tsk_vargen_t *vg;
 	
 	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-	int ret = tsk_vargen_init(vg, p_ts, p_ts->samples, p_ts->num_samples, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
+	int ret = tsk_vargen_init(vg, p_ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
 	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_vargen_init()", ret);
 	
 	// set up a map from sample indices in the vargen to Genome objects; the sample
