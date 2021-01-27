@@ -6196,7 +6196,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	}
 	
 	// loop over individuals and add entries to the individual table; if they are already
-	// there, we just need to update their metadata, location, etc.
+	// there, we just need to update their flags, metadata, location, etc.
 	for (size_t j = 0; j < p_num_individuals; j++)
 	{
 		Individual *ind = p_individual[j];
@@ -6270,6 +6270,16 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 				   && (p_tables->nodes.individual[ind->genome2_->tsk_node_id_]
 					   == tsk_individual));
 			
+			// It could have been previously inserted but not with the 
+			// SLIM_TSK_INDIVIDUAL_REMEMBERED flag: if so, it now needs adding to the
+			// list of remembered_genomes_
+			if (((p_tables->individuals.flags[tsk_individual] & SLIM_TSK_INDIVIDUAL_REMEMBERED) == 0)
+				&& (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED))
+			{
+				remembered_genomes_.push_back(ind->genome1_->tsk_node_id_);
+				remembered_genomes_.push_back(ind->genome2_->tsk_node_id_);
+			}
+
 			memcpy(p_tables->individuals.location
 				   + p_tables->individuals.location_offset[tsk_individual],
 				   location.data(), location.size() * sizeof(double));
