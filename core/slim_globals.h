@@ -443,9 +443,9 @@ extern EidosValue_String_SP gStaticEidosValue_StringT;
 #pragma mark Tree sequences
 #pragma mark -
 	
-#define SLIM_TSK_INDIVIDUAL_ALIVE       ((uint32_t)(1 << 16))
-#define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((uint32_t)(1 << 17))
-#define SLIM_TSK_INDIVIDUAL_RETAINED    ((uint32_t)(1 << 18))
+#define SLIM_TSK_INDIVIDUAL_ALIVE       ((tsk_flags_t)(1 << 16))
+#define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((tsk_flags_t)(1 << 17))
+#define SLIM_TSK_INDIVIDUAL_RETAINED    ((tsk_flags_t)(1 << 18))
 
 extern const std::string gSLiM_tsk_metadata_schema;
 extern const std::string gSLiM_tsk_edge_metadata_schema;

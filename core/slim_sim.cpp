@@ -5007,7 +5007,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 	WritePopulationTable(&tables_);
 	
 	// sort the table collection
-	int flags = TSK_NO_CHECK_INTEGRITY;
+	tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
 	flags = 0;
 #endif
@@ -5104,8 +5104,8 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	
 	int64_t extant_node_count = (int64_t)all_extant_nodes.size();
 	
-	// Iterate through the trees to check coalescence; this is a bit tricky because of retained first-gen ancestors
-	// and other remembered individuals.  We use the sparse tree's "tracked samples" feature, tracking extant individuals
+	// Iterate through the trees to check coalescence; this is a bit tricky because of keeping first-gen nodes and nodes
+	// in remembered individuals.  We use the sparse tree's "tracked samples" feature, tracking extant individuals
 	// only, to find out whether all extant individuals are under a single root (coalesced), or under multiple roots
 	// (not coalesced).  Doing this requires a scan through all the roots at each site, which is very slow if we have
 	// indeed coalesced, but if we are far from coalescence we will usually be able to determine that in the scan of the
@@ -5125,7 +5125,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	for (; (ret == 1) && fully_coalesced; ret = tsk_tree_next(&t))
 	{
 #if 0
-		// If we didn't retain first-generation lineages, or remember genomes, >1 root would mean not coalesced
+		// If we didn't keep first-generation lineages, or remember genomes, >1 root would mean not coalesced
 		if (t.right_sib[t.left_root] != TSK_NULL)
 		{
 			fully_coalesced = false;
@@ -5243,7 +5243,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	// add genome node; we mark all nodes with TSK_NODE_IS_SAMPLE here because we have full genealogical information on all of them
 	// (until simplify, which clears TSK_NODE_IS_SAMPLE from nodes that are not kept in the sample).
 	double time = (double) -1 * (tree_seq_generation_ + tree_seq_generation_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_generation_offset_
-	uint32_t flags = TSK_NODE_IS_SAMPLE;
+	tsk_flags_t flags = TSK_NODE_IS_SAMPLE;
 	GenomeMetadataRec metadata_rec;
 	
 	MetadataForGenome(p_new_genome, &metadata_rec);
@@ -6122,7 +6122,7 @@ void SLiMSim::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 	tsk_mutation_table_free(&mutations_copy);
 }
 
-void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, uint32_t p_flags)
+void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, tsk_flags_t p_flags)
 {
 	// We use currently use this function in two ways, depending on p_flags:
 	//  1. (SLIM_TSK_INDIVIDUAL_REMEMBERED) for individuals to be permanently
