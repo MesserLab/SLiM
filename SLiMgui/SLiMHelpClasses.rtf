@@ -5704,13 +5704,13 @@ The behavior of simplification for individuals retained with
 \f3\fs18 initializeTreeSeq()
 \f4\fs20 ; here we will discuss the behavior of that flag in detail.  First of all, genomes are 
 \f1\i always
-\f4\i0  removed by simplification if they are not ancestral to the sample, unless their individual has been permanently remembered.  If 
+\f4\i0  removed by simplification unless they are (a) part of the final generation, (b) ancestral to the final generation, (c) a genome of a permanently remembered individual, or (d) ancestral to a permanently remembered individual.  If 
 \f3\fs18 retainCoalescentOnly
 \f4\fs20  is 
 \f3\fs18 T
 \f4\fs20  (the default), they are 
 \f1\i also
-\f4\i0  removed if they are not a branch point (i.e., a coalescent node or most recent common ancestor) in the tree sequence.  In some cases it may be useful to retain a genome and its associated individual when it is simply an intermediate node in the ancestry (i.e., in the middle of a branch).  This can be done by setting 
+\f4\i0  always removed if they are not a branch point (i.e., a coalescent node or most recent common ancestor) in the tree sequence.  In some cases it may be useful to retain a genome and its associated individual when it is simply an intermediate node in the ancestry (i.e., in the middle of a branch).  This can be enabled by setting 
 \f3\fs18 retainCoalescentOnly
 \f4\fs20  to 
 \f3\fs18 F
@@ -5718,7 +5718,9 @@ The behavior of simplification for individuals retained with
 \f3\fs18 initializeTreeSeq()
 \f4\fs20 .  In this case, ancestral genomes that are intermediate (\'93unary nodes\'94, in 
 \f3\fs18 tskit
-\f4\fs20  parlance) and are within a retained individual are kept, along with the retained individual itself.  Since setting 
+\f4\fs20  parlance) and are within an individual that has been retained using the 
+\f3\fs18 permanent=F
+\f4\fs20  flag here are kept, along with the retained individual itself.  Since setting 
 \f3\fs18 retainCoalescentOnly
 \f4\fs20  to 
 \f3\fs18 F
