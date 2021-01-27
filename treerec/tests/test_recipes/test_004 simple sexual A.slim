@@ -3,8 +3,9 @@
 // A test script for the simple autosomal case
 //
 initialize() {
-    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
-    source("testing_utils.slim");
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+    initializeTreeSeq();
 	initializeSex('A');
 	initializeMutationRate(1e-2);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -14,13 +15,13 @@ initialize() {
 }
 1 {
 	sim.addSubpop("p1", 100);
-    chooseAncestralSamples(5);
+	addAncestralSamples(5);
 }
 50 {
-    chooseAncestralSamples(5);
+	addAncestralSamples(5);
 }
 
 100 late() { 
-    outputMutationResult();
-    cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
+	outputMutationResult();
+	cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
 }

@@ -1,9 +1,10 @@
 // modeling nucleotides.slim : ^Weighted selection coefficient total: (.*)$
 
 initialize() {
-    initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
-    source("testing_utils.slim");
-	defineConstant("C", 100);      // number of loci
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+    initializeTreeSeq();
+	defineConstant("C", 100);	  // number of loci
 	
 	// Create our loci
 	for (locus in 0:(C-1))
@@ -101,11 +102,11 @@ initialize() {
 }
 
 100 {
-    chooseAncestralSamples(5);
+	addAncestralSamples(5);
 }
 
 500 late() { 
-    outputMutationResult();
+	outputMutationResult();
 	muts = sim.mutations;   // all mutations, no uniquing
 	freqs = sim.mutationFrequencies(NULL, muts);
 	selCoeffs = muts.selectionCoeff;

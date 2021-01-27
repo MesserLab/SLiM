@@ -5,7 +5,8 @@
 initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
-	source("marked_mutations_setup.slim");
+	source("init_marked_mutations.slim");
+    initializeTreeSeq();
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 9);
 	initializeMutationRate(0.0);
@@ -57,5 +58,6 @@ modifyChild() {
 
 200 late() {
 	outputIndividuals();
-	outputMutationResult(); // required to output TS
+	outputMutationResult();
+	sim.simulationFinished();
 }
