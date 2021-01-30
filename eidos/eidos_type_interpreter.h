@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 5/8/16.
-//  Copyright (c) 2016-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2016-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -96,6 +96,7 @@ public:
 	EidosTypeSpecifier TypeEvaluate_And(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Or(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Assign(const EidosASTNode *p_node);
+	EidosTypeSpecifier TypeEvaluate_Assign_R(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Eq(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Lt(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_LtEq(const EidosASTNode *p_node);

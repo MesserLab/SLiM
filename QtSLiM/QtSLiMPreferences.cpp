@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/3/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -22,6 +22,7 @@
 #include "ui_QtSLiMPreferences.h"
 
 #include <QSettings>
+#include <QFontMetricsF>
 #include <QDebug>
 
 #include "QtSLiMAppDelegate.h"
@@ -32,6 +33,8 @@
 //
 
 static const char *QtSLiMAppStartupAction = "QtSLiMAppStartupAction";
+static const char *QtSLiMForceDarkMode = "QtSLiMForceDarkMode";
+static const char *QtSLiMForceFusionStyle = "QtSLiMForceFusionStyle";
 static const char *QtSLiMDisplayFontFamily = "QtSLiMDisplayFontFamily";
 static const char *QtSLiMDisplayFontSize = "QtSLiMDisplayFontSize";
 static const char *QtSLiMSyntaxHighlightScript = "QtSLiMSyntaxHighlightScript";
@@ -93,7 +96,31 @@ int QtSLiMPreferencesNotifier::appStartupPref(void) const
     return settings.value(QtSLiMAppStartupAction, QVariant(1)).toInt();
 }
 
-QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth) const
+bool QtSLiMPreferencesNotifier::forceDarkModePref(void)
+{
+#ifdef __APPLE__
+    // On macOS this pref is always considered to be false
+    return false;
+#endif
+    
+    QSettings settings;
+    
+    return settings.value(QtSLiMForceDarkMode, QVariant(false)).toBool();
+}
+
+bool QtSLiMPreferencesNotifier::forceFusionStylePref(void)
+{
+#ifdef __APPLE__
+    // On macOS this pref is always considered to be false
+    return false;
+#endif
+    
+    QSettings settings;
+    
+    return settings.value(QtSLiMForceFusionStyle, QVariant(false)).toBool();
+}
+
+QFont QtSLiMPreferencesNotifier::displayFontPref(double *tabWidth) const
 {
     QFont &defaultFont = defaultDisplayFont();
     QString defaultFamily = defaultFont.family();
@@ -108,10 +135,13 @@ QFont QtSLiMPreferencesNotifier::displayFontPref(int *tabWidth) const
     
     if (tabWidth)
     {
-        QFontMetrics fm(font);
+        QFontMetricsF fm(font);
         
-        //*tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
-        *tabWidth = fm.width("   ");                 // deprecated in 5.11
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        *tabWidth = fm.width("   ");                // deprecated in 5.11
+#else
+        *tabWidth = fm.horizontalAdvance("   ");    // added in Qt 5.11
+#endif
     }
     
     return font;
@@ -172,6 +202,28 @@ void QtSLiMPreferencesNotifier::startupRadioChanged()
         settings.setValue(QtSLiMAppStartupAction, QVariant(2));
     
     emit appStartupPrefChanged();
+}
+
+void QtSLiMPreferencesNotifier::forceDarkModeToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMForceDarkMode, QVariant(prefsUI.ui->forceDarkMode->isChecked()));
+    
+    // no signal is emitted for this pref; it takes effect on the next restart of the app
+    //emit forceDarkModePrefChanged();
+}
+
+void QtSLiMPreferencesNotifier::forceFusionStyleToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMForceFusionStyle, QVariant(prefsUI.ui->forceFusionStyle->isChecked()));
+    
+    // no signal is emitted for this pref; it takes effect on the next restart of the app
+    //emit forceFusionStylePrefChanged();
 }
 
 void QtSLiMPreferencesNotifier::fontChanged(const QFont &newFont)
@@ -326,6 +378,20 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(
     connect(notifier, &QtSLiMPreferencesNotifier::autosaveOnRecyclePrefChanged, this, [this, notifier]() { ui->showSaveIfUntitled->setEnabled(notifier->autosaveOnRecyclePref()); });
     
     connect(ui->resetSuppressedButton, &QPushButton::clicked, notifier, &QtSLiMPreferencesNotifier::resetSuppressedClicked);
+    
+    // handle the user interface display prefs, which are hidden and disconnected on macOS
+#ifdef __APPLE__
+    ui->uiAppearanceGroup->setHidden(true);
+    ui->verticalSpacer_uiAppearance->changeSize(0, 0);
+    ui->verticalSpacer_uiAppearance->invalidate();
+    ui->verticalLayout->invalidate();
+#else
+    ui->forceDarkMode->setChecked(notifier->forceDarkModePref());
+    ui->forceFusionStyle->setChecked(notifier->forceFusionStylePref());
+    
+    connect(ui->forceDarkMode, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::forceDarkModeToggled);
+    connect(ui->forceFusionStyle, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::forceFusionStyleToggled);
+#endif
     
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);

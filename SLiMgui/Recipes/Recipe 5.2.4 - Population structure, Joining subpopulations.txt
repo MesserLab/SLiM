@@ -22,4 +22,4 @@ initialize() {
 	p1.setSubpopulationSize(0);
 	p2.setSubpopulationSize(0);
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

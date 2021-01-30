@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -974,6 +974,8 @@ void _RunTreeSeqTests(std::string temp_path)
 	// treeSeqRememberIndividuals()
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "50 { sim.treeSeqRememberIndividuals(p1.individuals); } 100 { sim.treeSeqSimplify(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "1: { sim.treeSeqRememberIndividuals(p1.individuals); } 100 { sim.treeSeqSimplify(); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "50 { sim.treeSeqRememberIndividuals(p1.individuals, permanent=F); } 100 { sim.treeSeqSimplify(); stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "1: { sim.treeSeqRememberIndividuals(p1.individuals, permanent=F); } 100 { sim.treeSeqSimplify(); stop(); }", __LINE__);
 	
 	// treeSeqOutput()
 	if (Eidos_SlashTmpExists())

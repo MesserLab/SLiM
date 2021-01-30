@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/4/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -40,7 +40,13 @@ public:
 protected:
     virtual void highlightBlock(const QString &text) override;
 
+protected slots:
+    void paletteChanged(void);
+    
 private:
+    bool cachedTextFormats = false;
+    bool cachedForDarkMode = false;
+    
     QRegularExpression poundRegex;
     QTextCharFormat poundDirectiveFormat;
     
@@ -67,8 +73,11 @@ protected:
     
 protected slots:
     void documentContentsChanged(void);
+    void paletteChanged(void);
     
 private:
+    bool cachedTextFormats = false;
+    bool cachedForDarkMode = false;
     QTextCharFormat numberLiteralFormat;
     QTextCharFormat stringLiteralFormat;
     QTextCharFormat commentFormat;

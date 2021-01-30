@@ -39,7 +39,7 @@ initialize() {
 		p3g = p3.genomes;
 		
 		p1Total = sum(p3g.countOfMutationsOfType(m2));
-		maxTotal = p3g.size() * (L-1);
+		maxTotal = p3g.size() * L;
 		p1TotalFraction = p1Total / maxTotal;
 		catn("Fraction with p1 ancestry: " + p1TotalFraction);
 		

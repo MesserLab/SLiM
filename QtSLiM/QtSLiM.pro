@@ -16,9 +16,9 @@ TEMPLATE = app
 CONFIG += app_bundle
 QMAKE_INFO_PLIST = QtSLiM_Info.plist
 ICON = QtSLiM_AppIcon.icns
-QMAKE_TARGET_BUNDLE_PREFIX = "edu.MesserLab"
-QMAKE_BUNDLE = "QtSLiM"		# This governs the location of our prefs, which we keep under edu.MesserLab.QtSLiM
-VERSION = 3.4
+QMAKE_TARGET_BUNDLE_PREFIX = "org.messerlab"
+QMAKE_BUNDLE = "SLiMgui"		# This governs the location of our prefs, which we keep under org.messerlab.SLiMgui
+VERSION = 3.5
 
 docIconFiles.files = $$PWD/QtSLiM_DocIcon.icns
 docIconFiles.path = Contents/Resources
@@ -36,6 +36,14 @@ QMAKE_BUNDLE_DATA += docIconFiles
 # Warn and error on usage of deprecated Qt APIs; see also -Wno-deprecated-declarations below
 # DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900    # disables all the APIs deprecated before Qt 5.9.0
+
+
+# Bring in flag settings from the environment; see https://stackoverflow.com/a/17578151/2752221
+# Right now I do this only in QtSLiM.pro, to bring a CXXFLAGS setting in from GitHub Actions, but
+# these lines could be added to the other .pro files too if that proves useful.
+QMAKE_CXXFLAGS += $$(CXXFLAGS)
+QMAKE_CFLAGS += $$(CFLAGS)
+
 
 # Set up to build QtSLiM; note that these settings are set in eidos.pro, core.pro, and QtSLiM.pro
 DEFINES += EIDOS_GUI
@@ -138,6 +146,7 @@ SOURCES += \
     QtSLiMGraphView_2DPopulationSFS.cpp \
     QtSLiMGraphView_2DSampleSFS.cpp \
     QtSLiMGraphView_AgeDistribution.cpp \
+    QtSLiMGraphView_LifetimeReproduction.cpp \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_PopSizeOverTime.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
@@ -179,6 +188,7 @@ HEADERS += \
     QtSLiMGraphView_2DPopulationSFS.h \
     QtSLiMGraphView_2DSampleSFS.h \
     QtSLiMGraphView_AgeDistribution.h \
+    QtSLiMGraphView_LifetimeReproduction.h \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_PopSizeOverTime.h \
     QtSLiMGraphView_SubpopFitnessDists.h \
@@ -231,6 +241,7 @@ else: unix:!android: target.path = /usr/local/bin
 
 RESOURCES += \
     buttons.qrc \
+    buttons_DARK.qrc \
     icons.qrc \
     recipes.qrc \
     help.qrc

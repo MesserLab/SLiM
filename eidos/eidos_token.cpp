@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/27/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -51,6 +51,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosTokenType p_token
 		case EidosTokenType::kTokenComment:				p_outstream << "COMMENT";		break;
 		case EidosTokenType::kTokenCommentLong:			p_outstream << "COMMENT_LONG";	break;
 		case EidosTokenType::kTokenAssign:				p_outstream << "=";				break;
+		case EidosTokenType::kTokenAssign_R:			p_outstream << "<-";			break;
 		case EidosTokenType::kTokenEq:					p_outstream << "==";			break;
 		case EidosTokenType::kTokenLt:					p_outstream << "<";				break;
 		case EidosTokenType::kTokenLtEq:				p_outstream << "<=";			break;

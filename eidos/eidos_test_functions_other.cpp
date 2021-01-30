@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -998,6 +998,8 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptSuccess("function (s)star(i x) { if (x <= 0) return ''; else return '*' + star(x - 1); } star(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("*****")));
 	EidosAssertScriptSuccess("function (s)star(i x) { if (x <= 0) return ''; else return '*' + star(x - 1); } star(10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**********")));
 	EidosAssertScriptSuccess("function (s)star(i x) { if (x <= 0) return ''; else return '*' + star(x - 1); } star(0); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("")));
+	
+	EidosAssertScriptSuccess("function (i)fib(i x) { if (x <= 1) return x; else return fib(x - 1) + fib(x - 2); } fib(10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(55)));
 	
 	// Type-checking
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(NULL);", 35, "argument 1 (x) cannot be type NULL");

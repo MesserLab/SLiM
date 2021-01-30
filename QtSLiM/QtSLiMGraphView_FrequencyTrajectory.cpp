@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/1/2020.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -115,7 +115,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
     
     if (!sim->SubpopulationWithID(selectedSubpopulationID_))
         hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-    if (!sim->MutationTypeWithID(selectedMutationTypeIndex_))
+    if (!sim->MutationTypeWithIndex(selectedMutationTypeIndex_))
         hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     if (!hasSubpop || !hasMuttype)
         return;
@@ -344,7 +344,7 @@ QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
         
         if (!controller_->sim->SubpopulationWithID(selectedSubpopulationID_))
             hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-        if (!controller_->sim->MutationTypeWithID(selectedMutationTypeIndex_))
+        if (!controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_))
             hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
         if (!hasSubpop || !hasMuttype)
             return "no\ndata";

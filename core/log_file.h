@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/2/20.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -24,6 +24,7 @@
 #include "slim_globals.h"
 
 #include <string>
+#include <sstream>
 
 class SLiMSim;
 
@@ -68,6 +69,7 @@ private:
 	
 	bool compress_;
 	std::string sep_;											// the separator string between values, such as "," or "\t"
+	int float_precision_ = 6;									// the precision of output of float values
 	
 	bool autologging_enabled_ = false;							// an overall flag to enable/disable automatic logging
 	int64_t log_interval_ = 0;									// generation interval for automatic logging
@@ -95,6 +97,8 @@ private:
 	EidosValue_SP _GeneratedValue_SubpopulationSize(const LogFileGeneratorInfo &p_generator_info);
 	EidosValue_SP _GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info);
 	void _GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_generator_info, EidosValue_SP *p_generated_value_1, EidosValue_SP *p_generated_value_2);
+	
+	void _OutputValue(std::ostringstream &ss, EidosValue *value);
 	
 public:
 	LogFile(const LogFile &p_original) = delete;	// no copy-construct

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/12/14.
-//  Copyright (c) 2014-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -48,7 +48,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
-		SLIM_OUTSTREAM << "Copyright 2013-2020 Philipp Messer.  All rights reserved." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "Copyright 2013-2021 Philipp Messer.  All rights reserved." << std::endl << std::endl;
 		SLIM_OUTSTREAM << "By Benjamin C. Haller, http://benhaller.com/, and Philipp Messer." << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
@@ -86,7 +86,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
 	}
 	
-	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -testEidos | -testSLiM |" << std::endl;
+	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -h[elp] | -testEidos | -testSLiM |" << std::endl;
 	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
 	SLIM_OUTSTREAM << "   [-d[efine] <def>] [<script file>]" << std::endl;
 	
@@ -95,6 +95,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << std::endl;
 		SLIM_OUTSTREAM << "   -v[ersion]       : print SLiM's version information" << std::endl;
 		SLIM_OUTSTREAM << "   -u[sage]         : print command-line usage help" << std::endl;
+		SLIM_OUTSTREAM << "   -h[elp]          : print full help information" << std::endl;
 		SLIM_OUTSTREAM << "   -testEidos | -te : run built-in self-diagnostic tests of Eidos" << std::endl;
 		SLIM_OUTSTREAM << "   -testSLiM | -ts  : run built-in self-diagnostic tests of SLiM" << std::endl;
 		SLIM_OUTSTREAM << std::endl;
@@ -160,7 +161,7 @@ int main(int argc, char *argv[])
 		const char *arg = argv[arg_index];
 		
 		// -long or -l [<l>]: switches to long (i.e. verbose) output, with an optional integer level specifier
-		if (strcmp(arg, "-long") == 0 || strcmp(arg, "-l") == 0)
+		if (strcmp(arg, "--long") == 0 || strcmp(arg, "-long") == 0 || strcmp(arg, "-l") == 0)
 		{
 			if (arg_index + 1 == argc)
 			{
@@ -217,7 +218,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// -seed <x> or -s <x>: override the default seed with the supplied seed value
-		if (strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
+		if (strcmp(arg, "--seed") == 0 || strcmp(arg, "-seed") == 0 || strcmp(arg, "-s") == 0)
 		{
 			if (++arg_index == argc)
 				PrintUsageAndDie(false, true);
@@ -229,7 +230,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// -time or -t: take a time measurement and output it at the end of execution
-		if (strcmp(arg, "-time") == 0 || strcmp(arg, "-t") == 0)
+		if (strcmp(arg, "--time") == 0 || strcmp(arg, "-time") == 0 || strcmp(arg, "-t") == 0)
 		{
 			keep_time = true;
 			
@@ -237,7 +238,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// -mem or -m: take a peak memory usage measurement and output it at the end of execution
-		if (strcmp(arg, "-mem") == 0 || strcmp(arg, "-m") == 0)
+		if (strcmp(arg, "--mem") == 0 || strcmp(arg, "-mem") == 0 || strcmp(arg, "-m") == 0)
 		{
 			keep_mem = true;
 			
@@ -245,7 +246,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// -mem or -m: take a peak memory usage measurement and output it at the end of execution
-		if (strcmp(arg, "-Memhist") == 0 || strcmp(arg, "-M") == 0)
+		if (strcmp(arg, "--Memhist") == 0 || strcmp(arg, "-Memhist") == 0 || strcmp(arg, "-M") == 0)
 		{
 			keep_mem = true;		// implied by this
 			keep_mem_hist = true;
@@ -263,14 +264,14 @@ int main(int argc, char *argv[])
 		}
 		
 		// -version or -v: print version information
-		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
+		if (strcmp(arg, "--version") == 0 || strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
 			SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << std::endl;
 			exit(0);
 		}
 		
 		// -testEidos or -te: run Eidos tests and quit
-		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
+		if (strcmp(arg, "--testEidos") == 0 || strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
@@ -282,7 +283,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// -testSLiM or -ts: run SLiM tests and quit
-		if (strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
+		if (strcmp(arg, "--testSLiM") == 0 || strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
 			gEidosTerminateThrows = true;
 			Eidos_WarmUp();
@@ -295,11 +296,15 @@ int main(int argc, char *argv[])
 		}
 		
 		// -usage or -u: print usage information
-		if (strcmp(arg, "-usage") == 0 || strcmp(arg, "-u") == 0 || strcmp(arg, "-?") == 0)
+		if (strcmp(arg, "--usage") == 0 || strcmp(arg, "-usage") == 0 || strcmp(arg, "-u") == 0 || strcmp(arg, "-?") == 0)
 			PrintUsageAndDie(false, true);
 		
+		// -usage or -u: print full help information
+		if (strcmp(arg, "--help") == 0 || strcmp(arg, "-help") == 0 || strcmp(arg, "-h") == 0)
+			PrintUsageAndDie(true, true);
+		
 		// -define or -d: define Eidos constants
-		if (strcmp(arg, "-define") == 0 || strcmp(arg, "-d") == 0)
+		if (strcmp(arg, "--define") == 0 || strcmp(arg, "-define") == 0 || strcmp(arg, "-d") == 0)
 		{
 			if (++arg_index == argc)
 				PrintUsageAndDie(false, true);
@@ -317,7 +322,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// this is the fall-through, which should be the input file, and should be the last argument given
-		if (arg_index + 1 != argc)
+		if ((arg_index + 1 != argc) || strncmp(arg, "-", 1) == 0)
 		{
 			SLIM_ERRSTREAM << "Unrecognized command-line argument: " << arg << std::endl << std::endl;
 			

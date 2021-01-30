@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/20/2020.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -167,13 +167,19 @@ QString QtSLiMGraphView_1DSampleSFS::disableMessage(void)
     if (controller_ && !controller_->invalidSimulation())
     {
         Subpopulation *subpop1 = controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        MutationType *muttype = controller_->sim->MutationTypeWithID(selectedMutationTypeIndex_);
+        MutationType *muttype = controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
-        if (!subpop1 || !muttype)
-            return "no\ndata";
+        qDebug() << "muttype " << muttype << " for id " << selectedMutationTypeIndex_;
+        
+        //if (!subpop1 || !muttype)
+        //    return "no\ndata";
+        if (!subpop1)
+            return "no\nsubpop";
+        if (!muttype)
+            return "no\nmuttype";
     }
     
-return "";
+    return "";
 }
 
 void QtSLiMGraphView_1DSampleSFS::drawGraph(QPainter &painter, QRect interiorRect)
@@ -247,7 +253,7 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         
         // Find our subpops and mutation type
         Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        MutationType *muttype = sim->MutationTypeWithID(selectedMutationTypeIndex_);
+        MutationType *muttype = sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !muttype)
             return nullptr;

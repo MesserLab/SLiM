@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/24/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -76,8 +76,12 @@ void QtSLiMTextEdit::selfInit(void)
     connect(this, &QTextEdit::copyAvailable, this, [this](bool b) { copyAvailable_ = b; });
     
     // clear the custom error background color whenever the selection changes
-    connect(this, &QTextEdit::selectionChanged, this, [this]() { setPalette(style()->standardPalette()); });
-    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() { setPalette(style()->standardPalette()); });
+    connect(this, &QTextEdit::selectionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
+    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
+    
+    // because we mess with the palette, we have to reset it on dark mode changes; this resets the error
+    // highlighting if it is set up, which is a bug, but not one worth worrying about I suppose...
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
     
     // clear the status bar on a selection change
     connect(this, &QTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
@@ -93,13 +97,20 @@ void QtSLiMTextEdit::selfInit(void)
     // Get notified of modifier key changes, so we can change our cursor
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::modifiersChanged, this, &QtSLiMTextEdit::modifiersChanged);
     
-    // set up the script and output textedits
+    // set up tab stops based on the display font
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
+    double tabWidth = 0;
     QFont scriptFont = prefs.displayFontPref(&tabWidth);
     
     setFont(scriptFont);
-    setTabStopWidth(tabWidth);    // deprecated in 5.10; should use setTabStopDistance(), which requires Qt 5.10; see https://stackoverflow.com/a/54605709/2752221
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    setTabStopDistance(tabWidth);               // added in 5.10
+#endif
+    
+    // refuse rich-text pastes
+    setAcceptRichText(false);
 }
 
 QtSLiMTextEdit::~QtSLiMTextEdit()
@@ -130,11 +141,15 @@ void QtSLiMTextEdit::setOptionClickEnabled(bool enabled)
 void QtSLiMTextEdit::displayFontPrefChanged()
 {
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
+    double tabWidth = 0;
     QFont displayFont = prefs.displayFontPref(&tabWidth);
     
     setFont(displayFont);
-    setTabStopWidth(tabWidth);      // deprecated in 5.10
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    setTabStopDistance(tabWidth);               // added in 5.10
+#endif
 }
 
 void QtSLiMTextEdit::scriptSyntaxHighlightPrefChanged()
@@ -187,10 +202,7 @@ void QtSLiMTextEdit::highlightError(int startPosition, int endPosition)
     highlight_cursor.setPosition(endPosition, QTextCursor::KeepAnchor);
     setTextCursor(highlight_cursor);
     
-    QPalette p = palette();
-    p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
-    p.setColor(QPalette::HighlightedText, QColor(Qt::black));
-    setPalette(p);
+    setPalette(qtslimErrorPalette());
     
     // note that this custom selection color is cleared by a connection to QTextEdit::selectionChanged()
 }
@@ -205,6 +217,22 @@ void QtSLiMTextEdit::selectErrorRange(void)
 	// In any case, since we are the ultimate consumer of the error information, we should clear out
 	// the error state to avoid misattribution of future errors
     gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+}
+
+QPalette QtSLiMTextEdit::qtslimStandardPalette(void)
+{
+    // Returns the standard palette for QtSLiMTextEdit, which could depend on platform and dark mode
+    return qApp->palette(this);
+}
+
+QPalette QtSLiMTextEdit::qtslimErrorPalette(void)
+{
+    // Returns a palette for QtSLiMTextEdit for highlighting errors, which could depend on platform and dark mode
+    // Note that this is based on the current palette, and derives only the highlight color
+    QPalette p = palette();
+    p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
+    p.setColor(QPalette::HighlightedText, QColor(Qt::black));
+    return p;
 }
 
 QStatusBar *QtSLiMTextEdit::statusBarForWindow(void)
@@ -1554,7 +1582,7 @@ QStringList QtSLiMTextEdit::completionsFromArrayMatchingBase(QStringList candida
 			completions << candidate;
 	}
 #else
-	// This is part-based completion, where iTr will complete to initializeTreeSequence() and iGTy
+	// This is part-based completion, where iTr will complete to initializeTreeSeq() and iGTy
 	// will complete to initializeGenomicElementType().  To do this, we use a special comparator
 	// that returns a score for the quality of the match, and then we sort all matches by score.
 	std::vector<int64_t> scores;
@@ -1707,7 +1735,8 @@ QStringList QtSLiMTextEdit::completionsForTokenStream(const std::vector<EidosTok
 		case EidosTokenType::kTokenOr:
 		case EidosTokenType::kTokenDiv:
 		case EidosTokenType::kTokenConditional:
-		case EidosTokenType::kTokenAssign:
+        case EidosTokenType::kTokenAssign:
+        case EidosTokenType::kTokenAssign_R:
 		case EidosTokenType::kTokenEq:
 		case EidosTokenType::kTokenLt:
 		case EidosTokenType::kTokenLtEq:
@@ -2333,6 +2362,7 @@ void QtSLiMScriptTextEdit::initializeLineNumbers(void)
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(updateLineNumberArea()));
     
     connect(this, &QtSLiMScriptTextEdit::cursorPositionChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
     
     // Watch prefs for line numbering and highlighting
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
@@ -2378,7 +2408,11 @@ QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &p_cursor
     QString selectedString = p_cursor.selectedText();
     QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
     
-    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated; use Qt::KeepEmptyParts instead of QString::KeepEmptyParts (introduced in 5.14)
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated in 5.14
+#else
+    return selectedString.split(lineEndMatch, Qt::KeepEmptyParts);          // added in 5.14
+#endif
 }
 
 void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
@@ -2505,8 +2539,11 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
         ++digits;
     }
 
-    //int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
-    int space = 13 + fontMetrics().width("9") * digits;                 // deprecated (in 5.11, I assume)
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+    int space = 13 + fontMetrics().width("9") * digits;                 // deprecated in 5.11
+#else
+    int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
+#endif
     
     return space;
 }
@@ -2541,11 +2578,11 @@ void QtSLiMScriptTextEdit::resizeEvent(QResizeEvent *e)
     lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
 }
 
-// standard blue highlight
+// light appearance: standard blue highlight
 static QColor lineHighlightColor = QtSLiMColorWithHSV(3.6/6.0, 0.1, 1.0, 1.0);
 
-// alternate yellow highlight
-//static QColor lineHighlightColor = QtSLiMColorWithHSV(1/6.0, 0.2, 1.0, 1.0);
+// dark appearance: dark blue highlight
+static QColor lineHighlightColor_DARK = QtSLiMColorWithHSV(4.0/6.0, 0.5, 0.30, 1.0);
 
 void QtSLiMScriptTextEdit::highlightCurrentLine()
 {
@@ -2553,9 +2590,10 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
     QList<QTextEdit::ExtraSelection> extra_selections;
     
     if (!isReadOnly() && prefsNotifier.highlightCurrentLinePref()) {
+        bool inDarkMode = QtSLiMInDarkMode();
         QTextEdit::ExtraSelection selection;
         
-        selection.format.setBackground(lineHighlightColor);
+        selection.format.setBackground(inDarkMode ? lineHighlightColor_DARK : lineHighlightColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = textCursor();
         selection.cursor.clearSelection();
@@ -2565,23 +2603,24 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
     setExtraSelections(extra_selections);
 }
 
-// standard light appearance
+// light appearance
 static QColor lineAreaBackground = QtSLiMColorWithWhite(0.92, 1.0);
 static QColor lineAreaNumber = QtSLiMColorWithWhite(0.75, 1.0);
-static QColor lineAreaNumber_Current = QtSLiMColorWithWhite(0.4, 1.0);
+static QColor lineAreaNumberCurrent = QtSLiMColorWithWhite(0.4, 1.0);
 
-// alternate darker appearance
-//static QColor lineAreaBackground = Qt::lightGray;
-//static QColor lineAreaNumber = QtSLiMColorWithHSV(0.0, 0.0, 0.4, 1.0);
-//static QColor lineAreaNumber_Current = QtSLiMColorWithHSV(1/6.0, 0.7, 1.0, 1.0);
+// dark appearance
+static QColor lineAreaBackground_DARK = QtSLiMColorWithWhite(0.08, 1.0);
+static QColor lineAreaNumber_DARK = QtSLiMColorWithWhite(0.25, 1.0);
+static QColor lineAreaNumberCurrent_DARK = QtSLiMColorWithWhite(0.6, 1.0);
 
 void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
 {
     if (contentsRect().width() <= 0)
         return;
     
+    bool inDarkMode = QtSLiMInDarkMode();
     QPainter painter(lineNumberArea);
-    painter.fillRect(p_paintEvent->rect(), lineAreaBackground);
+    painter.fillRect(p_paintEvent->rect(), inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
     int blockNumber = 0;
     QTextBlock block = document()->findBlockByNumber(blockNumber);
     int cursorBlockNumber = textCursor().blockNumber();
@@ -2589,20 +2628,20 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     int translate_y = -verticalScrollBar()->sliderPosition();
     
     // Draw the numbers (displaying the current line number in col_1)
-    painter.setPen(lineAreaNumber);
+    painter.setPen(inDarkMode ? lineAreaNumber_DARK : lineAreaNumber);
     
     while (block.isValid())
     {
         if (block.isVisible())
         {
-            if (cursorBlockNumber == blockNumber) painter.setPen(lineAreaNumber_Current);
+            if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumberCurrent_DARK : lineAreaNumberCurrent);
             
             QRectF blockBounds = this->document()->documentLayout()->blockBoundingRect(block);
             
             QString number = QString::number(blockNumber + 1);
             painter.drawText(-7, blockBounds.top() + translate_y, lineNumberArea->width(), fontMetrics().height(), Qt::AlignRight, number);
             
-            if (cursorBlockNumber == blockNumber) painter.setPen(lineAreaNumber);
+            if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumber_DARK : lineAreaNumber);
         }
 
         block = block.next();

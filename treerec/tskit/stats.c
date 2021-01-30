@@ -26,35 +26,31 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <math.h>
 
 #include <tskit/stats.h>
 
 static void
-tsk_ld_calc_check_state(tsk_ld_calc_t *self)
+tsk_ld_calc_check_state(const tsk_ld_calc_t *self)
 {
     uint32_t u;
     uint32_t num_nodes = (uint32_t) tsk_treeseq_get_num_nodes(self->tree_sequence);
     tsk_tree_t *tA = self->outer_tree;
     tsk_tree_t *tB = self->inner_tree;
 
-    /* Suppress unused variable warnings when assert() is a no-op */
-    (void) (tA);
-    (void) (tB);
-    assert(tA->index == tB->index);
+    tsk_bug_assert(tA->index == tB->index);
 
     /* The inner tree's mark values should all be zero. */
     for (u = 0; u < num_nodes; u++) {
-        assert(tA->marked[u] == 0);
-        assert(tB->marked[u] == 0);
+        tsk_bug_assert(tA->marked[u] == 0);
+        tsk_bug_assert(tB->marked[u] == 0);
     }
 }
 
 void
-tsk_ld_calc_print_state(tsk_ld_calc_t *self, FILE *out)
+tsk_ld_calc_print_state(const tsk_ld_calc_t *self, FILE *out)
 {
-    fprintf(out, "tree_sequence = %p\n", (void *) self->tree_sequence);
+    fprintf(out, "tree_sequence = %p\n", (const void *) self->tree_sequence);
     fprintf(out, "outer tree index = %d\n", (int) self->outer_tree->index);
     fprintf(out, "outer tree interval = (%f, %f)\n", self->outer_tree->left,
         self->outer_tree->right);
@@ -65,7 +61,7 @@ tsk_ld_calc_print_state(tsk_ld_calc_t *self, FILE *out)
 }
 
 int TSK_WARN_UNUSED
-tsk_ld_calc_init(tsk_ld_calc_t *self, tsk_treeseq_t *tree_sequence)
+tsk_ld_calc_init(tsk_ld_calc_t *self, const tsk_treeseq_t *tree_sequence)
 {
     int ret = TSK_ERR_GENERIC;
 
@@ -130,34 +126,34 @@ tsk_ld_calc_position_trees(tsk_ld_calc_t *self, tsk_id_t site_index)
         goto out;
     }
     x = mut.position;
-    assert(tA->index == tB->index);
+    tsk_bug_assert(tA->index == tB->index);
     while (x >= tA->right) {
         ret = tsk_tree_next(tA);
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
         ret = tsk_tree_next(tB);
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
     }
     while (x < tA->left) {
         ret = tsk_tree_prev(tA);
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
         ret = tsk_tree_prev(tB);
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
     }
     ret = 0;
-    assert(x >= tA->left && x < tB->right);
-    assert(tA->index == tB->index);
+    tsk_bug_assert(x >= tA->left && x < tB->right);
+    tsk_bug_assert(tA->index == tB->index);
 out:
     return ret;
 }
@@ -169,8 +165,8 @@ tsk_ld_calc_overlap_within_tree(tsk_ld_calc_t *self, tsk_site_t sA, tsk_site_t s
     const tsk_node_table_t *nodes = &self->tree_sequence->tables->nodes;
     tsk_id_t u, v, nAB;
 
-    assert(sA.mutations_length == 1);
-    assert(sB.mutations_length == 1);
+    tsk_bug_assert(sA.mutations_length == 1);
+    tsk_bug_assert(sB.mutations_length == 1);
     u = sA.mutations[0].node;
     v = sB.mutations[0].node;
     if (nodes->time[u] > nodes->time[v]) {
@@ -193,7 +189,7 @@ tsk_ld_calc_set_tracked_samples(tsk_ld_calc_t *self, tsk_site_t sA)
 {
     int ret = 0;
 
-    assert(sA.mutations_length == 1);
+    tsk_bug_assert(sA.mutations_length == 1);
     ret = tsk_tree_set_tracked_samples_from_sample_list(
         self->inner_tree, self->outer_tree, sA.mutations[0].node);
     return ret;
@@ -223,7 +219,7 @@ tsk_ld_calc_get_r2_array_forward(tsk_ld_calc_t *self, tsk_id_t source_index,
         goto out;
     }
     fA = ((double) tA->num_samples[sA.mutations[0].node]) / n;
-    assert(fA > 0);
+    tsk_bug_assert(fA > 0);
     tB->mark = 1;
     for (j = 0; j < (tsk_id_t) max_sites; j++) {
         if (source_index + j + 1 >= (tsk_id_t) self->num_sites) {
@@ -245,10 +241,10 @@ tsk_ld_calc_get_r2_array_forward(tsk_ld_calc_t *self, tsk_id_t source_index,
             if (ret < 0) {
                 goto out;
             }
-            assert(ret == 1);
+            tsk_bug_assert(ret == 1);
         }
         fB = ((double) tB->num_samples[sB.mutations[0].node]) / n;
-        assert(fB > 0);
+        tsk_bug_assert(fB > 0);
         if (sB.position < tA->right) {
             nAB = tsk_ld_calc_overlap_within_tree(self, sA, sB);
         } else {
@@ -278,7 +274,7 @@ tsk_ld_calc_get_r2_array_forward(tsk_ld_calc_t *self, tsk_id_t source_index,
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
     }
     *num_r2_values = (tsk_size_t) j;
     ret = 0;
@@ -310,7 +306,7 @@ tsk_ld_calc_get_r2_array_reverse(tsk_ld_calc_t *self, tsk_id_t source_index,
         goto out;
     }
     fA = ((double) tA->num_samples[sA.mutations[0].node]) / n;
-    assert(fA > 0);
+    tsk_bug_assert(fA > 0);
     tB->mark = 1;
     for (j = 0; j < (tsk_id_t) max_sites; j++) {
         site_index = source_index - j - 1;
@@ -333,10 +329,10 @@ tsk_ld_calc_get_r2_array_reverse(tsk_ld_calc_t *self, tsk_id_t source_index,
             if (ret < 0) {
                 goto out;
             }
-            assert(ret == 1);
+            tsk_bug_assert(ret == 1);
         }
         fB = ((double) tB->num_samples[sB.mutations[0].node]) / n;
-        assert(fB > 0);
+        tsk_bug_assert(fB > 0);
         if (sB.position >= tA->left) {
             nAB = tsk_ld_calc_overlap_within_tree(self, sA, sB);
         } else {
@@ -366,7 +362,7 @@ tsk_ld_calc_get_r2_array_reverse(tsk_ld_calc_t *self, tsk_id_t source_index,
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
     }
     *num_r2_values = (tsk_size_t) j;
     ret = 0;
@@ -441,10 +437,10 @@ tsk_ld_calc_get_r2(tsk_ld_calc_t *self, tsk_id_t a, tsk_id_t b, double *r2)
         ret = TSK_ERR_ONLY_INFINITE_SITES;
         goto out;
     }
-    assert(sA.mutations_length == 1);
-    /* assert(tA->parent[sA.mutations[0].node] != TSK_NULL); */
+    tsk_bug_assert(sA.mutations_length == 1);
+    /* tsk_bug_assert(tA->parent[sA.mutations[0].node] != TSK_NULL); */
     fA = ((double) tA->num_samples[sA.mutations[0].node]) / n;
-    assert(fA > 0);
+    tsk_bug_assert(fA > 0);
     ret = tsk_ld_calc_set_tracked_samples(self, sA);
     if (ret != 0) {
         goto out;
@@ -455,11 +451,11 @@ tsk_ld_calc_get_r2(tsk_ld_calc_t *self, tsk_id_t a, tsk_id_t b, double *r2)
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
     }
-    /* assert(tB->parent[sB.mutations[0].node] != TSK_NULL); */
+    /* tsk_bug_assert(tB->parent[sB.mutations[0].node] != TSK_NULL); */
     fB = ((double) tB->num_samples[sB.mutations[0].node]) / n;
-    assert(fB > 0);
+    tsk_bug_assert(fB > 0);
     nAB = (double) tB->num_tracked_samples[sB.mutations[0].node];
     fAB = nAB / n;
     D = fAB - fA * fB;
@@ -471,7 +467,7 @@ tsk_ld_calc_get_r2(tsk_ld_calc_t *self, tsk_id_t a, tsk_id_t b, double *r2)
         if (ret < 0) {
             goto out;
         }
-        assert(ret == 1);
+        tsk_bug_assert(ret == 1);
     }
     ret = 0;
 out:

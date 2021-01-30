@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -106,6 +106,7 @@ private:
     int openedGraphCount_bottom = 0;
     
 public:
+    bool isZombieWindow_ = false;   // set when the UI is invalidated, to avoid various issues
     bool isUntitled = false, isRecipe = false, isTransient = false;
     QString currentFile;
     
@@ -248,6 +249,8 @@ public slots:
     //
     
 private slots:
+    void applicationPaletteChanged(void);
+    
     bool save(void);
     bool saveAs(void);
     void revert(void);
@@ -324,6 +327,8 @@ protected:
     
 private:
     void glueUI(void);
+    void invalidateUI(void);
+    
     Ui::QtSLiMWindow *ui;
 };
 

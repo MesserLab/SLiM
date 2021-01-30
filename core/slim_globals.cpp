@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/4/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1078,6 +1078,8 @@ const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElem
 const std::string &gStr_inSLiMgui = EidosRegisteredString("inSLiMgui", gID_inSLiMgui);
 const std::string &gStr_interactionTypes = EidosRegisteredString("interactionTypes", gID_interactionTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
+const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
+const std::string &gStr_lifetimeReproductiveOutputF = EidosRegisteredString("lifetimeReproductiveOutputF", gID_lifetimeReproductiveOutputF);
 const std::string &gStr_modelType = EidosRegisteredString("modelType", gID_modelType);
 const std::string &gStr_nucleotideBased = EidosRegisteredString("nucleotideBased", gID_nucleotideBased);
 const std::string &gStr_scriptBlocks = EidosRegisteredString("scriptBlocks", gID_scriptBlocks);
@@ -1086,6 +1088,7 @@ const std::string &gStr_subpopulations = EidosRegisteredString("subpopulations",
 const std::string &gStr_substitutions = EidosRegisteredString("substitutions", gID_substitutions);
 const std::string &gStr_dominanceCoeffX = EidosRegisteredString("dominanceCoeffX", gID_dominanceCoeffX);
 const std::string &gStr_generation = EidosRegisteredString("generation", gID_generation);
+const std::string &gStr_generationStage = EidosRegisteredString("generationStage", gID_generationStage);
 const std::string &gStr_colorSubstitution = EidosRegisteredString("colorSubstitution", gID_colorSubstitution);
 const std::string &gStr_tag = EidosRegisteredString("tag", gID_tag);
 const std::string &gStr_tagF = EidosRegisteredString("tagF", gID_tagF);
@@ -1284,6 +1287,7 @@ const std::string &gStr_createLogFile = EidosRegisteredString("createLogFile", g
 const std::string &gStr_logFiles = EidosRegisteredString("logFiles", gID_logFiles);
 const std::string &gStr_LogFile = EidosRegisteredString("LogFile", gID_LogFile);
 const std::string &gStr_logInterval = EidosRegisteredString("logInterval", gID_logInterval);
+const std::string &gStr_precision = EidosRegisteredString("precision", gID_precision);
 const std::string &gStr_addCustomColumn = EidosRegisteredString("addCustomColumn", gID_addCustomColumn);
 const std::string &gStr_addGeneration = EidosRegisteredString("addGeneration", gID_addGeneration);
 const std::string &gStr_addGenerationStage = EidosRegisteredString("addGenerationStage", gID_addGenerationStage);

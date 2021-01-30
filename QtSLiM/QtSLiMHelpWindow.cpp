@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/19/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -58,6 +58,21 @@ QtSLiMHelpItem::~QtSLiMHelpItem()
 {
 }
 
+QVariant QtSLiMHelpItem::data(int column, int role) const
+{
+    if (is_top_level && (role == Qt::ForegroundRole))
+    {
+        bool inDarkMode = QtSLiMInDarkMode();
+        
+        if (inDarkMode)
+            return QBrush(QtSLiMColorWithWhite(0.8, 1.0));
+        else
+            return QBrush(QtSLiMColorWithWhite(0.4, 1.0));
+    }
+    
+    return QTreeWidgetItem::data(column, role);
+}
+
 
 //
 // This subclass of QStyledItemDelegate provides custom drawing for the outline view.
@@ -69,6 +84,9 @@ QtSLiMHelpOutlineDelegate::~QtSLiMHelpOutlineDelegate(void)
 void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     QString itemString = index.data().toString();
+    
+    itemString = itemString.replace(QChar::Nbsp, ' ');  // standardize down to regular spaces
+    
     bool topLevel = !index.parent().isValid();
     QRect fullRect = option.rect;
     fullRect.setLeft(0);             // we are not clipped; we will draw outside our rect to occupy the full width of the view
@@ -76,12 +94,13 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
     // if we're a top-level item, wash a background color over our row; we use alpha so the disclosure triangle remains visible
     if (topLevel)
     {
+        bool inDarkMode = QtSLiMInDarkMode();
         bool isEidos = index.data().toString().startsWith("Eidos ");
         
         if (isEidos)
-            painter->fillRect(fullRect, QBrush(QtSLiMColorWithRGB(0.0, 1.0, 0.0, 0.04)));       // pale green background for Eidos docs
+            painter->fillRect(fullRect, QBrush(inDarkMode ? QtSLiMColorWithRGB(0.0, 1.0, 0.0, 0.10) : QtSLiMColorWithRGB(0.0, 1.0, 0.0, 0.04)));       // pale green background for Eidos docs
         else
-            painter->fillRect(fullRect, QBrush(QtSLiMColorWithRGB(0.0, 0.0, 1.0, 0.04)));       // pale blue background for SLiM docs
+            painter->fillRect(fullRect, QBrush(inDarkMode ? QtSLiMColorWithRGB(0.0, 0.0, 1.0, 0.15) : QtSLiMColorWithRGB(0.0, 0.0, 1.0, 0.04)));       // pale blue background for SLiM docs
     }
     
     // On Ubuntu, items get shown as having "focus" even when they're not selectable, which I dislike; this disables that appearance
@@ -97,8 +116,10 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
     if (topLevel)
     {
         // if an item is top-level, we want to frame it to look heavier, like a "group item" on macOS
-        painter->fillRect(QRect(fullRect.left(), fullRect.top(), fullRect.width(), 1), QtSLiMColorWithWhite(0.85, 1.0));        // top edge in light gray
-        painter->fillRect(QRect(fullRect.left(), fullRect.top() + fullRect.height() - 1, fullRect.width(), 1), QtSLiMColorWithWhite(0.65, 1.0));     // bottom edge in medium gray
+        bool inDarkMode = QtSLiMInDarkMode();
+        
+        painter->fillRect(QRect(fullRect.left(), fullRect.top(), fullRect.width(), 1), QtSLiMColorWithWhite(inDarkMode ? 0.15 : 0.85, 1.0));        // top edge in light gray
+        painter->fillRect(QRect(fullRect.left(), fullRect.top() + fullRect.height() - 1, fullRect.width(), 1), QtSLiMColorWithWhite(inDarkMode ? 0.05 : 0.65, 1.0));     // bottom edge in medium gray
     }
     else
     {
@@ -120,7 +141,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
                                          "– setSelfingRate()",
                                          "– setSexRatio()",
                                          "– setSubpopulationSize()",
-                                         "4. mateChoice() callbacks"
+                                         "mateChoice() callbacks"
                                         });
         
         if (!stringsNonWF)
@@ -135,7 +156,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
                               "– addSelfed()",
                               "– removeSubpopulation()",
                               "– takeMigrants()",
-                              "8. reproduction() callbacks"
+                              "reproduction() callbacks"
                               });
         
         if (!stringsNucmut)
@@ -178,11 +199,11 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
             QColor boxColor;
             
             if (draw_WF_box)
-                boxColor = QtSLiMColorWithRGB(66/255.0, 255/255.0, 53/255.0, 1.0);      // WF-only color (green)
+                boxColor = QColor(66, 255, 53);         // WF-only color (green)
             else if (draw_nonWF_box)
-                boxColor = QtSLiMColorWithRGB(88/255.0, 148/255.0, 255/255.0, 1.0);     // nonWF-only color (blue)
+                boxColor = QColor(88, 148, 255);        // nonWF-only color (blue)
             else //if (draw_nucmut_box)
-                boxColor = QtSLiMColorWithRGB(228/255.0, 118/255.0, 255/255.0, 1.0);	// nucmut color (purple)
+                boxColor = QColor(228, 118, 255);       // nucmut color (purple)
             
             painter->fillRect(boxRect, boxColor);
             QtSLiMFrameRect(boxRect, Qt::black, *painter);
@@ -224,6 +245,10 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     
     connect(ui->searchField, &QLineEdit::returnPressed, this, &QtSLiMHelpWindow::searchFieldChanged);
     connect(ui->searchScopeButton, &QPushButton::clicked, this, &QtSLiMHelpWindow::searchScopeToggled);
+    
+    // Change the search scope button's appearance based on the app palette
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMHelpWindow::applicationPaletteChanged);
+    applicationPaletteChanged();
     
     // Configure the outline view to behave as we wish
     connect(ui->topicOutlineView, &QTreeWidget::itemSelectionChanged, this, &QtSLiMHelpWindow::outlineSelectionChanged);
@@ -310,6 +335,17 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+}
+
+void QtSLiMHelpWindow::applicationPaletteChanged(void)
+{
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    // Custom colors for the search mode button for dark mode vs. light mode; note that this completely overrides the style sheet in the .ui file!
+    if (inDarkMode)
+        ui->searchScopeButton->setStyleSheet("QPushButton { border: 1px solid #888; border-radius: 20px; border-style: outset; margin: 0px; padding: 2px; background: rgb(125, 125, 125); } QPushButton:pressed { background: rgb(105, 105, 105); }");
+    else
+        ui->searchScopeButton->setStyleSheet("QPushButton { border: 1px solid #888; border-radius: 20px; border-style: outset; margin: 0px; padding: 2px; background: rgb(245, 245, 245); } QPushButton:pressed { background: rgb(195, 195, 195); }");
 }
 
 QtSLiMHelpWindow::~QtSLiMHelpWindow()
@@ -579,6 +615,22 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
         
         topicFileData = topicFile.readAll();
         topicFile.close();
+        
+        // OK, so this is gross and probably fragile.  Our HTML content has colors set on the text in some places: sometimes for syntax coloring
+        // of code snippets, but also just setting text explicitly to black for no apparent reason.  This doesn't translate well to dark mode;
+        // the syntax coloring uses colors that are fairly illegible against black, and the black text of course ends up black-on-black.  We thus
+        // need to strip off all color information.  Ideally, we'd do this on the QTextDocument, but I don't know how to do that (see question at
+        // https://stackoverflow.com/questions/65779196/how-to-remove-all-text-color-attributes-from-a-qtextdocument).  So instead, here we scan
+        // the HTML source code for color attributes and remove them, with a regex.  (What could possibly go wrong???)
+        topicFileData.replace(QRegularExpression("(;? ?color: ?#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])"), "");
+        
+        // FIXME while on the topic of dark mode, there is a subtle bug in the help window's handling of it.  We call ColorizeCallSignature() and
+        // ColorizePropertySignature() below to colorize property/function/method signatures.  Those produce colorized strings tailored to the
+        // mode we're currently in: light mode or dark mode.  If the user then switches modes, those strings are incorrectly colored.  This is
+        // not a disaster - the color schemes are not that different - but it's a bug.  Ideally, we'd either do the colorizing dynamically at
+        // display time, or we'd reload the whole help document when the display mode switches.  Both are rather difficult to do, however.
+        
+        // Create the QTextDocument from the HTML
         topicFileTextDocument.setHtml(topicFileData);
     }
     
@@ -595,6 +647,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
     QFont itemFont(topItem->font(0));
     itemFont.setBold(true);
     topItem->setFont(0, itemFont);
+    topItem->is_top_level = true;
     
     // Set up the current topic item that we are appending content into
     QtSLiMHelpItem *currentTopicItem = topItem;
@@ -947,6 +1000,7 @@ void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
         if (superclassName == "DictionaryBase")
             superclassName = "Dictionary";
         
+        bool inDarkMode = QtSLiMInDarkMode();
         QtSLiMHelpItem *superclassItem = new QtSLiMHelpItem((QTreeWidgetItem *)nullptr);
         
         superclassItem->setText(0, QString("Superclass: " + superclassName));
@@ -955,7 +1009,7 @@ void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
         if (superclassObject)
         {
             // Hyperlink appearance, with blue underlined text
-            superclassItem->setForeground(0, QBrush(QtSLiMColorWithHSV(0.65, 1.0, 0.8, 1.0)));
+            superclassItem->setForeground(0, QBrush(inDarkMode ? QtSLiMColorWithHSV(0.65, 0.6, 1.0, 1.0) : QtSLiMColorWithHSV(0.65, 1.0, 0.8, 1.0)));
             
             QFont itemFont(superclassItem->font(0));
             itemFont.setUnderline(true);
@@ -964,7 +1018,7 @@ void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
         else
         {
             // Dimmed appearance
-            superclassItem->setForeground(0, QBrush(QtSLiMColorWithWhite(0.3, 1.0)));
+            superclassItem->setForeground(0, QBrush(inDarkMode ? QtSLiMColorWithWhite(0.5, 1.0) : QtSLiMColorWithWhite(0.3, 1.0)));
         }
         
         classDocumentation->insertChild(0, superclassItem);     // takes ownership

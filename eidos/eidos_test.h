@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/7/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -98,9 +98,11 @@ extern void _RunFunctionMathTests_setUnionIntersection(void);
 extern void _RunFunctionMathTests_setDifferenceSymmetricDifference(void);
 extern void _RunFunctionMathTests_s_through_z(void);
 extern void _RunFunctionMatrixArrayTests(void);
-extern void _RunFunctionStatisticsTests(void);
+extern void _RunFunctionStatisticsTests_a_through_p(void);
+extern void _RunFunctionStatisticsTests_q_through_z(void);
 extern void _RunFunctionDistributionTests(void);
-extern void _RunFunctionVectorConstructionTests(void);
+extern void _RunFunctionVectorConstructionTests_a_through_r(void);
+extern void _RunFunctionVectorConstructionTests_s_through_z(void);
 extern void _RunFunctionValueInspectionManipulationTests_a_through_f(void);
 extern void _RunFunctionValueInspectionManipulationTests_g_through_l(void);
 extern void _RunFunctionValueInspectionManipulationTests_m_through_r(void);

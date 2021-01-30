@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/22/2020.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -169,13 +169,13 @@ QString QtSLiMGraphView_2DPopulationSFS::disableMessage(void)
     {
         Subpopulation *subpop1 = controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_);
         Subpopulation *subpop2 = controller_->sim->SubpopulationWithID(selectedSubpopulation2ID_);
-        MutationType *muttype = controller_->sim->MutationTypeWithID(selectedMutationTypeIndex_);
+        MutationType *muttype = controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !subpop2 || !muttype)
             return "no\ndata";
     }
     
-return "";
+    return "";
 }
 
 
@@ -220,7 +220,7 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
     // Find our subpops and mutation type
     Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
     Subpopulation *subpop2 = sim->SubpopulationWithID(selectedSubpopulation2ID_);
-    MutationType *muttype = sim->MutationTypeWithID(selectedMutationTypeIndex_);
+    MutationType *muttype = sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
     
     if (!subpop1 || !subpop2 || !muttype)
 		return nullptr;

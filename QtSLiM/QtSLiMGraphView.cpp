@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -846,12 +846,12 @@ QString QtSLiMGraphView::dateline(void)
 	return QString("# %1").arg(dateTimeString);
 }
 
-void QtSLiMGraphView::actionButtonRunMenu(QPushButton *p_actionButton)
+void QtSLiMGraphView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
 {
     contextMenuEvent(nullptr);
     
     // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
-    p_actionButton->setIcon(QIcon(":/buttons/action.png"));
+    p_actionButton->qtslimSetHighlight(false);
 }
 
 void QtSLiMGraphView::subclassAddItemsToMenu(QMenu & /* contextMenu */, QContextMenuEvent * /* event */)

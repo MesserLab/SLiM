@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/13/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -42,6 +42,9 @@ class QtSLiMAppDelegate : public QObject
 
     std::string app_cwd_;       // the app's current working directory
     bool launchedFromShell_;	// true if launched from shell, false if launched from Finder/other
+    
+    bool closeRejected_ = false;    // true if the user cancels the close of a window, to prevent quit
+    bool inDarkMode_ = false;
     
     QIcon appIcon_;
     QIcon appIconHighlighted_;
@@ -87,6 +90,8 @@ public:
     
 public slots:
     void appDidFinishLaunching(QtSLiMWindow *initialWindow);
+    
+    void closeRejected(void) { closeRejected_ = true; }
     
     void findRecipe(void);
     void openRecipe(void);
@@ -154,6 +159,7 @@ public slots:
 signals:
     void modifiersChanged(Qt::KeyboardModifiers newModifiers);
     void activeWindowListChanged(void);
+    void applicationPaletteChanged(void);
     
 private:
     virtual bool eventFilter(QObject *p_obj, QEvent *p_event) override;
@@ -161,9 +167,6 @@ private:
     QVector<QPointer<QWidget>> focusedWindowList;       // a list of all windows, from front to back
     void pruneWindowList(void);                         // remove all windows that are closed or hidden
     bool queuedActiveWindowUpdate = false;
-    
-    void makeGlobalMenuBar(void);                       // make the global menu bar, for use with no main windows open; macOS only, does nothing on other platforms
-    QMenuBar *windowlessMenuBar = nullptr;
     
     void updateRecentFileActions(void);
     void openRecentFile(void);

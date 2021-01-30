@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -47,6 +47,7 @@
 #include <limits>
 #include <cmath>
 #include <utility>
+#include <iomanip>
 #include <sys/param.h>
 
 // added for Eidos_mkstemps() and Eidos_SlashTmpExists()
@@ -72,6 +73,8 @@
 bool eidos_do_memory_checks = true;
 
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
+
+int gEidosFloatOutputPrecision = 6;
 
 
 #pragma mark -
@@ -2008,6 +2011,31 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 	return hi;
 }
 
+bool Eidos_ApproximatelyEqual(double a, double b)
+{
+	// different signs is a mismatch
+	if (std::signbit(a) != std::signbit(b))
+		return false;
+	
+	// both zero is not a mismatch (getting rid of this case for div-by-zero safety
+	if ((a == 0) && (b == 0))
+		return true;
+	
+	// one zero (and one not) is a mismatch
+	if ((a == 0) || (b == 0))
+		return false;
+	
+	// one significantly bigger is a mismatch
+	if (a / b > 1.0001)
+		return false;
+	
+	// the other significantly bigger is a mismatch
+	if (b / a > 1.0001)
+		return false;
+	
+	return true;
+}
+
 std::vector<std::string> Eidos_string_split(const std::string &joined_string, const std::string &separator)
 {
 	std::vector<std::string> tokens;
@@ -2171,6 +2199,7 @@ std::string EidosStringForFloat(double p_value)
 	{
 		// could probably use std::to_string() instead, but need to think about precision etc.
 		std::ostringstream ss;
+		ss << std::setprecision(gEidosFloatOutputPrecision);
 		ss << p_value;
 		return ss.str();
 	}

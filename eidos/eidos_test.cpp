@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/7/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -283,9 +283,11 @@ int RunEidosTests(void)
 	_RunFunctionMathTests_setDifferenceSymmetricDifference();
 	_RunFunctionMathTests_s_through_z();
 	_RunFunctionMatrixArrayTests();
-	_RunFunctionStatisticsTests();
+	_RunFunctionStatisticsTests_a_through_p();
+	_RunFunctionStatisticsTests_q_through_z();
 	_RunFunctionDistributionTests();
-	_RunFunctionVectorConstructionTests();
+	_RunFunctionVectorConstructionTests_a_through_r();
+	_RunFunctionVectorConstructionTests_s_through_z();
 	_RunFunctionValueInspectionManipulationTests_a_through_f();
 	_RunFunctionValueInspectionManipulationTests_g_through_l();
 	_RunFunctionValueInspectionManipulationTests_m_through_r();
@@ -1267,6 +1269,11 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptRaise("NAN = 5;", 4, "is a constant");
 	EidosAssertScriptRaise("E = 5;", 2, "is a constant");
 	EidosAssertScriptRaise("PI = 5;", 3, "is a constant");
+	
+	// tests related to the R-style assignment operator, <-, which is explicitly illegal in Eidos to prevent mistakes ("a <- b;" meaning "a < -b;")
+	EidosAssertScriptSuccess("x = -9; x < -8;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x = -9; x <- 8;", 10, "<- is not legal");
+	EidosAssertScriptRaise("x = -9; x<-8;", 9, "<- is not legal");
 	
 	// try harder to overwrite a constant
 	EidosAssertScriptRaise("T = F;", 2, "is a constant");

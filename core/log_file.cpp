@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/2/20.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -19,6 +19,11 @@
 
 
 #include "log_file.h"
+
+#include <utility>
+#include <algorithm>
+#include <vector>
+#include <iomanip>
 
 #include "slim_globals.h"
 #include "slim_sim.h"
@@ -88,28 +93,7 @@ EidosValue_SP LogFile::_GeneratedValue_GenerationStage(const LogFileGeneratorInf
 {
 #pragma unused(p_generator_info)
 	SLiMGenerationStage generation_stage = sim_.GenerationStage();
-	std::string stage_string;
-	
-	switch (generation_stage)
-	{
-			// some of these are not user-visible since there is no way to make a row log out during them (no callbacks)
-		case SLiMGenerationStage::kStage0PreGeneration: stage_string = "begin"; break;
-		case SLiMGenerationStage::kWFStage1ExecuteEarlyScripts: stage_string = "early"; break;
-		case SLiMGenerationStage::kWFStage2GenerateOffspring: stage_string = "reproduction"; break;
-		case SLiMGenerationStage::kWFStage3RemoveFixedMutations: stage_string = "tally"; break;
-		case SLiMGenerationStage::kWFStage4SwapGenerations: stage_string = "swap"; break;
-		case SLiMGenerationStage::kWFStage5ExecuteLateScripts: stage_string = "late"; break;
-		case SLiMGenerationStage::kWFStage6CalculateFitness: stage_string = "fitness"; break;
-		case SLiMGenerationStage::kWFStage7AdvanceGenerationCounter: stage_string = "end"; break;
-		case SLiMGenerationStage::kNonWFStage1GenerateOffspring: stage_string = "reproduction"; break;
-		case SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts: stage_string = "early"; break;
-		case SLiMGenerationStage::kNonWFStage3CalculateFitness: stage_string = "fitness"; break;
-		case SLiMGenerationStage::kNonWFStage4SurvivalSelection: stage_string = "selection"; break;
-		case SLiMGenerationStage::kNonWFStage5RemoveFixedMutations: stage_string = "tally"; break;
-		case SLiMGenerationStage::kNonWFStage6ExecuteLateScripts: stage_string = "late"; break;
-		case SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter: stage_string = "end"; break;
-		case SLiMGenerationStage::kStage8PostGeneration: stage_string = "console"; break;
-	}
+	std::string stage_string = StringForSLiMGenerationStage(generation_stage);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(stage_string));
 }
@@ -286,6 +270,28 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 	gEidosErrorContext = error_context_save;
 }
 
+void LogFile::_OutputValue(std::ostringstream &p_out, EidosValue *p_value)
+{
+	EidosValueType type = p_value->Type();
+	
+	if (type == EidosValueType::kValueNULL)
+	{
+		// NULL gets logged as NA; mixes paradigms a bit, but seems useful
+		p_out << "NA";
+	}
+	else
+	{
+		// Use EidosValue to write the value.  However, we want to control the precision of float output.
+		// Note that this is not thread-safe.
+		int old_precision = gEidosFloatOutputPrecision;
+		gEidosFloatOutputPrecision = float_precision_;
+		
+		p_out << *p_value;			// FIXME this doesn't handle string quoting well at present
+		
+		gEidosFloatOutputPrecision = old_precision;
+	}
+}
+
 void LogFile::AppendNewRow(void)
 {
 	std::vector<const std::string *> line_vec;
@@ -359,10 +365,7 @@ void LogFile::AppendNewRow(void)
 					if (column_index != 0)
 						ss << sep_;
 					
-					if (generated_value_1->Type() == EidosValueType::kValueNULL)
-						ss << "NA";
-					else
-						ss << *generated_value_1;
+					_OutputValue(ss, generated_value_1.get());
 					
 					if (generated_value_1->Type() != EidosValueType::kValueNULL)
 						SetKeyValue(column_names_[column_index], std::move(generated_value_1));
@@ -380,10 +383,7 @@ void LogFile::AppendNewRow(void)
 			if (column_index != 0)
 				ss << sep_;
 			
-			if (generated_value->Type() == EidosValueType::kValueNULL)
-				ss << "NA";
-			else
-				ss << *generated_value;			// FIXME this doesn't handle string quoting well at present
+			_OutputValue(ss, generated_value.get());
 			
 			if (generated_value->Type() != EidosValueType::kValueNULL)
 				SetKeyValue(column_names_[column_index], std::move(generated_value));
@@ -466,6 +466,8 @@ EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(log_interval_));
 			
 			// variables
+		case gID_precision:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(float_precision_));
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -487,6 +489,17 @@ void LogFile::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
+		case gID_precision:
+		{
+			int64_t value = p_value.IntAtIndex(0, nullptr);
+			
+			if ((value < 1) || (value > 22))
+				EIDOS_TERMINATION << "ERROR (LogFile::SetProperty): property precision must be in [1,22]." << EidosTerminate();
+			
+			float_precision_ = (int)value;
+			
+			return;
+		}
 		case gID_tag:
 		{
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
@@ -862,6 +875,7 @@ const std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_filePath,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logInterval,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_precision,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}

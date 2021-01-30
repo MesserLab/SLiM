@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/6/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -42,8 +42,7 @@ public:
     explicit QtSLiMFindRecipe(QWidget *p_parent = nullptr);
     virtual ~QtSLiMFindRecipe() override;
     
-    QString selectedRecipeFilename(void);
-    QString selectedRecipeScript(void);
+    QStringList selectedRecipeFilenames(void);
     
 protected:
     void loadRecipes(void);

@@ -112,7 +112,6 @@ HEADERS += \
     genomic_element.h \
     individual.h \
     interaction_type.h \
-    json.hpp \
     log_file.h \
     mutation_run.h \
     mutation_type.h \

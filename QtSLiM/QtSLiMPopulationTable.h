@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/30/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -59,6 +59,10 @@ public:
     virtual ~QtSLiMPopulationTableHeaderView() override;
     
     virtual void paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const override;
+    
+protected:
+    void freeCachedIcons(void);
+    void cacheIcons(void);
 };
 
 

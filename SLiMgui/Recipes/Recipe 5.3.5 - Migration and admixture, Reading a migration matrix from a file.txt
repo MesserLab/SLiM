@@ -31,4 +31,4 @@ initialize() {
 		}
 	}
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

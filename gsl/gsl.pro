@@ -65,6 +65,7 @@ SOURCES += \
     randist/cauchy.c \
     randist/discrete.c \
     randist/exponential.c \
+    randist/fdist.c \
     randist/gamma.c \
     randist/gauss.c \
     randist/gausszig.c \

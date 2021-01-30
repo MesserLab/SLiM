@@ -712,15 +712,19 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
 genomePedigreeID => (integer$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 A unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 genomePedigreeID
+\f4\fs20  is a unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
 \f3\fs18 genomePedigreeID
 \f4\fs20  of a given genome will be equal to either 
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.\expnd0\expndtw0\kerning0
+\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1973,29 +1977,41 @@ In nonWF models, this flag is
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeID => (integer$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 A unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.\expnd0\expndtw0\kerning0
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 pedigreeID
+\f4\fs20  is a unique non-negative identifier for each individual in a simulation, never re-used throughout the duration of the simulation run.  This property is also available when tree-sequence recording is enabled.  If neither pedigree tracking nor tree-sequence recording is enabled, this property is unavailable.\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeParentIDs => (integer)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Contains the values of 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 pedigreeParentIDs
+\f4\fs20  contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  Parental values may be 
+\f4\fs20  that were possessed by the parents of an individual; it is thus a vector of two values.  If pedigree tracking is not on, this property is unavailable.  Parental values may be 
 \f3\fs18 -1
 \f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 pedigreeGrandparentIDs => (integer)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Contains the values of 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 pedigreeGrandparentIDs
+\f4\fs20  contains the values of 
 \f3\fs18 pedigreeID
-\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  Grandparental values may be 
+\f4\fs20  that were possessed by the grandparents of an individual; it is thus a vector of four values.  If pedigree tracking is not on, this property is unavailable.  Grandparental values may be 
 \f3\fs18 -1
 \f4\fs20  if insufficient generations have elapsed for that information to be available (because the simulation just started, or because a subpopulation is new).\expnd0\expndtw0\kerning0
 \
@@ -2004,11 +2020,15 @@ In nonWF models, this flag is
 \f3\fs18 \cf2 \kerning1\expnd0\expndtw0 reproductiveOutput => (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The number of offspring for which this individual has been a parent.  If an individual is a parent by cloning or selfing, or as 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 reproductiveOutput
+\f4\fs20  contains the number of offspring for which this individual has been a parent.  If pedigree tracking is not on, this property is unavailable.  If an individual is a parent by cloning or selfing, or as 
 \f1\i both
 \f4\i0  parents for a biparental mating, this value is incremented by two.  Involvement of an individual as a parent for an 
 \f3\fs18 addRecombinant()
-\f4\fs20  call does not change this property\'92s value, since the reproductive contribution in that case is unclear; one conduct separate bookkeeping for that case if necessary.\
+\f4\fs20  call does not change this property\'92s value, since the reproductive contribution in that case is unclear; one must conduct separate bookkeeping for that case if necessary.\
 This property is only useful in nonWF models, since in WF models the parental generation dies immediately after reproduction, giving no opportunity to query this property.  For WF models (and nonWF models, too), see the 
 \f3\fs18 Subpopulation
 \f4\fs20  property 
@@ -2294,7 +2314,7 @@ See the description of the
 \f5 \'a0
 \f3 individuals)
 \f5 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a vector containing the degrees of relatedness between the receiver and each of the individuals in 
 \f3\fs18 individuals
@@ -2308,7 +2328,11 @@ See the description of the
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
-\f4\fs20  are actually the same individual.  Otherwise, this method will use the pedigree information described in section 24.6.1 to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
+\f4\fs20  are actually the same individual; this facility works even if SLiM\'92s optional pedigree tracking is turned off (in which case all other relatedness values will be 
+\f3\fs18 0.0
+\f4\fs20 .  Otherwise, if pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , this method will use the pedigree information to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
@@ -2316,7 +2340,7 @@ See the description of the
 \f3\fs18 0.125
 \f4\fs20  towards the total relatedness, for a maximum value of 
 \f3\fs18 0.5
-\f4\fs20  with four shared grandparents.  If grandparental information in unavailable, then if parental information is available it is used, with each parent shared by 
+\f4\fs20  with four shared grandparents.  If grandparental information is unavailable, then if parental information is available it is used, with each parent shared by 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
@@ -2333,8 +2357,7 @@ See the description of the
 \f4\fs20  are the same individual, the relatedness will be 
 \f3\fs18 1.0
 \f4\fs20  in all cases.\cf0 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
+Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3004,6 +3027,26 @@ Given this automatic invalidation, most simulations have no reason to call
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 precision <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The precision of 
+\f3\fs18 float
+\f4\fs20  output.  To be exact, 
+\f3\fs18 precision
+\f4\fs20  specifies the preferred number of significant digits that will be output for 
+\f3\fs18 float
+\f4\fs20  values.  The default is 
+\f3\fs18 6
+\f4\fs20 ; values in [
+\f3\fs18 1
+\f4\fs20 ,
+\f3\fs18 22
+\f4\fs20 ] are legal, but 
+\f3\fs18 17
+\f4\fs20  is probably the largest value that makes sense given the limits of double-precision floating point.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3078,25 +3121,11 @@ See
 \f3\fs18 "late"
 \f4\fs20 , or 
 \f3\fs18 "end"
-\f4\fs20  (the latter used for the point in time at which end-of-generation automatic logging occurs).  If you call 
-\f3\fs18 logRow()
-\f4\fs20  during offspring generation (including from a 
-\f3\fs18 mateChoice()
-\f4\fs20 , 
-\f3\fs18 modifyChild()
-\f4\fs20 , 
-\f3\fs18 reproduction()
-\f4\fs20 , 
-\f3\fs18 recombination()
-\f4\fs20 , or 
-\f3\fs18 mutation()
-\f4\fs20  callback), this will be 
-\f3\fs18 "reproduction"
-\f4\fs20 ; if you call it during fitness evaluation, particularly from a 
-\f3\fs18 fitness()
-\f4\fs20  callback, this will be 
-\f3\fs18 "fitness"
-\f4\fs20 .\
+\f4\fs20  (the latter used for the point in time at which end-of-generation automatic logging occurs).  Other possible values are discussed in the documentation for the 
+\f3\fs18 generationStage
+\f4\fs20  property of 
+\f3\fs18 SLiMSim
+\f4\fs20 , which this column reflects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)addKeysAndValuesFrom(object$\'a0source)\
@@ -4195,6 +4224,52 @@ If the model is being profiled, or is executing forward to a generation number e
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 generationStage => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The current generation stage, as a 
+\f3\fs18 string
+\f4\fs20 .  The values of this property essentially mirror the generation stages of WF and nonWF models (see chapters 22 and 23).  Common values include 
+\f3\fs18 "early"
+\f4\fs20  (during execution of 
+\f3\fs18 early()
+\f4\fs20  events), 
+\f3\fs18 "reproduction"
+\f4\fs20  (during offspring generation), 
+\f3\fs18 "fitness"
+\f4\fs20  (during fitness evaluation), and 
+\f3\fs18 "late"
+\f4\fs20  (during execution of 
+\f3\fs18 late()
+\f4\fs20  events).\
+Other possible values include 
+\f3\fs18 "begin"
+\f4\fs20  (during internal setup before each generation), 
+\f3\fs18 "selection"
+\f4\fs20  (while applying selection and mortality in nonWF models), 
+\f3\fs18 "tally"
+\f4\fs20  (while tallying mutation reference counts and removing fixed mutations), 
+\f3\fs18 "swap"
+\f4\fs20  (while swapping the offspring generation into the parental generation in WF models), 
+\f3\fs18 "end"
+\f4\fs20  (during internal bookkeeping after each generation), and 
+\f3\fs18 "console"
+\f4\fs20  (during the in-between-generations state in which commands in SLiMgui\'92s Eidos console are executed).  It would probably be a good idea not to use this latter set of values; they are probably not user-visible during ordinary model execution anyway.\
+During execution of 
+\f3\fs18 initialize()
+\f4\fs20  callbacks, no 
+\f3\fs18 SLiMSim
+\f4\fs20  object yet exists and so this property cannot be accessed.  To detect this state, use 
+\f3\fs18 exists("sim")
+\f4\fs20 ; if that is 
+\f3\fs18 F
+\f4\fs20 , 
+\f3\fs18 sim
+\f4\fs20  does not exist, and therefore your code is executing during 
+\f3\fs18 initialize()
+\f4\fs20  callbacks (or outside of SLiM entirely, in some other Eidos-based context).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 genomicElementTypes => (object<GenomicElementType>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4521,7 +4596,7 @@ The
 \f3\fs18 LogFile
 \f4\fs20  documentation discusses how to configure and use 
 \f3\fs18 LogFile
-\f4\fs20  to write out the data you are interested in from your simulation; see section 24.9.\
+\f4\fs20  to write out the data you are interested in from your simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)deregisterScriptBlock(io<SLiMEidosBlock>\'a0scriptBlocks)\
@@ -4790,7 +4865,9 @@ Beginning with SLiM 3.3, the
 \f3\fs18 F
 \f4\fs20 ) by default, to preserve backward compatibility; if it is turned on (
 \f3\fs18 T
-\f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.\
+\f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 .\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
@@ -4909,7 +4986,11 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
-\f4\fs20 ).\
+\f4\fs20 ) 
+\f1\i and
+\f4\i0  if SLiM\'92s optional pedigree tracking has been turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 .\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 This method can also be used to read tree-sequence (
@@ -5416,7 +5497,7 @@ Whichever way of specifying the generation set is used,
 \f3\fs18 block
 \f4\fs20  may continue to be executed during the current life cycle stage even after it has been rescheduled, unless it is made inactive using its 
 \f3\fs18 active
-\f4\fs20  property, and similarly, the block may not execute during the current life cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the generation and life cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\cf2   Also, as mentioned in section 21.7, script blocks which are open-ended (i.e., with no specified end generation), are not used in determining whether the end of the simulation has been reached (because then the simulation would run forever); if you reschedule a block to be open-ended, and to start after the end of the last closed-ended block, the rescheduled block will therefore not run at all (just as such a block would not run at all in other circumstances, too).\cf0 \
+\f4\fs20  property, and similarly, the block may not execute during the current life cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the generation and life cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\cf2   Also, script blocks which are open-ended (i.e., with no specified end generation), are not used in determining whether the end of the simulation has been reached (because then the simulation would run forever); if you reschedule a block to be open-ended, and to start after the end of the last closed-ended block, the rescheduled block will therefore not run at all (just as such a block would not run at all in other circumstances, too).\cf0 \
 Note that new script blocks can also be created and scheduled using the 
 \f3\fs18 register...()
 \f4\fs20  methods of 
@@ -5531,18 +5612,21 @@ This method may only be called if tree sequence recording has been turned on wit
 \f4\fs20  to obtain up-to-date information.  However, the speed penalty of doing this in every generation would be large, and most models do not need this level of precision; usually it is sufficient to know that the model has coalesced, without knowing whether that happened in the current generation or in a recent preceding generation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T])\
+\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No$\'a0metadata\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
 \f3\fs18 initializeTreeSeq()
 \f4\fs20 .  If 
 \f3\fs18 simplify
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  A binary tree sequence file will be written to the specified path; a filename extension of 
+\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  (Note that if simplification is not done, then all genomes since the last simplification will be marked as samples in the resulting tree sequence.)  A binary tree sequence file will be written to the specified path; a filename extension of 
 \f3\fs18 .trees
 \f4\fs20  is suggested for this type of file.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Normally, the full SLiM script used to generate the tree sequence is written out to the provenance entry of the tree sequence file, to the 
 \f3\fs18 model
 \f4\fs20  subkey of the 
@@ -5552,20 +5636,101 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \f4\fs20  for 
 \f3\fs18 includeModel
 \f4\fs20  suppresses output of the full script.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 A 
+\f3\fs18 Dictionary
+\f4\fs20  object containing user-generated metadata may be supplied with the 
+\f3\fs18 metadata
+\f4\fs20  parameter.  If present, this dictionary will be serialized as JSON and attached to the saved tree sequence under a key named 
+\f3\fs18 user_metadata
+\f4\fs20 , within the 
+\f3\fs18 SLiM
+\f4\fs20  key.  If 
+\f3\fs18 pyslim
+\f4\fs20  is used to read the tree sequence in Python, this metadata will automatically be deserialized and made available at 
+\f3\fs18 ts.metadata["SLiM"]["user_metadata"]
+\f4\fs20 .  This metadata dictionary is not used by SLiM, or by 
+\f3\fs18 pyslim
+\f4\fs20 , 
+\f3\fs18 tskit
+\f4\fs20 , or 
+\f3\fs18 msprime
+\f4\fs20 ; you may use it for any purpose you wish.  Note that 
+\f3\fs18 metadata
+\f4\fs20  may actually be any subclass of 
+\f3\fs18 Dictionary
+\f4\fs20 , such as the 
+\f3\fs18 SLiMSim
+\f4\fs20  simulation object 
+\f3\fs18 sim
+\f4\fs20 , or a 
+\f3\fs18 LogFile
+\f4\fs20  instance.  However, only the keys and values contained by the object\'92s 
+\f3\fs18 Dictionary
+\f4\fs20  superclass state will be serialized into the metadata; properties of the subclass will be ignored.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals)\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(void)treeSeqRememberIndividuals(object<Individual>\'a0individuals\kerning1\expnd0\expndtw0 , [logical$\'a0permanent\'a0=\'a0T]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Permanently adds the individuals specified by 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Mark the individuals specified by 
 \f3\fs18 individuals
-\f4\fs20  to the sample retained across tree sequence table simplification.  This method may only be called if tree sequence recording has been turned on with 
+\f4\fs20  to be kept across tree sequence table simplification.  This method may only be called if tree sequence recording has been turned on with 
 \f3\fs18 initializeTreeSeq()
-\f4\fs20 .  All currently living individuals are always retained across simplification; this method does not need to be called, and indeed should not be called, for that purpose.  Instead, 
+\f4\fs20 .  All currently living individuals are always kept across simplification; this method does not need to be called, and indeed should not be called, for that purpose.  Instead, 
 \f3\fs18 treeSeqRememberIndividuals()
-\f4\fs20  is for 
-\f1\i permanently
-\f4\i0  adding particular individuals to the retained sample.  Typically this would be used, for example, to retain particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
+\f4\fs20  allows any individual, including dead individuals, to be kept in the final tree sequence.  Typically this would be used, for example, to keep particular individuals that you wanted to be able to trace ancestry back to in later analysis.  However, this is not the typical usage pattern for tree sequence recording; most models will not need to call this method.\
+There are two ways to keep individuals across simplification.  If 
+\f3\fs18 permanent
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), then the specified individuals will be permanently remembered: their genomes will be added to the current sample, and they will always be present in the tree sequence.  Permanently remembering a large number of individuals will, of course, markedly increase memory usage and runtime.\
+Supplying 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 permanent
+\f4\fs20  will instead mark the individuals only for (temporary) retention: their genomes will not be added to the sample, and they will appear in the final tree sequence only if one of their genomes is retained across simplification.  In other words, the rule of thumb for retained individuals is simple: if a genome is kept by simplification, the genome\'92s corresponding individual is kept also, 
+\f1\i if
+\f4\i0  it is retained.  Note that permanent remembering takes priority; calling this function with 
+\f3\fs18 permanent=F
+\f4\fs20  on an individual that has previously been permanently remembered will not remove it from the sample.\
+The behavior of simplification for individuals retained with 
+\f3\fs18 permanent=F
+\f4\fs20  depends upon the value of the 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  flag passed to 
+\f3\fs18 initializeTreeSeq()
+\f4\fs20 ; here we will discuss the behavior of that flag in detail.  First of all, genomes are 
+\f1\i always
+\f4\i0  removed by simplification unless they are (a) part of the final generation, (b) ancestral to the final generation, (c) a genome of a permanently remembered individual, or (d) ancestral to a permanently remembered individual.  If 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), they are 
+\f1\i also
+\f4\i0  always removed if they are not a branch point (i.e., a coalescent node or most recent common ancestor) in the tree sequence.  In some cases it may be useful to retain a genome and its associated individual when it is simply an intermediate node in the ancestry (i.e., in the middle of a branch).  This can be enabled by setting 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  to 
+\f3\fs18 F
+\f4\fs20  in your call to 
+\f3\fs18 initializeTreeSeq()
+\f4\fs20 .  In this case, ancestral genomes that are intermediate (\'93unary nodes\'94, in 
+\f3\fs18 tskit
+\f4\fs20  parlance) and are within an individual that has been retained using the 
+\f3\fs18 permanent=F
+\f4\fs20  flag here are kept, along with the retained individual itself.  Since setting 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  to 
+\f3\fs18 F
+\f4\fs20  will prevent the unary nodes for retained individuals from being pruned, simplification may often be unable to prune very much at all from the tree sequence, and memory usage and runtime may increase rapidly.  If you are retaining many individuals, this setting should therefore be used only with caution; it is not necessary if you are purely interested in the most recent common ancestors.  See the 
+\f3\fs18 pyslim
+\f4\fs20  documentation for further discussion of retaining and remembering individuals and the effects of the 
+\f3\fs18 retainCoalescentOnly
+\f4\fs20  flag.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The metadata (age, location, etc) that are stored in the resulting tree sequence are those values present at either (a) the final generation, if the individual is alive at the end of the simulation, or (b) the last time that the individual was remembered, if not.  Calling 
 \f3\fs18 treeSeqRememberIndividuals()
 \f4\fs20  on an individual that is already remembered will cause the archived information about the remembered individual to be updated to reflect the individual\'92s current state.  A case where this is particularly important is for the spatial location of individuals in continuous-space models.  SLiM automatically remembers the individuals that comprise the first generation of any new subpopulation created with 
@@ -5706,11 +5871,43 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 \cf2 lifetimeReproductiveOutput => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The value of the 
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 lifetimeReproductiveOutput
+\f4\fs20  contains the value of the 
 \f3\fs18 Individual
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
-\f4\fs20  for all individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This allows access to the lifetime reproductive output of individuals in the subpopulation at the end of their lives.\
+\f4\fs20  for all individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This allows access to the lifetime reproductive output of individuals in the subpopulation at the end of their lives.  If pedigree tracking is not on, this property is unavailable.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 lifetimeReproductiveOutputF => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 lifetimeReproductiveOutputF
+\f4\fs20  contains the value of the 
+\f3\fs18 Individual
+\f4\fs20  property 
+\f3\fs18 reproductiveOutput
+\f4\fs20  for all female individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 lifetimeReproductiveOutputM => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 If pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , 
+\f3\fs18 lifetimeReproductiveOutputM
+\f4\fs20  contains the value of the 
+\f3\fs18 Individual
+\f4\fs20  property 
+\f3\fs18 reproductiveOutput
+\f4\fs20  for all male individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 selfingRate => (float$)\

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/13/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -57,10 +57,30 @@
 #include "slim_globals.h"
 
 
-// Check the Qt version and display an error if it is unacceptable
-// We enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled
-#if (QT_VERSION < 0x050905)
-#error "SLiMgui requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS recommended)."
+// Check the Qt version and display an error if it is unacceptable.  This can be turned off with
+// -D NO_QT_VERSION_ERROR; at present, that is used to allow GitHub Actions to test version
+// combinations that are not officially supported.  I do not recommend that end users use this flag.
+#ifdef NO_QT_VERSION_ERROR
+#warning "Qt version check for SLiMgui disabled by -D NO_QT_VERSION_ERROR"
+#else
+#ifdef __APPLE__
+// On macOS we enforce Qt 5.15.2 as a hard limit; macOS does not have Qt preinstalled, and there is
+// not much reason for anybody to use a version prior to 5.15.2 for a build.  5.15.2 is the only
+// LTS version with support for macOS 11, dark mode, and various other things we want.  However,
+// if you need to build against an earlier Qt version (because you're using a macOS version earlier
+// than 10.13, perhaps), you can disable this check using the above flag and your build will probably
+// work; just note that that configuration is unsupported.
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
+#error "SLiMgui on macOS requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 recommended)."
+#endif
+#else
+// On Linux we enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled.
+// We don't rely on any specific post 5.9.5 features on Linux, and the best Qt version on Linux is
+// probably the version that a given distro has chosen to preinstall.
+#if (QT_VERSION < QT_VERSION_CHECK(5, 9, 5))
+#error "SLiMgui on Linux requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS or 5.15 LTS recommended)."
+#endif
+#endif
 #endif
 
 
@@ -70,7 +90,7 @@ static std::string Eidos_Beep_QT(std::string p_sound_name);
 QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
 
 
-// A custom message handler that we can use, optionally, for deubgging.  This is useful if Qt is emitting a warning and you don't know
+// A custom message handler that we can use, optionally, for debugging.  This is useful if Qt is emitting a warning and you don't know
 // where it's coming from; turn on the use of the message handler, and then set a breakpoint inside it, perhaps conditional on msg.
 void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -108,6 +128,8 @@ void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, co
         // Log a backtrace after each message
         Eidos_PrintStacktrace(stderr, 20);
 #endif
+        
+        fflush(stderr);
     }
 }
 
@@ -125,8 +147,8 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     
     // Let Qt know who we are, for QSettings configuration
     QCoreApplication::setOrganizationName("MesserLab");
-    QCoreApplication::setOrganizationDomain("MesserLab.edu");   // Qt expects the domain in the standard order, and reverses it to form "edu.messerlab.QtSLiM.plist" as per Apple's usage
-    QCoreApplication::setApplicationName("QtSLiM");             // This governs the location of our prefs, which we keep under edu.MesserLab.QtSLiM
+    QCoreApplication::setOrganizationDomain("messerlab.org");   // Qt expects the domain in the standard order, and reverses it to form "org.messerlab.SLiMgui.plist" as per Apple's usage
+    QCoreApplication::setApplicationName("SLiMgui");             // This governs the location of our prefs, which we keep under org.messerlab.SLiMgui
     QCoreApplication::setApplicationVersion(SLIM_VERSION_STRING);
     
     // Warm up our back ends before anything else happens, including our own class objects
@@ -196,21 +218,11 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     // Set the application icon; this fixes the app icon in the dock/toolbar/whatever,
     // even if the right icon is not attached for display in the desktop environment
     app->setWindowIcon(appIcon_);
-    
-#ifdef __APPLE__
-    // On macOS, make the global menu bar for use when no other window is open
-    // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-    // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-    // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-    // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-    // the other spots in the code related to this mess.
-    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
-    //makeGlobalMenuBar();
-#endif
 }
 
 QtSLiMAppDelegate::~QtSLiMAppDelegate(void)
 {
+    qtSLiMAppDelegate = nullptr;    // kill the global shared instance, for safety
 }
 
 
@@ -333,22 +345,37 @@ QtSLiMWindow *QtSLiMAppDelegate::openFile(const QString &fileName, QtSLiMWindow 
 
 void QtSLiMAppDelegate::openRecipeWithName(const QString &recipeName, const QString &recipeScript, QtSLiMWindow *requester)
 {
-    if (!requester)
-        requester = activeQtSLiMWindow();
-    
-    if (requester && requester->windowIsReuseable())
+    if (recipeName.endsWith(".py"))
     {
-        requester->loadRecipe(recipeName, recipeScript);
-        return;
+        // Python recipes live in GitHub and get opened in the user's browser.  This seems like the best solution;
+        // we don't want SLiMgui to become a Python IDE, so we don't want to open them in-app, but there is no
+        // good cross-platform solution for opening them in an app that makes sense, or even for revealing them
+        // on the desktop.  See https://github.com/MesserLab/SLiM/issues/137 for discussion.
+        QString urlString = "https://raw.githubusercontent.com/MesserLab/SLiM/master/QtSLiM/recipes/";
+        urlString.append(recipeName);
+        
+        QDesktopServices::openUrl(QUrl(urlString, QUrl::TolerantMode));
     }
-    
-    QtSLiMWindow *window = new QtSLiMWindow(recipeName, recipeScript);
-    if (!window->isRecipe) {
-        delete window;
-        return;
+    else
+    {
+        // SLiM recipes get opened in a new window (or reusing the current window, if applicable)
+        if (!requester)
+            requester = activeQtSLiMWindow();
+        
+        if (requester && requester->windowIsReuseable())
+        {
+            requester->loadRecipe(recipeName, recipeScript);
+            return;
+        }
+        
+        QtSLiMWindow *window = new QtSLiMWindow(recipeName, recipeScript);
+        if (!window->isRecipe) {
+            delete window;
+            return;
+        }
+        window->tile(requester);
+        window->show();
     }
-    window->tile(requester);
-    window->show();
 }
 
 
@@ -597,6 +624,24 @@ bool QtSLiMAppDelegate::eventFilter(QObject *p_obj, QEvent *p_event)
         
         return true;    // filter this event, i.e., prevent any further Qt handling of it
     }
+    else if (type == QEvent::ApplicationPaletteChange)
+    {
+        if (inDarkMode_ != QtSLiMInDarkMode())
+        {
+            inDarkMode_ = QtSLiMInDarkMode();
+            //qDebug() << "inDarkMode_ == " << inDarkMode_;
+            emit applicationPaletteChanged();
+        }
+    }
+    else if (type == QEvent::StatusTip)
+    {
+        // These are events that Qt sends to itself, to display "status tips" in the status bar for widgets the
+        // mouse is over, like buttons and menu bar items.  This is not a feature I presently want to use, and
+        // on Linux these events get sent even when the tip is empty, and cause the status bar to be cleared
+        // for no apparent reason.  So I'm going to just disable these events for now.
+
+        return true;    // filter this event, i.e., prevent any further Qt handling of it
+    }
     
     // standard event processing
     return QObject::eventFilter(p_obj, p_event);
@@ -612,6 +657,9 @@ void QtSLiMAppDelegate::appDidFinishLaunching(QtSLiMWindow *initialWindow)
     // Display a startup message in the initial window's status bar
     if (initialWindow)
         initialWindow->displayStartupMessage();
+    
+    // Cache our dark mode flag so we can respond to palette changes later
+    inDarkMode_ = QtSLiMInDarkMode();
 }
 
 void QtSLiMAppDelegate::lastWindowClosed(void)
@@ -631,14 +679,27 @@ void QtSLiMAppDelegate::findRecipe(void)
     
     if (result == QDialog::Accepted)
     {
-        QString resourceName = findRecipePanel.selectedRecipeFilename();
-        QString recipeScript = findRecipePanel.selectedRecipeScript();
-        QString trimmedName = resourceName;
+        QStringList resourceNames = findRecipePanel.selectedRecipeFilenames();
         
-        if (trimmedName.endsWith(".txt"))
-            trimmedName.chop(4);
-        
-        openRecipeWithName(trimmedName, recipeScript, nullptr);
+        for (QString resourceName : resourceNames)
+        {
+            qDebug() << "recipe name:" << resourceName;
+            
+            QString resourcePath = ":/recipes/" + resourceName;
+            QFile recipeFile(resourcePath);
+            
+            if (recipeFile.open(QFile::ReadOnly | QFile::Text))
+            {
+                QTextStream recipeTextStream(&recipeFile);
+                QString recipeScript = recipeTextStream.readAll();
+                QString trimmedName = resourceName;
+                
+                if (trimmedName.endsWith(".txt"))
+                    trimmedName.chop(4);
+                
+                openRecipeWithName(trimmedName, recipeScript, nullptr);
+            }
+        }
     }
 }
 
@@ -653,6 +714,8 @@ void QtSLiMAppDelegate::openRecipe(void)
         
         if (resourceName.length())
         {
+            qDebug() << "recipe name:" << resourceName;
+            
             QString resourcePath = ":/recipes/" + resourceName;
             QFile recipeFile(resourcePath);
             
@@ -979,18 +1042,20 @@ void QtSLiMAppDelegate::dispatch_quit(void)
 {
     if (qApp)
     {
+        closeRejected_ = false;
         qApp->closeAllWindows();
         
+        if (!closeRejected_)
+        {
+            // On macOS, explicitly quit since last window close doesn't auto-quit, for Qt 5.15.2.
+            // Builds against older Qt versions will just quit on the last window close, because
+            // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-        // On macOS, simply closing all windows doesn't suffice; we need to explicitly quit
-        // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-        // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-        // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-        // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-        // the other spots in the code related to this mess.
-        // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
-        //qApp->quit();
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
+            qApp->quit();
 #endif
+#endif
+        }
     }
 }
 
@@ -1356,92 +1421,6 @@ void QtSLiMAppDelegate::dispatch_helpStickSoftware(void)
     QDesktopServices::openUrl(QUrl("http://www.sticksoftware.com/", QUrl::TolerantMode));
 }
 
-void QtSLiMAppDelegate::makeGlobalMenuBar(void)
-{
-#ifdef __APPLE__
-    // Make a global menubar that gets used when no window is open, on macOS
-    // We do this only on demand because otherwise Qt seem to get confused about the automatic menu item repositioning
-    // It's really gross to have to duplicate the menu structure here in code, but I don't see an easy way to copy existing menus
-    if (!windowlessMenuBar)
-    {
-        windowlessMenuBar = new QMenuBar(nullptr);
-        QMenu *fileMenu = new QMenu("File", windowlessMenuBar);
-        
-        windowlessMenuBar->addMenu(fileMenu);
-        
-        fileMenu->addAction("About SLiMgui", this, &QtSLiMAppDelegate::dispatch_about);
-        fileMenu->addAction("Preferences...", this, &QtSLiMAppDelegate::dispatch_preferences, Qt::CTRL + Qt::Key_Comma);
-        fileMenu->addSeparator();
-        fileMenu->addAction("New", this, &QtSLiMAppDelegate::dispatch_newWF, Qt::CTRL + Qt::Key_N);
-        fileMenu->addAction("New (nonWF)", this, &QtSLiMAppDelegate::dispatch_newNonWF, Qt::CTRL + Qt::SHIFT + Qt::Key_N);
-        fileMenu->addAction("Open...", this, &QtSLiMAppDelegate::dispatch_open, Qt::CTRL + Qt::Key_O);
-        QMenu *openRecent = fileMenu->addMenu("Open Recent");
-        QMenu *openRecipe = fileMenu->addMenu("Open Recipe");
-        fileMenu->addSeparator();
-        fileMenu->addAction("Close", this, &QtSLiMAppDelegate::dispatch_close, Qt::CTRL + Qt::Key_W);
-        QAction *actionSave = fileMenu->addAction("Save");
-        actionSave->setShortcut(Qt::CTRL + Qt::Key_S);
-        actionSave->setEnabled(false);
-        QAction *actionSaveAs = fileMenu->addAction("Save As...");
-        actionSaveAs->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_S);
-        actionSaveAs->setEnabled(false);
-        fileMenu->addAction("Revert to Saved")->setEnabled(false);
-        fileMenu->addSeparator();
-        fileMenu->addAction("Quit SLiMgui", this, &QtSLiMAppDelegate::dispatch_quit, Qt::CTRL + Qt::Key_Q);
-        
-        setUpRecentsMenu(openRecent);
-        
-        QAction *findRecipeAction = openRecipe->addAction("Find Recipe...");
-        findRecipeAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_O);
-        openRecipe->addSeparator();
-        setUpRecipesMenu(openRecipe, findRecipeAction);
-        
-        QMenu *editMenu = new QMenu("Edit", windowlessMenuBar);
-        
-        windowlessMenuBar->addMenu(editMenu);
-        
-        editMenu->addAction("Undo", this, &QtSLiMAppDelegate::dispatch_undo, Qt::CTRL + Qt::Key_Z)->setEnabled(false);
-        editMenu->addAction("Redo", this, &QtSLiMAppDelegate::dispatch_redo, Qt::CTRL + Qt::SHIFT + Qt::Key_Z)->setEnabled(false);
-        editMenu->addSeparator();
-        editMenu->addAction("Cut", this, &QtSLiMAppDelegate::dispatch_cut, Qt::CTRL + Qt::Key_X)->setEnabled(false);
-        editMenu->addAction("Copy", this, &QtSLiMAppDelegate::dispatch_copy, Qt::CTRL + Qt::Key_C)->setEnabled(false);
-        editMenu->addAction("Paste", this, &QtSLiMAppDelegate::dispatch_paste, Qt::CTRL + Qt::Key_V)->setEnabled(false);
-        editMenu->addAction("Delete", this, &QtSLiMAppDelegate::dispatch_delete)->setEnabled(false);
-        editMenu->addAction("Select All", this, &QtSLiMAppDelegate::dispatch_selectAll, Qt::CTRL + Qt::Key_A)->setEnabled(false);
-        editMenu->addSeparator();
-        
-        QMenu *findMenu = editMenu->addMenu("Find");
-        
-        findMenu->addAction("Find...", this, &QtSLiMAppDelegate::dispatch_findShow, Qt::CTRL + Qt::Key_F);
-        findMenu->addAction("Find Next", this, &QtSLiMAppDelegate::dispatch_findNext, Qt::CTRL + Qt::Key_G)->setEnabled(false);
-        findMenu->addAction("Find Previous", this, &QtSLiMAppDelegate::dispatch_findPrevious, Qt::CTRL + Qt::SHIFT + Qt::Key_G)->setEnabled(false);
-        findMenu->addAction("Replace && Find", this, &QtSLiMAppDelegate::dispatch_replaceAndFind, Qt::CTRL + Qt::ALT + Qt::Key_G)->setEnabled(false);
-        findMenu->addAction("Use Selection for Find", this, &QtSLiMAppDelegate::dispatch_useSelectionForFind, Qt::CTRL + Qt::Key_E)->setEnabled(false);
-        findMenu->addAction("Use Selection for Replace", this, &QtSLiMAppDelegate::dispatch_useSelectionForReplace, Qt::CTRL + Qt::ALT + Qt::Key_E)->setEnabled(false);
-        findMenu->addAction("Jump to Selection", this, &QtSLiMAppDelegate::dispatch_jumpToSelection, Qt::CTRL + Qt::Key_J)->setEnabled(false);
-        findMenu->addAction("Jump to Line", this, &QtSLiMAppDelegate::dispatch_jumpToLine, Qt::CTRL + Qt::Key_L)->setEnabled(false);
-        
-        QMenu *helpMenu = new QMenu("Help", windowlessMenuBar);
-        
-        windowlessMenuBar->addMenu(helpMenu);
-        
-        helpMenu->addAction("SLiMgui Help", this, &QtSLiMAppDelegate::dispatch_help);
-        helpMenu->addAction("SLiMgui Workshops", this, &QtSLiMAppDelegate::dispatch_helpWorkshops);
-        helpMenu->addSeparator();
-        helpMenu->addAction("Send Feedback on SLiM", this, &QtSLiMAppDelegate::dispatch_helpFeedback);
-        helpMenu->addAction("Mailing List: slim-announce", this, &QtSLiMAppDelegate::dispatch_helpSLiMAnnounce);
-        helpMenu->addAction("Mailing List: slim-discuss", this, &QtSLiMAppDelegate::dispatch_helpSLiMDiscuss);
-        helpMenu->addSeparator();
-        helpMenu->addAction("SLiM Home Page", this, &QtSLiMAppDelegate::dispatch_helpSLiMHome);
-        helpMenu->addAction("SLiM-Extras on GitHub", this, &QtSLiMAppDelegate::dispatch_helpSLiMExtras);
-        helpMenu->addSeparator();
-        helpMenu->addAction("About the Messer Lab", this, &QtSLiMAppDelegate::dispatch_helpMesserLab)->setMenuRole(QAction::NoRole);
-        helpMenu->addAction("About Ben Haller", this, &QtSLiMAppDelegate::dispatch_helpBenHaller)->setMenuRole(QAction::NoRole);
-        helpMenu->addAction("About Stick Software", this, &QtSLiMAppDelegate::dispatch_helpStickSoftware)->setMenuRole(QAction::NoRole);
-    }
-#endif
-}
-
 
 //
 //  Active QtSLiMWindow tracking
@@ -1500,7 +1479,17 @@ void QtSLiMAppDelegate::pruneWindowList(void)
         QPointer<QWidget> &focused_window_ptr = focusedWindowList[listIndex];
         
         if (focused_window_ptr && focused_window_ptr->isVisible() && !focused_window_ptr->isHidden())
-            continue;
+        {
+            // prune zombie windows
+            bool isZombie = false;
+            QtSLiMWindow *qtSLiMWindow = qobject_cast<QtSLiMWindow *>(focused_window_ptr);
+            
+            if (qtSLiMWindow)
+                isZombie = qtSLiMWindow->isZombieWindow_;
+            
+            if (!isZombie)
+                continue;
+        }
         
         // prune
         focusedWindowList.removeAt(listIndex);

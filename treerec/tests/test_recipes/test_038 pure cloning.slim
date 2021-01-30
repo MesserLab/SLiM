@@ -1,0 +1,25 @@
+// pure cloning.slim : ^Total mutation frequencies: (.*)$
+//
+// A test script for cloning
+//
+initialize() {
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+    initializeTreeSeq();
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e5-1);
+	initializeRecombinationRate(1e-8);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	
+	p1.setCloningRate(1.0);
+}
+100 {
+	addAncestralSamples(5);
+}
+500 late() { 
+	outputMutationResult();
+}

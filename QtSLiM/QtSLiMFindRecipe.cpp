@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/6/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -48,10 +48,14 @@ QtSLiMFindRecipe::QtSLiMFindRecipe(QWidget *p_parent) : QDialog(p_parent), ui(ne
 	
     // set up the script preview with syntax coloring and tab stops
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
-    int tabWidth = 0;
+    double tabWidth = 0;
     
     ui->scriptPreviewTextEdit->setFont(prefs.displayFontPref(&tabWidth));
-    ui->scriptPreviewTextEdit->setTabStopWidth(tabWidth);                   // deprecated in 5.10
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    ui->scriptPreviewTextEdit->setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    ui->scriptPreviewTextEdit->setTabStopDistance(tabWidth);               // added in 5.10
+#endif
     
     if (prefs.scriptSyntaxHighlightPref())
         new QtSLiMScriptHighlighter(ui->scriptPreviewTextEdit->document());
@@ -70,20 +74,19 @@ QtSLiMFindRecipe::~QtSLiMFindRecipe()
     delete ui;
 }
 
-QString QtSLiMFindRecipe::selectedRecipeFilename(void)
+QStringList QtSLiMFindRecipe::selectedRecipeFilenames(void)
 {
-    const QList<QListWidgetItem *> &selectedItems = ui->matchListWidget->selectedItems();
+    QList<QListWidgetItem *> selectedItems = ui->matchListWidget->selectedItems();
+    QStringList selectedFilenames;
     
-    if (selectedItems.size() == 1)
-        return selectedItems[0]->text();
+    for (QListWidgetItem *selectedItem : selectedItems)
+    {
+        int selectedRow = ui->matchListWidget->row(selectedItem);
+        
+        selectedFilenames.append(matchRecipeFilenames[selectedRow]);
+    }
     
-    // We should always have a selection when this is called, actually
-    return QString("");
-}
-
-QString QtSLiMFindRecipe::selectedRecipeScript(void)
-{
-    return ui->scriptPreviewTextEdit->toPlainText();
+    return selectedFilenames;
 }
 
 void QtSLiMFindRecipe::loadRecipes(void)
@@ -189,9 +192,13 @@ void QtSLiMFindRecipe::validateOK(void)
 
 void QtSLiMFindRecipe::updatePreview(void)
 {
-	if (ui->matchListWidget->selectedItems().size() == 0)
+    if (ui->matchListWidget->selectedItems().size() == 0)
 	{
         ui->scriptPreviewTextEdit->clear();
+	}
+    else if (ui->matchListWidget->selectedItems().size() > 1)
+	{
+        ui->scriptPreviewTextEdit->setPlainText("// Multiple recipes selected");
 	}
 	else
 	{

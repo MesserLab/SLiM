@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -36,6 +36,7 @@
 #include <QStyleOption>
 #include <QStyle>
 #include <QTextDocument>
+#include <QPalette>
 #include <QDebug>
 #include <cmath>
 
@@ -80,6 +81,33 @@ QColor QtSLiMColorWithHSV(double p_hue, double p_saturation, double p_value, dou
     color.setHsvF(p_hue, p_saturation, p_value, p_alpha);
     return color;
 }
+
+
+bool QtSLiMInDarkMode(void)
+{
+    // We determine whether we're in dark mode heuristically: if the window background color is darker than 50% gray
+    // We don't attempt to cache this value, since it sounds like the change notification for this is buggy
+    QColor windowColor = QPalette().color(QPalette::Window);
+    double windowBrightness = 0.21 * windowColor.redF() + 0.72 * windowColor.greenF() + 0.07 * windowColor.blueF();
+    
+    return (windowBrightness < 0.5);
+}
+
+QString QtSLiMImagePath(QString baseName, bool highlighted)
+{
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    baseName = (inDarkMode ? ":/buttons_DARK/" : ":/buttons/") + baseName;
+    
+    if (highlighted)
+        baseName += "_H";
+    if (inDarkMode)
+        baseName += "_DARK";
+    baseName += ".png";
+    
+    return baseName;
+}
+
 
 const double greenBrightness = 0.8;
 
@@ -218,9 +246,10 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     ttFormat.setFont(displayFont);
     lineCursor.setCharFormat(ttFormat);
     
+    bool inDarkMode = QtSLiMInDarkMode();
     QTextCharFormat functionAttrs(ttFormat), typeAttrs(ttFormat);
-    functionAttrs.setForeground(QBrush(QtSLiMColorWithRGB(28/255.0, 0/255.0, 207/255.0, 1.0)));
-    typeAttrs.setForeground(QBrush(QtSLiMColorWithRGB(0/255.0, 116/255.0, 0/255.0, 1.0)));
+    functionAttrs.setForeground(QBrush(inDarkMode ? QColor(115, 145, 255) : QColor(28, 0, 207)));
+    typeAttrs.setForeground(QBrush(inDarkMode ? QColor(90, 210, 90) : QColor(0, 116, 0)));
     
     QTextCursor propertyNameCursor(lineCursor);
     propertyNameCursor.setPosition(lineCursor.anchor(), QTextCursor::MoveAnchor);
@@ -265,10 +294,11 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     ttFormat.setFont(displayFont);
     lineCursor.setCharFormat(ttFormat);
     
+    bool inDarkMode = QtSLiMInDarkMode();
     QTextCharFormat typeAttrs(ttFormat), functionAttrs(ttFormat), paramAttrs(ttFormat);
-    typeAttrs.setForeground(QBrush(QtSLiMColorWithRGB(28/255.0, 0/255.0, 207/255.0, 1.0)));
-    functionAttrs.setForeground(QBrush(QtSLiMColorWithRGB(0/255.0, 116/255.0, 0/255.0, 1.0)));
-    paramAttrs.setForeground(QBrush(QtSLiMColorWithRGB(170/255.0, 13/255.0, 145/255.0, 1.0)));
+    typeAttrs.setForeground(QBrush(inDarkMode ? QColor(115, 145, 255) : QColor(28, 0, 207)));
+    functionAttrs.setForeground(QBrush(inDarkMode ? QColor(90, 210, 90) : QColor(0, 116, 0)));
+    paramAttrs.setForeground(QBrush(inDarkMode ? QColor(220, 83, 185) : QColor(170, 13, 145)));
     
     int prefix_string_len = QString::fromStdString(call_signature->CallPrefix()).length();
     int return_type_string_len = QString::fromStdString(StringForEidosValueMask(call_signature->return_mask_, call_signature->return_class_, "", nullptr)).length();
@@ -633,10 +663,9 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStri
 }
 
 
-// A subclass of QPushButton that draws its image at screen resolution, for a better appearance on Retina etc.
-// Turns out setting Qt::AA_UseHighDpiPixmaps fixes that issue; but this subclass also makes the buttons draw
-// correctly in Qt 5.14.2, where button icons are shifted right one pixel and then clipped in an ugly way.
-void QtSLiMPushButton::paintEvent(QPaintEvent * /* p_paintEvent */)
+// A subclass of QPushButton that draws its image with antialiasing, for a better appearance; used for the About panel
+// See QtSLiMPushButton below for further comments; it uses the same approach, with additional bells and whistles
+void QtSLiMIconView::paintEvent(QPaintEvent * /* p_paintEvent */)
 {
     QPainter painter(this);
     QRect bounds = rect();
@@ -645,6 +674,92 @@ void QtSLiMPushButton::paintEvent(QPaintEvent * /* p_paintEvent */)
     painter.save();
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     icon().paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+    painter.restore();
+}
+
+
+// A subclass of QPushButton that draws its image at screen resolution, for a better appearance on Retina etc.
+// Turns out setting Qt::AA_UseHighDpiPixmaps fixes that issue; but this subclass also makes the buttons draw
+// correctly in Qt 5.14.2, where button icons are shifted right one pixel and then clipped in an ugly way.
+// BCH 1/18/2021: This class now has additional smarts to handle dark mode.  First of all, the base name for
+// the icon used should be set up at creation time with a call to qtslimSetIcon(), with a highlight of false,
+// presumably; for an icon of :/buttons/foo.png, that would be qtslimSetIcon("foo", false).  When the icon
+// should be changed, either in its base name or highlight state, this can be changed with another such call.
+// This will lead to the use of one of four image files depending on highlight state and dark mode state:
+// :/buttons/foo.png, :/buttons/foo_H.png, :/buttons_DARK/foo_DARK.png, or :/buttons_DARK/foo_H_DARK.png.
+// If the corresponding image file does not exist, an error message will be logged to the console, and the
+// button will probably not draw properly.  All button images should be exactly the same size.
+
+QtSLiMPushButton::QtSLiMPushButton(const QIcon &p_icon, const QString &p_text, QWidget *p_parent) : QPushButton(p_icon, p_text, p_parent)
+{
+    sharedInit();
+}
+
+QtSLiMPushButton::QtSLiMPushButton(const QString &p_text, QWidget *p_parent) : QPushButton(p_text, p_parent)
+{
+    sharedInit();
+}
+
+QtSLiMPushButton::QtSLiMPushButton(QWidget *p_parent) : QPushButton(p_parent)
+{
+    sharedInit();
+}
+
+void QtSLiMPushButton::sharedInit(void)
+{
+    // This button class is designed to work with icon images that include a border and background,
+    // and typically include a transparent background, so we use a style sheet to enforce that
+    setStyleSheet(QString::fromUtf8("QPushButton:pressed {\n"
+                                    "	background-color: #00000000;\n"
+                                    "	border: 0px;\n"
+                                    "}\n"
+                                    "QPushButton:checked {\n"
+                                    "	background-color: #00000000;\n"
+                                    "	border: 0px;\n"
+                                    "}"));
+}
+
+QtSLiMPushButton::~QtSLiMPushButton(void)
+{
+    qtslimFreeCachedIcons();
+}
+
+void QtSLiMPushButton::qtslimFreeCachedIcons(void)
+{
+    if (qtslimIcon) { delete qtslimIcon; qtslimIcon = nullptr; }
+    if (qtslimIcon_H) { delete qtslimIcon_H; qtslimIcon_H = nullptr; }
+    if (qtslimIcon_DARK) { delete qtslimIcon_DARK; qtslimIcon_DARK = nullptr; }
+    if (qtslimIcon_H_DARK) { delete qtslimIcon_H_DARK; qtslimIcon_H_DARK = nullptr; }
+}
+
+void QtSLiMPushButton::paintEvent(QPaintEvent *p_paintEvent)
+{
+    // We need a base name to operate; without one, we punt to super and it draws whatever it draws
+    if (qtslimBaseName.length() == 0)
+    {
+        qDebug() << "QtSLiMPushButton::paintEvent: base name not set for object" << objectName();
+        QPushButton::paintEvent(p_paintEvent);
+        return;
+    }
+    
+    // We have a base name; get the cached icon corresponding to our state
+    QIcon *cachedIcon = qtslimIconForState(qtslimHighlighted, QtSLiMInDarkMode());
+    
+    if (!cachedIcon)
+    {
+        qDebug() << "QtSLiMPushButton::paintEvent: icon not found for base name" << qtslimBaseName;
+        QPushButton::paintEvent(p_paintEvent);
+        return;
+    }
+    
+    // We got a valid icon; draw with it
+    QPainter painter(this);
+    QRect bounds = rect();
+    
+    // This uses the icon to draw, which works because of Qt::AA_UseHighDpiPixmaps
+    painter.save();
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    cachedIcon->paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
     painter.restore();
     
     /*
@@ -660,12 +775,95 @@ void QtSLiMPushButton::paintEvent(QPaintEvent * /* p_paintEvent */)
     */
 }
 
+void QtSLiMPushButton::qtslimSetHighlight(bool highlighted)
+{
+    if (qtslimBaseName.length() == 0)
+        qDebug() << "QtSLiMPushButton::qtslimSetHighlight: base name not set for object" << objectName();
+    
+    // We're not changing our base name, so we don't need to throw out cached icons
+    qtslimHighlighted = highlighted;
+    update();
+}
+
+void QtSLiMPushButton::qtslimSetIcon(QString baseName, bool highlighted)
+{
+    if (baseName == qtslimBaseName)
+    {
+        // We're not changing our base name, so we don't need to throw out cached icons
+        qtslimHighlighted = highlighted;
+    }
+    else
+    {
+        // We're changing base name, so throw out cached icons
+        qtslimBaseName = baseName;
+        qtslimHighlighted = highlighted;
+        qtslimFreeCachedIcons();
+    }
+    
+    update();
+}
+
+QIcon *QtSLiMPushButton::qtslimIconForState(bool highlighted, bool darkMode)
+{
+    if (!highlighted)
+    {
+        if (!darkMode)
+        {
+            if (!qtslimIcon)
+            {
+                QString path = ":/buttons/";
+                path += qtslimBaseName;
+                path += ".png";
+                qtslimIcon = new QIcon(path);
+            }
+            return qtslimIcon;
+        }
+        else
+        {
+            if (!qtslimIcon_DARK)
+            {
+                QString path = ":/buttons_DARK/";
+                path += qtslimBaseName;
+                path += "_DARK.png";
+                qtslimIcon_DARK = new QIcon(path);
+            }
+            return qtslimIcon_DARK;
+        }
+    }
+    else
+    {
+        if (!darkMode)
+        {
+            if (!qtslimIcon_H)
+            {
+                QString path = ":/buttons/";
+                path += qtslimBaseName;
+                path += "_H.png";
+                qtslimIcon_H = new QIcon(path);
+            }
+            return qtslimIcon_H;
+        }
+        else
+        {
+            if (!qtslimIcon_H_DARK)
+            {
+                QString path = ":/buttons_DARK/";
+                path += qtslimBaseName;
+                path += "_H_DARK.png";
+                qtslimIcon_H_DARK = new QIcon(path);
+            }
+            return qtslimIcon_H_DARK;
+        }
+    }
+}
+
 
 // A subclass of QSplitterHandle that does some custom drawing
 void QtSLiMSplitterHandle::paintEvent(QPaintEvent *p_paintEvent)
 {
     QPainter painter(this);
     QRect bounds = rect();
+    bool inDarkMode = QtSLiMInDarkMode();
     
     // provide a darkened and beveled appearance
     QRect begin1Strip, begin2Strip, centerStrip, end2Strip, end1Strip;
@@ -687,11 +885,11 @@ void QtSLiMSplitterHandle::paintEvent(QPaintEvent *p_paintEvent)
         end1Strip = bounds.adjusted(bounds.width() - 1, 0, 0, 0);
     }
     
-    painter.fillRect(begin1Strip, QtSLiMColorWithWhite(0.773, 1.0));
-    painter.fillRect(begin2Strip, QtSLiMColorWithWhite(1.000, 1.0));
-    painter.fillRect(centerStrip, QtSLiMColorWithWhite(0.965, 1.0));
-    painter.fillRect(end2Strip, QtSLiMColorWithWhite(0.918, 1.0));
-    painter.fillRect(end1Strip, QtSLiMColorWithWhite(0.722, 1.0));
+    painter.fillRect(begin1Strip, QtSLiMColorWithWhite(inDarkMode ? 0.227 : 0.773, 1.0));
+    painter.fillRect(begin2Strip, QtSLiMColorWithWhite(inDarkMode ? 0.000 : 1.000, 1.0));
+    painter.fillRect(centerStrip, QtSLiMColorWithWhite(inDarkMode ? 0.035 : 0.965, 1.0));
+    painter.fillRect(end2Strip, QtSLiMColorWithWhite(inDarkMode ? 0.082 : 0.918, 1.0));
+    painter.fillRect(end1Strip, QtSLiMColorWithWhite(inDarkMode ? 0.278 : 0.722, 1.0));
     
     // On Linux, super draws the knob one pixel to the right of where it ought to be, so we draw it ourselves
     // This code is modified from QtSplitterHandle in the Qt 5.14.2 sources (it's identical in Qt 5.9.8)
@@ -731,16 +929,17 @@ void QtSLiMStatusBar::paintEvent(QPaintEvent * /*p_paintEvent*/)
 {
     QPainter p(this);
     QRect bounds = rect();
+    bool inDarkMode = QtSLiMInDarkMode();
     
     // fill the interior; we no longer try to inherit this from QStatusBar, that was a headache
-    p.fillRect(bounds, QtSLiMColorWithWhite(0.965, 1.0));
+    p.fillRect(bounds, QtSLiMColorWithWhite(inDarkMode ? 0.118 : 0.965, 1.0));
     
     // draw the top separator and bevel lines
     QRect bevelLine = bounds.adjusted(0, 0, 0, -(bounds.height() - 1));
     
-    p.fillRect(bevelLine, QtSLiMColorWithWhite(0.722, 1.0));
-    p.fillRect(bevelLine.adjusted(0, 1, 0, 1), QtSLiMColorWithWhite(1.000, 1.0));
-    p.fillRect(bevelLine.adjusted(0, (bounds.height() - 1), 0, (bounds.height() - 1)), QtSLiMColorWithWhite(0.918, 1.0));
+    p.fillRect(bevelLine, QtSLiMColorWithWhite(inDarkMode ? 0.278 : 0.722, 1.0));
+    p.fillRect(bevelLine.adjusted(0, 1, 0, 1), QtSLiMColorWithWhite(inDarkMode ? 0.000 : 1.000, 1.0));
+    p.fillRect(bevelLine.adjusted(0, (bounds.height() - 1), 0, (bounds.height() - 1)), QtSLiMColorWithWhite(inDarkMode ? 0.082 : 0.918, 1.0));
     
     // draw the message
     if (!currentMessage().isEmpty())
@@ -752,7 +951,7 @@ void QtSLiMStatusBar::paintEvent(QPaintEvent * /*p_paintEvent*/)
         p.translate(QPointF(5, 1));
 #endif
 
-        p.setPen(Qt::black);
+        p.setPen(inDarkMode ? Qt::white : Qt::black);
         QTextDocument td;
         td.setHtml(currentMessage());
         td.drawContents(&p, bounds);

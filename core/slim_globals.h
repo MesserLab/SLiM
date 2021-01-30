@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/4/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -40,8 +40,8 @@ class Subpopulation;
 class SLiMEidosBlock;
 
 
-#define SLIM_VERSION_STRING	("3.4")
-#define SLIM_VERSION_FLOAT	(3.4)
+#define SLIM_VERSION_STRING	("3.5")
+#define SLIM_VERSION_FLOAT	(3.5)
 
 
 // This should be called once at startup to give SLiM an opportunity to initialize static state
@@ -443,10 +443,9 @@ extern EidosValue_String_SP gStaticEidosValue_StringT;
 #pragma mark Tree sequences
 #pragma mark -
 	
-#define SLIM_TSK_INDIVIDUAL_ALIVE       ((uint32_t)(1 << 16))
-#define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((uint32_t)(1 << 17))
-// DEPRECATED:
-// #define SLIM_TSK_INDIVIDUAL_FIRST_GEN   ((uint32_t)(1 << 18))
+#define SLIM_TSK_INDIVIDUAL_ALIVE       ((tsk_flags_t)(1 << 16))
+#define SLIM_TSK_INDIVIDUAL_REMEMBERED  ((tsk_flags_t)(1 << 17))
+#define SLIM_TSK_INDIVIDUAL_RETAINED    ((tsk_flags_t)(1 << 18))
 
 extern const std::string gSLiM_tsk_metadata_schema;
 extern const std::string gSLiM_tsk_edge_metadata_schema;
@@ -628,6 +627,8 @@ extern const std::string &gStr_genomicElementTypes;
 extern const std::string &gStr_inSLiMgui;
 extern const std::string &gStr_interactionTypes;
 extern const std::string &gStr_lifetimeReproductiveOutput;
+extern const std::string &gStr_lifetimeReproductiveOutputM;
+extern const std::string &gStr_lifetimeReproductiveOutputF;
 extern const std::string &gStr_modelType;
 extern const std::string &gStr_nucleotideBased;
 extern const std::string &gStr_scriptBlocks;
@@ -636,6 +637,7 @@ extern const std::string &gStr_subpopulations;
 extern const std::string &gStr_substitutions;
 extern const std::string &gStr_dominanceCoeffX;
 extern const std::string &gStr_generation;
+extern const std::string &gStr_generationStage;
 extern const std::string &gStr_colorSubstitution;
 extern const std::string &gStr_tag;
 extern const std::string &gStr_tagF;
@@ -829,6 +831,7 @@ extern const std::string &gStr_createLogFile;
 extern const std::string &gStr_logFiles;
 extern const std::string &gStr_LogFile;
 extern const std::string &gStr_logInterval;
+extern const std::string &gStr_precision;
 extern const std::string &gStr_addCustomColumn;
 extern const std::string &gStr_addGeneration;
 extern const std::string &gStr_addGenerationStage;
@@ -952,6 +955,8 @@ enum _SLiMGlobalStringID : int {
 	gID_inSLiMgui,
 	gID_interactionTypes,
 	gID_lifetimeReproductiveOutput,
+	gID_lifetimeReproductiveOutputM,
+	gID_lifetimeReproductiveOutputF,
 	gID_modelType,
 	gID_nucleotideBased,
 	gID_scriptBlocks,
@@ -960,6 +965,7 @@ enum _SLiMGlobalStringID : int {
 	gID_substitutions,
 	gID_dominanceCoeffX,
 	gID_generation,
+	gID_generationStage,
 	gID_colorSubstitution,
 	gID_tag,
 	gID_tagF,
@@ -1153,6 +1159,7 @@ enum _SLiMGlobalStringID : int {
 	gID_logFiles,
 	gID_LogFile,
 	gID_logInterval,
+	gID_precision,
 	gID_addCustomColumn,
 	gID_addGeneration,
 	gID_addGenerationStage,

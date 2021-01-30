@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/17/2019.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -175,7 +175,12 @@ QVariant QtSLiMBrowserItem::data(int column, int role) const
     }
     else if (role == Qt::ForegroundRole)
     {
-        return QBrush(is_eidos_constant ? Qt::darkGray : Qt::black);
+        bool inDarkMode = QtSLiMInDarkMode();
+        
+        if (inDarkMode)
+            return QBrush(is_eidos_constant ? Qt::gray : Qt::white);
+        else
+            return QBrush(is_eidos_constant ? Qt::darkGray : Qt::black);
     }
     else if (role == Qt::FontRole)
     {

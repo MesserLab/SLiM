@@ -8,8 +8,34 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	update to JSON for Modern C++ version 3.9.1
+	add metadata= parameter to treeSeqOutput(), to support user-generated metadata on the tree sequence
+	make ampersands show up in the Jump menu properly in SLiMgui
+	fix tab stops in SLiMgui
+	add an F-distribution drawing function, rf(), following R, by request
+	fix bug with source() that produced a warning about paste() semantics, and an incorrect sourced script string
+	fix segfault-causing bug in Eidos argument processing for certain recursive calling patterns
+	tweak recipes to not use outputFull() when the output would be very large, to avoid long output delays
+	fix SLiMgui to not accept rich text pastes
+	enable multiple selection in the Find Recipe panel
+	revise recipes to avoid outputFull() when it takes a long time (Qt is slow processing big output dumps)
+	add a [permanent=T] optional flag to treeSeqRememberIndividuals() to allow for individuals to be "retained" rather than "remembered", thanks to Yan Wong
+	add a generationStage property to SLiMSim to access the current generation cycle stage
+	improve command-line processing – add -h/-help option, accept -- prefix
+	add a precision property to LogFile to govern the floating-point precision of its output (for other types of output, format() can often be used to get a specific output precision)
+	change SLiMgui (QtSLiM) to open .py recipes in the browser, for a better overall user experience
+	make SLiMgui on macOS not quit on the last window closing, following standard macOS user interface guidelines; requires Qt 5.15.2 due to Qt bugs
+	SLiMgui: fix syntax coloring bug (keywords not colored properly)
+	SLiMgui: fix missing color boxes in the help to show WF/nonWF/nuc properties/methods
+	add dark mode support for SLiMgui, for both macOS (tied to the OS setting) and Linux (with a checkbox in the prefs)
+	update to tskit 0.99.10 to gain some new simplify() functionality
+	fix a bug causing a spurious error about mismatching dominance coefficients in readFromPopulationFile() with very large dominance coefficient values
+	make <- an illegal token in Eidos, to guard against users who are used to R accidentally doing "a <- b;", which would otherwise be a comparison, "a < -b;", and would silently do nothing
+
+
+version 3.5 (build 2663; Eidos version 2.5):
 	added build instructions for Windows WSL, thanks to Bernard Kim (no code change)
-	fix some issues with recipe 14.8 (live plotting in R) with platform-dependent paths, lack of PDF viewing support in QtSLiM, etc.
+	fix some issues with recipes 13.5 and 14.8 (involving live plotting in R) with platform-dependent paths, lack of PDF viewing support in QtSLiM, etc.
 	fix bug with precedence for operator ^, which needs to be higher than unary - to follow standard mathematical convention (GitHub #99)
 	add a tabulate() function to Eidos, more or less parallel to that in R
 	speed up match() for large x vectors, using unordered_map; goes from O(N*M) to O(N+M)
@@ -41,7 +67,7 @@ development head:
 	add new recipe 18.14: "modeling identity by state (IBS): uniquing new mutations down with a mutation() callback"
 	add new recipe 10.6 II - Varying the dominance coefficient among mutations II
 	policy change: originGeneration can no longer be used as scratch; it must be set to the current generation when a mutation is created
-	policy change: pedigree tracking is now always enabled, and the keepPedigrees flag to initializeSLiMOptions() does nothing
+	policy change: pedigree tracking is now always enabled, and the keepPedigrees flag to initializeSLiMOptions() does nothing - REVERTED
 	add line numbers and highlighting of the current line in SLiMgui, controllable in the preferences
 	add "Jump to Line..." menu item under Edit > Find (command-L) in SLiMgui
 	allow multiple copies of the same graph type to be opened in SLiMgui
@@ -89,7 +115,13 @@ development head:
 	add a calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta() functions to SLiM, add optional windowing to calcFST()
 	revise recipe 14.1 to use calcHeterozygosity() instead of using custom code
 	add reproductiveOutput (Individual) and lifetimeReproductiveOutput (Subpopulation) properties to track individual reproductive output
-	
+	add a new recipe 4.2.5, "Automatic logging with LogFile" (the old one became 4.2.6)
+	add a new recipe 16.19, "Range expansion in a stepping-stone model"
+	add a new recipe 16.20, "Logistic population growth with the Beverton–Holt model"
+	add lifetime reproductive output plot to QtSLiM; change the reproductive output logging to separate by sex, add lifetimeReproductiveOutputM and lifetimeReproductiveOutputF properties to cover that
+	minor bugfix for recipe 14.7; use L instead of L-1 for chromosome length
+	back out the earlier (9/4/2020) change making pedigree tracking always on, because the performance hit was too large; so the keepPedigrees flag to initializeSLiMOptions() now does something again
+	put the reproductiveOutput/lifetimeReproductiveOutput properties under keepPedigrees=T, be more strict about requiring keepPedigrees=T to see/access any pedigree information at the user level
 
 version 3.4 (build 2438; Eidos version 2.4):
 	fix a subtle bug in which mutation IDs used by mutations read in from a .trees file could be re-used, producing a conflict, if the mutations were not ancestral to any extant genome -- biting you if you wrote a .trees file out again at the end

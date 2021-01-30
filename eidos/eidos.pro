@@ -120,6 +120,8 @@ HEADERS += \
     eidos_type_interpreter.h \
     eidos_type_table.h \
     eidos_value.h \
+	json.hpp \
+	json_fwd.hpp \
     lodepng.h \
     robin_hood.h
 

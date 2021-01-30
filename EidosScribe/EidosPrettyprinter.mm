@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/30/17.
-//  Copyright (c) 2017-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2017-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -307,6 +307,7 @@
 			case EidosTokenType::kTokenOr:
 			case EidosTokenType::kTokenDiv:
 			case EidosTokenType::kTokenAssign:
+			case EidosTokenType::kTokenAssign_R:
 			case EidosTokenType::kTokenEq:
 			case EidosTokenType::kTokenLt:
 			case EidosTokenType::kTokenLtEq:

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -310,6 +310,7 @@ QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(void)
 void QtSLiMChromosomeWidget::paintGL()
 {
     QPainter painter(this);
+    bool inDarkMode = QtSLiMInDarkMode();
     
     painter.eraseRect(rect());      // erase to background color, which is not guaranteed
     //painter.fillRect(rect(), Qt::red);
@@ -340,7 +341,7 @@ void QtSLiMChromosomeWidget::paintGL()
         painter.endNativePainting();
         
         // frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
-		QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(0.6, 1.0), painter);
+		QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
         
 		// overlay the selection last, since it bridges over the frame
 		if (hasSelection_)
@@ -349,15 +350,16 @@ void QtSLiMChromosomeWidget::paintGL()
     else
     {
         // erase the content area itself
-        painter.fillRect(interiorRect, QtSLiMColorWithWhite(0.88, 1.0));
+        painter.fillRect(interiorRect, QtSLiMColorWithWhite(inDarkMode ? 0.118 : 0.88, 1.0));
         
         // frame
-        QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(0.6, 1.0), painter);
+        QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
     }
 }
 
 void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribute__((__unused__)) QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter)
 {
+    bool inDarkMode = QtSLiMInDarkMode();
 	QRect interiorRect = getInteriorRect();
 	int64_t lastTickIndex = numberOfTicksPlusOne;
 	
@@ -365,11 +367,6 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 	lastTickIndex = std::min(lastTickIndex, (displayedRange.length + 1) / 3);
 	
 	double tickIndexDivisor = ((lastTickIndex == 0) ? 1.0 : static_cast<double>(lastTickIndex));		// avoid a divide by zero when we are displaying a single site
-	
-    // BCH 9/23/2020: Note that this QFont usage causes a crash on quit in certain circumstances (which we now avoid).
-    // See https://bugreports.qt.io/browse/QTBUG-86875 and the related bug QTBUG-86874.  Although this crash never
-    // occurs now, I note it here in case the bug crops up in a different context.
-    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
     static QFont *tickFont = nullptr;
     
     if (!tickFont)
@@ -398,7 +395,7 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 			tickRect.setWidth(1);
 		}
 		
-        painter.fillRect(tickRect, QColor(127, 127, 127, 255));
+        painter.fillRect(tickRect, inDarkMode ? QColor(10, 10, 10, 255) : QColor(127, 127, 127, 255));  // in dark mode, 17 matches the frame, but is too light
 		
 		// BCH 15 May 2018: display in scientific notation for positions at or above 1e10, as it gets a bit ridiculous...
         QString tickLabel;

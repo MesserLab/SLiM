@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/19/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -46,10 +46,13 @@ class QtSLiMHelpItem : public QTreeWidgetItem
     
 public:
     QTextDocumentFragment *doc_fragment = nullptr;
+    bool is_top_level = false;
     
     explicit QtSLiMHelpItem(QTreeWidget *p_parent) : QTreeWidgetItem(p_parent) {}
     explicit QtSLiMHelpItem(QTreeWidgetItem *p_parent) : QTreeWidgetItem(p_parent) {}
     virtual ~QtSLiMHelpItem() override;
+    
+    virtual QVariant data(int column, int role) const override;
 };
 
 
@@ -86,6 +89,9 @@ public:
     static QtSLiMHelpWindow &instance(void);
     
     void enterSearchForString(QString searchString, bool titlesOnly = true);
+    
+protected slots:
+    void applicationPaletteChanged(void);
     
 private:
     // singleton pattern

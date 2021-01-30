@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/3/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -35,7 +35,9 @@ public:
     
     // Get the current pref values, falling back on defaults
     int appStartupPref(void) const;               // 0 == do nothing, 1 == create a new window, 2 == run an open panel
-    QFont displayFontPref(int *tabWidth = nullptr) const;
+    bool forceDarkModePref(void);
+    bool forceFusionStylePref(void);
+    QFont displayFontPref(double *tabWidth = nullptr) const;
     bool scriptSyntaxHighlightPref(void) const;
     bool outputSyntaxHighlightPref(void) const;
     bool showLineNumbersPref(void) const;
@@ -63,6 +65,8 @@ private:
     
 private slots:
     void startupRadioChanged();
+    void forceDarkModeToggled();
+    void forceFusionStyleToggled();
     void fontChanged(const QFont &font);
     void fontSizeChanged(int newSize);
     void syntaxHighlightScriptToggled();

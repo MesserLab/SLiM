@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/30/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -78,6 +78,7 @@ void QtSLiMIndividualsWidget::resizeGL(int w, int h)
 void QtSLiMIndividualsWidget::paintGL()
 {
     QPainter painter(this);
+    bool inDarkMode = QtSLiMInDarkMode();
     
     //painter.eraseRect(rect());      // erase to background color, which is not guaranteed
     painter.fillRect(rect(), Qt::red);
@@ -110,7 +111,11 @@ void QtSLiMIndividualsWidget::paintGL()
 		// clear to a shade of gray
         painter.beginNativePainting();
         
-		glColor3f(0.9f, 0.9f, 0.9f);
+        if (inDarkMode)
+            glColor3f(0.118f, 0.118f, 0.118f);
+        else
+            glColor3f(0.9f, 0.9f, 0.9f);
+        
 		glRecti(0, 0, bounds.width(), bounds.height());
 		
         // display a message if we have too many subpops to show
@@ -170,7 +175,11 @@ void QtSLiMIndividualsWidget::paintGL()
 				else	// displayMode == 0
 				{
 					// Clear to white
-					glColor3f(1.0, 1.0, 1.0);
+                    if (inDarkMode)
+                        glColor3f(0.0, 0.0, 0.0);
+                    else
+                        glColor3f(1.0, 1.0, 1.0);
+                    
 					glRecti(tileBounds.left(), tileBounds.top(), (tileBounds.left() + tileBounds.width()), (tileBounds.top() + tileBounds.height()));
 					
                     drawViewFrameInBounds(tileBounds);
@@ -371,13 +380,18 @@ QRect QtSLiMIndividualsWidget::spatialDisplayBoundsForSubpopulation(Subpopulatio
 
 void QtSLiMIndividualsWidget::drawViewFrameInBounds(QRect bounds)
 {
-	int ox = bounds.left(), oy = bounds.top();
-	
-	glColor3f(0.77f, 0.77f, 0.77f);
-	glRecti(ox, oy, ox + 1, oy + bounds.height());
-	glRecti(ox + 1, oy, ox + bounds.width() - 1, oy + 1);
-	glRecti(ox + bounds.width() - 1, oy, ox + bounds.width(), oy + bounds.height());
-	glRecti(ox + 1, oy + bounds.height() - 1, ox + bounds.width() - 1, oy + bounds.height());
+    int ox = bounds.left(), oy = bounds.top();
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    if (inDarkMode)
+        glColor3f(0.067f, 0.067f, 0.067f);
+    else
+        glColor3f(0.77f, 0.77f, 0.77f);
+    
+    glRecti(ox, oy, ox + 1, oy + bounds.height());
+    glRecti(ox + 1, oy, ox + bounds.width() - 1, oy + 1);
+    glRecti(ox + bounds.width() - 1, oy, ox + bounds.width(), oy + bounds.height());
+    glRecti(ox + 1, oy + bounds.height() - 1, ox + bounds.width() - 1, oy + bounds.height());
 }
 
 void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds)

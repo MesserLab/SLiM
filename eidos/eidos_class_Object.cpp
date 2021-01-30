@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,12 +20,17 @@
 
 #include "eidos_class_Object.h"
 
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "eidos_interpreter.h"
 #include "eidos_value.h"
 #include "eidos_class_Object.h"
 #include "eidos_class_Dictionary.h"
 #include "eidos_class_Image.h"
 #include "eidos_class_TestElement.h"
+#include "json.hpp"
 
 
 //
@@ -73,6 +78,12 @@ bool EidosObject::IsMemberOfClass(const EidosClass *p_class_object) const
 void EidosObject::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassName();
+}
+
+nlohmann::json EidosObject::JSONRepresentation(void) const
+{
+	// undefined, raises; subclass that know how to serialize themselves can override
+	EIDOS_TERMINATION << "ERROR (EidosObject::JSONRepresentation): objects, apart from Dictionary objects, cannot be converted to JSON." << EidosTerminate(nullptr);
 }
 
 EidosValue_SP EidosObject::GetProperty(EidosGlobalStringID p_property_id)

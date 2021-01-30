@@ -25,7 +25,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
@@ -47,7 +46,7 @@ typedef struct {
     tsk_flags_t options;
     char *newick;
     tsk_id_t *traversal_stack;
-    tsk_tree_t *tree;
+    const tsk_tree_t *tree;
 } tsk_newick_converter_t;
 
 static int
@@ -55,7 +54,7 @@ tsk_newick_converter_run(
     tsk_newick_converter_t *self, tsk_id_t root, size_t buffer_size, char *buffer)
 {
     int ret = TSK_ERR_GENERIC;
-    tsk_tree_t *tree = self->tree;
+    const tsk_tree_t *tree = self->tree;
     tsk_id_t *stack = self->traversal_stack;
     const double *time = self->tree->tree_sequence->tables->nodes.time;
     int stack_top = 0;
@@ -145,7 +144,7 @@ out:
 }
 
 static int
-tsk_newick_converter_init(tsk_newick_converter_t *self, tsk_tree_t *tree,
+tsk_newick_converter_init(tsk_newick_converter_t *self, const tsk_tree_t *tree,
     size_t precision, tsk_flags_t options)
 {
     int ret = 0;
@@ -172,7 +171,7 @@ tsk_newick_converter_free(tsk_newick_converter_t *self)
 }
 
 int
-tsk_convert_newick(tsk_tree_t *tree, tsk_id_t root, size_t precision,
+tsk_convert_newick(const tsk_tree_t *tree, tsk_id_t root, size_t precision,
     tsk_flags_t options, size_t buffer_size, char *buffer)
 {
     int ret = 0;

@@ -1,0 +1,81 @@
+// Keywords: range expansion, colonization, population spread, migration
+
+initialize() {
+	defineConstant("K", 1000);   // carrying capacity per subpop
+	defineConstant("N", 10);     // number of subpopulations
+	defineConstant("M", 0.01);   // migration probability
+	defineConstant("R", 1.04);   // mean reproduction (as first parent)
+	
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	// individuals reproduce locally, without dispersal
+	litterSize = rpois(1, R);
+	
+	for (i in seqLen(litterSize))
+	{
+		// generate each offspring with an independently drawn mate
+		mate = subpop.sampleIndividuals(1, exclude=individual);
+		if (mate.size())
+			subpop.addCrossed(individual, mate);
+	}
+}
+1 early() {
+	// create an initial population of 100 individuals, the rest empty
+	for (i in seqLen(N))
+		sim.addSubpop(i, (i == 0) ? 100 else 0);
+}
+1 late() {
+	// set up a log file
+	log = sim.createLogFile("~/Desktop/sim_log.txt", sep="\t", logInterval=10);
+	log.addGeneration();
+	log.addPopulationSize();
+	log.addMeanSDColumns("size", "sim.subpopulations.individualCount;");
+	log.addCustomColumn("pop_migrants", "sum(sim.subpopulations.individuals.migrant);");
+	log.addMeanSDColumns("migrants",
+		"sapply(sim.subpopulations, 'sum(applyValue.individuals.migrant);');");
+}
+early() {
+	inds = sim.subpopulations.individuals;
+	
+	// non-overlapping generations; kill off the parental generation
+	ages = inds.age;
+	inds[ages > 0].fitnessScaling = 0.0;
+	inds = inds[ages == 0];
+	
+	// pre-plan migration of individuals to adjacent subpops
+	numMigrants = rbinom(1, inds.size(), M);
+	
+	if (numMigrants)
+	{
+		migrants = sample(inds, numMigrants);
+		currentSubpopID = migrants.subpopulation.id;
+		displacement = -1 + rbinom(migrants.size(), 1, 0.5) * 2; // -1 or +1
+		newSubpopID = currentSubpopID + displacement;
+		actuallyMoving = (newSubpopID >= 0) & (newSubpopID < N);
+		
+		if (sum(actuallyMoving))
+		{
+			migrants = migrants[actuallyMoving];
+			newSubpopID = newSubpopID[actuallyMoving];
+			
+			// do the pre-planned moves into each subpop in bulk
+			for (subpop in sim.subpopulations)
+				subpop.takeMigrants(migrants[newSubpopID == subpop.id]);
+		}
+	}
+	
+	// post-migration density-dependent selection on each subpop
+	for (subpop in sim.subpopulations)
+	{
+		juvenileCount = sum(subpop.individuals.age == 0);
+		subpop.fitnessScaling = K / juvenileCount;
+	}
+}
+1001 late() { sim.outputFixedMutations(); }

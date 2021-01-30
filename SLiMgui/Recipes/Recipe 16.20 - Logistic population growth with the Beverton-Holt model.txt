@@ -1,0 +1,65 @@
+// Keywords: logistic growth, logistic population model, carrying capacity, density dependence
+
+initialize() {
+	defineConstant("K", 50000);
+	defineConstant("R", 1.1);
+	defineConstant("M", K / (R - 1));
+	
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 50);   // the "simple model"
+	sim.addSubpop("p2", 50);   // Beverton-Holt influencing fecundity
+	sim.addSubpop("p3", 50);   // Beverton-Holt influencing survival
+	
+	log = sim.createLogFile("~/Desktop/sim_log.txt", logInterval=1);
+	log.addGeneration();
+	log.addSubpopulationSize(p1);
+	log.addSubpopulationSize(p2);
+	log.addSubpopulationSize(p3);
+}
+reproduction(p1) {
+	// p1 simply reproduces with a mean litter size of R, like p3
+	litterSize = rpois(1, R);
+	for (i in seqLen(litterSize))
+		subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+reproduction(p2) {
+	// p2 reproduces up to the Beverton-Holt equation's target
+	n_t = subpop.individualCount;
+	n_t_plus_1 = (R * n_t) / (1 + n_t / M);
+	mean_litter_size = n_t_plus_1 / n_t;
+	litterSize = rpois(1, mean_litter_size);
+	
+	for (i in seqLen(litterSize))
+		subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+reproduction(p3) {
+	// p3 simply reproduces with a mean litter size of R, like p1
+	litterSize = rpois(1, R);
+	for (i in seqLen(litterSize))
+		subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+:200 early() {
+	// p1 uses the "simple model" with non-overlapping generations
+	inds = p1.individuals;
+	inds[inds.age > 0].fitnessScaling = 0;
+	n_t_plus_pt5 = sum(inds.age == 0);
+	p1.fitnessScaling = K / n_t_plus_pt5;
+	
+	// p2 has selection only to achieve non-overlapping generations
+	inds = p2.individuals;
+	inds[inds.age > 0].fitnessScaling = 0;
+	
+	// p3 uses the Beverton-Holt equation for survival
+	inds = p3.individuals;
+	inds[inds.age > 0].fitnessScaling = 0;
+	n_t_plus_pt5 = sum(inds.age == 0);
+	p3.fitnessScaling = 1 / (1 + (n_t_plus_pt5 / R) / M);
+}

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -71,7 +71,7 @@ public slots:
     virtual void controllerSelectionChanged(void);
     virtual void controllerGenerationFinished(void);
     virtual void updateAfterTick(void);
-    void actionButtonRunMenu(QPushButton *actionButton);
+    void actionButtonRunMenu(QtSLiMPushButton *actionButton);
     
 protected:
     QtSLiMWindow *controller_ = nullptr;

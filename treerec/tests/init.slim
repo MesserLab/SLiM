@@ -1,0 +1,196 @@
+// Define functions used in the tests, then switch to RUN_DIR
+
+defineGlobal("mutationsFile", "slim_mutation_output.txt");
+defineGlobal("individualsFile", "slim_individual_output.txt");
+
+function (void)initializeMarkedMutations(i$ num_marks)
+{
+	defineGlobal("mutationsFile", "slim_no_mutation_output.txt");
+	for(i in 1:num_marks){
+		initializeMutationType("m" + asString(i), 0.5, "f", 0.0);
+	}
+	// used for ongoing marking
+	initializeMutationType("m0", 0.5, "f", 0.0);
+	m0.mutationStackPolicy = "l";
+	return;
+}
+
+function (void)initializeMarks(i$ num_marks)
+{
+	// add a separate type of mutation to each of some genomes
+	markedGenomes = sample(sim.subpopulations.genomes, min(num_marks,2*sum(sim.subpopulations.individualCount)));
+	for(k in seqAlong(markedGenomes)){
+		for(pos in 0:sim.chromosome.lastPosition){
+			mut = sim.mutationTypes[k];
+			markedGenomes[k].addNewDrawnMutation(mut,pos);
+		}
+	}
+	return;
+}
+
+function (void)ongoingMarks(i$ num_marks)
+{
+	// add a new mutation of type m0 to each of some genomes
+	markedGenomes = sample(sim.subpopulations.genomes, min(num_marks,2*sum(sim.subpopulations.individualCount)));
+	for(k in seqAlong(markedGenomes)){
+		for(pos in 0:sim.chromosome.lastPosition){
+			markedGenomes[k].addNewDrawnMutation(m0,pos);
+		}
+	}
+	return;
+}
+
+function (void)saveTreeSeqFormats(void) {
+	// create tree seq representation in various formats: this could overwrite any
+	// existing ones output in the same generation, but they should be identical
+	// if done in the same generation at the same point of the lifecycle
+	sim.treeSeqOutput(".", simplify=T, _binary=F);
+	sim.treeSeqOutput("test_output.trees", simplify=T);
+	sim.treeSeqOutput("test_output.unsimplified.trees", simplify=F);
+}
+
+function (void)saveIndividual(o<Individual>$ ind, s$ store) {
+	/* * *
+	 * To the individualsFile, save:
+	 * "remember", "retain", or "output" (the `store` param) to indicate whether this 
+	 *  individual should have been permanently remembered, simply retained, or
+	 *  is an individual written during output of the whole population
+	 * the pedigree ID
+	 * other stuff
+	 * * */
+	writeFile(
+		individualsFile,
+		"#Individual:" + store +
+		" " + paste(ind.pedigreeID) +
+		" " + paste(ind.subpopulation.id) +
+		" " + paste(ind.x, ind.y, ind.z, sep=",") +
+		" " + paste(ind.genome1.genomePedigreeID, ind.genome2.genomePedigreeID, sep=","),
+		append=T);
+}
+
+function (void)saveIndividualMutations(o<Individual>$ ind) {
+	/* * *
+	 * To the mutationsFile, save:
+	 * a list of mutations, and
+	 * a list of positions of those mutations.
+	 * * */
+	pedID = ind.pedigreeID;
+	for(k in seqAlong(ind.genomes)){
+		genome = ind.genomes[k];
+		genomeID = (2 * pedID) + k;
+		if (genome.isNullGenome) {
+			ids = c();
+			positions = c();
+		} else {
+			ids = c(genome.mutations.id, sim.substitutions.id);
+			positions = c(genome.mutations.position, sim.substitutions.position);
+		}
+		writeFile(mutationsFile, "#Genome: " + paste(genomeID) + " " + paste(ind.sex), append=T);
+		writeFile(mutationsFile, "Mutations: " + paste(ids), append=T);
+		writeFile(mutationsFile, "Positions: " + paste(positions), append=T);
+	}
+}
+
+function (void)addAncestralSamples(i$ num_samples) {
+	/* * *
+	 * Mark an individual to retain as an ancestral sample
+	 * in the tree sequence, and write out its genome to the current mutationsFile
+	 * * */
+	inds = sample(sim.subpopulations.individuals, 
+				  min(num_samples, sum(sim.subpopulations.individualCount)));
+	sim.treeSeqRememberIndividuals(inds);
+	if(!exists("n_marks")) {
+		for (ind in inds) {
+			catn("Recording genomes from individual " + ind.pedigreeID);
+			saveIndividualMutations(ind);
+		}
+	} else {
+		// FIXME: why don't we save ancestral samples here?
+	}
+}
+
+function (void)addIndividuals([No<Individual> individuals=NULL], [s$ store="remember"]) {
+	/* * *
+	 * For each individual in `individuals`, write out a line to the current individualsFile.
+	 * * */
+	for (i in individuals) {
+		saveIndividual(i, store);
+	}
+}
+
+function (string$)setwdForGen(void) {
+	// change the working dir to a new subdir named by generation, and return the old subdir
+	saveDir = paste(sim.generation); // should probably append late or early
+	if(!fileExists(saveDir)) {
+		createDirectory(saveDir);
+	}
+	return(setwd(saveDir));
+}
+
+function (string$)copyIntoNewWdForGen(s$ file) {
+	/* * *
+	 * Copy the file into a new working subdir named by generation, returning the old subdir
+	 * This allows us to take a stored output file in the parent dir (if it exists) and append 
+	 * stuff to a new version in a newly created subdir that's only relevant to that generation
+	 * * */
+	if(fileExists(file)) {
+		fileContents = readFile(file);  // copy
+		baseDir = setwdForGen();		// switch to new subdir
+		writeFile(file, fileContents);  // paste into new file
+	} else {
+		baseDir = setwdForGen();		// switch to new subdir
+	};
+	return(baseDir);
+}
+
+function (void)outputMutationResult(void) {
+	/* * *
+	 * Take the existing data (in the current mutationsFile)
+	 * and make a copy, appending data from in the current generation
+	 * * */
+	baseDir = copyIntoNewWdForGen(mutationsFile); // copy the current mutationsFile
+	saveTreeSeqFormats();
+	if(!exists("n_marks")) {
+		// Normal output: append details of mutations
+		for (pop in sim.subpopulations) {
+			for (ind in pop.individuals) {
+				saveIndividualMutations(ind);
+			}
+		}
+	} else {
+		// Marked output: For each mutation type, output at each position the list
+		// of genomes that have inherited a mutation of that type at that position
+		for(Mut in sim.mutationTypes){
+			for(Pos in 0:sim.chromosome.lastPosition){
+				GenomesWithMutAtPos = NULL;
+				for(pop in sim.subpopulations) {
+					for(Ind in pop.individuals){
+						pedID = Ind.pedigreeID;
+						for(k in seqAlong(Ind.genomes)){
+							genomeID = (2 * pedID) + k;
+							if(Ind.genomes[k].containsMarkerMutation(Mut,Pos)){
+								GenomesWithMutAtPos = c(GenomesWithMutAtPos,genomeID);
+							}
+						}
+					}
+					writeFile(mutationsFile, paste(Mut) + " " + paste(Pos), append=T);
+					writeFile(mutationsFile, paste(GenomesWithMutAtPos), append=T);
+				}
+			}
+		}
+	}
+	setwd(baseDir); // reset, so we can output in another generation
+}
+
+function (void)outputIndividuals(void) {
+	// copy the existing individualsFile into a new subdir and append the current individuals
+	baseDir = copyIntoNewWdForGen(individualsFile); // copy the current individualsFile
+	saveTreeSeqFormats();
+	for (pop in sim.subpopulations) {
+		addIndividuals(pop.individuals, "output");
+	}
+	setwd(baseDir); // reset, so we can output in another generation
+}
+
+if (!exists("RUN_DIR")) defineGlobal("RUN_DIR", "."); 
+setwd(RUN_DIR);

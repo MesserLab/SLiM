@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/27/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -209,6 +209,7 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 		case EidosTokenType::kTokenDiv:			cached_evaluator_ = &EidosInterpreter::Evaluate_Div;				break;
 		case EidosTokenType::kTokenConditional:	cached_evaluator_ = &EidosInterpreter::Evaluate_Conditional;		break;
 		case EidosTokenType::kTokenAssign:		cached_evaluator_ = &EidosInterpreter::Evaluate_Assign;				break;
+		case EidosTokenType::kTokenAssign_R:	cached_evaluator_ = &EidosInterpreter::Evaluate_Assign_R;			break;
 		case EidosTokenType::kTokenEq:			cached_evaluator_ = &EidosInterpreter::Evaluate_Eq;					break;
 		case EidosTokenType::kTokenLt:			cached_evaluator_ = &EidosInterpreter::Evaluate_Lt;					break;
 		case EidosTokenType::kTokenLtEq:		cached_evaluator_ = &EidosInterpreter::Evaluate_LtEq;				break;

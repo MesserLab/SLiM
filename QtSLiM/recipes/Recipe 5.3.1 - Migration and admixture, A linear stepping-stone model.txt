@@ -16,4 +16,4 @@ initialize() {
 	for (i in 1:(subpopCount-1))
 		sim.subpopulations[i-1].setMigrationRates(i+1, 0.05);
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

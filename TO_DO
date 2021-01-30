@@ -71,6 +71,8 @@ count total lines of code in the project (excluding the gsl code):
 a useful LaTeX equation editor:
 	https://www.codecogs.com/latex/eqneditor.php
 
+find all instances of a string (or regex) in the commit history:
+	git --no-pager log -G"pedigree"
 
 
 

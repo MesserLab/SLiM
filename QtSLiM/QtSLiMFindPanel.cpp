@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/24/2020.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -139,6 +139,10 @@ QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiab
 {
     // We rely on QtSLiMAppDelegate to track the active window list for us;
     // our target is the frontmost window that is not our own window
+    // It can be deallocated before us during quit, so we need to check
+    if (!qtSLiMAppDelegate)
+        return nullptr;
+    
     QWidget *currentFocusWindow = qtSLiMAppDelegate->activeWindowExcluding(this);
     
     if (currentFocusWindow)

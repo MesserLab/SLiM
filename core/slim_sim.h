@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/26/14.
-//  Copyright (c) 2014-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -95,6 +95,8 @@ enum class SLiMGenerationStage
 	// end stage between generations; things in the Eidos console happen here
 	kStage8PostGeneration = 201,
 };
+
+std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage);
 
 enum class SLiMFileFormat
 {
@@ -378,7 +380,9 @@ private:
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackParentage()
-	//bool pedigrees_enabled_ = false;				// BCH 3 Sept. 2020: this flag is deprecated; pedigree tracking is now ALWAYS ENABLED
+	bool pedigrees_enabled_ = false;
+	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
+	bool pedigrees_enabled_by_SLiM_ = false;		// pedigree tracking has been forced on by tree-seq recording or SLiMgui, which is not user-visible
 	
 	// continuous space support
 	int spatial_dimensionality_ = 0;
@@ -433,6 +437,7 @@ private:
 #pragma mark -
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
+	bool retain_coalescent_only_ = true;		// true if "retain" keeps only individuals for coalescent nodes, not also individuals for unary nodes
 	
 	tsk_table_collection_t tables_;
 	tsk_bookmark_t table_position_;
@@ -579,6 +584,14 @@ public:
 		auto id_iter = mutation_types_.find(p_muttype_id);
 		return (id_iter == mutation_types_.end()) ? nullptr : id_iter->second;
 	}
+#ifdef SLIMGUI
+	inline MutationType *MutationTypeWithIndex(int p_muttype_index) {
+		for (const std::pair<const slim_objectid_t,MutationType*> &muttype_pair : mutation_types_)
+			if (muttype_pair.second->mutation_type_index_ == p_muttype_index)
+				return muttype_pair.second;
+		return nullptr;
+	}
+#endif
 	inline GenomicElementType *GenomicElementTypeTypeWithID(slim_objectid_t p_getype_id) {
 		auto id_iter = genomic_element_types_.find(p_getype_id);
 		return (id_iter == genomic_element_types_.end()) ? nullptr : id_iter->second;
@@ -589,6 +602,8 @@ public:
 	}
 	
 	inline __attribute__((always_inline)) bool SexEnabled(void) const														{ return sex_enabled_; }
+	inline __attribute__((always_inline)) bool PedigreesEnabled(void) const													{ return pedigrees_enabled_; }
+	inline __attribute__((always_inline)) bool PedigreesEnabledByUser(void) const											{ return pedigrees_enabled_by_user_; }
 	inline __attribute__((always_inline)) bool PreventIncidentalSelfing(void) const											{ return prevent_incidental_selfing_; }
 	inline __attribute__((always_inline)) GenomeType ModeledChromosomeType(void) const										{ return modeled_chromosome_type_; }
 	inline __attribute__((always_inline)) double XDominanceCoefficient(void) const											{ return x_chromosome_dominance_coeff_; }
@@ -626,16 +641,16 @@ public:
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
-    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, uint32_t p_flags);
+    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, tsk_flags_t p_flags);
 	void AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables);
 	void UnmarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
 	void RemarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
 	void FixAliveIndividuals(tsk_table_collection_t *p_tables);
 	void WritePopulationTable(tsk_table_collection_t *p_tables);
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
-	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables);
+	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict);
 	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
-	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model);
+	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);

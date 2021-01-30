@@ -138,16 +138,6 @@
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;step one generation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
-              <property name="styleSheet">
-               <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-              </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
                 <normaloff>:/buttons/play_step.png</normaloff>
@@ -183,16 +173,6 @@ QPushButton:checked {
               </property>
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;play simulation continuously&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
               </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
@@ -233,16 +213,6 @@ QPushButton:checked {
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;profile simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
-              <property name="styleSheet">
-               <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-              </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
                 <normaloff>:/buttons/profile.png</normaloff>
@@ -281,16 +251,6 @@ QPushButton:checked {
               </property>
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;recycle simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
               </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
@@ -582,16 +542,6 @@ QSlider::handle:horizontal:disabled {
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;open/close object tables window&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/open_type_drawer.png</normaloff>
@@ -692,16 +642,6 @@ QPushButton:checked {
                <property name="toolTip">
                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle rate map visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
-               <property name="styleSheet">
-                <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-               </property>
                <property name="icon">
                 <iconset resource="buttons.qrc">
                  <normaloff>:/buttons/show_recombination.png</normaloff>
@@ -747,16 +687,6 @@ QPushButton:checked {
                <property name="toolTip">
                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle genomic element visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
-               <property name="styleSheet">
-                <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-               </property>
                <property name="icon">
                 <iconset resource="buttons.qrc">
                  <normaloff>:/buttons/show_genomicelements.png</normaloff>
@@ -801,16 +731,6 @@ QPushButton:checked {
                </property>
                <property name="toolTip">
                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle mutation visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
                </property>
                <property name="icon">
                 <iconset resource="buttons.qrc">
@@ -859,16 +779,6 @@ QPushButton:checked {
                </property>
                <property name="toolTip">
                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle fixed substitution visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
                </property>
                <property name="icon">
                 <iconset resource="buttons.qrc">
@@ -931,16 +841,6 @@ QPushButton:checked {
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;check script syntax&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/check.png</normaloff>
@@ -976,16 +876,6 @@ QPushButton:checked {
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script; option-click/alt-click to do a full reformat&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -1023,16 +913,6 @@ QPushButton:checked {
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;scripting help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/syntax_help.png</normaloff>
@@ -1068,16 +948,6 @@ QPushButton:checked {
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos console&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -1117,16 +987,6 @@ QPushButton:checked {
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -1173,16 +1033,6 @@ QPushButton:checked {
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;jump to an event or callback&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -1244,16 +1094,6 @@ QPushButton:checked {
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear output log&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
-            </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
               <normaloff>:/buttons/delete.png</normaloff>
@@ -1289,16 +1129,6 @@ QPushButton:checked {
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;dump population state&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -1342,16 +1172,6 @@ QPushButton:checked {
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show a graph&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
@@ -1401,16 +1221,6 @@ QPushButton:checked {
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;change working directory&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton:pressed {
-	background-color: #00000000;
-	border: 0px;
-}
-QPushButton:checked {
-	background-color: #00000000;
-	border: 0px;
-}</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">

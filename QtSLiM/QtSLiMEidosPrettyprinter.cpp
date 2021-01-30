@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/1/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -325,6 +325,7 @@ bool Eidos_prettyprintTokensFromScript(const std::vector<EidosToken> &tokens, Ei
 			case EidosTokenType::kTokenOr:
 			case EidosTokenType::kTokenDiv:
 			case EidosTokenType::kTokenAssign:
+            case EidosTokenType::kTokenAssign_R:
 			case EidosTokenType::kTokenEq:
 			case EidosTokenType::kTokenLt:
 			case EidosTokenType::kTokenLtEq:
@@ -603,6 +604,7 @@ bool Eidos_reformatTokensFromScript(const std::vector<EidosToken> &tokens, Eidos
             
             // This token gets spaces around it if it's not inside parentheses, like x = y;, but no spaces inside parens, like foo(x=y);
         case EidosTokenType::kTokenAssign:
+        case EidosTokenType::kTokenAssign_R:
             if (parenNestCount == 0)
                 forceSpace = true;
             EmitWhitespace(forceSpace, forceNewlineCount, pretty);

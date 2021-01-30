@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -28,6 +28,7 @@
 #include "eidos_globals.h"
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
+#include "json_fwd.hpp"
 
 class EidosClass;
 
@@ -64,6 +65,7 @@ public:
 	bool IsMemberOfClass(const EidosClass *p_class_object) const;
 	
 	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints Class()->ClassName()
+	virtual nlohmann::json JSONRepresentation(void) const;	// undefined, raises; subclass that know how to serialize themselves can override
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value);

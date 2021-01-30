@@ -59,4 +59,4 @@ initialize() {
 	// (optional) set the generation to match the save point
 	sim.generation = 20000;
 }
-30000 late() { sim.outputFull(); }
+30000 late() { sim.outputFixedMutations(); }

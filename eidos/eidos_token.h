@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/27/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -59,6 +59,7 @@ enum class EidosTokenType {
 	kTokenComment,		// //		comment
 	kTokenCommentLong,	// /*		comment
 	kTokenAssign,		// =		assignment
+	kTokenAssign_R,		// <-		assignment in the R style, which is an illegal token in Eidos to avoid errors
 	kTokenEq,			// ==		equality test
 	kTokenLt,			// <		less than test (also used in type specifiers)
 	kTokenLtEq,			// <=		less than or equals test

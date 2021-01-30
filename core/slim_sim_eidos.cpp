@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -139,11 +139,28 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeAncestralNucleotides(con
 			const std::string &sequence_string = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
 			bool contains_only_nuc = true;
 			
+			// OK, we do a weird thing here.  We want to try to construct a NucleotideArray
+			// from sequence_string, which throws with EIDOS_TERMINATION if it fails, but
+			// we want to actually catch that exception even if we're running at the
+			// command line, where EIDOS_TERMINATION normally calls exit().  So we actually
+			// play around with the error-handling state to make it do what we want it to do.
+			// This is very naughty and should be redesigned, but right now I'm not seeing
+			// the right redesign strategy, so... hacking it for now.  Parallel code is at
+			// Chromosome::ExecuteMethod_setAncestralNucleotides()
+			bool save_gEidosTerminateThrows = gEidosTerminateThrows;
+			gEidosTerminateThrows = true;
+			
 			try {
 				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
 			} catch (...) {
 				contains_only_nuc = false;
+				
+				// clean up the error state since we don't want this throw to be reported
+				gEidosTermination.clear();
+				gEidosTermination.str("");
 			}
+			
+			gEidosTerminateThrows = save_gEidosTerminateThrows;
 			
 			if (!contains_only_nuc)
 			{
@@ -1117,7 +1134,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_interpreter)
-	//EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
+	EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
 	EidosValue *arg_dimensionality_value = p_arguments[1].get();
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
 	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
@@ -1132,9 +1149,29 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other initialization functions except initializeSLiMModelType()." << EidosTerminate();
 	
 	{
-		// BCH 3 Sept. 2020: this flag is deprecated; pedigree tracking is now ALWAYS ENABLED
 		// [logical$ keepPedigrees = F]
-		//bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
+		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
+		
+		if (keep_pedigrees)
+		{
+			// pedigree recording can always be turned on by the user
+			pedigrees_enabled_ = true;
+			pedigrees_enabled_by_user_ = true;
+		}
+		else	// !keep_pedigrees
+		{
+			if (pedigrees_enabled_by_SLiM_)
+			{
+				// if pedigrees were forced on by tree-seq recording or SLiMgui, they stay on, but we remember that the user wanted them off
+				pedigrees_enabled_by_user_ = false;
+			}
+			else
+			{
+				// otherwise, the user can turn them off if so desired
+				pedigrees_enabled_ = false;
+				pedigrees_enabled_by_user_ = false;
+			}
+		}
 	}
 	
 	{
@@ -1218,6 +1255,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		
 		bool previous_params = false;
 		
+		if (pedigrees_enabled_by_user_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "keepPedigrees = " << (pedigrees_enabled_by_user_ ? "T" : "F");
+			previous_params = true;
+		}
+		
 		if (spatial_dimensionality_ != 0)
 		{
 			if (previous_params) output_stream << ", ";
@@ -1274,7 +1318,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nif$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F])
+//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nif$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F], [logical$ retainCoalescentOnly = T])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1284,6 +1328,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	EidosValue *arg_simplificationInterval_value = p_arguments[2].get();
 	EidosValue *arg_checkCoalescence_value = p_arguments[3].get();
 	EidosValue *arg_runCrosschecks_value = p_arguments[4].get();
+	EidosValue *arg_retainCoalescentOnly_value = p_arguments[5].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_treeseq_declarations_ > 0)
@@ -1296,6 +1341,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	recording_mutations_ = arg_recordMutations_value->LogicalAtIndex(0, nullptr);
 	running_coalescence_checks_ = arg_checkCoalescence_value->LogicalAtIndex(0, nullptr);
 	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex(0, nullptr);
+	retain_coalescent_only_ = arg_retainCoalescentOnly_value->LogicalAtIndex(0, nullptr);
 	treeseq_crosschecks_interval_ = 1;		// this interval is presently not exposed in the Eidos API
 	
 	if ((arg_simplificationRatio_value->Type() == EidosValueType::kValueNULL) && (arg_simplificationInterval_value->Type() == EidosValueType::kValueNULL))
@@ -1342,6 +1388,11 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires simplificationInterval to be > 0." << EidosTerminate();
 	}
 	
+	// Pedigree recording is turned on as a side effect of tree sequence recording, since we need to
+	// have unique identifiers for every individual; pedigree recording does that for us
+	pedigrees_enabled_ = true;
+	pedigrees_enabled_by_SLiM_ = true;
+	
 	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeTreeSeq(";
@@ -1380,6 +1431,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "runCrosschecks = " << (running_treeseq_crosschecks_ ? "T" : "F");
+			previous_params = true;
+		}
+		
+		if (!retain_coalescent_only_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "retainCoalescentOnly = " << (retain_coalescent_only_ ? "T" : "F");
 			previous_params = true;
 			(void)previous_params;	// dead store above is deliberate
 		}
@@ -1469,7 +1527,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::ZeroGenerationFunctionSi
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
-									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddNumeric_OSN("simplificationRatio", gStaticEidosValueNULL)->AddInt_OSN("simplificationInterval", gStaticEidosValueNULL)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF));
+									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddNumeric_OSN("simplificationRatio", gStaticEidosValueNULL)->AddInt_OSN("simplificationInterval", gStaticEidosValueNULL)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF)->AddLogical_OS("retainCoalescentOnly", gStaticEidosValue_LogicalT));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddString_S("modelType"));
 	}
@@ -1734,6 +1792,12 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			if (!cached_value_generation_)
 				cached_value_generation_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
 			return cached_value_generation_;
+		}
+		case gID_generationStage:
+		{
+			SLiMGenerationStage generation_stage = GenerationStage();
+			std::string generation_stage_str = StringForSLiMGenerationStage(generation_stage);
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(generation_stage_str));
 		}
 		case gID_tag:
 		{
@@ -2417,6 +2481,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	bool output_ages = ages_value->LogicalAtIndex(0, nullptr);
 	bool output_ancestral_nucs = ancestralNucleotides_value->LogicalAtIndex(0, nullptr);
 	bool output_pedigree_ids = pedigreeIDs_value->LogicalAtIndex(0, nullptr);
+	
+	if (output_pedigree_ids && !PedigreesEnabledByUser())
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_outputFull): outputFull() cannot output pedigree IDs, because pedigree recording has not been enabled." << EidosTerminate();
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -3487,12 +3554,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	- (void)treeSeqRememberIndividuals(object<Individual> individuals)
+//	*********************	- (void)treeSeqRememberIndividuals(object<Individual> individuals, [logical$ permanent = T])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue_Object *individuals_value = (EidosValue_Object *)p_arguments[0].get();
+    EidosValue_Object *permanent_value = (EidosValue_Object *)p_arguments[1].get();
 	int ind_count = individuals_value->Count();
 	
 	if (!recording_tree_)
@@ -3504,24 +3572,27 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if ((executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
 	
+	bool permanent = permanent_value->LogicalAtIndex(0, nullptr); 
+	uint32_t flag = permanent ? SLIM_TSK_INDIVIDUAL_REMEMBERED : SLIM_TSK_INDIVIDUAL_RETAINED;
+	
 	if (individuals_value->Count() == 1)
 	{
 		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
-		AddIndividualsToTable(&ind, 1, &tables_, SLIM_TSK_INDIVIDUAL_REMEMBERED);
+		AddIndividualsToTable(&ind, 1, &tables_, flag);
 	}
 	else
 	{
 		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
 		EidosObject * const *oe_buffer = ind_vector->data();
 		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-		AddIndividualsToTable(ind_buffer, ind_count, &tables_, SLIM_TSK_INDIVIDUAL_REMEMBERED);
+		AddIndividualsToTable(ind_buffer, ind_count, &tables_, flag);
 	}
 	
 	return gStaticEidosValueVOID;
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [logical$ _binary = T]) (note the _binary flag is undocumented)
+//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [No$ metadata = NULL], [logical$ _binary = T]) (note the _binary flag is undocumented)
 //
 EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3529,7 +3600,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	EidosValue *path_value = p_arguments[0].get();
 	EidosValue *simplify_value = p_arguments[1].get();
 	EidosValue *includeModel_value = p_arguments[2].get();
-	EidosValue *binary_value = p_arguments[3].get();
+	EidosValue *metadata_value = p_arguments[3].get();
+	EidosValue *binary_value = p_arguments[4].get();
 	
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called when tree recording is enabled." << EidosTerminate();
@@ -3545,9 +3617,26 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	std::string path_string = path_value->StringAtIndex(0, nullptr);
 	bool binary = binary_value->LogicalAtIndex(0, nullptr);
 	bool simplify = simplify_value->LogicalAtIndex(0, nullptr);
+	EidosDictionaryUnretained *metadata_dict = nullptr;
 	bool includeModel = includeModel_value->LogicalAtIndex(0, nullptr);
 	
-	WriteTreeSequence(path_string, binary, simplify, includeModel);
+	if (metadata_value->Type() == EidosValueType::kValueObject)
+	{
+		// This is not type-checked by Eidos, because we would have to declare the parameter as being of type "DictionaryBase",
+		// which is an implementation detail that we try to hide.  So we just declare it as No$ and type-check it here.
+		// The JSON serialization would raise anyway, I think, but this gives a better error message.
+		EidosObject *metadata_object = metadata_value->ObjectElementAtIndex(0, nullptr);
+		
+		if (!metadata_object->IsKindOfClass(gEidosDictionaryUnretained_Class))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() requires that the metadata parameter be a Dictionary or a subclass of Dictionary." << EidosTerminate();
+		
+		metadata_dict = dynamic_cast<EidosDictionaryUnretained *>(metadata_object);
+		
+		if (!metadata_dict)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): (internal) metadata object did not convert to EidosDictionaryUnretained." << EidosTerminate();	// should never happen
+	}
+	
+	WriteTreeSequence(path_string, binary, simplify, includeModel, metadata_dict);
 	
 	return gStaticEidosValueVOID;
 }
@@ -3589,6 +3678,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeffX,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generation,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generationStage,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
@@ -3633,9 +3723,9 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddLogical_OS("_binary", gStaticEidosValue_LogicalT));
-							  
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", nullptr, gStaticEidosValueNULL)->AddLogical_OS("_binary", gStaticEidosValue_LogicalT));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	

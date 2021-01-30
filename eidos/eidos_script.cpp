@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/1/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -153,7 +153,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				if (ch2 == '=') { token_type = EidosTokenType::kTokenEq; token_end++; token_UTF16_end++; }
 				else { token_type = EidosTokenType::kTokenAssign; }
 				break;
-			case '<':	// <<DELIM "here document"-style string, or <= or <
+			case '<':	// <<DELIM "here document"-style string, or <= or <- or <
 				if (ch2 == '<')
 				{
 					// A "here document" string literal; starts with <<DELIM and ends with >>DELIM, where DELIM is any
@@ -231,6 +231,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				else
 				{
 					if (ch2 == '=') { token_type = EidosTokenType::kTokenLtEq; token_end++; token_UTF16_end++; }
+					else if (ch2 == '-') { token_type = EidosTokenType::kTokenAssign_R; token_end++; token_UTF16_end++; }
 					else { token_type = EidosTokenType::kTokenLt; }
 				}
 				break;
@@ -667,7 +668,13 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 	{
 		// if we are doing a fault-tolerant parse, just pretend we saw the token; otherwise, not finding the right token type is fatal
 		if (!parse_make_bad_nodes_)
-			EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'." << EidosTerminate(current_token_);
+		{
+			// We give a special error message if the token encountered is an R-style assignment, <-, to help the user understand
+			if (current_token_->token_type_ == EidosTokenType::kTokenAssign_R)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Match): the R-style assignment operator <- is not legal in Eidos.  For assignment, use operator =, like \"a = b;\".  For comparison to a negative quantity, use spaces to fix the tokenization, like \"a < -b;\"." << EidosTerminate(current_token_);
+			else
+				EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'." << EidosTerminate(current_token_);
+		}
 	}
 }
 

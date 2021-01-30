@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/30/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,6 +20,7 @@
 
 #include "QtSLiMPopulationTable.h"
 #include "QtSLiMWindow.h"
+#include "QtSLiMAppDelegate.h"
 #include "subpopulation.h"
 
 #include <QDebug>
@@ -202,10 +203,10 @@ QVariant QtSLiMPopulationTableModel::headerData(int section,
 //    {
 //        switch (section)
 //        {
-//        case 2: return QVariant::fromValue(QIcon(":/buttons/Qt_selfing_rate.png"));
-//        case 3: return QVariant::fromValue(QIcon(":/buttons/Qt_female_symbol.png"));
-//        case 4: return QVariant::fromValue(QIcon(":/buttons/Qt_male_symbol.png"));
-//        case 5: return QVariant::fromValue(QIcon(":/buttons/Qt_sex_ratio.png"));
+//        case 2: return QVariant::fromValue(QIcon(QtSLiMImagePath("Qt_selfing_rate", false)));
+//        case 3: return QVariant::fromValue(QIcon(QtSLiMImagePath("Qt_female_symbol", false)));
+//        case 4: return QVariant::fromValue(QIcon(QtSLiMImagePath("Qt_male_symbol", false)));
+//        case 5: return QVariant::fromValue(QIcon(QtSLiMImagePath("Qt_sex_ratio", false)));
 //        }
 //    }
     return QVariant();
@@ -219,14 +220,13 @@ void QtSLiMPopulationTableModel::reloadTable(void)
 
 QtSLiMPopulationTableHeaderView::QtSLiMPopulationTableHeaderView(Qt::Orientation p_orientation, QWidget *p_parent) : QHeaderView(p_orientation, p_parent)
 {
-    icon_cloning_rate = new QIcon(":/buttons/Qt_cloning_rate.png");
-    icon_selfing_rate = new QIcon(":/buttons/Qt_selfing_rate.png");
-    icon_sex_ratio = new QIcon(":/buttons/Qt_sex_ratio.png");
-    icon_female_symbol = new QIcon(":/buttons/Qt_female_symbol.png");
-    icon_male_symbol = new QIcon(":/buttons/Qt_male_symbol.png");    
+    cacheIcons();
+    
+    // Recache our icons if the light mode  / dark mode setting changes
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { freeCachedIcons(); cacheIcons(); });
 }
 
-QtSLiMPopulationTableHeaderView::~QtSLiMPopulationTableHeaderView()
+void QtSLiMPopulationTableHeaderView::freeCachedIcons(void)
 {
     if (icon_cloning_rate)
     {
@@ -253,6 +253,21 @@ QtSLiMPopulationTableHeaderView::~QtSLiMPopulationTableHeaderView()
         delete icon_male_symbol;
         icon_male_symbol = nullptr;
     }
+}
+
+void QtSLiMPopulationTableHeaderView::cacheIcons(void)
+{
+    // Note that this caches the icons for the current light mode / dark mode setting; they will be recached if the mode changes
+    icon_cloning_rate = new QIcon(QtSLiMImagePath("Qt_cloning_rate", false));
+    icon_selfing_rate = new QIcon(QtSLiMImagePath("Qt_selfing_rate", false));
+    icon_sex_ratio = new QIcon(QtSLiMImagePath("Qt_sex_ratio", false));
+    icon_female_symbol = new QIcon(QtSLiMImagePath("Qt_female_symbol", false));
+    icon_male_symbol = new QIcon(QtSLiMImagePath("Qt_male_symbol", false));    
+}
+
+QtSLiMPopulationTableHeaderView::~QtSLiMPopulationTableHeaderView()
+{
+    freeCachedIcons();
 }
 
 void QtSLiMPopulationTableHeaderView::paintSection(QPainter *painter, const QRect &p_rect, int p_logicalIndex) const

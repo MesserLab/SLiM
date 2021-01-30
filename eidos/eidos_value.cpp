@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/7/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -21,6 +21,7 @@
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "json.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -807,6 +808,11 @@ void EidosValue_VOID::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream
 	p_ostream << gEidosStr_void;
 }
 
+nlohmann::json EidosValue_VOID::JSONRepresentation(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::JSONRepresentation): (internal error) illegal on void." << EidosTerminate(nullptr);
+}
+
 EidosValue_SP EidosValue_VOID::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx, p_blame_token)
@@ -881,6 +887,13 @@ void EidosValue_NULL::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream
 {
 #pragma unused(p_idx)
 	p_ostream << gEidosStr_NULL;
+}
+
+nlohmann::json EidosValue_NULL::JSONRepresentation(void) const
+{
+	nlohmann::json json_object;
+	
+	return json_object;
 }
 
 EidosValue_SP EidosValue_NULL::GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const
@@ -975,6 +988,17 @@ void EidosValue_Logical::PrintValueAtIndex(const int p_idx, std::ostream &p_ostr
 	eidos_logical_t value = values_[p_idx];
 	
 	p_ostream << (value ? gEidosStr_T : gEidosStr_F);
+}
+
+nlohmann::json EidosValue_Logical::JSONRepresentation(void) const
+{
+	nlohmann::json json_object;
+	int count = Count();
+	
+	for (int i = 0; i < count; ++i)
+		json_object.push_back(values_[i]);
+	
+	return json_object;
 }
 
 eidos_logical_t EidosValue_Logical::LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -1182,6 +1206,17 @@ void EidosValue_String::PrintValueAtIndex(const int p_idx, std::ostream &p_ostre
 	
 	// Emit a quoted string with backslash escapes as needed
 	p_ostream << Eidos_string_escaped(value, EidosStringQuoting::kChooseQuotes);
+}
+
+nlohmann::json EidosValue_String::JSONRepresentation(void) const
+{
+	nlohmann::json json_object;
+	int count = Count();
+	
+	for (int i = 0; i < count; ++i)
+		json_object.push_back(StringRefAtIndex(i, nullptr));
+	
+	return json_object;
 }
 
 
@@ -1409,6 +1444,17 @@ void EidosValue_Int::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream)
 	int64_t value = IntAtIndex(p_idx, nullptr);
 	
 	p_ostream << value;
+}
+
+nlohmann::json EidosValue_Int::JSONRepresentation(void) const
+{
+	nlohmann::json json_object;
+	int count = Count();
+	
+	for (int i = 0; i < count; ++i)
+		json_object.push_back(IntAtIndex(i, nullptr));
+	
+	return json_object;
 }
 
 
@@ -1700,6 +1746,17 @@ EidosValue_SP EidosValue_Float::NewMatchingType(void) const
 void EidosValue_Float::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const
 {
 	p_ostream << EidosStringForFloat(FloatAtIndex(p_idx, nullptr));
+}
+
+nlohmann::json EidosValue_Float::JSONRepresentation(void) const
+{
+	nlohmann::json json_object;
+	int count = Count();
+	
+	for (int i = 0; i < count; ++i)
+		json_object.push_back(FloatAtIndex(i, nullptr));
+	
+	return json_object;
 }
 
 
@@ -2156,6 +2213,17 @@ void EidosValue_Object::PrintValueAtIndex(const int p_idx, std::ostream &p_ostre
 	EidosObject *value = ObjectElementAtIndex(p_idx, nullptr);
 	
 	p_ostream << *value;
+}
+
+nlohmann::json EidosValue_Object::JSONRepresentation(void) const
+{
+	nlohmann::json json_object;
+	int count = Count();
+	
+	for (int i = 0; i < count; ++i)
+		json_object.push_back(ObjectElementAtIndex(i, nullptr)->JSONRepresentation());
+	
+	return json_object;
 }
 
 

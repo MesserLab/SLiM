@@ -3,7 +3,7 @@
 //  EidosScribe
 //
 //  Created by Ben Haller on 6/14/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -2031,7 +2031,7 @@
 			[completions addObject:candidate];
 	}
 #else
-	// This is part-based completion, where iTr will complete to initializeTreeSequence() and iGTy
+	// This is part-based completion, where iTr will complete to initializeTreeSeq() and iGTy
 	// will complete to initializeGenomicElementType().  To do this, we use a special comparator
 	// that returns a score for the quality of the match, and then we sort all matches by score.
 	std::vector<int64_t> scores;
@@ -2184,6 +2184,7 @@
 		case EidosTokenType::kTokenDiv:
 		case EidosTokenType::kTokenConditional:
 		case EidosTokenType::kTokenAssign:
+		case EidosTokenType::kTokenAssign_R:
 		case EidosTokenType::kTokenEq:
 		case EidosTokenType::kTokenLt:
 		case EidosTokenType::kTokenLtEq:

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/4/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,6 +20,7 @@
 
 #include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMExtras.h"
+#include "QtSLiMAppDelegate.h"
 
 #include <QTextDocument>
 #include <QString>
@@ -39,11 +40,31 @@ QtSLiMOutputHighlighter::QtSLiMOutputHighlighter(QTextDocument *p_parent) :
     commentRegex(QString("//[^\\n]*")),
     globalRegex(QString("\\b[pgm][0-9]+\\b"))
 {
-    poundDirectiveFormat.setForeground(QColor(196, 26, 22));
-    commentFormat.setForeground(QColor(0, 116, 0));
-    subpopFormat.setForeground(QColor(28, 0, 207));
-    genomicElementFormat.setForeground(QColor(63, 110, 116));
-    mutationTypeFormat.setForeground(QColor(170, 13, 145));
+    // listen for changes to the application color palette (i.e., dark mode vs. light mode)
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMOutputHighlighter::paletteChanged);
+    paletteChanged();
+}
+
+void QtSLiMOutputHighlighter::paletteChanged(void)
+{
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    if (!cachedTextFormats || (cachedForDarkMode != inDarkMode))
+    {
+        poundDirectiveFormat.setForeground(inDarkMode ? QColor(220, 98, 90) : QColor(196, 26, 22));
+        commentFormat.setForeground(inDarkMode ? QColor(90, 210, 90) : QColor(0, 116, 0));
+        subpopFormat.setForeground(inDarkMode ? QColor(115, 145, 255) : QColor(28, 0, 207));
+        genomicElementFormat.setForeground(inDarkMode ? QColor(70, 205, 216) : QColor(63, 110, 116));
+        mutationTypeFormat.setForeground(inDarkMode ? QColor(220, 83, 185) : QColor(170, 13, 145));
+        
+        cachedTextFormats = true;
+        
+        if (cachedForDarkMode != inDarkMode)
+        {
+            cachedForDarkMode = inDarkMode;
+            rehighlight();
+        }
+    }
 }
 
 void QtSLiMOutputHighlighter::highlightBlock(const QString &text)
@@ -96,16 +117,36 @@ void QtSLiMOutputHighlighter::highlightBlock(const QString &text)
 
 QtSLiMScriptHighlighter::QtSLiMScriptHighlighter(QTextDocument *p_parent) : QSyntaxHighlighter(p_parent)
 {
-    numberLiteralFormat.setForeground(QColor(28, 0, 207));
-    stringLiteralFormat.setForeground(QColor(196, 26, 22));
-    commentFormat.setForeground(QColor(0, 116, 0));
-    identifierFormat.setForeground(QColor(63, 110, 116));
-    keywordFormat.setForeground(QColor(170, 13, 145));
-    contextKeywordFormat.setForeground(QColor(80, 13, 145));
-    
     // listen for changes to our document's contents
     // FIXME technically we need to recache and stuff if setDocument() is called, but we never do that in QtSLiM
     connect(p_parent, &QTextDocument::contentsChanged, this, &QtSLiMScriptHighlighter::documentContentsChanged);
+    
+    // listen for changes to the application color palette (i.e., dark mode vs. light mode)
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMScriptHighlighter::paletteChanged);
+    paletteChanged();
+}
+
+void QtSLiMScriptHighlighter::paletteChanged(void)
+{
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    if (!cachedTextFormats || (cachedForDarkMode != inDarkMode))
+    {
+        numberLiteralFormat.setForeground(inDarkMode ? QColor(115, 145, 255) : QColor(28, 0, 207));
+        stringLiteralFormat.setForeground(inDarkMode ? QColor(220, 98, 90) : QColor(196, 26, 22));
+        commentFormat.setForeground(inDarkMode ? QColor(90, 210, 90) : QColor(0, 116, 0));
+        identifierFormat.setForeground(inDarkMode ? QColor(70, 205, 216) : QColor(63, 110, 116));
+        keywordFormat.setForeground(inDarkMode ? QColor(220, 83, 185) : QColor(170, 13, 145));
+        contextKeywordFormat.setForeground(QColor(80, 13, 145));    // not used at present
+        
+        cachedTextFormats = true;
+        
+        if (cachedForDarkMode != inDarkMode)
+        {
+            cachedForDarkMode = inDarkMode;
+            rehighlight();
+        }
+    }
 }
 
 QtSLiMScriptHighlighter::~QtSLiMScriptHighlighter()
@@ -211,6 +252,12 @@ void QtSLiMScriptHighlighter::highlightBlock(__attribute__((__unused__)) const Q
         if (token_end >= len)
             token_end = len - 1;
         
+        if (token.token_type_ >= EidosTokenType::kFirstIdentifierLikeToken)
+        {
+            setFormat(token_start, token_end - token_start + 1, keywordFormat);
+            continue;
+        }
+        
         switch (token.token_type_)
         {
         case EidosTokenType::kTokenNumber:
@@ -222,9 +269,6 @@ void QtSLiMScriptHighlighter::highlightBlock(__attribute__((__unused__)) const Q
         case EidosTokenType::kTokenComment:
         case EidosTokenType::kTokenCommentLong:
             setFormat(token_start, token_end - token_start + 1, commentFormat);
-            break;
-        case EidosTokenType::kFirstIdentifierLikeToken:
-            setFormat(token_start, token_end - token_start + 1, keywordFormat);
             break;
         case EidosTokenType::kTokenIdentifier:
         {

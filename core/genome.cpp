@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -547,6 +547,9 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomePedigreeID:		// ACCELERATED
 		{
+			if (!subpop_->population_.sim_.PedigreesEnabledByUser())
+				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genome_id_));
 		}
 		case gID_genomeType:
@@ -612,6 +615,9 @@ EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObject **p_val
 	if (value_index < p_values_size)
 	{
 		Genome *value = (Genome *)(p_values[value_index]);
+		
+		if (!value->subpop_->population_.sim_.PedigreesEnabledByUser())
+			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->genome_id_, value_index);
 		++value_index;
@@ -1536,14 +1542,19 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	// vector of genomes there is no guarantee that the pairs of genomes here come from the same individuals.
 	if (p_genomes.size() > 0)
 	{
-		p_out << "##slimGenomePedigreeIDs=";
-		for (slim_popsize_t index = 0; index < (slim_popsize_t)p_genomes.size(); index++)
+		Genome *genome0 = p_genomes[0];
+		
+		if (genome0->subpop_->population_.sim_.PedigreesEnabledByUser())
 		{
-			if (index > 0)
-				p_out << ",";
-			p_out << p_genomes[index]->genome_id_;
+			p_out << "##slimGenomePedigreeIDs=";
+			for (slim_popsize_t index = 0; index < (slim_popsize_t)p_genomes.size(); index++)
+			{
+				if (index > 0)
+					p_out << ",";
+				p_out << p_genomes[index]->genome_id_;
+			}
+			p_out << std::endl;
 		}
-		p_out << std::endl;
 	}
 	
 	// BCH 6 March 2019: Note that all of the INFO fields that provide per-mutation information have been
@@ -3328,7 +3339,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					{
 						if (!sim.warned_readFromVCF_mutIDs_unused_)
 						{
-							p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation iDs." << std::endl;
+							p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
 							sim.warned_readFromVCF_mutIDs_unused_ = true;
 						}
 					}

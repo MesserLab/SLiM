@@ -14,4 +14,4 @@ initialize() {
 	p1.setMigrationRates(c(p2,p3), c(0.2,0.1));
 	p2.setMigrationRates(c(p1,p3), c(0.8,0.01));
 }
-10000 late() { sim.outputFull(); }
+10000 late() { sim.outputFixedMutations(); }

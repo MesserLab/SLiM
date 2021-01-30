@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -53,8 +53,8 @@ class EidosScript;
 class EidosToken;
 
 
-#define EIDOS_VERSION_STRING	("2.4")
-#define EIDOS_VERSION_FLOAT		(2.4)
+#define EIDOS_VERSION_STRING	("2.5")
+#define EIDOS_VERSION_FLOAT		(2.5)
 
 
 // These should be called once at startup to give Eidos an opportunity to initialize static state
@@ -428,6 +428,9 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 // Exact summation of a floating-point vector using the Shewchuk algorithm; surprisingly, not in the GSL
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
+// Approximate equality of two floating-point numbers, within a ratio tolerance of 1.0001
+bool Eidos_ApproximatelyEqual(double a, double b);
+
 // Split a std::string into a vector of substrings separated by a given delimiter
 std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim);
 std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::string &p_delim);
@@ -515,6 +518,8 @@ inline std::vector<int64_t> EidosSortIndexes<double>(const double *p_v, size_t p
 	
 	return idx;
 }
+
+extern int gEidosFloatOutputPrecision;		// precision used for output of float values in Eidos; not user-visible at present
 
 std::string EidosStringForFloat(double p_value);
 

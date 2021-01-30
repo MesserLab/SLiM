@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/2019.
-//  Copyright (c) 2019-2020 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2021 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -40,6 +40,7 @@
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
 #include "QtSLiMGraphView_AgeDistribution.h"
+#include "QtSLiMGraphView_LifetimeReproduction.h"
 #include "QtSLiMGraphView_PopulationVisualization.h"
 #include "QtSLiMGraphView_FitnessOverTime.h"
 #include "QtSLiMGraphView_PopSizeOverTime.h"
@@ -50,7 +51,7 @@
 
 #include <QCoreApplication>
 #include <QFontDatabase>
-#include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QtDebug>
 #include <QMessageBox>
 #include <QTextEdit>
@@ -197,20 +198,20 @@ QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScrip
 
 void QtSLiMWindow::init(void)
 {
+    // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2.
+    // However, Qt's treatment of the menu bar seems to be a bit buggy unless a main window exists.
+    // That main window can be hidden; it just needs to exist.  So here we just allow our main
+    // window(s) to leak,so that Qt is happy.  This sucks, obviously, but really it seems unlikely
+    // to matter.  The window will notice its zombified state when it is closed, and will free
+    // resources and mark itself as a zombie so it doesn't get included in the Window menu, etc.
+    // Builds against older Qt versions will just quit on the last window close, because
+    // QTBUG-86874 and QTBUG-86875 prevent this from working.
 #ifdef __APPLE__
-    // On macOS we want to stay running when the last main window closes, following platform UI guidelines.
-    // However, Qt's treatment of the menu bar seems to be a bit buggy unless a main window exists.  That
-    // main window can be hidden; it just needs to exist.  So here we just allow our main window(s) to leak,
-    // so that Qt is happy.  This sucks, obviously, but really it seems unlikely to matter.  The window will
-    // notice its zombified state when it is closed, and will free resources and mark itself as a zombie so
-    // it doesn't get included in the Window menu, etc.
-    // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-    // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-    // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-    // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-    // the other spots in the code related to this mess.
-    // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
+    // no set of the attribute on Qt 5.15.2; we will *not* delete on close
+#else
     setAttribute(Qt::WA_DeleteOnClose);
+#endif
 #else
     setAttribute(Qt::WA_DeleteOnClose);
 #endif
@@ -271,6 +272,10 @@ void QtSLiMWindow::init(void)
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
     QTimer::singleShot(0, [this]() { ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
+    
+    // watch for a change to light mode / dark mode, to customize display of the play speed slider for example
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMWindow::applicationPaletteChanged);
+    applicationPaletteChanged();
     
     // Instantiate the help panel up front so that it responds instantly; slows down our launch, but it seems better to me...
     QtSLiMHelpWindow::instance();
@@ -617,10 +622,87 @@ void QtSLiMWindow::initializeUI(void)
     connect(ui->menuWindow, &QMenu::aboutToShow, this, &QtSLiMWindow::updateWindowMenu);
 }
 
+void QtSLiMWindow::applicationPaletteChanged(void)
+{
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    // Custom colors for the play slider; note that this completely overrides the style sheet in the .ui file!
+    if (inDarkMode)
+    {
+        ui->playSpeedSlider->setStyleSheet(
+                    R"V0G0N(
+                    QSlider::groove:horizontal {
+                        border: 1px solid #606060;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #808080;
+                        margin: 2px 0;
+                    }
+                    QSlider::groove:horizontal:disabled {
+                        border: 1px solid #505050;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #606060;
+                        margin: 2px 0;
+                    }
+                    
+                    QSlider::handle:horizontal {
+                        background: #f0f0f0;
+                        border: 1px solid #b0b0b0;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    }
+                    QSlider::handle:horizontal:disabled {
+                        background: #606060;
+                        border: 1px solid #505050;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    })V0G0N");
+    }
+    else
+    {
+        ui->playSpeedSlider->setStyleSheet(
+                    R"V0G0N(
+                    QSlider::groove:horizontal {
+                        border: 1px solid #888888;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #a0a0a0;
+                        margin: 2px 0;
+                    }
+                    QSlider::groove:horizontal:disabled {
+                        border: 1px solid #cccccc;
+                        border-radius: 1px;
+                        height: 2px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+                        background: #e0e0e0;
+                        margin: 2px 0;
+                    }
+                    
+                    QSlider::handle:horizontal {
+                        background: #ffffff;
+                        border: 1px solid #909090;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    }
+                    QSlider::handle:horizontal:disabled {
+                        background: #ffffff;
+                        border: 1px solid #d0d0d0;
+                        width: 8px;
+                        margin: -4px 0;
+                        border-radius: 4px;
+                    })V0G0N");
+    }
+}
+
 void QtSLiMWindow::displayStartupMessage(void)
 {
     // Set the initial status bar message; called by QtSLiMAppDelegate::appDidFinishLaunching()
-    QString message("<font color='#555555' style='font-size: 11px;'>SLiM %1, %2 build.</font>");
+    bool inDarkMode = QtSLiMInDarkMode();
+    QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'>SLiM %1, %2 build.</font>"
+                               : "<font color='#555555' style='font-size: 11px;'>SLiM %1, %2 build.</font>");
     
     ui->statusBar->showMessage(message.arg(QString(SLIM_VERSION_STRING)).arg(
 #if DEBUG
@@ -674,6 +756,60 @@ QtSLiMWindow::~QtSLiMWindow()
         //if (consoleController->browserController)
         //  consoleController->browserController->hide();
         consoleController->hide();
+    }
+}
+
+void QtSLiMWindow::invalidateUI(void)
+{
+    // This is called only on macOS, when a window closes.  We can't be deleted, because
+    // that screws up the global menu bar.  Instead, we need to go into a zombie state,
+    // by freeing up our graph windows, console, etc., but remain allocated (but hidden).
+    // The main goal is erasing all traces of us in the user interface; freeing the
+    // maximal amount of memory is less of a concern, since we're not talking about
+    // that much memory anyway.
+    
+    // First set a flag indicating that we're going into zombie mode
+    isZombieWindow_ = true;
+    
+    // Stop all timers, so we don't try to play in the background
+    continuousPlayElapsedTimer_.invalidate();
+    continuousPlayInvocationTimer_.stop();
+    continuousProfileInvocationTimer_.stop();
+    playOneStepInvocationTimer_.stop();
+    
+    continuousPlayOn_ = false;
+    profilePlayOn_ = false;
+    nonProfilePlayOn_ = false;
+    generationPlayOn_ = false;
+    
+    // Recycle to throw away any bulky simulation state; set the default script first to avoid errors
+    ui->scriptTextEdit->setPlainText(QString::fromStdString(defaultWFScriptString()));
+    recycleClicked();
+    
+    // Close the variable browser and Eidos console
+    if (consoleController)
+    {
+        QtSLiMVariableBrowser *browser = consoleController->variableBrowser();
+        
+        if (browser)
+            browser->close();
+        
+        consoleController->close();
+    }
+    
+    // Close the tables drawer
+    if (tablesDrawerController)
+        tablesDrawerController->close();
+    
+    // Close all other subsidiary windows
+    const QObjectList &child_objects = children();
+    
+    for (QObject *child_object : child_objects)
+    {
+        QWidget *child_widget = qobject_cast<QWidget *>(child_object);
+        
+        if (child_widget && child_widget->isVisible() && (child_widget->windowFlags() & Qt::Window))
+            child_widget->close();
     }
 }
 
@@ -757,24 +893,22 @@ void QtSLiMWindow::closeEvent(QCloseEvent *p_event)
         // We used to save the window size/position here, but now that is done in moveEvent() / resizeEvent()
         p_event->accept();
         
-        // We no longer get freed when we close, because we need to stick around to make the global menubar
-        // work; see QtSLiMWindow::init().  So when we're closing, we now free up the resources we hold.
-        // This should close and free all auxiliary windows, while leaving us alive.
-        // BCH 9/23/2020: I am forced not to do this by a crash on quit, so we continue to delete on close for
-        // now (and we continue to quit when the last window closes).  See QTBUG-86874 and QTBUG-86875.  If a
-        // fix or workaround for either of those issues is found, the code is otherwise ready to transition to
-        // having QtSLiM stay open after the last window closes, on macOS.  Search for those bug numbers to find
-        // the other spots in the code related to this mess.
-        // BCH 9/24/2020: Note that QTBUG-86875 is fixed in 5.15.1, but we don't want to require that.
-        
-        // This function was still under development, and has been removed; the idea was to tear down unneeded
-        // UI on the window being permanently hidden, like graph views, Eidos console, object tables window,
-        // variable browser, haplotype plots... but there wasn't really any useful, debugged code yet.
-        //invalidate();
+        // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2.
+        // In that case, we no longer get freed when we close, because we need to stick around
+        // to make the global menubar work; see QtSLiMWindow::init().  So when we're closing,
+        // we now free up the resources we hold and mark ourselves as a zombie window.
+        // Builds against older Qt versions will just quit on the last window close, because
+        // QTBUG-86874 and QTBUG-86875 prevent this from working.
+#ifdef __APPLE__
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 2))
+        invalidateUI();
+#endif
+#endif
     }
     else
     {
         p_event->ignore();
+        qtSLiMAppDelegate->closeRejected();
     }
 }
 
@@ -1200,7 +1334,7 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
 
         // We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
         sim_RNG = gEidos_RNG;
-        EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+        gEidos_RNG = Eidos_RNG_State();     // zero it out
 
         // We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
         sim_next_pedigree_id = 0;
@@ -1386,7 +1520,9 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
             ui->statusBar->clearMessage();
         else
         {
-            QString message("<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>");
+            bool inDarkMode = QtSLiMInDarkMode();
+            QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>"
+                                       : "<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>");
             
             if (sim)
             {
@@ -1457,7 +1593,7 @@ void QtSLiMWindow::updatePlayButtonIcon(bool pressed)
 {
     bool highlighted = ui->playButton->isChecked() ^ pressed;
     
-    ui->playButton->setIcon(QIcon(highlighted ? ":/buttons/play_H.png" : ":/buttons/play.png"));
+    ui->playButton->qtslimSetHighlight(highlighted);
 }
 
 void QtSLiMWindow::updateProfileButtonIcon(bool pressed)
@@ -1465,17 +1601,17 @@ void QtSLiMWindow::updateProfileButtonIcon(bool pressed)
     bool highlighted = ui->profileButton->isChecked() ^ pressed;
     
     if (profilePlayOn_)
-        ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_R.png" : ":/buttons/profile_RH.png"));    // flipped intentionally
+        ui->profileButton->qtslimSetIcon("profile_R", !highlighted);    // flipped intentionally
     else
-        ui->profileButton->setIcon(QIcon(highlighted ? ":/buttons/profile_H.png" : ":/buttons/profile.png"));
+        ui->profileButton->qtslimSetIcon("profile", highlighted);
 }
 
 void QtSLiMWindow::updateRecycleButtonIcon(bool pressed)
 {
     if (slimChangeCount)
-        ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_GH.png" : ":/buttons/recycle_G.png"));
+        ui->recycleButton->qtslimSetIcon("recycle_G", pressed);
     else
-        ui->recycleButton->setIcon(QIcon(pressed ? ":/buttons/recycle_H.png" : ":/buttons/recycle.png"));
+        ui->recycleButton->qtslimSetIcon("recycle", pressed);
 }
 
 void QtSLiMWindow::updateUIEnabling(void)
@@ -1535,6 +1671,7 @@ void QtSLiMWindow::updateUIEnabling(void)
 
 void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 {
+    ui->actionClose->setEnabled(true);
     ui->actionSave->setEnabled(true);
     ui->actionSaveAs->setEnabled(true);
     ui->actionRevertToSaved->setEnabled(!isUntitled);
@@ -1573,6 +1710,9 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 
 void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *focusWindow)
 {
+    QWidget *currentActiveWindow = QApplication::activeWindow();
+    ui->actionClose->setEnabled(currentActiveWindow ? true : false);
+    
     ui->actionSave->setEnabled(false);
     ui->actionSaveAs->setEnabled(false);
     ui->actionRevertToSaved->setEnabled(false);
@@ -1708,7 +1848,7 @@ void QtSLiMWindow::updateWindowMenu(void)
     {
         QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
         
-        if (mainWin)
+        if (mainWin && !mainWin->isZombieWindow_)
         {
             QString title = mainWin->windowTitle();
             
@@ -1906,13 +2046,20 @@ void QtSLiMWindow::displayProfileResults(void)
     menlo11_d.setFont(menlo11);
     
     // Adjust the tab width to the monospace font we have chosen
-    int tabWidth = 0;
-    QFontMetrics fm(menlo11);
+    double tabWidth = 0;
+    QFontMetricsF fm(menlo11);
     
-    //tabWidth = fm.horizontalAdvance("   ");   // added in Qt 5.11
-    tabWidth = fm.width("   ");                 // deprecated (in 5.11, I assume)
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+    tabWidth = fm.width("   ");                // deprecated in 5.11
+#else
+    tabWidth = fm.horizontalAdvance("   ");    // added in Qt 5.11
+#endif
     
-    textEdit->setTabStopWidth(tabWidth);        // deprecated in 5.10
+#if (QT_VERSION < QT_VERSION_CHECK(5, 10, 0))
+    textEdit->setTabStopWidth((int)floor(tabWidth));      // deprecated in 5.10
+#else
+    textEdit->setTabStopDistance(tabWidth);               // added in 5.10
+#endif
     
     // Build the report attributed string
     QString startDateString = profileStartDate_.toString("M/d/yy, h:mm:ss AP");
@@ -2798,7 +2945,7 @@ void QtSLiMWindow::didExecuteScript(void)
 {
     // Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
     sim_RNG = gEidos_RNG;
-    EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+    gEidos_RNG = Eidos_RNG_State();     // zero it out
 
     // Swap out our pedigree id and mutation id counters; see -eidosConsoleWindowControllerWillExecuteScript
     // Setting to -100000 here is not necessary, but will maybe help find bugs...
@@ -3236,13 +3383,13 @@ void QtSLiMWindow::_playOneStep(void)
 
 void QtSLiMWindow::playOneStepPressed(void)
 {
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step_H.png"));
+    ui->playOneStepButton->qtslimSetHighlight(true);
     _playOneStep();
 }
 
 void QtSLiMWindow::playOneStepReleased(void)
 {
-    ui->playOneStepButton->setIcon(QIcon(":/buttons/play_step.png"));
+    ui->playOneStepButton->qtslimSetHighlight(false);
     playOneStepInvocationTimer_.stop();
 }
 
@@ -3297,16 +3444,19 @@ void QtSLiMWindow::generationChanged(void)
 void QtSLiMWindow::recycleClicked(void)
 {
     // If the user has requested autosaves, act on that; these calls run modal, blocking panels
-    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
-    
-    if (prefsNotifier.autosaveOnRecyclePref())
+    if (!isZombieWindow_)
     {
-        if (!isUntitled)
-            saveFile(currentFile);
-        else if (prefsNotifier.showSaveIfUntitledPref())
-            saveAs();
-        //else
-        //    qApp->beep();
+        QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+        
+        if (prefsNotifier.autosaveOnRecyclePref())
+        {
+            if (!isUntitled)
+                saveFile(currentFile);
+            else if (prefsNotifier.showSaveIfUntitledPref())
+                saveAs();
+            //else
+            //    qApp->beep();
+        }
     }
     
     // Now do the recycle
@@ -3328,6 +3478,8 @@ void QtSLiMWindow::recycleClicked(void)
     elapsedCPUClock_ = 0;
     
     updateAfterTickFull(true);
+    
+    ui->scriptTextEdit->setPalette(ui->scriptTextEdit->qtslimStandardPalette());     // clear any error highlighting
     
     // A bit of playing with undo.  We want to break undo coalescing at the point of recycling, so that undo and redo stop
     // at the moment that we recycled.  Then we reset a change counter that we use to know if we have changed relative to
@@ -3383,7 +3535,7 @@ void QtSLiMWindow::toggleDrawerToggled(void)
     
     bool newValue = ui->toggleDrawerButton->isChecked();
     
-    ui->toggleDrawerButton->setIcon(QIcon(newValue ? ":/buttons/open_type_drawer_H.png" : ":/buttons/open_type_drawer.png"));
+    ui->toggleDrawerButton->qtslimSetHighlight(newValue);
 
     if (!tablesDrawerController)
     {
@@ -3428,7 +3580,7 @@ void QtSLiMWindow::showMutationsToggled(void)
     
     bool newValue = ui->showMutationsButton->isChecked();
     
-    ui->showMutationsButton->setIcon(QIcon(newValue ? ":/buttons/show_mutations_H.png" : ":/buttons/show_mutations.png"));
+    ui->showMutationsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsMutations)
 	{
@@ -3444,7 +3596,7 @@ void QtSLiMWindow::showFixedSubstitutionsToggled(void)
     
     bool newValue = ui->showFixedSubstitutionsButton->isChecked();
     
-    ui->showFixedSubstitutionsButton->setIcon(QIcon(newValue ? ":/buttons/show_fixed_H.png" : ":/buttons/show_fixed.png"));
+    ui->showFixedSubstitutionsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsFixedSubstitutions)
 	{
@@ -3460,7 +3612,7 @@ void QtSLiMWindow::showChromosomeMapsToggled(void)
     
     bool newValue = ui->showChromosomeMapsButton->isChecked();
     
-    ui->showChromosomeMapsButton->setIcon(QIcon(newValue ? ":/buttons/show_recombination_H.png" : ":/buttons/show_recombination.png"));
+    ui->showChromosomeMapsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsRateMaps)
 	{
@@ -3476,7 +3628,7 @@ void QtSLiMWindow::showGenomicElementsToggled(void)
     
     bool newValue = ui->showGenomicElementsButton->isChecked();
     
-    ui->showGenomicElementsButton->setIcon(QIcon(newValue ? ":/buttons/show_genomicelements_H.png" : ":/buttons/show_genomicelements.png"));
+    ui->showGenomicElementsButton->qtslimSetHighlight(newValue);
 
     if (newValue != zoomedChromosomeShowsGenomicElements)
 	{
@@ -3499,7 +3651,7 @@ void QtSLiMWindow::showConsoleClicked(void)
     // we're about to toggle the visibility, so set our checked state accordingly
     ui->consoleButton->setChecked(!consoleController->isVisible());
     
-    ui->consoleButton->setIcon(QIcon(ui->consoleButton->isChecked() ? ":/buttons/show_console_H.png" : ":/buttons/show_console.png"));
+    ui->consoleButton->qtslimSetHighlight(ui->consoleButton->isChecked());
     
     if (ui->consoleButton->isChecked())
     {
@@ -3581,6 +3733,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 continue;
             
             comment = comment.trimmed();
+            comment = comment.replace("&", "&&");   // quote ampersands since Qt uses them as keyboard shortcut escapes
             
             int32_t comment_start = token.token_UTF16_start_;
             int32_t comment_end = token.token_UTF16_end_ + 1;
@@ -3673,6 +3826,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 // Remove trailing whitespace, replace tabs with spaces, etc.
                 decl = decl.simplified();
                 comment = comment.trimmed();
+                comment = comment.replace("&", "&&");   // quote ampersands since Qt uses them as keyboard shortcut escapes
                 
                 if (comment.length() > 0)
                     decl = decl + "  —  " + comment;
@@ -4052,19 +4206,12 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         actionButton->setMinimumSize(QSize(20, 20));
         actionButton->setMaximumSize(QSize(20, 20));
         actionButton->setFocusPolicy(Qt::NoFocus);
-        actionButton->setStyleSheet(QString::fromUtf8("QPushButton:pressed {\n"
-"	background-color: #00000000;\n"
-"	border: 0px;\n"
-"}\n"
-"QPushButton:checked {\n"
-"	background-color: #00000000;\n"
-"	border: 0px;\n"
-"}"));
         QIcon icon4;
-        icon4.addFile(QString::fromUtf8(":/buttons/action.png"), QSize(), QIcon::Normal, QIcon::Off);
-        icon4.addFile(QString::fromUtf8(":/buttons/action_H.png"), QSize(), QIcon::Normal, QIcon::On);
+        icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
+        icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
         actionButton->setIcon(icon4);
         actionButton->setIconSize(QSize(20, 20));
+        actionButton->qtslimSetBaseName("action");
         actionButton->setCheckable(true);
         actionButton->setFlat(true);
 #if QT_CONFIG(tooltip)
@@ -4072,8 +4219,8 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 #endif // QT_CONFIG(tooltip)
         buttonLayout->addWidget(actionButton);
         
-        connect(actionButton, &QPushButton::pressed, graphView, [actionButton, graphView]() { actionButton->setIcon(QIcon(":/buttons/action_H.png")); graphView->actionButtonRunMenu(actionButton); });
-        connect(actionButton, &QPushButton::released, graphView, [actionButton]() { actionButton->setIcon(QIcon(":/buttons/action.png")); });
+        connect(actionButton, &QPushButton::pressed, graphView, [actionButton, graphView]() { actionButton->qtslimSetHighlight(true); graphView->actionButtonRunMenu(actionButton); });
+        connect(actionButton, &QPushButton::released, graphView, [actionButton]() { actionButton->qtslimSetHighlight(false); });
         
         actionButton->setEnabled(!invalidSimulation() && (sim->generation_ > 0));
     }
@@ -4165,6 +4312,9 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     QAction *graphAgeDistribution = contextMenu.addAction("Graph Age Distribution");
     graphAgeDistribution->setEnabled(!disableAll);
     
+    QAction *graphLifetimeReproduction = contextMenu.addAction("Graph Lifetime Reproductive Output");
+    graphLifetimeReproduction->setEnabled(!disableAll);
+    
     QAction *graphPopSizeVsTime = contextMenu.addAction("Graph Population Size ~ Time");
     graphPopSizeVsTime->setEnabled(!disableAll);
     
@@ -4206,6 +4356,8 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
         if (action == graphAgeDistribution)
             graphView = new QtSLiMGraphView_AgeDistribution(this, this);
+        if (action == graphLifetimeReproduction)
+            graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
         if (action == graphPopSizeVsTime)
             graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
         if (action == graphPopVisualization)
