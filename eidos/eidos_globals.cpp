@@ -2014,7 +2014,7 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 bool Eidos_ApproximatelyEqual(double a, double b)
 {
 	// different signs is a mismatch
-	if (signbit(a) != signbit(b))
+	if (std::signbit(a) != std::signbit(b))
 		return false;
 	
 	// both zero is not a mismatch (getting rid of this case for div-by-zero safety
