@@ -147,8 +147,8 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     
     // Let Qt know who we are, for QSettings configuration
     QCoreApplication::setOrganizationName("MesserLab");
-    QCoreApplication::setOrganizationDomain("MesserLab.edu");   // Qt expects the domain in the standard order, and reverses it to form "edu.messerlab.QtSLiM.plist" as per Apple's usage
-    QCoreApplication::setApplicationName("QtSLiM");             // This governs the location of our prefs, which we keep under edu.MesserLab.QtSLiM
+    QCoreApplication::setOrganizationDomain("messerlab.org");   // Qt expects the domain in the standard order, and reverses it to form "org.messerlab.SLiMgui.plist" as per Apple's usage
+    QCoreApplication::setApplicationName("SLiMgui");             // This governs the location of our prefs, which we keep under org.messerlab.SLiMgui
     QCoreApplication::setApplicationVersion(SLIM_VERSION_STRING);
     
     // Warm up our back ends before anything else happens, including our own class objects

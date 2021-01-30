@@ -16,8 +16,8 @@ TEMPLATE = app
 CONFIG += app_bundle
 QMAKE_INFO_PLIST = QtSLiM_Info.plist
 ICON = QtSLiM_AppIcon.icns
-QMAKE_TARGET_BUNDLE_PREFIX = "edu.MesserLab"
-QMAKE_BUNDLE = "QtSLiM"		# This governs the location of our prefs, which we keep under edu.MesserLab.QtSLiM
+QMAKE_TARGET_BUNDLE_PREFIX = "org.messerlab"
+QMAKE_BUNDLE = "SLiMgui"		# This governs the location of our prefs, which we keep under org.messerlab.SLiMgui
 VERSION = 3.5
 
 docIconFiles.files = $$PWD/QtSLiM_DocIcon.icns
