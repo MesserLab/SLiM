@@ -19,7 +19,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11.0]
+        # BCH 1/30/2021: removing macos-11.0 for now because GitHub isn't running it properly
+        # see https://github.com/actions/virtual-environments/issues/2486 for more info
+        # also relevant: https://github.com/actions/virtual-environments/issues/2381
+        os: [ubuntu-18.04, ubuntu-20.04, macos-10.15]
         include:
           # Ubuntu with the oldest supported GCC.
           - os: ubuntu-18.04
