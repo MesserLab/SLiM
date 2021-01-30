@@ -2011,6 +2011,31 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 	return hi;
 }
 
+bool Eidos_ApproximatelyEqual(double a, double b)
+{
+	// different signs is a mismatch
+	if (signbit(a) != signbit(b))
+		return false;
+	
+	// both zero is not a mismatch (getting rid of this case for div-by-zero safety
+	if ((a == 0) && (b == 0))
+		return true;
+	
+	// one zero (and one not) is a mismatch
+	if ((a == 0) || (b == 0))
+		return false;
+	
+	// one significantly bigger is a mismatch
+	if (a / b > 1.0001)
+		return false;
+	
+	// the other significantly bigger is a mismatch
+	if (b / a > 1.0001)
+		return false;
+	
+	return true;
+}
+
 std::vector<std::string> Eidos_string_split(const std::string &joined_string, const std::string &separator)
 {
 	std::vector<std::string> tokens;

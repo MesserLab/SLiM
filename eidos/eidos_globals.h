@@ -428,6 +428,9 @@ double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, do
 // Exact summation of a floating-point vector using the Shewchuk algorithm; surprisingly, not in the GSL
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length);
 
+// Approximate equality of two floating-point numbers, within a ratio tolerance of 1.0001
+bool Eidos_ApproximatelyEqual(double a, double b);
+
 // Split a std::string into a vector of substrings separated by a given delimiter
 std::vector<std::string> Eidos_string_split(const std::string &p_str, const std::string &p_delim);
 std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::string &p_delim);

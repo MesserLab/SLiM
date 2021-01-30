@@ -29,6 +29,7 @@ development head:
 	SLiMgui: fix missing color boxes in the help to show WF/nonWF/nuc properties/methods
 	add dark mode support for SLiMgui, for both macOS (tied to the OS setting) and Linux (with a checkbox in the prefs)
 	update to tskit 0.99.10 to gain some new simplify() functionality
+	fix a bug causing a spurious error about mismatching dominance coefficients in readFromPopulationFile() with very large dominance coefficient values
 
 
 version 3.5 (build 2663; Eidos version 2.5):
