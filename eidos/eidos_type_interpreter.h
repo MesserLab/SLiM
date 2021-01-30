@@ -96,6 +96,7 @@ public:
 	EidosTypeSpecifier TypeEvaluate_And(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Or(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Assign(const EidosASTNode *p_node);
+	EidosTypeSpecifier TypeEvaluate_Assign_R(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Eq(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_Lt(const EidosASTNode *p_node);
 	EidosTypeSpecifier TypeEvaluate_LtEq(const EidosASTNode *p_node);

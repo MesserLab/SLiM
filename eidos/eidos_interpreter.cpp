@@ -819,6 +819,7 @@ EidosValue_SP EidosInterpreter::EvaluateNode(const EidosASTNode *p_node)
 		case EidosTokenType::kTokenDiv:			return Evaluate_Div(p_node);
 		case EidosTokenType::kTokenConditional:	return Evaluate_Conditional(p_node);
 		case EidosTokenType::kTokenAssign:		return Evaluate_Assign(p_node);
+		case EidosTokenType::kTokenAssign_R:	return Evaluate_Assign_R(p_node);
 		case EidosTokenType::kTokenEq:			return Evaluate_Eq(p_node);
 		case EidosTokenType::kTokenLt:			return Evaluate_Lt(p_node);
 		case EidosTokenType::kTokenLtEq:		return Evaluate_LtEq(p_node);
@@ -4099,6 +4100,19 @@ compoundAssignmentSuccess:
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Assign()");
 	return result_SP;
+}
+
+EidosValue_SP EidosInterpreter::Evaluate_Assign_R(const EidosASTNode *p_node)
+{
+	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Assign_R()");
+	
+	// The <- operator is always illegal in Eidos, to safeguard against erroneous accidental usage for users coming from R.
+	// It would parse as "a < -b;" and thus do nothing, silently, instead of assigning.  For this reason, we make it a
+	// token and make the use of that token illegal.  We won't actually make it here, typically; use of this operator will
+	// be a parse error caught in EidosScript::Match(), giving an error message similar to the one here.
+	EidosToken *operator_token = p_node->token_;
+	
+	EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign_R): the R-style assignment operator <- is not legal in Eidos.  For assignment, use operator =, like \"a = b;\".  For comparison to a negative quantity, use spaces to fix the tokenization, like \"a < -b;\"." << EidosTerminate(operator_token);
 }
 
 EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)

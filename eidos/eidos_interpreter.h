@@ -238,6 +238,7 @@ public:
 	EidosValue_SP Evaluate_And(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Or(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Assign(const EidosASTNode *p_node);
+	EidosValue_SP Evaluate_Assign_R(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Eq(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_Lt(const EidosASTNode *p_node);
 	EidosValue_SP Evaluate_LtEq(const EidosASTNode *p_node);

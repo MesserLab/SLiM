@@ -1270,6 +1270,11 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptRaise("E = 5;", 2, "is a constant");
 	EidosAssertScriptRaise("PI = 5;", 3, "is a constant");
 	
+	// tests related to the R-style assignment operator, <-, which is explicitly illegal in Eidos to prevent mistakes ("a <- b;" meaning "a < -b;")
+	EidosAssertScriptSuccess("x = -9; x < -8;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x = -9; x <- 8;", 10, "<- is not legal");
+	EidosAssertScriptRaise("x = -9; x<-8;", 9, "<- is not legal");
+	
 	// try harder to overwrite a constant
 	EidosAssertScriptRaise("T = F;", 2, "is a constant");
 	EidosAssertScriptRaise("T[0] = F;", 5, "is a constant");

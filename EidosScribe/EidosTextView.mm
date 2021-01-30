@@ -2184,6 +2184,7 @@
 		case EidosTokenType::kTokenDiv:
 		case EidosTokenType::kTokenConditional:
 		case EidosTokenType::kTokenAssign:
+		case EidosTokenType::kTokenAssign_R:
 		case EidosTokenType::kTokenEq:
 		case EidosTokenType::kTokenLt:
 		case EidosTokenType::kTokenLtEq:

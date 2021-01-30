@@ -101,6 +101,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluateNode(const EidosASTNode *p_
 			case EidosTokenType::kTokenDiv:			return TypeEvaluate_Div(p_node);
 			case EidosTokenType::kTokenConditional:	return TypeEvaluate_Conditional(p_node);
 			case EidosTokenType::kTokenAssign:		return TypeEvaluate_Assign(p_node);
+			case EidosTokenType::kTokenAssign_R:	return TypeEvaluate_Assign_R(p_node);
 			case EidosTokenType::kTokenEq:			return TypeEvaluate_Eq(p_node);
 			case EidosTokenType::kTokenLt:			return TypeEvaluate_Lt(p_node);
 			case EidosTokenType::kTokenLtEq:		return TypeEvaluate_LtEq(p_node);
@@ -830,6 +831,14 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Assign(const EidosASTNode 
 		if (!defines_only_)
 			global_symbols_->SetTypeForSymbol(identifier_name, rvalue_type);
 	}
+	
+	return result_type;
+}
+
+EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Assign_R(const EidosASTNode *p_node)
+{
+#pragma unused(p_node)
+	EidosTypeSpecifier result_type = EidosTypeSpecifier{kEidosValueMaskNone, nullptr};
 	
 	return result_type;
 }
