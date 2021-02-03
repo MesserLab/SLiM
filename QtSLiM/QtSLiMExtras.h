@@ -187,11 +187,13 @@ class QtSLiMStatusBar : public QStatusBar
     Q_OBJECT
     
 public:
-    QtSLiMStatusBar(QWidget *p_parent = nullptr) : QStatusBar(p_parent) {}
+    QtSLiMStatusBar(QWidget *p_parent = nullptr);
     virtual ~QtSLiMStatusBar(void) override {}
     
 protected:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
+    virtual void resizeEvent(QResizeEvent *p_resizeEvent) override;
+    void setHeightFromContent(void);
 };
 
 // Used to create the dark app icon displayed when running a model

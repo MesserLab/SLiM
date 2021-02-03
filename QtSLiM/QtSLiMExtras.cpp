@@ -36,6 +36,7 @@
 #include <QStyleOption>
 #include <QStyle>
 #include <QTextDocument>
+#include <QAbstractTextDocumentLayout>
 #include <QPalette>
 #include <QDebug>
 #include <cmath>
@@ -925,6 +926,12 @@ void QtSLiMSplitterHandle::paintEvent(QPaintEvent *p_paintEvent)
 
 // A subclass of QStatusBar that draws a top separator, so our splitters abut nicely
 // BCH 9/20/2020: this now draws the message as HTML text too, allowing colorized signatures
+QtSLiMStatusBar::QtSLiMStatusBar(QWidget *p_parent) : QStatusBar(p_parent)
+{
+    // whenever our message changes, we resize vertically to accommodate it
+    connect(this, &QStatusBar::messageChanged, this, [this]() { setHeightFromContent(); });
+}
+
 void QtSLiMStatusBar::paintEvent(QPaintEvent * /*p_paintEvent*/)
 {
     QPainter p(this);
@@ -952,9 +959,60 @@ void QtSLiMStatusBar::paintEvent(QPaintEvent * /*p_paintEvent*/)
 #endif
 
         p.setPen(inDarkMode ? Qt::white : Qt::black);
+        QSizeF pageSize(bounds.width() - 10, 200);           // wrap to our width, with a maximum height of 200 (which should never happen)
         QTextDocument td;
+        td.setPageSize(pageSize);
         td.setHtml(currentMessage());
         td.drawContents(&p, bounds);
+    }
+}
+
+void QtSLiMStatusBar::resizeEvent(QResizeEvent *p_resizeEvent)
+{
+    // first call super to realize all consequences of the resize
+    QStatusBar::resizeEvent(p_resizeEvent);
+    
+    // Then calculate our new minimum height, as a result of wrapping, and set it in a deferred manner to avoid recursion issues
+    QTimer::singleShot(0, this, &QtSLiMStatusBar::setHeightFromContent);
+}
+
+void QtSLiMStatusBar::setHeightFromContent(void)
+{
+    // this mirrors the code in QtSLiMStatusBar::paintEvent()
+    QRect bounds = rect();
+    QSizeF pageSize(bounds.width() - 10, 200);           // wrap to our width, with a maximum height of 200 (which should never happen)
+    QTextDocument td;
+    td.setPageSize(pageSize);
+    td.setHtml(currentMessage());
+    
+    // now get the drawn text height and calculate our minimum height
+    QSizeF textSize = td.documentLayout()->documentSize();
+    QSize minSizeHint = minimumSizeHint();
+    QSize oldMinSize = minimumSize();
+    QSize newMinSize;
+    int newMaxHeight;
+    
+    if (textSize.height() < minSizeHint.height())
+    {
+        newMinSize = QSize(0, 0);
+        newMaxHeight = minSizeHint.height();
+    }
+    else
+    {
+        newMinSize = QSize(minSizeHint.width(), textSize.height() + 6);
+        newMaxHeight = newMinSize.height();
+    }
+    
+    // set the new size only if it is different from the old height, to minimize thrash
+    if (newMinSize != oldMinSize)
+    {
+        setMinimumSize(newMinSize);
+        setMaximumHeight(newMaxHeight);  // we have to set the max height also, to make the Eidos console's status bar work properly
+        
+        //qDebug() << "setHeightFromContent():";
+        //qDebug() << "   minSizeHint == " << minSizeHint;
+        //qDebug() << "   textSize == " << textSize;
+        //qDebug() << "   newMinSize == " << newMinSize;
     }
 }
 

@@ -974,7 +974,23 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
 #endif
             }
             
-            statusBar->showMessage(td.toHtml());
+            // hanging indent for multiline wrapping aesthetics
+            {
+                QTextCursor tc(&td);
+                tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+                tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+                
+                QTextBlockFormat blockFormat;
+                blockFormat.setLeftMargin(30);
+                blockFormat.setTextIndent(-30);
+                
+                tc.setBlockFormat(blockFormat);
+            }
+            
+            QString htmlString = td.toHtml();
+            //qDebug() << "setting HTML:" << htmlString;
+            
+            statusBar->showMessage(htmlString);
         }
         else
         {
