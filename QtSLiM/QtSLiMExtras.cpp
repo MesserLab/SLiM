@@ -999,7 +999,11 @@ void QtSLiMStatusBar::setHeightFromContent(void)
     }
     else
     {
+#ifdef __APPLE__
         newMinSize = QSize(minSizeHint.width(), textSize.height() + 6);
+#else
+        newMinSize = QSize(minSizeHint.width(), textSize.height() + 0);
+#endif
         newMaxHeight = newMinSize.height();
     }
     
