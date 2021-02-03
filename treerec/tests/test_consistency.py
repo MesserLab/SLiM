@@ -103,7 +103,7 @@ class TestIndividuals:
                 alive = {ts.individual(i).metadata['pedigree_id'] for i in ts.individuals_alive_at(0)}
                 num_expected = 0
                 for ped_id, slim_ind in slim_individuals.items():
-                    if slim_ind.type == "retain":
+                    if slim_ind.type.startswith("retain"):
                         # retained individuals should only be present in the TS if they
                         # have genomic material. We should check which have nodes that exist
                         ts_nodes = [ids[n] for n in slim_ind.nodes if n in ids]
@@ -118,7 +118,7 @@ class TestIndividuals:
                                 assert not ts.node(n).is_sample()
                         else:
                             assert ped_id not in ts_individuals
-                    else:
+                    elif slim_ind.type=="remember":
                         # permanently "remember"ed individuals and ones that exist during ts
                         # output are always present, and their nodes should be marked as
                         # as samples
@@ -133,4 +133,7 @@ class TestIndividuals:
                             assert ts.node(n).is_sample()
                         if ped_id not in alive:
                             assert slim_ind.type == "remember"
+                    elif slim_ind.type=="output":
+                        num_expected += 1
+                        
                 assert num_expected == ts.num_individuals
