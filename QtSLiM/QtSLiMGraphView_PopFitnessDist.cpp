@@ -37,7 +37,7 @@ QtSLiMGraphView_PopFitnessDist::QtSLiMGraphView_PopFitnessDist(QWidget *p_parent
     xAxisMajorTickModulus_ = 5;
     xAxisTickValuePrecision_ = 1;
     
-    xAxisLabel_ = "Fitness (rescaled absolute)";
+    xAxisLabel_ = "Fitness (rescaled)";
     yAxisLabel_ = "Frequency";
     
     allowXAxisUserRescale_ = true;
@@ -59,7 +59,7 @@ QString QtSLiMGraphView_PopFitnessDist::aboutString(void)
 {
     return "The Population Fitness Distribution graph shows the distribution of fitness "
            "values across all individuals in the population, as a histogram.  Fitness "
-           "is 'rescaled absolute' as explained in the Fitness ~ Time graph's about "
+           "is 'rescaled' as explained in the Fitness ~ Time graph's about "
            "info.  The number of histogram bins can be changed in the action menu.  The "
            "Subpopulation Fitness Distributions graph provides an alternative that "
            "might also be useful.";

@@ -35,7 +35,7 @@ QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *p_pare
     setDefaultYAxisRange();
     
     xAxisLabel_ = "Generation";
-    yAxisLabel_ = "Fitness (rescaled absolute)";
+    yAxisLabel_ = "Fitness (rescaled)";
     
     allowXAxisUserRescale_ = true;
     allowYAxisUserRescale_ = true;
@@ -104,8 +104,7 @@ QString QtSLiMGraphView_FitnessOverTime::aboutString(void)
            "of the population is shown with a thick black line, while those of subpopulations "
            "are shown with thinner colored lines.  Fixation events during the model run are "
            "shown with light blue vertical lines at the generation in which they occurred.  The "
-           "fitness shown is 'rescaled absolute', meaning that it is absolute fitness, not "
-           "relative fitness, but that when non-neutral mutations fix and are 'substituted' by "
+           "fitness shown is 'rescaled', meaning that when non-neutral mutations fix and are 'substituted' by "
            "SLiM they are no longer included in fitness calculations, so the y axis is 'rescaled'; "
            "this is mainly relevant to WF models.  It is also 'rescaled' in the sense that it "
            "excludes subpopulation fitnessScaling values (to emphasize individual fitness effects "

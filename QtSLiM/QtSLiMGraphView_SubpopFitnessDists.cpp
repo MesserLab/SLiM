@@ -38,7 +38,7 @@ QtSLiMGraphView_SubpopFitnessDists::QtSLiMGraphView_SubpopFitnessDists(QWidget *
     xAxisMajorTickModulus_ = 5;
     xAxisTickValuePrecision_ = 1;
     
-    xAxisLabel_ = "Fitness (rescaled absolute)";
+    xAxisLabel_ = "Fitness (rescaled)";
     yAxisLabel_ = "Frequency";
     
     allowXAxisUserRescale_ = true;
@@ -61,7 +61,7 @@ QString QtSLiMGraphView_SubpopFitnessDists::aboutString(void)
     return "The Subpopulation Fitness Distributions graph shows the distribution of fitness "
            "values for each subpopulation as a separate line.  The primary purpose of this "
            "visualization is to allow the fitness distributions of many subpopulations "
-           "to be compared visually.  Fitness is 'rescaled absolute' as explained in the "
+           "to be compared visually.  Fitness is 'rescaled' as explained in the "
            "Fitness ~ Time graph's about info.  The number of histogram bins can be changed "
            "in the action menu.  The Population Fitness Distribution graph provides an "
            "alternative that might also be useful.";

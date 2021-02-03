@@ -49,7 +49,7 @@
 		[self setDefaultYAxisRange];
 		
 		[self setXAxisLabelString:@"Generation"];
-		[self setYAxisLabelString:@"Fitness (rescaled absolute)"];
+		[self setYAxisLabelString:@"Fitness (rescaled)"];
 		
 		[self setAllowXAxisUserRescale:YES];
 		[self setAllowYAxisUserRescale:YES];

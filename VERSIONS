@@ -15,7 +15,6 @@ development head:
 	add an F-distribution drawing function, rf(), following R, by request
 	fix bug with source() that produced a warning about paste() semantics, and an incorrect sourced script string
 	fix segfault-causing bug in Eidos argument processing for certain recursive calling patterns
-	tweak recipes to not use outputFull() when the output would be very large, to avoid long output delays
 	fix SLiMgui to not accept rich text pastes
 	enable multiple selection in the Find Recipe panel
 	revise recipes to avoid outputFull() when it takes a long time (Qt is slow processing big output dumps)
