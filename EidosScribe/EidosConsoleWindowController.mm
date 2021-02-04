@@ -269,22 +269,27 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			
 #if 0
 			// Do a checkback on UTF8 token ranges versus UTF16 token ranges by replicating the token string using the UTF16 ranges
-			const std::vector<EidosToken *> &tokens = script.Tokens();
+			const std::vector<EidosToken> &tokens = script.Tokens();
 			NSMutableString *replicateTokenString = [NSMutableString string];
 			BOOL firstToken = YES;
 			
-			for (const EidosToken *token : tokens)
+			for (const EidosToken &token : tokens)
 			{
-				int32_t token_UTF16_start = token->token_UTF16_start_;
-				int32_t token_UTF16_end = token->token_UTF16_end_;
+				int32_t token_UTF16_start = token.token_UTF16_start_;
+				int32_t token_UTF16_end = token.token_UTF16_end_;
 				NSRange tokenRange = NSMakeRange(token_UTF16_start, token_UTF16_end - token_UTF16_start + 1);
 				
-				[replicateTokenString appendString:(firstToken ? @"" : @" ")];
+				if (!firstToken)
+					[replicateTokenString appendString:@" "];
 				
 				if (tokenRange.location == [scriptString length])
-					[replicateTokenString appendString:@"EOF"];
+					[replicateTokenString appendString:@"<EOF>"];
 				else
+				{
+					[replicateTokenString appendString:@"<"];
 					[replicateTokenString appendString:[scriptString substringWithRange:tokenRange]];
+					[replicateTokenString appendString:@">"];
+				}
 				
 				firstToken = NO;
 			}

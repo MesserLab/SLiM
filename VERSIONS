@@ -31,6 +31,7 @@ development head:
 	fix a bug causing a spurious error about mismatching dominance coefficients in readFromPopulationFile() with very large dominance coefficient values
 	make <- an illegal token in Eidos, to guard against users who are used to R accidentally doing "a <- b;", which would otherwise be a comparison, "a < -b;", and would silently do nothing
 	the status bar in SLiMgui now resizes vertically to show wrapped content when necessary (long function/method signatures)
+	extend Eidos to allow all Unicode characters beyond 7-bit ASCII in identifiers, including accented characters, Chinese characters, and emoji
 
 
 version 3.5 (build 2663; Eidos version 2.5):

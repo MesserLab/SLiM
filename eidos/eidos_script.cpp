@@ -36,7 +36,7 @@ bool gEidosLogEvaluation = false;
 
 // From stack overflow http://stackoverflow.com/questions/15038616/how-to-convert-between-character-and-byte-position-in-objective-c-c-c
 // by Dietrich Epp.  This function converts a "character" position in, e.g., std::string, which uses UTF-8, to a "character"
-// position in, e.g., NSString, which uses UTF-16.  We don't actually use Eidos_utf8_utf16width(), but we use BYTE_WIDTHS,
+// position in, e.g., NSString/QString, which use UTF-16.  We don't use Eidos_utf8_utf16width(), but we use BYTE_WIDTHS,
 // so I've kept Eidos_utf8_utf16width() here as a sort of documentation for what BYTE_WIDTHS means.
 static const unsigned char BYTE_WIDTHS[256] = {
 	// 1-byte: 0xxxxxxx
@@ -421,17 +421,89 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						token_type = EidosTokenType::kTokenNumber;
 					}
 				}
-				else if (((ch >= 'a') && (ch <= 'z')) || ((ch >= 'A') && (ch <= 'Z')) || (ch == '_'))
+				else if (((ch >= 'a') && (ch <= 'z')) || ((ch >= 'A') && (ch <= 'Z')) || (ch == '_') || (ch & 0x0080))
 				{
+					// BCH: extending this to allow non-ASCII Unicode characters in identifiers.  We just assume that
+					// all UTF-8 sequences starting with 0x80 or greater are usable in identifiers, for simplicity.
+					// Note that EidosConsoleWindowController has some useful debugging code; search for @"<EOF>"
+					
+					// If the high bit is set, this is the start of a UTF-8 multi-byte sequence; eat the whole sequence
+					// The design of this code assumes that UTF-8 sequences are compliant and EOF does not occur inside them
+					if (ch & 0x0080)
+					{
+						// We already include the current character; now advance over the characters following it.  Note
+						// that this does the full advance for UTF-16 (trailing bytes will have BYTE_WIDTHS == 0), but
+						// only one character advance for UTF-8; the remaining UTF-8 characters will be eaten below.
+						token_end++;
+						token_UTF16_end += BYTE_WIDTHS[ch];
+						
+						while (token_end < len)
+						{
+							int chn = (unsigned char)script_string_[token_end];
+							
+							if ((chn & 0x00C0) == 0x00C0)	// start of a new Unicode multi-byte sequence; stop
+							{
+								break;
+							}
+							else if (chn & 0x0080)			// trailing byte of the current Unicode multi-byte sequence; eat it
+							{
+								token_end++; token_UTF16_end += BYTE_WIDTHS[chn];	// BYTE_WIDTHS will be 0
+							}
+							else							// an ordinary character following the Unicode sequence; stop
+							{
+								break;
+							}
+						}
+						
+						// At this point, we have advanced into the next character, which may not be part of the identifier.  We want
+						// to move backwards so the end of the token is correctly defined.  We have gone one UTF-8 character too
+						// far now, and we have also gone one UTF-16 character too far (we want token_UTF16_end to be the last
+						// UTF-16 character in the multi-byte sequence, not the first UTF-16 character of the next).
+						token_end--;
+						token_UTF16_end--;
+					}
+					
 					// identifier: regex something like this: [a-zA-Z_][a-zA-Z0-9_]*
 					while (token_end + 1 < len)
 					{
-						int chn = (unsigned char)script_string_[token_end + 1];
+						int chx = (unsigned char)script_string_[token_end + 1];
 						
-						if (((chn >= 'a') && (chn <= 'z')) || ((chn >= 'A') && (chn <= 'Z')) || ((chn >= '0') && (chn <= '9')) || (chn == '_'))
+						if (((chx >= 'a') && (chx <= 'z')) || ((chx >= 'A') && (chx <= 'Z')) || ((chx >= '0') && (chx <= '9')) || (chx == '_'))
 						{
+							// Advance to include the current character.
 							token_end++;
 							token_UTF16_end++;
+						}
+						else if (chx & 0x0080)	// start of a UTF-8 sequence, as above
+						{
+							// Advance to include the current character.  Note that the design here is a little different from
+							// above; here we do a lookahead, confirm that the character is edible, and then eat it.  Above
+							// we already included the current character (because each new token automatically includes the
+							// current character), and were advancing to the *next* character, and then ultimately backing up.
+							token_end++;
+							token_UTF16_end += BYTE_WIDTHS[chx];
+							
+							while (token_end + 1 < len)
+							{
+								int chn = (unsigned char)script_string_[token_end + 1];
+								
+								if ((chn & 0x00C0) == 0x00C0)	// start of a new Unicode multi-byte sequence; stop
+								{
+									break;
+								}
+								else if (chn & 0x0080)			// trailing byte of the current Unicode multi-byte sequence; eat it
+								{
+									token_end++; token_UTF16_end += BYTE_WIDTHS[chn];
+								}
+								else							// an ordinary character following the Unicode sequence; stop
+								{
+									break;
+								}
+							}
+							
+							// We do not back up here, the way we did above, because this loop is based on lookahead.
+							//token_end--;
+							//token_UTF16_end--;
 						}
 						else
 							break;
@@ -542,6 +614,11 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				{
 					// The high bit is set, so this is some sort of Unicode special byte, initiating a multi-byte sequence comprising an
 					// illegal non-ASCII character; encompass the whole thing into the token so errors, bad tokens, etc. work correctly
+					// The design of this code assumes that UTF-8 sequences are compliant and EOF does not occur inside them
+
+					// Advance over the current character to include the character following it; note that this
+					// does the full advance for UTF-16 (trailing bytes will have BYTE_WIDTHS == 0), but only
+					// one character advance for UTF-8; the remaining UTF-8 characters will be eaten below.
 					token_end++;
 					token_UTF16_end += BYTE_WIDTHS[ch];
 					
@@ -558,7 +635,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						{
 							// the high bit is set, so this is a trailing byte of the current Unicode multi-byte sequence, so eat it
 							token_end++;
-							token_UTF16_end += BYTE_WIDTHS[chn];
+							token_UTF16_end += BYTE_WIDTHS[chn];	// BYTE_WIDTHS will be 0
 						}
 						else
 						{
@@ -567,6 +644,10 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						}
 					}
 					
+					// At this point, we have advanced into the next character, which is not part of the bad token.  We want
+					// to move backwards so the end of the token is correctly defined.  We have gone one UTF-8 character too
+					// far now, and we have also gone one UTF-16 character too far (we want token_UTF16_end to be the last
+					// UTF-16 character in the multi-byte sequence, not the first UTF-16 character of the next).
 					token_end--;
 					token_UTF16_end--;
 				}

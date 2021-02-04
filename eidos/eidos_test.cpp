@@ -1344,6 +1344,17 @@ void _RunSymbolsAndVariablesTests(void)
 	EidosAssertScriptSuccess("x = 1:5; y = x; y[1] = 0; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; y = x; y[1] = 0; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 3, 4, 5}));
 	EidosAssertScriptSuccess("for (i in 1:3) { x = 1:5; x[1] = x[1] + 1; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 3, 4, 5}));
+	
+	// some tests for Unicode in symbol names; both accented characters and emoji should be legal (and all other Unicode above 7-bit ASCII)
+	// note that "\u00E9" is &eacute; and "\u1F603" is a grinning face emoji
+	EidosAssertScriptSuccess("\u00E9 = 3; \u00E9;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("\u00E9e = 3; \u00E9e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("e\u00E9 = 3; e\u00E9;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("e\u00E9\u00E9e = 3; e\u00E9\u00E9e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("\u1F603 = 3; \u1F603;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("\u1F603e = 3; \u1F603e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("e\u1F603 = 3; e\u1F603;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("e\u1F603\u1F603e = 3; e\u1F603\u1F603e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
 }
 
 #pragma mark parsing
