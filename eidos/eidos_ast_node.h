@@ -44,15 +44,16 @@ typedef EidosValue_SP (EidosInterpreter::*EidosEvaluationMethod)(const EidosASTN
 
 // runtime caching for argument list processing; these caches are filled and used ONLY by EidosInterpreter::Evaluate_Call() / EidosInterpreter::_ProcessArgumentList() to accelerate function/method dispatch
 // note that unlike the caches above, this caching is not done at optimization time; it is done lazily at runtime, the first time a given function/method call is hit during interpreted execution
+// BCH 2/5/2021: note that fill_index_ has to be uint32_t because there could be thousands of ellipsis arguments, but other indexes are into the signature and can be uint8_t
 struct EidosASTNode_ArgumentFill
 {
 	EidosASTNode *fill_node_;				// the AST node that should be evaluated to get a fill value for the given index
-	uint8_t fill_index_;					// the index of the argument that needs evaluation (i.e., not default/constant)
+	uint32_t fill_index_;					// the index of the argument that needs evaluation (i.e., not default/constant)
 	uint8_t signature_index_;				// the index of the corresponding argument in the signature (may differ due to an intermediate ellipsis)
 	bool fill_singleton_;					// true if the argument is required to be a singleton, derived from the signature's arg_masks_
 	EidosValueMask fill_mask_;				// the stripped type mask for the argument, derived from the signature's arg_masks_
 	
-	inline EidosASTNode_ArgumentFill(EidosASTNode *p_node, uint8_t p_index, uint8_t p_signature_index, bool p_singleton, EidosValueMask p_mask) : fill_node_(p_node), fill_index_(p_index), signature_index_(p_signature_index), fill_singleton_(p_singleton), fill_mask_(p_mask) {};
+	inline EidosASTNode_ArgumentFill(EidosASTNode *p_node, uint32_t p_index, uint8_t p_signature_index, bool p_singleton, EidosValueMask p_mask) : fill_node_(p_node), fill_index_(p_index), signature_index_(p_signature_index), fill_singleton_(p_singleton), fill_mask_(p_mask) {};
 };
 
 struct EidosASTNode_ArgumentCache
