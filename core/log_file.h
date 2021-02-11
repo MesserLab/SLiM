@@ -63,7 +63,7 @@ private:
 	SLiMSim &sim_;												// UNOWNED POINTER: the simulation object we're working with
 	
 	std::string user_file_path_;								// the one given by the user to us
-	std::string resolved_file_path_;							// the path we use internally
+	std::string resolved_file_path_;							// the path we use internally, which must be an absolute path
 	
 	bool header_logged_ = false;								// true if the header has been written out (in which case our generators are locked)
 	

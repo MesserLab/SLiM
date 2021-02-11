@@ -1493,7 +1493,7 @@ bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outs
 	{
 		retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
 		
-		if (retval != 0)
+		if ((retval != 0) || (outcstr_length == 0))	// writing 0 bytes returns 0, which is supposed to be an error code
 		{
 			retval = gzclose_w(gzf);
 			
@@ -1607,7 +1607,7 @@ void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::st
 			{
 				retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
 				
-				if (retval != 0)
+				if ((retval != 0) || (outcstr_length == 0))	// writing 0 bytes returns 0, which is supposed to be an error code
 				{
 					retval = gzclose_w(gzf);
 					

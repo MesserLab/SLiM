@@ -53,7 +53,28 @@ void LogFile::ConfigureFile(const std::string &p_filePath, std::vector<const std
 	if (p_compress && !Eidos_string_hasSuffix(user_file_path_, ".gz"))
 		user_file_path_.append(".gz");
 	
+	// Resolve a ~ at the start of the path
 	resolved_file_path_ = Eidos_ResolvedPath(user_file_path_);
+	
+	// Convert to an absolute path so we do not depend on the current working directory, which could change
+	if ((resolved_file_path_.length() > 0) && (resolved_file_path_[0] != '/'))
+	{
+		std::string current_dir = Eidos_CurrentDirectory();
+		size_t current_dir_length = current_dir.length();
+		
+		if (current_dir_length > 0)
+		{
+			// Figure out whether we need to append a '/' to the CWD or not; I'm not sure whether this is standard
+			if (current_dir[current_dir_length - 1] == '/')
+				resolved_file_path_ = current_dir + resolved_file_path_;
+			else
+				resolved_file_path_ = current_dir + "/" + resolved_file_path_;
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (LogFile::ConfigureFile): current working directory seems to be invalid." << EidosTerminate();
+		}
+	}
 	
 	compress_ = p_compress;
 	sep_ = p_sep;

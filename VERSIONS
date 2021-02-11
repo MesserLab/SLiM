@@ -33,6 +33,7 @@ development head:
 	the status bar in SLiMgui now resizes vertically to show wrapped content when necessary (long function/method signatures)
 	extend Eidos to allow all Unicode characters beyond 7-bit ASCII in identifiers, including accented characters, Chinese characters, and emoji
 	fix argument processing bug (crash) for function/method calls with more than 256 arguments
+	fix bugs with LogFile - writing zero-length compressed data gave an error, SLiMgui messed up the directory the log file was saved to
 
 
 version 3.5 (build 2663; Eidos version 2.5):

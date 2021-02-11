@@ -10452,7 +10452,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 			{
 				retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
 				
-				if (retval != 0)
+				if ((retval != 0) || (outcstr_length == 0))	// writing 0 bytes returns 0, which is supposed to be an error code
 				{
 					retval = gzclose_w(gzf);
 					
