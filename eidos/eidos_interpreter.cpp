@@ -29,6 +29,7 @@
 #include <utility>
 #include <cmath>
 #include <algorithm>
+#include <limits.h>
 
 
 // We have a bunch of behaviors that we want to do only when compiled DEBUG or EIDOS_GUI; #if tests everywhere are very ugly, so we make
