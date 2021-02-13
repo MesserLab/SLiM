@@ -43,7 +43,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
 
-    connect(ui->toggleDrawerButton, &QPushButton::clicked, this, &QtSLiMWindow::toggleDrawerToggled);
+    connect(ui->toggleDrawerButton, &QPushButton::clicked, this, &QtSLiMWindow::showDrawerClicked);
     connect(ui->showMutationsButton, &QPushButton::clicked, this, &QtSLiMWindow::showMutationsToggled);
     connect(ui->showFixedSubstitutionsButton, &QPushButton::clicked, this, &QtSLiMWindow::showFixedSubstitutionsToggled);
     connect(ui->showChromosomeMapsButton, &QPushButton::clicked, this, &QtSLiMWindow::showChromosomeMapsToggled);
@@ -58,6 +58,7 @@ void QtSLiMWindow::glueUI(void)
 
     connect(ui->clearOutputButton, &QPushButton::clicked, this, &QtSLiMWindow::clearOutputClicked);
     connect(ui->dumpPopulationButton, &QPushButton::clicked, this, &QtSLiMWindow::dumpPopulationClicked);
+    connect(ui->debugOutputButton, &QPushButton::clicked, this, &QtSLiMWindow::debugOutputClicked);
     //connect(ui->graphPopupButton, &QPushButton::clicked, this, &QtSLiMWindow::graphPopupButtonClicked); // this button runs when it is pressed
     connect(ui->changeDirectoryButton, &QPushButton::clicked, this, &QtSLiMWindow::changeDirectoryClicked);
 
@@ -79,8 +80,15 @@ void QtSLiMWindow::glueUI(void)
     ui->jumpToPopupButton->qtslimSetBaseName("jump_to");
     ui->clearOutputButton->qtslimSetBaseName("delete");
     ui->dumpPopulationButton->qtslimSetBaseName("dump_output");
+    ui->debugOutputButton->qtslimSetBaseName("debug");
     ui->graphPopupButton->qtslimSetBaseName("graph_submenu");
     ui->changeDirectoryButton->qtslimSetBaseName("change_folder");
+    
+    // set up the "temporary icon" on the debugging button, to support pulsing
+    static QIcon *debug_RED = nullptr;
+    if (!debug_RED)
+        debug_RED = new QIcon(":buttons/debug_RED.png");
+    ui->debugOutputButton->setTemporaryIcon(*debug_RED);
     
     // set up all icon-based QPushButtons to change their icon as they track
     connect(ui->playOneStepButton, &QPushButton::pressed, this, &QtSLiMWindow::playOneStepPressed);
@@ -117,6 +125,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->clearOutputButton, &QPushButton::released, this, &QtSLiMWindow::clearOutputReleased);
     connect(ui->dumpPopulationButton, &QPushButton::pressed, this, &QtSLiMWindow::dumpPopulationPressed);
     connect(ui->dumpPopulationButton, &QPushButton::released, this, &QtSLiMWindow::dumpPopulationReleased);
+    connect(ui->debugOutputButton, &QPushButton::pressed, this, &QtSLiMWindow::debugOutputPressed);
+    connect(ui->debugOutputButton, &QPushButton::released, this, &QtSLiMWindow::debugOutputReleased);
     connect(ui->graphPopupButton, &QPushButton::pressed, this, &QtSLiMWindow::graphPopupButtonPressed);
     connect(ui->graphPopupButton, &QPushButton::released, this, &QtSLiMWindow::graphPopupButtonReleased);
     connect(ui->changeDirectoryButton, &QPushButton::pressed, this, &QtSLiMWindow::changeDirectoryPressed);
@@ -156,6 +166,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionShowEidosConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showEidosConsole);
     connect(ui->actionShowVariableBrowser, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showVariableBrowser);
     connect(ui->actionClearOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearOutput);
+    connect(ui->actionShowDebuggingOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showDebuggingOutput);
     
     // connect menu items that open a URL
     connect(ui->actionSLiMWorkshops, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpWorkshops);
@@ -227,11 +238,11 @@ void QtSLiMWindow::recycleReleased(void)
 }
 void QtSLiMWindow::toggleDrawerPressed(void)
 {
-    ui->toggleDrawerButton->qtslimSetHighlight(!ui->toggleDrawerButton->isChecked());
+    ui->toggleDrawerButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::toggleDrawerReleased(void)
 {
-    ui->toggleDrawerButton->qtslimSetHighlight(ui->toggleDrawerButton->isChecked());
+    ui->toggleDrawerButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::showMutationsPressed(void)
 {
@@ -291,19 +302,19 @@ void QtSLiMWindow::scriptHelpReleased(void)
 }
 void QtSLiMWindow::showConsolePressed(void)
 {
-    ui->consoleButton->qtslimSetHighlight(!ui->consoleButton->isChecked());
+    ui->consoleButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::showConsoleReleased(void)
 {
-    ui->consoleButton->qtslimSetHighlight(ui->consoleButton->isChecked());
+    ui->consoleButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::showBrowserPressed(void)
 {
-    ui->browserButton->qtslimSetHighlight(!ui->browserButton->isChecked());
+    ui->browserButton->qtslimSetHighlight(true);
 }
 void QtSLiMWindow::showBrowserReleased(void)
 {
-    ui->browserButton->qtslimSetHighlight(ui->browserButton->isChecked());
+    ui->browserButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::jumpToPopupButtonPressed(void)
 {
@@ -329,6 +340,16 @@ void QtSLiMWindow::dumpPopulationPressed(void)
 void QtSLiMWindow::dumpPopulationReleased(void)
 {
     ui->dumpPopulationButton->qtslimSetHighlight(false);
+}
+void QtSLiMWindow::debugOutputPressed(void)
+{
+    ui->debugOutputButton->qtslimSetHighlight(true);
+    stopDebugButtonFlash();
+}
+void QtSLiMWindow::debugOutputReleased(void)
+{
+    ui->debugOutputButton->qtslimSetHighlight(false);
+    stopDebugButtonFlash();
 }
 void QtSLiMWindow::graphPopupButtonPressed(void)
 {

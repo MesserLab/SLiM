@@ -216,6 +216,7 @@ public:
 	// user-defined functions; these are dispatched using a sub-interpreter (OWNED pointer)
 	EidosScript *body_script_ = nullptr;
 	bool user_defined_ = false;
+	int32_t user_definition_line_ = -1;		// the line number associated with the "function" token, for SLiMgui debug points
 	
 	// delegated function implementations; if no implementation is given, these are dispatched through the Context object in the interpreter
 	std::string delegate_name_;

@@ -20,7 +20,7 @@
 #ifndef QTSLIMCONSOLETEXTEDIT_H
 #define QTSLIMCONSOLETEXTEDIT_H
 
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QTextCharFormat>
 #include <QColor>
 #include <QStringList>

@@ -57,6 +57,26 @@ typedef std::map<std::string, EidosFunctionSignature_CSP> EidosFunctionMap;
 bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_value, const EidosValue &p_destination_value);	// codifies what promotions can occur in assignment
 
 
+// This typedef is used to represent the line numbers that have "debug points" associated with them in SLiMgui.
+// This is a bit convoluted so that we can forward-declare it in other headers even though it's a typedef of a
+// templated class; I couldn't figure out a better way to do it than wrapping it in a struct, ugh.
+#ifdef SLIMGUI
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+struct EidosInterpreterDebugPointsSet_struct {
+	robin_hood::unordered_set<int> set;
+};
+typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
+#elif STD_UNORDERED_MAP_HASHING
+#include <unordered_set>
+struct EidosInterpreterDebugPointsSet_struct {
+	std::unordered_set<int> set;
+};
+typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
+#endif
+#endif
+
+
 // A class representing a script interpretation context with all associated symbol table state
 class EidosInterpreter
 {
@@ -79,11 +99,16 @@ private:
 	int execution_log_indent_ = 0;
 	std::ostringstream *execution_log_ = nullptr;		// allocated lazily
 	
-	// an output stream for output from executed nodes and functions; this goes into the user's console
+	// output streams for standard and error output from executed nodes and functions; these go into the user's console
 	std::ostringstream *execution_output_ = nullptr;	// allocated lazily, and might not be used at all; see ExecutionOutputStream()
+	std::ostringstream *error_output_ = nullptr;		// allocated lazily, and might not be used at all; see ErrorOutputStream()
 	
 	// The standard built-in function map, set up by CacheBuiltInFunctionMap()
 	static EidosFunctionMap *s_built_in_function_map_;
+	
+#ifdef SLIMGUI
+	EidosInterpreterDebugPointsSet *debug_points_ = nullptr;		// NOT OWNED; line numbers for all lines with debugging points set
+#endif
 	
 public:
 	
@@ -101,6 +126,10 @@ public:
 		
 		if (execution_output_)
 			delete execution_output_;
+		
+#ifdef SLIMGUI
+		debug_points_ = nullptr;
+#endif
 	}
 	
 	inline __attribute__((always_inline)) std::string IndentString(int p_indent_level) { return std::string(p_indent_level * 2, ' '); };
@@ -112,6 +141,10 @@ public:
 	std::ostream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
 	inline __attribute__((always_inline)) void FlushExecutionOutputToStream(std::ostream &p_stream) { if (execution_output_) p_stream << execution_output_->str(); }
 	inline __attribute__((always_inline)) std::string ExecutionOutput(void) { return (execution_output_ ? execution_output_->str() : gEidosStr_empty_string); }
+	
+	std::ostream &ErrorOutputStream(void);				// lazy allocation; all use of error_output_ should get it through this accessor
+	inline __attribute__((always_inline)) void FlushErrorOutputToStream(std::ostream &p_stream) { if (error_output_) p_stream << error_output_->str(); }
+	inline __attribute__((always_inline)) std::string ErrorOutput(void) { return (error_output_ ? error_output_->str() : gEidosStr_empty_string); }
 	
 	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) { return *global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };				// the returned reference is to the function map that the interpreter has borrowed
@@ -216,6 +249,10 @@ public:
 			delete p_argument_buffer;
 		}
 	}
+	
+#ifdef SLIMGUI
+	void _LogCallArguments(const EidosCallSignature *call_signature, std::vector<EidosValue_SP> *argument_buffer);
+#endif
 	
 	EidosValue_SP DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments);
 	

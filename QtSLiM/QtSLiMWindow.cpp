@@ -27,6 +27,7 @@
 #include "QtSLiMHelpWindow.h"
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMVariableBrowser.h"
+#include "QtSLiMDebugOutputWindow.h"
 #include "QtSLiMTablesDrawer.h"
 #include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMScriptTextEdit.h"
@@ -54,7 +55,7 @@
 #include <QFontMetricsF>
 #include <QtDebug>
 #include <QMessageBox>
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QCursor>
 #include <QPalette>
 #include <QFileDialog>
@@ -260,14 +261,17 @@ void QtSLiMWindow::init(void)
     sim_requested_working_dir = sim_working_dir;	// return to the working dir on recycle unless the user overrides it
     
     // Wire up things that set the window to be modified.
-    connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
-    connect(ui->scriptTextEdit, &QTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
+    connect(ui->scriptTextEdit, &QPlainTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
+    connect(ui->scriptTextEdit, &QPlainTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
     
     // Watch for changes to the selection in the population tableview
     connect(ui->subpopTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &QtSLiMWindow::subpopSelectionDidChange);
     
     // Watch for changes to the selection in the chromosome view
     connect(ui->chromosomeOverview, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerSelectionChanged(); });
+    
+    // Watch for changes to our change count, for the recycle button color
+    connect(this, &QtSLiMWindow::controllerChangeCountChanged, this, [this]() { updateRecycleButtonIcon(false); });
     
     // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
     ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
@@ -297,6 +301,11 @@ void QtSLiMWindow::init(void)
             qDebug() << "Could not create console controller";
         }
     }
+    
+    // Create our debug output window; we want one all the time, so we can log to it
+    debugOutputWindow_ = new QtSLiMDebugOutputWindow(this);
+    
+    connect(&debugButtonFlashTimer_, &QTimer::timeout, this, &QtSLiMWindow::handleDebugButtonFlash);
     
     // We need to update our button/menu enable state whenever the focus or the active window changes
     connect(qApp, &QApplication::focusChanged, this, &QtSLiMWindow::updateUIEnabling);
@@ -1331,6 +1340,7 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
     {
         sim = new SLiMSim(infile);
         sim->InitializeRNGFromSeed(nullptr);
+        sim->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
 
         // We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
         sim_RNG = gEidos_RNG;
@@ -1390,7 +1400,7 @@ QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
     return nullptr;
 }
 
-void QtSLiMWindow::updateOutputTextView(void)
+void QtSLiMWindow::updateOutputViews(void)
 {
     std::string &&newOutput = gSLiMOut.str();
 	
@@ -1412,7 +1422,7 @@ void QtSLiMWindow::updateOutputTextView(void)
         // ui->outputTextEdit->append(str) would seem the obvious thing to do, but that adds an extra newline (!),
         // so it can't be used.  WTF.  The solution here does not preserve the user's scroll position; see discussion at
         // https://stackoverflow.com/questions/13559990/how-to-append-text-to-qplaintextedit-without-adding-newline-and-keep-scroll-at
-        // which has a complex solution involving subclassing QTextEdit... sigh...
+        // which has a complex solution involving subclassing QPlainTextEdit... sigh...
         ui->outputTextEdit->moveCursor(QTextCursor::End);
         ui->outputTextEdit->insertPlainText(str);
         ui->outputTextEdit->moveCursor(QTextCursor::End);
@@ -1428,6 +1438,79 @@ void QtSLiMWindow::updateOutputTextView(void)
 		gSLiMOut.clear();
 		gSLiMOut.str("");
 	}
+    
+    // BCH 2/9/2021: We now handle the error output here too, since we want to be in charge of how the
+    // debug windows shows itself, etc.  We follow the same strategy as above; comments have been removed.
+    std::string &&newErrors = gSLiMError.str();
+    
+    if (!newErrors.empty())
+    {
+        QString str = QString::fromStdString(newErrors);
+        QtSLiMDebugOutputWindow *debugWindow = debugOutputWindow();
+        QtSLiMTextEdit *debugOutputTextEdit = (debugWindow ? debugWindow->debugOutputTextView() : nullptr);
+		
+        if (debugOutputTextEdit)
+        {
+            debugOutputTextEdit->moveCursor(QTextCursor::End);
+            debugOutputTextEdit->insertPlainText(str);
+            debugOutputTextEdit->moveCursor(QTextCursor::End);
+            
+            gSLiMError.clear();
+            gSLiMError.str("");
+            
+            // Flash the debugging output button to alert the user to new output
+            flashDebugButton();
+        }
+    }
+}
+
+void QtSLiMWindow::flashDebugButton(void)
+{
+    // every 40 is one cycle up and down, to red and back; so 200 gives five cycles,
+    // which seems good for catching the user's attention effectively; maybe excessive,
+    // but that's better than being missed...
+    if (debugButtonFlashCount_ == 0)
+        debugButtonFlashCount_ = 200;
+    else if (debugButtonFlashCount_ < 200)
+        debugButtonFlashCount_ += 40;       // new output adds one cycle, up to the max of five
+    
+    debugButtonFlashTimer_.start(0);
+}
+
+void QtSLiMWindow::stopDebugButtonFlash(void)
+{
+    // called when the button gets clicked, pressed, etc.
+    debugButtonFlashCount_ = 0;
+    ui->debugOutputButton->setTemporaryIconOpacity(0.0);
+    debugButtonFlashTimer_.stop();
+}
+
+void QtSLiMWindow::handleDebugButtonFlash(void)
+{
+    // decrement with each tick
+    --debugButtonFlashCount_;
+    if (debugButtonFlashCount_ < 0)
+        debugButtonFlashCount_ = 0;
+    
+    // set opacity of the red overlay based on the counter, and reschedule ourselves as needed
+    if (debugButtonFlashCount_ == 0)
+    {
+        stopDebugButtonFlash();
+    }
+    else
+    {
+        int opacity_int = debugButtonFlashCount_ % 40;
+        const double PI = 3.141592653589793;    // not in the C++ standard until C++20!
+        //double opacity_float = std::max(0.0, std::sin(PI * opacity_int / 40.0));                              // dwell on red; not as nice, I decided
+        double opacity_float = std::max(0.0, 1.0 - (std::cos(2 * PI * opacity_int / 40.0) * 0.5 + 0.5));        // equal time red and non-red
+        
+        //qDebug() << "debugButtonFlashCount_" << debugButtonFlashCount_ << ", opacity_int" << opacity_int << ", opacity_float" << opacity_float;
+        
+        ui->debugOutputButton->setTemporaryIconOpacity(opacity_float);
+        
+        if (debugButtonFlashTimer_.interval() != 17)   // about 60 Hz
+            debugButtonFlashTimer_.start(17);
+    }
 }
 
 void QtSLiMWindow::updateGenerationCounter(void)
@@ -1468,7 +1551,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	if (fullUpdate)
 	{
 		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
-		updateOutputTextView();
+		updateOutputViews();
 		
 		// Reloading the subpop tableview is tricky, because we need to preserve the selection across the reload, while also noting that the selection is forced
 		// to change when a subpop goes extinct.  The current selection is noted in the gui_selected_ ivar of each subpop.  So what we do here is reload the tableview
@@ -1640,6 +1723,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
+    ui->debugOutputButton->setEnabled(true);
     ui->graphPopupButton->setEnabled(!invalidSimulation_);
     ui->changeDirectoryButton->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
     
@@ -1690,14 +1774,8 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionReformatScript->setEnabled(!continuousPlayOn_);
     ui->actionShowScriptHelp->setEnabled(true);
     ui->actionShowEidosConsole->setEnabled(true);
-    ui->actionShowEidosConsole->setText(!consoleController->isVisible() ? "Show Eidos Console" : "Hide Eidos Console");
-    
-    bool varBrowserVisible = false;
-    if (consoleController->variableBrowser())
-        varBrowserVisible = consoleController->variableBrowser()->isVisible();
-    
     ui->actionShowVariableBrowser->setEnabled(true);
-    ui->actionShowVariableBrowser->setText(!varBrowserVisible ? "Show Variable Browser" : "Hide Variable Browser");
+    ui->actionShowDebuggingOutput->setEnabled(true);
     
     ui->actionClearOutput->setEnabled(!invalidSimulation_);
     ui->actionExecuteAll->setEnabled(false);
@@ -1730,24 +1808,11 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *f
     QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
     bool consoleFocused = (eidosConsole != nullptr);
     bool consoleFocusedAndEditable = ((eidosConsole != nullptr) && !continuousPlayOn_);
-    QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWindow);
-    bool varBrowserFocused = (varBrowser != nullptr);
-    bool varBrowserVisible = false;
-    
-    if (consoleFocused)
-        varBrowserVisible = (eidosConsole->variableBrowser() && eidosConsole->variableBrowser()->isVisible());
-    else if (varBrowserFocused)
-        varBrowserVisible = varBrowser->isVisible();
     
     //ui->menuScript->setEnabled(consoleFocused);
     ui->actionCheckScript->setEnabled(consoleFocusedAndEditable);
     ui->actionPrettyprintScript->setEnabled(consoleFocusedAndEditable);
     ui->actionReformatScript->setEnabled(consoleFocusedAndEditable);
-    ui->actionShowScriptHelp->setEnabled(consoleFocused);
-    ui->actionShowEidosConsole->setEnabled(consoleFocused);
-    ui->actionShowEidosConsole->setText(!consoleFocused ? "Show Eidos Console" : "Hide Eidos Console");
-    ui->actionShowVariableBrowser->setEnabled(consoleFocused || varBrowserFocused);
-    ui->actionShowVariableBrowser->setText(!varBrowserVisible ? "Show Variable Browser" : "Hide Variable Browser");
     ui->actionClearOutput->setEnabled(consoleFocused);
     ui->actionExecuteAll->setEnabled(consoleFocusedAndEditable);
     ui->actionExecuteSelection->setEnabled(consoleFocusedAndEditable);
@@ -1755,6 +1820,15 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *f
     // but these two menu items apply only to QtSLiMWindow, not to the Eidos console
     ui->actionDumpPopulationState->setEnabled(false);
     ui->actionChangeWorkingDirectory->setEnabled(false);
+    
+    // we can show our various windows as long as we can reach the controller window
+    QtSLiMWindow *slimWindow = qtSLiMAppDelegate->dispatchQtSLiMWindow();
+    bool canReachSLiMWindow = !!slimWindow;
+    
+    ui->actionShowScriptHelp->setEnabled(canReachSLiMWindow);
+    ui->actionShowEidosConsole->setEnabled(canReachSLiMWindow);
+    ui->actionShowVariableBrowser->setEnabled(canReachSLiMWindow);
+    ui->actionShowDebuggingOutput->setEnabled(canReachSLiMWindow);
     
     updateMenuEnablingSHARED(p_focusWidget);
 }
@@ -1765,16 +1839,19 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
     // the p_focusWidget whatever window it might be in; "first responder" in Cocoa parlance
     QLineEdit *lE = dynamic_cast<QLineEdit*>(p_focusWidget);
     QTextEdit *tE = dynamic_cast<QTextEdit*>(p_focusWidget);
+    QPlainTextEdit *ptE = dynamic_cast<QPlainTextEdit*>(p_focusWidget);
     QtSLiMTextEdit *stE = dynamic_cast<QtSLiMTextEdit *>(tE);
-    bool hasEnabledDestination = (lE && lE->isEnabled()) || (tE && tE->isEnabled());
+    bool hasEnabledDestination = (lE && lE->isEnabled()) || (tE && tE->isEnabled()) || (ptE && ptE->isEnabled());
     bool hasEnabledModifiableDestination = (lE && lE->isEnabled() && !lE->isReadOnly()) ||
-            (tE && tE->isEnabled() && !tE->isReadOnly());
+            (tE && tE->isEnabled() && !tE->isReadOnly()) || (ptE && ptE->isEnabled() && !ptE->isReadOnly());
     bool hasUndoableDestination = (lE && lE->isEnabled() && !lE->isReadOnly() && lE->isUndoAvailable()) ||
-            (tE && tE->isEnabled() && !tE->isReadOnly() && tE->isUndoRedoEnabled());
+            (tE && tE->isEnabled() && !tE->isReadOnly() && tE->isUndoRedoEnabled()) ||
+            (ptE && ptE->isEnabled() && !ptE->isReadOnly() && ptE->isUndoRedoEnabled());
     bool hasRedoableDestination = (lE && lE->isEnabled() && !lE->isReadOnly() && lE->isRedoAvailable()) ||
-            (tE && tE->isEnabled() && !tE->isReadOnly() && tE->isUndoRedoEnabled());
+            (tE && tE->isEnabled() && !tE->isReadOnly() && tE->isUndoRedoEnabled()) ||
+            (ptE && ptE->isEnabled() && !ptE->isReadOnly() && ptE->isUndoRedoEnabled());
     bool hasCopyableDestination = (lE && lE->isEnabled() && lE->selectedText().length()) ||
-            (tE && tE->isEnabled());
+            (tE && tE->isEnabled()) || (ptE && ptE->isEnabled());
     
     if (stE)
     {
@@ -1815,13 +1892,6 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
     ui->actionJumpToLine->setEnabled(hasFindTarget);
     
     findPanelInstance.fixEnableState();   // give it a chance to update its buttons whenever we update
-}
-
-void QtSLiMWindow::updateVariableBrowserButtonState(bool visible)
-{
-    // Should only be called by QtSLiMEidosConsole::updateVariableBrowserButtonStates() so state is synced
-    ui->browserButton->setChecked(visible);
-    showBrowserReleased();
 }
 
 void QtSLiMWindow::updateWindowMenu(void)
@@ -1977,9 +2047,9 @@ void QtSLiMWindow::displayProfileResults(void)
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(profile_window);
     
-    // Make a QTextEdit to hold the results
+    // Make a QPlainTextEdit to hold the results
     QHBoxLayout *window_layout = new QHBoxLayout;
-    QTextEdit *textEdit = new QTextEdit();
+    QPlainTextEdit *textEdit = new QPlainTextEdit();
     
     profile_window->setLayout(window_layout);
     
@@ -3319,7 +3389,7 @@ void QtSLiMWindow::updateChangeCount(void) //:(NSDocumentChangeType)change
 //	else if (maskedChange == NSChangeUndone)
 //		slimChangeCount--;
 	
-	updateRecycleButtonIcon(false);
+    emit controllerChangeCountChanged(slimChangeCount);
 }
 
 bool QtSLiMWindow::changedSinceRecycle(void)
@@ -3330,11 +3400,10 @@ bool QtSLiMWindow::changedSinceRecycle(void)
 void QtSLiMWindow::resetSLiMChangeCount(void)
 {
     slimChangeCount = 0;
-	
-	updateRecycleButtonIcon(false);
+    emit controllerChangeCountChanged(slimChangeCount);
 }
 
-// slot receiving the signal QTextEdit::textChanged() from the script textedit
+// slot receiving the signal QPlainTextEdit::textChanged() from the script textedit
 void QtSLiMWindow::scriptTexteditChanged(void)
 {
     // Poke the change count.  In SLiMgui we get separate notification types for changes vs. undo/redo,
@@ -3469,6 +3538,9 @@ void QtSLiMWindow::recycleClicked(void)
         consoleController->invalidateSymbolTableAndFunctionMap();
     
     clearOutputClicked();
+    if (debugOutputWindow_)
+        debugOutputWindow_->clearOutputClicked();
+    
     setScriptStringAndInitializeSimulation(utf8_script_string);
     
     if (consoleController)
@@ -3529,49 +3601,23 @@ void QtSLiMWindow::playSpeedChanged(void)
     QToolTip::showText(tooltipPosition, fpsString, ui->playSpeedSlider, QRect(), 1000000);  // 1000 seconds; taken down on mouseup automatically
 }
 
-void QtSLiMWindow::toggleDrawerToggled(void)
+void QtSLiMWindow::showDrawerClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
-    bool newValue = ui->toggleDrawerButton->isChecked();
-    
-    ui->toggleDrawerButton->qtslimSetHighlight(newValue);
-
     if (!tablesDrawerController)
-    {
         tablesDrawerController = new QtSLiMTablesDrawer(this);
-        if (tablesDrawerController)
-        {
-            // wire ourselves up to monitor the tables drawer for closing, to fix our button state
-            connect(tablesDrawerController, &QtSLiMTablesDrawer::willClose, this, [this]() {
-                ui->toggleDrawerButton->setChecked(false);
-                toggleDrawerReleased();
-            });
-        }
-        else
-        {
-            qDebug() << "Could not create tables drawer";
-            return;
-        }
-    }
     
-    if (newValue)
-    {
-        // position it to the right of the main window, with the same height
-        QRect windowRect = geometry();
-        windowRect.setLeft(windowRect.left() + windowRect.width() + 9);
-        windowRect.setRight(windowRect.left() + 200);   // the minimum in the nib is larger
-        
-        tablesDrawerController->setGeometry(windowRect);
-        
-        tablesDrawerController->show();
-        tablesDrawerController->raise();
-        tablesDrawerController->activateWindow();
-    }
-    else
-    {
-        tablesDrawerController->hide();
-    }
+    // position it to the right of the main window, with the same height
+    QRect windowRect = geometry();
+    windowRect.setLeft(windowRect.left() + windowRect.width() + 9);
+    windowRect.setRight(windowRect.left() + 200);   // the minimum in the nib is larger
+    
+    tablesDrawerController->setGeometry(windowRect);
+    
+    tablesDrawerController->show();
+    tablesDrawerController->raise();
+    tablesDrawerController->activateWindow();
 }
 
 void QtSLiMWindow::showMutationsToggled(void)
@@ -3648,21 +3694,9 @@ void QtSLiMWindow::showConsoleClicked(void)
         return;
     }
     
-    // we're about to toggle the visibility, so set our checked state accordingly
-    ui->consoleButton->setChecked(!consoleController->isVisible());
-    
-    ui->consoleButton->qtslimSetHighlight(ui->consoleButton->isChecked());
-    
-    if (ui->consoleButton->isChecked())
-    {
-        consoleController->show();
-        consoleController->raise();
-        consoleController->activateWindow();
-    }
-    else
-    {
-        consoleController->hide();
-    }
+    consoleController->show();
+    consoleController->raise();
+    consoleController->activateWindow();
 }
 
 void QtSLiMWindow::showBrowserClicked(void)
@@ -3675,18 +3709,29 @@ void QtSLiMWindow::showBrowserClicked(void)
         return;
     }
     
-    // we're about to toggle the visibility, so set our checked state accordingly
-    if (!consoleController->variableBrowser())
-        ui->browserButton->setChecked(true);
-    else
-        ui->browserButton->setChecked(!consoleController->variableBrowser()->isVisible());
+    consoleController->showBrowserClicked();
+}
+
+void QtSLiMWindow::debugOutputClicked(void)
+{
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
-    consoleController->setVariableBrowserVisibility(ui->browserButton->isChecked());
+    if (!debugOutputWindow_)
+    {
+        qApp->beep();
+        return;
+    }
+    
+    stopDebugButtonFlash();
+    
+    debugOutputWindow_->show();
+    debugOutputWindow_->raise();
+    debugOutputWindow_->activateWindow();
 }
 
 void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
 {
-    QTextEdit *scriptTE = ui->scriptTextEdit;
+    QPlainTextEdit *scriptTE = ui->scriptTextEdit;
     QString currentScriptString = scriptTE->toPlainText();
     QByteArray utf8bytes = currentScriptString.toUtf8();
 	const char *cstr = utf8bytes.constData();
@@ -3916,7 +3961,7 @@ void QtSLiMWindow::dumpPopulationClicked(void)
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
-		updateOutputTextView();
+		updateOutputViews();
 	}
 	catch (...)
 	{

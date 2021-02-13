@@ -2125,7 +2125,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2133,7 +2133,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until partway through the next generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until partway through the next generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2393,7 +2393,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2401,7 +2401,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next generation." << std::endl;
 				sim.warned_early_mutation_add_ = true;
 			}
 		}
@@ -3339,7 +3339,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					{
 						if (!sim.warned_readFromVCF_mutIDs_unused_)
 						{
-							p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
+							p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
 							sim.warned_readFromVCF_mutIDs_unused_ = true;
 						}
 					}
@@ -4049,7 +4049,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
 				sim.warned_early_mutation_remove_ = true;
 			}
 		}
@@ -4057,7 +4057,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until partway through the next generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until partway through the next generation." << std::endl;
 				sim.warned_early_mutation_remove_ = true;
 			}
 		}

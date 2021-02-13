@@ -46,6 +46,7 @@ class QItemSelection;
 class SLiMgui;
 class QtSLiMGraphView;
 class QtSLiMScriptTextEdit;
+class QtSLiMDebugOutputWindow;
 
 
 namespace Ui {
@@ -99,6 +100,10 @@ private:
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
     QtSLiMEidosConsole *consoleController = nullptr;
     QtSLiMTablesDrawer *tablesDrawerController = nullptr;
+    
+    QtSLiMDebugOutputWindow *debugOutputWindow_ = nullptr;
+    QTimer debugButtonFlashTimer_;
+    int debugButtonFlashCount_ = 0;
     
     int openedGraphCount_left = 0;      // used for new graph window positioning
     int openedGraphCount_right = 0;
@@ -161,12 +166,16 @@ public:
     QtSLiMEidosConsole *ConsoleController(void) { return consoleController; }
     QtSLiMTablesDrawer *TablesDrawerController(void) { return tablesDrawerController; }
     
+    QtSLiMDebugOutputWindow *debugOutputWindow(void) { return debugOutputWindow_; }
+    void flashDebugButton(void);
+    void stopDebugButtonFlash(void);
+    
     void selectErrorRange(void);
     void checkForSimulationTermination(void);
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);
     
-    void updateOutputTextView(void);
+    void updateOutputViews(void);
     void updateGenerationCounter(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
@@ -176,7 +185,6 @@ public:
     void updateMenuEnablingACTIVE(QWidget *focusWidget);
     void updateMenuEnablingINACTIVE(QWidget *focusWidget, QWidget *focusWindow);
     void updateMenuEnablingSHARED(QWidget *focusWidget);
-    void updateVariableBrowserButtonState(bool visible);
     void updateWindowMenu(void);
 
     void colorScriptWithProfileCountsFromNode(const EidosASTNode *node, double elapsedTime, int32_t baseIndex, QTextDocument *doc, QTextCharFormat &baseFormat);
@@ -213,6 +221,7 @@ public:
 signals:
     void terminationWithMessage(QString message);
     void playStateChanged(void);
+    void controllerChangeCountChanged(int changeCount);
     
     void controllerUpdatedAfterTick(void);
     void controllerSelectionChanged(void);
@@ -227,18 +236,19 @@ public slots:
     void recycleClicked(void);
     void playSpeedChanged(void);
 
-    void toggleDrawerToggled(void);
     void showMutationsToggled(void);
     void showFixedSubstitutionsToggled(void);
     void showChromosomeMapsToggled(void);
     void showGenomicElementsToggled(void);
 
+    void showDrawerClicked(void);
     void showConsoleClicked(void);
     void showBrowserClicked(void);
     void jumpToPopupButtonRunMenu(void);
 
     void clearOutputClicked(void);
     void dumpPopulationClicked(void);
+    void debugOutputClicked(void);
     void graphPopupButtonRunMenu(void);
     void changeDirectoryClicked(void);
 
@@ -293,10 +303,14 @@ private slots:
     void clearOutputReleased(void);
     void dumpPopulationPressed(void);
     void dumpPopulationReleased(void);
+    void debugOutputPressed(void);
+    void debugOutputReleased(void);
     void graphPopupButtonPressed(void);
     void graphPopupButtonReleased(void);
     void changeDirectoryPressed(void);
     void changeDirectoryReleased(void);
+    
+    void handleDebugButtonFlash(void);
     
     void finish_eidos_pauseExecution(void);
     

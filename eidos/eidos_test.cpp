@@ -51,7 +51,7 @@ static int gEidosTestFailureCount = 0;
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP p_correct_result)
 {
-	EidosScript script(p_script_string);
+	EidosScript script(p_script_string, -1);
 	EidosValue_SP result;
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	
@@ -141,7 +141,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
 void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_position, const std::string &p_reason_snip)
 {
-	EidosScript script(p_script_string);
+	EidosScript script(p_script_string, -1);
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 	

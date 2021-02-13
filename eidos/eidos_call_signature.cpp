@@ -614,7 +614,8 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 
 void EidosFunctionSignature::ProcessEidosScript(const std::string &p_script_string)
 {
-	EidosScript *source_script = new EidosScript(p_script_string);
+	// This method is for built-in functions implemented in Eidos; they have no position in the user's script string
+	EidosScript *source_script = new EidosScript(p_script_string, -1);
 	
 	source_script->Tokenize();
 	source_script->ParseInterpreterBlockToAST(false);

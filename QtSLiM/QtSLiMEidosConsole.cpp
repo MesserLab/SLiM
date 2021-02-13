@@ -177,24 +177,8 @@ void QtSLiMEidosConsole::closeEvent(QCloseEvent *p_event)
     QWidget::closeEvent(p_event);
 }
 
-void QtSLiMEidosConsole::updateVariableBrowserButtonStates(bool visible)
+void QtSLiMEidosConsole::showBrowserClicked(void)
 {
-    // Called from various places to ensure that both our button and QtSLiMWindow's button show the right state
-    
-    // our button
-    ui->browserButton->setChecked(visible);
-    showBrowserReleased();
-    
-    // QtSLiMWindow's button
-    if (parentSLiMWindow)
-        parentSLiMWindow->updateVariableBrowserButtonState(visible);
-}
-
-void QtSLiMEidosConsole::setVariableBrowserVisibility(bool visible)
-{
-    if (!visible && !variableBrowser_)
-        return;
-    
     if (!variableBrowser_)
     {
         variableBrowser_ = new QtSLiMVariableBrowser(this);
@@ -203,9 +187,8 @@ void QtSLiMEidosConsole::setVariableBrowserVisibility(bool visible)
         {
             variableBrowser_->setAttribute(Qt::WA_DeleteOnClose);
             
-            // wire ourselves up to monitor the console for closing, to fix our button state
+            // wire ourselves up to monitor the console for closing, to free
             connect(variableBrowser_, &QtSLiMVariableBrowser::willClose, this, [this]() {
-                updateVariableBrowserButtonStates(false);
                 variableBrowser_ = nullptr;     // deleted on close
             });
         }
@@ -215,18 +198,9 @@ void QtSLiMEidosConsole::setVariableBrowserVisibility(bool visible)
         }
     }
     
-    updateVariableBrowserButtonStates(visible);
-    
-    if (ui->browserButton->isChecked())
-    {
-        variableBrowser_->show();
-        variableBrowser_->raise();
-        variableBrowser_->activateWindow();
-    }
-    else
-    {
-        variableBrowser_->close();
-    }
+    variableBrowser_->show();
+    variableBrowser_->raise();
+    variableBrowser_->activateWindow();
 }
 
 QStatusBar *QtSLiMEidosConsole::statusBar(void)
@@ -306,7 +280,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
     scriptString.replace(QChar::LineSeparator, "\n");
     
     std::string script_string(scriptString.toStdString());
-	EidosScript script(script_string);
+	EidosScript script(script_string, -1);
 	std::string output;
 	
 	// Unfortunately, running readFromPopulationFile() is too much of a shock for SLiMgui.  It invalidates variables that are being displayed in
@@ -436,6 +410,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
 		output = interpreter.ExecutionOutput();
+        output += interpreter.ErrorOutput();
 		
         if (variableBrowser_)
             variableBrowser_->reloadBrowser(true);
@@ -451,6 +426,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 		parentSLiMWindow->didExecuteScript();
 		
 		output = interpreter.ExecutionOutput();
+        output += interpreter.ErrorOutput();
 		
 		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
 		*errorString = QString::fromStdString(error_string);

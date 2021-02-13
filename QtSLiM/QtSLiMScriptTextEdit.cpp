@@ -23,6 +23,7 @@
 #include <QApplication>
 #include <QGuiApplication>
 #include <QTextCursor>
+#include <QPaintEvent>
 #include <QMouseEvent>
 #include <QRegularExpression>
 #include <QStyle>
@@ -36,6 +37,7 @@
 #include <QStringListModel>
 #include <QScrollBar>
 #include <QTextDocument>
+#include <QMenu>
 #include <QDebug>
 
 #include "QtSLiMPreferences.h"
@@ -52,18 +54,19 @@
 #include "eidos_token.h"
 #include "slim_eidos_block.h"
 #include "subpopulation.h"
+#include "eidos_interpreter.h"
 
 
 //
 //  QtSLiMTextEdit
 //
 
-QtSLiMTextEdit::QtSLiMTextEdit(const QString &text, QWidget *p_parent) : QTextEdit(text, p_parent)
+QtSLiMTextEdit::QtSLiMTextEdit(const QString &text, QWidget *p_parent) : QPlainTextEdit(text, p_parent)
 {
     selfInit();
 }
 
-QtSLiMTextEdit::QtSLiMTextEdit(QWidget *p_parent) : QTextEdit(p_parent)
+QtSLiMTextEdit::QtSLiMTextEdit(QWidget *p_parent) : QPlainTextEdit(p_parent)
 {
     selfInit();
 }
@@ -71,21 +74,21 @@ QtSLiMTextEdit::QtSLiMTextEdit(QWidget *p_parent) : QTextEdit(p_parent)
 void QtSLiMTextEdit::selfInit(void)
 {
     // track changes to undo/redo availability
-    connect(this, &QTextEdit::undoAvailable, this, [this](bool b) { undoAvailable_ = b; });
-    connect(this, &QTextEdit::redoAvailable, this, [this](bool b) { redoAvailable_ = b; });
-    connect(this, &QTextEdit::copyAvailable, this, [this](bool b) { copyAvailable_ = b; });
+    connect(this, &QPlainTextEdit::undoAvailable, this, [this](bool b) { undoAvailable_ = b; });
+    connect(this, &QPlainTextEdit::redoAvailable, this, [this](bool b) { redoAvailable_ = b; });
+    connect(this, &QPlainTextEdit::copyAvailable, this, [this](bool b) { copyAvailable_ = b; });
     
     // clear the custom error background color whenever the selection changes
-    connect(this, &QTextEdit::selectionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
-    connect(this, &QTextEdit::cursorPositionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
+    connect(this, &QPlainTextEdit::selectionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
     
     // because we mess with the palette, we have to reset it on dark mode changes; this resets the error
     // highlighting if it is set up, which is a bug, but not one worth worrying about I suppose...
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { setPalette(qtslimStandardPalette()); });
     
     // clear the status bar on a selection change
-    connect(this, &QTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
-    connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
+    connect(this, &QPlainTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
     
     // Wire up to change the font when the display font pref changes
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
@@ -108,9 +111,6 @@ void QtSLiMTextEdit::selfInit(void)
 #else
     setTabStopDistance(tabWidth);               // added in 5.10
 #endif
-    
-    // refuse rich-text pastes
-    setAcceptRichText(false);
 }
 
 QtSLiMTextEdit::~QtSLiMTextEdit()
@@ -204,7 +204,7 @@ void QtSLiMTextEdit::highlightError(int startPosition, int endPosition)
     
     setPalette(qtslimErrorPalette());
     
-    // note that this custom selection color is cleared by a connection to QTextEdit::selectionChanged()
+    // note that this custom selection color is cleared by a connection to QPlainTextEdit::selectionChanged()
 }
 
 void QtSLiMTextEdit::selectErrorRange(void)
@@ -293,7 +293,7 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
 	{
         if (scriptType == EidosScriptType)
         {
-            EidosScript script(cstr);
+            EidosScript script(cstr, -1);
             
             try {
                 script.Tokenize();
@@ -388,7 +388,7 @@ void QtSLiMTextEdit::_prettyprint_reformat(bool p_reformat)
             QString currentScriptString = toPlainText();
             QByteArray utf8bytes = currentScriptString.toUtf8();
             const char *cstr = utf8bytes.constData();
-			EidosScript script(cstr);
+			EidosScript script(cstr, -1);
             
 			script.Tokenize(false, true);	// get whitespace and comment tokens
 			
@@ -512,7 +512,7 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
         optionClickIntercepted = true;
         
         // get the position of the character clicked on; note that this is different from
-        // QTextEdit::cursorForPosition(), which returns the closest cursor position
+        // QPlainTextEdit::cursorForPosition(), which returns the closest cursor position
         // *between* characters, not which character was actually clicked on; see
         // https://www.qtcentre.org/threads/45645-QTextEdit-cursorForPosition()-and-character-at-mouse-pointer
         QPointF localPos = p_event->localPos();
@@ -584,7 +584,7 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
         // all other cases go to super
         optionClickIntercepted = false;
         
-        QTextEdit::mousePressEvent(p_event);
+        QPlainTextEdit::mousePressEvent(p_event);
     }
 }
 
@@ -592,14 +592,14 @@ void QtSLiMTextEdit::mouseMoveEvent(QMouseEvent *p_event)
 {
     // forward to super, as long as we did not intercept this mouse event
     if (!optionClickIntercepted)
-        QTextEdit::mouseMoveEvent(p_event);
+        QPlainTextEdit::mouseMoveEvent(p_event);
 }
 
 void QtSLiMTextEdit::mouseReleaseEvent(QMouseEvent *p_event)
 {
     // forward to super, as long as we did not intercept this mouse event
     if (!optionClickIntercepted)
-        QTextEdit::mouseReleaseEvent(p_event);
+        QPlainTextEdit::mouseReleaseEvent(p_event);
     
     optionClickIntercepted = false;
 }
@@ -609,7 +609,7 @@ void QtSLiMTextEdit::fixMouseCursor(void)
     if (optionClickEnabled)
     {
         // we want a pointing hand cursor when option is pressed; if the cursor is wrong, fix it
-        // note the cursor for QTextEdit is apparently controlled by its viewport
+        // note the cursor for QPlainTextEdit is apparently controlled by its viewport
         bool optionPressed = QGuiApplication::queryKeyboardModifiers().testFlag(Qt::AltModifier);
         QWidget *vp = viewport();
         
@@ -623,7 +623,7 @@ void QtSLiMTextEdit::fixMouseCursor(void)
 void QtSLiMTextEdit::enterEvent(QEvent *p_event)
 {
     // forward to super
-    QTextEdit::enterEvent(p_event);
+    QPlainTextEdit::enterEvent(p_event);
     
     // modifiersChanged() generally keeps our cursor correct, but we do it on enterEvent
     // as well just as a fallback; for example, if the mouse is inside us on launch and
@@ -679,7 +679,7 @@ EidosFunctionMap *QtSLiMTextEdit::functionMapForScriptString(QString scriptStrin
 	// This returns a function map (owned by the caller) that reflects the best guess we can make, incorporating
 	// any functions known to our delegate, as well as all functions we can scrape from the script string.
 	std::string script_string = scriptString.toStdString();
-	EidosScript script(script_string);
+	EidosScript script(script_string, -1);
 	
 	// Tokenize
 	script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -768,7 +768,7 @@ EidosCallSignature_CSP QtSLiMTextEdit::signatureForScriptSelection(QString &call
     if (scriptString.length())
 	{
 		std::string script_string = scriptString.toStdString();
-		EidosScript script(script_string);
+		EidosScript script(script_string, -1);
 		
 		// Tokenize
 		script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -1115,7 +1115,7 @@ void QtSLiMTextEdit::keyPressEvent(QKeyEvent *p_event)
     // Without a completer, we just call super
     if (!completer)
     {
-        QTextEdit::keyPressEvent(p_event);
+        QPlainTextEdit::keyPressEvent(p_event);
         return;
     }
     
@@ -1142,7 +1142,7 @@ void QtSLiMTextEdit::keyPressEvent(QKeyEvent *p_event)
     {
         // any key other than escape and the special keys above causes the completion popup to hide
         completer->popup()->hide();
-        QTextEdit::keyPressEvent(p_event);
+        QPlainTextEdit::keyPressEvent(p_event);
         
         // implement autoindent
         if ((p_event->modifiers() == Qt::NoModifier) && ((p_event->key() == Qt::Key_Enter) || (p_event->key() == Qt::Key_Return)))
@@ -2158,7 +2158,7 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 			delete definitive_function_map;
 			
 			// Next, add type table entries based on parsing and analysis of the user's code
-			EidosScript script(script_string);
+			EidosScript script(script_string, -1);
 			
 			script.Tokenize(true, false);					// make bad tokens as needed, do not keep nonsignificant tokens
 			script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
@@ -2169,7 +2169,7 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 		}
 		
 		// Tokenize; we can't use the tokenization done above, as we want whitespace tokens here...
-		EidosScript script(script_string);
+		EidosScript script(script_string, -1);
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
 		const std::vector<EidosToken> &tokens = script.Tokens();
@@ -2347,6 +2347,8 @@ public:
 
 protected:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override { codeEditor->lineNumberAreaPaintEvent(p_paintEvent); }
+    virtual void mousePressEvent(QMouseEvent *p_mouseEvent) override { codeEditor->lineNumberAreaMouseEvent(p_mouseEvent); }
+    virtual void contextMenuEvent(QContextMenuEvent *p_event) override { codeEditor->lineNumberAreaContextMenuEvent(p_event); }
 
 private:
     QtSLiMScriptTextEdit *codeEditor;
@@ -2388,6 +2390,15 @@ void QtSLiMScriptTextEdit::initializeLineNumbers(void)
     
     updateLineNumberAreaWidth(0);
     highlightCurrentLine();
+    
+    // We now set up to maintain our debugging icons here too
+    connect(this, SIGNAL(textChanged()), this, SLOT(updateDebugPoints()));
+    
+    // Watch for changes to the controller's change count, so we can disable debug points when the document needs recycling
+    QtSLiMWindow *controller = slimControllerForWindow();
+    
+    if (controller)
+        connect(controller, &QtSLiMWindow::controllerChangeCountChanged, this, &QtSLiMScriptTextEdit::controllerChangeCountChanged);
 }
 
 QtSLiMScriptTextEdit::~QtSLiMScriptTextEdit()
@@ -2537,16 +2548,30 @@ void QtSLiMScriptTextEdit::commentUncommentSelection(void)
 	}
 }
 
-// From here down is the machinery for providing line nunbers with LineNumberArea
+// From here down is the machinery for providing line numbers with LineNumberArea
 // This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
-// adaptations from QPlainTextEdit to QTextEdit were used from https://stackoverflow.com/a/24596246/2752221
 
 int QtSLiMScriptTextEdit::lineNumberAreaWidth()
 {
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
     
+    // We now show debugging icons in the line number area too, since they are kept by line number
+    // The line number area therefore no longer goes down to width 0 when the pref is disabled
+    if (scriptType == SLiMScriptType)
+    {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        lineNumberAreaBugWidth = 3 + fontMetrics().width("9") * 2;                 // deprecated in 5.11
+#else
+        lineNumberAreaBugWidth = 3 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * 2;   // added in Qt 5.11
+#endif
+    }
+    else
+    {
+        lineNumberAreaBugWidth = 0;
+    }
+    
     if (!prefsNotifier.showLineNumbersPref())
-        return 0;
+        return lineNumberAreaBugWidth;
     
     int digits = 1;
     int max = qMax(1, document()->blockCount());
@@ -2561,7 +2586,7 @@ int QtSLiMScriptTextEdit::lineNumberAreaWidth()
     int space = 13 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;   // added in Qt 5.11
 #endif
     
-    return space;
+    return lineNumberAreaBugWidth + space;
 }
 
 void QtSLiMScriptTextEdit::displayFontPrefChanged()
@@ -2588,10 +2613,176 @@ void QtSLiMScriptTextEdit::updateLineNumberArea(void)
 
 void QtSLiMScriptTextEdit::resizeEvent(QResizeEvent *e)
 {
-    QTextEdit::resizeEvent(e);
+    QPlainTextEdit::resizeEvent(e);
 
     QRect cr = contentsRect();
     lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
+}
+
+void QtSLiMScriptTextEdit::toggleDebuggingForLine(int lineNumber)
+{
+    if (scriptType != SLiMScriptType)
+        return;
+    
+    // First figure out whether we have a debugging point at the line in question
+    bool hasExistingCursor = false;
+    
+    //qDebug() << "toggleDebuggingForLine():" << lineNumber;
+    //qDebug() << "block contents:" << document()->findBlockByLineNumber(lineNumber).text();
+    
+    for (int cursorIndex = 0; cursorIndex < (int)bugCursors.size(); cursorIndex++)
+    {
+        QTextCursor &existingCursor = bugCursors[cursorIndex];
+        QTextBlock cursorBlock = existingCursor.block();
+        int blockNumber = cursorBlock.blockNumber();
+        
+        if (blockNumber == lineNumber)
+        {
+            hasExistingCursor = true;
+            bugCursors.erase(bugCursors.begin() + cursorIndex);
+            --cursorIndex;
+        }
+    }
+    
+    if (hasExistingCursor)
+    {
+        // This line number had a debugging point; we cleared it above
+    }
+    else
+    {
+        // This line number does not currently have a debugging point; add one
+        QTextDocument *doc = document();
+        QTextBlock block = doc->findBlockByLineNumber(lineNumber);
+        QString blockText = block.text();
+        
+        // Find the first non-whitespace character in the block; the debug point starts at that character
+        int firstNonWhitespace = 0;
+        
+        for (firstNonWhitespace = 0; firstNonWhitespace < blockText.length(); ++firstNonWhitespace)
+        {
+            QChar qch = blockText[firstNonWhitespace];
+            
+            if ((qch != " ") && (qch != "\t"))
+                break;
+        }
+        
+        // If the block contains nothing but whitespace, decline to set a debugging point
+        // This kind of makes sense semantically, and in any case if it's an empty line there's no text to put our cursor on
+        if (firstNonWhitespace == blockText.length())
+            return;
+        
+        // Make a text cursor encompassing the remainder of the block, from the first non-whitespace character
+        QTextCursor tc(block);
+        tc.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, firstNonWhitespace);
+        tc.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor, 1);
+        
+        // Remember the cursor as a debug point
+        bugCursors.emplace_back(tc);
+    }
+    
+    // Since the cursors changed, we need to recache our line numbers
+    updateDebugPoints();
+}
+
+void QtSLiMScriptTextEdit::updateDebugPoints(void)
+{
+    // prevent re-entrancy
+    if (coloringDebugPointCursors)
+        return;
+    
+    //qDebug() << "updateDebugPoints():" << bugCursors.size() << "debug cursors exist";
+    
+    // Generate a new bugLines vector from our text cursors; we vet the cursors at the same time,
+    // and remove any cursors that are zero-length, or that are now duplicates
+    EidosInterpreterDebugPointsSet newBugLines;
+    int bugCursorCount = (int)bugCursors.size();
+    
+    for (int bugCursorIndex = 0; bugCursorIndex < bugCursorCount; ++bugCursorIndex)
+    {
+        QTextCursor &bugCursor = bugCursors[bugCursorIndex];
+        bool zeroLength = !bugCursor.hasSelection();
+        
+        // Fix cursors to encompass their block; they can get out of whack due to typing
+        // This is probably usually unnecessary, but it's a trivial amount of work
+        if (!zeroLength)
+        {
+            bugCursor.setPosition(bugCursor.selectionStart(), QTextCursor::MoveAnchor);
+            bugCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor, 1);
+        }
+        
+        QTextBlock cursorBlock = bugCursor.block();
+        int blockNumber = cursorBlock.blockNumber();
+        
+        if (!zeroLength && (newBugLines.set.find(blockNumber) == newBugLines.set.end()))
+        {
+            // this line is not already marked as debug; mark it now
+            newBugLines.set.emplace(blockNumber);
+            continue;
+        }
+        
+        // discard a redundant or zero-length cursor; this generally results from lines being
+        // merged together in the editor (redundant), or being deleted (zero-length)
+        bugCursors.erase(bugCursors.begin() + bugCursorIndex);
+        bugCursorIndex--;
+        bugCursorCount--;
+    }
+    
+    // Set a temporary color on our cursors for debugging
+#if 0
+    {
+        coloringDebugPointCursors = true;
+        
+        QTextCharFormat clearFormat;
+        QTextCharFormat highlightFormat;
+        
+        clearFormat.setBackground(QBrush(QColor(255, 255, 255)));
+        highlightFormat.setBackground(QBrush(QColor(220, 255, 220)));
+        
+        QTextCursor tc(document());
+        tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+        tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+        
+        tc.setCharFormat(clearFormat);
+        
+        for (QTextCursor &bugCursor : bugCursors)
+            bugCursor.setCharFormat(highlightFormat);
+        
+        coloringDebugPointCursors = false;
+    }
+#endif
+    
+    // If bugLines changed, we need to recache/redraw
+    if (newBugLines.set != bugLines.set)
+    {
+        std::swap(newBugLines.set, bugLines.set);
+        
+        if (debugPointsEnabled)
+            enabledBugLines.set = bugLines.set;
+        else
+            enabledBugLines.set.clear();
+        
+        lineNumberArea->update();
+    }
+    
+    //qDebug() << "   updateDebugPoints():" << bugLines.size() << "debug points set";
+}
+
+void QtSLiMScriptTextEdit::controllerChangeCountChanged(int changeCount)
+{
+    if (changeCount == 0)
+    {
+        // recycled and unedited; debug points enabled
+        debugPointsEnabled = true;
+        enabledBugLines.set = bugLines.set;
+        lineNumberArea->update();
+    }
+    else
+    {
+        // edited without a recycle; debug points disabled
+        debugPointsEnabled = false;
+        enabledBugLines.set.clear();
+        lineNumberArea->update();
+    }
 }
 
 // light appearance: standard blue highlight
@@ -2631,37 +2822,181 @@ static QColor lineAreaNumberCurrent_DARK = QtSLiMColorWithWhite(0.6, 1.0);
 
 void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
 {
-    if (contentsRect().width() <= 0)
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    bool showLineNumbers = prefsNotifier.showLineNumbersPref();
+    int bugCount = (int)bugLines.set.size();
+    
+    // Fill the background with the appropriate colors
+    QRect bounds = contentsRect();
+    
+    if (bounds.width() <= 0)
         return;
+    
+    QRect bugRect = bounds;
+    QRect lineNumberRect = bounds;
+    bugRect.setWidth(lineNumberAreaBugWidth);
+    lineNumberRect.adjust(lineNumberAreaBugWidth, 0, -lineNumberAreaBugWidth, 0);
     
     bool inDarkMode = QtSLiMInDarkMode();
     QPainter painter(lineNumberArea);
-    painter.fillRect(p_paintEvent->rect(), inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
-    int blockNumber = 0;
-    QTextBlock block = document()->findBlockByNumber(blockNumber);
-    int cursorBlockNumber = textCursor().blockNumber();
-
-    int translate_y = -verticalScrollBar()->sliderPosition();
     
-    // Draw the numbers (displaying the current line number in col_1)
+    painter.fillRect(bounds, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
+    
+    if ((bugCount == 0) && !showLineNumbers)
+        return;
+    
+    static QIcon *bugIcon_LIGHT = nullptr;
+    static QIcon *bugIcon_DARK = nullptr;
+    
+    if (!inDarkMode && !bugIcon_LIGHT && (bugCount > 0))
+        bugIcon_LIGHT = new QIcon(":/icons/bug.png");
+    if (inDarkMode && !bugIcon_DARK && (bugCount > 0))
+        bugIcon_DARK = new QIcon(":/icons/bug_DARK.png");
+    
+    QIcon *bugIcon = (inDarkMode ? bugIcon_DARK : bugIcon_LIGHT);
+    
+    // Draw the numbers and bug symbols (displaying the current line number in col_1)
+    QTextBlock block = firstVisibleBlock();
+    int blockNumber = block.blockNumber();
+    int cursorBlockNumber = textCursor().blockNumber();
+    int top = qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
+    int bottom = top + qRound(blockBoundingRect(block).height());
+    
     painter.setPen(inDarkMode ? lineAreaNumber_DARK : lineAreaNumber);
+    painter.save();
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    
+    while (block.isValid() && (top <= p_paintEvent->rect().bottom()))
+    {
+        if (block.isVisible() && (bottom >= p_paintEvent->rect().top()))
+        {
+            if (showLineNumbers)
+            {
+                if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumberCurrent_DARK : lineAreaNumberCurrent);
+                
+                QString number = QString::number(blockNumber + 1);
+                painter.drawText(-7, top, lineNumberArea->width(), fontMetrics().height(), Qt::AlignRight, number);
+                
+                if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumber_DARK : lineAreaNumber);
+            }
+            if (bugCount)
+            {
+                if (bugLines.set.find(blockNumber) != bugLines.set.end())
+                {
+                    QRect bugIconBounds(bugRect.left(), top, bugRect.width(), bottom - top);
+                    
+                    //painter.fillRect(bugIconBounds, Qt::green);
+                    
+                    // enforce square bounds for drawing
+                    if (bugIconBounds.width() != bugIconBounds.height())
+                    {
+                        int width = bugIconBounds.width();
+                        int height = bugIconBounds.height();
+                        int adjust = std::abs(width - height);
+                        int halfAdjust = adjust / 2;
+                        int remainder = adjust - halfAdjust;
+                        
+                        if (width > height)
+                            bugIconBounds.adjust(halfAdjust, 0, -remainder, 0);
+                        else
+                            bugIconBounds.adjust(0, halfAdjust, 0, -remainder);
+                    }
+                    
+                    // shrink the bug at large sizes
+                    if (bugIconBounds.width() > 24)
+                        bugIconBounds.adjust(3, 3, -3, -3);
+                    else if (bugIconBounds.width() > 20)
+                        bugIconBounds.adjust(2, 2, -2, -2);
+                    else if (bugIconBounds.width() > 16)
+                        bugIconBounds.adjust(1, 1, -1, -1);
+                    
+                    // shift left slightly if we can
+                    if (bugIconBounds.left() > bugRect.left())
+                        bugIconBounds.adjust(-1, 0, -1, 0);
+                    
+                    //qDebug() << "bugIconBounds ==" << bugIconBounds;
+                    //painter.fillRect(bugIconBounds, Qt::red);
+                    
+                    if (debugPointsEnabled)
+                        bugIcon->paint(&painter, bugIconBounds, Qt::AlignCenter, QIcon::Normal, QIcon::Off);
+                    else
+                        bugIcon->paint(&painter, bugIconBounds, Qt::AlignCenter, QIcon::Disabled, QIcon::Off);
+                }
+            }
+        }
+
+        block = block.next();
+        top = bottom;
+        bottom = top + qRound(blockBoundingRect(block).height());
+        ++blockNumber;
+    }
+    
+    painter.restore();
+}
+
+void QtSLiMScriptTextEdit::lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent)
+{
+    if (lineNumberAreaBugWidth == 0)
+        return;
+    
+    QPointF localPos = p_mouseEvent->localPos();
+    qreal localY = localPos.y();
+    
+    //qDebug() << "localY ==" << localY;
+    
+    if ((localPos.x() < 0) || (localPos.x() >= lineNumberAreaBugWidth + 2))     // +2 for a little slop
+            return;
+    
+    // Find the position of the click in the document.  We loop through the blocks manually; I tried using
+    // document()->documentLayout()->hitTest(documentPos, Qt::FuzzyHit) but it didn't seem to like blank lines,
+    // although that may have been user error.  Anyway, this approach works.
+    QTextBlock block = firstVisibleBlock();
+    int blockNumber = block.blockNumber();
+    int top = qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
+    int bottom = top + qRound(blockBoundingRect(block).height());
     
     while (block.isValid())
     {
         if (block.isVisible())
         {
-            if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumberCurrent_DARK : lineAreaNumberCurrent);
-            
-            QRectF blockBounds = this->document()->documentLayout()->blockBoundingRect(block);
-            
-            QString number = QString::number(blockNumber + 1);
-            painter.drawText(-7, blockBounds.top() + translate_y, lineNumberArea->width(), fontMetrics().height(), Qt::AlignRight, number);
-            
-            if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumber_DARK : lineAreaNumber);
+            if ((localY >= top) && (localY <= bottom))
+            {
+                toggleDebuggingForLine(blockNumber);
+                break;
+            }
+            else if (localY < top)
+            {
+                break;
+            }
         }
-
+        
         block = block.next();
+        top = bottom;
+        bottom = top + qRound(blockBoundingRect(block).height());
         ++blockNumber;
+    }
+}
+
+void QtSLiMScriptTextEdit::lineNumberAreaContextMenuEvent(QContextMenuEvent *p_event)
+{
+    if (lineNumberAreaBugWidth == 0)
+        return;
+    
+    QMenu contextMenu("line_area_menu", this);
+    
+    QAction *clearDebugPoints = contextMenu.addAction("Clear Debug Points");
+    
+    // Run the context menu synchronously
+    QAction *action = contextMenu.exec(p_event->globalPos());
+    
+    // Act upon the chosen action; we just do it right here instead of dealing with slots
+    if (action)
+    {
+        if (action == clearDebugPoints)
+        {
+            bugCursors.clear();
+            updateDebugPoints();
+        }
     }
 }
 

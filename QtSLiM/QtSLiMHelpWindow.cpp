@@ -1030,7 +1030,7 @@ void QtSLiMHelpWindow::outlineSelectionChanged(void)
     if (!doingProgrammaticSelection)
     {
         QList<QTreeWidgetItem *> &&selection = ui->topicOutlineView->selectedItems();
-        QTextEdit *textedit = ui->descriptionTextEdit;
+        QPlainTextEdit *textedit = ui->descriptionTextEdit;
         QTextDocument *textdoc = textedit->document();
         bool firstItem = true;
         

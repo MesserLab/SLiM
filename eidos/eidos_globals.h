@@ -324,6 +324,7 @@ void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_
 // related to termination output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode,
 // we use a global ostringstream to capture all termination-related output, and whoever catches the raise handles
 // the termination stream.  All other Eidos output goes to ExecutionOutputStream(), defined on EidosInterpreter.
+// BCH 2/9/2021: Eidos output can now also go to ErrorOutputStream(), also defined on EidosInterpreter.
 extern bool gEidosTerminateThrows;
 extern std::ostringstream gEidosTermination;
 

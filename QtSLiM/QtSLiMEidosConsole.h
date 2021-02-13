@@ -55,9 +55,6 @@ public:
     // Enable/disable the user interface as the simulation's state changes
     void setInterfaceEnabled(bool enabled);
     
-    // Variable browser state
-    void setVariableBrowserVisibility(bool visible);
-    
     // Throw away the current symbol table
     void invalidateSymbolTableAndFunctionMap(void);
     
@@ -79,6 +76,7 @@ public:
 public slots:
     void executeAllClicked(void);
     void executeSelectionClicked(void);
+    void showBrowserClicked(void);
     
 signals:
     void willClose(void);
@@ -116,7 +114,6 @@ private:
     bool interfaceEnabled = false;              // set to false when the simulation is running or invalid
     
     // Variable browser support
-    void updateVariableBrowserButtonStates(bool visible);
     QtSLiMVariableBrowser *variableBrowser_ = nullptr;
     
     // The symbol table for the console interpreter; needs to be wiped whenever the symbol table changes

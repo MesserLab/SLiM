@@ -2299,7 +2299,7 @@ If a value is supplied for
 \f2 \'a0
 \f1 sep
 \f2 \'a0
-\f1 =\'a0" "])\
+\f1 =\'a0" "]\cf2 , [logical$\'a0error\'a0=\'a0F]\cf0 )\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Concatenates output
@@ -2331,6 +2331,21 @@ If a value is supplied for
 \f1\fs18 cat(NULL)
 \f3\fs20  will emit nothing.
 \f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3 \cf2 By default (when 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20 ), the output is sent to the standard Eidos output stream.  When running at the command line, this sends it to 
+\f1\fs18 stdout
+\f3\fs20 ; when running in SLiMgui, this sends it to the simulation window\'92s output textview.  If 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the output is instead sent to the Eidos error stream.  When running at the command line, this sends it to 
+\f1\fs18 stderr
+\f3\fs20 ; when running in SLiMgui, the output is routed to the simulation\'92s debugging output window.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)catn([*
@@ -2341,7 +2356,7 @@ If a value is supplied for
 \f2 \'a0
 \f1 sep
 \f2 \'a0
-\f1 =\'a0" "])\
+\f1 =\'a0" "]\cf2 , [logical$\'a0error\'a0=\'a0F]\cf0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Concatenates output (with a trailing newline)
@@ -2361,6 +2376,21 @@ If a value is supplied for
 \f1\fs18 catn()
 \f3\fs20  call with no parameters to emit a newline.
 \f2 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3 \cf2 By default (when 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20 ), the output is sent to the standard Eidos output stream.  When running at the command line, this sends it to 
+\f1\fs18 stdout
+\f3\fs20 ; when running in SLiMgui, this sends it to the simulation window\'92s output textview.  If 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the output is instead sent to the Eidos error stream.  When running at the command line, this sends it to 
+\f1\fs18 stderr
+\f3\fs20 ; when running in SLiMgui, the output is routed to the simulation\'92s debugging output window.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string)format(string$
@@ -2888,7 +2918,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f1\fs18 \cf0 (void)print(*
 \f2 \'a0
-\f1 x)\
+\f1 x\cf2 , [logical$\'a0error\'a0=\'a0F]\cf0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Prints output
@@ -2901,6 +2931,21 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f3\fs20  and 
 \f1\fs18 cat()
 \f2\fs20 .\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3 \cf2 By default (when 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20 ), the output is sent to the standard Eidos output stream.  When running at the command line, this sends it to 
+\f1\fs18 stdout
+\f3\fs20 ; when running in SLiMgui, this sends it to the simulation window\'92s output textview.  If 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the output is instead sent to the Eidos error stream.  When running at the command line, this sends it to 
+\f1\fs18 stderr
+\f3\fs20 ; when running in SLiMgui, the output is routed to the simulation\'92s debugging output window.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)rev(*
@@ -3023,7 +3068,7 @@ This is quite similar to a function in R of the same name; note, however, that E
 
 \f1\fs18 \cf0 (void)str(*
 \f2 \'a0
-\f1 x)\
+\f1 x\cf2 , [logical$\'a0error\'a0=\'a0F]\cf0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Prints the structure
@@ -3052,6 +3097,21 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f1\fs18 x
 \f3\fs20 ).
 \f2 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3 \cf2 By default (when 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20 ), the output is sent to the standard Eidos output stream.  When running at the command line, this sends it to 
+\f1\fs18 stdout
+\f3\fs20 ; when running in SLiMgui, this sends it to the simulation window\'92s output textview.  If 
+\f1\fs18 error
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the output is instead sent to the Eidos error stream.  When running at the command line, this sends it to 
+\f1\fs18 stderr
+\f3\fs20 ; when running in SLiMgui, the output is routed to the simulation\'92s debugging output window.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (string)strsplit(string$

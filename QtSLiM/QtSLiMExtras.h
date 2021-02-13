@@ -138,8 +138,15 @@ public:
     void qtslimSetHighlight(bool highlighted);
     void qtslimSetIcon(QString baseName, bool highlighted);
     
+    // An added feature beyond QPushButton: support for a "temporary icon" drawn on top of the
+    // normal cached icon, with variable opacity.  This supports the pulsing debug output button.
+    void setTemporaryIcon(QIcon tempIcon) { temporaryIcon = tempIcon; update(); }
+    void setTemporaryIconOpacity(double opacity) { temporaryIconOpacity = opacity; update(); }
+    void clearTemporaryIcon(void) { temporaryIcon = QIcon(); update(); }
+    
 protected:
     void sharedInit(void);
+    virtual bool hitButton(const QPoint &pos) const override;
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
     
     QString qtslimBaseName;                 // base name, such as "foo"
@@ -149,6 +156,9 @@ protected:
     QIcon *qtslimIcon_H = nullptr;
     QIcon *qtslimIcon_DARK = nullptr;
     QIcon *qtslimIcon_H_DARK = nullptr;
+    
+    QIcon temporaryIcon;
+    double temporaryIconOpacity = 0.0;
     
     void qtslimFreeCachedIcons(void);
     QIcon *qtslimIconForState(bool highlighted, bool darkMode);

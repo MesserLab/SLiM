@@ -86,7 +86,7 @@
 		{
 			// insert the script into the simulation's script block list
 			std::string scriptInternalString([scriptInternal UTF8String]);
-			SLiMEidosBlock *script_block = new SLiMEidosBlock(-1, scriptInternalString, SLiMEidosBlockType::SLiMEidosEventLate, targetGenerationInt, targetGenerationInt);
+			SLiMEidosBlock *script_block = new SLiMEidosBlock(-1, scriptInternalString, -1, SLiMEidosBlockType::SLiMEidosEventLate, targetGenerationInt, targetGenerationInt);
 			
 			[controller addScriptBlockToSimulation:script_block];	// takes ownership from us
 		}

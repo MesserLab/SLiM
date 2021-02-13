@@ -350,7 +350,7 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression)
 {
 	EidosValue_SP value;
-	EidosScript script(p_value_expression);
+	EidosScript script(p_value_expression, -1);
 	
 	// Note this can raise; the caller should be prepared for that
 	script.SetFinalSemicolonOptional(true);
@@ -377,7 +377,7 @@ void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
 	{
 		// Each constant must be in the form x=y, where x is a valid identifier and y is a valid Eidos expression.
 		// We parse the assignment using EidosScript, and work with the resulting AST, for generality.
-		EidosScript script(constant);
+		EidosScript script(constant, -1);
 		bool malformed = false;
 		
 		try

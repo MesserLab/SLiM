@@ -73,8 +73,8 @@ static size_t Eidos_utf8_utf16width(const unsigned char *string, size_t len)
 #pragma mark EidosScript
 #pragma mark -
 
-EidosScript::EidosScript(const std::string &p_script_string) :
-	script_string_(p_script_string)
+EidosScript::EidosScript(const std::string &p_script_string, int32_t p_user_script_line_offset) :
+	script_string_(p_script_string), user_script_line_offset_(p_user_script_line_offset)
 {
 }
 
@@ -112,6 +112,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	// chew off one token at a time from script_string_, make a Token object, and add it
 	int32_t pos = 0, len = (int)script_string_.length();
 	int32_t pos_UTF16 = 0;
+	int32_t pos_line = user_script_line_offset_;	// could be -1, or a line number in the full user script
 	
 	while (pos < len)
 	{
@@ -124,6 +125,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 		std::string token_string;
 		int32_t token_UTF16_start = pos_UTF16;
 		int32_t token_UTF16_end = pos_UTF16;
+		int32_t token_line = pos_line;												// the line for a token is the first line it contains
 		
 		switch (ch)
 		{
@@ -185,6 +187,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					
 					token_end = delim_end_pos + 1;	// skip the initial newline, which is not part of the string literal
 					token_UTF16_end = delim_end_pos_UTF16 + 1;
+					if (pos_line != -1)
+						pos_line++;
 					
 					while (true)
 					{
@@ -217,6 +221,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 									// the full delimiter matched, so we are done; advance by newline + '>' + '>' + delimiter
 									token_end = token_end + 3 + delim_length;
 									token_UTF16_end = token_UTF16_end + 3 + delim_length_UTF16;
+									if ((pos_line != -1) && (chn == '\n'))
+										pos_line++;
 									break;
 								}
 							}
@@ -226,6 +232,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						token_string += chn;
 						token_end++;
 						token_UTF16_end += BYTE_WIDTHS[chn];
+						if ((pos_line != -1) && (chn == '\n'))
+							pos_line++;
 					}
 				}
 				else
@@ -320,6 +328,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						
 						token_end++;
 						token_UTF16_end += BYTE_WIDTHS[chn];
+						if ((pos_line != -1) && (chn == '\n'))
+							pos_line++;
 					}
 				}
 				else { token_type = EidosTokenType::kTokenDiv; }
@@ -330,6 +340,9 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				if ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r'))
 				{
 					// whitespace; any nonzero-length sequence of space, tab, \n, \r
+					if ((pos_line != -1) && (ch == '\n'))
+						pos_line++;
+					
 					// FIXME it would be nice for &nbsp; to be considered whitespace too, but that gets bogged down
 					// in encoding issues I guess; we are not very Unicode-friendly right now.  BCH 2 Nov. 2017
 					while (token_end + 1 < len)
@@ -340,6 +353,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						{
 							token_end++;
 							token_UTF16_end++;
+							if ((pos_line != -1) && (chn == '\n'))
+								pos_line++;
 						}
 						else
 							break;
@@ -699,7 +714,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			}
 			
 			// make the token and push it
-			token_stream_.emplace_back(token_type, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end);
+			token_stream_.emplace_back(token_type, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end, token_line);
 		}
 		
 		// advance to the character immediately past the end of this token
@@ -708,7 +723,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	}
 	
 	// add an EOF token at the end
-	token_stream_.emplace_back(EidosTokenType::kTokenEOF, "EOF", pos, pos, pos_UTF16, pos_UTF16);
+	token_stream_.emplace_back(EidosTokenType::kTokenEOF, "EOF", pos, pos, pos_UTF16, pos_UTF16, pos_line);
 	
 	// if logging of tokens is requested, do that
 	if (gEidosLogTokens)
@@ -761,7 +776,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 
 EidosASTNode *EidosScript::Parse_InterpreterBlock(bool p_allow_functions)
 {
-	EidosToken temp_token(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0);
+	EidosToken temp_token(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0, 0);
 	
 	EidosASTNode *node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(&temp_token);	// the stack-local token is replaced below
 	
@@ -769,6 +784,7 @@ EidosASTNode *EidosScript::Parse_InterpreterBlock(bool p_allow_functions)
 	{
 		int32_t token_start = current_token_->token_start_;
 		int32_t token_UTF16_start = current_token_->token_UTF16_start_;
+		int32_t token_line = current_token_->token_line_;	// we use the line of our starting token
 		
 		while (current_token_type_ != EidosTokenType::kTokenEOF)
 		{
@@ -792,7 +808,7 @@ EidosASTNode *EidosScript::Parse_InterpreterBlock(bool p_allow_functions)
 		// swap in a new virtual token that encompasses all our children
 		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
 		
-		node->ReplaceTokenWithToken(new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
+		node->ReplaceTokenWithToken(new EidosToken(EidosTokenType::kTokenInterpreterBlock, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end, token_line));
 	}
 	catch (...)
 	{
@@ -816,6 +832,7 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 	{
 		int32_t token_start = current_token_->token_start_;
 		int32_t token_UTF16_start = current_token_->token_UTF16_start_;
+		int32_t token_line = current_token_->token_line_;	// we use the line of our starting token
 		
 		Match(EidosTokenType::kTokenLBrace, "compound statement");
 		
@@ -839,7 +856,7 @@ EidosASTNode *EidosScript::Parse_CompoundStatement(void)
 		// swap in a new virtual token that encompasses all our children
 		std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
 		
-		node->ReplaceTokenWithToken(new EidosToken(node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
+		node->ReplaceTokenWithToken(new EidosToken(node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end, token_line));
 	}
 	catch (...)
 	{
@@ -1756,7 +1773,7 @@ EidosASTNode *EidosScript::Parse_PrimaryExpr(void)
 			// to suggest argument names inside functions and methods from an empty base.  See EidosTypeInterpreter::_ProcessArgumentListTypes().
 			// BCH 4/6/2019: changing to take the full range of current_token here, so that completing off of a language keyword – really an identifier
 			// that happens to match a language keyword – works properly in code completion.
-			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, current_token_->token_start_, current_token_->token_end_, current_token_->token_UTF16_start_, current_token_->token_UTF16_end_);
+			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, current_token_->token_start_, current_token_->token_end_, current_token_->token_UTF16_start_, current_token_->token_UTF16_end_, current_token_->token_line_);
 			EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 			
 			node = bad_node;
@@ -1858,7 +1875,7 @@ EidosASTNode *EidosScript::Parse_Constant(void)
 				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_Constant): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
 			
 			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing constant
-			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 			EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 			
 			node = bad_node;

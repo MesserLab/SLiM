@@ -30,7 +30,7 @@
 
 
 // An enumeration for all token types, whether real or virtual
-enum class EidosTokenType {
+enum class EidosTokenType : int16_t {
 	kTokenNone = 0,		//			no token; this type should not be in the final token stream
 	kTokenBad,			//			bad token; produced if Tokenize() is instructed not to raise
 	kTokenEOF,			//			end of file; an EOF token is produced explicitly
@@ -109,8 +109,8 @@ class EidosToken
 	
 public:
 	
-	const EidosTokenType token_type_;			// the type of the token; one of the enumeration above
 	const std::string token_string_;			// extracted string object for the token
+	const EidosTokenType token_type_;			// the type of the token; one of the enumeration above
 	const int32_t token_start_;					// character position within script_string_
 	const int32_t token_end_;					// character position within script_string_
 	
@@ -119,12 +119,18 @@ public:
 	const int32_t token_UTF16_start_;			// the same as token_start_ but in UTF-16 code units, as NSString uses
 	const int32_t token_UTF16_end_;				// the same as token_end_ but in UTF-16 code units, as NSString uses
 	
+	// This is presently used only for debug points in SLiMgui, but may prove useful in some other contexts.
+	// It keeps the line position of the token within the full user script string, or -1 if this token does not live
+	// in the user's script string.  Note that this may not correspond to lines in the owning EidosScript, if that
+	// EidosScript was constructed with non-zero base line number (i.e., represents a snippet from the full script).
+	const int32_t token_line_;
+	
 	EidosToken(const EidosToken&) = default;				// default copy-construction, for std::vector
 	EidosToken& operator=(const EidosToken&) = delete;		// no copying
 	EidosToken(void) = delete;								// no null construction
 	
-	inline EidosToken(EidosTokenType p_token_type, const std::string &p_token_string, int32_t p_token_start, int32_t p_token_end, int32_t p_token_UTF16_start, int32_t p_token_UTF16_end) :
-	token_type_(p_token_type), token_string_(p_token_string), token_start_(p_token_start), token_end_(p_token_end), token_UTF16_start_(p_token_UTF16_start), token_UTF16_end_(p_token_UTF16_end)
+	inline EidosToken(EidosTokenType p_token_type, const std::string &p_token_string, int32_t p_token_start, int32_t p_token_end, int32_t p_token_UTF16_start, int32_t p_token_UTF16_end, int32_t p_token_line) :
+	token_string_(p_token_string), token_type_(p_token_type), token_start_(p_token_start), token_end_(p_token_end), token_UTF16_start_(p_token_UTF16_start), token_UTF16_end_(p_token_UTF16_end), token_line_(p_token_line)
 	{
 	}
 };

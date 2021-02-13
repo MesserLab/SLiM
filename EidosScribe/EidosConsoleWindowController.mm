@@ -230,7 +230,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 - (NSString *)_executeScriptString:(NSString *)scriptString tokenString:(NSString **)tokenString parseString:(NSString **)parseString executionString:(NSString **)executionString errorString:(NSString **)errorString withOptionalSemicolon:(BOOL)semicolonOptional
 {
 	std::string script_string([scriptString UTF8String]);
-	EidosScript script(script_string);
+	EidosScript script(script_string, -1);	// the position arguments are for debug points in QtSLiM, which are not supported here, so we can just pass -1
 	std::string output;
 	
 	// Unfortunately, running readFromPopulationFile() is too much of a shock for SLiMgui.  It invalidates variables that are being displayed in
@@ -394,6 +394,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
 		output = interpreter.ExecutionOutput();
+		output += interpreter.ErrorOutput();
 		
 		// reload outline view to show new global symbols, in case they have changed
 		[browserController reloadBrowser];
@@ -410,6 +411,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			[delegate eidosConsoleWindowControllerDidExecuteScript:self];
 		
 		output = interpreter.ExecutionOutput();
+		output += interpreter.ErrorOutput();
 		
 		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
 		*errorString = [NSString stringWithUTF8String:error_string.c_str()];
@@ -577,7 +579,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	}
 	else
 	{
-		EidosScript script(cstr);
+		EidosScript script(cstr, -1);
 		
 		try {
 			script.Tokenize();
@@ -662,7 +664,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			// We know the script is syntactically correct, so we can tokenize and parse it without worries
 			NSString *currentScriptString = [scriptTextView string];
 			const char *cstr = [currentScriptString UTF8String];
-			EidosScript script(cstr);
+			EidosScript script(cstr, -1);
 			
 			script.Tokenize(false, true);	// get whitespace and comment tokens
 			

@@ -17,5 +17,7 @@
         <file>icons/DocIcon512.png</file>
         <file>icons/GenericDocIcon16.png</file>
         <file>icons/GenericDocIcon32.png</file>
+        <file>icons/bug.png</file>
+        <file>icons/bug_DARK.png</file>
     </qresource>
 </RCC>

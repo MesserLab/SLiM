@@ -89,14 +89,15 @@ void SLiM_WarmUp(void);
 #pragma mark -
 
 // Output from SLiM can work in one of two ways.  If gEidosTerminateThrows == 0, ordinary output goes to cout,
-// and error output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode, we use a global
-// ostringstream to capture all output to both the output and error streams.  This stream should get emptied out after
+// and error output goes to cerr.  The other mode has gEidosTerminateThrows == 1.  In that mode, we use global
+// ostringstreams to capture all output to both the output and error streams.  These streams should get emptied out after
 // every SLiM operation, so a single stream can be safely used by multiple SLiM instances (as long as we do not
-// multithread).  Note that Eidos output goes into its own output stream, which SLiM empties into the SLiM output stream.
+// multithread).  Note that Eidos output goes into its own output streams, which SLiM empties into the SLiM output streams.
 // Note also that termination output is handled separately, using EIDOS_TERMINATION.
 extern std::ostringstream gSLiMOut;
+extern std::ostringstream gSLiMError;
 #define SLIM_OUTSTREAM		(gEidosTerminateThrows ? gSLiMOut : std::cout)
-#define SLIM_ERRSTREAM		(gEidosTerminateThrows ? gSLiMOut : std::cerr)
+#define SLIM_ERRSTREAM		(gEidosTerminateThrows ? gSLiMError : std::cerr)
 
 
 // *******************************************************************************************************************

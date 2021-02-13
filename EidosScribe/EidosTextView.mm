@@ -153,7 +153,7 @@
 			// because of strings, which are a pain in the butt.  To simplify that issue, we tokenize and search
 			// in the token stream parallel to searching in the text.
 			std::string script_string([scriptString UTF8String]);
-			EidosScript script(script_string);
+			EidosScript script(script_string, -1);
 			
 			// Tokenize
 			script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
@@ -956,7 +956,7 @@
 						// because of strings, which are a pain in the butt.  To simplify that issue, we tokenize and search
 						// in the token stream parallel to searching in the text.
 						std::string script_string([scriptString UTF8String]);
-						EidosScript script(script_string);
+						EidosScript script(script_string, -1);
 						
 						// Tokenize
 						script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
@@ -1090,7 +1090,7 @@
 	// Construct a Script object from the current script string
 	NSString *scriptString = [self string];
 	std::string script_string([scriptString UTF8String]);
-	EidosScript script(script_string);
+	EidosScript script(script_string, -1);
 	
 	// Tokenize
 	script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
@@ -1440,7 +1440,7 @@
 	// This returns a function map (owned by the caller) that reflects the best guess we can make, incorporating
 	// any functions known to our delegate, as well as all functions we can scrape from the script string.
 	std::string script_string([scriptString UTF8String]);
-	EidosScript script(script_string);
+	EidosScript script(script_string, -1);
 	
 	// Tokenize
 	script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -1497,7 +1497,7 @@
 	if ([scriptString length])
 	{
 		std::string script_string([scriptString UTF8String]);
-		EidosScript script(script_string);
+		EidosScript script(script_string, -1);
 		
 		// Tokenize
 		script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -2293,7 +2293,7 @@
 			delete definitive_function_map;
 			
 			// Next, add type table entries based on parsing and analysis of the user's code
-			EidosScript script(script_string);
+			EidosScript script(script_string, -1);
 			
 #if EIDOS_DEBUG_COMPLETION
 			std::cout << "Eidos script:\n" << script_string << std::endl << std::endl;
@@ -2318,7 +2318,7 @@
 #endif
 		
 		// Tokenize; we can't use the tokenization done above, as we want whitespace tokens here...
-		EidosScript script(script_string);
+		EidosScript script(script_string, -1);
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
 #if EIDOS_DEBUG_COMPLETION

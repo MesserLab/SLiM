@@ -470,7 +470,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 		{
 			if (!warned_no_max_distance_)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() called to configure a spatial interaction type with no maximum distance; this may result in very poor performance." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (SLiMSim::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() called to configure a spatial interaction type with no maximum distance; this may result in very poor performance." << std::endl;
 				warned_no_max_distance_ = true;
 			}
 		}
@@ -1673,7 +1673,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			if (!warned_inSLiMgui_deprecated_)
 			{
 				if (!gEidosSuppressWarnings)
-					SLIM_OUTSTREAM << "#WARNING (SLiMSim::GetProperty): the inSLiMgui property has been deprecated; use exists(\"slimgui\") instead." << std::endl;
+					SLIM_ERRSTREAM << "#WARNING (SLiMSim::GetProperty): the inSLiMgui property has been deprecated; use exists(\"slimgui\") instead." << std::endl;
 				warned_inSLiMgui_deprecated_ = true;
 			}
 #ifdef SLIMGUI
@@ -2383,7 +2383,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				warned_early_output_ = true;
 			}
 		}
@@ -2470,7 +2470,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				warned_early_output_ = true;
 			}
 		}
@@ -2555,7 +2555,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				output_stream << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
 				warned_early_output_ = true;
 			}
 		}
@@ -2855,7 +2855,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
 				warned_early_read_ = true;
 			}
 		}
@@ -2863,7 +2863,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ExecutionOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (SLiMSim::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
 				warned_early_read_ = true;
 			}
 		}
@@ -2939,7 +2939,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID 
 	
 	CheckScheduling(start_generation, target_stage);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, (p_method_id == gID_registerEarlyEvent) ? SLiMEidosBlockType::SLiMEidosEventEarly : SLiMEidosBlockType::SLiMEidosEventLate, start_generation, end_generation);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, (p_method_id == gID_registerEarlyEvent) ? SLiMEidosBlockType::SLiMEidosEventEarly : SLiMEidosBlockType::SLiMEidosEventLate, start_generation, end_generation);
 	
 	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
@@ -2981,7 +2981,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID
 	
 	SLiMEidosBlockType block_type = ((mut_type_id == -2) ? SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback : SLiMEidosBlockType::SLiMEidosFitnessCallback);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_generation, end_generation);
 	
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
@@ -3021,7 +3021,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 	
 	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage7AdvanceGenerationCounter : SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_generation, end_generation);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_generation, end_generation);
 	
 	new_script_block->interaction_type_id_ = int_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
@@ -3071,7 +3071,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 	
 	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage2GenerateOffspring : SLiMGenerationStage::kNonWFStage1GenerateOffspring);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_generation, end_generation);
 	
 	new_script_block->subpopulation_id_ = subpop_id;
 	
@@ -3113,7 +3113,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMutationCallback(EidosGlobalStringI
 	
 	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage2GenerateOffspring : SLiMGenerationStage::kNonWFStage1GenerateOffspring);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosMutationCallback, start_generation, end_generation);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, SLiMEidosBlockType::SLiMEidosMutationCallback, start_generation, end_generation);
 	
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
@@ -3170,7 +3170,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 	CheckScheduling(start_generation, SLiMGenerationStage::kNonWFStage1GenerateOffspring);
 	
 	SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_generation, end_generation);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_generation, end_generation);
 	
 	new_script_block->subpopulation_id_ = subpop_id;
 	new_script_block->sex_specificity_ = sex_specificity;
@@ -3331,7 +3331,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 				}
 				else
 				{
-					SLiMEidosBlock *new_script_block = new SLiMEidosBlock(-1, block->compound_statement_node_->token_->token_string_, block->type_, start, end);
+					SLiMEidosBlock *new_script_block = new SLiMEidosBlock(-1, block->compound_statement_node_->token_->token_string_, block->user_script_line_offset_, block->type_, start, end);
 					
 					AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 					

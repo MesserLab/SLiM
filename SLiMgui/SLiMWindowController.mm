@@ -548,7 +548,9 @@
 
 - (void)updateOutputTextView
 {
-	std::string &&newOutput = gSLiMOut.str();
+	// QtSLiM separates these output streams, but we just glom them together
+	std::string newOutput = gSLiMOut.str();
+	newOutput += gSLiMError.str();
 	
 	if (!newOutput.empty())
 	{
@@ -585,6 +587,9 @@
 		// clear any error flags set on the stream and empty out its string so it is ready to receive new output
 		gSLiMOut.clear();
 		gSLiMOut.str("");
+		
+		gSLiMError.clear();
+		gSLiMError.str("");
 	}
 }
 
@@ -3039,6 +3044,9 @@
 	// Just in case we have any buffered output, clear the output stream
 	gSLiMOut.clear();
 	gSLiMOut.str("");
+	
+	gSLiMError.clear();
+	gSLiMError.str("");
 }
 
 - (IBAction)dumpPopulationToOutput:(id)sender

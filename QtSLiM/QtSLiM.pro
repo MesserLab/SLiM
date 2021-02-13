@@ -141,6 +141,7 @@ macx: LIBS += -lobjc.A
 
 
 SOURCES += \
+    QtSLiMDebugOutputWindow.cpp \
     QtSLiMGraphView_1DPopulationSFS.cpp \
     QtSLiMGraphView_1DSampleSFS.cpp \
     QtSLiMGraphView_2DPopulationSFS.cpp \
@@ -183,6 +184,7 @@ SOURCES += \
     QtSLiMVariableBrowser.cpp
 
 HEADERS += \
+    QtSLiMDebugOutputWindow.h \
     QtSLiMGraphView_1DPopulationSFS.h \
     QtSLiMGraphView_1DSampleSFS.h \
     QtSLiMGraphView_2DPopulationSFS.h \
@@ -222,6 +224,7 @@ HEADERS += \
     QtSLiMVariableBrowser.h
 
 FORMS += \
+    QtSLiMDebugOutputWindow.ui \
     QtSLiMWindow.ui \
     QtSLiMAbout.ui \
     QtSLiMPreferences.ui \

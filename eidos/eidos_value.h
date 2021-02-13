@@ -179,6 +179,7 @@ public:
 	
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	void Print(std::ostream &p_ostream) const;				// standard printing; same as operator<<
+	void PrintStructure(std::ostream &p_ostream, int max_values) const;	// print structure; no newline
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const = 0;
 	virtual nlohmann::json JSONRepresentation(void) const = 0;
 	

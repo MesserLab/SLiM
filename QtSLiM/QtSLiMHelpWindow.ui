@@ -144,7 +144,7 @@ background: rgb(195, 195, 195);
       </widget>
      </item>
      <item>
-      <widget class="QTextEdit" name="descriptionTextEdit">
+      <widget class="QPlainTextEdit" name="descriptionTextEdit">
        <property name="minimumSize">
         <size>
          <width>250</width>

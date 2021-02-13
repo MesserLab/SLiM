@@ -65,6 +65,7 @@ public:
     QtSLiMWindow *activeQtSLiMWindow(void);             // the frontmost window that is a QtSLiMWindow
     QWidget *activeWindow(void);                        // the frontmost window
     QWidget *activeWindowExcluding(QWidget *excluded);  // the frontmost window that is not excluded
+    QtSLiMWindow *dispatchQtSLiMWindow(void);           // the QtSLiMWindow associated with the focused widget or active window
     
     // Document opening
     QtSLiMWindow *findMainWindow(const QString &fileName) const;
@@ -140,6 +141,7 @@ public slots:
     void dispatch_showEidosConsole(void);
     void dispatch_showVariableBrowser(void);
     void dispatch_clearOutput(void);
+    void dispatch_showDebuggingOutput(void);
     void dispatch_executeSelection(void);
     void dispatch_executeAll(void);
 

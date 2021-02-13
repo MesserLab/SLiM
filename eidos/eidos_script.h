@@ -50,6 +50,7 @@ class EidosScript
 protected:
 	
 	const std::string script_string_;		// the full string for the script, from start-brace to the end of the end-brace line
+	int32_t user_script_line_offset_;		// the initial position (lines) in the user's script; -1 if it is not in the user's script
 	
 	std::vector<EidosToken> token_stream_;
 	EidosASTNode *parse_root_ = nullptr;						// OWNED POINTER
@@ -67,11 +68,17 @@ public:
 	EidosScript(const EidosScript&) = delete;								// no copying
 	EidosScript& operator=(const EidosScript&) = delete;					// no copying
 	EidosScript(void) = delete;												// no null construction
-	explicit EidosScript(const std::string &p_script_string);
+	
+	// Constructing a script now requires the script string to be located in the context of the user's full script string,
+	// to allow debug points set on specific line numbers in the full script to work; there is now a line offset, used to
+	// translate points in this script into points in the full script.  Pass -1 for scripts that are not based in the
+	// user's full script string (lambdas, etc.).
+	explicit EidosScript(const std::string &p_script_string, int32_t p_user_script_line_offset);
 	
 	virtual ~EidosScript(void);
 	
 	void SetFinalSemicolonOptional(bool p_optional_semicolon)		{ final_semicolon_optional_ = p_optional_semicolon; }
+	inline int32_t UserScriptLineOffset(void) const { return user_script_line_offset_; }
 	
 	// generate token stream from script string; if p_make_bad_tokens == true this function will not raise or fail
 	void Tokenize(bool p_make_bad_tokens = false, bool p_keep_nonsignificant = false);

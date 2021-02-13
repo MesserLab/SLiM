@@ -1,5 +1,5 @@
 //
-//  QtSLiMVariableBrowser.h
+//  QtSLiMVariableBrowser.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 4/17/2019.

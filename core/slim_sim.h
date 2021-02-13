@@ -62,6 +62,12 @@ class LogFile;
 struct ts_subpop_info;
 struct ts_mut_info;
 
+#ifdef SLIMGUI
+// Forward declaration of EidosInterpreterDebugPointsSet; see eidos_interpreter.cpp
+struct EidosInterpreterDebugPointsSet_struct;
+typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
+#endif
+
 extern EidosClass *gSLiM_SLiMSim_Class;
 
 enum class SLiMModelType
@@ -296,6 +302,10 @@ private:
 	
 	// LogFile registry, for logging data out to a file
 	std::vector<LogFile *> log_file_registry_;										// OWNED POINTERS (under retain/release)
+	
+#ifdef SLIMGUI
+	EidosInterpreterDebugPointsSet *debug_points_ = nullptr;						// NOT OWNED; line numbers for all lines with debugging points set
+#endif
 	
 #ifdef SLIMGUI
 public:
@@ -616,6 +626,16 @@ public:
 	}
 	
 	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
+	
+	
+	// ***********************************  Support for debugging points in SLiMgui
+#ifdef SLIMGUI
+	// Set the debug points to be used; note that a copy is *not* made, the caller guarantees the lifetime of the passed object
+	inline void SetDebugPoints(EidosInterpreterDebugPointsSet *p_debug_points) { debug_points_ = p_debug_points; }
+	virtual EidosInterpreterDebugPointsSet *DebugPoints(void) override { return debug_points_; }
+	virtual std::string DebugPointInfo(void) override { return std::string(", gen ") + std::to_string(generation_); };
+#endif
+	
 
 	
 	// TREE SEQUENCE RECORDING

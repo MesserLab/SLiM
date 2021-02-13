@@ -755,7 +755,7 @@ bool Eidos_reformatTokensFromScript(const std::vector<EidosToken> &tokens, Eidos
     // We're done reformatting; now we need to generate a new script and a new token stream, and fix the indentation of our
     // reformatted string by calling Eidos_prettyprintTokensFromScript(); this avoids duplicating a bunch of logic
     try {
-        EidosScript indentScript(pretty);
+        EidosScript indentScript(pretty, -1);
         
         indentScript.Tokenize(false, true);	// get whitespace and comment tokens
         

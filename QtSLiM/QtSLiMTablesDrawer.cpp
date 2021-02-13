@@ -387,6 +387,9 @@ void QtSLiMTablesDrawer::initializeUI(void)
     setWindowIcon(QIcon());
 #endif
     
+    // prevent this window from keeping the app running when all main windows are closed
+    setAttribute(Qt::WA_QuitOnClose, false);
+    
     // Make the models for the tables; this is a sort of datasource concept, except
     // that because C++ is not sufficiently dynamic it has to be a separate object
     mutTypeTableModel_ = new QtSLiMMutTypeTableModel(parentSLiMWindow);

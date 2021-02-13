@@ -733,6 +733,23 @@ void QtSLiMPushButton::qtslimFreeCachedIcons(void)
     if (qtslimIcon_H_DARK) { delete qtslimIcon_H_DARK; qtslimIcon_H_DARK = nullptr; }
 }
 
+bool QtSLiMPushButton::hitButton(const QPoint &pos) const
+{
+    // I noticed that mouse tracking in QtSLiMPushButton was off; it seemed like the bounds were
+    // kind of inset, and Qt doesn't know the buttons are circular, and so forth.  Therefore this.
+    
+    // pos is in the same coordinate system as rect(); we want to consider pos to be a hit if it is
+    // inside the circle or oval bounded by rect(), so let's bust out with a little Pythagoras
+    QRect bounds = rect();
+    double x = (pos.x() - bounds.left()) / (double)bounds.width();
+    double y = (pos.y() - bounds.top()) / (double)bounds.height();
+    double d = std::sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5));
+    
+    //qDebug() << "x ==" << x << ", y ==" << y << "; d ==" << d;
+    
+    return (d <= 0.51);  // a little more than 0.5 to provide a little slop
+}
+
 void QtSLiMPushButton::paintEvent(QPaintEvent *p_paintEvent)
 {
     // We need a base name to operate; without one, we punt to super and it draws whatever it draws
@@ -760,7 +777,25 @@ void QtSLiMPushButton::paintEvent(QPaintEvent *p_paintEvent)
     // This uses the icon to draw, which works because of Qt::AA_UseHighDpiPixmaps
     painter.save();
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
-    cachedIcon->paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+    
+    if (temporaryIcon.isNull())
+    {
+        cachedIcon->paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+    }
+    else
+    {
+        // assume that the temporary icon completely covers the base icon when opacity is 1.0; this avoids artifacts
+        // in the appearance of the button with opacity 1.0 due to double-drawing pixels with partial alpha
+        if (temporaryIconOpacity < 1.0)
+            cachedIcon->paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+        
+        if (temporaryIconOpacity > 0.0)
+        {
+            painter.setOpacity(temporaryIconOpacity);
+            temporaryIcon.paint(&painter, bounds, Qt::AlignCenter, isEnabled() ? QIcon::Normal : QIcon::Disabled, QIcon::Off);
+        }
+    }
+    
     painter.restore();
     
     /*

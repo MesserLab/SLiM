@@ -227,7 +227,7 @@ void QtSLiMFindRecipe::updatePreview(void)
 void QtSLiMFindRecipe::highlightPreview(void)
 {
     // thanks to https://stackoverflow.com/a/16149381/2752221
-    QTextEdit *script = ui->scriptPreviewTextEdit;
+    QPlainTextEdit *script = ui->scriptPreviewTextEdit;
     const QString &scriptString = script->toPlainText();
     QTextCursor tc = script->textCursor();
     tc.select(QTextCursor::Document);

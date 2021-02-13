@@ -29,6 +29,8 @@
 #include "QtSLiMFindPanel.h"
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMVariableBrowser.h"
+#include "QtSLiMTablesDrawer.h"
+#include "QtSLiMDebugOutputWindow.h"
 #include "QtSLiMConsoleTextEdit.h"
 
 #include <QApplication>
@@ -46,6 +48,8 @@
 #include <QDesktopServices>
 #include <QSettings>
 #include <QFileDialog>
+#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QDebug>
 
 #include <stdio.h>
@@ -872,6 +876,12 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionClearOutput);
     }
     {
+        QAction *actionShowDebuggingOutput = new QAction("Show Debugging Output", this);
+        actionShowDebuggingOutput->setShortcut(Qt::CTRL + Qt::Key_D);
+        connect(actionShowDebuggingOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showDebuggingOutput);
+        window->addAction(actionShowDebuggingOutput);
+    }
+    {
         QAction *actionExecuteSelection = new QAction("Execute Selection", this);
         actionExecuteSelection->setShortcut(Qt::CTRL + Qt::Key_Return);
         connect(actionExecuteSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_executeSelection);
@@ -1009,6 +1019,41 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
 }
 
+QtSLiMWindow *QtSLiMAppDelegate::dispatchQtSLiMWindow(void)
+{
+    // The QtSLiMWindow associated with the focused widget; this should be used for
+    // dispatching actions that we want to work inside secondary windows that are
+    // associated with a particular QtSLiMWindow.
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    
+    // If we have no focused widget, just work from the active window
+    if (!focusWindow)
+        focusWindow = activeWindow();
+    
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWindow);
+    QtSLiMTablesDrawer *tablesDrawer = dynamic_cast<QtSLiMTablesDrawer*>(focusWindow);
+    QtSLiMDebugOutputWindow *debugOutputWindow = dynamic_cast<QtSLiMDebugOutputWindow*>(focusWindow);
+    
+    if (eidosConsole)
+        slimWindow = eidosConsole->parentSLiMWindow;
+    else if (varBrowser)
+        slimWindow = varBrowser->parentEidosConsole->parentSLiMWindow;
+    else if (tablesDrawer)
+        slimWindow = tablesDrawer->parentSLiMWindow;
+    else if (debugOutputWindow)
+        slimWindow = debugOutputWindow->parentSLiMWindow;
+    
+    // If we still can't find it, try using the parent of the active window
+    // This makes graph windows work for dispatch; they are just QWidgets but their parent is correct
+    if (focusWindow)
+        slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow->parent());
+    
+    return slimWindow;
+}
+
 void QtSLiMAppDelegate::dispatch_preferences(void)
 {
     QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
@@ -1118,11 +1163,14 @@ void QtSLiMAppDelegate::dispatch_undo(void)
     QWidget *focusWidget = QApplication::focusWidget();
     QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    QPlainTextEdit *plainTextEdit = dynamic_cast<QPlainTextEdit*>(focusWidget);
     
     if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
         lineEdit->undo();
     else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
         textEdit->undo();
+    else if (plainTextEdit && plainTextEdit->isEnabled() && !plainTextEdit->isReadOnly())
+        plainTextEdit->undo();
 }
 
 void QtSLiMAppDelegate::dispatch_redo(void)
@@ -1130,11 +1178,14 @@ void QtSLiMAppDelegate::dispatch_redo(void)
     QWidget *focusWidget = QApplication::focusWidget();
     QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    QPlainTextEdit *plainTextEdit = dynamic_cast<QPlainTextEdit*>(focusWidget);
     
     if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
         lineEdit->redo();
     else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
         textEdit->redo();
+    else if (plainTextEdit && plainTextEdit->isEnabled() && !plainTextEdit->isReadOnly())
+        plainTextEdit->redo();
 }
 
 void QtSLiMAppDelegate::dispatch_cut(void)
@@ -1142,11 +1193,14 @@ void QtSLiMAppDelegate::dispatch_cut(void)
     QWidget *focusWidget = QApplication::focusWidget();
     QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    QPlainTextEdit *plainTextEdit = dynamic_cast<QPlainTextEdit*>(focusWidget);
     
     if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
         lineEdit->cut();
     else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
         textEdit->cut();
+    else if (plainTextEdit && plainTextEdit->isEnabled() && !plainTextEdit->isReadOnly())
+        plainTextEdit->cut();
 }
 
 void QtSLiMAppDelegate::dispatch_copy(void)
@@ -1154,11 +1208,14 @@ void QtSLiMAppDelegate::dispatch_copy(void)
     QWidget *focusWidget = QApplication::focusWidget();
     QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    QPlainTextEdit *plainTextEdit = dynamic_cast<QPlainTextEdit*>(focusWidget);
     
     if (lineEdit && lineEdit->isEnabled())
         lineEdit->copy();
     else if (textEdit && textEdit->isEnabled())
         textEdit->copy();
+    else if (plainTextEdit && plainTextEdit->isEnabled())
+        plainTextEdit->copy();
 }
 
 void QtSLiMAppDelegate::dispatch_paste(void)
@@ -1166,11 +1223,14 @@ void QtSLiMAppDelegate::dispatch_paste(void)
     QWidget *focusWidget = QApplication::focusWidget();
     QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    QPlainTextEdit *plainTextEdit = dynamic_cast<QPlainTextEdit*>(focusWidget);
     
     if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
         lineEdit->paste();
     else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
         textEdit->paste();
+    else if (plainTextEdit && plainTextEdit->isEnabled() && !plainTextEdit->isReadOnly())
+        plainTextEdit->paste();
 }
 
 void QtSLiMAppDelegate::dispatch_delete(void)
@@ -1178,11 +1238,14 @@ void QtSLiMAppDelegate::dispatch_delete(void)
     QWidget *focusWidget = QApplication::focusWidget();
     QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    QPlainTextEdit *plainTextEdit = dynamic_cast<QPlainTextEdit*>(focusWidget);
     
     if (lineEdit && lineEdit->isEnabled() && !lineEdit->isReadOnly())
         lineEdit->insert("");
     else if (textEdit && textEdit->isEnabled() && !textEdit->isReadOnly())
         textEdit->insertPlainText("");
+    else if (plainTextEdit && plainTextEdit->isEnabled() && !plainTextEdit->isReadOnly())
+        plainTextEdit->insertPlainText("");
 }
 
 void QtSLiMAppDelegate::dispatch_selectAll(void)
@@ -1190,11 +1253,14 @@ void QtSLiMAppDelegate::dispatch_selectAll(void)
     QWidget *focusWidget = QApplication::focusWidget();
     QLineEdit *lineEdit = dynamic_cast<QLineEdit*>(focusWidget);
     QTextEdit *textEdit = dynamic_cast<QTextEdit*>(focusWidget);
+    QPlainTextEdit *plainTextEdit = dynamic_cast<QPlainTextEdit*>(focusWidget);
     
     if (lineEdit && lineEdit->isEnabled())
         lineEdit->selectAll();
     else if (textEdit && textEdit->isEnabled())
         textEdit->selectAll();
+    else if (plainTextEdit && plainTextEdit->isEnabled())
+        plainTextEdit->selectAll();
 }
 
 void QtSLiMAppDelegate::dispatch_findShow(void)
@@ -1278,31 +1344,26 @@ void QtSLiMAppDelegate::dispatch_reformatScript(void)
 
 void QtSLiMAppDelegate::dispatch_showEidosConsole(void)
 {
-    QWidget *focusWidget = QApplication::focusWidget();
-    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
-    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
-    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    QtSLiMWindow *slimWindow = dispatchQtSLiMWindow();
     
     if (slimWindow)
         slimWindow->showConsoleClicked();
-    else if (eidosConsole)
-        eidosConsole->parentSLiMWindow->showConsoleClicked();
 }
 
 void QtSLiMAppDelegate::dispatch_showVariableBrowser(void)
 {
-    QWidget *focusWidget = QApplication::focusWidget();
-    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
-    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
-    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
-    QtSLiMVariableBrowser *varBrowser = dynamic_cast<QtSLiMVariableBrowser*>(focusWindow);
+    QtSLiMWindow *slimWindow = dispatchQtSLiMWindow();
     
     if (slimWindow)
         slimWindow->showBrowserClicked();
-    else if (eidosConsole)
-        eidosConsole->parentSLiMWindow->showBrowserClicked();
-    else if (varBrowser)
-        varBrowser->parentEidosConsole->parentSLiMWindow->showBrowserClicked();
+}
+
+void QtSLiMAppDelegate::dispatch_showDebuggingOutput(void)
+{
+    QtSLiMWindow *slimWindow = dispatchQtSLiMWindow();
+    
+    if (slimWindow)
+        slimWindow->debugOutputClicked();
 }
 
 void QtSLiMAppDelegate::dispatch_clearOutput(void)
@@ -1505,6 +1566,10 @@ QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
     // perhaps based upon which window the cursor is in, for example; for the
     // activeWindowExcluding() method we want our window list to be the sole authority,
     // but for this method I don't think we do...?
+    // We use this for dispatching commands that could go to any QtSLiMWindow, but that
+    // open a new document window that gets tiled; it's best to tile from the user's
+    // frontmost document window, I suppose.  We do not use it for other dispatch; see
+    // dispatchQtSLiMWindow() for that.
     QWidget *currentActiveWindow = qApp->activeWindow();
     QtSLiMWindow *currentActiveQtSLiMWindow = qobject_cast<QtSLiMWindow *>(currentActiveWindow);
     

@@ -380,11 +380,7 @@
         </layout>
        </item>
        <item>
-        <widget class="QtSLiMConsoleTextEdit" name="consoleTextEdit">
-         <property name="acceptRichText">
-          <bool>false</bool>
-         </property>
-        </widget>
+        <widget class="QtSLiMConsoleTextEdit" name="consoleTextEdit"/>
        </item>
       </layout>
      </item>
@@ -403,12 +399,12 @@
   </customwidget>
   <customwidget>
    <class>QtSLiMScriptTextEdit</class>
-   <extends>QTextEdit</extends>
+   <extends>QPlainTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
   </customwidget>
   <customwidget>
    <class>QtSLiMConsoleTextEdit</class>
-   <extends>QTextEdit</extends>
+   <extends>QPlainTextEdit</extends>
    <header>QtSLiMConsoleTextEdit.h</header>
   </customwidget>
  </customwidgets>

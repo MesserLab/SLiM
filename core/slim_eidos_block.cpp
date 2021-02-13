@@ -54,7 +54,7 @@ std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type)
 #pragma mark SLiMEidosScript
 #pragma mark -
 
-SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string)
+SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string, 0)
 {
 }
 
@@ -64,7 +64,7 @@ SLiMEidosScript::~SLiMEidosScript(void)
 
 EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gEidosStr_empty_string, 0, 0, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextFile, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 	
 	EidosASTNode *node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(virtual_token, true);
 	
@@ -94,7 +94,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 
 EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 {
-	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextEidosBlock, gEidosStr_empty_string, 0, 0, 0, 0);
+	EidosToken *virtual_token = new EidosToken(EidosTokenType::kTokenContextEidosBlock, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 	
 	EidosASTNode *slim_script_block_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(virtual_token, true);
 	
@@ -105,6 +105,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		// Keep track of the beginning of the script block, to patch virtual_token below...
 		const int32_t token_start = current_token_->token_start_;
 		const int32_t token_UTF16_start = current_token_->token_UTF16_start_;
+		const int32_t token_line = current_token_->token_line_;	// we use the line of our starting token
 		EidosASTNode *compound_statement_node = nullptr;
 		
 		if (current_token_type_ == EidosTokenType::kTokenFunction)
@@ -220,7 +221,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 							EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions." << EidosTerminate(current_token_);
 						
 						// Make a placeholder bad node, to be error-tolerant
-						EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+						EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 						EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 						callback_info_node->AddChild(bad_node);
 					}
@@ -242,7 +243,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 								EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << EidosTerminate(current_token_);
 							
 							// Make a placeholder bad node, to be error-tolerant
-							EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+							EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 							EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 							callback_info_node->AddChild(bad_node);
 						}
@@ -282,7 +283,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 									EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << EidosTerminate(current_token_);
 								
 								// Make a placeholder bad node, to be error-tolerant
-								EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+								EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 								EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 								callback_info_node->AddChild(bad_node);
 							}
@@ -312,7 +313,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 							EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; an interaction type id is required in interaction() callback definitions." << EidosTerminate(current_token_);
 						
 						// Make a placeholder bad node, to be error-tolerant
-						EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+						EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 						EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 						callback_info_node->AddChild(bad_node);
 					}
@@ -334,7 +335,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 								EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; subpopulation id expected." << EidosTerminate(current_token_);
 							
 							// Make a placeholder bad node, to be error-tolerant
-							EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+							EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 							EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 							callback_info_node->AddChild(bad_node);
 						}
@@ -434,7 +435,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 									EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; sex of 'M' or 'F' expected." << EidosTerminate(current_token_);
 								
 								// Make a placeholder bad node, to be error-tolerant
-								EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0);
+								EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
 								EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
 								callback_info_node->AddChild(bad_node);
 							}
@@ -467,7 +468,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			
 			std::string &&token_string = script_string_.substr(token_start, token_end - token_start + 1);
 			
-			slim_script_block_node->ReplaceTokenWithToken(new EidosToken(slim_script_block_node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end));
+			slim_script_block_node->ReplaceTokenWithToken(new EidosToken(slim_script_block_node->token_->token_type_, token_string, token_start, token_end, token_UTF16_start, token_UTF16_end, token_line));
 		}
 		else if (!parse_make_bad_nodes_)
 			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): (internal error) missing compound_statement_node" << EidosTerminate(current_token_);
@@ -570,7 +571,7 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	root_node_(p_root_node)
+	root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
 {
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
@@ -867,12 +868,12 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	ScanTreeForIdentifiersUsed();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end) :
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), start_generation_(p_start), end_generation_(p_end)
+	type_(p_type), block_id_(p_id), start_generation_(p_start), end_generation_(p_end), user_script_line_offset_(p_user_script_line_offset)
 {
-	script_ = new EidosScript(p_script_string);
+	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
 	// the caller should now call TokenizeAndParse() to complete initialization
 }
 

@@ -20,7 +20,7 @@
 #ifndef QTSLIMSCRIPTTEXTEDIT_H
 #define QTSLIMSCRIPTTEXTEDIT_H
 
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QPalette>
 
 #include "eidos_interpreter.h"
@@ -33,6 +33,8 @@ class EidosCallSignature;
 class QtSLiMWindow;
 class QtSLiMEidosConsole;
 class QCompleter;
+class QPaintEvent;
+class QMouseEvent;
 
 
 // We define NSRange and NSNotFound because we want to be able to represent "no range",
@@ -48,10 +50,10 @@ typedef struct _NSRange {
 static const int NSNotFound = INT_MAX;
 
 
-// A QTextEdit subclass that provides a signal for an option-click on a script symbol
-// This also provides some basic smarts for syntax coloring and so forth
-// QtSLiMScriptTextEdit and QtSLiMConsoleTextEdit are both subclasses of this class
-class QtSLiMTextEdit : public QTextEdit
+// A QPlainTextEdit subclass that provides a signal for an option-click on a script
+// symbol.  This also provides some basic smarts for syntax coloring and so forth.
+// QtSLiMScriptTextEdit and QtSLiMConsoleTextEdit are both subclasses of this class.
+class QtSLiMTextEdit : public QPlainTextEdit
 {
     Q_OBJECT
     
@@ -83,7 +85,7 @@ public:
     QPalette qtslimStandardPalette(void);
     QPalette qtslimErrorPalette(void);
     
-    // undo/redo availability; named to avoid future collision with QTextEdit for this obvious feature
+    // undo/redo availability; named to avoid future collision with QPlainTextEdit for this obvious feature
     bool qtslimIsUndoAvailable(void) { return undoAvailable_; }
     bool qtslimIsRedoAvailable(void) { return redoAvailable_; }
     bool qtslimIsCopyAvailable(void) { return copyAvailable_; }
@@ -180,6 +182,8 @@ public:
     QtSLiMScriptTextEdit(QWidget *p_parent = nullptr);
     virtual ~QtSLiMScriptTextEdit() override;
     
+    EidosInterpreterDebugPointsSet &debuggingPoints(void) { return enabledBugLines; }
+    
 public slots:
     void shiftSelectionLeft(void);
     void shiftSelectionRight(void);
@@ -192,6 +196,8 @@ protected:
     // This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
 public:
     void lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent);
+    void lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent);
+    void lineNumberAreaContextMenuEvent(QContextMenuEvent *p_event);
     int lineNumberAreaWidth(void);
 
 protected:
@@ -207,9 +213,20 @@ private slots:
     void updateLineNumberArea(QRectF /*rect_f*/) { updateLineNumberArea(); }
     void updateLineNumberArea(int /*slider_pos*/) { updateLineNumberArea(); }
     void updateLineNumberArea(void);
+    void updateDebugPoints(void);
+    void controllerChangeCountChanged(int changeCount);
 
 private:
     QWidget *lineNumberArea;
+    
+    int lineNumberAreaBugWidth = 0;
+    std::vector<QTextCursor> bugCursors;                // we use QTextCursor to maintain the positions of debugging points across edits
+    EidosInterpreterDebugPointsSet bugLines;            // line numbers for debug points; std::unordered_set<int> or equivalent
+    EidosInterpreterDebugPointsSet enabledBugLines;     // for public consumption; empty when debug points are disabled
+    bool debugPointsEnabled = true;                     // disabled when edited without a recycle (recycle button is green)
+    bool coloringDebugPointCursors = false;             // a flag to prevent re-entrancy
+    
+    void toggleDebuggingForLine(int lineNumber);
 };
 
 

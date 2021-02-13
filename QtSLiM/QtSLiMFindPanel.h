@@ -23,7 +23,7 @@
 #include <QDialog>
 
 class QCloseEvent;
-class QTextEdit;
+class QPlainTextEdit;
 
 
 namespace Ui {
@@ -37,7 +37,11 @@ class QtSLiMFindPanel : public QDialog
 public:
     static QtSLiMFindPanel &instance(void);
     
-    QTextEdit *targetTextEditRequireModifiable(bool requireModifiable); // public for menu enabling
+    // BCH 2/10/2021: Switched from QTextEdit to QPlainTextEdit for the target of the Find panel,
+    // since we are switching over to QPlainTextEdit for the script/console/output views.
+    // Unfortunate that the design kind of requires it to be one or the other; C++ for the lose.
+    // Once again we need Obj-C protocols.
+    QPlainTextEdit *targetTextEditRequireModifiable(bool requireModifiable); // public for menu enabling
     
 public slots:
     void showFindPanel(void);
@@ -62,7 +66,7 @@ private:
     
     virtual void closeEvent(QCloseEvent *e) override;
     
-    bool findForwardWrapBeep(QTextEdit *target, bool forward, bool wrap, bool beepIfNotFound);
+    bool findForwardWrapBeep(QPlainTextEdit *target, bool forward, bool wrap, bool beepIfNotFound);
     
     bool changingFindText = false;
     

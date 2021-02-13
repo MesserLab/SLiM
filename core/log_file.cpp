@@ -217,6 +217,7 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 			EIDOS_TERMINATION << "ERROR (LogFile::_GeneratedValue_CustomScript): a LogFile generator script for addCustomColumn() must return a singleton value, or NULL." << EidosTerminate(nullptr);
 		
 		interpreter.FlushExecutionOutputToStream(SLIM_OUTSTREAM);
+		interpreter.FlushErrorOutputToStream(SLIM_ERRSTREAM);
 	}
 	catch (...)
 	{
@@ -280,6 +281,7 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 		}
 		
 		interpreter.FlushExecutionOutputToStream(SLIM_OUTSTREAM);
+		interpreter.FlushErrorOutputToStream(SLIM_ERRSTREAM);
 	}
 	catch (...)
 	{
@@ -583,7 +585,7 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	
 	// See, e.g., Subpopulation::ApplyGlobalFitnessCallbacks() for comments on parsing/running script blocks
 	EidosErrorContext error_context_save = gEidosErrorContext;
-	EidosScript *source_script = new EidosScript(source);
+	EidosScript *source_script = new EidosScript(source, -1);
 	
 	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, source_script, true};
 	
@@ -652,7 +654,7 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 	const std::string &source = source_value->StringRefAtIndex(0, nullptr);
 	
 	EidosErrorContext error_context_save = gEidosErrorContext;
-	EidosScript *source_script = new EidosScript(source);
+	EidosScript *source_script = new EidosScript(source, -1);
 	
 	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, source_script, true};
 	

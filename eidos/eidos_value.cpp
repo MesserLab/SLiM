@@ -774,6 +774,66 @@ void EidosValue::Print(std::ostream &p_ostream) const
 	}
 }
 
+void EidosValue::PrintStructure(std::ostream &p_ostream, int max_values) const
+{
+	EidosValueType x_type = Type();
+	int x_count = Count();
+	int x_dimcount = DimensionCount();
+	const int64_t *x_dims = Dimensions();
+	
+	if (x_count == 0)
+	{
+		// zero-length vectors get printed according to the standard code in EidosValue
+		Print(p_ostream);
+	}
+	else
+	{
+		// start with the type, and then the class for object-type values
+		p_ostream << x_type;
+		
+		if (x_type == EidosValueType::kValueObject)
+			p_ostream << "<" << ElementType() << ">";
+		
+		// then print the ranges for each dimension
+		p_ostream << " [";
+		
+		if (x_dimcount == 1)
+			p_ostream << "0:" << (x_count - 1) << "]";
+		else
+		{
+			for (int dim_index = 0; dim_index < x_dimcount; ++dim_index)
+			{
+				if (dim_index > 0)
+					p_ostream << ", ";
+				p_ostream << "0:" << (x_dims[dim_index] - 1);
+			}
+			
+			p_ostream << "]";
+		}
+		
+		// finally, print up to max_values values, if available, followed by an ellipsis if not all values were printed
+		if (max_values > 0)
+		{
+			p_ostream << " ";
+			
+			int output_count = std::min(max_values, x_count);
+			
+			for (int output_index = 0; output_index < output_count; ++output_index)
+			{
+				EidosValue_SP value = GetValueAtIndex(output_index, nullptr);
+				
+				if (output_index > 0)
+					p_ostream << gEidosStr_space_string;
+				
+				p_ostream << *value;
+			}
+			
+			if (x_count > output_count)
+				p_ostream << " ...";
+		}
+	}
+}
+
 
 //
 //	EidosValue_VOID

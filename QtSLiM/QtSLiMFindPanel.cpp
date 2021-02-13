@@ -21,7 +21,7 @@
 #include "QtSLiMFindPanel.h"
 #include "ui_QtSLiMFindPanel.h"
 
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QApplication>
 #include <QSettings>
 #include <QClipboard>
@@ -135,7 +135,7 @@ QtSLiMFindPanel::~QtSLiMFindPanel(void)
     delete ui;
 }
 
-QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiable)
+QPlainTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiable)
 {
     // We rely on QtSLiMAppDelegate to track the active window list for us;
     // our target is the frontmost window that is not our own window
@@ -151,7 +151,7 @@ QTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireModifiab
         
         // Given a target window, we target the focusWidget *if* it is a textedit
         QWidget *windowFocusWidget = currentFocusWindow->focusWidget();
-        QTextEdit *textEdit = dynamic_cast<QTextEdit*>(windowFocusWidget);
+        QPlainTextEdit *textEdit = dynamic_cast<QPlainTextEdit*>(windowFocusWidget);
         
 //        if (windowFocusWidget)
 //            qDebug() << "   windowFocusWidget" << windowFocusWidget << " " << windowFocusWidget->objectName() << ", textEdit" << textEdit;
@@ -199,7 +199,7 @@ void QtSLiMFindPanel::closeEvent(QCloseEvent *p_event)
     QDialog::closeEvent(p_event);
 }
 
-bool QtSLiMFindPanel::findForwardWrapBeep(QTextEdit *target, bool forward, bool wrap, bool beepIfNotFound)
+bool QtSLiMFindPanel::findForwardWrapBeep(QPlainTextEdit *target, bool forward, bool wrap, bool beepIfNotFound)
 {
     // This method is the only place where I looked at its source code, but for this method at least,
     // thanks to Lorenzo Bettini for his QtFindReplaceDialog project, http://qtfindreplace.sourceforge.net
@@ -261,7 +261,7 @@ void QtSLiMFindPanel::findNext(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(false);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(false);
     QString findString = ui->findTextLineEdit->text();
     
     if (!target || !findString.length()) { qApp->beep(); return; }
@@ -273,7 +273,7 @@ void QtSLiMFindPanel::findPrevious(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(false);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(false);
     QString findString = ui->findTextLineEdit->text();
     
     if (!target || !findString.length()) { qApp->beep(); return; }
@@ -285,7 +285,7 @@ void QtSLiMFindPanel::replaceAndFind(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(true);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(true);
     QString findString = ui->findTextLineEdit->text();
     
     if (!target || !findString.length()) { qApp->beep(); return; }
@@ -307,7 +307,7 @@ void QtSLiMFindPanel::replace(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(true);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(true);
     QString findString = ui->findTextLineEdit->text();
     
     if (!target || !findString.length()) { qApp->beep(); return; }
@@ -322,7 +322,7 @@ void QtSLiMFindPanel::replaceAll(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(true);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(true);
     QString findString = ui->findTextLineEdit->text();
     
     if (!target || !findString.length()) { qApp->beep(); return; }
@@ -362,7 +362,7 @@ void QtSLiMFindPanel::useSelectionForFind(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(false);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(false);
     QString selectionString = target->textCursor().selectedText();
     
     if (selectionString.length())
@@ -375,7 +375,7 @@ void QtSLiMFindPanel::useSelectionForReplace(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(false);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(false);
     QString selectionString = target->textCursor().selectedText();
     
     if (selectionString.length())
@@ -388,7 +388,7 @@ void QtSLiMFindPanel::jumpToSelection(void)
 {
     ui->statusText->clear();
     
-    QTextEdit *target = targetTextEditRequireModifiable(false);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(false);
     
     // ensureCursorVisible() doesn't do a good job with full-line selections, so we temporarily change the selection
     QTextCursor savedCursor(target->textCursor());
@@ -409,7 +409,7 @@ void QtSLiMFindPanel::jumpToSelection(void)
 
 void QtSLiMFindPanel::jumpToLine(void)
 {
-    QTextEdit *target = targetTextEditRequireModifiable(false);
+    QPlainTextEdit *target = targetTextEditRequireModifiable(false);
     
     int lineIndex = target->textCursor().block().blockNumber();
     

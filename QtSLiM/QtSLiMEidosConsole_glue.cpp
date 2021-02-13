@@ -37,7 +37,7 @@ void QtSLiMEidosConsole::glueUI(void)
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
     connect(ui->prettyprintButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprintClicked);
     connect(ui->scriptHelpButton, &QPushButton::clicked, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
-    connect(ui->browserButton, &QPushButton::clicked, this, [this]() { setVariableBrowserVisibility(ui->browserButton->isChecked()); });
+    connect(ui->browserButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::showBrowserClicked);
     
     connect(ui->executeSelectionButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::executeSelectionClicked);
     connect(ui->executeAllButton, &QPushButton::clicked, this, &QtSLiMEidosConsole::executeAllClicked);
@@ -106,11 +106,11 @@ void QtSLiMEidosConsole::scriptHelpReleased(void)
 }
 void QtSLiMEidosConsole::showBrowserPressed(void)
 {
-    ui->browserButton->qtslimSetHighlight(!ui->browserButton->isChecked());
+    ui->browserButton->qtslimSetHighlight(true);
 }
 void QtSLiMEidosConsole::showBrowserReleased(void)
 {
-    ui->browserButton->qtslimSetHighlight(ui->browserButton->isChecked());
+    ui->browserButton->qtslimSetHighlight(false);
 }
 void QtSLiMEidosConsole::executeSelectionPressed(void)
 {

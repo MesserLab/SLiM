@@ -351,9 +351,12 @@ int RunSLiMTests(void)
 	std::cerr << EIDOS_OUTPUT_SUCCESS_TAG << " count: " << gSLiMTestSuccessCount << std::endl;
 	std::cerr.flush();
 	
-	// Clear out the SLiM output stream post-test
+	// Clear out the SLiM output streams post-test
 	gSLiMOut.clear();
 	gSLiMOut.str("");
+	
+	gSLiMError.clear();
+	gSLiMError.str("");
 	
 	// return a standard Unix result code indicating success (0) or failure (1);
 	return (gSLiMTestFailureCount > 0) ? 1 : 0;

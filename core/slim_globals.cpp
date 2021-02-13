@@ -353,8 +353,9 @@ void SLiM_WarmUp(void)
 }
 
 
-// a stringstream for SLiM output; see the header for details
+// ostringstreams for SLiM output; see the header for details
 std::ostringstream gSLiMOut;
+std::ostringstream gSLiMError;
 
 
 #pragma mark -

@@ -57,8 +57,8 @@ QtSLiMConsoleTextEdit::QtSLiMConsoleTextEdit(QWidget *p_parent) : QtSLiMTextEdit
 void QtSLiMConsoleTextEdit::selfInit(void)
 {
     // set up to react to selection changes; see these methods for comments
-    connect(this, &QTextEdit::selectionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
-    connect(this, &QTextEdit::cursorPositionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
+    connect(this, &QPlainTextEdit::selectionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, &QtSLiMConsoleTextEdit::handleSelectionChanged);
     connect(this, &QtSLiMConsoleTextEdit::selectionWasChangedDuringLastEvent, this, &QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly, Qt::QueuedConnection);
 }
 

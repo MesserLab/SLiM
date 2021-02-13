@@ -132,7 +132,7 @@ int main(int argc, const char * argv[])
 		
 		buffer << std::cin.rdbuf();
 		
-		script = new EidosScript(buffer.str());
+		script = new EidosScript(buffer.str(), 0);
 	}
 	else
 	{
@@ -168,7 +168,7 @@ int main(int argc, const char * argv[])
 		
 		buffer << infile.rdbuf();
 		
-		script = new EidosScript(buffer.str());
+		script = new EidosScript(buffer.str(), 0);
 	}
 	
 	// set up top-level error-reporting info
@@ -186,9 +186,8 @@ int main(int argc, const char * argv[])
 	EidosInterpreter interpreter(*script, *variable_symbols, function_map, nullptr);
 	
 	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
-	std::string output = interpreter.ExecutionOutput();
-	
-	std::cout << output << std::endl;
+	interpreter.FlushExecutionOutputToStream(std::cout);
+	interpreter.FlushExecutionOutputToStream(std::cerr);
 	
 	Eidos_FlushFiles();
 	

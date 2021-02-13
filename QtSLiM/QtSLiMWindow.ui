@@ -1154,6 +1154,48 @@ QSlider::handle:horizontal:disabled {
            </widget>
           </item>
           <item>
+           <widget class="QtSLiMPushButton" name="debugOutputButton">
+            <property name="minimumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide debugging output&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/debug.png</normaloff>
+              <normalon>:/buttons/debug_H.png</normalon>:/buttons/debug.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QtSLiMPushButton" name="graphPopupButton">
             <property name="minimumSize">
              <size>
@@ -1345,6 +1387,7 @@ QSlider::handle:horizontal:disabled {
     <addaction name="separator"/>
     <addaction name="actionShowVariableBrowser"/>
     <addaction name="actionShowEidosConsole"/>
+    <addaction name="actionShowDebuggingOutput"/>
     <addaction name="separator"/>
     <addaction name="actionClearOutput"/>
     <addaction name="separator"/>
@@ -1802,6 +1845,14 @@ QSlider::handle:horizontal:disabled {
     <string>Ctrl+Alt+Shift+=</string>
    </property>
   </action>
+  <action name="actionShowDebuggingOutput">
+   <property name="text">
+    <string>Show Debugging Output</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1826,19 +1877,19 @@ QSlider::handle:horizontal:disabled {
    <header>QtSLiMExtras.h</header>
   </customwidget>
   <customwidget>
+   <class>QtSLiMStatusBar</class>
+   <extends>QStatusBar</extends>
+   <header>QtSLiMExtras.h</header>
+  </customwidget>
+  <customwidget>
    <class>QtSLiMScriptTextEdit</class>
-   <extends>QTextEdit</extends>
+   <extends>QPlainTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
   </customwidget>
   <customwidget>
    <class>QtSLiMTextEdit</class>
-   <extends>QTextEdit</extends>
+   <extends>QPlainTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>QtSLiMStatusBar</class>
-   <extends>QStatusBar</extends>
-   <header>QtSLiMExtras.h</header>
   </customwidget>
  </customwidgets>
  <resources>
