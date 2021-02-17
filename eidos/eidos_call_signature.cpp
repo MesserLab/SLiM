@@ -707,7 +707,7 @@ EidosInstanceMethodSignature::EidosInstanceMethodSignature(const std::string &p_
 
 std::string EidosInstanceMethodSignature::CallPrefix(void) const
 {
-	return "– ";	// en-dash, non-breaking space
+	return "–\u00A0";	// en-dash, non-breaking space
 }
 
 EidosInstanceMethodSignature::~EidosInstanceMethodSignature(void)
@@ -756,7 +756,7 @@ EidosClassMethodSignature::EidosClassMethodSignature(const std::string &p_functi
 
 std::string EidosClassMethodSignature::CallPrefix(void) const
 {
-	return "+ ";	// non-breaking space
+	return "+\u00A0";	// non-breaking space
 }
 
 EidosClassMethodSignature::~EidosClassMethodSignature(void)

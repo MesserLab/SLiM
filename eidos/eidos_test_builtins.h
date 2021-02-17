@@ -19,7 +19,7 @@ R"V0G0N(
 
 // ***********************************************************************************************
 
-// (numeric)abs(numeric x)
+// (numeric)abs(numeric x)
 function (numeric)abs_func(numeric x)
 {
 	return sapply(x, 'if (applyValue < 0) -applyValue; else applyValue;');
@@ -37,7 +37,7 @@ if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of abs(f)');
 
 // ***********************************************************************************************
 
-// (logical$)all(logical x, ...)
+// (logical$)all(logical x, ...)
 function (l$)all_func(l x)
 {
 	return sum(x) == size(x);
@@ -64,7 +64,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (logical$)any(logical x, ...)
+// (logical$)any(logical x, ...)
 function (l$)any_func(l x)
 {
 	return sum(x) > 0;
@@ -91,7 +91,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (numeric)cumProduct(numeric x)
+// (numeric)cumProduct(numeric x)
 function (numeric)cumProduct_func(numeric x)
 {
 	return sapply(seqAlong(x), 'product(x[0:applyValue]);');
@@ -115,7 +115,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (numeric)cumSum(numeric x)
+// (numeric)cumSum(numeric x)
 function (numeric)cumSum_func(numeric x)
 {
 	return sapply(seqAlong(x), 'sum(x[0:applyValue]);');
@@ -139,7 +139,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (float)exp(numeric x)
+// (float)exp(numeric x)
 function (f)exp_func(numeric x)
 {
 	return E ^ x;	// this uses pow(), which may produce slightly different results than exp()
@@ -157,7 +157,7 @@ if (any(abs(xbuiltin / xuserdef - 1.0) > 1e-10)) stop('Mismatch in test of exp(f
 
 // ***********************************************************************************************
 
-// (*)ifelse(logical test, * trueValues, * falseValues)
+// (*)ifelse(logical test, * trueValues, * falseValues)
 function (*)ifelse_func(l test, * tvals, * fvals)
 {
 	return sapply(seqAlong(test), "test[applyValue] ? tvals[applyValue] else fvals[applyValue];");
@@ -175,7 +175,7 @@ for (iter in 1:10000)
 
 // ***********************************************************************************************
 
-// (+$)max(+ x, ...)
+// (+$)max(+ x, ...)
 function (+$)max_func(+ x)
 {
 	if (size(x) == 0)
@@ -242,7 +242,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (float$)mean(lif x)
+// (float$)mean(lif x)
 function (f$)mean_func(lif x)
 {
 	return sum(x) / size(x);
@@ -274,7 +274,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (+$)min(+ x, ...)
+// (+$)min(+ x, ...)
 function (+$)min_func(+ x)
 {
 	if (size(x) == 0)
@@ -341,7 +341,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (+)pmax(+ x, + y)
+// (+)pmax(+ x, + y)
 function (+)pmax_func(+x, +y)
 {
 	return ifelse(x > y, x, y);
@@ -367,7 +367,7 @@ if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of pmax(f)');
 
 // ***********************************************************************************************
 
-// (+)pmin(+ x, + y)
+// (+)pmin(+ x, + y)
 function (+)pmin_func(+x, +y)
 {
 	return ifelse(x < y, x, y);
@@ -393,7 +393,7 @@ if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of pmin(f)');
 
 // ***********************************************************************************************
 
-// (numeric$)product(numeric x)
+// (numeric$)product(numeric x)
 function (numeric$)product_func(numeric x)
 {
 	p = 1;
@@ -421,7 +421,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (numeric)range(numeric x, ...)
+// (numeric)range(numeric x, ...)
 function (numeric)range_func(numeric x)
 {
 	if (size(x) == 0)
@@ -470,7 +470,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)rep(* x, integer$ count)
+// (*)rep(* x, integer$ count)
 function (*)rep_func(* x, i$ count)
 {
 	r = NULL;
@@ -507,7 +507,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)repEach(* x, integer count)
+// (*)repEach(* x, integer count)
 function (*)repEach_func(* x, i$ count)
 {
 	r = NULL;
@@ -544,7 +544,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)rev(* x)
+// (*)rev(* x)
 function (*)rev_func(* x)
 {
 	return x[(size(x) - 1):0];
@@ -576,7 +576,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (float$)sd(numeric x)
+// (float$)sd(numeric x)
 function (f$)sd_func(numeric x)
 {
 	ss = sum((x - mean(x)) ^ 2);
@@ -601,7 +601,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)setDifference(* x, * y)
+// (*)setDifference(* x, * y)
 function (*)setDifference_func(* x, * y)
 {
 	return setSymmetricDifference(x, setIntersection(x, y));
@@ -636,7 +636,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)setIntersection(* x, * y)
+// (*)setIntersection(* x, * y)
 function (*)setIntersection_func(* x, * y)
 {
 	return setDifference(setUnion(x, y), setSymmetricDifference(x, y));
@@ -671,7 +671,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)setSymmetricDifference(* x, * y)
+// (*)setSymmetricDifference(* x, * y)
 function (*)setSymmetricDifference_func(* x, * y)
 {
 	return setDifference(setUnion(x, y), setIntersection(x, y));
@@ -706,7 +706,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)setUnion(* x, * y)
+// (*)setUnion(* x, * y)
 function (*)setUnion_func(* x, * y)
 {
 	return unique(c(x, y));
@@ -741,7 +741,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (float)sqrt(numeric x)
+// (float)sqrt(numeric x)
 function (f)sqrt_func(numeric x)
 {
 	return x ^ 0.5;	// this uses pow(), which may produce slightly different results than sqrt()
@@ -759,7 +759,7 @@ if (any(abs(xbuiltin / xuserdef - 1.0) > 1e-10)) stop('Mismatch in test of sqrt(
 
 // ***********************************************************************************************
 
-// (numeric$)sum(lif x)
+// (numeric$)sum(lif x)
 function (numeric$)sum_func(numeric x)
 {
 	s = 0;
@@ -795,7 +795,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (float$)sumExact(float x)
+// (float$)sumExact(float x)
 function (f$)sumExact_func(f x)
 {
 	s = 0;
@@ -815,7 +815,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (*)unique(* x, [logical$ preserveOrder = T])
+// (*)unique(* x, [logical$ preserveOrder = T])
 function (*)unique_func(* x)
 {
 	s = sort(x);	// this implementation does not preserve order!
@@ -881,7 +881,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (integer)which(logical x)
+// (integer)which(logical x)
 function (i)which_func(l x)
 {
 	w = sapply(seqAlong(x), 'x[applyValue] ? applyValue else NULL;');
@@ -899,7 +899,7 @@ for (iter in 1:10000)
 
 // ***********************************************************************************************
 
-// (integer$)whichMax(+ x)
+// (integer$)whichMax(+ x)
 function (integer$)whichMax_func(+ x)
 {
 	return min(which(x == max(x)));
@@ -931,7 +931,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (integer$)whichMin(+ x)
+// (integer$)whichMin(+ x)
 function (integer$)whichMin_func(+ x)
 {
 	return min(which(x == min(x)));
@@ -963,7 +963,7 @@ for (iter in 1:100)
 
 // ***********************************************************************************************
 
-// (integer)integer(integer$ length, [integer$ fill1 = 0], [integer$ fill2 = 1], [Ni fill2Indices = NULL])
+// (integer)integer(integer$ length, [integer$ fill1 = 0], [integer$ fill2 = 1], [Ni fill2Indices = NULL])
 function (integer)integer_func(integer$ length, integer$ fill1, integer$ fill2, i fill2Indices)
 {
 	x = rep(fill1, length);
@@ -987,56 +987,56 @@ for (iter in 1:1000)
 
 // ***********************************************************************************************
 
-// (float)acos(numeric x)
-// (float)cos(numeric x)
+// (float)acos(numeric x)
+// (float)cos(numeric x)
 x = runif(10000, 0.0, PI);
 xtest = acos(cos(x));
 if (any(abs(xtest / x - 1.0) > 1e-5)) stop('Mismatch in test of acos() vs. cos()');
 
 // ***********************************************************************************************
 
-// (float)asin(numeric x)
-// (float)sin(numeric x)
+// (float)asin(numeric x)
+// (float)sin(numeric x)
 x = runif(10000, -PI/2, PI/2);
 xtest = asin(sin(x));
 if (any(abs(xtest / x - 1.0) > 1e-5)) stop('Mismatch in test of asin() vs. sin()');
 
 // ***********************************************************************************************
 
-// (float)atan(numeric x)
-// (float)tan(numeric x)
+// (float)atan(numeric x)
+// (float)tan(numeric x)
 x = runif(10000, -PI/2, PI/2);
 xtest = atan(tan(x));
 if (any(abs(xtest / x - 1.0) > 1e-5)) stop('Mismatch in test of atan() vs. tan()');
 
 // ***********************************************************************************************
 
-// (float)cos(numeric x)
-// (float)sin(numeric x)
+// (float)cos(numeric x)
+// (float)sin(numeric x)
 x = runif(10000, -100, 100);
 xtest = sin(x)^2 + cos(x)^2;
 if (any(abs(xtest - 1.0) > 1e-5)) stop('Mismatch in test of sin() vs. cos()');
 
 // ***********************************************************************************************
 
-// (float)atan2(numeric x, numeric y)
-// (float)cos(numeric x)
-// (float)sin(numeric x)
+// (float)atan2(numeric x, numeric y)
+// (float)cos(numeric x)
+// (float)sin(numeric x)
 x = runif(10000, -PI, PI);
 xtest = atan2(sin(x), cos(x));
 if (any(abs(xtest / x - 1.0) > 1e-5)) stop('Mismatch in test of atan2() vs. sin() and cos()');
 
 // ***********************************************************************************************
 
-// (float)log(numeric x)
-// (float)exp(numeric x)
+// (float)log(numeric x)
+// (float)exp(numeric x)
 x = runif(10000, 0.1, 100);
 xtest = log(exp(x));
 if (any(abs(xtest / x - 1.0) > 1e-5)) stop('Mismatch in test of log() vs. exp()');
 
 // ***********************************************************************************************
 
-// (float)log10(numeric x)
+// (float)log10(numeric x)
 // operator ^
 x = runif(10000, 0.1, 100);
 xtest = log10(10^x);
@@ -1044,7 +1044,7 @@ if (any(abs(xtest / x - 1.0) > 1e-5)) stop('Mismatch in test of log10() vs. oper
 
 // ***********************************************************************************************
 
-// (float)log2(numeric x)
+// (float)log2(numeric x)
 // operator ^
 x = runif(10000, 0.1, 100);
 xtest = log2(2^x);
@@ -1052,8 +1052,8 @@ if (any(abs(xtest / x - 1.0) > 1e-5)) stop('Mismatch in test of log2() vs. opera
 
 // ***********************************************************************************************
 
-// (integer)order(+ x, [logical$ ascending = T])
-// (+)sort(+ x, [logical$ ascending = T])
+// (integer)order(+ x, [logical$ ascending = T])
+// (+)sort(+ x, [logical$ ascending = T])
 x = sample(-1000:1000, 10000, T);		// integer
 if (!identical(x[order(x)], sort(x))) stop('Mismatch in test of order(i) vs. sort(i)');
 if (!identical(x[order(x, ascending=F)], sort(x, ascending=F))) stop('Mismatch in test of order(i) vs. sort(i) (ascending=F)');
@@ -1064,7 +1064,7 @@ if (!identical(x[order(x, ascending=F)], sort(x, ascending=F))) stop('Mismatch i
 
 // ***********************************************************************************************
 
-// (integer)match(* x, * table)
+// (integer)match(* x, * table)
 // operator []
 table = -1000:1000;		// integer
 x = sample(table, 10000, T);
@@ -1076,10 +1076,10 @@ if (!identical(table[match(x, table)], x)) stop('Mismatch in test of match(f) vs
 
 // ***********************************************************************************************
 
-// (float)ceil(float x)
-// (float)floor(float x)
-// (float)trunc(float x)
-// (float)round(float x)
+// (float)ceil(float x)
+// (float)floor(float x)
+// (float)trunc(float x)
+// (float)round(float x)
 x = runif(10000, -100000.0, 100000.0);
 x = x[trunc(x) != x];				// eliminate numbers with no fractional part
 x = x[trunc(x * 2.0) != x * 2.0];	// eliminate numbers with a fractional part of 0.5

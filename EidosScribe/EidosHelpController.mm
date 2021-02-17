@@ -319,8 +319,8 @@
 	NSRegularExpression *topicHeaderRegex = [NSRegularExpression regularExpressionWithPattern:@"^((?:[0-9]+\\.)*[0-9]+)\\.?  (.+)$" options:NSRegularExpressionCaseInsensitive error:NULL];									// 2 captures
 	NSRegularExpression *topicGenericItemRegex = [NSRegularExpression regularExpressionWithPattern:@"^((?:[0-9]+\\.)*[0-9]+)\\.?  ITEM: ((?:[0-9]+\\.? )?)(.+)$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 3 captures
 	NSRegularExpression *topicFunctionRegex = [NSRegularExpression regularExpressionWithPattern:@"^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];						// 1 capture
-	NSRegularExpression *topicMethodRegex = [NSRegularExpression regularExpressionWithPattern:@"^([-–+])[  ]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];			// 2 captures
-	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9]+)[  ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 2 captures
+	NSRegularExpression *topicMethodRegex = [NSRegularExpression regularExpressionWithPattern:@"^([-–+])[ \u00A0]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$" options:NSRegularExpressionCaseInsensitive error:NULL];			// 2 captures
+	NSRegularExpression *topicPropertyRegex = [NSRegularExpression regularExpressionWithPattern:@"^([a-zA-Z_0-9]+)[ \u00A0]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$" options:NSRegularExpressionCaseInsensitive error:NULL];	// 2 captures
 	
 	// Scan through the file one line at a time, parsing out topic headers
 	NSString *topicFileString = [topicFileAttrString string];
@@ -522,7 +522,7 @@
 				}
 			}
 			
-			topicItemKey = [NSString stringWithFormat:@"%@ %@()", classMethodString, callName];
+			topicItemKey = [NSString stringWithFormat:@"%@\u00A0%@()", classMethodString, callName];
 			topicItemAttrString = [[[NSMutableAttributedString alloc] initWithAttributedString:lineAttrString] autorelease];
 		}
 		else if (isTopicPropertyLine)
@@ -667,7 +667,7 @@
 				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
 					std::string &&prefix_string = methodSignature->CallPrefix();
-					NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "
+					NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "–\u00A0", or "+\u00A0"
 					NSString *methodNameString = [NSString stringWithUTF8String:methodSignature->call_name_.c_str()];
 					NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
 					NSUInteger docIndex = [docMethods indexOfObject:methodString];
@@ -1226,18 +1226,18 @@
 	static NSArray *stringsNucmut = nullptr;
 	
 	if (!stringsWF)
-		stringsWF = [@[@"– addSubpopSplit()",
-					   @"– registerMateChoiceCallback()",
+		stringsWF = [@[@"–\u00A0addSubpopSplit()",
+					   @"–\u00A0registerMateChoiceCallback()",
 					   @"cloningRate =>",
 					   @"immigrantSubpopFractions =>",
 					   @"immigrantSubpopIDs =>",
 					   @"selfingRate =>",
 					   @"sexRatio =>",
-					   @"– setCloningRate()",
-					   @"– setMigrationRates()",
-					   @"– setSelfingRate()",
-					   @"– setSexRatio()",
-					   @"– setSubpopulationSize()",
+					   @"–\u00A0setCloningRate()",
+					   @"–\u00A0setMigrationRates()",
+					   @"–\u00A0setSelfingRate()",
+					   @"–\u00A0setSexRatio()",
+					   @"–\u00A0setSubpopulationSize()",
 					   @"4. mateChoice() callbacks"
 					   ] retain];
 	
@@ -1245,14 +1245,14 @@
 		stringsNonWF = [@[@"initializeSLiMModelType()",
 						  @"age =>",
 						  @"modelType =>",
-						  @"– registerReproductionCallback()",
-						  @"– addCloned()",
-						  @"– addCrossed()",
-						  @"– addEmpty()",
-						  @"– addRecombinant()",
-						  @"– addSelfed()",
-						  @"– removeSubpopulation()",
-						  @"– takeMigrants()",
+						  @"–\u00A0registerReproductionCallback()",
+						  @"–\u00A0addCloned()",
+						  @"–\u00A0addCrossed()",
+						  @"–\u00A0addEmpty()",
+						  @"–\u00A0addRecombinant()",
+						  @"–\u00A0addSelfed()",
+						  @"–\u00A0removeSubpopulation()",
+						  @"–\u00A0takeMigrants()",
 						  @"8. reproduction() callbacks"
 						  ] retain];
 	
@@ -1273,17 +1273,17 @@
 						   @"nucleotide <–>",
 						   @"nucleotideValue <–>",
 						   @"mutationMatrix =>",
-						   @"– setMutationMatrix()",
-						   @"– ancestralNucleotides()",
-						   @"– setAncestralNucleotides()",
-						   @"– nucleotides()",
+						   @"–\u00A0setMutationMatrix()",
+						   @"–\u00A0ancestralNucleotides()",
+						   @"–\u00A0setAncestralNucleotides()",
+						   @"–\u00A0nucleotides()",
 						   @"hotspotEndPositions =>",
 						   @"hotspotEndPositionsF =>",
 						   @"hotspotEndPositionsM =>",
 						   @"hotspotMultipliers =>",
 						   @"hotspotMultipliersF =>",
 						   @"hotspotMultipliersM =>",
-						   @"– setHotspotMap()"
+						   @"–\u00A0setHotspotMap()"
 						   ] retain];
 	
 	if ([stringsWF containsObject:item])
@@ -1409,7 +1409,7 @@
 			if (!beenHere)
 			{
 				beenHere = YES;
-				nbs = [@" " characterAtIndex:0];		// " " is an NBS; no platform-independent way to represent it as a unichar literal, apparently, due to endianness etc.
+				nbs = [@"\u00A0" characterAtIndex:0];		// "\u00A0" is a non-breaking space
 			}
 			
 			if ((uch2 == '$') || (uch2 == nbs))
@@ -1433,7 +1433,7 @@
 			nbsSearchRange = NSMakeRange(aRange.location, aRange.length - 1);		// don't include last character
 		
 		// break after a non-breaking space if necessary, but not right at the start; avoid "- ("
-		NSRange nbsRange = [string rangeOfString:@" " options:(NSStringCompareOptions)(NSLiteralSearch | NSBackwardsSearch) range:nbsSearchRange];
+		NSRange nbsRange = [string rangeOfString:@"\u00A0" options:(NSStringCompareOptions)(NSLiteralSearch | NSBackwardsSearch) range:nbsSearchRange];
 		
 		if ((nbsRange.location != NSNotFound) && (nbsRange.location > aRange.location + 2))
 			breakpoint = nbsRange.location + 1;

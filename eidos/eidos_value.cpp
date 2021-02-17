@@ -151,7 +151,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosClas
 	
 	if (p_name.length() > 0)
 	{
-		out_string += " ";	// non-breaking space
+		out_string += "\u00A0";	// non-breaking space
 		out_string += p_name;
 	}
 	
@@ -159,7 +159,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosClas
 	{
 		if (p_default && (p_default != gStaticEidosValueNULLInvisible.get()))
 		{
-			out_string += " = ";
+			out_string += "\u00A0=\u00A0";
 			
 			std::ostringstream default_string_stream;
 			

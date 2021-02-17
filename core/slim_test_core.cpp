@@ -253,7 +253,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(); initializeSLiMOptions(); stop(); }", 1, 40, "may be called only once", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationRate(0.0); initializeSLiMOptions(); stop(); }", 1, 44, "must be called before", __LINE__);
 	
-	// Test (object<InteractionType>$)initializeInteractionType(is$ id, string$ spatiality, [logical$ reciprocal = F], [numeric$ maxDistance = INF], [string$ sexSegregation = "**"])
+	// Test (object<InteractionType>$)initializeInteractionType(is$ id, string$ spatiality, [logical$ reciprocal = F], [numeric$ maxDistance = INF], [string$ sexSegregation = "**"])
 	SLiMAssertScriptRaise("initialize() { initializeInteractionType(-1, ''); stop(); }", 1, 15, "identifier value is out of range", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeInteractionType(0, ''); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeInteractionType('i0', ''); stop(); }", __LINE__);
@@ -439,11 +439,11 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(object()); }", __LINE__);												// legal to specify an empty object vector
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(1); }", 1, 301, "cannot be type integer", __LINE__);						// this is one API where integer identifiers can't be used
 	
-	// Test sim - (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
+	// Test sim - (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.mutationsOfType(m1); } ", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.mutationsOfType(1); } ", __LINE__);
 	
-	// Test sim - (object<Mutation>)countOfMutationsOfType(io<MutationType>$ mutType)
+	// Test sim - (object<Mutation>)countOfMutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.countOfMutationsOfType(m1); } ", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.countOfMutationsOfType(1); } ", __LINE__);
 	
@@ -615,7 +615,7 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 { stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.simulationFinished(); } 11 { stop(); }", __LINE__);
 	
-	// Test sim - (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
+	// Test sim - (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
 	// unusually, we do this with custom SLiM scripts that check the API stochastically, since it would be difficult
 	// to test all the possible parameter combinations otherwise; we do a non-nucleotide test and a nucleotide test
 	SLiMAssertScriptSuccess(R"(
@@ -775,7 +775,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(c(-1,5)), rep(1.0, 10)); stop(); }", 1, 260, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { identical(p1.cachedFitness(c(5,10)), rep(1.0, 10)); stop(); }", 1, 260, "out of range", __LINE__);
 	
-	// Test Subpopulation – (object<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
+	// Test Subpopulation – (object<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.sampleIndividuals(0)) == 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.sampleIndividuals(1)) == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.sampleIndividuals(2)) == 2) stop(); }", __LINE__);
@@ -889,7 +889,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, migrant=T)) == 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.sampleIndividuals(1, exclude=p1.individuals[2], migrant=T)) == 0) stop(); }", __LINE__);
 	
-	// Test Subpopulation – (object<Individual>)subsetIndividuals([No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
+	// Test Subpopulation – (object<Individual>)subsetIndividuals([No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.subsetIndividuals()) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.subsetIndividuals(exclude=p1.individuals[2])) == 9) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.subsetIndividuals(sex='M'); }", 1, 250, "in non-sexual models", __LINE__);
@@ -926,7 +926,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(tag=0, migrant=T)) == 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.individuals.tag = rep(c(0,1),5); if (size(p1.subsetIndividuals(exclude=p1.individuals[3], tag=0, migrant=T)) == 0) stop(); }", __LINE__);
 	
-	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex], [Ns$ filePath = NULL], [logical$ append = F], [logical$ filterMonomorphic = F])
+	// Test Subpopulation - (void)outputMSSample(integer$ sampleSize, [logical$ replace], [string$ requestedSex], [Ns$ filePath = NULL], [logical$ append = F], [logical$ filterMonomorphic = F])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, F); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, T); stop(); }", __LINE__);
@@ -1668,16 +1668,16 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.z = asFloat(seqAlong(i)); if (all(i.z == seqAlong(i))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; i.color = format('#%.6X', seqAlong(i)); if (all(i.color == format('#%.6X', seqAlong(i)))) stop(); }", __LINE__);
 	
-	// Test Individual - (logical)containsMutations(object<Mutation> mutations)
+	// Test Individual - (logical)containsMutations(object<Mutation> mutations)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.containsMutations(object()); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.containsMutations(sim.mutations); stop(); }", __LINE__);
 	
-	// Test Individual - (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
+	// Test Individual - (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.countOfMutationsOfType(m1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.countOfMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i[0:1].countOfMutationsOfType(1); stop(); }", __LINE__);
 	
-	// Test Individual - (float$)sumOfMutationsOfType(io<MutationType>$ mutType)
+	// Test Individual - (float$)sumOfMutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.sumOfMutationsOfType(m1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.sumOfMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i[0:1].sumOfMutationsOfType(1); stop(); }", __LINE__);

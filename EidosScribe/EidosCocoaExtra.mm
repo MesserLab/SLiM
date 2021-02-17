@@ -41,7 +41,7 @@
 		NSMutableAttributedString *attrStr = [[[NSMutableAttributedString alloc] init] autorelease];
 		
 		std::string &&prefix_string = signature->CallPrefix();
-		NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "– ", or "+ "
+		NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "–\u00A0", or "+\u00A0"
 		std::string &&return_type_string = StringForEidosValueMask(signature->return_mask_, signature->return_class_, "", nullptr);
 		NSString *returnTypeString = [NSString stringWithUTF8String:return_type_string.c_str()];
 		NSString *functionNameString = [NSString stringWithUTF8String:signature->call_name_.c_str()];
@@ -154,7 +154,7 @@
 				{
 					NSString *argName = [NSString stringWithUTF8String:arg_name.c_str()];
 					
-					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" " attributes:plainAttrs] autorelease]];	// non-breaking space
+					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\u00A0" attributes:plainAttrs] autorelease]];	// non-breaking space
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:argName attributes:paramAttrs] autorelease]];
 				}
 				
@@ -162,7 +162,7 @@
 				{
 					if (arg_default && (arg_default != gStaticEidosValueNULLInvisible.get()))
 					{
-						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@" = " attributes:plainAttrs] autorelease]];
+						[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"\u00A0=\u00A0" attributes:plainAttrs] autorelease]];
 						
 						std::ostringstream default_string_stream;
 						

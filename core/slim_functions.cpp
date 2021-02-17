@@ -64,7 +64,7 @@ R"({
 	return mean(fst);
 })";
 
-// (float$)calcVA(object<Individual> individuals, object<MutationType>$ mutType)
+// (float$)calcVA(object<Individual> individuals, object<MutationType>$ mutType)
 const char *gSLiMSourceCode_calcVA = 
 R"({
 	return var(individuals.sumOfMutationsOfType(mutType));
@@ -390,7 +390,7 @@ static int codon2aa_int[64] = {
 	/* TTT */	14
 };
 
-//	(string)codonsToAminoAcids(integer codons, [li$ long = F])
+//	(string)codonsToAminoAcids(integer codons, [li$ long = F])
 EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();
@@ -1005,7 +1005,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	return result_SP;
 }
 
-// (is)codonsToNucleotides(integer codons, [string$ format = "string"])
+// (is)codonsToNucleotides(integer codons, [string$ format = "string"])
 EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();

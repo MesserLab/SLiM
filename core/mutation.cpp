@@ -675,7 +675,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)setMutationType(io<MutationType>$ mutType)
+//	*********************	- (void)setMutationType(io<MutationType>$ mutType)
 //
 EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {

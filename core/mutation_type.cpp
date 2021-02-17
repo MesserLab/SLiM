@@ -633,7 +633,7 @@ EidosValue_SP MutationType::ExecuteInstanceMethod(EidosGlobalStringID p_method_i
 	}
 }
 
-//	*********************	- (float)drawSelectionCoefficient([integer$ n = 1])
+//	*********************	- (float)drawSelectionCoefficient([integer$ n = 1])
 //
 EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {

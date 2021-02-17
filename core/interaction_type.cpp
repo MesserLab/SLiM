@@ -2837,7 +2837,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	}
 }
 
-//	*********************	– (float)distanceToPoint(object<Individual> individuals1, float point)
+//	*********************	– (float)distanceToPoint(object<Individual> individuals1, float point)
 //
 EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3135,7 +3135,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	}
 }
 
-//	*********************	- (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
+//	*********************	- (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
 //
 EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3262,7 +3262,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 }
 
 //
-//	*********************	– (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+//	*********************	– (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
 EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
@@ -3655,7 +3655,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+//	*********************	– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL])
 //
 EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
