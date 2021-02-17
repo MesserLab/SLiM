@@ -4878,10 +4878,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			migrant_transmogrified->pedigree_g2_ = migrant->pedigree_g2_;
 			migrant_transmogrified->pedigree_g3_ = migrant->pedigree_g3_;
 			migrant_transmogrified->pedigree_g4_ = migrant->pedigree_g4_;
+			migrant_transmogrified->reproductive_output_ = migrant->reproductive_output_;
 			migrant_transmogrified->tag_value_ = migrant->tag_value_;
 			migrant_transmogrified->tagF_value_ = migrant->tagF_value_;
 			migrant_transmogrified->fitness_scaling_ = migrant->fitness_scaling_;
-			migrant_transmogrified->cached_fitness_UNSAFE_ = migrant->cached_fitness_UNSAFE_;	// never overridden in noWF models, so this is safe
+			migrant_transmogrified->cached_fitness_UNSAFE_ = migrant->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe
 			migrant_transmogrified->sex_ = migrant->sex_;
 #ifdef SLIM_NONWF_ONLY
 			migrant_transmogrified->age_ = migrant->age_;

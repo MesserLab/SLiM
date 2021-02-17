@@ -37,6 +37,7 @@ development head:
 	add "debug points" for runtime debugging of models in SLiMgui; new debugging output window, menu items, buttons, etc.
 	switch from QTextEdit to QPlainTextEdit for better performance (no user-visible change apart from SLiMgui performance on large amounts of output)
 	add support for an "error stream" in Eidos, in addition to the standard output stream; add [error=F] argument to cat(), catn(), print(), str() to support this
+	fix a bug with the reproductive output tracking for an individual being incorrect after the individual is moved with takeMigrants()
 
 
 version 3.5 (build 2663; Eidos version 2.5):
