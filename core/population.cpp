@@ -367,7 +367,11 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t p_generation, const Chromosome &p_chromosome)
 {
 #pragma unused(p_generation, p_chromosome)
-#ifdef SLIMGUI
+	
+#ifndef DEBUG_POINTS_ENABLED
+#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
+#endif
+#if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
 	{
 		EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();
@@ -453,7 +457,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	{
 		if (mate_choice_callback->active_)
 		{
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			{
 				EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();
@@ -814,7 +818,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 	{
 		if (modify_child_callback->active_)
 		{
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			{
 				EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();
@@ -2036,7 +2040,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 	{
 		if (recombination_callback->active_)
 		{
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			{
 				EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();

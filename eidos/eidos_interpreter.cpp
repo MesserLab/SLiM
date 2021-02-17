@@ -874,7 +874,10 @@ EidosValue_SP EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_nod
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_NullStatement()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_NullStatement", 0);
 	
-#ifdef SLIMGUI
+#ifndef DEBUG_POINTS_ENABLED
+#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
+#endif
+#if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -1298,7 +1301,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 
 EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionSignature &p_function_signature, const std::vector<EidosValue_SP> &p_arguments)
 {
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_function_signature.user_definition_line_ != -1) &&
 		(debug_points_->set.find(p_function_signature.user_definition_line_) != debug_points_->set.end()))
@@ -1471,7 +1474,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, function_signature);
 		
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -1510,7 +1513,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): (internal error) function " << *function_name << " returned nullptr." << EidosTerminate(call_identifier_token);
 #endif
 		
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -1576,7 +1579,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		// Argument processing
 		std::vector<EidosValue_SP> *argument_buffer = _ProcessArgumentList(p_node, method_signature);
 		
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -1605,7 +1608,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 		_DeprocessArgumentList(p_node, argument_buffer);
 		
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
@@ -4264,7 +4267,7 @@ compoundAssignmentSkip:
 		EidosASTNode *lvalue_node = p_node->children_[0];
 		EidosValue_SP rvalue = FastEvaluateNode(p_node->children_[1]);
 		
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()))
@@ -5545,7 +5548,7 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	EidosASTNode *condition_node = p_node->children_[0];
 	EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 	
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 		(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
@@ -5696,7 +5699,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[1];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
@@ -5754,7 +5757,7 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		EidosASTNode *condition_node = p_node->children_[0];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);
 		
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
@@ -6284,7 +6287,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 					global_symbols_->SetValueForSymbolNoCopy(identifier_name, iteration_value);
 					
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 					// SLiMgui debugging point
 					if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 						(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()))
@@ -6358,7 +6361,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Next()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Next", 0);
 	
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6386,7 +6389,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_Break()");
 	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_Break", 0);
 
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
@@ -6430,7 +6433,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	else
 		result_SP = FastEvaluateNode(p_node->children_[0]);
 	
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))

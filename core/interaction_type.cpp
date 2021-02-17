@@ -996,7 +996,10 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	{
 		if (interaction_callback->active_)
 		{
-#ifdef SLIMGUI
+#ifndef DEBUG_POINTS_ENABLED
+#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
+#endif
+#if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			{
 				EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();

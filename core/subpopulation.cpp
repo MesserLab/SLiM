@@ -1809,7 +1809,10 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 			
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
-#ifdef SLIMGUI
+#ifndef DEBUG_POINTS_ENABLED
+#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
+#endif
+#if DEBUG_POINTS_ENABLED
 				// SLiMgui debugging point
 				{
 					EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();
@@ -1969,7 +1972,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	{
 		if (fitness_callback->active_)
 		{
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			{
 				EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();
@@ -3075,7 +3078,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 			
 			if ((sex_specificity == IndividualSex::kUnspecified) || (sex_specificity == individual->sex_))
 			{
-#ifdef SLIMGUI
+#if DEBUG_POINTS_ENABLED
 				// SLiMgui debugging point
 				{
 					EidosInterpreterDebugPointsSet *debug_points = population_.sim_.DebugPoints();

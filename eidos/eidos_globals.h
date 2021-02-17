@@ -176,6 +176,14 @@ extern bool eidos_do_memory_checks;
 // keep Valgrind from getting confused.
 #define SLIM_LEAK_CHECKING	0
 
+// Enabling "debug points" in SLiMgui.  These are only enabled under SLiMgui (i.e., QtSLiM), and should always be enabled
+// in that scenario, for end users.  However, I've put a define here to control them for my own debugging purposes.
+#ifdef SLIMGUI
+#define DEBUG_POINTS_ENABLED	1
+#else
+#define DEBUG_POINTS_ENABLED	0
+#endif
+
 
 // *******************************************************************************************************************
 //
