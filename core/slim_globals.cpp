@@ -526,7 +526,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #pragma mark -
 
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
-long SLiM_verbosity_level = 1;
+int64_t SLiM_verbosity_level = 1;
 
 
 // stream output for enumerations
@@ -1091,6 +1091,7 @@ const std::string &gStr_dominanceCoeffX = EidosRegisteredString("dominanceCoeffX
 const std::string &gStr_generation = EidosRegisteredString("generation", gID_generation);
 const std::string &gStr_generationStage = EidosRegisteredString("generationStage", gID_generationStage);
 const std::string &gStr_colorSubstitution = EidosRegisteredString("colorSubstitution", gID_colorSubstitution);
+const std::string &gStr_verbosity = EidosRegisteredString("verbosity", gID_verbosity);
 const std::string &gStr_tag = EidosRegisteredString("tag", gID_tag);
 const std::string &gStr_tagF = EidosRegisteredString("tagF", gID_tagF);
 const std::string &gStr_migrant = EidosRegisteredString("migrant", gID_migrant);

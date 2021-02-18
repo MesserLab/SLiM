@@ -384,7 +384,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #define MUTRUN_EXPERIMENT_OUTPUT	0
 
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
-extern long SLiM_verbosity_level;
+extern int64_t SLiM_verbosity_level;
 
 
 // *******************************************************************************************************************
@@ -640,6 +640,7 @@ extern const std::string &gStr_dominanceCoeffX;
 extern const std::string &gStr_generation;
 extern const std::string &gStr_generationStage;
 extern const std::string &gStr_colorSubstitution;
+extern const std::string &gStr_verbosity;
 extern const std::string &gStr_tag;
 extern const std::string &gStr_tagF;
 extern const std::string &gStr_migrant;
@@ -968,6 +969,7 @@ enum _SLiMGlobalStringID : int {
 	gID_generation,
 	gID_generationStage,
 	gID_colorSubstitution,
+	gID_verbosity,
 	gID_tag,
 	gID_tagF,
 	gID_migrant,

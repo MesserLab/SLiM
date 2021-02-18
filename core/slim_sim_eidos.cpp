@@ -1808,6 +1808,8 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
 		}
+		case gID_verbosity:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(SLiM_verbosity_level));
 			
 			// all others, including gID_none
 		default:
@@ -1901,6 +1903,14 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
+			return;
+		}
+			
+		case gID_verbosity:
+		{
+			int64_t value = p_value.IntAtIndex(0, nullptr);
+			
+			SLiM_verbosity_level = value;	// at the command line we bounds-check this, but here I see no need
 			return;
 		}
 			
@@ -3680,6 +3690,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generation,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generationStage,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_verbosity,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}

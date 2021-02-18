@@ -360,6 +360,9 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup + "1 { c(sim,sim).tag; } ", 1, 227, "before being set", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.tag = -17; } 2 { if (sim.tag == -17) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.verbosity; } ", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.verbosity = -17; } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.verbosity = -17; } 2 { if (sim.verbosity == -17) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.dimensionality == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 { if (sim.dimensionality == '') stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.dimensionality = 'x'; }", 1, 366, "read-only property", __LINE__);
