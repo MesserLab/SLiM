@@ -93,7 +93,7 @@ private:
 public:
 	GenomicElement_Class(const GenomicElement_Class &p_original) = delete;	// no copy-construct
 	GenomicElement_Class& operator=(const GenomicElement_Class&) = delete;	// no copying
-	inline GenomicElement_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	inline GenomicElement_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;

@@ -301,6 +301,13 @@ void Eidos_WarmUp(void)
 		
 		// Check classes for mismatched duplicate interfaces
 		EidosClass::CheckForDuplicateMethodsOrProperties();
+		
+		// Check that class names are pointers to the original global strings, which is required
+		if (&gEidosImage_Class->ClassName() != &gEidosStr_Image)
+		{
+			std::cerr << "***** Class name mismatch in Eidos_WarmUp()!";
+			exit(0);
+		}
 	}
 }
 

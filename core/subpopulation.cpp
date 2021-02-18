@@ -4734,7 +4734,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	std::vector<Individual *> old_individual_ptrs, new_individual_ptrs;
 	
 	// First, clear our genome and individual caches in all subpopulations; we don't want to have to do the work of patching them below, and any
-	// subpops involved in the migration will be invalidated anyway so this probably isn't even that much overkill in most models.
+	// subpops involved in the migration will be invalidated anyway so this probably isn't even that much overkill in most models.  Note that the
+	// child genomes/individuals caches don't need to be thrown way, because they aren't used in nonWF models and this is a nonWF-only method.
 	for (auto subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;

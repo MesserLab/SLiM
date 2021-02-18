@@ -86,7 +86,7 @@ private:
 public:
 	SLiMgui_Class(const SLiMgui_Class &p_original) = delete;	// no copy-construct
 	SLiMgui_Class& operator=(const SLiMgui_Class&) = delete;	// no copying
-	inline SLiMgui_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	inline SLiMgui_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;

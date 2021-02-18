@@ -401,10 +401,14 @@ void EidosClass::CheckForDuplicateMethodsOrProperties(void)
 	}
 }
 
-EidosClass::EidosClass(std::string p_class_name, EidosClass *p_superclass) : class_name_(p_class_name), superclass_(p_superclass)
+EidosClass::EidosClass(const std::string &p_class_name, EidosClass *p_superclass) : class_name_(p_class_name), superclass_(p_superclass)
 {
 	// Every EidosClass instance gets added to a shared registry, so that Eidos can find them all
 	EidosClassRegistry().push_back(this);
+}
+
+EidosClass::~EidosClass(void)
+{
 }
 
 bool EidosClass::UsesRetainRelease(void) const

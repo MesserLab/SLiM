@@ -38,6 +38,7 @@ development head:
 	switch from QTextEdit to QPlainTextEdit for better performance (no user-visible change apart from SLiMgui performance on large amounts of output)
 	add support for an "error stream" in Eidos, in addition to the standard output stream; add [error=F] argument to cat(), catn(), print(), str() to support this
 	fix a bug with the reproductive output tracking for an individual being incorrect after the individual is moved with takeMigrants()
+	fix a serious bug with takeMigrants() that could lead to corruption/crashes, if a variable holding Individual objects was kept across the call and used again
 
 
 version 3.5 (build 2663; Eidos version 2.5):

@@ -99,7 +99,7 @@ private:
 public:
 	Substitution_Class(const Substitution_Class &p_original) = delete;	// no copy-construct
 	Substitution_Class& operator=(const Substitution_Class&) = delete;	// no copying
-	inline Substitution_Class(std::string p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	inline Substitution_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;

@@ -119,8 +119,13 @@ extern EidosClass *gEidosObject_Class;
 class EidosClass
 {
 private:
-	const std::string class_name_;	// this is the element type for vectors of this class
-	EidosClass *superclass_;		// this is the EidosClass object representing our superclass
+	// This is the element type for vectors of this class.  Note that it is a reference to a std::string that
+	// is defined externally, which must continue to exist for the lifetime of this class object.  This is
+	// so that we can use pointer equality on class names for speed, notably in takeMigrants().
+	const std::string &class_name_;
+	
+	// This is the EidosClass object representing our superclass
+	EidosClass *superclass_;
 	
 	static std::vector<EidosClass *> &EidosClassRegistry(void);
 
@@ -143,8 +148,8 @@ public:
 	EidosClass(const EidosClass &p_original) = delete;		// no copy-construct
 	EidosClass& operator=(const EidosClass&) = delete;		// no copying
 	
-	EidosClass(std::string p_class_name, EidosClass *p_superclass);
-	inline virtual ~EidosClass(void) { }
+	EidosClass(const std::string &p_class_name, EidosClass *p_superclass);
+	virtual ~EidosClass(void);
 	
 	virtual bool UsesRetainRelease(void) const;
 	
