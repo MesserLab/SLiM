@@ -245,6 +245,8 @@ public:
 	// remove subpopulation p_subpop_id from the model entirely
 	void RemoveSubpopulation(Subpopulation &p_subpop);
 #endif  // SLIM_NONWF_ONLY
+	
+	void PurgeRemovedSubpopulations(void);
 
 	// print all mutations and all genomes to a stream
 	void PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const;

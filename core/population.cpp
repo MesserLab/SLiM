@@ -80,10 +80,7 @@ Population::~Population(void)
 #endif
 	
 	// dispose of any freed subpops
-	for (auto removed_subpop : removed_subpops_)
-		delete removed_subpop;
-	
-	removed_subpops_.clear();
+	PurgeRemovedSubpopulations();
 }
 
 void Population::RemoveAllSubpopulationInfo(void)
@@ -345,6 +342,17 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 	}
 }
 #endif  // SLIM_NONWF_ONLY
+
+void Population::PurgeRemovedSubpopulations(void)
+{
+	if (removed_subpops_.size())
+	{
+		for (auto removed_subpop : removed_subpops_)
+			delete removed_subpop;
+		
+		removed_subpops_.clear();
+	}
+}
 
 #ifdef SLIM_WF_ONLY
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
@@ -5254,13 +5262,7 @@ void Population::SwapGenerations(void)
 		subpop->TallyLifetimeReproductiveOutput();
 	
 	// dispose of any freed subpops
-	if (removed_subpops_.size())
-	{
-		for (auto removed_subpop : removed_subpops_)
-			delete removed_subpop;
-		
-		removed_subpops_.clear();
-	}
+	PurgeRemovedSubpopulations();
 	
 	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)

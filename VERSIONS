@@ -40,6 +40,7 @@ development head:
 	fix a bug with the reproductive output tracking for an individual being incorrect after the individual is moved with takeMigrants()
 	fix a serious bug with takeMigrants() that could lead to corruption/crashes, if a variable holding Individual objects was kept across the call and used again
 	add verbosity property to SLiMSim, to get/set the verbosity level
+	fix memory leak of subpopulations after removeSubppulation() is called in WF models; could also cause an error, "ERROR (Population::TallyMutationReferences): (internal error) tally != total genome count"
 
 
 version 3.5 (build 2663; Eidos version 2.5):

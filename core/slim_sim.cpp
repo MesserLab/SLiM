@@ -3812,6 +3812,9 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 			}
 		}
 		
+		// dispose of any freed subpops; we do this before fitness calculation so tallies are correct
+		population_.PurgeRemovedSubpopulations();
+		
 		executing_block_type_ = old_executing_block_type;
 		
 		// the stage is done, so deregister script blocks as requested
