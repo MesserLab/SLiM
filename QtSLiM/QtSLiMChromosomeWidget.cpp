@@ -127,8 +127,29 @@ QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
 		glArrayColors = nullptr;
 	}
     
+    if (haplotype_mgr_)
+    {
+        delete haplotype_mgr_;
+        haplotype_mgr_ = nullptr;
+    }
+    
     if (haplotype_previous_bincounts)
+    {
         free(haplotype_previous_bincounts);
+        haplotype_previous_bincounts = nullptr;
+    }
+}
+
+void QtSLiMChromosomeWidget::stateChanged(void)
+{
+    // when the model state changes, we toss our cached haplotype manager to generate a new plot
+    if (haplotype_mgr_)
+    {
+        delete haplotype_mgr_;
+        haplotype_mgr_ = nullptr;
+    }
+    
+    update();
 }
 
 void QtSLiMChromosomeWidget::initializeGL()
@@ -474,15 +495,18 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 		{
 			if (display_haplotypes_)
 			{
-				// display mutations as a haplotype plot, courtesy of SLiMHaplotypeManager; we use kSLiMHaplotypeClusterNearestNeighbor and
-				// kSLiMHaplotypeClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
-				size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-				QtSLiMHaplotypeManager haplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller, interiorHeight, false);
-				
-				haplotypeManager.glDrawHaplotypes(interiorRect, false, false, false, &haplotype_previous_bincounts);
-				
-				// it's a little bit odd to throw away haplotypeManager here; if the user drag-resizes the window, we do a new display each
-				// time, with a new sample, and so the haplotype display changes with every pixel resize change; we could keep this...?
+				// display mutations as a haplotype plot, courtesy of QtSLiMHaplotypeManager; we use ClusterNearestNeighbor and
+				// ClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
+                // we cache the haplotype manager here, so our display remains constant across window resizes and other
+                // invalidations; we toss the cache only when the simulation tells us that the model state has changed
+                if (!haplotype_mgr_)
+                {
+                    size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
+                    haplotype_mgr_ = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller, interiorHeight, false);
+                }
+                
+                if (haplotype_mgr_)
+                    haplotype_mgr_->glDrawHaplotypes(interiorRect, false, false, false, &haplotype_previous_bincounts);
 			}
 			else
 			{

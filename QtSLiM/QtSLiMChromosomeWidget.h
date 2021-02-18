@@ -31,6 +31,7 @@
 
 
 class QtSLiMWindow;
+class QtSLiMHaplotypeManager;
 class QPainter;
 class QContextMenuEvent;
 
@@ -74,6 +75,7 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
     // Display options
 	bool display_haplotypes_ = false;                   // if false, displaying frequencies; if true, displaying haplotypes
     int64_t *haplotype_previous_bincounts = nullptr;    // used by QtSLiMHaplotypeManager to keep the sort order stable
+    QtSLiMHaplotypeManager *haplotype_mgr_ = nullptr;   // the haplotype manager constructed for the current display; cached
 	std::vector<slim_objectid_t> display_muttypes_;     // if empty, display all mutation types; otherwise, display only the muttypes chosen
     
 public:
@@ -95,6 +97,8 @@ public:
     const std::vector<slim_objectid_t> &displayMuttypes(void);
     
     QtSLiMRange getDisplayedRange(void);
+    
+    void stateChanged(void);    // update when the SLiM model state changes; tosses any cached display info
     
 signals:
     void selectedRangeChanged(void);

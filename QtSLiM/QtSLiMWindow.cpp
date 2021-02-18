@@ -1590,7 +1590,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	
 	// Now update our other UI, some of which depends upon the state of subpopTableView
     ui->individualsWidget->update();
-    ui->chromosomeZoomed->update();
+    ui->chromosomeZoomed->stateChanged();
 	
 	if (fullUpdate)
 		updateGenerationCounter();
