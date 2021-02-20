@@ -1604,15 +1604,20 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
         else
         {
             bool inDarkMode = QtSLiMInDarkMode();
-            QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>"
-                                       : "<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> mutations segregating, <tt>%3</tt> substitutions.</font>");
+            QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>"
+                                       : "<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>");
             
             if (sim)
             {
                 int registry_size;
                 sim->population_.MutationRegistry(&registry_size);
                 
+                SLiM_MemoryUsage current_memory_usage;
+                sim->TabulateMemoryUsage(&current_memory_usage, nullptr);
+                double current_memory_MB = current_memory_usage.totalMemoryUsage / (1024.0 * 1024.0);
+                
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
+                                           .arg(current_memory_MB, 0, 'f', 1)
                                            .arg(registry_size)
                                            .arg(sim->population_.substitutions_.size()));
             }
