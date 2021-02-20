@@ -135,11 +135,12 @@ class OutputResult:
             fields = line.split()
             assert fields[0].startswith("#Individual:")
             store = fields[0][len("#Individual:"):]
-            assert store in ("remember", "retain", "output")
+            assert store in ("remember", "retain", "retain_even_if_unary", "output")
             pedigree_id = int(fields[1])
-            if pedigree_id in slim and store == "retain":
-                # We have a duplicate: "remember"ed takes priority
-                continue
+            if pedigree_id in slim:
+                # We have a duplicate; 'remember' takes priority
+                if slim[pedigree_id].type == "remember":
+                    store = slim[pedigree_id].type
             slim[pedigree_id] = SLiMindividual(
                 type=store,
                 population=int(fields[2]),
@@ -166,7 +167,7 @@ def run_slim(recipe, run_dir, recipe_dir="test_recipes"):
     these directories, which contain the files on which tests should be run
     """
     script_dir = os.path.dirname(os.path.realpath(__file__))  # Path to this file
-    full_recipe = os.path.abspath(os.path.join(recipe_dir, recipe))
+    full_recipe = os.path.abspath(os.path.join(script_dir, recipe_dir, recipe))
     assert os.path.isdir(run_dir)  # should have been created by caller
     cmd = ["slim", "-s", "22", "-d", f"RUN_DIR=\"{run_dir}\"", full_recipe]
     print(f"Running {cmd} in dir '{run_dir}', errors etc to 'SLiM_run_output.log'")

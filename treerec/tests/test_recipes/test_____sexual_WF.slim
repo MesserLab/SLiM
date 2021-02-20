@@ -1,0 +1,29 @@
+initialize() {
+	// TREE SEQUENCE TEST OUTPUT
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init_marked_mutations.slim");
+    initializeTreeSeq();
+
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 9);
+	initializeMutationRate(0.0);
+	initializeRecombinationRate(0.2);	
+}
+
+1 late() {
+	sim.addSubpop("p1",10);
+	// TREE SEQUENCE TEST OUTPUT
+	initializeMarks(n_marks);
+}
+
+2 {
+	addAncestralSamples(5);
+}
+
+10 late() {
+
+	// TREE SEQUENCE TEST OUTPUT
+	outputMutationResult();
+
+	sim.simulationFinished();
+}

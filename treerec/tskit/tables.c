@@ -6644,7 +6644,7 @@ simplifier_merge_ancestors(simplifier_t *self, tsk_id_t input_id)
         keep_unary = true;
     }
     if ((self->options & TSK_KEEP_UNARY_IN_INDIVIDUALS)
-        && (self->tables->nodes.individual[input_id] != TSK_NULL)) {
+        && (self->input_tables.nodes.individual[input_id] != TSK_NULL)) {
         keep_unary = true;
     }
 
