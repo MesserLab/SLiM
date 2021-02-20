@@ -195,8 +195,10 @@ public:
 	
 	void RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);		// Remove all mutations with a refcount of -1, indicating that they have fixed
 	
-	// This counts up the total MutationRun references, using their usage counts, as a checkback
+	// TallyGenomeReferences() counts up the total MutationRun references, using their usage counts, as a checkback
+	// TallyBufferUsage() similarly tallies the usage efficiency of external buffers in mutation runs
 	void TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
+	void TallyBufferUsage(int64_t *p_using_external_buffer_tally, int64_t *p_external_buffer_capacity_tally, int64_t *p_external_buffer_count_tally, int64_t p_operation_id);
 	
 	// This tallies up individual Mutation references, using MutationRun usage counts for speed
 	void TallyGenomeMutationReferences(int64_t p_operation_id);

@@ -69,6 +69,20 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 extern int64_t gSLiM_MutationRun_OperationID;
 
 
+#if DEBUG_MUTATION_RUNS
+extern int64_t gSLiM_ActiveMutrunCount;
+extern int64_t gSLiM_FreeMutrunCount;
+extern int64_t gSLiM_AllocatedMutrunCount;
+extern int64_t gSLiM_UnfreedMutrunCount;
+extern int64_t gSLiM_ConstructedMutrunCount;
+extern int64_t gSLiM_MutationsBufferCount;
+extern int64_t gSLiM_MutationsBufferBytes;
+extern int64_t gSLiM_MutationsBufferNewCount;
+extern int64_t gSLiM_MutationsBufferReallocCount;
+extern int64_t gSLiM_MutationsBufferFreedCount;
+#endif
+
+
 class MutationRun
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -170,8 +184,20 @@ public:
 			MutationRun *back = s_freed_mutation_runs_.back();
 			
 			s_freed_mutation_runs_.pop_back();
+			
+#if DEBUG_MUTATION_RUNS
+			gSLiM_ActiveMutrunCount++;
+			gSLiM_UnfreedMutrunCount++;
+			gSLiM_FreeMutrunCount--;
+#endif
+			
 			return back;
 		}
+		
+#if DEBUG_MUTATION_RUNS
+		gSLiM_ActiveMutrunCount++;
+		gSLiM_AllocatedMutrunCount++;
+#endif
 		
 		return new MutationRun();
 	}
@@ -188,6 +214,11 @@ public:
 #endif
 		
 		s_freed_mutation_runs_.emplace_back(p_run);
+		
+#if DEBUG_MUTATION_RUNS
+		gSLiM_ActiveMutrunCount--;
+		gSLiM_FreeMutrunCount++;
+#endif
 	}
 	
 	static inline void DeleteMutationRunFreeList(void)
@@ -198,13 +229,21 @@ public:
 			delete (mutrun_iter);
 		
 		s_freed_mutation_runs_.clear();
+		
+#if DEBUG_MUTATION_RUNS
+		gSLiM_FreeMutrunCount = 0;
+#endif
 	}
 	
 	static std::vector<MutationRun *> s_freed_mutation_runs_;
 	
 	MutationRun(const MutationRun&) = delete;					// no copying
 	MutationRun& operator=(const MutationRun&) = delete;		// no copying
-	inline MutationRun(void) : intrusive_ref_count_(0) { }		// constructed empty
+	inline MutationRun(void) : intrusive_ref_count_(0) {		// constructed empty
+#if DEBUG_MUTATION_RUNS
+		gSLiM_ConstructedMutrunCount++;
+#endif
+	}
 	~MutationRun(void);
 	
 	
@@ -289,6 +328,12 @@ public:
 				mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
 				
 				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
+				
+#if DEBUG_MUTATION_RUNS
+				gSLiM_MutationsBufferCount++;
+				gSLiM_MutationsBufferNewCount++;
+				gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
+#endif
 			}
 			else
 			{
@@ -308,12 +353,21 @@ public:
 				//	80 (+16)
 				//	...
 				
+#if DEBUG_MUTATION_RUNS
+				gSLiM_MutationsBufferBytes -= (mutation_capacity_ * sizeof(MutationIndex));
+#endif
+				
 				if (mutation_capacity_ < 32)
 					mutation_capacity_ <<= 1;		// double the number of pointers we can hold
 				else
 					mutation_capacity_ += 16;
 				
 				mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+				
+#if DEBUG_MUTATION_RUNS
+				gSLiM_MutationsBufferReallocCount++;
+				gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
+#endif
 			}
 		}
 		
@@ -351,9 +405,19 @@ public:
 				mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
 				
 				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
+				
+#if DEBUG_MUTATION_RUNS
+				gSLiM_MutationsBufferCount++;
+				gSLiM_MutationsBufferNewCount++;
+				gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
+#endif
 			}
 			else
 			{
+#if DEBUG_MUTATION_RUNS
+				gSLiM_MutationsBufferBytes -= (mutation_capacity_ * sizeof(MutationIndex));
+#endif
+				
 				do
 				{
 					if (mutation_capacity_ < 32)
@@ -364,6 +428,11 @@ public:
 				while (mutation_count_ + p_copy_count > mutation_capacity_);
 				
 				mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+				
+#if DEBUG_MUTATION_RUNS
+				gSLiM_MutationsBufferReallocCount++;
+				gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
+#endif
 			}
 		}
 		
@@ -495,6 +564,21 @@ public:
 		// first we need to ensure that we have sufficient capacity
 		if (source_mutation_count > mutation_capacity_)
 		{
+#if DEBUG_MUTATION_RUNS
+			if (mutations_ == mutations_buffer_)
+			{
+				gSLiM_MutationsBufferCount++;
+				gSLiM_MutationsBufferNewCount++;
+				gSLiM_MutationsBufferBytes += (p_source_run.mutation_capacity_ * sizeof(MutationIndex));
+			}
+			else
+			{
+				gSLiM_MutationsBufferReallocCount++;
+				gSLiM_MutationsBufferBytes -= (mutation_capacity_ * sizeof(MutationIndex));
+				gSLiM_MutationsBufferBytes += (p_source_run.mutation_capacity_ * sizeof(MutationIndex));
+			}
+#endif
+			
 			mutation_capacity_ = p_source_run.mutation_capacity_;		// just use the same capacity as the source
 			
 			// mutations_buffer_ is not malloced and cannot be realloced, so forget that we were using it
@@ -680,6 +764,17 @@ public:
 #endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
+	
+	// Buffer use efficiency tallying; for Genome::TallyBufferUsage()
+	inline void TallyBufferUsage(int64_t *p_using_external_buffer_tally, int64_t *p_external_buffer_capacity_tally, int64_t *p_external_buffer_count_tally)
+	{
+		if (mutations_ != mutations_buffer_)
+		{
+			(*p_using_external_buffer_tally)++;
+			(*p_external_buffer_capacity_tally) += mutation_capacity_;
+			(*p_external_buffer_count_tally) += mutation_count_;
+		}
+	}
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForMutationIndexBuffers(void);

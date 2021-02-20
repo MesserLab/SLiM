@@ -218,6 +218,22 @@ void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_ref
 	}
 }
 
+void Genome::TallyBufferUsage(int64_t *p_using_external_buffer_tally, int64_t *p_external_buffer_capacity_tally, int64_t *p_external_buffer_count_tally, int64_t p_operation_id)
+{
+#if DEBUG
+	if (mutrun_count_ == 0)
+		NullGenomeAccessError();
+#endif
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		if (mutruns_[run_index]->operation_id_ != p_operation_id)
+		{
+			mutruns_[run_index]->TallyBufferUsage(p_using_external_buffer_tally, p_external_buffer_capacity_tally, p_external_buffer_count_tally);
+			mutruns_[run_index]->operation_id_ = p_operation_id;
+		}
+	}
+}
+
 void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 {
 #if DEBUG

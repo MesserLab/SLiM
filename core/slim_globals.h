@@ -350,6 +350,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  */
 
 #define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
+#define DEBUG_MUTATION_RUNS			0		// turn on stat collection and logging regarding mutation run usage
 
 
 // *******************************************************************************************************************

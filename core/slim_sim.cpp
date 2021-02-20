@@ -3080,6 +3080,74 @@ void SLiMSim::SetGeneration(slim_generation_t p_new_generation)
 // blow through to the catch block in the test harness so that they can be handled there.
 bool SLiMSim::_RunOneGeneration(void)
 {
+#if DEBUG_MUTATION_RUNS
+	{
+		slim_refcount_t total_genome_count = 0, tally_mutrun_ref_count = 0, total_mutrun_count = 0;
+		
+		{
+			// do a bulk operation to tally up mutation run and genome counts
+			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				
+				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						subpop_genomes[i]->TallyGenomeReferences(&tally_mutrun_ref_count, &total_mutrun_count, operation_id);
+						total_genome_count++;
+					}
+				}
+			}
+		}
+		
+		int64_t external_buffer_use_count = 0, external_buffer_capacity_tally = 0, external_buffer_count_tally = 0;
+		
+		{
+			// do a bulk operation to tally up mutation run external buffer usage efficiency
+			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				
+				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						subpop_genomes[i]->TallyBufferUsage(&external_buffer_use_count, &external_buffer_capacity_tally, &external_buffer_count_tally, operation_id);
+					}
+				}
+			}
+		}
+		
+		int mutruns_per_genome = TheChromosome().mutrun_count_;
+		
+		std::cerr << "#DEBUG_MUTATION_RUNS: generation " << generation_ << ": " << std::endl;
+		std::cerr << "    " << gSLiM_ActiveMutrunCount << " active, " << gSLiM_FreeMutrunCount << " freed, " << total_mutrun_count << " reachable (from " << total_genome_count << " genomes, " << (total_genome_count * mutruns_per_genome) << " mutrun refs); " << gSLiM_AllocatedMutrunCount << " mutruns allocated this tick, " << gSLiM_UnfreedMutrunCount << " unfreed, " << gSLiM_ConstructedMutrunCount << " constructed." << std::endl;
+		std::cerr << "    " << gSLiM_MutationsBufferCount << " mutindex buffers (" << gSLiM_MutationsBufferBytes << " bytes); " << gSLiM_MutationsBufferNewCount << " new buffers created, " << gSLiM_MutationsBufferReallocCount << " realloced, " << gSLiM_MutationsBufferFreedCount << " freed" << std::endl;
+		std::cerr << "    of " << total_mutrun_count << " reachable mutation runs, " << external_buffer_use_count << " use external buffers, with space efficiency " << (external_buffer_count_tally / (double)external_buffer_capacity_tally) << " (" << (external_buffer_capacity_tally / (double)external_buffer_use_count) << " mean capacity, " << (external_buffer_count_tally / (double)external_buffer_use_count) << " mean used)" << std::endl;
+		gSLiM_AllocatedMutrunCount = 0;
+		gSLiM_UnfreedMutrunCount = 0;
+		gSLiM_ConstructedMutrunCount = 0;
+		gSLiM_MutationsBufferNewCount = 0;
+		gSLiM_MutationsBufferReallocCount = 0;
+		gSLiM_MutationsBufferFreedCount = 0;
+	}
+#endif
+	
 	// ******************************************************************
 	//
 	// Stage 0: Pre-generation bookkeeping

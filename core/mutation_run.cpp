@@ -29,11 +29,33 @@ int64_t gSLiM_MutationRun_OperationID = 0;
 std::vector<MutationRun *> MutationRun::s_freed_mutation_runs_;
 
 
+#if DEBUG_MUTATION_RUNS
+int64_t gSLiM_ActiveMutrunCount = 0;
+int64_t gSLiM_FreeMutrunCount = 0;
+int64_t gSLiM_AllocatedMutrunCount = 0;
+int64_t gSLiM_UnfreedMutrunCount = 0;
+int64_t gSLiM_ConstructedMutrunCount = 0;
+int64_t gSLiM_MutationsBufferCount = 0;
+int64_t gSLiM_MutationsBufferBytes = 0;
+int64_t gSLiM_MutationsBufferNewCount = 0;
+int64_t gSLiM_MutationsBufferReallocCount = 0;
+int64_t gSLiM_MutationsBufferFreedCount = 0;
+#endif
+
+
 MutationRun::~MutationRun(void)
 {
 	// mutations_buffer_ is not malloced and cannot be freed; free only if we have an external buffer
 	if (mutations_ != mutations_buffer_)
+	{
 		free(mutations_);
+		
+#if DEBUG_MUTATION_RUNS
+		gSLiM_MutationsBufferFreedCount++;
+		gSLiM_MutationsBufferCount--;
+		gSLiM_MutationsBufferBytes -= (mutation_capacity_ * sizeof(MutationIndex));
+#endif
+	}
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (nonneutral_mutations_)
@@ -596,9 +618,19 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 			mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
 			
 			memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
+			
+#if DEBUG_MUTATION_RUNS
+			gSLiM_MutationsBufferCount++;
+			gSLiM_MutationsBufferNewCount++;
+			gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
+#endif
 		}
 		else
 		{
+#if DEBUG_MUTATION_RUNS
+			gSLiM_MutationsBufferBytes -= (mutation_capacity_ * sizeof(MutationIndex));
+#endif
+				
 			do
 			{
 				if (mutation_capacity_ < 32)
@@ -609,6 +641,11 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 			while (mut_to_set_count + mut_to_add_count > mutation_capacity_);
 			
 			mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+			
+#if DEBUG_MUTATION_RUNS
+			gSLiM_MutationsBufferReallocCount++;
+			gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
+#endif
 		}
 	}
 	
