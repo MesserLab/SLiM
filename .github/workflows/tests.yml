@@ -23,6 +23,7 @@ jobs:
         # see https://github.com/actions/virtual-environments/issues/2486 for more info
         # also relevant: https://github.com/actions/virtual-environments/issues/2381
         os: [ubuntu-18.04, ubuntu-20.04, macos-10.15]
+        python: [ 3.8 ]
         include:
           # Ubuntu with the oldest supported GCC.
           - os: ubuntu-18.04
@@ -43,6 +44,57 @@ jobs:
           sudo update-alternatives \
             --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
+
+      - name: Cache conda and dependancies
+        id: cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            c:\Miniconda\envs\anaconda-client-env
+            /usr/share/miniconda/envs/anaconda-client-env
+            ~/osx-conda
+            ~/.profile
+          key: ${{ runner.os }}-${{ matrix.python}}-conda-v10-${{ hashFiles('python/requirements/CI-tests-conda/requirements.txt') }}-${{ hashFiles('python/requirements/CI-tests-pip/requirements.txt') }}
+
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          activate-environment: anaconda-client-env
+          python-version: ${{ matrix.python }}
+          channels: conda-forge
+          channel-priority: strict
+          auto-update-conda: true
+          use-only-tar-bz2: true
+
+      - name: Install conda deps
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash -l {0} #We need a login shell to get conda
+        run: conda install --yes --file=treerec/tests/conda-requirements.txt
+
+      - name: Install pip deps
+        if: steps.cache.outputs.cache-hit != 'true'
+        shell: bash -l {0}
+        run: |
+          pip3 install -r treerec/tests/pip-requirements.txt
+
+      - name: Fix OSX Cache Write #OSX Won't let the cache restore due to file perms
+        if: steps.cache.outputs.cache-hit != 'true' && startsWith(matrix.os, 'macos')
+        run: |
+          cp -r /usr/local/miniconda/envs/anaconda-client-env ~/osx-conda
+
+      - name: Fix OSX Cache Restore
+        if: steps.cache.outputs.cache-hit == 'true' && startsWith(matrix.os, 'macos')
+        run: |
+          mkdir -p /usr/local/miniconda/envs
+          sudo cp -r ~/osx-conda /usr/local/miniconda/envs/anaconda-client-env
+
+      - name: Install pyslim
+        run: |
+          source ~/.profile
+          conda activate anaconda-client-env
+          git clone https://github.com/tskit-dev/pyslim.git
+          cd pyslim && python3 setup.py install
 
       - name: Build (Debug)
         run: |
@@ -71,6 +123,14 @@ jobs:
           ./eidos -testEidos
           ./slim -testEidos
           ./slim -testSLiM
+
+      - name: Treesequence tests
+        run: |
+          source ~/.profile
+          conda activate anaconda-client-env
+          export PATH=$PATH:$PWD/Release
+          echo $PATH
+          cd treerec/tests && pytest -xv
 
   GUI:
     runs-on: ${{ matrix.os }}

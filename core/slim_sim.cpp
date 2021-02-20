@@ -6337,14 +6337,6 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 					   == (p_tables->individuals.metadata_offset[tsk_individual + 1]
 						   - p_tables->individuals.metadata_offset[tsk_individual])));
 			
-			// BCH 4/29/2019: This assert is, we think, not technically necessary – the code
-			// would work even if it were violated.  But it's a nice invariant to guarantee,
-			// and right now it is always true.
-			assert((p_tables->nodes.individual[ind->genome1_->tsk_node_id_]
-					 == tsk_individual)
-				   && (p_tables->nodes.individual[ind->genome2_->tsk_node_id_]
-					   == tsk_individual));
-			
 			// It could have been previously inserted but not with the 
 			// SLIM_TSK_INDIVIDUAL_REMEMBERED flag: if so, it now needs adding to the
 			// list of remembered_genomes_
