@@ -37,13 +37,13 @@ modifyChild() {
 50 late() {
 	// retain but do not permanently remember all the individuals in this generation
 	sim.treeSeqRememberIndividuals(p1.individuals, permanent=F);
-	addIndividuals(p1.individuals, "retain_if_unary");
+	addIndividuals(p1.individuals, "retain_even_if_unary");
 }
 
 100 late() {
 	// also retain all the individuals in this generation
 	sim.treeSeqRememberIndividuals(p1.individuals, permanent=F);
-	addIndividuals(p1.individuals, "retain_if_unary");
+	addIndividuals(p1.individuals, "retain_even_if_unary");
 	// but also remember a few of them
 	sim.treeSeqRememberIndividuals(p1.individuals[1:5]);
 	addIndividuals(p1.individuals[1:5], "remember");

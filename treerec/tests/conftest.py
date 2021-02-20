@@ -135,12 +135,12 @@ class OutputResult:
             fields = line.split()
             assert fields[0].startswith("#Individual:")
             store = fields[0][len("#Individual:"):]
-            assert store in ("remember", "retain", "retain_if_unary", "output")
+            assert store in ("remember", "retain", "retain_even_if_unary", "output")
             pedigree_id = int(fields[1])
             if pedigree_id in slim:
-                # We have a duplicate:
+                # We have a duplicate; 'remember' takes priority
                 if slim[pedigree_id].type == "remember":
-                    continue  # "remember"ed takes priority: do not overwrite
+                    store = slim[pedigree_id].type
             slim[pedigree_id] = SLiMindividual(
                 type=store,
                 population=int(fields[2]),

@@ -7366,8 +7366,8 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			ret = tsk_table_collection_deduplicate_sites(tables_copy, 0);
 			if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 			
-        	flags = TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS | TSK_KEEP_INPUT_ROOTS;
-        	if (!retain_coalescent_only_) flags |= TSK_KEEP_UNARY;
+			flags = TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS | TSK_KEEP_INPUT_ROOTS;
+			if (!retain_coalescent_only_) flags |= TSK_KEEP_UNARY;
 			ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
 			if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 			
