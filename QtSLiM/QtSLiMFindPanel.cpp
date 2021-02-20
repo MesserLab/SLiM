@@ -183,6 +183,10 @@ void QtSLiMFindPanel::showFindPanel(void)
     show();
     raise();
     activateWindow();
+    
+    // When the find panel is raised, it is conventional to select the find text so the user can immediately type to replace it
+    ui->findTextLineEdit->selectAll();
+    ui->findTextLineEdit->setFocus();
 }
 
 void QtSLiMFindPanel::closeEvent(QCloseEvent *p_event)
