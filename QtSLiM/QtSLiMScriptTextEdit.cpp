@@ -511,13 +511,26 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
         // option-click gets intercepted to bring up help
         optionClickIntercepted = true;
         
-        // get the position of the character clicked on; note that this is different from
-        // QPlainTextEdit::cursorForPosition(), which returns the closest cursor position
-        // *between* characters, not which character was actually clicked on; see
-        // https://www.qtcentre.org/threads/45645-QTextEdit-cursorForPosition()-and-character-at-mouse-pointer
-        QPointF localPos = p_event->localPos();
-        QPointF documentPos = localPos + QPointF(0, verticalScrollBar()->value());
-        int characterPositionClicked = document()->documentLayout()->hitTest(documentPos, Qt::ExactHit);
+        // get the position of the character clicked on; note that cursorForPosition()
+        // returns the closest cursor position *between* characters, not which character
+        // was actually clicked on, so we try to compensate here by fudging the position
+        // leftward by half a character width; we used to use hitTest() for this purpose,
+        // but for QPlainTextEdit hitTest() always returns -1 for some reason.
+        const QFont &displayFont = QtSLiMPreferencesNotifier::instance().displayFontPref(nullptr);
+        QFontMetricsF fm(displayFont);
+        int fudgeFactor;
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        fudgeFactor = std::round(fm.width(" ") / 2.0) + 1;                // deprecated in 5.11
+#else
+        fudgeFactor = std::round(fm.horizontalAdvance(" ") / 2.0) + 1;    // added in Qt 5.11
+#endif
+        
+        QPoint localPos = p_event->localPos().toPoint();
+        QPoint fudgedPoint(std::max(0, localPos.x() - fudgeFactor), localPos.y());
+        int characterPositionClicked = cursorForPosition(fudgedPoint).position();
+        
+        //qDebug() << "localPos ==" << localPos << ", characterPositionClicked ==" << characterPositionClicked;
         
         if (characterPositionClicked == -1)     // occurs if you click between lines of text
             return;
@@ -545,7 +558,10 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
         
         if (character.isLetterOrNumber())
         {
-            symbolCursor.select(QTextCursor::WordUnderCursor);
+            // start at the anchor and find the encompassing word
+            symbolCursor.setPosition(symbolCursor.anchor(), QTextCursor::MoveAnchor);
+            symbolCursor.movePosition(QTextCursor::StartOfWord, QTextCursor::MoveAnchor);
+            symbolCursor.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor);
         }
         else if ((character == '/') || (character == '=') || (character == '<') || (character == '>') || (character == '!'))
         {
@@ -2947,9 +2963,7 @@ void QtSLiMScriptTextEdit::lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent)
     if ((localPos.x() < 0) || (localPos.x() >= lineNumberAreaBugWidth + 2))     // +2 for a little slop
             return;
     
-    // Find the position of the click in the document.  We loop through the blocks manually; I tried using
-    // document()->documentLayout()->hitTest(documentPos, Qt::FuzzyHit) but it didn't seem to like blank lines,
-    // although that may have been user error.  Anyway, this approach works.
+    // Find the position of the click in the document.  We loop through the blocks manually.
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
     int top = qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
