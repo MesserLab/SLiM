@@ -94,7 +94,7 @@ jobs:
           source ~/.profile
           conda activate anaconda-client-env
           git clone https://github.com/tskit-dev/pyslim.git
-          cd pyslim && python3 setup.py install
+          cd pyslim && pip install .
 
       - name: Build (Debug)
         run: |
