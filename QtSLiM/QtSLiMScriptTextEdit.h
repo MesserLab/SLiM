@@ -33,6 +33,7 @@ class EidosCallSignature;
 class QtSLiMWindow;
 class QtSLiMEidosConsole;
 class QCompleter;
+class QHelpEvent;
 class QPaintEvent;
 class QMouseEvent;
 
@@ -195,6 +196,7 @@ protected:
     // From here down is the machinery for providing line numbers
     // This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
 public:
+    void lineNumberAreaToolTipEvent(QHelpEvent *p_helpEvent);
     void lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent);
     void lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent);
     void lineNumberAreaContextMenuEvent(QContextMenuEvent *p_event);

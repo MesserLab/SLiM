@@ -38,6 +38,7 @@
 #include <QScrollBar>
 #include <QTextDocument>
 #include <QMenu>
+#include <QToolTip>
 #include <QDebug>
 
 #include "QtSLiMPreferences.h"
@@ -2357,11 +2358,12 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 class LineNumberArea : public QWidget
 {
 public:
-    LineNumberArea(QtSLiMScriptTextEdit *editor) : QWidget(editor), codeEditor(editor) {}
+    LineNumberArea(QtSLiMScriptTextEdit *editor);
 
     virtual QSize sizeHint() const override { return QSize(codeEditor->lineNumberAreaWidth(), 0); }
 
 protected:
+    virtual bool event(QEvent *p_event) override;
     virtual void paintEvent(QPaintEvent *p_paintEvent) override { codeEditor->lineNumberAreaPaintEvent(p_paintEvent); }
     virtual void mousePressEvent(QMouseEvent *p_mouseEvent) override { codeEditor->lineNumberAreaMouseEvent(p_mouseEvent); }
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override { codeEditor->lineNumberAreaContextMenuEvent(p_event); }
@@ -2369,6 +2371,21 @@ protected:
 private:
     QtSLiMScriptTextEdit *codeEditor;
 };
+
+LineNumberArea::LineNumberArea(QtSLiMScriptTextEdit *editor) : QWidget(editor), codeEditor(editor)
+{
+    setMouseTracking(true);     // for live tooltip updating (debug point gutter vs. line numbers)
+}
+
+bool LineNumberArea::event(QEvent *p_event)
+{
+    if (p_event->type() == QEvent::ToolTip) {
+        QHelpEvent *helpEvent = static_cast<QHelpEvent *>(p_event);
+        codeEditor->lineNumberAreaToolTipEvent(helpEvent); 
+        return true;
+    }
+    return QWidget::event(p_event);
+}
 
 
 //
@@ -2827,14 +2844,27 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
 }
 
 // light appearance
+static QColor bugAreaBackground = QtSLiMColorWithWhite(0.95, 1.0);
 static QColor lineAreaBackground = QtSLiMColorWithWhite(0.92, 1.0);
 static QColor lineAreaNumber = QtSLiMColorWithWhite(0.75, 1.0);
 static QColor lineAreaNumberCurrent = QtSLiMColorWithWhite(0.4, 1.0);
 
 // dark appearance
+static QColor bugAreaBackground_DARK = QtSLiMColorWithWhite(0.05, 1.0);
 static QColor lineAreaBackground_DARK = QtSLiMColorWithWhite(0.08, 1.0);
 static QColor lineAreaNumber_DARK = QtSLiMColorWithWhite(0.25, 1.0);
 static QColor lineAreaNumberCurrent_DARK = QtSLiMColorWithWhite(0.6, 1.0);
+
+void QtSLiMScriptTextEdit::lineNumberAreaToolTipEvent(QHelpEvent *p_helpEvent)
+{
+    // provide different tooltips for the debug point gutter versus the line number area
+    QPointF localPos = p_helpEvent->pos();
+    
+    if ((lineNumberAreaBugWidth == 0) || ((localPos.x() < 0) || (localPos.x() >= lineNumberAreaBugWidth + 2)))     // +2 for a little slop
+        QToolTip::showText(p_helpEvent->globalPos(), "<html><head/><body><p>script line numbers</p></body></html>");
+    else
+        QToolTip::showText(p_helpEvent->globalPos(), "<html><head/><body><p>debug point gutter (click to set/clear a debug point)</p></body></html>");
+}
 
 void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
 {
@@ -2856,7 +2886,10 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     bool inDarkMode = QtSLiMInDarkMode();
     QPainter painter(lineNumberArea);
     
-    painter.fillRect(bounds, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
+    // We now show slightly different background colors for the debug point gutter vs. the line number area
+    //painter.fillRect(bounds, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
+    painter.fillRect(bugRect, inDarkMode ? bugAreaBackground_DARK : bugAreaBackground);
+    painter.fillRect(lineNumberRect, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
     
     if ((bugCount == 0) && !showLineNumbers)
         return;
