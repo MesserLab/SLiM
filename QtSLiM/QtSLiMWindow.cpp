@@ -780,6 +780,11 @@ void QtSLiMWindow::invalidateUI(void)
     // First set a flag indicating that we're going into zombie mode
     isZombieWindow_ = true;
     
+    // Set some other state to prevent ourselves from being reused in any way
+    isUntitled = false;
+    isTransient = false;
+    currentFile = "ZOMBIE ZOMBIE ZOMBIE ZOMBIE ZOMBIE";
+    
     // Stop all timers, so we don't try to play in the background
     continuousPlayElapsedTimer_.invalidate();
     continuousPlayInvocationTimer_.stop();

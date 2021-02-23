@@ -241,7 +241,7 @@ QtSLiMWindow *QtSLiMAppDelegate::findMainWindow(const QString &fileName) const
     const QList<QWidget *> topLevelWidgets = QApplication::topLevelWidgets();
     for (QWidget *widget : topLevelWidgets) {
         QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
-        if (mainWin && (mainWin->currentFile == canonicalFilePath))
+        if (mainWin && (mainWin->isZombieWindow_ == false) && (mainWin->currentFile == canonicalFilePath))
             return mainWin;
     }
 
@@ -1573,7 +1573,7 @@ QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
     QWidget *currentActiveWindow = qApp->activeWindow();
     QtSLiMWindow *currentActiveQtSLiMWindow = qobject_cast<QtSLiMWindow *>(currentActiveWindow);
     
-    if (currentActiveQtSLiMWindow)
+    if (currentActiveQtSLiMWindow && !currentActiveQtSLiMWindow->isZombieWindow_)
         return currentActiveQtSLiMWindow;
     
     // If that fails, use the last focused main window, as tracked by focusChanged()
@@ -1586,7 +1586,7 @@ QtSLiMWindow *QtSLiMAppDelegate::activeQtSLiMWindow(void)
             QWidget *focused_window = focused_window_ptr.data();
             QtSLiMWindow *focusedQtSLiMWindow = qobject_cast<QtSLiMWindow *>(focused_window);
             
-            if (focusedQtSLiMWindow)
+            if (focusedQtSLiMWindow && !focusedQtSLiMWindow->isZombieWindow_)
                 return focusedQtSLiMWindow;
         }
     }
