@@ -65,5 +65,7 @@
         <file>buttons/debug_H.png</file>
         <file>buttons/debug.png</file>
         <file>buttons/debug_RED.png</file>
+        <file>buttons/clear_debug_H.png</file>
+        <file>buttons/clear_debug.png</file>
     </qresource>
 </RCC>

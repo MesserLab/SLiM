@@ -189,6 +189,7 @@ public slots:
     void shiftSelectionLeft(void);
     void shiftSelectionRight(void);
     void commentUncommentSelection(void);
+    void clearDebugPoints(void);
     
 protected:
     QStringList linesForRoundedSelection(QTextCursor &cursor, bool &movedBack);

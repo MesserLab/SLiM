@@ -822,6 +822,42 @@ QSlider::handle:horizontal:disabled {
         <item>
          <layout class="QHBoxLayout" name="scriptHeaderLayout">
           <item>
+           <widget class="QtSLiMPushButton" name="clearDebugButton">
+            <property name="minimumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear debug points (set a debug point by clicking below)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/clear_debug.png</normaloff>
+              <normalon>:/buttons/clear_debug_H.png</normalon>:/buttons/clear_debug.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QtSLiMPushButton" name="checkScriptButton">
             <property name="minimumSize">
              <size>
@@ -1390,6 +1426,7 @@ QSlider::handle:horizontal:disabled {
     <addaction name="actionShowDebuggingOutput"/>
     <addaction name="separator"/>
     <addaction name="actionClearOutput"/>
+    <addaction name="actionClearDebug"/>
     <addaction name="separator"/>
     <addaction name="actionExecuteSelection"/>
     <addaction name="actionExecuteAll"/>
@@ -1851,6 +1888,14 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="shortcut">
     <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="actionClearDebug">
+   <property name="text">
+    <string>Clear Debug Points</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+K</string>
    </property>
   </action>
  </widget>

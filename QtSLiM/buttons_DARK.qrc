@@ -64,5 +64,7 @@
         <file>buttons_DARK/jump_to_DARK.png</file>
         <file>buttons_DARK/debug_DARK.png</file>
         <file>buttons_DARK/debug_H_DARK.png</file>
+        <file>buttons_DARK/clear_debug_DARK.png</file>
+        <file>buttons_DARK/clear_debug_H_DARK.png</file>
     </qresource>
 </RCC>

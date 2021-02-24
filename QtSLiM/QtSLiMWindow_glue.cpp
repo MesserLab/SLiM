@@ -49,6 +49,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->showChromosomeMapsButton, &QPushButton::clicked, this, &QtSLiMWindow::showChromosomeMapsToggled);
     connect(ui->showGenomicElementsButton, &QPushButton::clicked, this, &QtSLiMWindow::showGenomicElementsToggled);
 
+    connect(ui->clearDebugButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMScriptTextEdit::clearDebugPoints);
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
     connect(ui->prettyprintButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::prettyprintClicked);
     connect(ui->scriptHelpButton, &QPushButton::clicked, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
@@ -72,6 +73,7 @@ void QtSLiMWindow::glueUI(void)
     ui->showFixedSubstitutionsButton->qtslimSetBaseName("show_fixed");
     ui->showChromosomeMapsButton->qtslimSetBaseName("show_recombination");
     ui->showGenomicElementsButton->qtslimSetBaseName("show_genomicelements");
+    ui->clearDebugButton->qtslimSetBaseName("clear_debug");
     ui->checkScriptButton->qtslimSetBaseName("check");
     ui->prettyprintButton->qtslimSetBaseName("prettyprint");
     ui->scriptHelpButton->qtslimSetBaseName("syntax_help");
@@ -109,6 +111,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->showChromosomeMapsButton, &QPushButton::released, this, &QtSLiMWindow::showChromosomeMapsReleased);
     connect(ui->showGenomicElementsButton, &QPushButton::pressed, this, &QtSLiMWindow::showGenomicElementsPressed);
     connect(ui->showGenomicElementsButton, &QPushButton::released, this, &QtSLiMWindow::showGenomicElementsReleased);
+    connect(ui->clearDebugButton, &QPushButton::pressed, this, &QtSLiMWindow::clearDebugPressed);
+    connect(ui->clearDebugButton, &QPushButton::released, this, &QtSLiMWindow::clearDebugReleased);
     connect(ui->checkScriptButton, &QPushButton::pressed, this, &QtSLiMWindow::checkScriptPressed);
     connect(ui->checkScriptButton, &QPushButton::released, this, &QtSLiMWindow::checkScriptReleased);
     connect(ui->prettyprintButton, &QPushButton::pressed, this, &QtSLiMWindow::prettyprintPressed);
@@ -166,6 +170,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionShowEidosConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showEidosConsole);
     connect(ui->actionShowVariableBrowser, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showVariableBrowser);
     connect(ui->actionClearOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearOutput);
+    connect(ui->actionClearDebug, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearDebugPoints);
     connect(ui->actionShowDebuggingOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showDebuggingOutput);
     
     // connect menu items that open a URL
@@ -275,6 +280,14 @@ void QtSLiMWindow::showGenomicElementsPressed(void)
 void QtSLiMWindow::showGenomicElementsReleased(void)
 {
     ui->showGenomicElementsButton->qtslimSetHighlight(ui->showGenomicElementsButton->isChecked());
+}
+void QtSLiMWindow::clearDebugPressed(void)
+{
+    ui->clearDebugButton->qtslimSetHighlight(true);
+}
+void QtSLiMWindow::clearDebugReleased(void)
+{
+    ui->clearDebugButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::checkScriptPressed(void)
 {

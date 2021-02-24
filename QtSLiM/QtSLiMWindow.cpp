@@ -1724,6 +1724,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->showGenomicElementsButton->setEnabled(!invalidSimulation_);
     ui->showFixedSubstitutionsButton->setEnabled(!invalidSimulation_);
     
+    ui->clearDebugButton->setEnabled(true);
     ui->checkScriptButton->setEnabled(!continuousPlayOn_);
     ui->prettyprintButton->setEnabled(!continuousPlayOn_);
     ui->scriptHelpButton->setEnabled(true);
@@ -1779,6 +1780,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionRecycle->setEnabled(!continuousPlayOn_);
     
     //ui->menuScript->setEnabled(true);
+    ui->actionClearDebug->setEnabled(true);
     ui->actionCheckScript->setEnabled(!continuousPlayOn_);
     ui->actionPrettyprintScript->setEnabled(!continuousPlayOn_);
     ui->actionReformatScript->setEnabled(!continuousPlayOn_);
@@ -1827,7 +1829,8 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *f
     ui->actionExecuteAll->setEnabled(consoleFocusedAndEditable);
     ui->actionExecuteSelection->setEnabled(consoleFocusedAndEditable);
     
-    // but these two menu items apply only to QtSLiMWindow, not to the Eidos console
+    // but these menu items apply only to QtSLiMWindow, not to the Eidos console
+    ui->actionClearDebug->setEnabled(false);
     ui->actionDumpPopulationState->setEnabled(false);
     ui->actionChangeWorkingDirectory->setEnabled(false);
     
@@ -3947,6 +3950,13 @@ void QtSLiMWindow::clearOutputClicked(void)
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
     ui->outputTextEdit->setPlainText("");
+}
+
+void QtSLiMWindow::clearDebugPointsClicked(void)
+{
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
+    ui->scriptTextEdit->clearDebugPoints();
 }
 
 void QtSLiMWindow::dumpPopulationClicked(void)

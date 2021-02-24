@@ -876,6 +876,12 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionClearOutput);
     }
     {
+        QAction *actionClearDebug = new QAction("Clear Debug Points", this);
+        actionClearDebug->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_K);
+        connect(actionClearDebug, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearDebugPoints);
+        window->addAction(actionClearDebug);
+    }
+    {
         QAction *actionShowDebuggingOutput = new QAction("Show Debugging Output", this);
         actionShowDebuggingOutput->setShortcut(Qt::CTRL + Qt::Key_D);
         connect(actionShowDebuggingOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showDebuggingOutput);
@@ -1377,6 +1383,16 @@ void QtSLiMAppDelegate::dispatch_clearOutput(void)
         slimWindow->clearOutputClicked();
     else if (eidosConsole)
         eidosConsole->consoleTextEdit()->clearToPrompt();
+}
+
+void QtSLiMAppDelegate::dispatch_clearDebugPoints(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : nullptr);
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->clearDebugPointsClicked();
 }
 
 void QtSLiMAppDelegate::dispatch_executeSelection(void)

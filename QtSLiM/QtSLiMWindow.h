@@ -247,6 +247,7 @@ public slots:
     void jumpToPopupButtonRunMenu(void);
 
     void clearOutputClicked(void);
+    void clearDebugPointsClicked(void);
     void dumpPopulationClicked(void);
     void debugOutputClicked(void);
     void graphPopupButtonRunMenu(void);
@@ -286,6 +287,8 @@ private slots:
     void showGenomicElementsPressed(void);
     void showGenomicElementsReleased(void);
 
+    void clearDebugPressed(void);
+    void clearDebugReleased(void);
     void checkScriptPressed(void);
     void checkScriptReleased(void);
     void prettyprintPressed(void);

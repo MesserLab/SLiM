@@ -3039,7 +3039,7 @@ void QtSLiMScriptTextEdit::lineNumberAreaContextMenuEvent(QContextMenuEvent *p_e
     
     QMenu contextMenu("line_area_menu", this);
     
-    QAction *clearDebugPoints = contextMenu.addAction("Clear Debug Points");
+    QAction *clearDebugPointsAction = contextMenu.addAction("Clear Debug Points");
     
     // Run the context menu synchronously
     QAction *action = contextMenu.exec(p_event->globalPos());
@@ -3047,13 +3047,18 @@ void QtSLiMScriptTextEdit::lineNumberAreaContextMenuEvent(QContextMenuEvent *p_e
     // Act upon the chosen action; we just do it right here instead of dealing with slots
     if (action)
     {
-        if (action == clearDebugPoints)
-        {
-            bugCursors.clear();
-            updateDebugPoints();
-        }
+        if (action == clearDebugPointsAction)
+            clearDebugPoints();
     }
 }
+
+void QtSLiMScriptTextEdit::clearDebugPoints(void)
+{
+    bugCursors.clear();
+    updateDebugPoints();
+}
+
+
 
 
 

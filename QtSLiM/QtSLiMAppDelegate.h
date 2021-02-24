@@ -141,6 +141,7 @@ public slots:
     void dispatch_showEidosConsole(void);
     void dispatch_showVariableBrowser(void);
     void dispatch_clearOutput(void);
+    void dispatch_clearDebugPoints(void);
     void dispatch_showDebuggingOutput(void);
     void dispatch_executeSelection(void);
     void dispatch_executeAll(void);
