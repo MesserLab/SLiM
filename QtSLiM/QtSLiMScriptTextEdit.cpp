@@ -2988,6 +2988,12 @@ void QtSLiMScriptTextEdit::lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent)
     if (lineNumberAreaBugWidth == 0)
         return;
     
+    // For some reason, Qt calls mousePressEvent() first for control-clicks and right-clicks,
+    // and *then* calls contextMenuEvent(), so we need to detect the context menu situation
+    // and return without doing anything.  Note that Qt::RightButton is set for control-clicks!
+    if (p_mouseEvent->button() == Qt::RightButton)
+        return;
+    
     QPointF localPos = p_mouseEvent->localPos();
     qreal localY = localPos.y();
     
@@ -3028,6 +3034,8 @@ void QtSLiMScriptTextEdit::lineNumberAreaContextMenuEvent(QContextMenuEvent *p_e
 {
     if (lineNumberAreaBugWidth == 0)
         return;
+    
+    p_event->accept();
     
     QMenu contextMenu("line_area_menu", this);
     
