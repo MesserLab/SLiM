@@ -183,11 +183,9 @@ int main(int argc, const char * argv[])
 
 	EidosSymbolTable *variable_symbols = new EidosSymbolTable(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
-	EidosInterpreter interpreter(*script, *variable_symbols, function_map, nullptr);
+	EidosInterpreter interpreter(*script, *variable_symbols, function_map, nullptr, std::cout, std::cerr);
 	
 	EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
-	interpreter.FlushExecutionOutputToStream(std::cout);
-	interpreter.FlushExecutionOutputToStream(std::cerr);
 	
 	Eidos_FlushFiles();
 	
