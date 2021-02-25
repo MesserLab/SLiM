@@ -315,6 +315,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("citation",			Eidos_ExecuteFunction_citation,		kEidosValueMaskVOID)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("clock",				Eidos_ExecuteFunction_clock,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddString_OS("type", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("cpu"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("date",				Eidos_ExecuteFunction_date,			kEidosValueMaskString | kEidosValueMaskSingleton)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("debugIndent",		Eidos_ExecuteFunction_debugIndent,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineConstant",	Eidos_ExecuteFunction_defineConstant,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAny("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("defineGlobal",		Eidos_ExecuteFunction_defineGlobal,	kEidosValueMaskVOID))->AddString_S("symbol")->AddAny("value"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_doCall,	Eidos_ExecuteFunction_doCall,		kEidosValueMaskAny | kEidosValueMaskVOID))->AddString_S("functionName")->AddEllipsis());
@@ -10975,6 +10976,16 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vect
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
 	
 	return result_SP;
+}
+
+//	(string$)debugIndent(void)
+EidosValue_SP Eidos_ExecuteFunction_debugIndent(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+#if DEBUG_POINTS_ENABLED
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(EidosDebugPointIndent::Indent()));
+#else
+	return gStaticEidosValue_StringEmpty;
+#endif
 }
 
 //	(void)defineConstant(string$ symbol, * x)

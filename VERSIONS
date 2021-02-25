@@ -43,6 +43,7 @@ development head:
 	fix memory leak of subpopulations after removeSubppulation() is called in WF models; could also cause an error, "ERROR (Population::TallyMutationReferences): (internal error) tally != total genome count"
 	bump the .trees file version to reflect the change in sense for the individual flags (SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN); no user-visible consequence
 	fix bug causing output from nested events/callbacks/functions to be emitted in the wrong (non-chronological) order in some cases
+	add a debugIndent() function to Eidos, providing the current indentation string for use in producing error output that matches the indentation fo debug points
 
 
 version 3.5 (build 2663; Eidos version 2.5):

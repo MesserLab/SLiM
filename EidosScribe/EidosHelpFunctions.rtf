@@ -4809,6 +4809,24 @@ If
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (string$)debugIndent(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the 
+\f0\b indentation string
+\f3\b0  currently being used to start lines in the debugging output stream.  In a pure Eidos context this will currently be the empty string, 
+\f1\fs18 ""
+\f3\fs20 .  In specific Contexts, such as SLiM, the debugging output stream may be structured with nested indentation, in which case this string will typically be a series of spaces or tabs.  To make your debugging output (such as from 
+\f1\fs18 cat()
+\f3\fs20 , 
+\f1\fs18 catn()
+\f3\fs20 , or 
+\f1\fs18 print()
+\f3\fs20  with the 
+\f1\fs18 error=T
+\f3\fs20  optional argument set) line up with other output at the current level of execution nesting, you can start your new lines of output with this string if you wish.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (void)defineConstant(string$\'a0symbol, *\'a0value)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
