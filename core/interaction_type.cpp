@@ -1010,7 +1010,10 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG interaction()";
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG interaction(i" << interaction_callback->interaction_type_id_;
+					if (interaction_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << ", p" << interaction_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << ")";
 					
 					if (interaction_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << interaction_callback->block_id_;

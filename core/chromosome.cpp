@@ -731,7 +731,14 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 					if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 						(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 					{
-						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mutation()";
+						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mutation(";
+						if ((mutation_callback->mutation_type_id_ != -1) && (mutation_callback->subpopulation_id_ != -1))
+							SLIM_ERRSTREAM << "m" << mutation_callback->mutation_type_id_ << ", p" << mutation_callback->subpopulation_id_;
+						else if (mutation_callback->mutation_type_id_ != -1)
+							SLIM_ERRSTREAM << "m" << mutation_callback->mutation_type_id_;
+						else if (mutation_callback->subpopulation_id_ != -1)
+							SLIM_ERRSTREAM << "NULL, p" << mutation_callback->subpopulation_id_;
+						SLIM_ERRSTREAM << ")";
 						
 						if (mutation_callback->block_id_ != -1)
 							SLIM_ERRSTREAM << " s" << mutation_callback->block_id_;

@@ -1823,7 +1823,10 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 					if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 						(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 					{
-						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness()";
+						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness(m" << fitness_callback->mutation_type_id_;
+						if (fitness_callback->subpopulation_id_ != -1)
+							SLIM_ERRSTREAM << ", p" << fitness_callback->subpopulation_id_;
+						SLIM_ERRSTREAM << ")";
 						
 						if (fitness_callback->block_id_ != -1)
 							SLIM_ERRSTREAM << " s" << fitness_callback->block_id_;
@@ -1978,7 +1981,10 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness(NULL)";
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness(NULL";
+					if (fitness_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << ", p" << fitness_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << ")";
 					
 					if (fitness_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << fitness_callback->block_id_;
@@ -3079,7 +3085,14 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 					if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 						(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 					{
-						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG reproduction()";
+						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG reproduction(";
+						if ((reproduction_callback->subpopulation_id_ != -1) && (reproduction_callback->sex_specificity_ != IndividualSex::kUnspecified))
+							SLIM_ERRSTREAM << "p" << reproduction_callback->subpopulation_id_ << ", \"" << reproduction_callback->sex_specificity_ << "\"";
+						else if (reproduction_callback->subpopulation_id_ != -1)
+							SLIM_ERRSTREAM << "p" << reproduction_callback->subpopulation_id_;
+						else if (reproduction_callback->sex_specificity_ != IndividualSex::kUnspecified)
+							SLIM_ERRSTREAM << "NULL, \"" << reproduction_callback->sex_specificity_ << "\"";
+						SLIM_ERRSTREAM << ")";
 						
 						if (reproduction_callback->block_id_ != -1)
 							SLIM_ERRSTREAM << " s" << reproduction_callback->block_id_;

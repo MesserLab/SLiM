@@ -471,7 +471,10 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mateChoice()";
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mateChoice(";
+					if (mate_choice_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << "p" << mate_choice_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << ")";
 					
 					if (mate_choice_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << mate_choice_callback->block_id_;
@@ -827,7 +830,10 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG modifyChild()";
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG modifyChild(";
+					if (modify_child_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << "p" << modify_child_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << ")";
 					
 					if (modify_child_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << modify_child_callback->block_id_;
@@ -2044,7 +2050,10 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG recombination()";
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG recombination(";
+					if (recombination_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << "p" << recombination_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << ")";
 					
 					if (recombination_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << recombination_callback->block_id_;
