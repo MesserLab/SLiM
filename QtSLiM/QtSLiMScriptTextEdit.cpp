@@ -2367,6 +2367,7 @@ protected:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override { codeEditor->lineNumberAreaPaintEvent(p_paintEvent); }
     virtual void mousePressEvent(QMouseEvent *p_mouseEvent) override { codeEditor->lineNumberAreaMouseEvent(p_mouseEvent); }
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override { codeEditor->lineNumberAreaContextMenuEvent(p_event); }
+    virtual void wheelEvent(QWheelEvent *p_wheelEvent) override { codeEditor->lineNumberAreaWheelEvent(p_wheelEvent); }
 
 private:
     QtSLiMScriptTextEdit *codeEditor;
@@ -3050,6 +3051,13 @@ void QtSLiMScriptTextEdit::lineNumberAreaContextMenuEvent(QContextMenuEvent *p_e
         if (action == clearDebugPointsAction)
             clearDebugPoints();
     }
+}
+
+void QtSLiMScriptTextEdit::lineNumberAreaWheelEvent(QWheelEvent *p_wheelEvent)
+{
+    // We want wheel events in the debug/line number area to scroll the script textview, so it forwards them to us here
+    // I'm not sure of the legality of this, since the event is tailored for a different widget, but it seems to work...
+    wheelEvent(p_wheelEvent);
 }
 
 void QtSLiMScriptTextEdit::clearDebugPoints(void)

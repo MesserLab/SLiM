@@ -201,6 +201,7 @@ public:
     void lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent);
     void lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent);
     void lineNumberAreaContextMenuEvent(QContextMenuEvent *p_event);
+    void lineNumberAreaWheelEvent(QWheelEvent *p_wheelEvent);
     int lineNumberAreaWidth(void);
 
 protected:
