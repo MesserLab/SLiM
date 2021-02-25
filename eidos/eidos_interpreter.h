@@ -97,11 +97,11 @@ private:
 	// flags and streams for execution logging – a trace of the DFS of the parse tree
 	bool logging_execution_ = false;
 	int execution_log_indent_ = 0;
-	std::ostringstream *execution_log_ = nullptr;		// allocated lazily
+	std::ostringstream *execution_log_ = nullptr;		// allocated lazily; for internal tokenization/parse/execution traces
 	
 	// output streams for standard and error output from executed nodes and functions; these go into the user's console
-	std::ostringstream *execution_output_ = nullptr;	// allocated lazily, and might not be used at all; see ExecutionOutputStream()
-	std::ostringstream *error_output_ = nullptr;		// allocated lazily, and might not be used at all; see ErrorOutputStream()
+	std::ostream &execution_output_;
+	std::ostream &error_output_;
 	
 	// The standard built-in function map, set up by CacheBuiltInFunctionMap()
 	static EidosFunctionMap *s_built_in_function_map_;
@@ -116,16 +116,13 @@ public:
 	EidosInterpreter& operator=(const EidosInterpreter&) = delete;		// no copying
 	EidosInterpreter(void) = delete;										// no null construction
 	
-	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context);			// we use the passed symbol table but do not own it
-	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context);		// we use the passed symbol table but do not own it
+	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream);			// we use the passed symbol table but do not own it
+	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream);	// we use the passed symbol table but do not own it
 	
 	inline ~EidosInterpreter(void)
 	{
 		if (execution_log_)
 			delete execution_log_;
-		
-		if (execution_output_)
-			delete execution_output_;
 		
 #ifdef SLIMGUI
 		debug_points_ = nullptr;
@@ -138,13 +135,8 @@ public:
 	bool ShouldLogExecution(void);
 	std::string ExecutionLog(void);
 	
-	std::ostream &ExecutionOutputStream(void);			// lazy allocation; all use of execution_output_ should get it through this accessor
-	inline __attribute__((always_inline)) void FlushExecutionOutputToStream(std::ostream &p_stream) { if (execution_output_) p_stream << execution_output_->str(); }
-	inline __attribute__((always_inline)) std::string ExecutionOutput(void) { return (execution_output_ ? execution_output_->str() : gEidosStr_empty_string); }
-	
-	std::ostream &ErrorOutputStream(void);				// lazy allocation; all use of error_output_ should get it through this accessor
-	inline __attribute__((always_inline)) void FlushErrorOutputToStream(std::ostream &p_stream) { if (error_output_) p_stream << error_output_->str(); }
-	inline __attribute__((always_inline)) std::string ErrorOutput(void) { return (error_output_ ? error_output_->str() : gEidosStr_empty_string); }
+	inline __attribute__((always_inline)) std::ostream &ExecutionOutputStream(void) { return execution_output_; }
+	inline __attribute__((always_inline)) std::ostream &ErrorOutputStream(void) { return error_output_; }
 	
 	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) { return *global_symbols_; };			// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };				// the returned reference is to the function map that the interpreter has borrowed

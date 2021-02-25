@@ -76,6 +76,10 @@ EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;
 
 int gEidosFloatOutputPrecision = 6;
 
+#if DEBUG_POINTS_ENABLED
+int gEidosDebugIndent = 0;
+#endif
+
 
 #pragma mark -
 #pragma mark Profiling support
@@ -366,7 +370,7 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kLocalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
-	EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
+	EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, std::cout, std::cerr);	// we're at the command line, so we assume we're using stdout/stderr
 	
 	value = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
 	

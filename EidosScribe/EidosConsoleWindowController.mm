@@ -385,7 +385,8 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerWillExecuteScript:)])
 		[delegate eidosConsoleWindowControllerWillExecuteScript:self];
 	
-	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context);
+	std::ostringstream outstream;	// in SLiMguiLegacy, one output stream for both types of output
+	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context, outstream, outstream);
 	
 	try
 	{
@@ -393,8 +394,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 			interpreter.SetShouldLogExecution(true);
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
-		output = interpreter.ExecutionOutput();
-		output += interpreter.ErrorOutput();
+		output = outstream.str();
 		
 		// reload outline view to show new global symbols, in case they have changed
 		[browserController reloadBrowser];
@@ -410,8 +410,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		if ([delegate respondsToSelector:@selector(eidosConsoleWindowControllerDidExecuteScript:)])
 			[delegate eidosConsoleWindowControllerDidExecuteScript:self];
 		
-		output = interpreter.ExecutionOutput();
-		output += interpreter.ErrorOutput();
+		output = outstream.str();
 		
 		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
 		*errorString = [NSString stringWithUTF8String:error_string.c_str()];

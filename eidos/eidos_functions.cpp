@@ -9209,7 +9209,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	{
 		EidosSymbolTable &symbols = p_interpreter.SymbolTable();									// use our own symbol table
 		EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context());
+		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
 		bool consistent_return_length = true;	// consistent across all values, including NULLs?
 		int return_length = -1;					// what the consistent length is
 		
@@ -9296,9 +9296,6 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 		symbols.RemoveValueForSymbol(gEidosID_applyValue);
 		
 		// Assemble all the individual results together, just as c() does
-		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
-		interpreter.FlushErrorOutputToStream(p_interpreter.ErrorOutputStream());
-		
 		result_SP = ConcatenateEidosValues(results, true, false);	// allow NULL but not VOID
 		
 		// Set the dimensions of the result.  If the returns from the lambda were not consistent in their
@@ -11193,7 +11190,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		if (p_execute_in_outer_scope)
 			symbols = symbols->ParentSymbolTable();
 		
-		EidosInterpreter interpreter(*script, *symbols, p_interpreter.FunctionMap(), p_interpreter.Context());
+		EidosInterpreter interpreter(*script, *symbols, p_interpreter.FunctionMap(), p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
 		
 		if (timed)
 		{
@@ -11215,10 +11212,6 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 			else
 				end_ts = std::chrono::steady_clock::now();
 		}
-		
-		// Assimilate output
-		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
-		interpreter.FlushErrorOutputToStream(p_interpreter.ErrorOutputStream());
 	}
 	catch (...)
 	{
@@ -11567,7 +11560,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	{
 		EidosSymbolTable &symbols = p_interpreter.SymbolTable();									// use our own symbol table
 		EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context());
+		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
 		bool null_included = false;				// has a NULL been seen among the return values
 		bool consistent_return_length = true;	// consistent except for any NULLs returned
 		int return_length = -1;					// what the consistent length is
@@ -11608,9 +11601,6 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 		symbols.RemoveValueForSymbol(gEidosID_applyValue);
 		
 		// Assemble all the individual results together, just as c() does
-		interpreter.FlushExecutionOutputToStream(p_interpreter.ExecutionOutputStream());
-		interpreter.FlushErrorOutputToStream(p_interpreter.ErrorOutputStream());
-		
 		result_SP = ConcatenateEidosValues(results, true, false);	// allow NULL but not VOID
 		
 		// Finally, we restructure the results:

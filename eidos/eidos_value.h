@@ -159,7 +159,7 @@ protected:
 	int64_t *dim_;											// nullptr for vectors; points to a malloced, OWNED array of dimensions for matrices and arrays
 															//    when allocated, the first value in the buffer is a count of the dimensions that follow
 	virtual void _CopyDimensionsFromValue(const EidosValue *p_value);											// do not call directly; called by CopyDimensionsFromValue()
-	void PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_start_index, std::ostream &p_ostream) const;
+	void PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_start_index, std::ostream &p_ostream, const std::string &p_indent = std::string()) const;
 	
 	virtual int Count_Virtual(void) const = 0;				// the number of values in the vector
 	
@@ -178,7 +178,7 @@ public:
 	inline __attribute__((always_inline)) int Count(void) const { return (is_singleton_ ? 1 : Count_Virtual()); }	// avoid the virtual function call for singletons
 	
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
-	void Print(std::ostream &p_ostream) const;				// standard printing; same as operator<<
+	void Print(std::ostream &p_ostream, const std::string &p_indent = std::string()) const;				// standard printing; same as operator<<
 	void PrintStructure(std::ostream &p_ostream, int max_values) const;	// print structure; no newline
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const = 0;
 	virtual nlohmann::json JSONRepresentation(void) const = 0;

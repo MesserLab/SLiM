@@ -205,7 +205,7 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 		EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 		EidosFunctionMap &function_map = sim_.FunctionMap();
-		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr);
+		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 		
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		
@@ -215,9 +215,6 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 			EIDOS_TERMINATION << "ERROR (LogFile::_GeneratedValue_CustomScript): a LogFile generator script for addCustomColumn() may not return type object." << EidosTerminate(nullptr);
 		if ((result_SP->Type() != EidosValueType::kValueNULL) && (result_SP->Count() != 1))
 			EIDOS_TERMINATION << "ERROR (LogFile::_GeneratedValue_CustomScript): a LogFile generator script for addCustomColumn() must return a singleton value, or NULL." << EidosTerminate(nullptr);
-		
-		interpreter.FlushExecutionOutputToStream(SLIM_OUTSTREAM);
-		interpreter.FlushErrorOutputToStream(SLIM_ERRSTREAM);
 	}
 	catch (...)
 	{
@@ -245,7 +242,7 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 		EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 		EidosFunctionMap &function_map = sim_.FunctionMap();
-		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr);
+		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 		
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		
@@ -279,9 +276,6 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 				*p_generated_value_2 = Eidos_ExecuteFunction_sd(argument_vec, interpreter);
 			}
 		}
-		
-		interpreter.FlushExecutionOutputToStream(SLIM_OUTSTREAM);
-		interpreter.FlushErrorOutputToStream(SLIM_ERRSTREAM);
 	}
 	catch (...)
 	{

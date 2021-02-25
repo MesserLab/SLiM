@@ -180,8 +180,25 @@ extern bool eidos_do_memory_checks;
 // in that scenario, for end users.  However, I've put a define here to control them for my own debugging purposes.
 #ifdef SLIMGUI
 #define DEBUG_POINTS_ENABLED	1
+extern int gEidosDebugIndent;
 #else
 #define DEBUG_POINTS_ENABLED	0
+#endif
+
+#if DEBUG_POINTS_ENABLED
+// A simple class for RAII-based debug point indentation; saves some hassle with exceptions, etc.
+class EidosDebugPointIndent
+{
+private:
+	int indent_;
+public:
+	EidosDebugPointIndent(void) : indent_(0) { }
+	~EidosDebugPointIndent(void) { gEidosDebugIndent -= indent_; }
+	inline void indent(int spaces = 4) { gEidosDebugIndent += spaces; indent_ += spaces; }
+	inline void outdent(int spaces = 4) { gEidosDebugIndent -= spaces; indent_ -= spaces; }
+	
+	static inline const std::string Indent(void) { return std::string(gEidosDebugIndent, ' '); }
+};
 #endif
 
 

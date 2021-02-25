@@ -603,7 +603,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value)
 	return p_outstream;
 }
 
-void EidosValue::PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_start_index, std::ostream &p_ostream) const
+void EidosValue::PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_start_index, std::ostream &p_ostream, const std::string &p_indent) const
 {
 	int64_t element_count = p_ncol * p_nrow;
 	
@@ -629,8 +629,7 @@ void EidosValue::PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_
 	int max_rowcol_width = (p_nrow == 1) ? 4 : ((int)floor(log10(p_nrow - 1)) + 4);
 	
 	// print the upper left corner padding
-	for (int pad_index = 0; pad_index < max_rowcol_width; pad_index++)
-		p_ostream << ' ';
+	p_ostream << p_indent << std::string(max_rowcol_width, ' ');
 	
 	// print the column headers
 	for (int col_index = 0; col_index < p_ncol; ++col_index)
@@ -638,10 +637,8 @@ void EidosValue::PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_
 		// pad before column header
 		{
 			int element_width = (col_index == 0) ? 4 : ((int)floor(log10(col_index)) + 4);
-			int padding = (max_element_width - element_width) + 1;
 			
-			for (int pad_index = 0; pad_index < padding; pad_index++)
-				p_ostream << ' ';
+			p_ostream << std::string((max_element_width - element_width) + 1, ' ');
 		}
 		
 		// column header
@@ -651,15 +648,13 @@ void EidosValue::PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_
 	// print each row
 	for (int row_index = 0; row_index < p_nrow; ++row_index)
 	{
-		p_ostream << std::endl;
+		p_ostream << std::endl << p_indent;
 		
 		// pad before row index
 		{
 			int element_width = (row_index == 0) ? 4 : ((int)floor(log10(row_index)) + 4);
-			int padding = (max_rowcol_width - element_width);
 			
-			for (int pad_index = 0; pad_index < padding; pad_index++)
-				p_ostream << ' ';
+			p_ostream << std::string(max_rowcol_width - element_width, ' ');
 		}
 		
 		// row index
@@ -670,17 +665,13 @@ void EidosValue::PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_
 		{
 			std::string &element_string = element_strings[row_index + col_index * p_nrow];
 			int element_width = (int)element_string.length();
-			int padding = (max_element_width - element_width) + 1;
 			
-			for (int pad_index = 0; pad_index < padding; pad_index++)
-				p_ostream << ' ';
-			
-			p_ostream << element_string;
+			p_ostream << std::string((max_element_width - element_width) + 1, ' ') << element_string;
 		}
 	}
 }
 
-void EidosValue::Print(std::ostream &p_ostream) const
+void EidosValue::Print(std::ostream &p_ostream, const std::string &p_indent) const
 {
 	int count = Count();
 	
@@ -688,6 +679,8 @@ void EidosValue::Print(std::ostream &p_ostream) const
 	{
 		// standard format for zero-length vectors
 		EidosValueType type = Type();
+		
+		p_ostream << p_indent;
 		
 		switch (type)
 		{
@@ -703,6 +696,8 @@ void EidosValue::Print(std::ostream &p_ostream) const
 	else if (!dim_)
 	{
 		// print vectors by just spewing out individual values
+		p_ostream << p_indent;
+		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
 			if (value_index > 0)
@@ -713,7 +708,7 @@ void EidosValue::Print(std::ostream &p_ostream) const
 	}
 	else if (dim_[0] == 2)
 	{
-		PrintMatrixFromIndex(dim_[2], dim_[1], 0, p_ostream);
+		PrintMatrixFromIndex(dim_[2], dim_[1], 0, p_ostream, p_indent);
 	}
 	else if (dim_[0] > 2)
 	{
@@ -731,12 +726,12 @@ void EidosValue::Print(std::ostream &p_ostream) const
 		do
 		{
 			// print an index line before the matrix
-			p_ostream << ", ";
+			p_ostream << p_indent << ", ";
 			
 			for (int idx = 0; idx < array_dim_count; ++idx)
 				p_ostream << ", " << array_dim_indices[idx];
 			
-			p_ostream << std::endl << std::endl;
+			p_ostream << std::endl << p_indent << std::endl;
 			
 			// print out the matrix for this slice
 			int slice_offset = 0;
@@ -744,8 +739,7 @@ void EidosValue::Print(std::ostream &p_ostream) const
 			for (int idx = 0; idx < array_dim_count; ++idx)
 				slice_offset += array_dim_skip[idx] * array_dim_indices[idx];
 			
-			PrintMatrixFromIndex(dim_[2], dim_[1], slice_offset, p_ostream);
-			p_ostream << std::endl;
+			PrintMatrixFromIndex(dim_[2], dim_[1], slice_offset, p_ostream, p_indent);
 			
 			// increment dim_indices; this is counting up in a weird mixed-base system
 			int count_index;
@@ -761,7 +755,7 @@ void EidosValue::Print(std::ostream &p_ostream) const
 			if (count_index == array_dim_count)
 				break;
 			
-			p_ostream << std::endl;
+			p_ostream << std::endl << p_indent << std::endl;
 		}
 		while (true);
 		

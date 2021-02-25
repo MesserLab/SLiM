@@ -85,7 +85,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	
 	try {
 		EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
-		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, std::cout, std::cerr);
 		
 		result = interpreter.EvaluateInterpreterBlock(true, true);		// print output, return the last statement value
 	}
@@ -151,7 +151,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		script.Tokenize();
 		script.ParseInterpreterBlockToAST(true);
 		
-		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr);
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, std::cout, std::cerr);
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);		// print output, return the last statement value
 		

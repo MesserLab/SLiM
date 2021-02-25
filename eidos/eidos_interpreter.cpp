@@ -109,8 +109,8 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 #pragma mark EidosInterpreter
 #pragma mark -
 
-EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
-	: eidos_context_(p_eidos_context), root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions)
+EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
+	: eidos_context_(p_eidos_context), root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
@@ -127,8 +127,8 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 #endif
 }
 
-EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context)
-	: eidos_context_(p_eidos_context), root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions)
+EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
+	: eidos_context_(p_eidos_context), root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
 {
 	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
 	// initialize the RNG itself, with its own seed; we don't want to override that.
@@ -170,32 +170,6 @@ bool EidosInterpreter::ShouldLogExecution(void)
 std::string EidosInterpreter::ExecutionLog(void)
 {
 	return (execution_log_ ? execution_log_->str() : gEidosStr_empty_string);
-}
-
-std::ostream &EidosInterpreter::ExecutionOutputStream(void)
-{
-	// lazy allocation; all use of execution_output_ should get it through this accessor
-	// also, when running at the command line we send output directly to std::cout to avoid buffering issues on termination
-	if (!gEidosTerminateThrows)
-		return std::cout;
-	
-	if (!execution_output_)
-		execution_output_ = new std::ostringstream();
-	
-	return *execution_output_;
-}
-
-std::ostream &EidosInterpreter::ErrorOutputStream(void)
-{
-	// lazy allocation; all use of error_output_ should get it through this accessor
-	// also, when running at the command line we send output directly to std::cerr to avoid buffering issues on termination
-	if (!gEidosTerminateThrows)
-		return std::cerr;
-	
-	if (!error_output_)
-		error_output_ = new std::ostringstream();
-	
-	return *error_output_;
 }
 
 // the starting point for internally executed blocks, which require braces and suppress output
@@ -882,7 +856,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NullStatement(const EidosASTNode *p_nod
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
 	{
-		ErrorOutputStream() << "#DEBUG NULL_STATEMENT (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << ")" << std::endl;
+		ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG NULL_STATEMENT (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << ")" << std::endl;
 	}
 #endif
 	
@@ -1303,19 +1277,25 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 {
 #if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
+	EidosDebugPointIndent indenter;
+	
 	if (debug_points_ && debug_points_->set.size() && (p_function_signature.user_definition_line_ != -1) &&
 		(debug_points_->set.find(p_function_signature.user_definition_line_) != debug_points_->set.end()))
 	{
 		std::ostream &output_stream = ErrorOutputStream();
 		
-		output_stream << "#DEBUG FUNCTION (line " << (p_function_signature.user_definition_line_ + 1) << eidos_context_->DebugPointInfo() << "): function " << p_function_signature.call_name_ << "() called with arguments:" << std::endl;
+		output_stream << EidosDebugPointIndent::Indent() << "#DEBUG FUNCTION (line " << (p_function_signature.user_definition_line_ + 1) << eidos_context_->DebugPointInfo() << "): function " << p_function_signature.call_name_ << "() called with arguments:" << std::endl;
+		
+		indenter.indent(2);
 		
 		for (size_t arg_index = 0; arg_index < p_arguments.size(); ++arg_index)
 		{
-			output_stream << "    " << p_function_signature.arg_names_[arg_index] << " == ";
+			output_stream << EidosDebugPointIndent::Indent() << p_function_signature.arg_names_[arg_index] << " == ";
 			p_arguments[arg_index]->PrintStructure(output_stream, 5);
 			output_stream << std::endl;
 		}
+		
+		indenter.indent(2);
 	}
 #endif
 	
@@ -1344,16 +1324,12 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	
 	try
 	{
-		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context());
+		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context(), execution_output_, error_output_);
 		
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
 		// bugs that would otherwise not manifest.
 		result_SP = interpreter.EvaluateInterpreterBlock(false, false);	// don't print output, don't return last statement value
-		
-		// Assimilate output
-		interpreter.FlushExecutionOutputToStream(ExecutionOutputStream());
-		interpreter.FlushErrorOutputToStream(ErrorOutputStream());
 	}
 	catch (...)
 	{
@@ -1383,7 +1359,7 @@ void EidosInterpreter::_LogCallArguments(const EidosCallSignature *call_signatur
 	// log out arguments with positional numbers
 	for (size_t argument_index = 0; argument_index < argument_buffer->size(); ++argument_index)
 	{
-		output_stream << "    [" << argument_index << "] == ";
+		output_stream << EidosDebugPointIndent::Indent() << "[" << argument_index << "] == ";
 		(*argument_buffer)[argument_index]->PrintStructure(output_stream, 5);
 		output_stream << std::endl;
 	}
@@ -1422,7 +1398,7 @@ void EidosInterpreter::_LogCallArguments(const EidosCallSignature *call_signatur
 		else
 			signature_arg_index = buffer_arg_index - ellipsis_arg_count + 1;	// + 1 because the ellipsis gets one entry in the sig
 		
-		output_stream << "    " << call_signature->arg_names_[signature_arg_index] << " == ";
+		output_stream << EidosDebugPointIndent::Indent() << call_signature->arg_names_[signature_arg_index] << " == ";
 		(*argument_buffer)[buffer_arg_index]->PrintStructure(output_stream, 5);
 		output_stream << std::endl;
 	}
@@ -1476,14 +1452,18 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 #if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
+		EidosDebugPointIndent indenter;
+		
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
 		{
 			std::ostream &output_stream = ErrorOutputStream();
 			
-			output_stream << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): call to function " <<
-				*function_name << "() arguments:" << std::endl;
+			output_stream << EidosDebugPointIndent::Indent() << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): call to function " <<
+				*function_name << "() with arguments:" << std::endl;
+			indenter.indent(2);
 			_LogCallArguments(function_signature, argument_buffer);
+			indenter.indent(2);
 		}
 #endif
 		
@@ -1520,11 +1500,21 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		{
 			std::ostream &output_stream = ErrorOutputStream();
 			
-			output_stream << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): function " <<
+			indenter.outdent();
+			output_stream << EidosDebugPointIndent::Indent() << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): function " <<
 				*function_name << "() return: ";
-			result_SP->PrintStructure(output_stream, 0);
-			if (result_SP->Count() > 0)
-				output_stream << std::endl << *result_SP;		// std::endl so that matrices and such print nicely
+			if (result_SP->Count() <= 1)
+			{
+				result_SP->PrintStructure(output_stream, 1);
+			}
+			else {
+				// print multiple values on a new line, with indent
+				result_SP->PrintStructure(output_stream, 0);
+				output_stream << std::endl;
+				indenter.indent(2);
+				result_SP->Print(output_stream, EidosDebugPointIndent::Indent());
+				indenter.outdent(2);
+			}
 			output_stream << std::endl;
 		}
 #endif
@@ -1581,14 +1571,18 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		
 #if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
+		EidosDebugPointIndent indenter;
+		
 		if (debug_points_ && debug_points_->set.size() && (call_identifier_token->token_line_ != -1) &&
 			(debug_points_->set.find(call_identifier_token->token_line_) != debug_points_->set.end()))
 		{
 			std::ostream &output_stream = ErrorOutputStream();
 			
-			output_stream << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): call to method " <<
-				EidosStringRegistry::StringForGlobalStringID(method_id) << "() arguments:" << std::endl;
+			output_stream << EidosDebugPointIndent::Indent() << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): call to method " <<
+				EidosStringRegistry::StringForGlobalStringID(method_id) << "() with arguments:" << std::endl;
+			indenter.indent(2);
 			_LogCallArguments(method_signature, argument_buffer);
+			indenter.indent(2);
 		}
 #endif
 		
@@ -1615,11 +1609,21 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		{
 			std::ostream &output_stream = ErrorOutputStream();
 			
-			output_stream << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): method " <<
+			indenter.outdent();
+			output_stream << EidosDebugPointIndent::Indent() << "#DEBUG CALL (line " << (call_identifier_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): method " <<
 				EidosStringRegistry::StringForGlobalStringID(method_id) << "() return: ";
-			result_SP->PrintStructure(output_stream, 0);
-			if (result_SP->Count() > 0)
-				output_stream << std::endl << *result_SP;		// std::endl so that matrices and such print nicely
+			if (result_SP->Count() <= 1)
+			{
+				result_SP->PrintStructure(output_stream, 1);
+			}
+			else {
+				// print multiple values on a new line, with indent
+				result_SP->PrintStructure(output_stream, 0);
+				output_stream << std::endl;
+				indenter.indent(2);
+				result_SP->Print(output_stream, EidosDebugPointIndent::Indent());
+				indenter.outdent(2);
+			}
 			output_stream << std::endl;
 		}
 #endif
@@ -4269,17 +4273,28 @@ compoundAssignmentSkip:
 		
 #if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
+		EidosDebugPointIndent indenter;
+		
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()))
 		{
 			std::ostream &output_stream = ErrorOutputStream();
 			
-			output_stream << "#DEBUG ASSIGN (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): ";
+			output_stream << EidosDebugPointIndent::Indent() << "#DEBUG ASSIGN (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): ";
 			if (lvalue_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 				output_stream << lvalue_node->token_->token_string_ << " = ";
-			rvalue->PrintStructure(output_stream, 0);
-			if (rvalue->Count() > 0)
-				output_stream << std::endl << *rvalue;		// std::endl so that matrices and such print nicely
+			if (rvalue->Count() <= 1)
+			{
+				rvalue->PrintStructure(output_stream, 1);
+			}
+			else {
+				// print multiple values on a new line, with indent
+				rvalue->PrintStructure(output_stream, 0);
+				output_stream << std::endl;
+				indenter.indent(2);
+				rvalue->Print(output_stream, EidosDebugPointIndent::Indent());
+				indenter.outdent(2);
+			}
 			output_stream << std::endl;
 		}
 #endif
@@ -5550,6 +5565,8 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 	
 #if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
+	EidosDebugPointIndent indenter;
+	
 	if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 		(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
 		(condition_result->Count() == 1))
@@ -5557,8 +5574,9 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
 		
 		// the above might raise, but if it does, it will be the same error as produced below
-		ErrorOutputStream() << "#DEBUG IF (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<
+		ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG IF (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<
 			(condition_logical ? "T" : "F") << std::endl;
+		indenter.indent();
 	}
 #endif
 	
@@ -5661,6 +5679,18 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
+#if DEBUG_POINTS_ENABLED
+	// SLiMgui debugging point
+	EidosDebugPointIndent indenter;
+	
+	if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
+		(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()))
+	{
+		ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG DO (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): entering loop" << std::endl;
+		indenter.indent();
+	}
+#endif
+	
 	do
 	{
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
@@ -5708,8 +5738,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 			eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
 			
 			// the above might raise, but if it does, it will be the same error as produced below
-			ErrorOutputStream() << "#DEBUG DO (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<
+			indenter.outdent();
+			ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG DO (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<
 			(condition_logical ? "T" : "F") << std::endl;
+			indenter.indent();
 		}
 #endif
 		
@@ -5759,6 +5791,8 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		
 #if DEBUG_POINTS_ENABLED
 		// SLiMgui debugging point
+		EidosDebugPointIndent indenter;
+		
 		if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
 			(condition_result->Count() == 1))
@@ -5766,8 +5800,9 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 			eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
 			
 			// the above might raise, but if it does, it will be the same error as produced below
-			ErrorOutputStream() << "#DEBUG WHILE (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<
+			ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG WHILE (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<
 			(condition_logical ? "T" : "F") << std::endl;
+			indenter.indent();
 		}
 #endif
 		
@@ -6289,17 +6324,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 #if DEBUG_POINTS_ENABLED
 					// SLiMgui debugging point
+					EidosDebugPointIndent indenter;
+					
 					if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
 						(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()))
 					{
 						std::ostream &output_stream = ErrorOutputStream();
 						
-						output_stream << "#DEBUG FOR (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): " <<
+						output_stream << EidosDebugPointIndent::Indent() << "#DEBUG FOR (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): " <<
 							identifier_child->token_->token_string_ << " = " <<
 							iteration_value->Type();
 						if (iteration_value->Type() == EidosValueType::kValueObject)
 							output_stream << "<" << iteration_value->ElementType() << ">";
 						output_stream << "$ " << *iteration_value << std::endl;
+						indenter.indent();
 					}
 #endif
 					
@@ -6366,7 +6404,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Next(const EidosASTNode *p_node)
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
 	{
-		ErrorOutputStream() << "#DEBUG NEXT (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << ")" << std::endl;
+		ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG NEXT (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << ")" << std::endl;
 	}
 #endif
 	
@@ -6394,7 +6432,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Break(const EidosASTNode *p_node)
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
 	{
-		ErrorOutputStream() << "#DEBUG BREAK (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << ")" << std::endl;
+		ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG BREAK (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << ")" << std::endl;
 	}
 #endif
 	
@@ -6435,15 +6473,26 @@ EidosValue_SP EidosInterpreter::Evaluate_Return(const EidosASTNode *p_node)
 	
 #if DEBUG_POINTS_ENABLED
 	// SLiMgui debugging point
+	EidosDebugPointIndent indenter;
+	
 	if (debug_points_ && debug_points_->set.size() && (p_node->token_->token_line_ != -1) &&
 		(debug_points_->set.find(p_node->token_->token_line_) != debug_points_->set.end()))
 	{
 		std::ostream &output_stream = ErrorOutputStream();
 		
-		output_stream << "#DEBUG RETURN (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): ";
-		result_SP->PrintStructure(output_stream, 0);
-		if (result_SP->Count() > 0)
-			output_stream << std::endl << *result_SP;		// std::endl so that matrices and such print nicely
+		output_stream << EidosDebugPointIndent::Indent() << "#DEBUG RETURN (line " << (p_node->token_->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): ";
+		if (result_SP->Count() <= 1)
+		{
+			result_SP->PrintStructure(output_stream, 1);
+		}
+		else {
+			// print multiple values on a new line, with indent
+			result_SP->PrintStructure(output_stream, 0);
+			output_stream << std::endl;
+			indenter.indent(2);
+			result_SP->Print(output_stream, EidosDebugPointIndent::Indent());
+			indenter.outdent(2);
+		}
 		output_stream << std::endl;
 	}
 #endif

@@ -401,7 +401,8 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 	// Interpret the parsed block
     parentSLiMWindow->willExecuteScript();
 	
-	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context);
+    std::ostringstream outstream;	// in the Eidos console, one output stream for both types of output
+	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context, outstream, outstream);
 	
 	try
 	{
@@ -409,8 +410,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 			interpreter.SetShouldLogExecution(true);
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);	// print output, return the last statement value (result not used)
-		output = interpreter.ExecutionOutput();
-        output += interpreter.ErrorOutput();
+		output = outstream.str();
 		
         if (variableBrowser_)
             variableBrowser_->reloadBrowser(true);
@@ -425,8 +425,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 	{
 		parentSLiMWindow->didExecuteScript();
 		
-		output = interpreter.ExecutionOutput();
-        output += interpreter.ErrorOutput();
+		output = outstream.str();
 		
 		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
 		*errorString = QString::fromStdString(error_string);
