@@ -65,7 +65,9 @@ public:
     QtSLiMWindow *activeQtSLiMWindow(void);             // the frontmost window that is a QtSLiMWindow
     QWidget *activeWindow(void);                        // the frontmost window
     QWidget *activeWindowExcluding(QWidget *excluded);  // the frontmost window that is not excluded
-    QtSLiMWindow *dispatchQtSLiMWindow(void);           // the QtSLiMWindow associated with the focused widget or active window
+    
+    // Finding targets for action dispatch
+    QtSLiMWindow *dispatchQtSLiMWindowFromSecondaries(void);    // the QtSLiMWindow associated with the focused widget or active window
     
     // Document opening
     QtSLiMWindow *findMainWindow(const QString &fileName) const;

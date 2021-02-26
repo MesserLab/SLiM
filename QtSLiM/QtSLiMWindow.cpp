@@ -1748,12 +1748,12 @@ void QtSLiMWindow::updateUIEnabling(void)
     if (consoleController)
         consoleController->setInterfaceEnabled(!continuousPlayOn_);
     
-    // Then, if we are the active window, we update the menus to reflect our state
-    // If there's an active window but it isn't us, we reflect that situation with a different method
+    // Then, if we are the focused or active window, we update the menus to reflect our state
+    // If there's a focused/active window but it isn't us, we reflect that situation with a different method
     // Keep in mind that in Qt each QMainWindow has its own menu bar, its own actions, etc.; this is not global state!
     // This means we spend a little time updating menu enable states that are not visible anyway, but it's fast
     QWidget *currentFocusWidget = qApp->focusWidget();
-    QWidget *focusWindow = (currentFocusWidget ? currentFocusWidget->window() : nullptr);
+    QWidget *focusWindow = (currentFocusWidget ? currentFocusWidget->window() : qtSLiMAppDelegate->activeWindow());
     
     if (focusWindow == this) {
         //qDebug() << "updateMenuEnablingACTIVE()";
@@ -1835,7 +1835,7 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *f
     ui->actionChangeWorkingDirectory->setEnabled(false);
     
     // we can show our various windows as long as we can reach the controller window
-    QtSLiMWindow *slimWindow = qtSLiMAppDelegate->dispatchQtSLiMWindow();
+    QtSLiMWindow *slimWindow = qtSLiMAppDelegate->dispatchQtSLiMWindowFromSecondaries();
     bool canReachSLiMWindow = !!slimWindow;
     
     ui->actionShowScriptHelp->setEnabled(canReachSLiMWindow);
