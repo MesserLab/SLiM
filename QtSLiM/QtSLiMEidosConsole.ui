@@ -188,7 +188,7 @@
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show/hide Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="icon">
             <iconset resource="buttons.qrc">
