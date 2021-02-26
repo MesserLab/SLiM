@@ -1,0 +1,93 @@
+// Keywords: split, join, vicariance, founder, founding, merge, assimilation, admixture
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	// each subpopulation reproduces within itself
+	subpop.addCrossed(individual, subpop.sampleIndividuals(1));
+}
+1 early() {
+	// start with two subpops that grow to different sizes
+	sim.addSubpop("p1", 10).setValue("K", 500);
+	sim.addSubpop("p2", 10).setValue("K", 600);
+}
+early() {
+	// density-dependent regulation for each subpop
+	for (subpop in sim.subpopulations) {
+		K = subpop.getValue("K");
+		subpop.fitnessScaling = K / subpop.individualCount;
+	}
+}
+5000 late() { }
+
+//
+// Join p1 and p2 to form p3 in generation 1000
+//
+
+999 late() {
+	// create a zero-size subpop for the join
+	sim.addSubpop("p3", 0).setValue("K", 750);
+}
+1000 reproduction() {
+	// generate juveniles to seed p3
+	founderCount = rdunif(1, 10, 20);
+	p1_inds = p1.individuals;
+	p2_inds = p2.individuals;
+	all_inds = c(p1_inds, p2_inds);
+	
+	for (i in seqLen(founderCount))
+	{
+		// select a first parent with equal probabilities
+		parent1 = sample(all_inds, 1);
+		
+		// select a second parent with a bias toward p2
+		if (rdunif(1) < 0.2)
+			parent2 = sample(p1_inds, 1);
+		else
+			parent2 = sample(p2_inds, 1);
+		
+		// generate the offspring into p3
+		p3.addCrossed(parent1, parent2);
+	}
+	
+	// we're done, don't run again this generation
+	self.active = 0;
+}
+1000 early() {
+	// get rid of p1 and p2 now
+	c(p1,p2).fitnessScaling = 0.0;
+}
+
+//
+// Split p3 to form a new founder subpop p4 in 2000
+//
+1999 late() {
+	// create a zero-size subpop for the split
+	sim.addSubpop("p4", 0).setValue("K", 100);
+}
+2000 reproduction() {
+	// generate juveniles to seed p4
+	founderCount = rdunif(1, 10, 20);
+	all_inds = p3.individuals;
+	
+	for (i in seqLen(founderCount))
+	{
+		// select parent1/parent2 with equal probabilities
+		parent1 = sample(all_inds, 1);
+		parent2 = sample(all_inds, 1);
+		
+		// generate the offspring into p4
+		p4.addCrossed(parent1, parent2);
+	}
+	
+	// we're done, don't run again this generation
+	self.active = 0;
+}
