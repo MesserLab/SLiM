@@ -358,7 +358,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		//	built-in user-defined functions
 		//
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("source",	gEidosSourceCode_source,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_source,	gEidosSourceCode_source,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
 		
 		
 		// ************************************************************************************
@@ -1034,6 +1034,344 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 	return result_SP;
 }
 
+EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosValue *p_indices, EidosToken *p_error_token)
+{
+	// We have a simple vector-style subset that is not NULL; handle it as we did in Eidos 1.5 and earlier
+	EidosValueType original_value_type = p_original_value->Type();
+	EidosValueType indices_type = p_indices->Type();
+	
+	int original_value_count = p_original_value->Count();
+	int indices_count = p_indices->Count();
+	
+	EidosValue_SP result_SP;
+	
+	if (indices_type == EidosValueType::kValueLogical)
+	{
+		// Subsetting with a logical vector means the vectors must match in length; indices with a T value will be taken
+		if (original_value_count != indices_count)
+			EIDOS_TERMINATION << "ERROR (SubsetEidosValue): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << EidosTerminate(p_error_token);
+		
+		// Subsetting with a logical vector does not attempt to allocate singleton values, for now; seems unlikely to be a frequently hit case
+		const eidos_logical_t *logical_index_data = p_indices->LogicalVector()->data();
+		
+		if (original_value_count == 1)
+		{
+			// This is the simple logic using NewMatchingType() / PushValueFromIndexOfEidosValue()
+			result_SP = p_original_value->NewMatchingType();
+			
+			EidosValue *result = result_SP.get();
+			
+			for (int value_idx = 0; value_idx < indices_count; value_idx++)
+				if (logical_index_data[value_idx])
+					result->PushValueFromIndexOfEidosValue(value_idx, *p_original_value, p_error_token);
+		}
+		else
+		{
+			// Here we can special-case each type for speed since we know we're not dealing with singletons
+			if (original_value_type == EidosValueType::kValueLogical)
+			{
+				const eidos_logical_t *first_child_data = p_original_value->LogicalVector()->data();
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->reserve(indices_count);
+				
+				for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					if (logical_index_data[value_idx])
+						logical_result->push_logical_no_check(first_child_data[value_idx]);
+				
+				result_SP = std::move(logical_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueInt)
+			{
+				const int64_t *first_child_data = p_original_value->IntVector()->data();
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->reserve(indices_count);
+				
+				for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					if (logical_index_data[value_idx])
+						int_result->push_int_no_check(first_child_data[value_idx]);		// cannot use set_int_no_check() because of the if()
+				
+				result_SP = std::move(int_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueFloat)
+			{
+				const double *first_child_data = p_original_value->FloatVector()->data();
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->reserve(indices_count);
+				
+				for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					if (logical_index_data[value_idx])
+						float_result->push_float_no_check(first_child_data[value_idx]);	// cannot use set_int_no_check() because of the if()
+				
+				result_SP = std::move(float_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueString)
+			{
+				const std::vector<std::string> &first_child_vec = *p_original_value->StringVector();
+				EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+				EidosValue_String_vector *string_result = string_result_SP->Reserve(indices_count);
+				
+				for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					if (logical_index_data[value_idx])
+						string_result->PushString(first_child_vec[value_idx]);
+				
+				result_SP = std::move(string_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueObject)
+			{
+				EidosObject * const *first_child_vec = p_original_value->ObjectElementVector()->data();
+				EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)p_original_value)->Class()));
+				EidosValue_Object_vector *obj_result = obj_result_SP->reserve(indices_count);
+				
+				for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					if (logical_index_data[value_idx])
+						obj_result->push_object_element_no_check_CRR(first_child_vec[value_idx]);
+				
+				result_SP = std::move(obj_result_SP);
+			}
+		}
+	}
+	else
+	{
+		if (indices_count == 1)
+		{
+			// Subsetting with a singleton int/float vector is common and should return a singleton value for speed
+			// This is guaranteed to return a singleton value (when available), and bounds-checks for us
+			result_SP = p_original_value->GetValueAtIndex((int)p_indices->IntAtIndex(0, p_error_token), p_error_token);
+		}
+		else if (original_value_count == 1)
+		{
+			// We can't use direct access on p_original_value if it is a singleton, so this needs to be special-cased
+			// Note this is identical to the general-case code below that is never hit
+			result_SP = p_original_value->NewMatchingType();
+			
+			EidosValue *result = result_SP.get();
+			
+			for (int value_idx = 0; value_idx < indices_count; value_idx++)
+			{
+				int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+				
+				if ((index_value < 0) || (index_value >= original_value_count))
+					EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+				else
+					result->PushValueFromIndexOfEidosValue((int)index_value, *p_original_value, p_error_token);
+			}
+		}
+		else
+		{
+			// Subsetting with a int/float vector can use a vector of any length; the specific indices referenced will be taken
+			if (original_value_type == EidosValueType::kValueFloat)
+			{
+				// result type is float; optimize for that
+				const double *first_child_data = p_original_value->FloatVector()->data();
+				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
+				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(indices_count);
+				
+				if (indices_type == EidosValueType::kValueInt)
+				{
+					// integer indices; we can use fast access since we know indices_count != 1
+					const int64_t *int_index_data = p_indices->IntVector()->data();
+					
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = int_index_data[value_idx];
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							float_result->set_float_no_check(first_child_data[index_value], value_idx);
+					}
+				}
+				else
+				{
+					// float indices; we use IntAtIndex() since it has complex behavior
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							float_result->set_float_no_check(first_child_data[index_value], value_idx);
+					}
+				}
+				
+				result_SP = std::move(float_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueInt)
+			{
+				// result type is integer; optimize for that
+				const int64_t *first_child_data = p_original_value->IntVector()->data();
+				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(indices_count);
+				
+				if (indices_type == EidosValueType::kValueInt)
+				{
+					// integer indices; we can use fast access since we know indices_count != 1
+					const int64_t *int_index_data = p_indices->IntVector()->data();
+					
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = int_index_data[value_idx];
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							int_result->set_int_no_check(first_child_data[index_value], value_idx);
+					}
+				}
+				else
+				{
+					// float indices; we use IntAtIndex() since it has complex behavior
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							int_result->set_int_no_check(first_child_data[index_value], value_idx);
+					}
+				}
+				
+				result_SP = std::move(int_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueObject)
+			{
+				// result type is object; optimize for that
+				EidosObject * const *first_child_vec = p_original_value->ObjectElementVector()->data();
+				EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)p_original_value)->Class()));
+				EidosValue_Object_vector *obj_result = obj_result_SP->resize_no_initialize(indices_count);
+				
+				if (indices_type == EidosValueType::kValueInt)
+				{
+					// integer indices; we can use fast access since we know indices_count != 1
+					const int64_t *int_index_data = p_indices->IntVector()->data();
+					
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = int_index_data[value_idx];
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							obj_result->set_object_element_no_check_CRR(first_child_vec[index_value], value_idx);
+					}
+				}
+				else
+				{
+					// float indices; we use IntAtIndex() since it has complex behavior
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							obj_result->set_object_element_no_check_CRR(first_child_vec[index_value], value_idx);
+					}
+				}
+				
+				result_SP = std::move(obj_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueLogical)
+			{
+				// result type is logical; optimize for that
+				const eidos_logical_t *first_child_data = p_original_value->LogicalVector()->data();
+				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
+				EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(indices_count);
+				
+				if (indices_type == EidosValueType::kValueInt)
+				{
+					// integer indices; we can use fast access since we know indices_count != 1
+					const int64_t *int_index_data = p_indices->IntVector()->data();
+					
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = int_index_data[value_idx];
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							logical_result->set_logical_no_check(first_child_data[index_value], value_idx);
+					}
+				}
+				else
+				{
+					// float indices; we use IntAtIndex() since it has complex behavior
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							logical_result->set_logical_no_check(first_child_data[index_value], value_idx);
+					}
+				}
+				
+				result_SP = std::move(logical_result_SP);
+			}
+			else if (original_value_type == EidosValueType::kValueString)
+			{
+				// result type is string; optimize for that
+				const std::vector<std::string> &first_child_vec = *p_original_value->StringVector();
+				EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+				EidosValue_String_vector *string_result = string_result_SP->Reserve(indices_count);
+				
+				if (indices_type == EidosValueType::kValueInt)
+				{
+					// integer indices; we can use fast access since we know indices_count != 1
+					const int64_t *int_index_data = p_indices->IntVector()->data();
+					
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = int_index_data[value_idx];
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							string_result->PushString(first_child_vec[index_value]);
+					}
+				}
+				else
+				{
+					// float indices; we use IntAtIndex() since it has complex behavior
+					for (int value_idx = 0; value_idx < indices_count; value_idx++)
+					{
+						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						
+						if ((index_value < 0) || (index_value >= original_value_count))
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						else
+							string_result->PushString(first_child_vec[index_value]);
+					}
+				}
+				
+				result_SP = std::move(string_result_SP);
+			}
+			else
+			{
+				// This is the general case; it should never be hit
+				// CODE COVERAGE: This is dead code
+				result_SP = p_original_value->NewMatchingType();
+				
+				EidosValue *result = result_SP.get();
+				
+				for (int value_idx = 0; value_idx < indices_count; value_idx++)
+				{
+					int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+					
+					if ((index_value < 0) || (index_value >= original_value_count))
+						EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+					else
+						result->PushValueFromIndexOfEidosValue((int)index_value, *p_original_value, p_error_token);
+				}
+			}
+		}
+	}
+	
+	return result_SP;
+}
 
 
 // ************************************************************************************

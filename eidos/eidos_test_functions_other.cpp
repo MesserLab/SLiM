@@ -919,6 +919,48 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); y = Dictionary(); y.addKeysAndValuesFrom(x); y.setValue('xyzzy', 17); sort(y.allKeys);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "baz", "xyzzy"}));
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); y = Dictionary(); y.addKeysAndValuesFrom(x); y.setValue('baz', NULL); y.allKeys;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar")));
 	
+	// Dictionary(...)
+	// identicalContents()
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); x.identicalContents(y);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'e', c(1.1, 2.2, 3.3)); x.identicalContents(y);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.15, 2.2, 3.3)); x.identicalContents(y);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3, 4.4)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); x.identicalContents(y);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); x.identicalContents(y);", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 100, "be a singleton Dictionary");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "keys be singleton strings");
+	
+	// appendKeysAndValuesFrom()
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = Dictionary('a', 4, 'b', 9:10); x.appendKeysAndValuesFrom(y); x.identicalContents(Dictionary('a', 0:4, 'b', 2:10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = Dictionary('a', 4, 'c', 9:10); x.appendKeysAndValuesFrom(y); x.identicalContents(Dictionary('a', 0:4, 'b', 2:8, 'c', 9:10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = Dictionary('a', 4, 'b', 9.0:10); x.appendKeysAndValuesFrom(y); x.identicalContents(Dictionary('a', 0:4, 'b', 2:10));", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = Dictionary('a', 4, 'b', 9.0:10); x.appendKeysAndValuesFrom(y); x.identicalContents(Dictionary('a', 0:4, 'b', 2.0:10));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = Dictionary('a', 4, 'b', 9:10); x.appendKeysAndValuesFrom(c(y, y)); x.identicalContents(Dictionary('a', c(0:4, 4), 'b', c(2:10, 9:10)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = Dictionary('a', 4, 'c', 9:10); x.appendKeysAndValuesFrom(c(y, y)); x.identicalContents(Dictionary('a', c(0:4, 4), 'b', 2:8, 'c', c(9:10, 9:10)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x = Dictionary('a', 0:3, 'b', 2:8); y = Dictionary('a', 4, 'c', 9:10); x.appendKeysAndValuesFrom(x);", 73, "cannot append a Dictionary to itself");
+	
+	// getRowValues()
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(0); y.identicalContents(Dictionary('a', 0, 'b', 2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(1); y.identicalContents(Dictionary('a', 1, 'b', 3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(4);", 42, "subscript 4 out of range");
+	EidosAssertScriptRaise("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(c(T, F, T, T));", 42, "logical index operand must match");
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(0).identicalContents(Dictionary('a', 0, 'b', 'foo', 'c', T, 'd', 1.1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(1).identicalContents(Dictionary('a', 1, 'b', 'bar', 'c', F, 'd', 2.2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(2).identicalContents(Dictionary('a', 2, 'b', 'baz', 'c', T, 'd', 3.3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(3);", 97, "subscript 3 out of range");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(-1);", 97, "subscript -1 out of range");
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(0:1).identicalContents(Dictionary('a', 0:1, 'b', c('foo', 'bar'), 'c', c(T, F), 'd', c(1.1, 2.2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(1:0).identicalContents(Dictionary('a', 1:0, 'b', c('bar', 'foo'), 'c', c(F, T), 'd', c(2.2, 1.1)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, F, F)).identicalContents(Dictionary('a', integer(0), 'b', string(0), 'c', logical(0), 'd', float(0)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, F, F)).identicalContents(Dictionary('a', 0, 'b', 'foo', 'c', T, 'd', 1.1));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, T, F)).identicalContents(Dictionary('a', 1, 'b', 'bar', 'c', F, 'd', 2.2));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, F, T)).identicalContents(Dictionary('a', 2, 'b', 'baz', 'c', T, 'd', 3.3));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T, F)).identicalContents(Dictionary('a', 0:1, 'b', c('foo', 'bar'), 'c', c(T, F), 'd', c(1.1, 2.2)));", gStaticEidosValue_LogicalT);
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T, F, T));", 97, "logical index operand must match");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T));", 97, "logical index operand must match");
+	
 	// clearKeysAndValues()
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); x.clearKeysAndValues(); x.allKeys;", gStaticEidosValue_String_ZeroVec);
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); x.clearKeysAndValues(); x.setValue('foo', 'baz'); x.allKeys;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));

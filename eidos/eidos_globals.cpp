@@ -2559,12 +2559,15 @@ const std::string &gEidosStr__squareTest = EidosRegisteredString("_squareTest", 
 
 // strings for Dictionary (i.e., for EidosDictionaryUnretained, but also inherited by EidosDictionaryRetained)
 const std::string &gEidosStr_DictionaryBase = EidosRegisteredString("DictionaryBase", gEidosID_DictionaryBase);
-const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidosID_getValue);
-const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
 const std::string &gEidosStr_allKeys = EidosRegisteredString("allKeys", gEidosID_allKeys);
 const std::string &gEidosStr_addKeysAndValuesFrom = EidosRegisteredString("addKeysAndValuesFrom", gEidosID_addKeysAndValuesFrom);
+const std::string &gEidosStr_appendKeysAndValuesFrom = EidosRegisteredString("appendKeysAndValuesFrom", gEidosID_appendKeysAndValuesFrom);
 const std::string &gEidosStr_clearKeysAndValues = EidosRegisteredString("clearKeysAndValues", gEidosID_clearKeysAndValues);
+const std::string &gEidosStr_getRowValues = EidosRegisteredString("getRowValues", gEidosID_getRowValues);
+const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidosID_getValue);
+const std::string &gEidosStr_identicalContents = EidosRegisteredString("identicalContents", gEidosID_identicalContents);
 const std::string &gEidosStr_serialize = EidosRegisteredString("serialize", gEidosID_serialize);
+const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
 
 // strings for Dictionary (i.e., for EidosDictionaryRetained, which is the publicly visible class called "Dictionary" in Eidos)
 const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);

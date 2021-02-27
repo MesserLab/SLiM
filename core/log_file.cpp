@@ -552,6 +552,7 @@ EidosValue_SP LogFile::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 			// overrides from Dictionary
 		case gEidosID_addKeysAndValuesFrom:		return ExecuteMethod_addKeysAndValuesFrom(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_appendKeysAndValuesFrom:	return ExecuteMethod_appendKeysAndValuesFrom(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_clearKeysAndValues:		return ExecuteMethod_clearKeysAndValues(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_setValue:					return ExecuteMethod_setValue(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
@@ -858,16 +859,22 @@ EidosValue_SP LogFile::ExecuteMethod_addKeysAndValuesFrom(EidosGlobalStringID p_
 	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addKeysAndValuesFrom): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
 }
 
+EidosValue_SP LogFile::ExecuteMethod_appendKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_appendKeysAndValuesFrom): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
+}
+
 EidosValue_SP LogFile::ExecuteMethod_clearKeysAndValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addKeysAndValuesFrom): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_clearKeysAndValues): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
 }
 
 EidosValue_SP LogFile::ExecuteMethod_setValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addKeysAndValuesFrom): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_setValue): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
 }
 
 
@@ -924,6 +931,7 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		
 		// overrides of Dictionary methods; these should not be declared again, to avoid a duplicate in the methods table
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, nullptr));
+		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, nullptr));
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
 		//methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAny("value")));
 		

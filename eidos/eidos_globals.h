@@ -863,12 +863,15 @@ extern const std::string &gEidosStr__cubicYolk;
 extern const std::string &gEidosStr__squareTest;
 
 extern const std::string &gEidosStr_DictionaryBase;
-extern const std::string &gEidosStr_getValue;
-extern const std::string &gEidosStr_setValue;
 extern const std::string &gEidosStr_allKeys;
 extern const std::string &gEidosStr_addKeysAndValuesFrom;
+extern const std::string &gEidosStr_appendKeysAndValuesFrom;
 extern const std::string &gEidosStr_clearKeysAndValues;
+extern const std::string &gEidosStr_getRowValues;
+extern const std::string &gEidosStr_getValue;
+extern const std::string &gEidosStr_identicalContents;
 extern const std::string &gEidosStr_serialize;
+extern const std::string &gEidosStr_setValue;
 
 extern const std::string &gEidosStr_Dictionary;
 
@@ -968,12 +971,15 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__squareTest,
 
 	gEidosID_DictionaryBase,
-	gEidosID_getValue,
-	gEidosID_setValue,
 	gEidosID_allKeys,
 	gEidosID_addKeysAndValuesFrom,
+	gEidosID_appendKeysAndValuesFrom,
 	gEidosID_clearKeysAndValues,
+	gEidosID_getRowValues,
+	gEidosID_getValue,
+	gEidosID_identicalContents,
 	gEidosID_serialize,
+	gEidosID_setValue,
 
 	gEidosID_Dictionary,
 

@@ -95,12 +95,44 @@
 \f0\b\fs22 \cf2 5.2  Class Dictionary\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\b0\fs18 \cf2 (object<Dictionary>$)Dictionary(void)\
+\f3\b0\fs18 \cf2 (object<Dictionary>$)Dictionary(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Creates a new empty 
+\f4\fs20 \cf2 Creates a new 
 \f3\fs18 Dictionary
-\f4\fs20  object.\
+\f4\fs20  object.  Called without arguments, as 
+\f3\fs18 Dictionary()
+\f4\fs20 , this creates a new empty 
+\f3\fs18 Dictionary
+\f4\fs20 .\
+Alternatively, key-value pairs can be passed to set up the initial state of the new 
+\f3\fs18 Dictionary
+\f4\fs20 .  These are set, sequentially, on the new 
+\f3\fs18 Dictionary
+\f4\fs20 , just as 
+\f3\fs18 setValue()
+\f4\fs20  would do.  For example, calling 
+\f3\fs18 Dictionary("a", 0:3, "b", c("foo", "bar"))
+\f4\fs20  is equivalent to calling 
+\f3\fs18 Dictionary()
+\f4\fs20  and then calling 
+\f3\fs18 setValue("a", 0:3)
+\f4\fs20  and then 
+\f3\fs18 setValue("b", c("foo", "bar"))
+\f4\fs20  on it; it is just a shorthand for convenience.\
+Another alternative is to call 
+\f3\fs18 Dictionary()
+\f4\fs20  with a singleton 
+\f3\fs18 Dictionary
+\f4\fs20  as its only argument; this creates a new 
+\f3\fs18 Dictionary
+\f4\fs20  that is a copy of the 
+\f3\fs18 Dictionary
+\f4\fs20  passed, containing the same keys and values.  This is equivalent to creating a new empty 
+\f3\fs18 Dictionary
+\f4\fs20  and then calling 
+\f3\fs18 addKeysAndValuesFrom()
+\f4\fs20  to copy key-value pairs over; it is just a shorthand for convenience.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf2 5.2.1  
@@ -130,19 +162,111 @@
 \f3\fs18 Dictionary
 \f4\fs20  or a subclass of 
 \f3\fs18 Dictionary
-\f4\fs20 ) to the receiver.  Note that, as usual in Eidos, sharing semantics are followed; if one of the values contained by 
+\f4\fs20 ) to the receiver.  If the target already contains a key that is defined in 
 \f3\fs18 source
-\f4\fs20  is itself a 
+\f4\fs20 , the target\'92s value for that key will be 
+\f1\i replaced
+\f4\i0  by the value in 
+\f3\fs18 source
+\f4\fs20  (contrast this with 
+\f3\fs18 appendKeysAndValuesFrom()
+\f4\fs20 ).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)appendKeysAndValuesFrom(object\'a0source)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Appends all of the key-value pairs contained by 
+\f3\fs18 source
+\f4\fs20  (which must be a 
 \f3\fs18 Dictionary
-\f4\fs20 , the receiver will then have a reference to the very same 
+\f4\fs20  or a subclass of 
 \f3\fs18 Dictionary
-\f4\fs20 , not a copy of it.\
+\f4\fs20 ) to the receiver.  If the target already contains a key that is defined in source, the value from source will be 
+\f1\i appended
+\f4\i0  to the target\'92s existing value, which must be of the same type (contrast this with 
+\f3\fs18 addKeysAndValuesFrom()
+\f4\fs20 ); if the target does not already contain a key that is defined in source, that key-value pair will simply be added to the target.\
+In the current implementation, it is an error for either of the values involved in an append to be a matrix or array; values in these 
+\f3\fs18 Dictionary
+\f4\fs20  objects should be simple vectors.  This limitation preserves the future option to expand this method\'92s functionality to do smart things with matrices and arrays.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)clearKeysAndValues(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Removes all key-value pairs from the receiver.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Dictionary>$)getRowValues(li\'a0index)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a new 
+\f3\fs18 Dictionary
+\f4\fs20  containing values for selected \'93rows\'94 of the target 
+\f3\fs18 Dictionary
+\f4\fs20 , allowing 
+\f3\fs18 Dictionary
+\f4\fs20  to act similarly to a dataframe (see the 
+\f3\fs18 Dictionary
+\f4\fs20  class documentation for discussion).  From this perspective, the selection logic described below works exactly as the subset operator 
+\f3\fs18 []
+\f4\fs20  does in Eidos, selecting the \'93rows\'94 of the target 
+\f3\fs18 Dictionary
+\f4\fs20 .\
+The 
+\f3\fs18 index
+\f4\fs20  parameter may be either 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 logical
+\f4\fs20 ; we will discuss the 
+\f3\fs18 integer
+\f4\fs20  case first.  If 
+\f3\fs18 index
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20 , the returned 
+\f3\fs18 Dictionary
+\f4\fs20  will contain the 
+\f3\fs18 index
+\f4\fs20 \'92th element of the value of each key of the target, under the same keys; this is a single \'93row\'94 of the target 
+\f3\fs18 Dictionary
+\f4\fs20 .  If 
+\f3\fs18 index
+\f4\fs20  is a non-singleton 
+\f3\fs18 integer
+\f4\fs20  vector, the returned 
+\f3\fs18 Dictionary
+\f4\fs20  will contain the values for all of the selected rows, in the order that they are selected by 
+\f3\fs18 index
+\f4\fs20 .  If any index value in 
+\f3\fs18 index
+\f4\fs20  is out of range for any key of the target 
+\f3\fs18 Dictionary
+\f4\fs20  (such that that key does not have an 
+\f3\fs18 index
+\f4\fs20 \'92th value), an error will result.\
+If 
+\f3\fs18 index
+\f4\fs20  is 
+\f3\fs18 logical
+\f4\fs20 , the target 
+\f3\fs18 Dictionary
+\f4\fs20  must not be \'93ragged\'94 (the length of the values for all of its keys must be equal), and the length of 
+\f3\fs18 index
+\f4\fs20  must be equal to the number of \'93rows\'94 in the target.  In this case, the 
+\f3\fs18 T
+\f4\fs20  values in 
+\f3\fs18 index
+\f4\fs20  select the \'93rows\'94 which will be included in the returned 
+\f3\fs18 Dictionary
+\f4\fs20 .  The values of each column in the returned 
+\f3\fs18 Dictionary
+\f4\fs20  will be in the same order as in the target.\
+In the current implementation, it is an error for any value in the target 
+\f3\fs18 Dictionary
+\f4\fs20  to be a matrix or array; values in the target should be simple vectors.  This limitation preserves the future option to expand this method\'92s functionality to do smart things with matrices and arrays.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(*)getValue(string$\'a0key)\
@@ -155,6 +279,35 @@
 \f4\fs20 , or 
 \f3\fs18 NULL
 \f4\fs20  if no value has been set.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(logical$)identicalContents(object$\'a0x)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns 
+\f3\fs18 T
+\f4\fs20  if the target 
+\f3\fs18 Dictionary
+\f4\fs20  is equal to 
+\f3\fs18 x
+\f4\fs20  in all respects \'96 containing the same keys, with values that are identical in the sense defined by the 
+\f3\fs18 identical()
+\f4\fs20  function in Eidos \'96 or returns 
+\f3\fs18 F
+\f4\fs20  otherwise.\
+Note that if 
+\f3\fs18 Dictionary
+\f4\fs20  objects are contained, as values, by the dictionaries being tested for equality, they will be compared according to the standards of 
+\f3\fs18 identical()
+\f4\fs20 , and must therefore actually be the 
+\f1\i same
+\f4\i0  
+\f3\fs18 Dictionary
+\f4\fs20  object, shared by both dictionaries, for 
+\f3\fs18 isEqual()
+\f4\fs20  to return 
+\f3\fs18 T
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(string$)serialize(void)\

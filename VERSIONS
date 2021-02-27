@@ -45,6 +45,9 @@ development head:
 	fix bug causing output from nested events/callbacks/functions to be emitted in the wrong (non-chronological) order in some cases
 	add a debugIndent() function to Eidos, providing the current indentation string for use in producing error output that matches the indentation of debug points
 	add recipe 16.21, "Dynamic population structure in nonWF models"
+	extend Dictionary with getRowValues() and appendKeysAndValuesFrom() methods to enable dataframe-like usage patterns with it
+	extend Dictionary() constructor to allow it to be passed key-value pairs to set, or a Dictionary to copy
+	extend Dictionary with an identicalContents() method to test for equality of Dictionary objects (containing the identical keys and values)
 
 
 version 3.5 (build 2663; Eidos version 2.5):
