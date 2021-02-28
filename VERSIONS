@@ -19,6 +19,7 @@ development head:
 	enable multiple selection in the Find Recipe panel
 	revise recipes to avoid outputFull() when it takes a long time (Qt is slow processing big output dumps)
 	add a [permanent=T] optional flag to treeSeqRememberIndividuals() to allow for individuals to be "retained" rather than "remembered", thanks to Yan Wong
+	add [retainCoalescentOnly=T] flag for initializeTreeSeq() to modify simplification to keep more retained nodes than it otherwise would
 	add a generationStage property to SLiMSim to access the current generation cycle stage
 	improve command-line processing – add -h/-help option, accept -- prefix
 	add a precision property to LogFile to govern the floating-point precision of its output (for other types of output, format() can often be used to get a specific output precision)

@@ -11401,7 +11401,12 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const std::vector<EidosValue_SP> &p_a
 	auto signature_iter = function_map.find(function_name);
 	
 	if (signature_iter == function_map.end())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unrecognized function name " << function_name << " in function doCall()." << EidosTerminate(nullptr);
+	{
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_doCall): unrecognized function name " << function_name << " in function doCall().";
+		if (p_interpreter.Context() == nullptr)
+			EIDOS_TERMINATION << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";
+		EIDOS_TERMINATION << EidosTerminate(nullptr);
+	}
 	
 	const EidosFunctionSignature *function_signature = signature_iter->second.get();
 	
@@ -11685,7 +11690,12 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosVal
 	}
 	
 	if (function_name_specified && !signature_found)
-		output_stream << "No function signature found for \"" << match_string << "\"." << std::endl;
+	{
+		output_stream << "No function signature found for \"" << match_string << "\".";
+		if (p_interpreter.Context() == nullptr)
+			output_stream << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";
+		output_stream << std::endl;
+	}
 	
 	return gStaticEidosValueVOID;
 }
@@ -11726,7 +11736,10 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 		return gStaticEidosValueVOID;
 	}
 	
-	output_stream << "No function found for \"" << match_string << "\"." << std::endl;
+	output_stream << "No function found for \"" << match_string << "\".";
+	if (p_interpreter.Context() == nullptr)
+		output_stream << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";
+	output_stream << std::endl;
 	
 	return gStaticEidosValueVOID;
 }

@@ -1439,7 +1439,12 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			auto signature_iter = function_map_.find(*function_name);
 			
 			if (signature_iter == function_map_.end())
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << "." << EidosTerminate(call_identifier_token);
+			{
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << ".";
+				if (Context() == nullptr)
+					EIDOS_TERMINATION << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";
+				EIDOS_TERMINATION << EidosTerminate(call_identifier_token);
+			}
 			
 			function_signature = signature_iter->second.get();
 		}
