@@ -1073,6 +1073,18 @@ void QtSLiMTextEdit::insertCompletion(const QString& completionOriginal)
         tc.setPosition(completionRange.location, QTextCursor::MoveAnchor);
         tc.setPosition(endPosition, QTextCursor::KeepAnchor);
         
+        // If the character after the completion range is '(', suppress trailing parentheses on the completion
+        QTextCursor afterCompletion(tc);
+        afterCompletion.setPosition(afterCompletion.position(), QTextCursor::MoveAnchor);
+        afterCompletion.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+        
+        if (afterCompletion.selectedText() == '(')
+        {
+            if (completion.endsWith("()"))
+                completion.chop(2);
+        }
+        
+        // Replace the completion range with the completion string
         tc.insertText(completion);
         
         // If the completion is multiline, put the insertion point inside the braces of the completion
