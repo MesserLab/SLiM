@@ -202,6 +202,7 @@ void QtSLiMTextEdit::highlightError(int startPosition, int endPosition)
     highlight_cursor.setPosition(startPosition);
     highlight_cursor.setPosition(endPosition, QTextCursor::KeepAnchor);
     setTextCursor(highlight_cursor);
+    centerCursor();
     
     setPalette(qtslimErrorPalette());
     
@@ -2395,11 +2396,18 @@ bool LineNumberArea::event(QEvent *p_event)
 
 QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(const QString &text, QWidget *p_parent) : QtSLiMTextEdit(text, p_parent)
 {
-    initializeLineNumbers();
+    sharedInit();
 }
 
 QtSLiMScriptTextEdit::QtSLiMScriptTextEdit(QWidget *p_parent) : QtSLiMTextEdit(p_parent)
 {
+    sharedInit();
+}
+
+void QtSLiMScriptTextEdit::sharedInit(void)
+{
+    setCenterOnScroll(true);
+    
     initializeLineNumbers();
 }
 

@@ -205,6 +205,7 @@ public:
     int lineNumberAreaWidth(void);
 
 protected:
+    void sharedInit(void);
     void initializeLineNumbers(void);
     virtual void resizeEvent(QResizeEvent *p_event) override;
 
