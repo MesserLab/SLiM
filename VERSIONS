@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+version 3.6 (build 2784; Eidos version 2.6):
 	update to JSON for Modern C++ version 3.9.1
 	add metadata= parameter to treeSeqOutput(), to support user-generated metadata on the tree sequence
 	make ampersands show up in the Jump menu properly in SLiMgui
@@ -49,7 +52,6 @@ development head:
 	extend Dictionary with getRowValues() and appendKeysAndValuesFrom() methods to enable dataframe-like usage patterns with it
 	extend Dictionary() constructor to allow it to be passed key-value pairs to set, or a Dictionary to copy
 	extend Dictionary with an identicalContents() method to test for equality of Dictionary objects (containing the identical keys and values)
-
 
 version 3.5 (build 2663; Eidos version 2.5):
 	added build instructions for Windows WSL, thanks to Bernard Kim (no code change)
