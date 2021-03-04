@@ -47,6 +47,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <limits>	// BCH added 3 March 2021, omitted but needed on Fedora 34
 #if __cplusplus >= 201703L
 #    include <string_view>
 #endif
