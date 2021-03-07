@@ -2,6 +2,15 @@
 	<img alt="Screenshot of SLiMgui running on OS X." height="45%" width="45%" src="https://messerlab.files.wordpress.com/2016/02/slimgui_screenshot.jpg?w=600"/>
 </p>
 
+
+
+<p align="center">
+	:dna: SLiM: Selection on Linked Mutations :dna:
+</p>
+<p align="center">
+	SLiM is an evolutionary simulation framework that combines a powerful engine for population genetic simulations with the capability of modeling arbitrarily complex evolutionary scenarios. Simulations are configured via the integrated Eidos scripting language that allows interactive control over practically every aspect of the simulated evolutionary scenarios. The underlying individual-based simulation engine is highly optimized to enable modeling of entire chromosomes in large populations. We also provide a graphical user interface on macOS and Linux for easy simulation set-up, interactive runtime control, and dynamical visualization of simulation output.
+</p>
+
 GitHub Actions | Travis CI | Fedora Copr
 ---|---|---
 ![SLiM on GitHub Actions:](https://github.com/MesserLab/SLiM/workflows/tests/badge.svg) |![SLiM on Travis-CI:](https://travis-ci.com/MesserLab/SLiM.svg?branch=master) | [![Copr build status](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/)
@@ -13,7 +22,7 @@ GitHub Actions | Travis CI | Fedora Copr
 :heavy_check_mark: The <strong><em>release</em></strong> version of SLiM and SLiMgui are available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
 
 
-License
+:copyright: License
 ----------
 
 Copyright (c) 2016-2020 Philipp Messer.  All rights reserved.
@@ -24,17 +33,20 @@ SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY
 
 You should have received a copy of the GNU General Public License along with SLiM.  If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
 
-Development & Feedback
+:speaking_head: Development & Feedback
 -----------------------------------
 
 SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Philipp Messer at [messer@cornell.edu](mailto:messer@cornell.edu). Please note that Philipp is also looking for graduate students and postdocs.
 
-Compilation of SLiM from source
+:floppy_disk: Compilation of SLiM from source
 ----------------------------------
 
 See the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM stuff can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
 
-If you are unable to install SLiM on your system using an installer, available from [http://messerlab.org/slim/](http://messerlab.org/slim/), the [Copr repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/), the [SLiM-Extras repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh), or the [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/), you should download the <strong>release</strong> sources from [http://messerlab.org/slim/](http://messerlab.org/slim/) and follow the instructions in the [SLiM Manual](http://benhaller.com/slim/SLiM_Manual.pdf).
+:eyes: <em>Looking for Binary Packages (Installers)?</em>
+OS X | Red Hat Enterprise, CentOS, and Fedora | Debian and Ubuntu | Arch
+---|---|---|---
+[http://messerlab.org/slim/](http://messerlab.org/slim/) | [Copr Repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh) | [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/)
 
 If you are interested in <strong>testing</strong> the development version of SLiM, you can expand the information below to see how to compile the development head version of SLiM.
 
