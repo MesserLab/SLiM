@@ -1,15 +1,17 @@
+<p align="center">
+	<img alt="Screenshot of SLiMgui running on OS X." height="45%" width="45%" src="https://messerlab.files.wordpress.com/2016/02/slimgui_screenshot.jpg?w=600"/>
+</p>
+
 **SLiM on GitHub:** ![SLiM on GitHub Actions:](https://github.com/MesserLab/SLiM/workflows/tests/badge.svg)
 
 **SLiM on Travis-CI:** ![SLiM on Travis-CI:](https://travis-ci.com/MesserLab/SLiM.svg?branch=master)
 
 **SLiM on COPR:** [![Copr build status](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/)
 
----------------------------------------------------------------------------------------------
-PLEASE NOTE THAT THE GITHUB VERSION OF SLiM IS PRERELEASE SOFTWARE THAT IS UNDER ACTIVE DEVELOPMENT!
----------------------------------------------------------------------------------------------
-It is strongly recommended that all end users of SLiM use the current release version, available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
----------------------------------------------------------------------------------------------
- 
+This GitHub repository hosts the <em>upstream, development head version</em> of SLiM and SLiMgui and should <strong>not</strong> be used by end users.
+
+The <strong><em>release</em></strong> version of SLiM and SLiMgui are available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+
 
 License
 ----------
@@ -22,15 +24,22 @@ SLiM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY
 
 You should have received a copy of the GNU General Public License along with SLiM.  If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
 
-
 Development & Feedback
 -----------------------------------
+
 SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Philipp Messer at [messer@cornell.edu](mailto:messer@cornell.edu). Please note that Philipp is also looking for graduate students and postdocs.
 
-
-Installation from source
+Compilation of SLiM from source
 ----------------------------------
 
+See the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM stuff can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+
+If you are unable to install SLiM on your system using an installer, available from [http://messerlab.org/slim/](http://messerlab.org/slim/), the [Copr repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/), the [SLiM-Extras repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh), or the [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/), you should download the <strong>release</strong> sources from [http://messerlab.org/slim/](http://messerlab.org/slim/) and follow the instructions in the [SLiM Manual](http://benhaller.com/slim/SLiM_Manual.pdf).
+
+If you are interested in <strong>testing</strong> the development version of SLiM, you can expand the information below to see how to compile the development head version of SLiM.
+
+<details>
+	<summary><em>Compiling the Development Version from GitHub Sources</em></summary><p></p>
 We use CMake, with an out-of-source build, as described here:
 
 https://gitlab.kitware.com/cmake/community/wikis/FAQ#out-of-source-build-trees
@@ -64,5 +73,4 @@ To build a debug version of the code (i.e., optimization turned off, debugging s
 	make
 
 This could be done in a separate build directory to retain both versions of the build.
-
-See the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM stuff can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+</details>
