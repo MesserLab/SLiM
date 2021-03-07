@@ -2,15 +2,15 @@
 	<img alt="Screenshot of SLiMgui running on OS X." height="45%" width="45%" src="https://messerlab.files.wordpress.com/2016/02/slimgui_screenshot.jpg?w=600"/>
 </p>
 
-**SLiM on GitHub:** ![SLiM on GitHub Actions:](https://github.com/MesserLab/SLiM/workflows/tests/badge.svg)
+GitHub Actions | Travis CI | Fedora Copr
+---|---|---
+![SLiM on GitHub Actions:](https://github.com/MesserLab/SLiM/workflows/tests/badge.svg) |![SLiM on Travis-CI:](https://travis-ci.com/MesserLab/SLiM.svg?branch=master) | [![Copr build status](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/)
 
-**SLiM on Travis-CI:** ![SLiM on Travis-CI:](https://travis-ci.com/MesserLab/SLiM.svg?branch=master)
+:construction: This GitHub repository hosts the <em>upstream, development head version</em> of SLiM and SLiMgui.
 
-**SLiM on COPR:** [![Copr build status](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/package/SLiM/)
+:warning: End-users should <strong>not</strong> use these sources.
 
-This GitHub repository hosts the <em>upstream, development head version</em> of SLiM and SLiMgui and should <strong>not</strong> be used by end users.
-
-The <strong><em>release</em></strong> version of SLiM and SLiMgui are available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+:heavy_check_mark: The <strong><em>release</em></strong> version of SLiM and SLiMgui are available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
 
 
 License
