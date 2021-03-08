@@ -41,9 +41,9 @@ SLiM is under active development, and our goal is to make it as broadly useful a
 Installation
 ------------
 <em>Looking for Binary Packages (Installers)?</em>
-OS X | Red Hat Enterprise, CentOS, and Fedora | Debian and Ubuntu | Arch
----|---|---|---
-[http://messerlab.org/slim/](http://messerlab.org/slim/) | [Copr Repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh) | [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/)
+OS X | Red Hat Enterprise, CentOS, and Fedora | Debian and Ubuntu | Arch | Windows 10 (WSL & GSL)
+---|---|---|---|---
+[http://messerlab.org/slim/](http://messerlab.org/slim/) | [Copr Repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh) | [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/) | In Testing
 
 
 Compilation of SLiM from source
