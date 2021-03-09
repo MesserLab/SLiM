@@ -17,9 +17,9 @@ GitHub Actions | Travis CI | Fedora Copr
 
 :construction: This GitHub repository hosts the <em>upstream, development head version</em> of SLiM and SLiMgui.
 
-:warning: End-users should <strong>not</strong> use these sources.
+:warning: <strong>End users should generally not use these sources; they may contain serious bugs, or may not even compile</strong>.
 
-:heavy_check_mark: The <strong><em>release</em></strong> version of SLiM and SLiMgui are available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+:heavy_check_mark: The <strong><em>release</em></strong> version of SLiM and SLiMgui is available at [http://messerlab.org/slim/](http://messerlab.org/slim/).
 
 
 License
@@ -40,13 +40,13 @@ SLiM is under active development, and our goal is to make it as broadly useful a
 
 Installation
 ------------
-<em>Looking for Binary Packages (Installers)?</em>
-OS X | Red Hat Enterprise, CentOS, and Fedora | Debian and Ubuntu | Arch | Windows 10 (WSL & GSL)
+<em>Looking for Binary Packages / Installers?</em>
+OS X | Red Hat Enterprise, CentOS, and Fedora | Debian and Ubuntu | Arch | Windows 10 (WSL & GWSL)
 ---|---|---|---|---
-[http://messerlab.org/slim/](http://messerlab.org/slim/) | [Copr Repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh) | [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/) | In Testing
+[http://messerlab.org/slim/](http://messerlab.org/slim/) | [Copr Repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh) | [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/Windows10Installation.md)
 
 
 Compilation of SLiM from source
 ----------------------------------
 
-See chapter two of the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM stuff can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+See chapter two of the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM resources can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
