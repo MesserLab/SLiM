@@ -7923,23 +7923,6 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 	tsk_population_table_t &pop_table = tables_.populations;
 	tsk_size_t pop_count = pop_table.num_rows;
 	
-	// do a quick sanity check that the number of non-empty rows equals the expected subpopulation count, in WF models
-	if (model_type_ == SLiMModelType::kModelTypeWF)
-	{
-		tsk_size_t nonempty_count = 0;
-		
-		for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
-		{
-			size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
-			
-			if (metadata_length > 0)
-				++nonempty_count;
-		}
-		
-		if ((size_t)nonempty_count != population_.subpops_.size())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): subpopulation count mismatch; this file cannot be read." << EidosTerminate();
-	}
-	
 	for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
 	{
 		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
@@ -7962,10 +7945,10 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		
 		if (!subpop)
 		{
-			// in a WF model it is an error to have an referenced subpop that is empty
-			if (model_type_ == SLiMModelType::kModelTypeWF)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): referenced subpopulation is empty; this file cannot be read." << EidosTerminate();
-			
+ 			// in a WF model it is an error to have an referenced subpop that is empty, so skip this subpop
+            if (model_type_ == SLiMModelType::kModelTypeWF)	
+                continue;
+
 			// If a nonWF model an empty subpop is legal, so create it without recording
 			recording_tree_ = false;
 			subpop = population_.AddSubpopulation(subpop_id, 0, 0.5);
