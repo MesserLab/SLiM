@@ -8,6 +8,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+	change to allow .trees files to contain unreferenced empty subpops, to allow ancestral use of subpops that are now empty (see #168)
 
 
 version 3.6 (build 2784; Eidos version 2.6):
