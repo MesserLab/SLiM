@@ -10,6 +10,7 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head:
 	change to allow .trees files to contain unreferenced empty subpops, to allow ancestral use of subpops that are now empty (see #168)
 	disallow reuse of subpopulation ids if they have gone into the tree-sequence tables, to prevent collisions
+	change so that entries for unused subpops are not modified in population tables loaded from a tree sequence (PR #172)
 
 
 version 3.6 (build 2784; Eidos version 2.6):

@@ -6395,16 +6395,19 @@ void SLiMSim::FixAliveIndividuals(tsk_table_collection_t *p_tables)
 
 void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 {
-	// This overwrites whatever might be previously in the population table
-	tsk_population_table_clear(&p_tables->populations);
-	
-	// we will write out empty entries for all unused slots, up to largest_subpop_id_
-	// this is because tskit doesn't like unused slots; slot indices must correspond to subpop ids
-	slim_objectid_t last_subpop_id = -1; // population_.largest_subpop_id_;
-	
+	int ret;
+	tsk_id_t tsk_population_id;
+	tsk_population_table_t *population_table_copy;
+	population_table_copy = (tsk_population_table_t *)malloc(sizeof(tsk_population_table_t));
+	ret = tsk_population_table_copy(&p_tables->populations, population_table_copy, 0);
+	if (ret != 0) handle_error("WritePopulationTable tsk_population_table_copy()", ret);
+	ret = tsk_population_table_clear(&p_tables->populations);
+	if (ret != 0) handle_error("WritePopulationTable tsk_population_table_clear()", ret);
+
+	slim_objectid_t last_subpop_id = population_table_copy->num_rows - 1;
 	for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
 		last_subpop_id = std::max(last_subpop_id, p_tables->nodes.population[j]);
-	
+
 	// write out an entry for each subpop
 	slim_objectid_t last_id_written = -1;
 	
@@ -6416,9 +6419,23 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 		// first, write out empty entries for unused subpop ids before this one
 		while (last_id_written < subpop_id - 1)
 		{
-			tsk_id_t tsk_population = tsk_population_table_add_row(&p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
-			if (tsk_population < 0) handle_error("tsk_population_table_add_row", tsk_population);
 			last_id_written++;
+			if (last_id_written < (slim_objectid_t) population_table_copy->num_rows) {
+				tsk_population_t tsk_population_object;
+				ret = tsk_population_table_get_row(population_table_copy, last_id_written, &tsk_population_object);
+				if (ret != 0) handle_error("WritePopulationTable tsk_population_table_get_row()", ret);
+				tsk_population_id = tsk_population_table_add_row(
+						&p_tables->populations,
+						tsk_population_object.metadata,
+						tsk_population_object.metadata_length);
+				if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+			} else {
+				tsk_population_id = tsk_population_table_add_row(
+						&p_tables->populations,
+						NULL, 0);
+				if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+			}
+			assert(tsk_population_id == last_id_written);
 		}
 		
 		// now we're at the slot for this subpopulation, so construct it and write it out
@@ -6449,22 +6466,37 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 			migration_index++;
 		}
 		
-		tsk_id_t tsk_population = tsk_population_table_add_row(&p_tables->populations, (char *)metadata_rec, (uint32_t)metadata_length);
+		tsk_population_id = tsk_population_table_add_row(&p_tables->populations, (char *)metadata_rec, (uint32_t)metadata_length);
 		last_id_written++;
+		assert(tsk_population_id == last_id_written);
 		
 		free(metadata_rec);
 		
-		if (tsk_population < 0) handle_error("tsk_population_table_add_row", tsk_population);
+		if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 	}
 	
 	// finally, write out empty entries for the rest of the table; empty entries are needed
 	// up to largest_subpop_id_ because there could be ancestral nodes that reference them
-	while (last_id_written < last_subpop_id)
+	while (last_id_written < (slim_objectid_t) last_subpop_id)
 	{
-		tsk_id_t tsk_population = tsk_population_table_add_row(&p_tables->populations, (char *)&last_subpop_id, (uint32_t)0);	// the address is unused
-		if (tsk_population < 0) handle_error("tsk_population_table_add_row", tsk_population);
 		last_id_written++;
+		if (last_id_written < (slim_objectid_t) population_table_copy->num_rows) {
+			tsk_population_t tsk_population_object;
+			tsk_population_table_get_row(population_table_copy, last_id_written, &tsk_population_object);
+			if (ret != 0) handle_error("WritePopulationTable  tsk_population_table_get_row()", ret);
+			tsk_population_id = tsk_population_table_add_row(&p_tables->populations, tsk_population_object.metadata, tsk_population_object.metadata_length);
+			if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+		} else {
+			tsk_population_id = tsk_population_table_add_row(
+					&p_tables->populations,
+					NULL, 0);
+			if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+		}
+		assert(tsk_population_id == last_id_written);
 	}
+	ret = tsk_population_table_free(population_table_copy);
+	if (ret != 0) handle_error("tsk_population_table_free", ret);
+	free(population_table_copy);
 }
 
 void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict)
