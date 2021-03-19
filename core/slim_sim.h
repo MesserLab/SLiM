@@ -655,6 +655,7 @@ public:
 	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
 	
+	bool SubpopulationIDInUse(slim_objectid_t p_subpop_id);
 	void RecordTablePosition(void);
 	void AllocateTreeSequenceTables(void);
 	void SetCurrentNewIndividual(Individual *p_individual);

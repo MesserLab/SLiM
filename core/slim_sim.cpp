@@ -5235,6 +5235,20 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	last_coalescence_state_ = fully_coalesced;
 }
 
+bool SLiMSim::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
+{
+	// First check our own data structures
+	if (population_.subpops_.count(p_subpop_id) != 0)
+		return true;
+	
+	// Then check the tree-sequence population table, if there is one; we assume that every valid index is "in use"
+	if (RecordingTreeSequence())
+		if (p_subpop_id < (int)tables_.populations.num_rows)
+			return true;
+	
+	return false;
+}
+
 void SLiMSim::RecordTablePosition(void)
 {
 	// keep the current table position for rewinding if a proposed child is rejected
