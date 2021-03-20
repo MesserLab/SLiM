@@ -529,7 +529,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			}
 			
 			if ((file_version != 1) && (file_version != 2) && (file_version != 3))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): unrecognized version." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): unrecognized version (" << file_version << "." << EidosTerminate();
 			
 			continue;
 		}
@@ -1021,7 +1021,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		}
 		
 		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3) && (version_tag != 5) && (version_tag != 6))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unrecognized version." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unrecognized version (" << version_tag << ")." << EidosTerminate();
 		
 		file_version = version_tag;
 	}
