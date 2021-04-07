@@ -336,6 +336,8 @@ void QtSLiMChromosomeWidget::paintGL()
     painter.eraseRect(rect());      // erase to background color, which is not guaranteed
     //painter.fillRect(rect(), Qt::red);
     
+    painter.setPen(Qt::black);      // make sure we have our default color of black, since Qt apparently does not guarantee that
+    
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     bool ready = isEnabled() && !controller->invalidSimulation();
     QRect contentRect = getContentRect();
@@ -384,6 +386,9 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 	QRect interiorRect = getInteriorRect();
 	int64_t lastTickIndex = numberOfTicksPlusOne;
 	
+    painter.save();
+    painter.setPen(inDarkMode ? Qt::white : Qt::black);
+    
 	// Display fewer ticks when we are displaying a very small number of positions
 	lastTickIndex = std::min(lastTickIndex, (displayedRange.length + 1) / 3);
 	
@@ -445,6 +450,8 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
         
         painter.drawText(QRect(tickLabelX, tickLabelY, 0, 0), textFlags, tickLabel);
 	}
+    
+    painter.restore();
 }
 
 void QtSLiMChromosomeWidget::glDrawRect(void)

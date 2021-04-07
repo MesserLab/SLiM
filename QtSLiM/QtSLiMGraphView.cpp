@@ -687,6 +687,9 @@ void QtSLiMGraphView::drawLegendInInteriorRect(QPainter &painter, QRect interior
 
 void QtSLiMGraphView::drawContents(QPainter &painter)
 {
+    // Set to a default color of black; I thought Qt did this for me, but apparently not
+    painter.setPen(Qt::black);
+    
     // Erase background
     QRect bounds = rect();
     
