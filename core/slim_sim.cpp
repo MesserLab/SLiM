@@ -7780,7 +7780,9 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		subpop_info.nodes_.push_back(individual.nodes[0]);
 		subpop_info.nodes_.push_back(individual.nodes[1]);
 		
-		// save off the pedigree ID, which we will use again
+		// bounds-check and save off the pedigree ID, which we will use again
+		if (metadata->pedigree_id_ < 0)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have pedigree IDs >= 0." << EidosTerminate();
 		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
 		
 		// save off the flags for later use
@@ -7862,6 +7864,10 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 
 void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap)
 {
+	// We will keep track of all pedigree IDs used, and check at the end that they do not collide; faster than checking as we go
+	// This could be done with a hash table, but I imagine that would be slower until the number of individuals becomes very large
+	std::vector<slim_pedigreeid_t> pedigree_id_check;
+	
 	gSLiM_next_pedigree_id = 0;
 	
 	for (auto subpop_info_iter : p_subpopInfoMap)
@@ -7926,6 +7932,7 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
 				individual->SetPedigreeID(pedigree_id);
+				pedigree_id_check.push_back(pedigree_id);	// we will test for collisions below
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 				
 				uint32_t flags = subpop_info.flags_[tabulation_index];
@@ -7962,6 +7969,13 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 			}
 		}
 	}
+	
+	// Check for pedigree ID collisions by sorting and looking for duplicates
+	std::sort(pedigree_id_check.begin(), pedigree_id_check.end());
+	const auto duplicate = std::adjacent_find(pedigree_id_check.begin(), pedigree_id_check.end());
+	
+	if (duplicate != pedigree_id_check.end())
+		EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): the pedigree ID value " << *duplicate << " was used more than once; pedigree IDs must be unique." << EidosTerminate();
 }
 
 void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter)
