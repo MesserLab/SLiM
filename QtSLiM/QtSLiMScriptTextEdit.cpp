@@ -1114,7 +1114,7 @@ void QtSLiMTextEdit::autoindentAfterNewline(void)
         {
             QTextCursor previousLine = tc;
             previousLine.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor);
-            previousLine.movePosition(QTextCursor::StartOfLine, QTextCursor::KeepAnchor);
+            previousLine.movePosition(QTextCursor::StartOfBlock, QTextCursor::KeepAnchor);
             
             QString lineString = previousLine.selectedText();
             QString whitespace;

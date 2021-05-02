@@ -493,8 +493,8 @@ void QtSLiMEidosConsole::executeSelectionClicked(void)
     if (selectionCursor.selectionStart() == selectionCursor.selectionEnd())
     {
         // zero-length selections get extended to encompass the full line
-        selectionCursor.movePosition(QTextCursor::StartOfLine, QTextCursor::MoveAnchor);
-        selectionCursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+        selectionCursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
+        selectionCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
     }
     
     QString selection = selectionCursor.selectedText();
