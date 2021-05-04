@@ -133,6 +133,33 @@ Another alternative is to call
 \f4\fs20  and then calling 
 \f3\fs18 addKeysAndValuesFrom()
 \f4\fs20  to copy key-value pairs over; it is just a shorthand for convenience.\
+A final alternative is to call 
+\f3\fs18 Dictionary()
+\f4\fs20  with a singleton 
+\f3\fs18 string
+\f4\fs20  as its only argument; this creates a new 
+\f3\fs18 Dictionary
+\f4\fs20  from the string, assuming that it is a data archive in JSON format.  Note that a JSON string can be generated from the 
+\f3\fs18 serialize()
+\f4\fs20  method of 
+\f3\fs18 Dictionary
+\f4\fs20 ; together with this way of creating a 
+\f3\fs18 Dictionary
+\f4\fs20 , this provides the ability to persist arbitrary information to a string (perhaps a file on disk) and back again.  The recreated 
+\f3\fs18 Dictionary
+\f4\fs20  should be identical to the original, except that zero length vectors such as 
+\f3\fs18 integer(0)
+\f4\fs20 , 
+\f3\fs18 float(0)
+\f4\fs20 , 
+\f3\fs18 logical(0)
+\f4\fs20 , and 
+\f3\fs18 string(0)
+\f4\fs20  will all be serialized as 
+\f3\fs18 "[]"
+\f4\fs20  and recreated as 
+\f3\fs18 integer(0)
+\f4\fs20  since JSON does not provide a way to specify the type of a zero-length array.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf2 5.2.1  
@@ -310,12 +337,21 @@ Note that if
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(string$)serialize(void)\
+\f3\fs18 \cf2 \'96\'a0(string$)serialize([string$\'a0format\'a0=\'a0"slim"])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a serialized form of the dictionary\'92s contents as a singleton 
 \f3\fs18 string
-\f4\fs20 .  For a simple dictionary containing only keys with singleton non-object values, this will be a semicolon-delimited string like 
+\f4\fs20 .  Two formats are supported at present, as chosen with the 
+\f3\fs18 format
+\f4\fs20  parameter: 
+\f3\fs18 "slim"
+\f4\fs20  and 
+\f3\fs18 "json"
+\f4\fs20 .\
+The default 
+\f3\fs18 "slim"
+\f4\fs20  format is intended for simple, informal use where a very easily parseable string is desired.  For a simple dictionary containing only keys with singleton non-object values, this will be a semicolon-delimited string like 
 \f3\fs18 "key1=value1;key2=value2;"
 \f4\fs20 .  Values of type 
 \f3\fs18 string
@@ -332,12 +368,35 @@ Note that if
 \f4\fs20 , and 
 \f3\fs18 \\n
 \f4\fs20 .  Values that are not singleton will be separated by spaces, such as 
-\f3\fs18 \'93key1=1 2 3;"
+\f3\fs18 "key1=1 2 3;"
 \f4\fs20 , while values that are themselves dictionaries will be delimited by braces, such as 
-\f3\fs18 \'93key1=\{key1=value1;key2=value2;\};"
+\f3\fs18 "key1=\{key1=value1;key2=value2;\};"
 \f4\fs20 .  Keys, since they are also of type 
 \f3\fs18 string
 \f4\fs20 , will be quoted and backslash-escaped if necessary, but simple keys that do not require that treatment will be serialized without quotes for simplicity.\
+The 
+\f3\fs18 "json"
+\f4\fs20  format, introduced in Eidos 2.6.1 (SLiM 3.6.1), provides serialization of the 
+\f3\fs18 Dictionary
+\f4\fs20  into the standard JSON format, which may not be quite as brief or human-readable, but which can be used as a standard interchange format and read by many other programs.  For example, a 
+\f3\fs18 Dictionary
+\f4\fs20  with a key 
+\f3\fs18 "key1"
+\f4\fs20  with 
+\f3\fs18 integer
+\f4\fs20  value 
+\f3\fs18 1:3
+\f4\fs20  and key 
+\f3\fs18 "key2"
+\f4\fs20  with 
+\f3\fs18 string
+\f4\fs20  value 
+\f3\fs18 "value2"
+\f4\fs20  would produce the JSON serialization 
+\f3\fs18 '\{"key1":[1,2,3],"key2":["value2"]\}'
+\f4\fs20 , where the outer single quotes are not part of the serialization itself, but are indicating that the serialization is a 
+\f3\fs18 string
+\f4\fs20  value.  Note that since all Eidos values are vectors, even singleton values are serialized into JSON as arrays by Eidos; the hope is that this will make automated parsing of these JSON strings easier, since the singleton case will not have to be special-cased.  Documentation on the JSON format can be found online.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, *\'a0value)\

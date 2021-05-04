@@ -945,7 +945,7 @@ void EidosValue_NULL::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream
 
 nlohmann::json EidosValue_NULL::JSONRepresentation(void) const
 {
-	nlohmann::json json_object;
+	nlohmann::json json_object;		// this will come out as a JSON "null"
 	
 	return json_object;
 }
@@ -1046,11 +1046,11 @@ void EidosValue_Logical::PrintValueAtIndex(const int p_idx, std::ostream &p_ostr
 
 nlohmann::json EidosValue_Logical::JSONRepresentation(void) const
 {
-	nlohmann::json json_object;
+	nlohmann::json json_object = nlohmann::json::array();	// always write as an array, for consistency; makes automated parsing easier
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
-		json_object.push_back(values_[i]);
+		json_object.push_back(values_[i] ? true : false);
 	
 	return json_object;
 }
@@ -1264,7 +1264,7 @@ void EidosValue_String::PrintValueAtIndex(const int p_idx, std::ostream &p_ostre
 
 nlohmann::json EidosValue_String::JSONRepresentation(void) const
 {
-	nlohmann::json json_object;
+	nlohmann::json json_object = nlohmann::json::array();	// always write as an array, for consistency; makes automated parsing easier
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
@@ -1502,7 +1502,7 @@ void EidosValue_Int::PrintValueAtIndex(const int p_idx, std::ostream &p_ostream)
 
 nlohmann::json EidosValue_Int::JSONRepresentation(void) const
 {
-	nlohmann::json json_object;
+	nlohmann::json json_object = nlohmann::json::array();	// always write as an array, for consistency; makes automated parsing easier
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
@@ -1804,7 +1804,7 @@ void EidosValue_Float::PrintValueAtIndex(const int p_idx, std::ostream &p_ostrea
 
 nlohmann::json EidosValue_Float::JSONRepresentation(void) const
 {
-	nlohmann::json json_object;
+	nlohmann::json json_object = nlohmann::json::array();	// always write as an array, for consistency; makes automated parsing easier
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
@@ -2271,7 +2271,7 @@ void EidosValue_Object::PrintValueAtIndex(const int p_idx, std::ostream &p_ostre
 
 nlohmann::json EidosValue_Object::JSONRepresentation(void) const
 {
-	nlohmann::json json_object;
+	nlohmann::json json_object = nlohmann::json::array();	// always write as an array, for consistency; makes automated parsing easier
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)

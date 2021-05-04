@@ -929,7 +929,7 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); x.identicalContents(y);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", gStaticEidosValue_LogicalT);
 	EidosAssertScriptRaise("Dictionary(5);", 0, "be a singleton Dictionary");
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 100, "be a singleton Dictionary");
+	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(c(y,y));", 100, "be a singleton");
 	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4)); Dictionary(y, y);", 100, "keys be singleton strings");
 	
 	// appendKeysAndValuesFrom()
@@ -970,6 +970,44 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); x.serialize();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo=1 2 3;")));
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar=\"baz\";foo=1 2 3;")));
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); y.setValue('a', 1.5); y.setValue('b', T); x.setValue('xyzzy', y); x.serialize();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo=1 2 3;xyzzy={a=1.5;b=T;};")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.serialize('slim');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('slim');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo=1 2 3;")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('slim');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("bar=\"baz\";foo=1 2 3;")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); y.setValue('a', 1.5); y.setValue('b', T); x.setValue('xyzzy', y); x.serialize('slim');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo=1 2 3;xyzzy={a=1.5;b=T;};")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"foo\":[1,2,3]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"bar\":[\"baz\"],\"foo\":[1,2,3]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); y.setValue('a', 1.5); y.setValue('b', T); x.setValue('xyzzy', y); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"foo\":[1,2,3],\"xyzzy\":[{\"a\":[1.5],\"b\":[true]}]}")));
+	EidosAssertScriptRaise("x = Dictionary(); x.serialize('foo');", 20, "does not recognize the format");
+	
+	// serialize(format='json') exact tests
+	EidosAssertScriptSuccess("x = Dictionary(); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', logical(0)); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[]}")));	// indistinguishable
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', T); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[true]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', F); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[false]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', c(T,F,T,F)); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[true,false,true,false]}")));
+	
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', integer(0)); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[]}")));	// indistinguishable
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', -5); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[-5]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', 5); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[5]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', c(-5,5,10,-172)); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[-5,5,10,-172]}")));
+	
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', float(0)); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[]}")));	// indistinguishable
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', -5.0); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[-5.0]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', 5.7); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[5.7]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', c(-5.0,5.7,10,-172)); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[-5.0,5.7,10.0,-172.0]}")));
+	
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', string(0)); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[]}")));	// indistinguishable
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', \"foo\"); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[\"foo\"]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', \"foo\'\\\"bar\"); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[\"foo\'\\\"bar\"]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', c('foo','bar',\"foo\'\\\"bar\")); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[\"foo\",\"bar\",\"foo\'\\\"bar\"]}")));
+	
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', Dictionary()); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[{}]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', c(Dictionary(),Dictionary())); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[{},{}]}")));
+	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', c(Dictionary('x',1:3),Dictionary(),Dictionary('y','foo','z',1.73))); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[{\"x\":[1,2,3]},{},{\"y\":[\"foo\"],\"z\":[1.73]}]}")));
+	
+	// Dictionary(x="JSON_string")
+	EidosAssertScriptSuccess("a = Dictionary(); a.setValue('logical_empty', logical(0)); a.setValue('logical_T', T); a.setValue('logical_F', F); a.setValue('logical_vector', c(T, F, T, F)); a.setValue('int_empty', integer(0)); a.setValue('int_singleton', 1); a.setValue('int_vector', 1:3); a.setValue('float_empty', float(0)); a.setValue('float_singleton', 1.0); a.setValue('float_vector', 1.0:3); a.setValue('string_empty', string(0)); a.setValue('string_singleton', 'foo'); a.setValue('string_vector', c('foo', 'bar', 'baz')); sa_json = a.serialize('json'); b = Dictionary(sa_json); sb_json = b.serialize('json'); identical(sa_json,sb_json);", gStaticEidosValue_LogicalT);
 	
 	// Test EidosImage properties and methods – but how?  If it were possible to construct an Image from a matrix, and then save that Image out to disk, I guess that would provide an avenue for testing...  FIXME
 }

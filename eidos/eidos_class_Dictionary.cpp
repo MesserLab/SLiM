@@ -96,7 +96,7 @@ std::string EidosDictionaryUnretained::Serialization(void) const
 
 nlohmann::json EidosDictionaryUnretained::JSONRepresentation(void) const
 {
-	nlohmann::json json_object;
+	nlohmann::json json_object = nlohmann::json::object();
 	
 	// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 	EidosValue_SP all_keys = AllKeys();
@@ -193,6 +193,166 @@ void EidosDictionaryUnretained::AddKeysAndValuesFrom(EidosDictionaryUnretained *
 			
 			// always copy values here; unlike setValue(), we know the value is in use elsewhere
 			(*hash_symbols_)[key] = value->CopyValues();
+		}
+	}
+}
+
+void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
+{
+	// null at the top level indicates an empty dictionary, so we just return
+	if (!json.is_null())
+	{
+		// otherwise, we require the top level to be a JSON "object" - a key-value dictionary
+		if (json.is_object())
+		{
+			// iterate over the key-value pairs in the "object"
+			for (auto &element : json.items())
+			{
+				std::string key = element.key();
+				auto &value = element.value();
+				
+				//std::cout << element.key() << " : " << element.value() << std::endl;
+				
+				if (!hash_symbols_)
+					hash_symbols_ = new EidosDictionaryHashTable;
+				
+				// decode the value and assign it to the key
+				if (value.is_null())
+				{
+					EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+					(*hash_symbols_)[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+				}
+				else if (value.is_boolean())
+				{
+					bool boolean_value = value;
+					(*hash_symbols_)[key] = (boolean_value ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				}
+				else if (value.is_number_integer() || value.is_number_unsigned())
+				{
+					int64_t int_value = value;
+					(*hash_symbols_)[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int_value));
+				}
+				else if (value.is_number_float())
+				{
+					double float_value = value;
+					(*hash_symbols_)[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float_value));
+				}
+				else if (value.is_object())
+				{
+					EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+					dictionary->AddJSONFrom(value);
+					(*hash_symbols_)[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+				}
+				else if (value.is_array())
+				{
+					size_t array_count = value.size();
+					
+					if (array_count == 0)
+					{
+						// We don't what type the empty vector is; we assume integer
+						// This means that empty vectors don't persist accurately through JSON; I see no solution
+						(*hash_symbols_)[key] = gStaticEidosValue_Integer_ZeroVec;
+					}
+					else
+					{
+						// figure out the type of element 0; we fold unsigned and integer together, and we fold null and object together
+						nlohmann::json::value_t array_type = value[0].type();
+						if (array_type == nlohmann::json::value_t::number_unsigned)
+							array_type = nlohmann::json::value_t::number_integer;
+						if (array_type == nlohmann::json::value_t::null)
+							array_type = nlohmann::json::value_t::object;
+						
+						// confirm that all elements in the array have the same type, since Eidos vectors are on a single type
+						for (size_t element_index = 0; element_index < array_count; ++element_index)
+						{
+							nlohmann::json::value_t element_type = value[element_index].type();
+							if (element_type == nlohmann::json::value_t::number_unsigned)
+								element_type = nlohmann::json::value_t::number_integer;
+							if (element_type == nlohmann::json::value_t::null)
+								element_type = nlohmann::json::value_t::object;
+							
+							if (element_type != array_type)
+								EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): AddJSONFrom() requires that JSON arrays be of a single type, since Eidos vectors are of a single type." << EidosTerminate(nullptr);
+						}
+						
+						// ok, all elements are of a single type, so let's create a vector of that type from the values in the array
+						if (array_type == nlohmann::json::value_t::number_integer)
+						{
+							EidosValue_Int_vector *int_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(array_count);
+							
+							for (size_t element_index = 0; element_index < array_count; ++element_index)
+							{
+								int64_t int_element = value[element_index];
+								int_value->set_int_no_check(int_element, element_index);
+							}
+							
+							(*hash_symbols_)[key] = EidosValue_SP(int_value);
+						}
+						else if (array_type == nlohmann::json::value_t::number_float)
+						{
+							EidosValue_Float_vector *float_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(array_count);
+							
+							for (size_t element_index = 0; element_index < array_count; ++element_index)
+							{
+								double float_element = value[element_index];
+								float_value->set_float_no_check(float_element, element_index);
+							}
+							
+							(*hash_symbols_)[key] = EidosValue_SP(float_value);
+						}
+						else if (array_type == nlohmann::json::value_t::boolean)
+						{
+							EidosValue_Logical *logical_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(array_count);
+							
+							for (size_t element_index = 0; element_index < array_count; ++element_index)
+							{
+								bool boolean_element = value[element_index];
+								logical_value->set_logical_no_check(boolean_element, element_index);
+							}
+							
+							(*hash_symbols_)[key] = EidosValue_SP(logical_value);
+						}
+						else if (array_type == nlohmann::json::value_t::string)
+						{
+							EidosValue_String_vector *string_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)array_count);
+							
+							for (size_t element_index = 0; element_index < array_count; ++element_index)
+							{
+								const std::string &string_element = value[element_index];
+								string_value->PushString(string_element);
+							}
+							
+							(*hash_symbols_)[key] = EidosValue_SP(string_value);
+						}
+						else if (array_type == nlohmann::json::value_t::object)
+						{
+							EidosValue_Object_vector *object_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosDictionaryRetained_Class);
+							
+							for (size_t element_index = 0; element_index < array_count; ++element_index)
+							{
+								EidosDictionaryRetained *element_dictionary = new EidosDictionaryRetained();
+								if (value[element_index].type() == nlohmann::json::value_t::object)
+									element_dictionary->AddJSONFrom(value[element_index]);
+								object_value->push_object_element_NORR(element_dictionary);
+							}
+							
+							(*hash_symbols_)[key] = EidosValue_SP(object_value);
+						}
+						else
+						{
+							EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): unsupported array value type \"" << value[0].type_name() << "\" in AddJSONFrom()." << EidosTerminate(nullptr);
+						}
+					}
+				}
+				else
+				{
+					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): unsupported value type \"" << value.type_name() << "\" in AddJSONFrom()." << EidosTerminate(nullptr);
+				}
+			}
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): AddJSONFrom() can only parse JSON strings that represent a JSON 'object'; i.e., a dictionary of key-value pairs." << EidosTerminate(nullptr);
 		}
 	}
 }
@@ -487,12 +647,29 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (string$)serialize(void)
+//	*********************	- (string$)serialize([string$ format = "slim"])
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Serialization()));
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue_String *string_value = (EidosValue_String *)p_arguments[0].get();
+	const std::string &format_name = string_value->StringRefAtIndex(0, nullptr);
+	
+	if (format_name == "slim")
+	{
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Serialization()));
+	}
+	else if (format_name == "json")
+	{
+		nlohmann::json json_rep = JSONRepresentation();
+		std::string json_string = json_rep.dump();
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(json_string));
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_serialize): serialize() does not recognize the format \"" << format_name << "\"; it should be \"slim\" or \"json\"." << EidosTerminate(nullptr);
+	}
 }
 
 
@@ -536,7 +713,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getRowValues, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt, "index", nullptr));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddString_S("key"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_identicalContents, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_S("x", nullptr));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString | kEidosValueMaskSingleton)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("slim"))));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -593,12 +770,28 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(__attribute__((un
 	{
 		// Copy an existing dictionary
 		EidosValue *source_value = p_arguments[0].get();
-		EidosDictionaryUnretained *source = ((source_value->Count() != 1) || (source_value->Type() != EidosValueType::kValueObject)) ? nullptr : dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
 		
-		if (!source)
-			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosDictionaryRetained): Dictionary(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary)." << EidosTerminate(nullptr);
+		if (source_value->Count() != 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosDictionaryRetained): Dictionary(x) requires that x be a singleton (Dictionary, Dictionary subclass, or JSON string)." << EidosTerminate(nullptr);
 		
-		objectElement->AddKeysAndValuesFrom(source);
+		if (source_value->Type() == EidosValueType::kValueString)
+		{
+			// Construct from a JSON string
+			std::string json_string = source_value->StringAtIndex(0, nullptr);
+			nlohmann::json json_rep = nlohmann::json::parse(json_string);
+			
+			objectElement->AddJSONFrom(json_rep);
+		}
+		else
+		{
+			// Construct from a Dictionary or Dictionary subclass
+			EidosDictionaryUnretained *source = (source_value->Type() != EidosValueType::kValueObject) ? nullptr : dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
+		
+			if (!source)
+				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosDictionaryRetained): Dictionary(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary)." << EidosTerminate(nullptr);
+		
+			objectElement->AddKeysAndValuesFrom(source);
+		}
 	}
 	else
 	{

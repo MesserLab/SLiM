@@ -81,6 +81,7 @@ public:
 	void SetKeyValue(const std::string &key, EidosValue_SP value);
 	
 	void AddKeysAndValuesFrom(EidosDictionaryUnretained *p_source);
+	void AddJSONFrom(nlohmann::json &json);
 	
 	
 	//
