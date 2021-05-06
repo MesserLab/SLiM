@@ -2821,18 +2821,6 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f3\fs20 , use 
 \f1\fs18 (match(x, table) >= 0)
 \f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f1\fs18 \cf0 (integer)nchar(string
-\f2 \'a0
-\f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f3\fs20 \cf0 Returns a vector of the 
-\f0\b number of characters
-\f3\b0  in the string-elements of 
-\f1\fs18 x
-\f2\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (integer)order(+\'a0x, [logical$
@@ -3112,79 +3100,6 @@ This is quite similar to a function in R of the same name; note, however, that E
 \f3\fs20 , the output is instead sent to the Eidos error stream.  When running at the command line, this sends it to 
 \f1\fs18 stderr
 \f3\fs20 ; when running in SLiMgui, the output is routed to the simulation\'92s debugging output window.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f1\fs18 \cf0 (string)strsplit(string$
-\f2 \'a0
-\f1 x, [string$
-\f2 \'a0
-\f1 sep
-\f2 \'a0
-\f1 =\'a0" "])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f3\fs20 \cf0 Returns 
-\f0\b substrings
-\f3\b0  of 
-\f1\fs18 x
-\f3\fs20  that were separated by the separator string 
-\f1\fs18 sep
-\f3\fs20 .  Every substring defined by an occurrence of the separator is included, and thus zero-length substrings may be returned.  For example, 
-\f1\fs18 strsplit(".foo..bar.", ".")
-\f3\fs20  returns a string vector containing 
-\f1\fs18 ""
-\f3\fs20 , 
-\f1\fs18 "foo"
-\f3\fs20 , 
-\f1\fs18 ""
-\f3\fs20 , 
-\f1\fs18 "bar"
-\f3\fs20 , 
-\f1\fs18 ""
-\f3\fs20 .  In that example, the empty string between 
-\f1\fs18 "foo"
-\f3\fs20  and 
-\f1\fs18 "bar"
-\f3\fs20  in the returned vector is present because there were two periods between 
-\f1\fs18 foo
-\f3\fs20  and 
-\f1\fs18 bar
-\f3\fs20  in the input string \'96 the empty string is the substring between those two separators.  Note that 
-\f1\fs18 paste()
-\f3\fs20  performs the inverse operation of 
-\f1\fs18 strsplit()
-\f2\fs20 .\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f1\fs18 \cf0 (string)substr(string\'a0x, integer\'a0first, [Ni\'a0last\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f3\fs20 \cf0 Returns 
-\f0\b substrings
-\f3\b0  extracted from the elements of 
-\f1\fs18 x,
-\f3\fs20  spanning character position 
-\f1\fs18 first
-\f3\fs20  to character position 
-\f1\fs18 last
-\f3\fs20  (inclusive).  Character positions are numbered from 
-\f1\fs18 0
-\f3\fs20  to 
-\f1\fs18 nchar(x)-1
-\f3\fs20 .  Positions that fall outside of that range are legal; a substring range that encompasses no characters will produce an empty string.  If 
-\f1\fs18 first
-\f3\fs20  is greater than 
-\f1\fs18 last
-\f3\fs20 , an empty string will also result.  If 
-\f1\fs18 last
-\f3\fs20  is NULL (the default), then the substring will extend to the end of the string.  The parameters 
-\f1\fs18 first
-\f3\fs20  and 
-\f1\fs18 last
-\f3\fs20  may either be singletons, specifying a single value to be used for all of the substrings, or they may be vectors of the same length as 
-\f1\fs18 x
-\f3\fs20 , specifying a value for each substring.
-\f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (integer)tabulate(integer\'a0bin, [Ni$\'a0maxbin\'a0=\'a0NULL])\
@@ -3624,7 +3539,92 @@ Note that the semantics of this function differ slightly from the
 \f2\fs20 .\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.7.  Matrix and array functions\
+\f0\b\fs22 \cf0 3.7.  String manipulation functions\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\b0\fs18 \cf2 (integer)nchar(string\'a0x)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of the 
+\f0\b number of characters
+\f3\b0  in the string-elements of 
+\f1\fs18 x
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (string)strsplit(string$\'a0x, [string$\'a0sep\'a0=\'a0" "])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns 
+\f0\b substrings
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20  that were separated by the separator string 
+\f1\fs18 sep
+\f3\fs20 .  Every substring defined by an occurrence of the separator is included, and thus zero-length substrings may be returned.  For example, 
+\f1\fs18 strsplit(".foo..bar.", ".")
+\f3\fs20  returns a string vector containing 
+\f1\fs18 ""
+\f3\fs20 , 
+\f1\fs18 "foo"
+\f3\fs20 , 
+\f1\fs18 ""
+\f3\fs20 , 
+\f1\fs18 "bar"
+\f3\fs20 , 
+\f1\fs18 ""
+\f3\fs20 .  In that example, the empty string between 
+\f1\fs18 "foo"
+\f3\fs20  and 
+\f1\fs18 "bar"
+\f3\fs20  in the returned vector is present because there were two periods between 
+\f1\fs18 foo
+\f3\fs20  and 
+\f1\fs18 bar
+\f3\fs20  in the input string \'96 the empty string is the substring between those two separators.  If 
+\f1\fs18 sep
+\f3\fs20  is 
+\f1\fs18 ""
+\f3\fs20 , a vector of single characters will be returned, resulting from splitting 
+\f1\fs18 x
+\f3\fs20  at every position.  Note that 
+\f1\fs18 paste()
+\f3\fs20  performs the inverse operation of 
+\f1\fs18 strsplit()
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (string)substr(string\'a0x, integer\'a0first, [Ni\'a0last\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns 
+\f0\b substrings
+\f3\b0  extracted from the elements of 
+\f1\fs18 x,
+\f3\fs20  spanning character position 
+\f1\fs18 first
+\f3\fs20  to character position 
+\f1\fs18 last
+\f3\fs20  (inclusive).  Character positions are numbered from 
+\f1\fs18 0
+\f3\fs20  to 
+\f1\fs18 nchar(x)-1
+\f3\fs20 .  Positions that fall outside of that range are legal; a substring range that encompasses no characters will produce an empty string.  If 
+\f1\fs18 first
+\f3\fs20  is greater than 
+\f1\fs18 last
+\f3\fs20 , an empty string will also result.  If 
+\f1\fs18 last
+\f3\fs20  is NULL (the default), then the substring will extend to the end of the string.  The parameters 
+\f1\fs18 first
+\f3\fs20  and 
+\f1\fs18 last
+\f3\fs20  may either be singletons, specifying a single value to be used for all of the substrings, or they may be vectors of the same length as 
+\f1\fs18 x
+\f3\fs20 , specifying a value for each substring.\
+\pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 3.8.  Matrix and array functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (*)apply(*\'a0x, integer\'a0margin, string$\'a0lambdaSource)\
@@ -4091,7 +4091,7 @@ Returns the transpose
 \f3\fs20 , which must be a matrix.  This is the matrix reflected across its diagonal; or alternatively, the matrix with its columns written out instead as rows in the same order.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.8.  Filesystem access functions\
+\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.9.  Filesystem access functions\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (logical$)createDirectory(string$\'a0path)
@@ -4403,7 +4403,7 @@ If
 \f2\fs20 .\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 3.9.  Color manipulation functions\
+\f0\b\fs22 \cf0 3.10.  Color manipulation functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -4662,10 +4662,10 @@ This function can also be called with a matrix of RGB values, with three columns
 \
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.10.  Miscellaneous functions\
+\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.11.  Miscellaneous functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf2 (void)assert(logical assertions, [Ns$\'a0message\'a0=\'a0NULL])\
+\f1\b0\fs18 \cf2 (void)assert(logical\'a0assertions, [Ns$\'a0message\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Assert that a condition or conditions are true
