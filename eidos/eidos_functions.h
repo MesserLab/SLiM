@@ -251,6 +251,7 @@ EidosValue_SP Eidos_ExecuteFunction_terrainColors(const std::vector<EidosValue_S
 #pragma mark -
 
 //	miscellaneous functions
+EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_beep(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_citation(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_clock(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

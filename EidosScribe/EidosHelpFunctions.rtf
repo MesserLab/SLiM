@@ -4665,7 +4665,22 @@ This function can also be called with a matrix of RGB values, with three columns
 \f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.10.  Miscellaneous functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\b0\fs18 \cf0 (void)beep([Ns$\'a0soundName\'a0=\'a0NULL])\
+\f1\b0\fs18 \cf2 (void)assert(logical assertions, [Ns$\'a0message\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Assert that a condition or conditions are true
+\f3\b0 .  If any element of 
+\f1\fs18 assertions
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20 , execution will be stopped.  A message, \'93assertion failed\'94, will be printed before stopping; if 
+\f1\fs18 message
+\f3\fs20  is not 
+\f1\fs18 NULL
+\f3\fs20 ; its value will then be printed.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (void)beep([Ns$\'a0soundName\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Plays a sound or beeps.

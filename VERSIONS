@@ -13,6 +13,7 @@ development head:
 	change so that entries for unused subpops are not modified in population tables loaded from a tree sequence (PR #172)
 	add a [format='slim'] parameter to Dictionary.serialize(), adding support for JSON serialization with the 'json' format specifier (note the JSON serialization format changed slightly due to bug fixes)
 	add a Dictionary(string$ jsonString) constructor for creating a Dictionary from a JSON serialization
+	add an assert() function to easily assert that a condition is true
 
 
 version 3.6 (build 2784; Eidos version 2.6):

@@ -647,6 +647,16 @@ void _RunFunctionMiscTests_apply_sapply(void)
 
 void _RunFunctionMiscTests(std::string temp_path)
 {
+	// assert()
+	EidosAssertScriptRaise("assert();", 0, "missing required argument assertions");
+	EidosAssertScriptSuccess("assert(T);", gStaticEidosValueVOID);
+	EidosAssertScriptRaise("assert(F);", 0, "assertion failed");
+	EidosAssertScriptSuccess("assert(c(T, T, T, T, T));", gStaticEidosValueVOID);
+	EidosAssertScriptRaise("assert(c(F, F, F, T, F));", 0, "assertion failed");
+	EidosAssertScriptRaise("assert(c(F, F, F, F, F));", 0, "assertion failed");
+	EidosAssertScriptSuccess("assert(T, 'foo bar!');", gStaticEidosValueVOID);
+	EidosAssertScriptRaise("assert(F, 'foo bar!');", 0, "foo bar!");
+
 	// beep() – this is commented out by default since it would confuse people if the Eidos self-test beeped...
 	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);
 	//EidosAssertScriptSuccess("beep('Submarine');", gStaticEidosValueNULL);

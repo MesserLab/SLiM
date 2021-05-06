@@ -309,6 +309,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	miscellaneous functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("assert",				Eidos_ExecuteFunction_assert,			kEidosValueMaskVOID))->AddLogical("assertions")->AddString_OSN("message", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_apply,		Eidos_ExecuteFunction_apply,		kEidosValueMaskAny))->AddAny("x")->AddInt("margin")->AddString_S("lambdaSource"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_sapply,	Eidos_ExecuteFunction_sapply,		kEidosValueMaskAny))->AddAny("x")->AddString_S("lambdaSource")->AddString_OS("simplify", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("vector"))));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("beep",				Eidos_ExecuteFunction_beep,			kEidosValueMaskVOID))->AddString_OSN("soundName", gStaticEidosValueNULL));
@@ -11219,6 +11220,45 @@ EidosValue_SP Eidos_ExecuteFunction_terrainColors(const std::vector<EidosValue_S
 #pragma mark Miscellaneous functions
 #pragma mark -
 
+
+//	(void)assert(logical assertions, [Ns$ message = NULL])
+EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	EidosValue *assertions_value = p_arguments[0].get();
+	
+	// determine whether the assertions vector is all true
+	int assertions_count = assertions_value->Count();
+	const eidos_logical_t *logical_data = assertions_value->LogicalVector()->data();
+	bool any_false = false;
+	
+	for (int assertions_index = 0; assertions_index < assertions_count; ++assertions_index)
+		if (!logical_data[assertions_index])
+		{
+			any_false = true;
+			break;
+		}
+	
+	// stop with a message if an assertion is false
+	if (any_false)
+	{
+		EidosValue *message_value = p_arguments[1].get();
+		
+		if (message_value->Type() != EidosValueType::kValueNULL)
+		{
+			std::string &&stop_string = message_value->StringAtIndex(0, nullptr);
+			
+			p_interpreter.ErrorOutputStream() << stop_string << std::endl;
+			
+			EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_assert): assertion failed: " + stop_string + ".") << EidosTerminate(nullptr);
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_assert): assertion failed." << EidosTerminate(nullptr);
+		}
+	}
+	
+	return gStaticEidosValueVOID;
+}
 
 //	(void)beep([Ns$ soundName = NULL])
 EidosValue_SP Eidos_ExecuteFunction_beep(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
