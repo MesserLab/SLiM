@@ -9308,7 +9308,7 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_ar
 }
 
 //	(logical)strcontains(string x, string$ s, [i$ pos = 0])
-EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9355,7 +9355,7 @@ EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP>
 }
 
 //	(integer)strfind(string x, string$ s, [i$ pos = 0])
-EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9398,7 +9398,7 @@ EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_
 }
 
 //	(logical)strprefix(string x, string$ s)
-EidosValue_SP Eidos_ExecuteFunction_strprefix(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_strprefix(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -9486,7 +9486,7 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const std::vector<EidosValue_SP> &p
 }
 
 //	(logical)strsuffix(string x, string$ s)
-EidosValue_SP Eidos_ExecuteFunction_strsuffix(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_strsuffix(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
