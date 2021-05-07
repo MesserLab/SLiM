@@ -15,6 +15,7 @@ development head:
 	add a Dictionary(string$ jsonString) constructor for creating a Dictionary from a JSON serialization
 	add an assert() function to easily assert that a condition is true
 	add string manipulation functions: strcontains(), strfind(), strprefix(), strsuffix() for string substring searching
+	add graph menu items to the Simulation menu in QtSLiM, as used to exist in the old SLiMgui; left out accidentally
 
 
 version 3.6 (build 2784; Eidos version 2.6):

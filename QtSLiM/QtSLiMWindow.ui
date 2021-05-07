@@ -1403,6 +1403,31 @@ QSlider::handle:horizontal:disabled {
     <property name="title">
      <string>Simulation</string>
     </property>
+    <widget class="QMenu" name="menuGraph">
+     <property name="title">
+      <string>Show Graph</string>
+     </property>
+     <addaction name="actionGraph_1D_Population_SFS"/>
+     <addaction name="actionGraph_1D_Sample_SFS"/>
+     <addaction name="separator"/>
+     <addaction name="actionGraph_2D_Population_SFS"/>
+     <addaction name="actionGraph_2D_Sample_SFS"/>
+     <addaction name="separator"/>
+     <addaction name="actionGraph_Mutation_Frequency_Trajectories"/>
+     <addaction name="actionGraph_Mutation_Loss_Time_Histogram"/>
+     <addaction name="actionGraph_Mutation_Fixation_Time_Histogram"/>
+     <addaction name="separator"/>
+     <addaction name="actionGraph_Population_Fitness_Distribution"/>
+     <addaction name="actionGraph_Subpopulation_Fitness_Distributions"/>
+     <addaction name="actionGraph_Fitness_Time"/>
+     <addaction name="separator"/>
+     <addaction name="actionGraph_Age_Distribution"/>
+     <addaction name="actionGraph_Lifetime_Reproduce_Output"/>
+     <addaction name="actionGraph_Population_Size_Time"/>
+     <addaction name="actionGraph_Population_Visualization"/>
+     <addaction name="separator"/>
+     <addaction name="actionCreate_Haplotype_Plot"/>
+    </widget>
     <addaction name="actionStep"/>
     <addaction name="actionPlay"/>
     <addaction name="actionProfile"/>
@@ -1410,6 +1435,7 @@ QSlider::handle:horizontal:disabled {
     <addaction name="separator"/>
     <addaction name="actionChangeWorkingDirectory"/>
     <addaction name="separator"/>
+    <addaction name="menuGraph"/>
     <addaction name="actionDumpPopulationState"/>
    </widget>
    <widget class="QMenu" name="menuScript">
@@ -1896,6 +1922,81 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+K</string>
+   </property>
+  </action>
+  <action name="actionGraph_1D_Population_SFS">
+   <property name="text">
+    <string>Graph 1D Population SFS</string>
+   </property>
+  </action>
+  <action name="actionGraph_1D_Sample_SFS">
+   <property name="text">
+    <string>Graph 1D Sample SFS</string>
+   </property>
+  </action>
+  <action name="actionGraph_2D_Population_SFS">
+   <property name="text">
+    <string>Graph 2D Population SFS</string>
+   </property>
+  </action>
+  <action name="actionGraph_2D_Sample_SFS">
+   <property name="text">
+    <string>Graph 2D Sample SFS</string>
+   </property>
+  </action>
+  <action name="actionGraph_Mutation_Frequency_Trajectories">
+   <property name="text">
+    <string>Graph Mutation Frequency Trajectories</string>
+   </property>
+  </action>
+  <action name="actionGraph_Mutation_Loss_Time_Histogram">
+   <property name="text">
+    <string>Graph Mutation Loss Time Histogram</string>
+   </property>
+  </action>
+  <action name="actionGraph_Mutation_Fixation_Time_Histogram">
+   <property name="text">
+    <string>Graph Mutation Fixation Time Histogram</string>
+   </property>
+  </action>
+  <action name="actionGraph_Population_Fitness_Distribution">
+   <property name="text">
+    <string>Graph Population Fitness Distribution</string>
+   </property>
+  </action>
+  <action name="actionGraph_Subpopulation_Fitness_Distributions">
+   <property name="text">
+    <string>Graph Subpopulation Fitness Distributions</string>
+   </property>
+  </action>
+  <action name="actionGraph_Fitness_Time">
+   <property name="text">
+    <string>Graph Fitness ~ Time</string>
+   </property>
+  </action>
+  <action name="actionGraph_Age_Distribution">
+   <property name="text">
+    <string>Graph Age Distribution</string>
+   </property>
+  </action>
+  <action name="actionGraph_Lifetime_Reproduce_Output">
+   <property name="text">
+    <string>Graph Lifetime Reproduce Output</string>
+   </property>
+  </action>
+  <action name="actionGraph_Population_Size_Time">
+   <property name="text">
+    <string>Graph Population Size ~ Time</string>
+   </property>
+  </action>
+  <action name="actionGraph_Population_Visualization">
+   <property name="text">
+    <string>Graph Population Visualization</string>
+   </property>
+  </action>
+  <action name="actionCreate_Haplotype_Plot">
+   <property name="text">
+    <string>Create Haplotype Plot</string>
    </property>
   </action>
  </widget>

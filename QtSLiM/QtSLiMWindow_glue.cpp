@@ -162,6 +162,22 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionMinimize, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_minimize);
     connect(ui->actionZoom, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_zoom);
     
+    connect(ui->actionGraph_1D_Population_SFS, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_1D_Sample_SFS, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_2D_Population_SFS, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_2D_Sample_SFS, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Mutation_Frequency_Trajectories, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Mutation_Loss_Time_Histogram, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Mutation_Fixation_Time_Histogram, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Population_Fitness_Distribution, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Subpopulation_Fitness_Distributions, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Fitness_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Age_Distribution, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Lifetime_Reproduce_Output, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionGraph_Population_Visualization, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+	connect(ui->actionCreate_Haplotype_Plot, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
     connect(ui->actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
     connect(ui->actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);

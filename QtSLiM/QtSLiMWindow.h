@@ -252,6 +252,7 @@ public slots:
     void debugOutputClicked(void);
     void graphPopupButtonRunMenu(void);
     void changeDirectoryClicked(void);
+    void displayGraphClicked(void);
 
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
     

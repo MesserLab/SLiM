@@ -1795,6 +1795,27 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionDumpPopulationState->setEnabled(!invalidSimulation_);
     ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
     
+    // see QtSLiMWindow::graphPopupButtonRunMenu() for parallel code involving the graph popup button
+    bool graphItemsEnabled = !invalidSimulation_;
+    bool haplotypePlotEnabled = !invalidSimulation_ && !continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size();
+    
+    //ui->menuGraph->setEnabled(graphItemsEnabled);
+    ui->actionGraph_1D_Population_SFS->setEnabled(graphItemsEnabled);
+	ui->actionGraph_1D_Sample_SFS->setEnabled(graphItemsEnabled);
+	ui->actionGraph_2D_Population_SFS->setEnabled(graphItemsEnabled);
+	ui->actionGraph_2D_Sample_SFS->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Mutation_Frequency_Trajectories->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Mutation_Loss_Time_Histogram->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Mutation_Fixation_Time_Histogram->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Population_Fitness_Distribution->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Subpopulation_Fitness_Distributions->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Fitness_Time->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Age_Distribution->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Lifetime_Reproduce_Output->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Population_Size_Time->setEnabled(graphItemsEnabled);
+	ui->actionGraph_Population_Visualization->setEnabled(graphItemsEnabled);
+	ui->actionCreate_Haplotype_Plot->setEnabled(haplotypePlotEnabled);
+    
     updateMenuEnablingSHARED(p_focusWidget);
 }
 
@@ -1833,6 +1854,23 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *f
     ui->actionClearDebug->setEnabled(false);
     ui->actionDumpPopulationState->setEnabled(false);
     ui->actionChangeWorkingDirectory->setEnabled(false);
+    
+    //ui->menuGraph->setEnabled(false);
+    ui->actionGraph_1D_Population_SFS->setEnabled(false);
+	ui->actionGraph_1D_Sample_SFS->setEnabled(false);
+	ui->actionGraph_2D_Population_SFS->setEnabled(false);
+	ui->actionGraph_2D_Sample_SFS->setEnabled(false);
+	ui->actionGraph_Mutation_Frequency_Trajectories->setEnabled(false);
+	ui->actionGraph_Mutation_Loss_Time_Histogram->setEnabled(false);
+	ui->actionGraph_Mutation_Fixation_Time_Histogram->setEnabled(false);
+	ui->actionGraph_Population_Fitness_Distribution->setEnabled(false);
+	ui->actionGraph_Subpopulation_Fitness_Distributions->setEnabled(false);
+	ui->actionGraph_Fitness_Time->setEnabled(false);
+	ui->actionGraph_Age_Distribution->setEnabled(false);
+	ui->actionGraph_Lifetime_Reproduce_Output->setEnabled(false);
+	ui->actionGraph_Population_Size_Time->setEnabled(false);
+	ui->actionGraph_Population_Visualization->setEnabled(false);
+	ui->actionCreate_Haplotype_Plot->setEnabled(false);
     
     // we can show our various windows as long as we can reach the controller window
     QtSLiMWindow *slimWindow = qtSLiMAppDelegate->dispatchQtSLiMWindowFromSecondaries();
@@ -3993,6 +4031,72 @@ void QtSLiMWindow::dumpPopulationClicked(void)
 	catch (...)
 	{
 	}
+}
+
+void QtSLiMWindow::displayGraphClicked(void)
+{
+    // see QtSLiMWindow::graphPopupButtonRunMenu() for parallel code for the graph pop-up button
+    QObject *object = sender();
+    QAction *action = qobject_cast<QAction *>(object);
+    
+    if (action)
+    {
+        QtSLiMGraphView *graphView = nullptr;
+        
+        if (action == ui->actionGraph_1D_Population_SFS)
+            graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
+        if (action == ui->actionGraph_1D_Sample_SFS)
+            graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
+        if (action == ui->actionGraph_2D_Population_SFS)
+            graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
+        if (action == ui->actionGraph_2D_Sample_SFS)
+            graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
+        if (action == ui->actionGraph_Mutation_Frequency_Trajectories)
+            graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
+        if (action == ui->actionGraph_Mutation_Loss_Time_Histogram)
+            graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
+        if (action == ui->actionGraph_Mutation_Fixation_Time_Histogram)
+            graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
+        if (action == ui->actionGraph_Population_Fitness_Distribution)
+            graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
+        if (action == ui->actionGraph_Subpopulation_Fitness_Distributions)
+            graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
+        if (action == ui->actionGraph_Fitness_Time)
+            graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
+        if (action == ui->actionGraph_Age_Distribution)
+            graphView = new QtSLiMGraphView_AgeDistribution(this, this);
+        if (action == ui->actionGraph_Lifetime_Reproduce_Output)
+            graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
+        if (action == ui->actionGraph_Population_Size_Time)
+            graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
+        if (action == ui->actionGraph_Population_Visualization)
+            graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
+        if (action == ui->actionCreate_Haplotype_Plot)
+        {
+            if (!continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
+            {
+                isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+                
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
+            }
+            else
+            {
+                qApp->beep();
+            }
+        }
+        
+        if (graphView)
+        {
+            QWidget *graphWindow = graphWindowWithView(graphView);
+            
+            if (graphWindow)
+            {
+                graphWindow->show();
+                graphWindow->raise();
+                graphWindow->activateWindow();
+            }
+        }
+    }
 }
 
 static bool rectIsOnscreen(QRect windowRect)
