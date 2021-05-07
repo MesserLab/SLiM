@@ -3440,11 +3440,16 @@ void QtSLiMWindow::playOneStepClicked(void)
         
         setReachedSimulationEnd(!runSimOneGeneration());
         
-        if (consoleController)
-            consoleController->validateSymbolTableAndFunctionMap();
-        
+        // BCH 5/7/2021: moved these two lines up here, above validateSymbolTableAndFunctionMap(), so that
+        // updateAfterTickFull() calls checkForSimulationTermination() for us before we re-validate the
+        // symbol table; this way if the simulation has hit an error the symbol table no longer contains
+        // SLiM stuff in it.  I *think* this mirrors what happens when play, rather than step, is used.
+        // Nevertheless, it might be a fragile change, so I'm leaving this comment to document the change.
         ui->generationLineEdit->clearFocus();
         updateAfterTickFull(true);
+        
+        if (consoleController)
+            consoleController->validateSymbolTableAndFunctionMap();
     }
 }
 
