@@ -107,6 +107,7 @@ extern void _RunFunctionValueInspectionManipulationTests_a_through_f(void);
 extern void _RunFunctionValueInspectionManipulationTests_g_through_l(void);
 extern void _RunFunctionValueInspectionManipulationTests_m_through_r(void);
 extern void _RunFunctionValueInspectionManipulationTests_s_through_z(void);
+extern void _RunStringManipulationTests(void);
 extern void _RunFunctionValueTestingCoercionTests(void);
 extern void _RunFunctionFilesystemTests(std::string temp_path);
 extern void _RunColorManipulationTests(void);

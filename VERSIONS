@@ -14,6 +14,7 @@ development head:
 	add a [format='slim'] parameter to Dictionary.serialize(), adding support for JSON serialization with the 'json' format specifier (note the JSON serialization format changed slightly due to bug fixes)
 	add a Dictionary(string$ jsonString) constructor for creating a Dictionary from a JSON serialization
 	add an assert() function to easily assert that a condition is true
+	add string manipulation functions: strcontains(), strfind(), strprefix(), strsuffix() for string substring searching
 
 
 version 3.6 (build 2784; Eidos version 2.6):

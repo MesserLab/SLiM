@@ -294,6 +294,7 @@ int RunEidosTests(void)
 	_RunFunctionValueInspectionManipulationTests_g_through_l();
 	_RunFunctionValueInspectionManipulationTests_m_through_r();
 	_RunFunctionValueInspectionManipulationTests_s_through_z();
+	_RunStringManipulationTests();
 	_RunFunctionValueTestingCoercionTests();
 	_RunFunctionFilesystemTests(temp_path);
 	_RunColorManipulationTests();

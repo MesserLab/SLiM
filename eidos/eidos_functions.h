@@ -157,7 +157,6 @@ EidosValue_SP Eidos_ExecuteFunction_format(const std::vector<EidosValue_SP> &p_a
 EidosValue_SP Eidos_ExecuteFunction_identical(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_order(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_paste0(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -167,8 +166,6 @@ EidosValue_SP Eidos_ExecuteFunction_size_length(const std::vector<EidosValue_SP>
 EidosValue_SP Eidos_ExecuteFunction_sort(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_sortBy(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_str(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_strsplit(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_unique(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_which(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -193,6 +190,20 @@ EidosValue_SP Eidos_ExecuteFunction_isNULL(const std::vector<EidosValue_SP> &p_a
 EidosValue_SP Eidos_ExecuteFunction_isObject(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_isString(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_type(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+
+
+#pragma mark -
+#pragma mark String manipulation functions
+#pragma mark -
+
+//	string manipulation functions
+EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_strprefix(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_strsplit(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_strsuffix(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
 
 #pragma mark -

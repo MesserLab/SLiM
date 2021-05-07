@@ -3552,6 +3552,86 @@ Note that the semantics of this function differ slightly from the
 \f3\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (logical)strcontains(string\'a0x, string$\'a0s, [integer$\'a0pos\'a0=\'a00])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the 
+\f0\b occurrence of a string
+\f3\b0  specified by 
+\f1\fs18 s
+\f3\fs20  in each of the elements of 
+\f1\fs18 x
+\f3\fs20 , starting at position 
+\f1\fs18 pos
+\f3\fs20 .  Position 
+\f1\fs18 0
+\f3\fs20 , the default, is the beginning of 
+\f1\fs18 x
+\f3\fs20 ; a position of 
+\f1\fs18 0
+\f3\fs20  means the entire string is searched.  A starting search position that is at or beyond the end of a given element of 
+\f1\fs18 x
+\f3\fs20  is not an error; it just implies that a match will not be found in that element.  The existences of matches are returned as a 
+\f1\fs18 logical
+\f3\fs20  vector; if a match was found in a given element, the corresponding value in the returned vector is 
+\f1\fs18 T
+\f3\fs20 , otherwise it is 
+\f1\fs18 F
+\f3\fs20 .  This function is a simplified version of 
+\f1\fs18 strfind()
+\f3\fs20 , which returns the positions of matches.  The 
+\f1\fs18 strprefix()
+\f3\fs20  and 
+\f1\fs18 strsuffix()
+\f3\fs20  functions are also related.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (integer)strfind(string\'a0x, string$\'a0s, [integer$\'a0pos\'a0=\'a00])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the 
+\f0\b first occurrence of a string
+\f3\b0  specified by 
+\f1\fs18 s
+\f3\fs20  in each of the elements of 
+\f1\fs18 x
+\f3\fs20 , starting at position 
+\f1\fs18 pos
+\f3\fs20 .  Position 
+\f1\fs18 0
+\f3\fs20 , the default, is the beginning of 
+\f1\fs18 x
+\f3\fs20 ; a position of 
+\f1\fs18 0
+\f3\fs20  means the entire string is searched.  A starting search position that is at or beyond the end of a given element of 
+\f1\fs18 x
+\f3\fs20  is not an error; it just implies that a match will not be found in that element.  The positions of matches are returned as an 
+\f1\fs18 integer
+\f3\fs20  vector; if no match was found in a given element, the corresponding value in the returned vector is 
+\f1\fs18 -1
+\f3\fs20 .  The 
+\f1\fs18 strcontains()
+\f3\fs20  function may be used when a logical value (found / not found) is desired.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical)strprefix(string\'a0x, string$\'a0s)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the 
+\f0\b occurrence of a prefix string
+\f3\b0  specified by 
+\f1\fs18 s
+\f3\fs20  at the beginning of each of the elements of 
+\f1\fs18 x
+\f3\fs20 .  The existences of prefixes are returned as a 
+\f1\fs18 logical
+\f3\fs20  vector; if a given element begins with the prefix, the corresponding value in the returned vector is 
+\f1\fs18 T
+\f3\fs20 , otherwise it is 
+\f1\fs18 F
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (string)strsplit(string$\'a0x, [string$\'a0sep\'a0=\'a0" "])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -3591,6 +3671,24 @@ Note that the semantics of this function differ slightly from the
 \f1\fs18 paste()
 \f3\fs20  performs the inverse operation of 
 \f1\fs18 strsplit()
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical)strsuffix(string\'a0x, string$\'a0s)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the 
+\f0\b occurrence of a suffix string
+\f3\b0  specified by 
+\f1\fs18 s
+\f3\fs20  at the end of each of the elements of 
+\f1\fs18 x
+\f3\fs20 .  The existences of suffixes are returned as a 
+\f1\fs18 logical
+\f3\fs20  vector; if a given element ends with the suffix, the corresponding value in the returned vector is 
+\f1\fs18 T
+\f3\fs20 , otherwise it is 
+\f1\fs18 F
 \f3\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
