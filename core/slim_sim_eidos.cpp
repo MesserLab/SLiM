@@ -1931,6 +1931,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_addSubpop:						return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_interpreter);
 		case gID_createLogFile:					return ExecuteMethod_createLogFile(p_method_id, p_arguments, p_interpreter);
 		case gID_deregisterScriptBlock:			return ExecuteMethod_deregisterScriptBlock(p_method_id, p_arguments, p_interpreter);
+		case gID_individualsWithPedigreeIDs:	return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationFrequencies:
 		case gID_mutationCounts:				return ExecuteMethod_mutationFreqsCounts(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationsOfType:				return ExecuteMethod_mutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -2173,12 +2174,135 @@ EidosValue_SP SLiMSim::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	– (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [No<Subpopulation> subpops = NULL])
+EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	if (!PedigreesEnabledByUser())
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_individualsWithPedigreeIDs): individualsWithPedigreeIDs() may only be called when pedigree recording has been enabled." << EidosTerminate();
+	
+	EidosValue *pedigreeIDs_value = p_arguments[0].get();
+	int pedigreeIDs_count = pedigreeIDs_value->Count();
+	
+	if (pedigreeIDs_count == 0)
+	{
+		// An empty pedigreeIDs vector gets you an empty result, guaranteed
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	}
+	
+	EidosValue *subpops_value = p_arguments[1].get();
+	
+	// Cache the subpops across which we will tally
+	static std::vector<Subpopulation*> subpops_to_search;	// use a static to prevent allocation thrash
+	subpops_to_search.clear();
+	
+	if (subpops_value->Type() == EidosValueType::kValueNULL)
+	{
+		// Search through all subpops
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+			subpops_to_search.push_back(subpop_pair.second);
+	}
+	else
+	{
+		// Search through specified subpops
+		int requested_subpop_count = subpops_value->Count();
+		
+		for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
+			subpops_to_search.emplace_back((Subpopulation *)(subpops_value->ObjectElementAtIndex(requested_subpop_index, nullptr)));
+	}
+	
+	// Assemble the result
+	if (pedigreeIDs_count == 1)
+	{
+		// Singleton case, to allow efficiency in the non-singleton case
+		slim_pedigreeid_t pedigree_id = pedigreeIDs_value->IntAtIndex(0, nullptr);
+		
+		for (Subpopulation *subpop : subpops_to_search)
+		{
+			std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+			
+			for (Individual *ind : inds)
+			{
+				if (ind->pedigree_id_ == pedigree_id)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(ind, gSLiM_Individual_Class));
+			}
+		}
+		
+		// Didn't find a match, so return an empty result
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	}
+	else
+	{
+		// Non-singleton case: vectorized access to the pedigree IDs
+		const int64_t *pedigree_id_data = pedigreeIDs_value->IntVector()->data();
+		EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(pedigreeIDs_count);	// reserve enough space for all results
+		
+		if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across paltforms etc.
+		{
+			// for smaller problem sizes, we do sequential search for each pedigree ID
+			for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
+			{
+				slim_pedigreeid_t pedigree_id = pedigree_id_data[value_index];
+				
+				for (Subpopulation *subpop : subpops_to_search)
+				{
+					std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+					
+					for (Individual *ind : inds)
+					{
+						if (ind->pedigree_id_ == pedigree_id)
+						{
+							result->push_object_element_no_check_NORR(ind);
+							goto foundMatch;
+						}
+					}
+				}
+				
+				// Either we drop through to here, if we didn't find a match, or we goto to here, if we found one
+			foundMatch:
+				continue;
+			}
+		}
+		else
+		{
+			// for larger problem sizes, we speed up lookups by building a hash table first, changing from O(N*M) to O(N)
+			// we could get even more fancy and cache this hash table to speed up successive calls within one generation,
+			// but since the hash table is specific to the set of subpops we're searching, that would get a bit hairy...
+#if EIDOS_ROBIN_HOOD_HASHING
+			robin_hood::unordered_flat_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
+			typedef robin_hood::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
+			std::unordered_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
+			typedef std::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
+#endif
+			
+			for (Subpopulation *subpop : subpops_to_search)
+			{
+				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+				
+				for (Individual *ind : inds)
+					fromIDToIndividual.insert(MAP_PAIR(ind->pedigree_id_, ind));
+			}
+			
+			for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
+			{
+				auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
+				
+				if (find_iter != fromIDToIndividual.end())
+					result->push_object_element_no_check_NORR(find_iter->second);
+			}
+		}
+		
+		return EidosValue_SP(result);
+	}
+}
+
 //	*********************	– (float)mutationFrequencies(No<Subpopulation> subpops, [No<Mutation> mutations = NULL])
 //	*********************	– (integer)mutationCounts(No<Subpopulation> subpops, [No<Mutation> mutations = NULL])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_interpreter)
+#pragma unused (p_interpreter)
 	EidosValue *subpops_value = p_arguments[0].get();
 	EidosValue *mutations_value = p_arguments[1].get();
 	
@@ -3711,6 +3835,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskVOID))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_individualsWithPedigreeIDs, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt("pedigreeIDs")->AddObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

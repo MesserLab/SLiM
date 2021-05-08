@@ -426,6 +426,22 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
 	
+	// Test sim - (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [No<Subpopulation> subpops = NULL])
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.individualsWithPedigreeIDs(1); }", 1, 251, "when pedigree recording", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(integer(0)); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(100000); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(rep(100000, 1000)); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals[0]; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids); if (identical(i1, i2)) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids); if (identical(i1, i2)) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = sample(p1.individuals, 1000, replace=T); ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids); if (identical(i1, i2)) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.individualsWithPedigreeIDs(1, p1); }", 1, 251, "when pedigree recording", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(integer(0), p1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(100000, p1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(rep(100000, 1000), p1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals[0]; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, p1); if (identical(i1, i2)) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, p1); if (identical(i1, i2)) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = sample(p1.individuals, 1000, replace=T); ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, p1); if (identical(i1, i2)) stop(); }", __LINE__);
+	
 	// Test sim - (float)mutationFrequencies(No<Subpopulation> subpops, [object<Mutation> mutations])
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(p1); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(c(p1, p2)); }", __LINE__);

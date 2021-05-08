@@ -4624,6 +4624,33 @@ The
 \f3\fs18 active
 \f4\fs20  property of the script block.
 \f5 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Individual>)individualsWithPedigreeIDs(integer\'a0pedigreeIDs, [No<Subpopulation>\'a0subpops\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Looks up individuals by pedigree ID, optionally within specific subpopulations.  Pedigree tracking must be turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20  to use this method, otherwise an error will result.  This method is vectorized; more than one pedigree id may be passed in 
+\f3\fs18 pedigreeID
+\f4\fs20 , in which case the returned vector will contain all of the individuals for which a match was found (in the same order in which they were supplied).  If a given id is not found, the returned vector will contain no entry for that id (so the length of the returned vector may not match the length of 
+\f3\fs18 pedigreeIDs
+\f4\fs20 ).  If none of the given ids were found, the returned vector will be 
+\f3\fs18 object<Individual>(0)
+\f4\fs20 , an empty 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20 .  If you have more than one pedigree ID to look up, calling this method just once, in vectorized fashion, may be much faster than calling it once for each ID, due to internal optimizations.\
+To find individuals within all subpopulations, pass the default of 
+\f3\fs18 NULL
+\f4\fs20  for 
+\f3\fs18 subpops
+\f4\fs20 .  If you are interested only in matches within a specific subpopulation, pass that subpopulation for 
+\f3\fs18 subpops
+\f4\fs20 ; that will make the search faster.  Similarly, if you know that a particular subpopulation is the most likely to contain matches, you should supply that subpopulation first in the 
+\f3\fs18 subpops
+\f4\fs20  vector so that it will be searched first; the supplied subpopulations are searched in order.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(integer)mutationCounts(No<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\

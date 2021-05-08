@@ -16,6 +16,7 @@ development head:
 	add an assert() function to easily assert that a condition is true
 	add string manipulation functions: strcontains(), strfind(), strprefix(), strsuffix() for string substring searching
 	add graph menu items to the Simulation menu in QtSLiM, as used to exist in the old SLiMgui; left out accidentally
+	add SLiMSim method individualsWithPedigreeIDs() for fast lookup by pedigree ID, for keeping track of long-term interactions
 
 
 version 3.6 (build 2784; Eidos version 2.6):
