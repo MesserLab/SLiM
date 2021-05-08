@@ -5461,7 +5461,7 @@ Register a block of Eidos source code, represented as the
 \f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(object<SLiMEidosBlock>$
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$
 \f5 \'a0
 \f3 block, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [Ni\'a0generations\'a0=\'a0NULL])
 \f5 \
@@ -5469,7 +5469,13 @@ Register a block of Eidos source code, represented as the
 
 \f4\fs20 \cf0 Reschedule the target script block given by 
 \f3\fs18 block
-\f4\fs20  to execute in a specified set of generations.\
+\f4\fs20  to execute in a specified set of generations.\cf2   The 
+\f3\fs18 block
+\f4\fs20  parameter may be either an 
+\f3\fs18 integer
+\f4\fs20  representing the ID of the desired script block, or a 
+\f3\fs18 SLiMScriptBlock
+\f4\fs20  specified directly.\cf0 \
 The first way to specify the generation set is with 
 \f3\fs18 start
 \f4\fs20  and 

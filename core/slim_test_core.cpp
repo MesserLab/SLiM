@@ -609,7 +609,7 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
-	// Test sim – (object<SLiMEidosBlock>)rescheduleScriptBlock(object<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni generations = NULL])
+	// Test sim – (object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni generations = NULL])
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=10, end=9); stop(); } s1 10 { }", 1, 255, "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=integer(0)); stop(); } s1 10 { }", 1, 255, "requires at least one generation", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=c(25, 25)); stop(); } s1 10 { }", 1, 255, "same generation cannot be used twice", __LINE__);
@@ -629,6 +629,27 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 { }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(2, start=10, end=9); stop(); } s1 10 { }", 1, 255, "s2 not defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=10, end=9); stop(); } s1 10 { }", 1, 255, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=integer(0)); stop(); } s1 10 { }", 1, 255, "requires at least one generation", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=c(25, 25)); stop(); } s1 10 { }", 1, 255, "same generation cannot be used twice", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=25, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=NULL, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=NULL, end=25, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:29)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=NULL); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 { }", __LINE__);
 	
 	// Test sim - (void)simulationFinished(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 { stop(); }", __LINE__);

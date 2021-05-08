@@ -1612,9 +1612,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub :\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1626,8 +1625,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i \expnd0\expndtw0\kerning0
 H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
@@ -1764,7 +1762,7 @@ The implementation of
 \f2\fs20  for further discussion.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcVA(object<Individual>\'a0individuals, object<MutationType>$\'a0mutType)\
+\f1\fs18 \cf2 (float$)calcVA(object<Individual>\'a0individuals, io<MutationType>$\'a0mutType)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
@@ -1774,7 +1772,13 @@ The implementation of
 \f1\fs18 individuals
 \f2\fs20 , in a particular mutation type 
 \f1\fs18 mutType
-\f2\fs20  that represents quantitative trait loci (QTLs) influencing a quantitative phenotypic trait.\
+\f2\fs20  that represents quantitative trait loci (QTLs) influencing a quantitative phenotypic trait.  The 
+\f1\fs18 mutType
+\f2\fs20  parameter may be either an 
+\f1\fs18 integer
+\f2\fs20  representing the ID of the desired mutation type, or a 
+\f1\fs18 MutationType
+\f2\fs20  object specified directly.\
 This function assumes that mutations of type 
 \f1\fs18 mutType
 \f2\fs20  encode their effect size upon the quantitative trait in their 
