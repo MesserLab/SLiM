@@ -24,6 +24,7 @@
 #include "slim_eidos_block.h"
 #include "subpopulation.h"
 #include "slim_sim.h"
+#include "slim_globals.h"
 
 #include <utility>
 #include <algorithm>
@@ -3136,7 +3137,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	}
 }
 
-//	*********************	- (void)evaluate([No<Subpopulation> subpops = NULL], [logical$ immediate = F])
+//	*********************	- (void)evaluate([Nio<Subpopulation> subpops = NULL], [logical$ immediate = F])
 //
 EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3161,7 +3162,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 		int requested_subpop_count = subpops_value->Count();
 		
 		for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-			EvaluateSubpopulation((Subpopulation *)(subpops_value->ObjectElementAtIndex(requested_subpop_index, nullptr)), immediate);
+			EvaluateSubpopulation(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, sim_, "evaluate()"), immediate);
 	}
 	
 	return gStaticEidosValueVOID;
@@ -3503,7 +3504,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	return EidosValue_SP(result_vec);
 }
 
-//	*********************	– (object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$ subpop, float point, [integer$ count = 1])
+//	*********************	– (object<Individual>)nearestNeighborsOfPoint(io<Subpopulation>$ subpop, float point, [integer$ count = 1])
 //
 EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3516,7 +3517,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the subpop
-	Subpopulation *subpop = (Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop = SLiM_ExtractSubpopulationFromEidosValue_io(subpop_value, 0, sim_, "nearestNeighborsOfPoint()");
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	auto subpop_data_iter = data_.find(subpop_id);
@@ -3977,12 +3978,12 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddIntObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactingNeighborCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactionDistance, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestInteractingNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("subpop", gSLiM_Subpopulation_Class)->AddFloat("point")->AddInt_OS("count", gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddIntObject_S("subpop", gSLiM_Subpopulation_Class)->AddFloat("point")->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskVOID))->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));

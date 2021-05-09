@@ -426,7 +426,7 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
 	
-	// Test sim - (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [No<Subpopulation> subpops = NULL])
+	// Test sim - (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [Nio<Subpopulation> subpops = NULL])
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.individualsWithPedigreeIDs(1); }", 1, 251, "when pedigree recording", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(integer(0)); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(100000); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
@@ -434,6 +434,7 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals[0]; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids); if (identical(i1, i2)) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids); if (identical(i1, i2)) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = sample(p1.individuals, 1000, replace=T); ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids); if (identical(i1, i2)) stop(); }", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.individualsWithPedigreeIDs(1, p1); }", 1, 251, "when pedigree recording", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(integer(0), p1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(100000, p1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
@@ -442,21 +443,40 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, p1); if (identical(i1, i2)) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = sample(p1.individuals, 1000, replace=T); ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, p1); if (identical(i1, i2)) stop(); }", __LINE__);
 	
-	// Test sim - (float)mutationFrequencies(No<Subpopulation> subpops, [object<Mutation> mutations])
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.individualsWithPedigreeIDs(1, 1); }", 1, 251, "when pedigree recording", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { sim.individualsWithPedigreeIDs(1, 10); }", 1, 307, "p10 not defined", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(integer(0), 1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(100000, 1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "1 { i = sim.individualsWithPedigreeIDs(rep(100000, 1000), 1); if (identical(i, p1.individuals[integer(0)])) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals[0]; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, 1); if (identical(i1, i2)) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = p1.individuals; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, 1); if (identical(i1, i2)) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 { i1 = sample(p1.individuals, 1000, replace=T); ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, 1); if (identical(i1, i2)) stop(); }", __LINE__);
+	
+	// Test sim - (float)mutationFrequencies(Nio<Subpopulation> subpops, [object<Mutation> mutations])
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(p1); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(c(p1, p2)); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(NULL); }", __LINE__);													// legal, requests population-wide frequencies
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(sim.subpopulations); }", __LINE__);										// legal, requests population-wide frequencies
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(object()); }", __LINE__);												// legal to specify an empty object vector
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(1); }", 1, 301, "cannot be type integer", __LINE__);						// this is one API where integer identifiers can't be used
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(NULL); }", __LINE__);												// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(sim.subpopulations); }", __LINE__);								// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(object()); }", __LINE__);											// legal to specify an empty object vector
 	
-	// Test sim - (integer)mutationCounts(No<Subpopulation> subpops, [object<Mutation> mutations])
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(10); }", 1, 301, "p10 not defined", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(1); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(1:2); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(sim.subpopulations.id); }", __LINE__);								// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationFrequencies(integer(0)); }", __LINE__);										// legal to specify an empty integer vector
+	
+	// Test sim - (integer)mutationCounts(Nio<Subpopulation> subpops, [object<Mutation> mutations])
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(p1); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(c(p1, p2)); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(NULL); }", __LINE__);													// legal, requests population-wide frequencies
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(sim.subpopulations); }", __LINE__);										// legal, requests population-wide frequencies
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(object()); }", __LINE__);												// legal to specify an empty object vector
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(1); }", 1, 301, "cannot be type integer", __LINE__);						// this is one API where integer identifiers can't be used
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(10); }", 1, 301, "p10 not defined", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(1); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(1:2); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(sim.subpopulations.id); }", __LINE__);									// legal, requests population-wide frequencies
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 { sim.mutationCounts(integer(0)); }", __LINE__);												// legal to specify an empty integer vector
 	
 	// Test sim - (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.mutationsOfType(m1); } ", __LINE__);

@@ -2673,7 +2673,7 @@ If the needed interaction strengths have already been calculated, those cached v
 \f4\fs20  callbacks.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)evaluate([No<Subpopulation>\'a0subpops\'a0=\'a0NULL], [logical$\'a0immediate\'a0=\'a0F])
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)evaluate([Nio<Subpopulation>\'a0subpops\'a0=\'a0NULL], [logical$\'a0immediate\'a0=\'a0F])
 \f5 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2683,7 +2683,11 @@ If the needed interaction strengths have already been calculated, those cached v
 \f3\fs18 subpops
 \f4\fs20  is 
 \f3\fs18 NULL
-\f4\fs20 ).  By default, the effects of this may be limited, however, since the underlying implementation may choose to postpone some computations lazily.  At a minimum, is it guaranteed that this method will discard all previously cached data for the subpopulation(s), and will cache the current spatial positions of all individuals (so that individuals may then move without disturbing the state of the interaction at the moment of evaluation).  Notably, 
+\f4\fs20 ).\cf2   The subpopulations may be supplied either as 
+\f3\fs18 integer
+\f4\fs20  IDs, or as 
+\f3\fs18 Subpopulation
+\f4\fs20  objects.\cf0   By default, the effects of this may be limited, however, since the underlying implementation may choose to postpone some computations lazily.  At a minimum, is it guaranteed that this method will discard all previously cached data for the subpopulation(s), and will cache the current spatial positions of all individuals (so that individuals may then move without disturbing the state of the interaction at the moment of evaluation).  Notably, 
 \f3\fs18 interaction()
 \f4\fs20  callbacks may not be called in response to this method; instead, their evaluation may be deferred until required to satisfy queries (at which point the generation counter may have advanced by one, so be careful with the generation ranges used in defining such callbacks).\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
@@ -2851,7 +2855,7 @@ Note that this method does not use interaction eligibility as a criterion; it wi
 \f4\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<Individual>)nearestNeighborsOfPoint(object<Subpopulation>$\'a0subpop, float\'a0point, [integer$\'a0count\'a0=\'a01])
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<Individual>)nearestNeighborsOfPoint(io<Subpopulation>$\'a0subpop, float\'a0point, [integer$\'a0count\'a0=\'a01])
 \f5 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2864,7 +2868,11 @@ Note that this method does not use interaction eligibility as a criterion; it wi
 \f4\fs20 , according to the distance metric of the 
 \f3\fs18 InteractionType
 \f5\fs20 .
-\f4   To obtain all of the individuals within the maximum interaction distance of 
+\f4 \cf2   The subpopulation may be supplied either as an 
+\f3\fs18 integer
+\f4\fs20  ID, or as a 
+\f3\fs18 Subpopulation
+\f4\fs20  object.\cf0   To obtain all of the individuals within the maximum interaction distance of 
 \f3\fs18 point
 \f4\fs20 , simply pass a value for 
 \f3\fs18 count
@@ -4626,7 +4634,7 @@ The
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Individual>)individualsWithPedigreeIDs(integer\'a0pedigreeIDs, [No<Subpopulation>\'a0subpops\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(object<Individual>)individualsWithPedigreeIDs(integer\'a0pedigreeIDs, [Nio<Subpopulation>\'a0subpops\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Looks up individuals by pedigree ID, optionally within specific subpopulations.  Pedigree tracking must be turned on with 
@@ -4650,10 +4658,14 @@ To find individuals within all subpopulations, pass the default of
 \f3\fs18 subpops
 \f4\fs20 ; that will make the search faster.  Similarly, if you know that a particular subpopulation is the most likely to contain matches, you should supply that subpopulation first in the 
 \f3\fs18 subpops
-\f4\fs20  vector so that it will be searched first; the supplied subpopulations are searched in order.\
+\f4\fs20  vector so that it will be searched first; the supplied subpopulations are searched in order.  Subpopulations may be supplied either as 
+\f3\fs18 integer
+\f4\fs20  IDs, or as 
+\f3\fs18 Subpopulation
+\f4\fs20  objects.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(integer)mutationCounts(No<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
+\f3\fs18 \cf0 \'96\'a0(integer)mutationCounts(Nio<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 Return an 
@@ -4670,7 +4682,11 @@ To find individuals within all subpopulations, pass the default of
 \f3\fs18 subpops
 \f4\fs20  argument is required, but you may pass 
 \f3\fs18 NULL
-\f4\fs20  to get population-wide frequency counts.  If the optional 
+\f4\fs20  to get population-wide frequency counts.\cf2   Subpopulations may be supplied either as 
+\f3\fs18 integer
+\f4\fs20  IDs, or as 
+\f3\fs18 Subpopulation
+\f4\fs20  objects.\cf0   If the optional 
 \f3\fs18 mutations
 \f4\fs20  argument is 
 \f3\fs18 NULL
@@ -4699,7 +4715,7 @@ See the
 \f5 \cf0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(float)mutationFrequencies(No<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
+\f3\fs18 \cf0 \'96\'a0(float)mutationFrequencies(Nio<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 Return a 
@@ -4716,7 +4732,11 @@ See the
 \f3\fs18 subpops
 \f4\fs20  argument is required, but you may pass 
 \f3\fs18 NULL
-\f4\fs20  to get population-wide frequencies.  If the optional 
+\f4\fs20  to get population-wide frequencies.\cf2   Subpopulations may be supplied either as 
+\f3\fs18 integer
+\f4\fs20  IDs, or as 
+\f3\fs18 Subpopulation
+\f4\fs20  objects.\cf0   If the optional 
 \f3\fs18 mutations
 \f4\fs20  argument is 
 \f3\fs18 NULL
