@@ -227,6 +227,11 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 					bool boolean_value = value;
 					(*hash_symbols_)[key] = (boolean_value ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 				}
+				else if (value.is_string())
+				{
+					const std::string &string_value = value;
+					(*hash_symbols_)[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string_value));
+				}
 				else if (value.is_number_integer() || value.is_number_unsigned())
 				{
 					int64_t int_value = value;
@@ -768,7 +773,7 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(__attribute__((un
 	}
 	else if (p_arguments.size() == 1)
 	{
-		// Copy an existing dictionary
+		// one singleton argument; multiple overloaded meanings
 		EidosValue *source_value = p_arguments[0].get();
 		
 		if (source_value->Count() != 1)
@@ -778,7 +783,13 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(__attribute__((un
 		{
 			// Construct from a JSON string
 			std::string json_string = source_value->StringAtIndex(0, nullptr);
-			nlohmann::json json_rep = nlohmann::json::parse(json_string);
+			nlohmann::json json_rep;
+			
+			try {
+				json_rep = nlohmann::json::parse(json_string);
+			} catch (...) {
+				EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosDictionaryRetained): the string$ argument passed to Dictionary() does not parse as a valid JSON string." << EidosTerminate(nullptr);
+			}
 			
 			objectElement->AddJSONFrom(json_rep);
 		}

@@ -1017,6 +1017,20 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('b', c(Dictionary('x',1:3),Dictionary(),Dictionary('y','foo','z',1.73))); x.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"b\":[{\"x\":[1,2,3]},{},{\"y\":[\"foo\"],\"z\":[1.73]}]}")));
 	
 	// Dictionary(x="JSON_string")
+	EidosAssertScriptRaise("Dictionary('invalid');", 0, "valid JSON string");
+	EidosAssertScriptRaise("Dictionary('{invalid}');", 0, "valid JSON string");
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": null}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[{}]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": {}}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[{}]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": true}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[true]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": [true]}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[true]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": false}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[false]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": [false]}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[false]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": 5}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[5]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": [5]}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[5]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": 5.5}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[5.5]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": [5.5]}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[5.5]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": \"b\"}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[\"b\"]}")));
+	EidosAssertScriptSuccess("a = Dictionary('{\"a\": [\"b\"]}'); a.serialize('json');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("{\"a\":[\"b\"]}")));
 	EidosAssertScriptSuccess("a = Dictionary(); a.setValue('logical_empty', logical(0)); a.setValue('logical_T', T); a.setValue('logical_F', F); a.setValue('logical_vector', c(T, F, T, F)); a.setValue('int_empty', integer(0)); a.setValue('int_singleton', 1); a.setValue('int_vector', 1:3); a.setValue('float_empty', float(0)); a.setValue('float_singleton', 1.0); a.setValue('float_vector', 1.0:3); a.setValue('string_empty', string(0)); a.setValue('string_singleton', 'foo'); a.setValue('string_vector', c('foo', 'bar', 'baz')); sa_json = a.serialize('json'); b = Dictionary(sa_json); sb_json = b.serialize('json'); identical(sa_json,sb_json);", gStaticEidosValue_LogicalT);
 	
 	// Test EidosImage properties and methods – but how?  If it were possible to construct an Image from a matrix, and then save that Image out to disk, I guess that would provide an avenue for testing...  FIXME
