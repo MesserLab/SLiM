@@ -2221,7 +2221,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 			
 			for (Individual *ind : inds)
 			{
-				if (ind->pedigree_id_ == pedigree_id)
+				if (ind->PedigreeID() == pedigree_id)
 					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(ind, gSLiM_Individual_Class));
 			}
 		}
@@ -2248,7 +2248,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 					
 					for (Individual *ind : inds)
 					{
-						if (ind->pedigree_id_ == pedigree_id)
+						if (ind->PedigreeID() == pedigree_id)
 						{
 							result->push_object_element_no_check_NORR(ind);
 							goto foundMatch;
@@ -2279,7 +2279,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
 				
 				for (Individual *ind : inds)
-					fromIDToIndividual.insert(MAP_PAIR(ind->pedigree_id_, ind));
+					fromIDToIndividual.insert(MAP_PAIR(ind->PedigreeID(), ind));
 			}
 			
 			for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
