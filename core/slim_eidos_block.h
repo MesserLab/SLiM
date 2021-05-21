@@ -37,7 +37,8 @@
 
 
 enum class SLiMEidosBlockType {
-	SLiMEidosEventEarly = 0,
+	SLiMEidosEventFirst = 0,
+	SLiMEidosEventEarly,
 	SLiMEidosEventLate,
 	SLiMEidosInitializeCallback,
 	SLiMEidosFitnessCallback,
@@ -48,6 +49,7 @@ enum class SLiMEidosBlockType {
 	SLiMEidosRecombinationCallback,
 	SLiMEidosMutationCallback,
 	SLiMEidosReproductionCallback,
+	SLiMEidosSurvivalCallback,
 	
 	SLiMEidosUserDefinedFunction,
 	
@@ -145,12 +147,12 @@ public:
 	bool contains_self_ = false;				// "self"
 	bool contains_mut_ = false;					// "mut" (fitness/mutation callback parameter)
 	bool contains_relFitness_ = false;			// "relFitness" (fitness callback parameter)
-	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination/reproduction callback parameter)
+	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination/survival/reproduction callback parameter)
 	bool contains_element_ = false;				// "element" (mutation callback parameter)
 	bool contains_genome_ = false;				// "genome" (mutation callback parameter)
 	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination/reproduction callback parameter)
 	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination/reproduction callback parameter)
-	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination/reproduction/mutation callback parameter)
+	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination/survival/reproduction/mutation callback parameter)
 	bool contains_homozygous_ = false;			// "homozygous" (fitness callback parameter)
 	bool contains_sourceSubpop_ = false;		// "sourceSubpop" (mateChoice/modifyChild callback parameter)
 	bool contains_weights_ = false;				// "weights" (mateChoice callback parameter)
@@ -173,6 +175,9 @@ public:
 	bool contains_receiver_ = false;			// "receiver" (interaction callback parameter)
 	bool contains_exerter_ = false;				// "exerter" (interaction callback parameter)
 	bool contains_originalNuc_ = false;			// "originalNuc" (mutation callback parameter)
+	bool contains_surviving_ = false;			// "surviving" (survival callback parameter)
+	bool contains_fitness_ = false;				// "fitness" (survival callback parameter)
+	bool contains_draw_ = false;				// "draw" (survival callback parameter)
 	
 	// Special-case optimizations for particular common callback types.  If a callback can be substituted by C++ code,
 	// has_cached_optimization_ will be true and the flags and values below will indicate exactly how to do so.

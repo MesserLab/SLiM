@@ -78,10 +78,11 @@ enum class SLiMModelType
 
 enum class SLiMGenerationStage
 {
-	kStage0PreGeneration = 0,
+	kStagePreGeneration = 0,
 	
 	// stages for WF models
-	kWFStage1ExecuteEarlyScripts = 1,
+	kWFStage0ExecuteFirstScripts = 1,
+	kWFStage1ExecuteEarlyScripts,
 	kWFStage2GenerateOffspring,
 	kWFStage3RemoveFixedMutations,
 	kWFStage4SwapGenerations,
@@ -90,7 +91,8 @@ enum class SLiMGenerationStage
 	kWFStage7AdvanceGenerationCounter,
 	
 	// stages for nonWF models
-	kNonWFStage1GenerateOffspring = 101,
+	kNonWFStage0ExecuteFirstScripts = 101,
+	kNonWFStage1GenerateOffspring,
 	kNonWFStage2ExecuteEarlyScripts,
 	kNonWFStage3CalculateFitness,
 	kNonWFStage4SurvivalSelection,
@@ -99,7 +101,7 @@ enum class SLiMGenerationStage
 	kNonWFStage7AdvanceGenerationCounter,
 	
 	// end stage between generations; things in the Eidos console happen here
-	kStage8PostGeneration = 201,
+	kStagePostGeneration = 201,
 };
 
 std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage);
@@ -286,6 +288,7 @@ private:
 	
 	// scripts blocks prearranged for fast lookup; these are all stored in script_blocks_ as well
 	bool script_block_types_cached_ = false;
+	std::vector<SLiMEidosBlock*> cached_first_events_;
 	std::vector<SLiMEidosBlock*> cached_early_events_;
 	std::vector<SLiMEidosBlock*> cached_late_events_;
 	std::vector<SLiMEidosBlock*> cached_initialize_callbacks_;
@@ -297,6 +300,7 @@ private:
 	std::vector<SLiMEidosBlock*> cached_modifychild_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_mutation_callbacks_;
+	std::vector<SLiMEidosBlock*> cached_survival_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_reproduction_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_userdef_functions_;
 	
@@ -314,8 +318,8 @@ public:
 
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
 	// PROFILING
-	eidos_profile_t profile_stage_totals_[8];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [7] is TS simplification
-	eidos_profile_t profile_callback_totals_[11];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
+	eidos_profile_t profile_stage_totals_[9];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [8] is TS simplification
+	eidos_profile_t profile_callback_totals_[13];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
 	
 	SLiM_MemoryUsage profile_last_memory_usage_;
 	SLiM_MemoryUsage profile_total_memory_usage_;
@@ -346,7 +350,7 @@ private:
 	// these ivars track the generation, generation stage, and related state
 	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
 	slim_generation_t generation_ = 0;												// the current generation reached in simulation
-	SLiMGenerationStage generation_stage_ = SLiMGenerationStage::kStage0PreGeneration;		// the within-generation stage currently being executed
+	SLiMGenerationStage generation_stage_ = SLiMGenerationStage::kStagePreGeneration;		// the within-generation stage currently being executed
 	bool sim_declared_finished_ = false;											// a flag set by simulationFinished() to halt the sim at the end of the current generation
 	EidosValue_SP cached_value_generation_;											// a cached value for generation_; reset() if changed
 	
@@ -469,6 +473,7 @@ private:
 	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
 												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
 												// arrive in the same generation according to SLiM, which confuses the tree-seq code
+												// BCH 5/13/2021: We now increment this after first() events in nonWF models, too
 	double tree_seq_generation_offset_ = 0;		// this is a fractional offset added to tree_seq_generation_; this is needed to make successive calls
 												// to addSubpopSplit() arrive at successively later times; see Population::AddSubpopulationSplit()
 	
@@ -755,10 +760,10 @@ public:
 	EidosValue_SP ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerFitnessCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerMateModifyRecCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

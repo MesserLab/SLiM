@@ -149,6 +149,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
                               "age =>",
                               "modelType =>",
                               "– registerReproductionCallback()",
+                              "– registerSurvivalCallback()",
                               "– addCloned()",
                               "– addCrossed()",
                               "– addEmpty()",
@@ -156,7 +157,8 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
                               "– addSelfed()",
                               "– removeSubpopulation()",
                               "– takeMigrants()",
-                              "reproduction() callbacks"
+                              "reproduction() callbacks",
+                              "survival() callbacks"
                               });
         
         if (!stringsNucmut)

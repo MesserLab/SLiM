@@ -2225,7 +2225,8 @@ void QtSLiMWindow::displayProfileResults(void)
 		double elapsedStage4Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[4]);
 		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
 		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
-		double elapsedStage7Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[7]);
+        double elapsedStage7Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[7]);
+        double elapsedStage8Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[8]);
 		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -2233,7 +2234,8 @@ void QtSLiMWindow::displayProfileResults(void)
 		double percentStage4 = (elapsedStage4Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage5 = (elapsedStage5Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage6 = (elapsedStage6Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentStage7 = (elapsedStage7Time / elapsedWallClockTimeInSLiM) * 100.0;
+        double percentStage7 = (elapsedStage7Time / elapsedWallClockTimeInSLiM) * 100.0;
+        double percentStage8 = (elapsedStage8Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4;
 		
 		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage0Time)))));
@@ -2243,7 +2245,8 @@ void QtSLiMWindow::displayProfileResults(void)
 		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage4Time)))));
 		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage5Time)))));
 		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage6Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage7Time)))));
+        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage7Time)))));
+        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage8Time)))));
 		
 		tc.insertText(" \n", optima13_d);
 		tc.insertText("Generation stage breakdown\n", optima14b_d);
@@ -2252,25 +2255,28 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage0Time, fw, 'f', 2).arg(percentStage0, 5, 'f', 2), menlo11_d);
 		tc.insertText(" : initialize() callback execution\n", optima13_d);
 		
-		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage1Time, fw, 'f', 2).arg(percentStage1, 5, 'f', 2), menlo11_d);
-		tc.insertText((isWF ? " : stage 1 – early() event execution\n" : " : stage 1 – offspring generation\n"), optima13_d);
+        tc.insertText(QString("%1 s (%2%)").arg(elapsedStage1Time, fw, 'f', 2).arg(percentStage1, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 0 – first() event execution\n" : " : stage 0 – first() event execution\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage2Time, fw, 'f', 2).arg(percentStage2, 5, 'f', 2), menlo11_d);
-		tc.insertText((isWF ? " : stage 2 – offspring generation\n" : " : stage 2 – early() event execution\n"), optima13_d);
+		tc.insertText((isWF ? " : stage 1 – early() event execution\n" : " : stage 1 – offspring generation\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage3Time, fw, 'f', 2).arg(percentStage3, 5, 'f', 2), menlo11_d);
-		tc.insertText((isWF ? " : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : " : stage 3 – fitness calculation\n"), optima13_d);
+		tc.insertText((isWF ? " : stage 2 – offspring generation\n" : " : stage 2 – early() event execution\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage4Time, fw, 'f', 2).arg(percentStage4, 5, 'f', 2), menlo11_d);
-		tc.insertText((isWF ? " : stage 4 – generation swap\n" : " : stage 4 – viability/survival selection\n"), optima13_d);
+		tc.insertText((isWF ? " : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : " : stage 3 – fitness calculation\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage5Time, fw, 'f', 2).arg(percentStage5, 5, 'f', 2), menlo11_d);
-		tc.insertText((isWF ? " : stage 5 – late() event execution\n" : " : stage 5 – bookkeeping (fixed mutation removal, etc.)\n"), optima13_d);
+		tc.insertText((isWF ? " : stage 4 – generation swap\n" : " : stage 4 – viability/survival selection\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage6Time, fw, 'f', 2).arg(percentStage6, 5, 'f', 2), menlo11_d);
+		tc.insertText((isWF ? " : stage 5 – late() event execution\n" : " : stage 5 – bookkeeping (fixed mutation removal, etc.)\n"), optima13_d);
+		
+		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage7Time, fw, 'f', 2).arg(percentStage7, 5, 'f', 2), menlo11_d);
 		tc.insertText((isWF ? " : stage 6 – fitness calculation\n" : " : stage 6 – late() event execution\n"), optima13_d);
         
-        tc.insertText(QString("%1 s (%2%)").arg(elapsedStage7Time, fw, 'f', 2).arg(percentStage7, 5, 'f', 2), menlo11_d);
+        tc.insertText(QString("%1 s (%2%)").arg(elapsedStage8Time, fw, 'f', 2).arg(percentStage8, 5, 'f', 2), menlo11_d);
 		tc.insertText((isWF ? " : stage 7 – tree sequence auto-simplification\n" : " : stage 7 – tree sequence auto-simplification\n"), optima13_d);
 	}
 	
@@ -2279,53 +2285,61 @@ void QtSLiMWindow::displayProfileResults(void)
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		double elapsedType0Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[0]);
-		double elapsedType1Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[1]);
-		double elapsedType2Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[2]);
-		double elapsedType3Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[3]);
-		double elapsedType4Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[4]);
-		double elapsedType5Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[5]);
-		double elapsedType6Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[6]);
-		double elapsedType7Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[7]);
-		double elapsedType8Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[8]);
-		double elapsedType9Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[9]);
-		double elapsedType10Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[10]);
-		double percentType0 = (elapsedType0Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType1 = (elapsedType1Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType2 = (elapsedType2Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType3 = (elapsedType3Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType4 = (elapsedType4Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType5 = (elapsedType5Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType6 = (elapsedType6Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType7 = (elapsedType7Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType8 = (elapsedType8Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType9 = (elapsedType9Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType10 = (elapsedType10Time / elapsedWallClockTimeInSLiM) * 100.0;
+        double elapsedTime_first = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
+		double elapsedTime_early = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
+		double elapsedTime_late = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
+		double elapsedTime_initialize = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
+		double elapsedTime_fitness = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
+		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
+		double elapsedTime_interaction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
+		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
+		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
+		double elapsedTime_recombination = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
+		double elapsedTime_mutation = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
+		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
+        double elapsedTime_survival = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
+		double percent_first = (elapsedTime_first / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_early = (elapsedTime_early / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_late = (elapsedTime_late / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_initialize = (elapsedTime_initialize / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitness = (elapsedTime_fitness / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitnessglobal = (elapsedTime_fitnessglobal / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_interaction = (elapsedTime_interaction / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_matechoice = (elapsedTime_matechoice / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_modifychild = (elapsedTime_modifychild / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_recombination = (elapsedTime_recombination / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_mutation = (elapsedTime_mutation / elapsedWallClockTimeInSLiM) * 100.0;
+        double percent_reproduction = (elapsedTime_reproduction / elapsedWallClockTimeInSLiM) * 100.0;
+        double percent_survival = (elapsedTime_survival / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4, fw2 = 4;
 		
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType0Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType1Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType2Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType3Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType4Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType5Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType6Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType7Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType8Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType9Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedType10Time)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_first)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_early)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_late)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_initialize)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_fitness)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_fitnessglobal)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_interaction)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_matechoice)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_modifychild)))));
+		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_recombination)))));
+        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_mutation)))));
+        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_reproduction)))));
+        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_survival)))));
 		
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType0)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType1)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType2)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType3)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType4)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType5)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType6)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType7)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType8)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType9)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percentType10)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_first)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_early)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_late)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_initialize)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_fitness)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_fitnessglobal)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_interaction)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_matechoice)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_modifychild)))));
+		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_recombination)))));
+        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_mutation)))));
+        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_reproduction)))));
+        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_survival)))));
 		
 		tc.insertText(" \n", optima13_d);
 		tc.insertText("Callback type breakdown\n", optima14b_d);
@@ -2334,66 +2348,75 @@ void QtSLiMWindow::displayProfileResults(void)
 		// Note these are out of numeric order, but in generation-cycle order
 		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
 		{
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType2Time, fw, 'f', 2).arg(percentType2, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_initialize, fw, 'f', 2).arg(percent_initialize, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : initialize() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType0Time, fw, 'f', 2).arg(percentType0, fw2, 'f', 2), menlo11_d);
+            tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_first, fw, 'f', 2).arg(percent_first, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : first() events\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_early, fw, 'f', 2).arg(percent_early, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : early() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType6Time, fw, 'f', 2).arg(percentType6, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_matechoice, fw, 'f', 2).arg(percent_matechoice, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : mateChoice() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType8Time, fw, 'f', 2).arg(percentType8, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_recombination, fw, 'f', 2).arg(percent_recombination, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : recombination() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType9Time, fw, 'f', 2).arg(percentType9, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_mutation, fw, 'f', 2).arg(percent_mutation, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : mutation() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType7Time, fw, 'f', 2).arg(percentType7, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_modifychild, fw, 'f', 2).arg(percent_modifychild, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : modifyChild() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType1Time, fw, 'f', 2).arg(percentType1, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_late, fw, 'f', 2).arg(percent_late, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : late() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType3Time, fw, 'f', 2).arg(percentType3, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : fitness() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType4Time, fw, 'f', 2).arg(percentType4, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType5Time, fw, 'f', 2).arg(percentType5, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_interaction, fw, 'f', 2).arg(percent_interaction, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : interaction() callbacks\n", optima13_d);
 		}
 		else
 		{
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType2Time, fw, 'f', 2).arg(percentType2, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_initialize, fw, 'f', 2).arg(percent_initialize, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : initialize() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType10Time, fw, 'f', 2).arg(percentType10, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : reproduction() events\n", optima13_d);
+            tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_first, fw, 'f', 2).arg(percent_first, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : first() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType8Time, fw, 'f', 2).arg(percentType8, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_reproduction, fw, 'f', 2).arg(percent_reproduction, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : reproduction() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_recombination, fw, 'f', 2).arg(percent_recombination, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : recombination() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType9Time, fw, 'f', 2).arg(percentType9, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_mutation, fw, 'f', 2).arg(percent_mutation, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : mutation() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType7Time, fw, 'f', 2).arg(percentType7, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_modifychild, fw, 'f', 2).arg(percent_modifychild, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : modifyChild() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType0Time, fw, 'f', 2).arg(percentType0, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_early, fw, 'f', 2).arg(percent_early, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : early() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType3Time, fw, 'f', 2).arg(percentType3, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : fitness() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType4Time, fw, 'f', 2).arg(percentType4, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType1Time, fw, 'f', 2).arg(percentType1, fw2, 'f', 2), menlo11_d);
+            tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_survival, fw, 'f', 2).arg(percent_survival, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : survival() callbacks\n", optima13_d);
+			
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_late, fw, 'f', 2).arg(percent_late, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : late() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedType5Time, fw, 'f', 2).arg(percentType5, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_interaction, fw, 'f', 2).arg(percent_interaction, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : interaction() callbacks\n", optima13_d);
 		}
 	}
@@ -2976,11 +2999,12 @@ void QtSLiMWindow::startProfiling(void)
 	sim->CollectSLiMguiMutationProfileInfo();
 	
 	// zero out profile counts for generation stages
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < 9; ++i)
 		sim->profile_stage_totals_[i] = 0;
 	
 	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
+    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
+    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
 	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
 	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
 	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
@@ -2991,6 +3015,7 @@ void QtSLiMWindow::startProfiling(void)
 	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
 	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
 	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
+    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
 	
 	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
 	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();

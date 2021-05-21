@@ -392,7 +392,9 @@ void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t
 		{
 			SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG ";
 			
-			if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly)
+			if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst)
+				SLIM_ERRSTREAM << "first()";
+			else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly)
 				SLIM_ERRSTREAM << "early()";
 			else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate)
 				SLIM_ERRSTREAM << "late()";

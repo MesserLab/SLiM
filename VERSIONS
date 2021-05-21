@@ -19,6 +19,9 @@ development head:
 	add SLiMSim method individualsWithPedigreeIDs() for fast lookup by pedigree ID, for keeping track of long-term interactions
 	fix functions/methods that take Subpopulation/MutationType/SLiMEidosBlock to also accept an integer id, as most functions/methods already do:
 		calcVA(), rescheduleScriptBlock(), individualsWithPedigreeIDs(), mutationCounts(), mutationFrequencies(), nearestNeighborsOfPoint(), evaluate()
+	fix JSON parsing bugs (singleton string value, illegal values)
+	add first() events at the start of the generation cycle
+	add survival() callbacks governing mortality in nonWF models
 
 
 version 3.6 (build 2784; Eidos version 2.6):

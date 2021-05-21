@@ -1246,6 +1246,7 @@
 						  @"age =>",
 						  @"modelType =>",
 						  @"–\u00A0registerReproductionCallback()",
+						  @"–\u00A0registerSurvivalCallback()",
 						  @"–\u00A0addCloned()",
 						  @"–\u00A0addCrossed()",
 						  @"–\u00A0addEmpty()",
@@ -1253,7 +1254,8 @@
 						  @"–\u00A0addSelfed()",
 						  @"–\u00A0removeSubpopulation()",
 						  @"–\u00A0takeMigrants()",
-						  @"8. reproduction() callbacks"
+						  @"8. reproduction() callbacks",
+						  @"10. survival() callbacks"
 						  ] retain];
 	
 	if (!stringsNucmut)

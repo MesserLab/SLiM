@@ -3261,7 +3261,134 @@ void Subpopulation::MergeReproductionOffspring(void)
 #endif  // SLIM_NONWF_ONLY
 
 #ifdef SLIM_NONWF_ONLY
-void Subpopulation::ViabilitySelection(void)
+bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving)
+{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	SLIM_PROFILE_BLOCK_START();
+#endif
+	
+	SLiMSim &sim = population_.sim_;
+	
+	for (SLiMEidosBlock *survival_callback : p_survival_callbacks)
+	{
+		if (survival_callback->active_)
+		{
+#ifndef DEBUG_POINTS_ENABLED
+#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
+#endif
+#if DEBUG_POINTS_ENABLED
+			// SLiMgui debugging point
+			EidosDebugPointIndent indenter;
+			
+			{
+				EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();
+				EidosToken *decl_token = survival_callback->root_node_->token_;
+				
+				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
+					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
+				{
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG survival(";
+					if (survival_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << "p" << survival_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << ")";
+					
+					if (survival_callback->block_id_ != -1)
+						SLIM_ERRSTREAM << " s" << survival_callback->block_id_;
+					
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim.DebugPointInfo() << ")" << std::endl;
+					indenter.indent();
+				}
+			}
+#endif
+			
+			// The callback is active, so we need to execute it
+			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
+			{
+				// local variables for the callback parameters that we might need to allocate here, and thus need to free below
+				EidosValue_Float_singleton local_fitness(p_fitness);
+				EidosValue_Float_singleton local_draw(p_draw);
+				
+				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
+				{
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
+					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
+					EidosFunctionMap &function_map = sim.FunctionMap();
+					EidosInterpreter interpreter(survival_callback->compound_statement_node_, client_symbols, function_map, &sim, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					
+					if (survival_callback->contains_self_)
+						callback_symbols.InitializeConstantSymbolEntry(survival_callback->SelfSymbolTableEntry());		// define "self"
+					
+					// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
+					// We can use that method because we know the lifetime of the symbol table is shorter than that of
+					// the value objects, and we know that the values we are setting here will not change (the objects
+					// referred to by the values may change, but the values themselves will not change).
+					if (survival_callback->contains_fitness_)
+					{
+						local_fitness.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_fitness, EidosValue_SP(&local_fitness));
+					}
+					if (survival_callback->contains_draw_)
+					{
+						local_draw.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+						callback_symbols.InitializeConstantSymbolEntry(gID_draw, EidosValue_SP(&local_draw));
+					}
+					if (survival_callback->contains_individual_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
+					if (survival_callback->contains_subpop_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
+					if (survival_callback->contains_surviving_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_surviving, p_surviving ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+					
+					try
+					{
+						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
+						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(survival_callback->script_);
+						EidosValue *result = result_SP.get();
+						EidosValueType result_type = result->Type();
+						
+						if (result_type == EidosValueType::kValueNULL)
+						{
+							// NULL means don't change the existing decision
+						}
+						else if ((result_type == EidosValueType::kValueLogical) &&
+								 (result->Count() == 1))
+						{
+							// T or F means change the existing decision to that value
+							p_surviving = result->LogicalAtIndex(0, nullptr);
+						}
+						else if ((result_type == EidosValueType::kValueObject) &&
+								 (result->Count() == 1) &&
+								 (((EidosValue_Object *)result)->Class() == gSLiM_Individual_Class))
+						{
+							// a Subpopulation object means the individual should move to that subpop (and live); this is done in a post-pass
+							p_surviving = true;
+							
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplySurvivalCallbacks): (internal error) moving individuals with survival() callbacks is not yet implemented." << EidosTerminate(survival_callback->identifier_token_);
+						}
+						else
+						{
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplySurvivalCallbacks): survival() callbacks must provide a return value of NULL, T, F, or object<Subpopulation>$." << EidosTerminate(survival_callback->identifier_token_);
+						}
+					}
+					catch (...)
+					{
+						throw;
+					}
+				}
+			}
+		}
+	}
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+	SLIM_PROFILE_BLOCK_END(population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)]);
+#endif
+	
+	return p_surviving;
+}
+
+void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Genome **genome_data = parent_genomes_.data();
@@ -3271,6 +3398,7 @@ void Subpopulation::ViabilitySelection(void)
 	int females_deceased = 0;
 	bool individuals_died = false;
 	bool pedigrees_enabled = population_.sim_.PedigreesEnabled();
+	bool no_callbacks = (p_survival_callbacks.size() == 0);
 	
 	// clear lifetime reproductive outputs, in preparation for new values
 	if (pedigrees_enabled)
@@ -3286,9 +3414,21 @@ void Subpopulation::ViabilitySelection(void)
 		double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
 		bool survived;
 		
-		if (fitness <= 0.0)			survived = false;
-		else if (fitness >= 1.0)	survived = true;
-		else						survived = (Eidos_rng_uniform(EIDOS_GSL_RNG) < fitness);
+		if (no_callbacks)
+		{
+			if (fitness <= 0.0)			survived = false;
+			else if (fitness >= 1.0)	survived = true;
+			else						survived = (Eidos_rng_uniform(EIDOS_GSL_RNG) < fitness);
+		}
+		else
+		{
+			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);		// always need a draw to pass to the callback; since fitness is usually in (0,1) this should have little impact
+			
+			survived = (draw < fitness);
+			
+			// run the survival() callbacks to allow the above decision to be modified
+			survived = ApplySurvivalCallbacks(p_survival_callbacks, individual, fitness, draw, survived);
+		}
 		
 		if (survived)
 		{
@@ -4705,8 +4845,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	SLiMSim &sim = population_.sim_;
 	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() is not available in WF models." << EidosTerminate();
-	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() must be called directly from an early() or late() event." << EidosTerminate();
+	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() must be called directly from a first(), early(), or late() event." << EidosTerminate();
 	
 	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
 	int migrant_count = migrants_value->Count();
@@ -5830,8 +5970,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 	SLiMSim &sim = population_.sim_;
 	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() is not available in WF models." << EidosTerminate();
-	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() must be called directly from an early() or late() event." << EidosTerminate();
+	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() must be called directly from a first(), early(), or late() event." << EidosTerminate();
 	
 	population_.RemoveSubpopulation(*this);
 	

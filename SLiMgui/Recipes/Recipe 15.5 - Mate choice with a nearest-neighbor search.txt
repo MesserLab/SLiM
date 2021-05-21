@@ -24,10 +24,11 @@ initialize() {
 	inds = sim.subpopulations.individuals;
 	competition = i1.totalOfNeighborStrengths(inds);
 	inds.fitnessScaling = 1.1 - competition / size(inds);
-	
+}
+first() {
 	i2.evaluate();
 }
-1: mateChoice() {
+mateChoice() {
 	// nearest-neighbor spatial mate choice
 	neighbors = i2.nearestNeighbors(individual, 3);
 	return (size(neighbors) ? sample(neighbors, 1) else float(0));

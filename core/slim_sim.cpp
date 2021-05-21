@@ -78,7 +78,8 @@ std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage)
 	switch (p_stage)
 	{
 		// some of these are not user-visible
-		case SLiMGenerationStage::kStage0PreGeneration: return "begin";
+		case SLiMGenerationStage::kStagePreGeneration: return "begin";
+		case SLiMGenerationStage::kWFStage0ExecuteFirstScripts: return "first";
 		case SLiMGenerationStage::kWFStage1ExecuteEarlyScripts: return "early";
 		case SLiMGenerationStage::kWFStage2GenerateOffspring: return "reproduction";
 		case SLiMGenerationStage::kWFStage3RemoveFixedMutations: return "tally";
@@ -86,14 +87,15 @@ std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage)
 		case SLiMGenerationStage::kWFStage5ExecuteLateScripts: return "late";
 		case SLiMGenerationStage::kWFStage6CalculateFitness: return "fitness";
 		case SLiMGenerationStage::kWFStage7AdvanceGenerationCounter: return "end";
+		case SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts: return "first";
 		case SLiMGenerationStage::kNonWFStage1GenerateOffspring: return "reproduction";
 		case SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts: return "early";
 		case SLiMGenerationStage::kNonWFStage3CalculateFitness: return "fitness";
-		case SLiMGenerationStage::kNonWFStage4SurvivalSelection: return "selection";
+		case SLiMGenerationStage::kNonWFStage4SurvivalSelection: return "survival";
 		case SLiMGenerationStage::kNonWFStage5RemoveFixedMutations: return "tally";
 		case SLiMGenerationStage::kNonWFStage6ExecuteLateScripts: return "late";
 		case SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter: return "end";
-		case SLiMGenerationStage::kStage8PostGeneration: return "console";
+		case SLiMGenerationStage::kStagePostGeneration: return "console";
 	}
 	
 	EIDOS_TERMINATION << "ERROR (StringForSLiMGenerationStage): (internal) unrecognized generation stage." << EidosTerminate();
@@ -1670,6 +1672,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 	
 	if (!script_block_types_cached_)
 	{
+		cached_first_events_.clear();
 		cached_early_events_.clear();
 		cached_late_events_.clear();
 		cached_initialize_callbacks_.clear();
@@ -1681,6 +1684,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 		cached_modifychild_callbacks_.clear();
 		cached_recombination_callbacks_.clear();
 		cached_mutation_callbacks_.clear();
+		cached_survival_callbacks_.clear();
 		cached_reproduction_callbacks_.clear();
 		cached_userdef_functions_.clear();
 		
@@ -1700,6 +1704,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 		{
 			switch (script_block->type_)
 			{
+				case SLiMEidosBlockType::SLiMEidosEventFirst:				cached_first_events_.push_back(script_block);				break;
 				case SLiMEidosBlockType::SLiMEidosEventEarly:				cached_early_events_.push_back(script_block);				break;
 				case SLiMEidosBlockType::SLiMEidosEventLate:				cached_late_events_.push_back(script_block);				break;
 				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		cached_initialize_callbacks_.push_back(script_block);		break;
@@ -1729,6 +1734,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		cached_modifychild_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	cached_recombination_callbacks_.push_back(script_block);	break;
 				case SLiMEidosBlockType::SLiMEidosMutationCallback:			cached_mutation_callbacks_.push_back(script_block);			break;
+				case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			cached_survival_callbacks_.push_back(script_block);			break;
 				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		cached_reproduction_callbacks_.push_back(script_block);		break;
 				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		cached_userdef_functions_.push_back(script_block);			break;
 				case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
@@ -1758,6 +1764,7 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 	
 	switch (p_event_type)
 	{
+		case SLiMEidosBlockType::SLiMEidosEventFirst:				block_list = &cached_first_events_;						break;
 		case SLiMEidosBlockType::SLiMEidosEventEarly:				block_list = &cached_early_events_;						break;
 		case SLiMEidosBlockType::SLiMEidosEventLate:				block_list = &cached_late_events_;						break;
 		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		block_list = &cached_initialize_callbacks_;				break;
@@ -1768,6 +1775,7 @@ std::vector<SLiMEidosBlock*> SLiMSim::ScriptBlocksMatching(slim_generation_t p_g
 		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		block_list = &cached_modifychild_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	block_list = &cached_recombination_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosMutationCallback:			block_list = &cached_mutation_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			block_list = &cached_survival_callbacks_;				break;
 		case SLiMEidosBlockType::SLiMEidosReproductionCallback:		block_list = &cached_reproduction_callbacks_;			break;
 		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		block_list = &cached_userdef_functions_;				break;
 		case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
@@ -2395,8 +2403,12 @@ void SLiMSim::RunInitializeCallbacks(void)
 		std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 		
 		for (auto script_block : script_blocks)
+		{
 			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): reproduction() callbacks may not be defined in WF models." << EidosTerminate(script_block->identifier_token_);
+			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosSurvivalCallback)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): survival() callbacks may not be defined in WF models." << EidosTerminate(script_block->identifier_token_);
+		}
 	}
 	if (!sex_enabled_)
 	{
@@ -2465,7 +2477,7 @@ void SLiMSim::RunInitializeCallbacks(void)
 	if (time_start_ == SLIM_MAX_GENERATION + 1)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::RunInitializeCallbacks): No Eidos event found to start the simulation." << EidosTerminate();
 	
-	// start at the beginning
+	// start at the beginning; note that tree_seq_generation_ will not equal generation_ until after reproduction
 	SetGeneration(time_start_);
 	
 	// set up the "sim" symbol now that initialization is complete
@@ -3024,7 +3036,7 @@ slim_generation_t SLiMSim::FirstGeneration(void)
 	// Figure out our first generation; it is the earliest generation in which an Eidos event is set up to run,
 	// since an Eidos event that adds a subpopulation is necessary to get things started
 	for (auto script_block : script_blocks)
-		if (((script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) || (script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+		if (((script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) || (script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) || (script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
 			&& (script_block->start_generation_ < first_gen) && (script_block->start_generation_ > 0))
 			first_gen = script_block->start_generation_;
 	
@@ -3061,7 +3073,8 @@ void SLiMSim::SetGeneration(slim_generation_t p_new_generation)
 	
 	// The tree sequence generation increments when offspring generation occurs, not at the ends of generations as delineated by SLiM.
 	// This prevents the tree sequence code from seeing two "generations" with the same value for the generation counter.
-	if ((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() < SLiMGenerationStage::kWFStage2GenerateOffspring))
+	if (((ModelType() == SLiMModelType::kModelTypeWF) && (GenerationStage() < SLiMGenerationStage::kWFStage2GenerateOffspring)) ||
+		((ModelType() == SLiMModelType::kModelTypeNonWF) && (GenerationStage() < SLiMGenerationStage::kNonWFStage1GenerateOffspring)))
 		tree_seq_generation_ = generation_ - 1;
 	else
 		tree_seq_generation_ = generation_;
@@ -3145,7 +3158,7 @@ bool SLiMSim::_RunOneGeneration(void)
 	//
 	// Stage 0: Pre-generation bookkeeping
 	//
-	generation_stage_ = SLiMGenerationStage::kStage0PreGeneration;
+	generation_stage_ = SLiMGenerationStage::kStagePreGeneration;
 	
 	// Define the current script around each generation execution, for error reporting
 	gEidosErrorContext.currentScript = script_;
@@ -3233,6 +3246,61 @@ bool SLiMSim::_RunOneGenerationWF(void)
 	
 	// ******************************************************************
 	//
+	// Stage 0: Execute first() script events for the current generation
+	//
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_START();
+#endif
+		
+		//std::cout << "WF first() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
+		generation_stage_ = SLiMGenerationStage::kWFStage0ExecuteFirstScripts;
+		
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1);
+		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosEventFirst;
+		
+		for (auto script_block : first_blocks)
+		{
+			if (script_block->active_)
+			{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				SLIM_PROFILE_BLOCK_START_NESTED();
+#endif
+				
+				population_.ExecuteScript(script_block, generation_, *chromosome_);
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				SLIM_PROFILE_BLOCK_END_NESTED(profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventFirst)]);
+#endif
+			}
+		}
+		
+		executing_block_type_ = old_executing_block_type;
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
+#endif
+	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
+	
+	
+	// ******************************************************************
+	//
 	// Stage 1: Execute early() script events for the current generation
 	//
 	{
@@ -3275,7 +3343,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
 #endif
 	}
 	
@@ -3430,7 +3498,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
 #endif
 	}
 	
@@ -3474,7 +3542,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
 #endif
 	}
 	
@@ -3501,7 +3569,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
 #endif
 	}
 	
@@ -3556,7 +3624,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
 #endif
 	}
 	
@@ -3590,7 +3658,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
 #endif
 		
 #ifdef SLIMGUI
@@ -3634,7 +3702,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 			
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
+			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[8]);
 #endif
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
@@ -3652,7 +3720,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		// note that tree_seq_generation_ was incremented earlier!
 		
 		// Use a special generation stage for the interstitial space between generations, when Eidos console input runs
-		generation_stage_ = SLiMGenerationStage::kStage8PostGeneration;
+		generation_stage_ = SLiMGenerationStage::kStagePostGeneration;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosErrorContext.currentScript = nullptr;
@@ -3701,9 +3769,68 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 	// ******************************************************************
 	//
+	// Stage 0: Execute first() script events for the current generation
+	//
+	{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_START();
+#endif
+		
+		generation_stage_ = SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts;
+		
+		//std::cout << "nonWF first() events, generation_ == " << generation_ << ", tree_seq_generation_ == " << tree_seq_generation_ << std::endl;
+		
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1);
+		
+		SLiMEidosBlockType old_executing_block_type = executing_block_type_;
+		executing_block_type_ = SLiMEidosBlockType::SLiMEidosEventFirst;
+		
+		for (auto script_block : first_blocks)
+		{
+			if (script_block->active_)
+			{
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				SLIM_PROFILE_BLOCK_START_NESTED();
+#endif
+				
+				population_.ExecuteScript(script_block, generation_, *chromosome_);
+				
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+				// PROFILING
+				SLIM_PROFILE_BLOCK_END_NESTED(profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventFirst)]);
+#endif
+			}
+		}
+		
+		executing_block_type_ = old_executing_block_type;
+		
+		// the stage is done, so deregister script blocks as requested
+		DeregisterScheduledScriptBlocks();
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
+#endif
+	}
+	
+#if DEBUG
+	// Check the integrity of all the information in the individuals and genomes of the parental population
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
+	
+	
+	// ******************************************************************
+	//
 	// Stage 1: Generate offspring: call reproduce() callbacks
 	//
 	{
+		// increment the tree-seq generation at the start of reproduction; note that in first() events it is one less than generation_!
+		tree_seq_generation_++;
+		tree_seq_generation_offset_ = 0;
+
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		// zero out offspring counts used for SLiMgui's display
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
@@ -3825,7 +3952,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
 #endif
 	}
 	
@@ -3883,7 +4010,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
 #endif
 	}
 	
@@ -3920,7 +4047,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
 #endif
 	}
 	
@@ -3937,12 +4064,58 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage4SurvivalSelection;
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			subpop_pair.second->ViabilitySelection();
+		std::vector<SLiMEidosBlock*> survival_callbacks = ScriptBlocksMatching(generation_, SLiMEidosBlockType::SLiMEidosSurvivalCallback, -1, -1, -1);
+		bool survival_callbacks_present = survival_callbacks.size();
+		bool no_active_callbacks = true;
+		
+		// if there are no active callbacks, we can pretend there are no callbacks at all
+		if (survival_callbacks_present)
+		{
+			for (SLiMEidosBlock *callback : survival_callbacks)
+				if (callback->active_)
+				{
+					no_active_callbacks = false;
+					break;
+				}
+		}
+		
+		if (no_active_callbacks)
+		{
+			// Survival is simple viability selection without callbacks
+			std::vector<SLiMEidosBlock*> no_survival_callbacks;
+			
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+				subpop_pair.second->ViabilitySelection(no_survival_callbacks);
+		}
+		else
+		{
+			// Survival is governed by callbacks, per subpopulation
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+			{
+				slim_objectid_t subpop_id = subpop_pair.first;
+				Subpopulation *subpop = subpop_pair.second;
+				std::vector<SLiMEidosBlock*> subpop_survival_callbacks;
+				
+				// Get survival callbacks that apply to this subpopulation
+				for (SLiMEidosBlock *callback : survival_callbacks)
+				{
+					slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
+					
+					if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
+						subpop_survival_callbacks.emplace_back(callback);
+				}
+				
+				// Handle survival, using the callbacks
+				subpop->ViabilitySelection(subpop_survival_callbacks);
+			}
+			
+			// the stage is done, so deregister script blocks as requested
+			DeregisterScheduledScriptBlocks();
+		}
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
 #endif
 	}
 	
@@ -3979,7 +4152,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
 #endif
 	}
 	
@@ -4038,7 +4211,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
+		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
 #endif
 	}
 	
@@ -4088,7 +4261,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 			
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 			// PROFILING
-			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
+			SLIM_PROFILE_BLOCK_END(profile_stage_totals_[8]);
 #endif
 			
 			// note that this causes simplification, so it will confuse the auto-simplification code
@@ -4100,17 +4273,15 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		for (LogFile *log_file : log_file_registry_)
 			log_file->GenerationEndCallout();
 		
-		// Advance the generation counter
+		// Advance the generation counter; note that tree_seq_generation_ is incremented after first() events in the next generation!
 		cached_value_generation_.reset();
 		generation_++;
-		tree_seq_generation_++;
-		tree_seq_generation_offset_ = 0;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			subpop_pair.second->IncrementIndividualAges();
 		
 		// Use a special generation stage for the interstitial space between generations, when Eidos console input runs
-		generation_stage_ = SLiMGenerationStage::kStage8PostGeneration;
+		generation_stage_ = SLiMGenerationStage::kStagePostGeneration;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosErrorContext.currentScript = nullptr;
@@ -6523,7 +6694,9 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	
 	if (ModelType() == SLiMModelType::kModelTypeWF) {
 		metadata["SLiM"]["model_type"] = "WF";
-		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+		if (GenerationStage() == SLiMGenerationStage::kWFStage0ExecuteFirstScripts) {
+			metadata["SLiM"]["stage"] = "first";
+		} else if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
 			metadata["SLiM"]["stage"] = "early";
 		} else {
 			assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
@@ -6532,7 +6705,9 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	} else {
 		assert(ModelType() == SLiMModelType::kModelTypeNonWF);
 		metadata["SLiM"]["model_type"] = "nonWF";
-		if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+		if (GenerationStage() == SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) {
+			metadata["SLiM"]["stage"] = "first";
+		} else if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
 			metadata["SLiM"]["stage"] = "early";
 		} else {
 			assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
@@ -6682,7 +6857,9 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	// note high overlap with WriteTreeSequenceMetadata
 	if (ModelType() == SLiMModelType::kModelTypeWF) {
 		j["parameters"]["model_type"] = "WF";
-		if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+		if (GenerationStage() == SLiMGenerationStage::kWFStage0ExecuteFirstScripts) {
+			j["parameters"]["stage"] = "first";
+		} else if (GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
 			j["parameters"]["stage"] = "early";
 		} else {
 			assert(GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
@@ -6691,7 +6868,9 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	} else {
 		assert(ModelType() == SLiMModelType::kModelTypeNonWF);
 		j["parameters"]["model_type"] = "nonWF";
-		if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+		if (GenerationStage() == SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) {
+			j["parameters"]["stage"] = "first";
+		} else if (GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
 			j["parameters"]["stage"] = "early";
 		} else {
 			assert(GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);

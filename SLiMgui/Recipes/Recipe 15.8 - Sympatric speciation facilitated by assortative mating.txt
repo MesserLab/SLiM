@@ -41,8 +41,9 @@ fitness(m2) { return 1.0; }
 	competition = sapply(inds, "sum(i1.strength(applyValue));");
 	effects = 1.0 - competition / size(inds);
 	inds.fitnessScaling = inds.fitnessScaling * effects;
-	
-	// evaluate mate choice in preparation for next generation
+}
+first() {
+	// evaluate mate choice in preparation for reproduction
 	i2.evaluate();
 }
 mateChoice() {

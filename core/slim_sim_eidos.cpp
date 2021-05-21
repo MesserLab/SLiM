@@ -1942,13 +1942,15 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_outputUsage:					return ExecuteMethod_outputUsage(p_method_id, p_arguments, p_interpreter);
 		case gID_readFromPopulationFile:		return ExecuteMethod_readFromPopulationFile(p_method_id, p_arguments, p_interpreter);
 		case gID_recalculateFitness:			return ExecuteMethod_recalculateFitness(p_method_id, p_arguments, p_interpreter);
+		case gID_registerFirstEvent:
 		case gID_registerEarlyEvent:
-		case gID_registerLateEvent:				return ExecuteMethod_registerEarlyLateEvent(p_method_id, p_arguments, p_interpreter);
+		case gID_registerLateEvent:				return ExecuteMethod_registerFirstEarlyLateEvent(p_method_id, p_arguments, p_interpreter);
 		case gID_registerFitnessCallback:		return ExecuteMethod_registerFitnessCallback(p_method_id, p_arguments, p_interpreter);
 		case gID_registerInteractionCallback:	return ExecuteMethod_registerInteractionCallback(p_method_id, p_arguments, p_interpreter);
 		case gID_registerMateChoiceCallback:
 		case gID_registerModifyChildCallback:
-		case gID_registerRecombinationCallback:	return ExecuteMethod_registerMateModifyRecCallback(p_method_id, p_arguments, p_interpreter);
+		case gID_registerRecombinationCallback:
+		case gID_registerSurvivalCallback:		return ExecuteMethod_registerMateModifyRecSurvCallback(p_method_id, p_arguments, p_interpreter);
 		case gID_registerMutationCallback:		return ExecuteMethod_registerMutationCallback(p_method_id, p_arguments, p_interpreter);
 		case gID_registerReproductionCallback:	return ExecuteMethod_registerReproductionCallback(p_method_id, p_arguments, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_interpreter);
@@ -3044,10 +3046,11 @@ void SLiMSim::CheckScheduling(slim_generation_t p_target_gen, SLiMGenerationStag
 		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckScheduling): event/callback scheduled for the current generation, but for the currently executing generation cycle stage, would not run." << EidosTerminate();
 }
 
+//	*********************	– (object<SLiMEidosBlock>$)registerFirstEvent(Nis$ id, string$ source, [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerEarlyEvent(Nis$ id, string$ source, [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerLateEvent(Nis$ id, string$ source, [Ni$ start = NULL], [Ni$ end = NULL])
 //
-EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *id_value = p_arguments[0].get();
@@ -3063,16 +3066,34 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerEarlyLateEvent(EidosGlobalStringID 
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
-	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerEarlyLateEvent): register" << ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late") << "Event() requires start <= end." << EidosTerminate();
+	SLiMEidosBlockType target_type;
 	
-	SLiMGenerationStage target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ?
-		((p_method_id == gID_registerEarlyEvent) ? SLiMGenerationStage::kWFStage1ExecuteEarlyScripts : SLiMGenerationStage::kWFStage5ExecuteLateScripts) : 
-		((p_method_id == gID_registerEarlyEvent) ? SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts : SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+	if (p_method_id == gID_registerFirstEvent)
+		target_type = SLiMEidosBlockType::SLiMEidosEventFirst;
+	else if (p_method_id == gID_registerEarlyEvent)
+		target_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+	else if (p_method_id == gID_registerLateEvent)
+		target_type = SLiMEidosBlockType::SLiMEidosEventLate;
+	else
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFirstEarlyLateEvent): (internal error) unrecognized p_method_id." << EidosTerminate();
+	
+	if (start_generation > end_generation)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFirstEarlyLateEvent): register" << ((p_method_id == gID_registerFirstEvent) ? "First" : ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late")) << "Event() requires start <= end." << EidosTerminate();
+	
+	SLiMGenerationStage target_stage;
+	
+	if (target_type == SLiMEidosBlockType::SLiMEidosEventFirst)
+		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage0ExecuteFirstScripts : SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts;
+	else if (target_type == SLiMEidosBlockType::SLiMEidosEventEarly)
+		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage1ExecuteEarlyScripts : SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts;
+	else if (target_type == SLiMEidosBlockType::SLiMEidosEventLate)
+		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage5ExecuteLateScripts : SLiMGenerationStage::kNonWFStage6ExecuteLateScripts;
+	else
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerFirstEarlyLateEvent): (internal error) unrecognized target_type." << EidosTerminate();
 	
 	CheckScheduling(start_generation, target_stage);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, (p_method_id == gID_registerEarlyEvent) ? SLiMEidosBlockType::SLiMEidosEventEarly : SLiMEidosBlockType::SLiMEidosEventLate, start_generation, end_generation);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, target_type, start_generation, end_generation);
 	
 	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
@@ -3167,13 +3188,17 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 //	*********************	– (object<SLiMEidosBlock>$)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //	*********************	– (object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+//	*********************	– (object<SLiMEidosBlock>$)registerSurvivalCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 //
-EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (p_method_id == gID_registerMateChoiceCallback)
 		if (ModelType() == SLiMModelType::kModelTypeNonWF)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecSurvCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
+	if (p_method_id == gID_registerSurvivalCallback)
+		if (ModelType() == SLiMModelType::kModelTypeWF)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecSurvCallback): method -registerSurvivalCallback() is not available in WF models." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
 	EidosValue *source_value = p_arguments[1].get();
@@ -3194,13 +3219,16 @@ EidosValue_SP SLiMSim::ExecuteMethod_registerMateModifyRecCallback(EidosGlobalSt
 		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
 	
 	if (start_generation > end_generation)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecCallback): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires start <= end." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecSurvCallback): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires start <= end." << EidosTerminate();
 	
 	SLiMEidosBlockType block_type;
 	
 	if (p_method_id == gID_registerMateChoiceCallback)					block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 	else if (p_method_id == gID_registerModifyChildCallback)			block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-	else /* if (p_method_id == gID_registerRecombinationCallback) */	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+	else if (p_method_id == gID_registerRecombinationCallback)			block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+	else if (p_method_id == gID_registerSurvivalCallback)				block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
+	else
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_registerMateModifyRecSurvCallback): (internal error) unrecognized callback type." << EidosTerminate();
 	
 	CheckScheduling(start_generation, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage2GenerateOffspring : SLiMGenerationStage::kNonWFStage1GenerateOffspring);
 	
@@ -3341,9 +3369,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 	{
 		switch (block->type_)
 		{
+			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMGenerationStage::kWFStage0ExecuteFirstScripts; break;
 			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts; break;
 			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMGenerationStage::kWFStage5ExecuteLateScripts; break;
-			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStage0PreGeneration; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStagePreGeneration; break;
 			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMGenerationStage::kWFStage6CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMGenerationStage::kWFStage6CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMGenerationStage::kWFStage7AdvanceGenerationCounter; break;
@@ -3351,26 +3380,33 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
-			default: EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMGenerationStage::kWFStage4SwapGenerations; break;				// never hit
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;				// never hit
+			case SLiMEidosBlockType::SLiMEidosNoBlockType:
+			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
 		}
 	}
 	else
 	{
 		switch (block->type_)
 		{
+			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts; break;
 			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts; break;
 			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMGenerationStage::kNonWFStage6ExecuteLateScripts; break;
-			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStage0PreGeneration; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStagePreGeneration; break;
 			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMGenerationStage::kNonWFStage3CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMGenerationStage::kNonWFStage3CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter; break;
-			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;			// never hit
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMGenerationStage::kNonWFStage4SurvivalSelection; break;
 			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
-			default: EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+			case SLiMEidosBlockType::SLiMEidosNoBlockType:
+			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
 		}
 	}
 	
@@ -3675,9 +3711,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	
 	SLiMGenerationStage gen_stage = GenerationStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from an early() or late() event." << EidosTerminate();
+	if ((gen_stage != SLiMGenerationStage::kWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from a first(), early(), or late() event." << EidosTerminate();
 	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may not be called from inside a callback." << EidosTerminate();
 	
@@ -3741,9 +3777,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	
 	SLiMGenerationStage gen_stage = GenerationStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called from an early() or late() event." << EidosTerminate();
+	if ((gen_stage != SLiMGenerationStage::kWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
+		(gen_stage != SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called from a first(), early(), or late() event." << EidosTerminate();
 	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): treeSeqOutput() may not be called from inside a callback." << EidosTerminate();
 	
@@ -3844,6 +3880,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputUsage, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("generation", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFirstEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerLateEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_SN("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -3851,6 +3888,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerModifyChildCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerRecombinationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerSurvivalCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMutationCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("generations", gStaticEidosValueNULL));

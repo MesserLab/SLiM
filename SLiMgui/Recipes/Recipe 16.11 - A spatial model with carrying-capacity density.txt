@@ -21,6 +21,10 @@ initialize() {
 	// spatial mate choice
 	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.1);
 }
+first() {
+	// look for mates
+	i2.evaluate();
+}
 reproduction() {
 	// choose our nearest neighbor as a mate, within the max distance
 	mate = i2.nearestNeighbors(individual, 1);
@@ -60,9 +64,6 @@ late()
 		newPos = ind.spatialPosition + runif(2, -0.01, 0.01);
 		ind.setSpatialPosition(p1.pointPeriodic(newPos));
 	}
-	
-	// then look for mates
-	i2.evaluate();
 }
 10000 late() {
 	sim.outputFixedMutations();

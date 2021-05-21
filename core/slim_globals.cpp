@@ -1171,6 +1171,7 @@ const std::string &gStr_outputMutations = EidosRegisteredString("outputMutations
 const std::string &gStr_outputUsage = EidosRegisteredString("outputUsage", gID_outputUsage);
 const std::string &gStr_readFromPopulationFile = EidosRegisteredString("readFromPopulationFile", gID_readFromPopulationFile);
 const std::string &gStr_recalculateFitness = EidosRegisteredString("recalculateFitness", gID_recalculateFitness);
+const std::string &gStr_registerFirstEvent = EidosRegisteredString("registerFirstEvent", gID_registerFirstEvent);
 const std::string &gStr_registerEarlyEvent = EidosRegisteredString("registerEarlyEvent", gID_registerEarlyEvent);
 const std::string &gStr_registerLateEvent = EidosRegisteredString("registerLateEvent", gID_registerLateEvent);
 const std::string &gStr_registerFitnessCallback = EidosRegisteredString("registerFitnessCallback", gID_registerFitnessCallback);
@@ -1179,6 +1180,7 @@ const std::string &gStr_registerMateChoiceCallback = EidosRegisteredString("regi
 const std::string &gStr_registerModifyChildCallback = EidosRegisteredString("registerModifyChildCallback", gID_registerModifyChildCallback);
 const std::string &gStr_registerRecombinationCallback = EidosRegisteredString("registerRecombinationCallback", gID_registerRecombinationCallback);
 const std::string &gStr_registerMutationCallback = EidosRegisteredString("registerMutationCallback", gID_registerMutationCallback);
+const std::string &gStr_registerSurvivalCallback = EidosRegisteredString("registerSurvivalCallback", gID_registerSurvivalCallback);
 const std::string &gStr_registerReproductionCallback = EidosRegisteredString("registerReproductionCallback", gID_registerReproductionCallback);
 const std::string &gStr_rescheduleScriptBlock = EidosRegisteredString("rescheduleScriptBlock", gID_rescheduleScriptBlock);
 const std::string &gStr_simulationFinished = EidosRegisteredString("simulationFinished", gID_simulationFinished);
@@ -1262,6 +1264,8 @@ const std::string &gStr_breakpoints = EidosRegisteredString("breakpoints", gID_b
 const std::string &gStr_receiver = EidosRegisteredString("receiver", gID_receiver);
 const std::string &gStr_exerter = EidosRegisteredString("exerter", gID_exerter);
 const std::string &gStr_originalNuc = EidosRegisteredString("originalNuc", gID_originalNuc);
+const std::string &gStr_surviving = EidosRegisteredString("surviving", gID_surviving);
+const std::string &gStr_draw = EidosRegisteredString("draw", gID_draw);
 
 // SLiMgui instance name and methods
 const std::string &gStr_slimgui = EidosRegisteredString("slimgui", gID_slimgui);
@@ -1319,6 +1323,7 @@ const std::string &gStr_e = EidosRegisteredString("e", gID_e);
 const std::string &gStr_w = EidosRegisteredString("w", gID_w);
 const std::string &gStr_l = EidosRegisteredString("l", gID_l);
 //const std::string &gStr_s = EidosRegisteredString("s", gID_s);		now gEidosStr_s
+const std::string &gStr_first = EidosRegisteredString("first", gID_first);
 const std::string &gStr_early = EidosRegisteredString("early", gID_early);
 const std::string &gStr_late = EidosRegisteredString("late", gID_late);
 const std::string &gStr_initialize = EidosRegisteredString("initialize", gID_initialize);
@@ -1328,6 +1333,7 @@ const std::string &gStr_mateChoice = EidosRegisteredString("mateChoice", gID_mat
 const std::string &gStr_modifyChild = EidosRegisteredString("modifyChild", gID_modifyChild);
 const std::string &gStr_recombination = EidosRegisteredString("recombination", gID_recombination);
 const std::string &gStr_mutation = EidosRegisteredString("mutation", gID_mutation);
+const std::string &gStr_survival = EidosRegisteredString("survival", gID_survival);
 const std::string &gStr_reproduction = EidosRegisteredString("reproduction", gID_reproduction);
 
 

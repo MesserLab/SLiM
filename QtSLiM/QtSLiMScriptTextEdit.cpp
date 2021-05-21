@@ -490,6 +490,7 @@ void QtSLiMTextEdit::scriptHelpOptionClick(QString searchString)
     else if (searchString == "in")              searchString = "for statements";
     else if (searchString == "function")        searchString = "user-defined functions";
     // and SLiM substitutions; "initialize" is deliberately omitted here so that the initialize...() methods also come up
+    else if (searchString == "first")			searchString = "Eidos events";
     else if (searchString == "early")			searchString = "Eidos events";
 	else if (searchString == "late")			searchString = "Eidos events";
 	else if (searchString == "fitness")         searchString = "fitness() callbacks";
@@ -498,6 +499,7 @@ void QtSLiMTextEdit::scriptHelpOptionClick(QString searchString)
 	else if (searchString == "modifyChild")     searchString = "modifyChild() callbacks";
 	else if (searchString == "recombination")	searchString = "recombination() callbacks";
 	else if (searchString == "mutation")		searchString = "mutation() callbacks";
+	else if (searchString == "survival")		searchString = "survival() callbacks";
 	else if (searchString == "reproduction")	searchString = "reproduction() callbacks";
     
     // now send the search string on to the help window
@@ -907,6 +909,12 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                 if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("initialize", nullptr, kEidosValueMaskVOID)));
                 signature = callbackSig;
             }
+            else if (callName == "first")
+            {
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("first", nullptr, kEidosValueMaskVOID)));
+                signature = callbackSig;
+            }
             else if (callName == "early")
             {
                 static EidosCallSignature_CSP callbackSig = nullptr;
@@ -947,6 +955,12 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             {
                 static EidosCallSignature_CSP callbackSig = nullptr;
                 if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                signature = callbackSig;
+            }
+            else if (callName == "survival")
+            {
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("survival", nullptr, kEidosValueMaskNULL | kEidosValueMaskLogical | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "mutation")
@@ -1880,7 +1894,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                 // identifier like late(), and then the root node of the compound statement for the script block.  We want to
                 // decode the parts that are important to us, without the complication of making SLiMEidosBlock objects.
                 EidosASTNode *block_statement_root = nullptr;
-                SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+                SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosEventEarly;	// assume early() by default
                 
                 for (EidosASTNode *block_child : script_block_node->children_)
                 {
@@ -1890,7 +1904,8 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                     {
                         const std::string &child_string = child_token->token_string_;
                         
-                        if (child_string.compare(gStr_early) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+                        if (child_string.compare(gStr_first) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
+                        else if (child_string.compare(gStr_early) == 0)         block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
                         else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
                         else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
                         else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// can't distinguish global fitness callbacks, but no need to
@@ -1899,6 +1914,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                         else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
                         else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
                         else if (child_string.compare(gStr_mutation) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
+                        else if (child_string.compare(gStr_survival) == 0)		block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
                         else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
                         
                         // Check for an sX designation on a script block and, if found, add a symbol for it
@@ -1971,6 +1987,8 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                         
                         switch (block_type)
                         {
+                        case SLiMEidosBlockType::SLiMEidosEventFirst:
+                            break;
                         case SLiMEidosBlockType::SLiMEidosEventEarly:
                             break;
                         case SLiMEidosBlockType::SLiMEidosEventLate:
@@ -2033,6 +2051,13 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                             (*typeTable)->SetTypeForSymbol(gID_genome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
+                            break;
+                        case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
+                            (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_surviving,       EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+                            (*typeTable)->SetTypeForSymbol(gID_fitness,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+                            (*typeTable)->SetTypeForSymbol(gID_draw,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
                             break;
                         case SLiMEidosBlockType::SLiMEidosReproductionCallback:
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
@@ -2106,11 +2131,12 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     // have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
     // existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
     // This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-    // keywords like "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", "mutation",
-    // and "reproduction" are.
+    // keywords like "first", "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination",
+    // "mutation", "survival", and "reproduction" are.
     // Note that the strings here are display strings; they are fixed to contain newlines in insertCompletion()
     keywords->clear();
     (*keywords) << "initialize() { }";
+    (*keywords) << "first() { }";
     (*keywords) << "early() { }";
     (*keywords) << "late() { }";
     (*keywords) << "fitness() { }";
@@ -2119,6 +2145,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     (*keywords) << "modifyChild() { }";
     (*keywords) << "recombination() { }";
     (*keywords) << "mutation() { }";
+    (*keywords) << "survival() { }";
     (*keywords) << "reproduction() { }";
     (*keywords) << "function (void)name(void) { }";
     

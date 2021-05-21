@@ -38,10 +38,11 @@ initialize() {
 	competition = i1.totalOfNeighborStrengths(inds) / size(inds);
 	competition = pmin(competition, 0.99);
 	inds.fitnessScaling = 1.0 - competition;
-	
+}
+first() {
 	i2.evaluate();
 }
-1: mateChoice() {
+mateChoice() {
 	return i2.strength(individual);
 }
 modifyChild() {

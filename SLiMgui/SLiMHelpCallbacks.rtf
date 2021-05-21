@@ -61,16 +61,20 @@ Once all
 An Eidos event is a block of Eidos code that is executed every generation, within a generation range, to perform a desired task.  The syntax of an Eidos event declaration looks like one of these:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] \{ ... \}\uc0\u8232    [id] [gen1 [: gen2]] early() \{ ... \}\u8232    [id] [gen1 [: gen2]] late() \{ ... \}\
+\f3\fs18 \cf2    [id] [gen1 [: gen2]] first() \{ ... \}\uc0\u8232    [id] [gen1 [: gen2]] \{ ... \}\u8232    [id] [gen1 [: gen2]] early() \{ ... \}\u8232    [id] [gen1 [: gen2]] late() \{ ... \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 The first two declarations are exactly equivalent, and declare an 
+\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 The first declaration declares a 
+\f3\fs18 first()
+\f2\fs22  event that executes first thing in the generation cycle.  The second and third declarations are exactly equivalent, and declare an 
 \f3\fs18 early()
 \f2\fs22  event that executes relatively early in the generation cycle; the 
 \f3\fs18 early()
-\f2\fs22  designation is optional.  The third declaration declares a 
+\f2\fs22  designation is optional.  The fourth declaration declares a 
 \f3\fs18 late()
-\f2\fs22  event that executes near the end of the generation cycle.  Exactly when these events run depends upon whether the model is a WF model or a nonWF model.\
+\f2\fs22  event that executes near the end of the generation cycle.  Exactly when these events run depends upon whether the model is a WF model (see chapter 22 for details on the generation cycle in WF models) or a nonWF model (see chapter 23 for the same about nonWF models).\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The 
 \f3\fs18 id
 \f2\fs22  is an optional identifier like 
@@ -92,21 +96,35 @@ Then comes a generation or a range of generations, and then a block of Eidos cod
 \f3\fs18 \cf3    1000\cf2 :\cf3 5000\cf2  \{\uc0\u8232       catn(\cf4 sim\cf2 .generation);\uc0\u8232    \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 This would print the generation number in every generation in the specified range, which is obviously not very exciting.  The broader point is that the Eidos code in the braces 
+\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 This would print the generation number in every generation in the specified range, which is obviously not very exciting.  The broader point is that the Eidos code in the braces 
 \f3\fs18 \{\}
 \f2\fs22  is executed early in every generation within the specified range of generations.  In this case, the generation range is 
 \f3\fs18 1000
 \f2\fs22  to 
 \f3\fs18 5000
-\f2\fs22 , and so the Eidos event will be executed 4001 times.  A range of generations can be given, as in the example above, or a single generation can be given with a single integer:\
+\f2\fs22 , and so the Eidos event will be executed 4001 times (not 4000!).  A range of generations can be given, as in the example above, or a single generation can be given with a single integer:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf5    100\cf2  late() \{\uc0\u8232       print(\cf6 "Finished generation 100!"\cf2 );\uc0\u8232    \}\
+\f3\fs18 \cf5 \expnd0\expndtw0\kerning0
+   100\cf2  late() \{\uc0\u8232       print(\cf6 "Finished generation 100!"\cf2 );\uc0\u8232    \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 In fact, you can omit specifying a generation altogether, in which case the Eidos event runs every generation.  Since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of generations possible; however, that is more of a concern with the callbacks we will look at later in this chapter, since they might be called many time in every generation, whereas 
+\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 The generation range may also be incompletely specified, with a somewhat idiosyncratic syntax.  A range of 
+\f3\fs18 1000:
+\f2\fs22  would specify that the event should run in generation 
+\f3\fs18 1000
+\f2\fs22  and every subsequent generation until the model finishes; a range of 
+\f3\fs18 :1000
+\f2\fs22  would similarly specify that the event should run in the first generation executed, and every subsequent generation, up to and including generation 
+\f3\fs18 1000
+\f2\fs22 .  (You might notice that the grammar shown above for the generation range is not quite correct; see section 27.1 for the correct, complete grammar.)\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
+In fact, you can omit specifying a generation altogether, in which case the Eidos event runs every generation.  Since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of generations possible; however, that is more of a concern with the callbacks we will look at later in this chapter, since they might be called many time in every generation, whereas 
+\f3\fs18 first()
+\f2\fs22 , 
 \f3\fs18 early()
-\f2\fs22  and 
+\f2\fs22 , and 
 \f3\fs18 late()
 \f2\fs22  events will just be called once per generation.\
 The generations specified for a Eidos event block can be any positive integer.  All scripts that apply to a given time point will be run in the order in which they are given; scripts specified higher in the input file will run before those specified lower.  Sometimes it is desirable to have a script block execute in a generation which is not fixed, but instead depends upon some parameter, defined constant, or calculation; this may be achieved by rescheduling the script block with the 
@@ -1006,7 +1024,7 @@ When a
 A common alternative pattern is for a 
 \f3\fs18 reproduction()
 \f2\fs22  callback to ignore the focal individual and generate all of the offspring for the current generation, from all parents.  The callback then sets 
-\f3\fs18 self-active
+\f3\fs18 self.active
 \f2\fs22  to 
 \f3\fs18 0
 \f2\fs22 , preventing itself from being called again in the current generation; this callback design therefore executes once per generation.  This can be useful if individuals influence each other\'92s offspring generation (as in a monogamous-mating model, for example); it can also simply be more efficient when producing offspring in bulk.\
@@ -1037,8 +1055,8 @@ In addition to the standard SLiM globals, then, a
 It is possible, of course, to do actions unrelated to reproduction inside 
 \f3\fs18 reproduction()
 \f2\fs22  callbacks, but it is not recommended.  The 
-\f3\fs18 late()
-\f2\fs22  event phase of the previous generation provides an opportunity for actions immediately before reproduction, and the 
+\f3\fs18 early()
+\f2\fs22  event phase of the current generation provides an opportunity for actions immediately before reproduction, and the 
 \f3\fs18 early()
 \f2\fs22  event phase of the current generation provides an opportunity for actions immediately after reproduction, so only actions that are intertwined with reproduction itself should occur in 
 \f3\fs18 reproduction()
@@ -1175,13 +1193,18 @@ The callback may perform a variety of actions related to the generated mutation.
 \f2\fs22  (it could be retrieved with 
 \f3\fs18 genome.nucleotides()
 \f2\fs22 , but SLiM already has it at hand anyway).  All of these modifications to the new mutation may be based upon the state of the parent, including its genetic state, or upon any other model state.\
-It is possible, of course, to do actions unrelated to mutation inside 
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 It is possible, of course, to do actions unrelated to mutation inside 
 \f3\fs18 mutation()
 \f2\fs22  callbacks, but it is not recommended; 
+\f3\fs18 first()
+\f2\fs22 , 
 \f3\fs18 early()
-\f2\fs22  and 
+\f2\fs22 , and 
 \f3\fs18 late()
 \f2\fs22  events should be used for general-purpose scripting.  Besides providing conceptual clarity, following this design principle will also decrease the probability of bugs, since actions that are unrelated to mutation should not influence or be influenced by the dynamics of mutation.\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The proposed mutation will not appear in the 
 \f3\fs18 sim.mutations
 \f2\fs22  vector of segregating mutations until it has been added to a genome; it will therefore not be visible in that vector within its own 
@@ -1238,5 +1261,101 @@ Note that
 As with the other callback types, multiple 
 \f3\fs18 mutation()
 \f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each generated mutation to which they apply, in the order that the callbacks were registered.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.9  ITEM: 10. survival() callbacks\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\i0 \cf2 In nonWF models, a selection phase in the generation cycle results in mortality; individuals survive or die based upon their fitness.  In most cases this standard behavior is sufficient; but occasionally it can be useful to observe the survival decisions SLiM makes (to log out information about dying individuals, for example), to modify those decisions (influencing which individuals live and which die, perhaps based upon factors other than genetics), or even to short-circuit mortality completely (moving dead individuals into a \'93cold storage\'94 subpopulation for later use, perhaps).  To accomplish such goals, one can the 
+\f3\fs18 survival()
+\f2\fs22  callback mechanism to override SLiM\'92s default behavior.  Note that in WF models, since they always model non-overlapping generations, the entire parental generation dies in each generation regardless of fitness; 
+\f3\fs18 survival()
+\f2\fs22  callbacks therefore apply only to nonWF models.\
+A 
+\f3\fs18 survival()
+\f2\fs22  callback is defined with a syntax much like that of other callbacks:\
+\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+   \kerning1\expnd0\expndtw0 [id] [gen1 [: gen2]] survival([<subpop-id>]) \{ ... \}\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 The 
+\f3\fs18 survival()
+\f2\fs22  callback will be called during the selection phase of the generation cycle of nonWF models, during the generation(s) in which it is active.  By default it will be called once per individual in the entire population (whether slated for survival or not); it may optionally be restricted to apply only to individuals in a specified subpopulation, using the 
+\f3\fs18 <subpop-id>
+\f2\fs22  specifier.\
+When a 
+\f3\fs18 survival()
+\f2\fs22  callback is called, a focal individual has already been evaluated by SLiM regarding its survival; a final fitness value for the individual has been calculated, and a random uniform draw in 
+\f3\fs18 [0,1]
+\f2\fs22  has been generated that determines whether the individual is to survive (a draw less than the individual\'92s fitness) or die (a draw greater than or equal to the individual\'92s fitness).  The focal individual is provided to the callback, as is the subpopulation in which it resides.  Furthermore, the preliminary decision (whether the focal individual will survive or not), the focal individual\'92s fitness, and the random draw made by SLiM to determine survival are also provided to the callback.  The callback may return 
+\f3\fs18 NULL
+\f2\fs22  to accept SLiM\'92s decision, or may return 
+\f3\fs18 T
+\f2\fs22  to indicate that the individual should survive, or 
+\f3\fs18 F
+\f2\fs22  to indicate that it should die, regardless of its fitness and the random deviate drawn.  The callback may also return a singleton 
+\f3\fs18 Subpopulation
+\f2\fs22  object to indicate the individual should remain alive but should be moved to that subpopulation (note that calling 
+\f3\fs18 takeMigrants()
+\f2\fs22  during the survival phase is illegal, because SLiM is busy modifying the population\'92s internal state).\
+In addition to the standard SLiM globals, then, a 
+\f3\fs18 survival()
+\f2\fs22  callback is supplied with additional information passed through \'93pseudo-parameters\'94:\
+\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+   \kerning1\expnd0\expndtw0 individual
+\f2\fs22 	The focal individual that will live or die\
+
+\f3\fs18 \expnd0\expndtw0\kerning0
+   \kerning1\expnd0\expndtw0 subpop
+\f2\fs22 	The subpopulation to which the focal individual belongs\
+
+\f3\fs18 \expnd0\expndtw0\kerning0
+   \kerning1\expnd0\expndtw0 surviving
+\f2\fs22 	A 
+\f3\fs18 logical
+\f2\fs22  value indicating SLiM\'92s preliminary decision (
+\f3\fs18 T
+\f2\fs22  == survival)\
+
+\f3\fs18 \expnd0\expndtw0\kerning0
+   \kerning1\expnd0\expndtw0 fitness
+\f2\fs22 	The focal individual\'92s fitness\
+
+\f3\fs18 \expnd0\expndtw0\kerning0
+   \kerning1\expnd0\expndtw0 draw
+\f2\fs22 	SLiM\'92s random uniform deviate, which determined the preliminary decision
+\f3\fs18 \
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 These may be used in the 
+\f3\fs18 survival()
+\f2\fs22  callback to determine the final decision.\
+While 
+\f3\fs18 survival()
+\f2\fs22  callbacks are still being called, no decisions are put into effect; no individuals actually die, and none are moved to a new 
+\f3\fs18 Subpopulation
+\f2\fs22  if that was requested.  In effect, SLiM pre-plans the fate of every individual completely without modifying the model state at all.  After all 
+\f3\fs18 survival()
+\f2\fs22  callbacks have completed for every individual, the planned fates for every individual will then be executed, without any opportunity for further intervention through callbacks.  It is therefore legal to inspect subpopulations and individuals inside a 
+\f3\fs18 survival()
+\f2\fs22  callback, but it should be understood that previously made decisions about the fates of other individuals will not yet have any visible effect.  It is generally a good idea for the decisions rendered by 
+\f3\fs18 survival()
+\f2\fs22  callbacks to be independent anyway, to avoid biases due to order-dependency, since the order in which individuals are evaluated is not guaranteed to be random.\
+It is worth noting that if 
+\f3\fs18 survival()
+\f2\fs22  callbacks are used, \'93fitness\'94 in the model is then no longer really fitness; the model is making its own decisions about which individuals live and die, and those decisions are the true determinant of fitness in the biological sense.  A 
+\f3\fs18 survival()
+\f2\fs22  callback that makes its own decisions regarding survival with no regard for SLiM\'92s calculated fitness values can completely alter the pattern of selection in a population, rendering all of SLiM\'92s fitness machinery \'96 selection and dominance coefficients, fitnessScaling values, etc. \'96 completely irrelevant.  To avoid highly counterintuitive and confusing effects, it is thus generally a good idea to use of 
+\f3\fs18 survival()
+\f2\fs22  callbacks only when it is strictly necessary to achieve a desired outcome.\
+As with the other callback types, multiple 
+\f3\fs18 survival()
+\f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each individual evaluated, in the order that the callbacks were registered.\
+\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 \
 }

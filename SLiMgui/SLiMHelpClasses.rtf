@@ -2719,7 +2719,7 @@ You must explicitly call
 \f4\fs20  events and then individuals die just before 
 \f3\fs18 late()
 \f4\fs20  events (see the nonWF generation cycle diagram), so interactions will be invalidated twice during each generation cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
-\f3\fs18 late()
+\f3\fs18 first()
 \f4\fs20  event, while an interaction that influences fitness or mortality should usually be evaluated in an 
 \f3\fs18 early()
 \f4\fs20  event (and an interaction that affects both may need to be evaluated at both times).\
@@ -4238,6 +4238,10 @@ If the model is being profiled, or is executing forward to a generation number e
 \f4\fs20 \cf2 The current generation stage, as a 
 \f3\fs18 string
 \f4\fs20 .  The values of this property essentially mirror the generation stages of WF and nonWF models (see chapters 22 and 23).  Common values include 
+\f3\fs18 "first"
+\f4\fs20  (during execution of 
+\f3\fs18 first()
+\f4\fs20  events), 
 \f3\fs18 "early"
 \f4\fs20  (during execution of 
 \f3\fs18 early()
@@ -4245,7 +4249,9 @@ If the model is being profiled, or is executing forward to a generation number e
 \f3\fs18 "reproduction"
 \f4\fs20  (during offspring generation), 
 \f3\fs18 "fitness"
-\f4\fs20  (during fitness evaluation), and 
+\f4\fs20  (during fitness evaluation), 
+\f3\fs18 "survival"
+\f4\fs20  (while applying selection and mortality in nonWF models), and 
 \f3\fs18 "late"
 \f4\fs20  (during execution of 
 \f3\fs18 late()
@@ -4253,9 +4259,7 @@ If the model is being profiled, or is executing forward to a generation number e
 Other possible values include 
 \f3\fs18 "begin"
 \f4\fs20  (during internal setup before each generation), 
-\f3\fs18 "selection"
-\f4\fs20  (while applying selection and mortality in nonWF models), 
-\f3\fs18 "tally"
+\f3\fs18 \'94tally"
 \f4\fs20  (while tallying mutation reference counts and removing fixed mutations), 
 \f3\fs18 "swap"
 \f4\fs20  (while swapping the offspring generation into the parental generation in WF models), 
@@ -5137,6 +5141,38 @@ The optional parameter
 \f4\i0  be eligible to execute in the current generation.  The new 
 \f3\fs18 SLiMEidosBlock
 \f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SLiMEidosBlock>$)registerFirstEvent(Nis$\'a0id, string$\'a0source, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Register a block of Eidos source code, represented as the 
+\f3\fs18 string
+\f4\fs20  singleton 
+\f3\fs18 source
+\f4\fs20 , as an Eidos 
+\f3\fs18 first()
+\f4\fs20  event in the current simulation, with optional 
+\f3\fs18 start
+\f4\fs20  and 
+\f3\fs18 end
+\f4\fs20  generations limiting its applicability.  The script block will be given identifier 
+\f3\fs18 id
+\f4\fs20  (specified as an 
+\f3\fs18 integer
+\f4\fs20 , or as a 
+\f3\fs18 string
+\f4\fs20  symbolic name such as 
+\f3\fs18 "s5"
+\f4\fs20 ); this may be 
+\f3\fs18 NULL
+\f4\fs20  if there is no need to be able to refer to the block later.  The registered event is added to the end of the list of registered 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  objects, and is active immediately; it 
+\f1\i may
+\f4\i0  be eligible to execute in the current generation (see section 25.9 for details).  The new 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  will be defined as a global variable immediately by this method (see section 24.11), and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerFitnessCallback(Nis$\'a0id, string$\'a0source, Nio<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop
@@ -5345,47 +5381,6 @@ The optional parameter
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
-\f5 \'a0
-\f3 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 Register a block of Eidos source code, represented as the 
-\f3\fs18 string
-\f4\fs20  singleton 
-\f3\fs18 source
-\f4\fs20 , as an Eidos 
-\f3\fs18 recombination()
-\f4\fs20  callback in the current simulation, with optional subpopulation 
-\f3\fs18 subpop
-\f4\fs20  (which may be an 
-\f3\fs18 integer
-\f4\fs20  identifier, or 
-\f3\fs18 NULL
-\f4\fs20 , the default, to indicate all subpopulations) and optional 
-\f3\fs18 start
-\f4\fs20  and 
-\f3\fs18 end
-\f4\fs20  generations all limiting its applicability.  The script block will be given identifier 
-\f3\fs18 id
-\f4\fs20  (specified as an 
-\f3\fs18 integer
-\f4\fs20 , or as a 
-\f3\fs18 string
-\f4\fs20  symbolic name such as 
-\f3\fs18 "s5"
-\f4\fs20 ); this may be 
-\f3\fs18 NULL
-\f4\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
-\f3\fs18 SLiMEidosBlock
-\f4\fs20  objects, and is active immediately; it 
-\f1\i may
-\f4\i0  be eligible to execute in the current generation.  The new 
-\f3\fs18 SLiMEidosBlock
-\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
-\f5 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 \'96\'a0(object<SLiMEidosBlock>$)registerMutationCallback(Nis$\'a0id, string$\'a0source, [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL], [Nio<Subpopulation>$\'a0subpop\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -5431,7 +5426,48 @@ The optional parameter
 \f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerReproductionCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
+\f5 \'a0
+\f3 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf0 Register a block of Eidos source code, represented as the 
+\f3\fs18 string
+\f4\fs20  singleton 
+\f3\fs18 source
+\f4\fs20 , as an Eidos 
+\f3\fs18 recombination()
+\f4\fs20  callback in the current simulation, with optional subpopulation 
+\f3\fs18 subpop
+\f4\fs20  (which may be an 
+\f3\fs18 integer
+\f4\fs20  identifier, or 
+\f3\fs18 NULL
+\f4\fs20 , the default, to indicate all subpopulations) and optional 
+\f3\fs18 start
+\f4\fs20  and 
+\f3\fs18 end
+\f4\fs20  generations all limiting its applicability.  The script block will be given identifier 
+\f3\fs18 id
+\f4\fs20  (specified as an 
+\f3\fs18 integer
+\f4\fs20 , or as a 
+\f3\fs18 string
+\f4\fs20  symbolic name such as 
+\f3\fs18 "s5"
+\f4\fs20 ); this may be 
+\f3\fs18 NULL
+\f4\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  objects, and is active immediately; it 
+\f1\i may
+\f4\i0  be eligible to execute in the current generation.  The new 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
+\f5 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerReproductionCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
 \f5 \'a0
 \f3 =\'a0NULL], \cf2 \expnd0\expndtw0\kerning0
 [Ns$\'a0sex\'a0=\'a0NULL], \cf0 \kerning1\expnd0\expndtw0 [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
@@ -5479,9 +5515,50 @@ Register a block of Eidos source code, represented as the
 \f4\i0  be eligible to execute in the current generation.  The new 
 \f3\fs18 SLiMEidosBlock
 \f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerSurvivalCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
+\f5 \'a0
+\f3 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf0 Register a block of Eidos source code, represented as the 
+\f3\fs18 string
+\f4\fs20  singleton 
+\f3\fs18 source
+\f4\fs20 , as an Eidos 
+\f3\fs18 survival()
+\f4\fs20  callback in the current simulation, with optional subpopulation 
+\f3\fs18 subpop
+\f4\fs20  (which may be an 
+\f3\fs18 integer
+\f4\fs20  identifier, or 
+\f3\fs18 NULL
+\f4\fs20 , the default, to indicate all subpopulations) and optional 
+\f3\fs18 start
+\f4\fs20  and 
+\f3\fs18 end
+\f4\fs20  generations all limiting its applicability.  The script block will be given identifier 
+\f3\fs18 id
+\f4\fs20  (specified as an 
+\f3\fs18 integer
+\f4\fs20 , or as a 
+\f3\fs18 string
+\f4\fs20  symbolic name such as 
+\f3\fs18 "s5"
+\f4\fs20 ); this may be 
+\f3\fs18 NULL
+\f4\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  objects, and is active immediately; it 
+\f1\i may
+\f4\i0  be eligible to execute in the current generation.  The new 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
+\f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$
+\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$
 \f5 \'a0
 \f3 block, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [Ni\'a0generations\'a0=\'a0NULL])
 \f5 \

@@ -32,6 +32,10 @@ initialize() {
 	// spatial mate choice
 	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.05);
 }
+first() {
+	// look for mates
+	i2.evaluate();
+}
 reproduction() {
 	litterSize = rpois(1, FERTILITY);
 	
@@ -119,9 +123,6 @@ late()
 	inds[inds_tags == HEALTH_S].color = "green";
 	inds[inds_tags == HEALTH_I].color = "red";
 	inds[inds_tags == HEALTH_R].color = "blue";
-	
-	// then look for mates
-	i2.evaluate();
 }
 1:1000 late() {
 	tags = p1.individuals.tag;

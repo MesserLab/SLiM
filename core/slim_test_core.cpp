@@ -536,6 +536,17 @@ void _RunSLiMSimTests(std::string temp_path)
 		SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest.slimbinary'); if (size(sim.subpopulations) != 3) stop(); }", __LINE__);	// legal; should wipe previous state
 	}
 	
+	// Test sim - (object<SLiMEidosBlock>)registerFirstEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerFirstEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerFirstEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerFirstEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', 2, 2); sim.registerFirstEvent(1, '{ stop(); }', 2, 2); }", 1, 299, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	
 	// Test sim - (object<SLiMEidosBlock>)registerEarlyEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerEarlyEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
@@ -2077,6 +2088,40 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 'a'; } 100 { ; }", 1, 293, "return value", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { mut; genome; element; originalNuc; parent; subpop; return T; } 100 { stop(); }", __LINE__);
+	
+	// survival() callbacks
+	static std::string gen1_setup_p1p2p3_nonWF_clonal(gen1_setup_p1p2p3_nonWF + "reproduction() { subpop.addCloned(individual); } ");
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { return F; } 10 { if (p1.individualCount == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { return T; } 10 { if (p1.individualCount == 5120) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { return NULL; } 10 { stop(); }", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { if (subpop == p1) return p2; return NULL; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { stop(); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return F; } 10 { if (p1.individualCount == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return T; } 10 { if (p1.individualCount == 5120) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return NULL; } 10 { stop(); }", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return p2; } 10 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF_clonal + "survival(p4) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF_clonal + "early() { s1.active = 0; } s1 survival(p1) { stop(); } 10 { ; }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(m1) { stop(); } 10 { ; }", 1, 492, "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1, p1) { stop(); } 10 { ; }", 1, 494, "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(NULL) { stop(); } 10 { ; }", 1, 492, "identifier prefix \"p\" was expected", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { ; } 10 { ; }", 1, 483, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return 1; } 10 { ; }", 1, 483, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return 1.0; } 10 { ; }", 1, 483, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return 'a'; } 10 { ; }", 1, 483, "return value", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; ; } 10 { ; }", 1, 483, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; return 1; } 10 { ; }", 1, 483, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; return 1.0; } 10 { ; }", 1, 483, "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; return 'a'; } 10 { ; }", 1, 483, "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { individual; subpop; fitness; draw; return T; } 10 { stop(); }", __LINE__);
 }
 
 

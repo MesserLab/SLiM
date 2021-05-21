@@ -1087,6 +1087,7 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
             {
                 switch (scriptBlock->type_)
                 {
+                    case SLiMEidosBlockType::SLiMEidosEventFirst:				return QVariant("first()");
                     case SLiMEidosBlockType::SLiMEidosEventEarly:				return QVariant("early()");
                     case SLiMEidosBlockType::SLiMEidosEventLate:				return QVariant("late()");
                     case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return QVariant("initialize()");
@@ -1097,6 +1098,7 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
                     case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return QVariant("modifyChild()");
                     case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return QVariant("recombination()");
                     case SLiMEidosBlockType::SLiMEidosMutationCallback:			return QVariant("mutation()");
+                    case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			return QVariant("survival()");
                     case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return QVariant("reproduction()");
                     case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
                     {

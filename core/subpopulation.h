@@ -381,7 +381,10 @@ public:
 	void ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index);
 	void ReproduceSubpopulation(void);
 	void MergeReproductionOffspring(void);
-	void ViabilitySelection(void);
+	
+	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving);
+	void ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
+	
 	void IncrementIndividualAges(void);
 	
 	IndividualSex _GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null);

@@ -1485,6 +1485,7 @@
 		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
 		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
 		double elapsedStage7Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[7]);
+		double elapsedStage8Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[8]);
 		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1493,6 +1494,7 @@
 		double percentStage5 = (elapsedStage5Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage6 = (elapsedStage6Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage7 = (elapsedStage7Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double percentStage8 = (elapsedStage8Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4;
 		
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage0Time))));
@@ -1503,6 +1505,7 @@
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage5Time))));
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage6Time))));
 		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage7Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage8Time))));
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"Generation stage breakdown\n" attributes:optima14b_d];
@@ -1512,24 +1515,27 @@
 		[content eidosAppendString:@" : initialize() callback execution\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage1Time, percentStage1] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 1 – early() event execution\n" : @" : stage 1 – offspring generation\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 0 – first() event execution\n" : @" : stage 0 – first() event execution\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage2Time, percentStage2] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 2 – offspring generation\n" : @" : stage 2 – early() event execution\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 1 – early() event execution\n" : @" : stage 1 – offspring generation\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage3Time, percentStage3] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 2 – offspring generation\n" : @" : stage 2 – early() event execution\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage4Time, percentStage4] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 4 – generation swap\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage5Time, percentStage5] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 5 – late() event execution\n" : @" : stage 5 – bookkeeping (fixed mutation removal, etc.)\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 4 – generation swap\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage6Time, percentStage6] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 6 – fitness calculation\n" : @" : stage 6 – late() event execution\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 5 – late() event execution\n" : @" : stage 5 – bookkeeping (fixed mutation removal, etc.)\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage7Time, percentStage7] attributes:menlo11_d];
+		[content eidosAppendString:(isWF ? @" : stage 6 – fitness calculation\n" : @" : stage 6 – late() event execution\n") attributes:optima13_d];
+		
+		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage8Time, percentStage8] attributes:menlo11_d];
 		[content eidosAppendString:(isWF ? @" : stage 7 – tree sequence auto-simplification\n" : @" : stage 7 – tree sequence auto-simplification\n") attributes:optima13_d];
 	}
 	
@@ -1538,53 +1544,61 @@
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		double elapsedType0Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[0]);
-		double elapsedType1Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[1]);
-		double elapsedType2Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[2]);
-		double elapsedType3Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[3]);
-		double elapsedType4Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[4]);
-		double elapsedType5Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[5]);
-		double elapsedType6Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[6]);
-		double elapsedType7Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[7]);
-		double elapsedType8Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[8]);
-		double elapsedType9Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[9]);
-		double elapsedType10Time = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[10]);
-		double percentType0 = (elapsedType0Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType1 = (elapsedType1Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType2 = (elapsedType2Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType3 = (elapsedType3Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType4 = (elapsedType4Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType5 = (elapsedType5Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType6 = (elapsedType6Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType7 = (elapsedType7Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType8 = (elapsedType8Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType9 = (elapsedType9Time / elapsedWallClockTimeInSLiM) * 100.0;
-		double percentType10 = (elapsedType10Time / elapsedWallClockTimeInSLiM) * 100.0;
+		double elapsedTime_first = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
+		double elapsedTime_early = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
+		double elapsedTime_late = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
+		double elapsedTime_initialize = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
+		double elapsedTime_fitness = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
+		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
+		double elapsedTime_interaction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
+		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
+		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
+		double elapsedTime_recombination = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
+		double elapsedTime_mutation = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
+		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
+		double elapsedTime_survival = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
+		double percent_first = (elapsedTime_first / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_early = (elapsedTime_early / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_late = (elapsedTime_late / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_initialize = (elapsedTime_initialize / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitness = (elapsedTime_fitness / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitnessglobal = (elapsedTime_fitnessglobal / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_interaction = (elapsedTime_interaction / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_matechoice = (elapsedTime_matechoice / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_modifychild = (elapsedTime_modifychild / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_recombination = (elapsedTime_recombination / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_mutation = (elapsedTime_mutation / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_reproduction = (elapsedTime_reproduction / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_survival = (elapsedTime_survival / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4, fw2 = 4;
 		
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType0Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType1Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType2Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType3Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType4Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType5Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType6Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType7Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType8Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType9Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedType10Time))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_first))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_early))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_late))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_initialize))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_fitness))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_fitnessglobal))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_interaction))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_matechoice))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_modifychild))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_recombination))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_mutation))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_reproduction))));
+		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_survival))));
 		
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType0))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType1))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType2))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType3))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType4))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType5))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType6))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType7))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType8))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType9))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percentType10))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_first))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_early))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_late))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_initialize))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_fitness))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_fitnessglobal))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_interaction))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_matechoice))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_modifychild))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_recombination))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_mutation))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_reproduction))));
+		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_survival))));
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"Callback type breakdown\n" attributes:optima14b_d];
@@ -1593,66 +1607,75 @@
 		// Note these are out of numeric order, but in generation-cycle order
 		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
 		{
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType2Time, fw2, percentType2] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_initialize, fw2, percent_initialize] attributes:menlo11_d];
 			[content eidosAppendString:@" : initialize() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType0Time, fw2, percentType0] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_first, fw2, percent_first] attributes:menlo11_d];
+			[content eidosAppendString:@" : first() events\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_early, fw2, percent_early] attributes:menlo11_d];
 			[content eidosAppendString:@" : early() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType6Time, fw2, percentType6] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_matechoice, fw2, percent_matechoice] attributes:menlo11_d];
 			[content eidosAppendString:@" : mateChoice() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType8Time, fw2, percentType8] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_recombination, fw2, percent_recombination] attributes:menlo11_d];
 			[content eidosAppendString:@" : recombination() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType9Time, fw2, percentType9] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_mutation, fw2, percent_mutation] attributes:menlo11_d];
 			[content eidosAppendString:@" : mutation() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType7Time, fw2, percentType7] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_modifychild, fw2, percent_modifychild] attributes:menlo11_d];
 			[content eidosAppendString:@" : modifyChild() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType1Time, fw2, percentType1] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_late, fw2, percent_late] attributes:menlo11_d];
 			[content eidosAppendString:@" : late() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType3Time, fw2, percentType3] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
 			[content eidosAppendString:@" : fitness() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType4Time, fw2, percentType4] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
 			[content eidosAppendString:@" : fitness() callbacks (global)\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType5Time, fw2, percentType5] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_interaction, fw2, percent_interaction] attributes:menlo11_d];
 			[content eidosAppendString:@" : interaction() callbacks\n" attributes:optima13_d];
 		}
 		else
 		{
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType2Time, fw2, percentType2] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_initialize, fw2, percent_initialize] attributes:menlo11_d];
 			[content eidosAppendString:@" : initialize() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType10Time, fw2, percentType10] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_first, fw2, percent_first] attributes:menlo11_d];
+			[content eidosAppendString:@" : first() events\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_reproduction, fw2, percent_reproduction] attributes:menlo11_d];
 			[content eidosAppendString:@" : reproduction() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType8Time, fw2, percentType8] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_recombination, fw2, percent_recombination] attributes:menlo11_d];
 			[content eidosAppendString:@" : recombination() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType9Time, fw2, percentType9] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_mutation, fw2, percent_mutation] attributes:menlo11_d];
 			[content eidosAppendString:@" : mutation() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType7Time, fw2, percentType7] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_modifychild, fw2, percent_modifychild] attributes:menlo11_d];
 			[content eidosAppendString:@" : modifyChild() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType0Time, fw2, percentType0] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_early, fw2, percent_early] attributes:menlo11_d];
 			[content eidosAppendString:@" : early() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType3Time, fw2, percentType3] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
 			[content eidosAppendString:@" : fitness() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType4Time, fw2, percentType4] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
 			[content eidosAppendString:@" : fitness() callbacks (global)\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType1Time, fw2, percentType1] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_survival, fw2, percent_survival] attributes:menlo11_d];
+			[content eidosAppendString:@" : survival() callbacks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_late, fw2, percent_late] attributes:menlo11_d];
 			[content eidosAppendString:@" : late() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedType5Time, fw2, percentType5] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_interaction, fw2, percent_interaction] attributes:menlo11_d];
 			[content eidosAppendString:@" : interaction() callbacks\n" attributes:optima13_d];
 		}
 	}
@@ -2273,10 +2296,11 @@
 	sim->CollectSLiMguiMutationProfileInfo();
 	
 	// zero out profile counts for generation stages
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 9; ++i)
 		sim->profile_stage_totals_[i] = 0;
 	
 	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
@@ -2288,6 +2312,7 @@
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
 	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
+	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
 	
 	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
 	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
@@ -3810,6 +3835,8 @@
 	/*
 	if (token_string.compare("initialize") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("first") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("early") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("late") == 0)
@@ -3825,6 +3852,8 @@
 	if (token_string.compare("recombination") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("mutation") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("survival") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("reproduction") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
@@ -3857,6 +3886,7 @@
 {
 	// A few strings which, when option-clicked, should result in more targeted searches.
 	// @"initialize" is deliberately omitted here so that the initialize...() methods also come up.
+	if ([clickedText isEqualToString:@"first"])			return @"Eidos events";
 	if ([clickedText isEqualToString:@"early"])			return @"Eidos events";
 	if ([clickedText isEqualToString:@"late"])			return @"Eidos events";
 	if ([clickedText isEqualToString:@"fitness"])		return @"fitness() callbacks";
@@ -3865,6 +3895,7 @@
 	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
 	if ([clickedText isEqualToString:@"recombination"])	return @"recombination() callbacks";
 	if ([clickedText isEqualToString:@"mutation"])		return @"mutation() callbacks";
+	if ([clickedText isEqualToString:@"survival"])		return @"survival() callbacks";
 	if ([clickedText isEqualToString:@"reproduction"])	return @"reproduction() callbacks";
 	
 	return nil;
@@ -4053,7 +4084,7 @@
 					// identifier like late(), and then the root node of the compound statement for the script block.  We want to
 					// decode the parts that are important to us, without the complication of making SLiMEidosBlock objects.
 					EidosASTNode *block_statement_root = nullptr;
-					SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+					SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosEventEarly;	// assume early() by default
 					
 					for (EidosASTNode *block_child : script_block_node->children_)
 					{
@@ -4063,7 +4094,8 @@
 						{
 							const std::string &child_string = child_token->token_string_;
 							
-							if (child_string.compare(gStr_early) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+							if (child_string.compare(gStr_first) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
+							else if (child_string.compare(gStr_early) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
 							else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
 							else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
 							else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// can't distinguish global fitness callbacks, but no need to
@@ -4072,6 +4104,7 @@
 							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
 							else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
 							else if (child_string.compare(gStr_mutation) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
+							else if (child_string.compare(gStr_survival) == 0)		block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
 							else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 							
 							// Check for an sX designation on a script block and, if found, add a symbol for it
@@ -4144,6 +4177,8 @@
 							
 							switch (block_type)
 							{
+								case SLiMEidosBlockType::SLiMEidosEventFirst:
+									break;
 								case SLiMEidosBlockType::SLiMEidosEventEarly:
 									break;
 								case SLiMEidosBlockType::SLiMEidosEventLate:
@@ -4206,6 +4241,13 @@
 									(*typeTable)->SetTypeForSymbol(gID_genome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
+									break;
+								case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
+									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									(*typeTable)->SetTypeForSymbol(gID_surviving,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_fitness,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_draw,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
 									break;
 								case SLiMEidosBlockType::SLiMEidosReproductionCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
@@ -4279,10 +4321,10 @@
 		// have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
 		// existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
 		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-		// keywords like "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", "mutation",
-		// and "reproduction" are.
+		// keywords like "first", "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", "mutation",
+		// "survival", and "reproduction" are.
 		[keywords removeAllObjects];
-		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"mutation() {\n\n}\n", @"reproduction() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
+		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"first() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"mutation() {\n\n}\n", @"survival() {\n\n}\n", @"reproduction() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
 		
 		// At the outer level, functions are also not legal
 		(*functionMap)->clear();
@@ -4413,6 +4455,15 @@
 			
 			sig = callbackSig.get();
 		}
+		else if ([signatureString hasPrefix:@"first()"])
+		{
+			static EidosCallSignature_CSP callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("first", nullptr, kEidosValueMaskVOID)));
+			
+			sig = callbackSig.get();
+		}
 		else if ([signatureString hasPrefix:@"early()"])
 		{
 			static EidosCallSignature_CSP callbackSig = nullptr;
@@ -4482,6 +4533,15 @@
 			
 			if (!callbackSig)
 				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutation", nullptr, kEidosValueMaskLogical | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Mutation_Class))->AddObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULLInvisible)->AddObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+			
+			sig = callbackSig.get();
+		}
+		else if ([signatureString hasPrefix:@"survival()"])
+		{
+			static EidosCallSignature_CSP callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("survival", nullptr, kEidosValueMaskNULL | kEidosValueMaskLogical | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
 			sig = callbackSig.get();
 		}
@@ -4906,6 +4966,7 @@
 				{
 					switch (scriptBlock->type_)
 					{
+						case SLiMEidosBlockType::SLiMEidosEventFirst:				return @"first()";
 						case SLiMEidosBlockType::SLiMEidosEventEarly:				return @"early()";
 						case SLiMEidosBlockType::SLiMEidosEventLate:				return @"late()";
 						case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return @"initialize()";
@@ -4916,6 +4977,7 @@
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";
 						case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return @"recombination()";
 						case SLiMEidosBlockType::SLiMEidosMutationCallback:			return @"mutation()";
+						case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			return @"survival()";
 						case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return @"reproduction()";
 						case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 						{

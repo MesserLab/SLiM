@@ -720,6 +720,7 @@ extern const std::string &gStr_outputMutations;
 extern const std::string &gStr_outputUsage;
 extern const std::string &gStr_readFromPopulationFile;
 extern const std::string &gStr_recalculateFitness;
+extern const std::string &gStr_registerFirstEvent;
 extern const std::string &gStr_registerEarlyEvent;
 extern const std::string &gStr_registerLateEvent;
 extern const std::string &gStr_registerFitnessCallback;
@@ -728,6 +729,7 @@ extern const std::string &gStr_registerMateChoiceCallback;
 extern const std::string &gStr_registerModifyChildCallback;
 extern const std::string &gStr_registerRecombinationCallback;
 extern const std::string &gStr_registerMutationCallback;
+extern const std::string &gStr_registerSurvivalCallback;
 extern const std::string &gStr_registerReproductionCallback;
 extern const std::string &gStr_rescheduleScriptBlock;
 extern const std::string &gStr_simulationFinished;
@@ -810,6 +812,8 @@ extern const std::string &gStr_breakpoints;
 extern const std::string &gStr_receiver;
 extern const std::string &gStr_exerter;
 extern const std::string &gStr_originalNuc;
+extern const std::string &gStr_surviving;
+extern const std::string &gStr_draw;
 
 extern const std::string &gStr_slimgui;
 extern const std::string &gStr_pid;
@@ -863,6 +867,7 @@ extern const std::string &gStr_e;
 extern const std::string &gStr_w;
 extern const std::string &gStr_l;
 //extern const std::string &gStr_s;		now gEidosStr_s
+extern const std::string &gStr_first;
 extern const std::string &gStr_early;
 extern const std::string &gStr_late;
 extern const std::string &gStr_initialize;
@@ -871,6 +876,7 @@ extern const std::string &gStr_interaction;
 extern const std::string &gStr_mateChoice;
 extern const std::string &gStr_modifyChild;
 extern const std::string &gStr_mutation;
+extern const std::string &gStr_survival;
 extern const std::string &gStr_recombination;
 extern const std::string &gStr_reproduction;
 
@@ -1050,6 +1056,7 @@ enum _SLiMGlobalStringID : int {
 	gID_outputUsage,
 	gID_readFromPopulationFile,
 	gID_recalculateFitness,
+	gID_registerFirstEvent,
 	gID_registerEarlyEvent,
 	gID_registerLateEvent,
 	gID_registerFitnessCallback,
@@ -1058,6 +1065,7 @@ enum _SLiMGlobalStringID : int {
 	gID_registerModifyChildCallback,
 	gID_registerRecombinationCallback,
 	gID_registerMutationCallback,
+	gID_registerSurvivalCallback,
 	gID_registerReproductionCallback,
 	gID_rescheduleScriptBlock,
 	gID_simulationFinished,
@@ -1140,6 +1148,8 @@ enum _SLiMGlobalStringID : int {
 	gID_receiver,
 	gID_exerter,
 	gID_originalNuc,
+	gID_surviving,
+	gID_draw,
 	
 	gID_slimgui,
 	gID_pid,
@@ -1190,6 +1200,7 @@ enum _SLiMGlobalStringID : int {
 	gID_w,
 	gID_l,
 	//gID_s,	now gEidosID_s
+	gID_first,
 	gID_early,
 	gID_late,
 	gID_initialize,
@@ -1199,6 +1210,7 @@ enum _SLiMGlobalStringID : int {
 	gID_modifyChild,
 	gID_recombination,
 	gID_mutation,
+	gID_survival,
 	gID_reproduction,
 	
 	gID_LastSLiMEntry	// must come last
