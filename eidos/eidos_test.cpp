@@ -139,9 +139,50 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	gEidosErrorContext.executingRuntimeScript = false;
 }
 
-// Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
-void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_position, const std::string &p_reason_snip)
+void EidosAssertScriptSuccess_L(const std::string &p_script_string, eidos_logical_t p_logical)
 {
+	EidosAssertScriptSuccess(p_script_string, p_logical == true ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+}
+
+void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initializer_list<eidos_logical_t> &p_logical_vec)
+{
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(p_logical_vec)));
+}
+
+void EidosAssertScriptSuccess_I(const std::string &p_script_string, int64_t p_integer)
+{
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_integer)));
+}
+
+void EidosAssertScriptSuccess_IV(const std::string &p_script_string, std::initializer_list<int64_t> &p_integer_vec)
+{
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_integer_vec)));
+}
+
+void EidosAssertScriptSuccess_F(const std::string &p_script_string, double p_float)
+{
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(p_float)));
+}
+
+void EidosAssertScriptSuccess_FV(const std::string &p_script_string, std::initializer_list<double> &p_float_vec)
+{
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(p_float_vec)));
+}
+
+void EidosAssertScriptSuccess_S(const std::string &p_script_string, const char *p_string)
+{
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(p_string)));
+}
+
+void EidosAssertScriptSuccess_SV(const std::string &p_script_string, std::initializer_list<const char *> &p_string_vec)
+{
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(p_string_vec)));
+}
+
+// Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
+void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip)
+{
+	std::string reason_snip(p_reason_snip);
 	EidosScript script(p_script_string, -1);
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
@@ -166,7 +207,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
 		std::string raise_message = Eidos_GetTrimmedRaiseMessage();
 		
-		if (raise_message.find(p_reason_snip) != std::string::npos)
+		if (raise_message.find(reason_snip) != std::string::npos)
 		{
 			if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
 				(gEidosErrorContext.errorPosition.characterEndOfError == -1) ||
@@ -198,7 +239,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		{
 			gEidosTestFailureCount++;
 			
-			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise message mismatch (expected \"" << p_reason_snip << "\")." << std::endl;
+			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise message mismatch (expected \"" << reason_snip << "\")." << std::endl;
 			std::cerr << "   raise message: " << raise_message << std::endl;
 			std::cerr << "--------------------" << std::endl << std::endl;
 		}
@@ -1227,30 +1268,30 @@ int RunEidosTests(void)
 void _RunLiteralsIdentifiersAndTokenizationTests(void)
 {
 	// test literals, built-in identifiers, and tokenization
-	EidosAssertScriptSuccess("3;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("3e2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(300)));
-	EidosAssertScriptSuccess("3.1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
-	EidosAssertScriptSuccess("3.1e2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1e2)));
-	EidosAssertScriptSuccess("3.1e-2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1e-2)));
-	EidosAssertScriptSuccess("3.1e+2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1e+2)));
-	EidosAssertScriptSuccess("'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
-	EidosAssertScriptSuccess("'foo\\tbar';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo\tbar")));
-	EidosAssertScriptSuccess("'\\'foo\\'\\t\\\"bar\"';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\t\"bar\"")));
-	EidosAssertScriptSuccess("\"foo\";", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
-	EidosAssertScriptSuccess("\"foo\\tbar\";", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo\tbar")));
-	EidosAssertScriptSuccess("\"\\'foo'\\t\\\"bar\\\"\";", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\t\"bar\"")));
-	EidosAssertScriptSuccess("<<\n'foo'\n\"bar\"\n>>;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar\"")));
-	EidosAssertScriptSuccess("<<---\n'foo'\n\"bar\"\n>>---;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar\"")));
-	EidosAssertScriptSuccess("<<<<\n'foo'\n\"bar\"\n>><<;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar\"")));
-	EidosAssertScriptSuccess("<<<<\n'foo'\n\"bar>><\"\n>><<;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("'foo'\n\"bar>><\"")));
-	EidosAssertScriptSuccess("T;", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("F;", gStaticEidosValue_LogicalF);
+	EidosAssertScriptSuccess_I("3;", 3);
+	EidosAssertScriptSuccess_I("3e2;", 300);
+	EidosAssertScriptSuccess_F("3.1;", 3.1);
+	EidosAssertScriptSuccess_F("3.1e2;", 3.1e2);
+	EidosAssertScriptSuccess_F("3.1e-2;", 3.1e-2);
+	EidosAssertScriptSuccess_F("3.1e+2;", 3.1e+2);
+	EidosAssertScriptSuccess_S("'foo';", "foo");
+	EidosAssertScriptSuccess_S("'foo\\tbar';", "foo\tbar");
+	EidosAssertScriptSuccess_S("'\\'foo\\'\\t\\\"bar\"';", "'foo'\t\"bar\"");
+	EidosAssertScriptSuccess_S("\"foo\";", "foo");
+	EidosAssertScriptSuccess_S("\"foo\\tbar\";", "foo\tbar");
+	EidosAssertScriptSuccess_S("\"\\'foo'\\t\\\"bar\\\"\";", "'foo'\t\"bar\"");
+	EidosAssertScriptSuccess_S("<<\n'foo'\n\"bar\"\n>>;", "'foo'\n\"bar\"");
+	EidosAssertScriptSuccess_S("<<---\n'foo'\n\"bar\"\n>>---;", "'foo'\n\"bar\"");
+	EidosAssertScriptSuccess_S("<<<<\n'foo'\n\"bar\"\n>><<;", "'foo'\n\"bar\"");
+	EidosAssertScriptSuccess_S("<<<<\n'foo'\n\"bar>><\"\n>><<;", "'foo'\n\"bar>><\"");
+	EidosAssertScriptSuccess_L("T;", true);
+	EidosAssertScriptSuccess_L("F;", false);
 	EidosAssertScriptSuccess("NULL;", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("INF;", gStaticEidosValue_FloatINF);
 	EidosAssertScriptSuccess("-INF;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-std::numeric_limits<double>::infinity())));
 	EidosAssertScriptSuccess("NAN;", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("E - exp(1) < 0.0000001;", gStaticEidosValue_LogicalT);
-	EidosAssertScriptSuccess("PI - asin(1)*2 < 0.0000001;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess_L("E - exp(1) < 0.0000001;", true);
+	EidosAssertScriptSuccess_L("PI - asin(1)*2 < 0.0000001;", true);
 	EidosAssertScriptRaise("foo$foo;", 3, "unexpected token '$'");
 	EidosAssertScriptRaise("foo#foo;", 3, "unrecognized token");
 	EidosAssertScriptRaise("3..5;", 3, "unexpected token");		// second period is a dot operator!
@@ -1274,7 +1315,7 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptRaise("PI = 5;", 3, "is a constant");
 	
 	// tests related to the R-style assignment operator, <-, which is explicitly illegal in Eidos to prevent mistakes ("a <- b;" meaning "a < -b;")
-	EidosAssertScriptSuccess("x = -9; x < -8;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess_L("x = -9; x < -8;", true);
 	EidosAssertScriptRaise("x = -9; x <- 8;", 10, "<- is not legal");
 	EidosAssertScriptRaise("x = -9; x<-8;", 9, "<- is not legal");
 	
@@ -1324,15 +1365,15 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 void _RunSymbolsAndVariablesTests(void)
 {
 	// test symbol table and variable dynamics
-	EidosAssertScriptSuccess("x = 3; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("x = 3.1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
-	EidosAssertScriptSuccess("x = 'foo'; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
-	EidosAssertScriptSuccess("x = T; x;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess_I("x = 3; x;", 3);
+	EidosAssertScriptSuccess_F("x = 3.1; x;", 3.1);
+	EidosAssertScriptSuccess_S("x = 'foo'; x;", "foo");
+	EidosAssertScriptSuccess_L("x = T; x;", true);
 	EidosAssertScriptSuccess("x = NULL; x;", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("x = 'first'; x = 3; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("x = 'first'; x = 3.1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.1)));
-	EidosAssertScriptSuccess("x = 'first'; x = 'foo'; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo")));
-	EidosAssertScriptSuccess("x = 'first'; x = T; x;", gStaticEidosValue_LogicalT);
+	EidosAssertScriptSuccess_I("x = 'first'; x = 3; x;", 3);
+	EidosAssertScriptSuccess_F("x = 'first'; x = 3.1; x;", 3.1);
+	EidosAssertScriptSuccess_S("x = 'first'; x = 'foo'; x;", "foo");
+	EidosAssertScriptSuccess_L("x = 'first'; x = T; x;", true);
 	EidosAssertScriptSuccess("x = 'first'; x = NULL; x;", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("x = 1:5; y = x + 1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
 	EidosAssertScriptSuccess("x = 1:5; y = x + 1; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4, 5, 6}));
@@ -1350,14 +1391,14 @@ void _RunSymbolsAndVariablesTests(void)
 	
 	// some tests for Unicode in symbol names; both accented characters and emoji should be legal (and all other Unicode above 7-bit ASCII)
 	// note that "\u00E9" is &eacute; and "\u1F603" is a grinning face emoji
-	EidosAssertScriptSuccess("\u00E9 = 3; \u00E9;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("\u00E9e = 3; \u00E9e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("e\u00E9 = 3; e\u00E9;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("e\u00E9\u00E9e = 3; e\u00E9\u00E9e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("\u1F603 = 3; \u1F603;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("\u1F603e = 3; \u1F603e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("e\u1F603 = 3; e\u1F603;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
-	EidosAssertScriptSuccess("e\u1F603\u1F603e = 3; e\u1F603\u1F603e;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess_I("\u00E9 = 3; \u00E9;", 3);
+	EidosAssertScriptSuccess_I("\u00E9e = 3; \u00E9e;", 3);
+	EidosAssertScriptSuccess_I("e\u00E9 = 3; e\u00E9;", 3);
+	EidosAssertScriptSuccess_I("e\u00E9\u00E9e = 3; e\u00E9\u00E9e;", 3);
+	EidosAssertScriptSuccess_I("\u1F603 = 3; \u1F603;", 3);
+	EidosAssertScriptSuccess_I("\u1F603e = 3; \u1F603e;", 3);
+	EidosAssertScriptSuccess_I("e\u1F603 = 3; e\u1F603;", 3);
+	EidosAssertScriptSuccess_I("e\u1F603\u1F603e = 3; e\u1F603\u1F603e;", 3);
 }
 
 #pragma mark parsing
@@ -1396,23 +1437,23 @@ void _RunParsingTests(void)
 void _RunFunctionDispatchTests(void)
 {
 	// test function dispatch, default arguments, and named arguments
-	EidosAssertScriptSuccess("abs(-10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess_I("abs(-10);", 10);
 	EidosAssertScriptRaise("abs();", 0, "missing required argument x");
 	EidosAssertScriptRaise("abs(-10, -10);", 0, "too many arguments supplied");
-	EidosAssertScriptSuccess("abs(x=-10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess_I("abs(x=-10);", 10);
 	EidosAssertScriptRaise("abs(y=-10);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("abs(x=-10, x=-10);", 0, "supplied more than once");
 	EidosAssertScriptRaise("abs(x=-10, y=-10);", 0, "unrecognized named argument y");
 	EidosAssertScriptRaise("abs(y=-10, x=-10);", 0, "skipped over required argument");
 	
-	EidosAssertScriptSuccess("integerDiv(6, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess_I("integerDiv(6, 3);", 2);
 	EidosAssertScriptRaise("integerDiv(6, 3, 3);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("integerDiv(6);", 0, "missing required argument y");
-	EidosAssertScriptSuccess("integerDiv(x=6, y=3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess_I("integerDiv(x=6, y=3);", 2);
 	EidosAssertScriptRaise("integerDiv(y=6, 3);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("integerDiv(y=6, x=3);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("integerDiv(x=6, 3);", 0, "unnamed argument may not follow after named arguments");
-	EidosAssertScriptSuccess("integerDiv(6, y=3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess_I("integerDiv(6, y=3);", 2);
 	
 	EidosAssertScriptSuccess("seq(1, 3, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptSuccess("seq(1, 3, NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
@@ -1427,15 +1468,15 @@ void _RunFunctionDispatchTests(void)
 	
 	EidosAssertScriptSuccess("c();", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("c(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("c(2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess_I("c(2);", 2);
 	EidosAssertScriptSuccess("c(1, 2, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
 	EidosAssertScriptRaise("c(x=2);", 0, "unrecognized named argument x");
 	EidosAssertScriptRaise("c(x=1, 2, 3);", 0, "unrecognized named argument x");
 	EidosAssertScriptRaise("c(1, x=2, 3);", 0, "unrecognized named argument x");
 	EidosAssertScriptRaise("c(1, 2, x=3);", 0, "unrecognized named argument x");
 	
-	EidosAssertScriptSuccess("doCall('abs', -10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
-	EidosAssertScriptSuccess("doCall(functionName='abs', -10);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(10)));
+	EidosAssertScriptSuccess_I("doCall('abs', -10);", 10);
+	EidosAssertScriptSuccess_I("doCall(functionName='abs', -10);", 10);
 	EidosAssertScriptRaise("doCall(x='abs', -10);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("doCall('abs', x=-10);", 0, "unrecognized named argument x");
 	EidosAssertScriptRaise("doCall('abs', functionName=-10);", 0, "could not be matched");
@@ -1517,27 +1558,27 @@ void _RunVectorsAndSingletonsTests(void)
 	EidosAssertScriptSuccess("2 < rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, true, false, false, true}));
 	EidosAssertScriptSuccess("2 <= rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true, false, true, true}));
 	
-	EidosAssertScriptSuccess("_Test(2)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2)));
+	EidosAssertScriptSuccess_I("_Test(2)._yolk;", 2);
 	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
 	EidosAssertScriptSuccess("_Test(2)[F]._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
 	
-	EidosAssertScriptSuccess("_Test(2)._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(8)));
+	EidosAssertScriptSuccess_I("_Test(2)._cubicYolk();", 8);
 	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, 27}));
 	EidosAssertScriptSuccess("_Test(2)[F]._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
 	
-	EidosAssertScriptSuccess("_Test(2)._increment._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess_I("_Test(2)._increment._yolk;", 3);
 	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._increment._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
 	EidosAssertScriptSuccess("_Test(2)[F]._increment._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
 	
-	EidosAssertScriptSuccess("_Test(2)._increment._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(27)));
+	EidosAssertScriptSuccess_I("_Test(2)._increment._cubicYolk();", 27);
 	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._increment._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{27, 64}));
 	EidosAssertScriptSuccess("_Test(2)[F]._increment._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
 	
-	EidosAssertScriptSuccess("_Test(2)._squareTest()._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(4)));
+	EidosAssertScriptSuccess_I("_Test(2)._squareTest()._yolk;", 4);
 	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._squareTest()._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 9}));
 	EidosAssertScriptSuccess("_Test(2)[F]._squareTest()._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
 	
-	EidosAssertScriptSuccess("_Test(2)._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(64)));
+	EidosAssertScriptSuccess_I("_Test(2)._squareTest()._cubicYolk();", 64);
 	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{64, 729}));
 	EidosAssertScriptSuccess("_Test(2)[F]._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
 }

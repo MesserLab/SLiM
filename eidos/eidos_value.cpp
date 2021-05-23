@@ -1287,6 +1287,12 @@ EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const s
 		values_.emplace_back(*init_item);
 }
 
+EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const char *> p_init_list) : EidosValue_String(false)
+{
+	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
+		values_.emplace_back(*init_item);
+}
+
 int EidosValue_String_vector::Count_Virtual(void) const
 {
 	return (int)values_.size();

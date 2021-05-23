@@ -27,6 +27,7 @@
 #define __Eidos__eidos_test__
 
 #include <string>
+#include <initializer_list>
 
 #include "eidos_value.h"
 
@@ -55,7 +56,16 @@ int RunEidosTests(void);
 
 // Helper functions for testing
 extern void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP p_correct_result);
-extern void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_position, const std::string &p_reason_snip);
+extern void EidosAssertScriptSuccess_L(const std::string &p_script_string, eidos_logical_t p_logical);
+extern void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initializer_list<eidos_logical_t> &p_logical_vec);
+extern void EidosAssertScriptSuccess_I(const std::string &p_script_string, int64_t p_integer);
+extern void EidosAssertScriptSuccess_IV(const std::string &p_script_string, std::initializer_list<int64_t> &p_integer_vec);
+extern void EidosAssertScriptSuccess_F(const std::string &p_script_string, double p_float);
+extern void EidosAssertScriptSuccess_FV(const std::string &p_script_string, std::initializer_list<double> &p_float_vec);
+extern void EidosAssertScriptSuccess_S(const std::string &p_script_string, const char *p_string);
+extern void EidosAssertScriptSuccess_SV(const std::string &p_script_string, std::initializer_list<const char *> &p_string_vec);
+
+extern void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip);
 
 
 // Test subfunction prototypes

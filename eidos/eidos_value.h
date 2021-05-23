@@ -589,6 +589,7 @@ public:
 	EidosValue_String_vector(double *p_doublebuf, int p_buffer_length);
 	//explicit EidosValue_String_vector(const std::string &p_string1);		// disabled to encourage use of EidosValue_String_singleton for this case
 	explicit EidosValue_String_vector(std::initializer_list<const std::string> p_init_list);
+	explicit EidosValue_String_vector(std::initializer_list<const char *> p_init_list);
 	inline virtual ~EidosValue_String_vector(void) override { }
 	
 	virtual const std::vector<std::string> *StringVector(void) const override { return &values_; }
