@@ -144,6 +144,16 @@ void EidosAssertScriptSuccess_L(const std::string &p_script_string, eidos_logica
 	EidosAssertScriptSuccess(p_script_string, p_logical == true ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
+void EidosAssertScriptSuccess_VOID(const std::string &p_script_string)
+{
+	EidosAssertScriptSuccess(p_script_string, gStaticEidosValueVOID);
+}
+
+void EidosAssertScriptSuccess_NULL(const std::string &p_script_string)
+{
+	EidosAssertScriptSuccess(p_script_string, gStaticEidosValueNULL);
+}
+
 void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initializer_list<eidos_logical_t> p_logical_vec)
 {
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(p_logical_vec)));
@@ -1286,9 +1296,9 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptSuccess_S("<<<<\n'foo'\n\"bar>><\"\n>><<;", "'foo'\n\"bar>><\"");
 	EidosAssertScriptSuccess_L("T;", true);
 	EidosAssertScriptSuccess_L("F;", false);
-	EidosAssertScriptSuccess("NULL;", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("NULL;");
 	EidosAssertScriptSuccess("INF;", gStaticEidosValue_FloatINF);
-	EidosAssertScriptSuccess("-INF;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-std::numeric_limits<double>::infinity())));
+	EidosAssertScriptSuccess_F("-INF;", (-std::numeric_limits<double>::infinity()));
 	EidosAssertScriptSuccess("NAN;", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess_L("E - exp(1) < 0.0000001;", true);
 	EidosAssertScriptSuccess_L("PI - asin(1)*2 < 0.0000001;", true);
@@ -1369,12 +1379,12 @@ void _RunSymbolsAndVariablesTests(void)
 	EidosAssertScriptSuccess_F("x = 3.1; x;", 3.1);
 	EidosAssertScriptSuccess_S("x = 'foo'; x;", "foo");
 	EidosAssertScriptSuccess_L("x = T; x;", true);
-	EidosAssertScriptSuccess("x = NULL; x;", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("x = NULL; x;");
 	EidosAssertScriptSuccess_I("x = 'first'; x = 3; x;", 3);
 	EidosAssertScriptSuccess_F("x = 'first'; x = 3.1; x;", 3.1);
 	EidosAssertScriptSuccess_S("x = 'first'; x = 'foo'; x;", "foo");
 	EidosAssertScriptSuccess_L("x = 'first'; x = T; x;", true);
-	EidosAssertScriptSuccess("x = 'first'; x = NULL; x;", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("x = 'first'; x = NULL; x;");
 	EidosAssertScriptSuccess_IV("x = 1:5; y = x + 1; x;", {1, 2, 3, 4, 5});
 	EidosAssertScriptSuccess_IV("x = 1:5; y = x + 1; y;", {2, 3, 4, 5, 6});
 	EidosAssertScriptSuccess_IV("x = 1:5; y = x + 1; x = x + 1; x;", {2, 3, 4, 5, 6});
@@ -1466,8 +1476,8 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptRaise("seq(by=1, 1, 3);", 0, "named argument by skipped over required argument");
 	EidosAssertScriptRaise("seq(by=NULL, 1, 3);", 0, "named argument by skipped over required argument");
 	
-	EidosAssertScriptSuccess("c();", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("c(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("c();");
+	EidosAssertScriptSuccess_NULL("c(NULL);");
 	EidosAssertScriptSuccess_I("c(2);", 2);
 	EidosAssertScriptSuccess_IV("c(1, 2, 3);", {1, 2, 3});
 	EidosAssertScriptRaise("c(x=2);", 0, "unrecognized named argument x");

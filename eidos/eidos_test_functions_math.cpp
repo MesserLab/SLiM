@@ -43,7 +43,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("abs(integer(0));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("abs(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("abs(string(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
+	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
 	EidosAssertScriptRaise("abs(-9223372036854775807 - 1);", 0, "most negative integer");
 	EidosAssertScriptRaise("abs(c(17, -9223372036854775807 - 1));", 0, "most negative integer");
 	EidosAssertScriptSuccess("abs(NAN);", gStaticEidosValue_FloatNAN);
@@ -195,7 +195,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	
 	// cumProduct()
 	EidosAssertScriptSuccess_I("cumProduct(5);", 5);
-	EidosAssertScriptSuccess("cumProduct(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
+	EidosAssertScriptSuccess_I("cumProduct(-5);", -5);
 	EidosAssertScriptSuccess_IV("cumProduct(c(-2, 7, -18, 12));", {-2, -14, 252, 3024});
 	EidosAssertScriptSuccess_F("cumProduct(5.5);", 5.5);
 	EidosAssertScriptSuccess_F("cumProduct(-5.5);", -5.5);
@@ -208,7 +208,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("cumProduct(integer(0));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("cumProduct(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("cumProduct(string(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
+	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
 	EidosAssertScriptRaise("cumProduct(c(-922337203685477581, 10));", 0, "multiplication overflow");
@@ -221,7 +221,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	
 	// cumSum()
 	EidosAssertScriptSuccess_I("cumSum(5);", 5);
-	EidosAssertScriptSuccess("cumSum(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
+	EidosAssertScriptSuccess_I("cumSum(-5);", -5);
 	EidosAssertScriptSuccess_IV("cumSum(c(-2, 7, -18, 12));", {-2, 5, -13, -1});
 	EidosAssertScriptSuccess_F("cumSum(5.5);", 5.5);
 	EidosAssertScriptSuccess_F("cumSum(-5.5);", -5.5);
@@ -234,7 +234,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("cumSum(integer(0));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("cumSum(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("cumSum(string(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
+	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("-9223372036854775807 - 2;", 21, "subtraction overflow");
 	EidosAssertScriptRaise("cumSum(c(-9223372036854775807, -1, -1));", 0, "addition overflow");
@@ -300,14 +300,14 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess_IV("integerDiv(-6:-9, 2);", {-3, -3, -4, -4});
 	EidosAssertScriptSuccess_IV("integerDiv(6, 2:6);", {3, 2, 1, 1, 1});
 	EidosAssertScriptSuccess_IV("integerDiv(8:12, 2:6);", {4, 3, 2, 2, 2});
-	EidosAssertScriptSuccess("integerDiv(-6, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
-	EidosAssertScriptSuccess("integerDiv(-7, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
-	EidosAssertScriptSuccess("integerDiv(-8, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
-	EidosAssertScriptSuccess("integerDiv(-9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-3)));
-	EidosAssertScriptSuccess("integerDiv(6, -3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
-	EidosAssertScriptSuccess("integerDiv(7, -3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
-	EidosAssertScriptSuccess("integerDiv(8, -3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
-	EidosAssertScriptSuccess("integerDiv(9, -3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-3)));
+	EidosAssertScriptSuccess_I("integerDiv(-6, 3);", -2);
+	EidosAssertScriptSuccess_I("integerDiv(-7, 3);", -2);
+	EidosAssertScriptSuccess_I("integerDiv(-8, 3);", -2);
+	EidosAssertScriptSuccess_I("integerDiv(-9, 3);", -3);
+	EidosAssertScriptSuccess_I("integerDiv(6, -3);", -2);
+	EidosAssertScriptSuccess_I("integerDiv(7, -3);", -2);
+	EidosAssertScriptSuccess_I("integerDiv(8, -3);", -2);
+	EidosAssertScriptSuccess_I("integerDiv(9, -3);", -3);
 	EidosAssertScriptSuccess_I("integerDiv(-6, -3);", 2);
 	EidosAssertScriptSuccess_I("integerDiv(-7, -3);", 2);
 	EidosAssertScriptSuccess_I("integerDiv(-8, -3);", 2);
@@ -339,16 +339,16 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess_IV("integerMod(6, 2:6);", {0, 0, 2, 1, 0});
 	EidosAssertScriptSuccess_IV("integerMod(8:12, 2:6);", {0, 0, 2, 1, 0});
 	EidosAssertScriptSuccess("integerMod(-6, 3);", gStaticEidosValue_Integer0);
-	EidosAssertScriptSuccess("integerMod(-7, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
-	EidosAssertScriptSuccess("integerMod(-8, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
+	EidosAssertScriptSuccess_I("integerMod(-7, 3);", -1);
+	EidosAssertScriptSuccess_I("integerMod(-8, 3);", -2);
 	EidosAssertScriptSuccess("integerMod(-9, 3);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("integerMod(6, -3);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("integerMod(7, -3);", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess_I("integerMod(8, -3);", 2);
 	EidosAssertScriptSuccess("integerMod(9, -3);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("integerMod(-6, -3);", gStaticEidosValue_Integer0);
-	EidosAssertScriptSuccess("integerMod(-7, -3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
-	EidosAssertScriptSuccess("integerMod(-8, -3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
+	EidosAssertScriptSuccess_I("integerMod(-7, -3);", -1);
+	EidosAssertScriptSuccess_I("integerMod(-8, -3);", -2);
 	EidosAssertScriptSuccess("integerMod(-9, -3);", gStaticEidosValue_Integer0);
 	EidosAssertScriptRaise("integerMod(10, 0);", 0, "modulo by 0");
 	EidosAssertScriptRaise("integerMod(9:10, 0:1);", 0, "modulo by 0");
@@ -487,14 +487,14 @@ void _RunFunctionMathTests_g_through_r(void)
 	
 	// product()
 	EidosAssertScriptSuccess_I("product(5);", 5);
-	EidosAssertScriptSuccess("product(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
+	EidosAssertScriptSuccess_I("product(-5);", -5);
 	EidosAssertScriptSuccess_I("product(c(-2, 7, -18, 12));", 3024);
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptSuccess_F("product(c(200000000, 3000000000000, 1000));", 6e23);
 #endif
 	EidosAssertScriptSuccess_F("product(5.5);", 5.5);
 	EidosAssertScriptSuccess_F("product(-5.5);", -5.5);
-	EidosAssertScriptSuccess("product(c(-2.5, 7.5, -18.5, 12.5));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-2.5*7.5*-18.5*12.5)));
+	EidosAssertScriptSuccess_F("product(c(-2.5, 7.5, -18.5, 12.5));", (-2.5*7.5*-18.5*12.5));
 	EidosAssertScriptRaise("product(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("product('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("product(_Test(7));", 0, "cannot be type");
@@ -506,8 +506,8 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess("product(c(5.0, 2.0, NAN, 2.0));", gStaticEidosValue_FloatNAN);
 	
 	EidosAssertScriptSuccess_I("product(matrix(5));", 5);
-	EidosAssertScriptSuccess("product(matrix(c(5, -5)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-25)));
-	EidosAssertScriptSuccess("product(array(c(5, -5, 3), c(1,3,1)));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-75)));
+	EidosAssertScriptSuccess_I("product(matrix(c(5, -5)));", -25);
+	EidosAssertScriptSuccess_I("product(array(c(5, -5, 3), c(1,3,1)));", -75);
 	
 	// round()
 	EidosAssertScriptSuccess_F("round(5.1);", 5.0);
@@ -535,7 +535,7 @@ void _RunFunctionMathTests_g_through_r(void)
 void _RunFunctionMathTests_setUnionIntersection(void)
 {
 	// setUnion()
-	EidosAssertScriptSuccess("setUnion(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("setUnion(NULL, NULL);");
 	EidosAssertScriptSuccess("setUnion(logical(0), logical(0));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setUnion(integer(0), integer(0));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("setUnion(float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
@@ -662,7 +662,7 @@ void _RunFunctionMathTests_setUnionIntersection(void)
 	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 6.0, NAN, NAN, 7.9, 3.2), c(5.5, NAN, 6.0, 3.2, 3.2));", {3.2, 6.0, std::numeric_limits<double>::quiet_NaN(), 7.9, 5.5});
 	
 	// setIntersection()
-	EidosAssertScriptSuccess("setIntersection(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("setIntersection(NULL, NULL);");
 	EidosAssertScriptSuccess("setIntersection(logical(0), logical(0));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setIntersection(integer(0), integer(0));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("setIntersection(float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
@@ -795,7 +795,7 @@ void _RunFunctionMathTests_setUnionIntersection(void)
 void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
 {
 	// setDifference()
-	EidosAssertScriptSuccess("setDifference(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("setDifference(NULL, NULL);");
 	EidosAssertScriptSuccess("setDifference(logical(0), logical(0));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setDifference(integer(0), integer(0));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("setDifference(float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
@@ -921,7 +921,7 @@ void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
 	EidosAssertScriptSuccess_F("setDifference(c(3.2, 6.0, NAN, NAN, 7.9, 3.2, 7.9), c(5.5, NAN, 6.0, 3.2, 3.2));", 7.9);
 	
 	// setSymmetricDifference()
-	EidosAssertScriptSuccess("setSymmetricDifference(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("setSymmetricDifference(NULL, NULL);");
 	EidosAssertScriptSuccess("setSymmetricDifference(logical(0), logical(0));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setSymmetricDifference(integer(0), integer(0));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("setSymmetricDifference(float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
@@ -1095,8 +1095,8 @@ void _RunFunctionMathTests_s_through_z(void)
 	
 	// sum()
 	EidosAssertScriptSuccess_I("sum(5);", 5);
-	EidosAssertScriptSuccess("sum(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
-	EidosAssertScriptSuccess("sum(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
+	EidosAssertScriptSuccess_I("sum(-5);", -5);
+	EidosAssertScriptSuccess_I("sum(c(-2, 7, -18, 12));", -1);
 	EidosAssertScriptSuccess_I("sum(c(200000000, 3000000000000));", 3000200000000);
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptSuccess_F("sum(rep(3000000000000000000, 100));", 3e20);

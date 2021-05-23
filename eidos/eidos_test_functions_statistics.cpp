@@ -28,8 +28,8 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 {
 	// cor()
 	EidosAssertScriptRaise("cor(T, T);", 0, "cannot be type");
-	EidosAssertScriptSuccess("cor(3, 3);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("cor(3.5, 3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("cor(3, 3);");
+	EidosAssertScriptSuccess_NULL("cor(3.5, 3.5);");
 	EidosAssertScriptRaise("cor('foo', 'foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("cor(c(F, F, T, F, T), c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_L("abs(cor(1:5, 1:5) - 1) < 1e-10;", true);
@@ -48,14 +48,14 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptRaise("cor(_Test(7), _Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("cor(NULL, NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("cor(logical(0), logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("cor(integer(0), integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("cor(float(0), float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("cor(integer(0), integer(0));");
+	EidosAssertScriptSuccess_NULL("cor(float(0), float(0));");
 	EidosAssertScriptRaise("cor(string(0), string(0));", 0, "cannot be type");
 	
 	// cov()
 	EidosAssertScriptRaise("cov(T, T);", 0, "cannot be type");
-	EidosAssertScriptSuccess("cov(3, 3);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("cov(3.5, 3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("cov(3, 3);");
+	EidosAssertScriptSuccess_NULL("cov(3.5, 3.5);");
 	EidosAssertScriptRaise("cov('foo', 'foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("cov(c(F, F, T, F, T), c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_L("abs(cov(1:5, 1:5) - 2.5) < 1e-10;", true);
@@ -74,8 +74,8 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptRaise("cov(_Test(7), _Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("cov(NULL, NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("cov(logical(0), logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("cov(integer(0), integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("cov(float(0), float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("cov(integer(0), integer(0));");
+	EidosAssertScriptSuccess_NULL("cov(float(0), float(0));");
 	EidosAssertScriptRaise("cov(string(0), string(0));", 0, "cannot be type");
 	
 	// max()
@@ -89,11 +89,11 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess_F("max(c(3.3, 7.7, 19.1, -5.8, 9.0));", 19.1);
 	EidosAssertScriptSuccess_S("max(c('bar', 'foo', 'baz'));", "foo");
 	EidosAssertScriptRaise("max(_Test(7));", 0, "cannot be type");
-	EidosAssertScriptSuccess("max(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("max(logical(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("max(integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("max(float(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("max(string(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("max(NULL);");
+	EidosAssertScriptSuccess_NULL("max(logical(0));");
+	EidosAssertScriptSuccess_NULL("max(integer(0));");
+	EidosAssertScriptSuccess_NULL("max(float(0));");
+	EidosAssertScriptSuccess_NULL("max(string(0));");
 	EidosAssertScriptSuccess("max(c(1.0, 5.0, NAN, 2.0));", gStaticEidosValue_FloatNAN);
 	
 	EidosAssertScriptSuccess_L("max(F, T);", true);
@@ -122,9 +122,9 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptRaise("mean(c('foo', 'bar', 'baz'));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(NULL);", 0, "cannot be type");
-	EidosAssertScriptSuccess("mean(logical(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("mean(integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("mean(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("mean(logical(0));");
+	EidosAssertScriptSuccess_NULL("mean(integer(0));");
+	EidosAssertScriptSuccess_NULL("mean(float(0));");
 	EidosAssertScriptRaise("mean(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("mean(rep(1e18, 9));", 1e18);	// stays in integer internally
 	EidosAssertScriptSuccess_F("mean(rep(1e18, 10));", 1e18);	// overflows to float internally
@@ -136,15 +136,15 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess_F("min(3.5);", 3.5);
 	EidosAssertScriptSuccess_S("min('foo');", "foo");
 	EidosAssertScriptSuccess_L("min(c(T, F, T, F, T));", false);
-	EidosAssertScriptSuccess("min(c(3, 7, 19, -5, 9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
+	EidosAssertScriptSuccess_I("min(c(3, 7, 19, -5, 9));", -5);
 	EidosAssertScriptSuccess_F("min(c(3.3, 7.7, 19.1, -5.8, 9.0));", -5.8);
 	EidosAssertScriptSuccess_S("min(c('foo', 'bar', 'baz'));", "bar");
 	EidosAssertScriptRaise("min(_Test(7));", 0, "cannot be type");
-	EidosAssertScriptSuccess("min(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("min(logical(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("min(integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("min(float(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("min(string(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("min(NULL);");
+	EidosAssertScriptSuccess_NULL("min(logical(0));");
+	EidosAssertScriptSuccess_NULL("min(integer(0));");
+	EidosAssertScriptSuccess_NULL("min(float(0));");
+	EidosAssertScriptSuccess_NULL("min(string(0));");
 	EidosAssertScriptSuccess("min(c(1.0, 5.0, NAN, 2.0));", gStaticEidosValue_FloatNAN);
 	
 	EidosAssertScriptSuccess_L("min(T, F);", false);
@@ -153,7 +153,7 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess_L("min(F, c(T,T), logical(0), c(T,T,T,T,T));", false);
 	EidosAssertScriptSuccess_I("min(1, 2);", 1);
 	EidosAssertScriptSuccess_I("min(2, 1);", 1);
-	EidosAssertScriptSuccess("min(integer(0), c(3,7,-8,0), 0, c(-10,10));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-10)));
+	EidosAssertScriptSuccess_I("min(integer(0), c(3,7,-8,0), 0, c(-10,10));", -10);
 	EidosAssertScriptSuccess_F("min(1.0, 2.0);", 1.0);
 	EidosAssertScriptSuccess_F("min(2.0, 1.0);", 1.0);
 	EidosAssertScriptSuccess_F("min(c(3.,7.,-8.,0.), 0., c(0.,10.), float(0));", -8);
@@ -169,7 +169,7 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess("pmax(logical(0), F);", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptRaise("pmax(T, 1);", 0, "to be the same type");
 	EidosAssertScriptRaise("pmax(0, F);", 0, "to be the same type");
-	EidosAssertScriptSuccess("pmax(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("pmax(NULL, NULL);");
 	EidosAssertScriptSuccess_L("pmax(T, T);", true);
 	EidosAssertScriptSuccess_L("pmax(F, T);", true);
 	EidosAssertScriptSuccess_L("pmax(T, F);", true);
@@ -234,19 +234,19 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess("pmin(logical(0), F);", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptRaise("pmin(T, 1);", 0, "to be the same type");
 	EidosAssertScriptRaise("pmin(0, F);", 0, "to be the same type");
-	EidosAssertScriptSuccess("pmin(NULL, NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("pmin(NULL, NULL);");
 	EidosAssertScriptSuccess_L("pmin(T, T);", true);
 	EidosAssertScriptSuccess_L("pmin(F, T);", false);
 	EidosAssertScriptSuccess_L("pmin(T, F);", false);
 	EidosAssertScriptSuccess_L("pmin(F, F);", false);
 	EidosAssertScriptSuccess_LV("pmin(c(T,F,T,F), c(T,T,F,F));", {true, false, false, false});
 	EidosAssertScriptSuccess("pmin(1, 5);", gStaticEidosValue_Integer1);
-	EidosAssertScriptSuccess("pmin(-8, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-8)));
+	EidosAssertScriptSuccess_I("pmin(-8, 6);", -8);
 	EidosAssertScriptSuccess("pmin(7, 1);", gStaticEidosValue_Integer1);
-	EidosAssertScriptSuccess("pmin(8, -8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-8)));
+	EidosAssertScriptSuccess_I("pmin(8, -8);", -8);
 	EidosAssertScriptSuccess_IV("pmin(c(1,-8,7,8), c(5,6,1,-8));", {1, -8, 1, -8});
 	EidosAssertScriptSuccess_F("pmin(1., 5.);", 1);
-	EidosAssertScriptSuccess("pmin(-INF, 6.);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-std::numeric_limits<double>::infinity())));
+	EidosAssertScriptSuccess_F("pmin(-INF, 6.);", (-std::numeric_limits<double>::infinity()));
 	EidosAssertScriptSuccess_F("pmin(7., 1.);", 1);
 	EidosAssertScriptSuccess_F("pmin(INF, -8.);", -8);
 	EidosAssertScriptSuccess("pmin(NAN, -8.);", gStaticEidosValue_FloatNAN);
@@ -298,8 +298,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	// quantile()
 	EidosAssertScriptRaise("quantile(integer(0));", 0, "x to have length greater than 0");
 	EidosAssertScriptRaise("quantile(float(0));", 0, "x to have length greater than 0");
-	EidosAssertScriptSuccess("quantile(INF, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
-	EidosAssertScriptSuccess("quantile(-INF, 0.5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-std::numeric_limits<double>::infinity())));
+	EidosAssertScriptSuccess_F("quantile(INF, 0.5);", (std::numeric_limits<double>::infinity()));
+	EidosAssertScriptSuccess_F("quantile(-INF, 0.5);", (-std::numeric_limits<double>::infinity()));
 	EidosAssertScriptSuccess_FV("quantile(0);", {0.0, 0.0, 0.0, 0.0, 0.0});
 	EidosAssertScriptSuccess_FV("quantile(1);", {1.0, 1.0, 1.0, 1.0, 1.0});
 	EidosAssertScriptRaise("quantile(integer(0), float(0));", 0, "x to have length greater than 0");
@@ -330,8 +330,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	EidosAssertScriptRaise("range(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("range(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("range(logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("range(integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("range(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("range(integer(0));");
+	EidosAssertScriptSuccess_NULL("range(float(0));");
 	EidosAssertScriptRaise("range(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess_FV("range(c(1.0, 5.0, NAN, 2.0));", {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	
@@ -341,8 +341,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	
 	// sd()
 	EidosAssertScriptRaise("sd(T);", 0, "cannot be type");
-	EidosAssertScriptSuccess("sd(3);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("sd(3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("sd(3);");
+	EidosAssertScriptSuccess_NULL("sd(3.5);");
 	EidosAssertScriptRaise("sd('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sd(c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("sd(c(2, 3, 2, 8, 0));", 3);
@@ -352,8 +352,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	EidosAssertScriptRaise("sd(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("sd(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("sd(logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("sd(integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("sd(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("sd(integer(0));");
+	EidosAssertScriptSuccess_NULL("sd(float(0));");
 	EidosAssertScriptRaise("sd(string(0));", 0, "cannot be type");
 	
 	// ttest()
@@ -374,8 +374,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	
 	// var()
 	EidosAssertScriptRaise("var(T);", 0, "cannot be type");
-	EidosAssertScriptSuccess("var(3);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("var(3.5);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("var(3);");
+	EidosAssertScriptSuccess_NULL("var(3.5);");
 	EidosAssertScriptRaise("var('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("var(c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("var(c(2, 3, 2, 8, 0));", 9);
@@ -385,8 +385,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	EidosAssertScriptRaise("var(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("var(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("var(logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess("var(integer(0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("var(float(0));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("var(integer(0));");
+	EidosAssertScriptSuccess_NULL("var(float(0));");
 	EidosAssertScriptRaise("var(string(0));", 0, "cannot be type");
 }
 

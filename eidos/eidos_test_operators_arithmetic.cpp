@@ -82,7 +82,7 @@ void _RunOperatorPlusTests1(void)
 	EidosAssertScriptSuccess_FV("c(5.5,NAN,2.5)+c(5.5,3.5,NAN);", {11.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	
 	// operator +: raise on integer addition overflow for all code paths
-	EidosAssertScriptSuccess("5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5000000000000000000LL)));
+	EidosAssertScriptSuccess_I("5e18;", 5000000000000000000LL);
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("5e18 + 5e18;", 5, "overflow with the binary");
@@ -424,22 +424,22 @@ void _RunOperatorMinusTests(void)
 	EidosAssertScriptRaise("T-F;", 1, "is not supported by");
 	EidosAssertScriptRaise("T-T;", 1, "is not supported by");
 	EidosAssertScriptRaise("F-F;", 1, "is not supported by");
-	EidosAssertScriptSuccess("-5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
+	EidosAssertScriptSuccess_I("-5;", -5);
 	EidosAssertScriptSuccess_F("-5.0;", -5);
 	EidosAssertScriptSuccess_IV("-c(5, -6);", {-5, 6});
 	EidosAssertScriptSuccess_FV("-c(5.0, -6.0);", {-5, 6});
 	EidosAssertScriptRaise("-'foo';", 0, "is not supported by");
 	EidosAssertScriptRaise("-T;", 0, "is not supported by");
-	EidosAssertScriptSuccess("3-4-5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-6)));
+	EidosAssertScriptSuccess_I("3-4-5;", -6);
 	EidosAssertScriptSuccess("3.2-NAN-4.5;", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess_FV("3.5-c(5.5,NAN,2.5);", {-2.0, std::numeric_limits<double>::quiet_NaN(), 1.0});
 	EidosAssertScriptSuccess_FV("c(5.5,NAN,2.5)-3.5;", {2.0, std::numeric_limits<double>::quiet_NaN(), -1.0});
 	EidosAssertScriptSuccess_FV("c(5.5,NAN,2.5)-c(5.5,3.5,NAN);", {0.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	
 	// operator -: raise on integer subtraction overflow for all code paths
-	EidosAssertScriptSuccess("9223372036854775807;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MAX)));
-	EidosAssertScriptSuccess("-9223372036854775807 - 1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(INT64_MIN)));
-	EidosAssertScriptSuccess("-5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5000000000000000000LL)));
+	EidosAssertScriptSuccess_I("9223372036854775807;", INT64_MAX);
+	EidosAssertScriptSuccess_I("-9223372036854775807 - 1;", INT64_MIN);
+	EidosAssertScriptSuccess_I("-5e18;", -5000000000000000000LL);
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("-(-9223372036854775807 - 1);", 0, "overflow with the unary");
 	EidosAssertScriptRaise("-c(-9223372036854775807 - 1, 10);", 0, "overflow with the unary");
@@ -483,7 +483,7 @@ void _RunOperatorMultTests(void)
 	EidosAssertScriptRaise("(0:2)*NULL;", 5, "is not supported by");
 	EidosAssertScriptRaise("*NULL;", 0, "unexpected token");
     EidosAssertScriptSuccess("1*1;", gStaticEidosValue_Integer1);
-    EidosAssertScriptSuccess("1*-1;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
+    EidosAssertScriptSuccess_I("1*-1;", -1);
 	EidosAssertScriptSuccess_IV("(0:2)*10;", {0, 10, 20});
 	EidosAssertScriptSuccess_IV("10*(0:2);", {0, 10, 20});
 	EidosAssertScriptSuccess_IV("(15:13)*(0:2);", {0, 14, 26});
@@ -510,7 +510,7 @@ void _RunOperatorMultTests(void)
 	EidosAssertScriptSuccess_FV("c(5.5,NAN,2.5)*c(5.0,3.5,NAN);", {27.5, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	
 	// operator *: raise on integer multiplication overflow for all code paths
-	EidosAssertScriptSuccess("5e18;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(5000000000000000000LL)));
+	EidosAssertScriptSuccess_I("5e18;", 5000000000000000000LL);
 	EidosAssertScriptRaise("1e19;", 0, "could not be represented");
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("5e18 * 2;", 5, "multiplication overflow");

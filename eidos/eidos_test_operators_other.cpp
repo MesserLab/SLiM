@@ -26,8 +26,8 @@ void _RunOperatorSubsetTests(void)
 {
 	// operator []
 	EidosAssertScriptSuccess_IV("x = 1:5; x[NULL];", {1, 2, 3, 4, 5});
-	EidosAssertScriptSuccess("x = 1:5; NULL[x];", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("x = 1:5; NULL[NULL];", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("x = 1:5; NULL[x];");
+	EidosAssertScriptSuccess_NULL("x = 1:5; NULL[NULL];");
 	EidosAssertScriptSuccess_IV("x = 1:5; x[];", {1, 2, 3, 4, 5});
 	EidosAssertScriptSuccess("x = 1:5; x[integer(0)];", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess_I("x = 1:5; x[2];", 3);
@@ -237,11 +237,11 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess_L("x = matrix(5:9); x[c(T,F,T,T,F)] = 3; identical(x, matrix(c(3,6,3,3,9)));", true);
 	
 	// operator = (especially in conjunction with matrix/array-style subsetting with operator [])
-	EidosAssertScriptSuccess("NULL[logical(0)] = NULL;", gStaticEidosValueVOID);			// technically legal, as no assignment is done
+	EidosAssertScriptSuccess_VOID("NULL[logical(0)] = NULL;");			// technically legal, as no assignment is done
 	EidosAssertScriptRaise("NULL[logical(0),] = NULL;", 4, "too many subset arguments");
 	EidosAssertScriptRaise("NULL[logical(0),logical(0)] = NULL;", 4, "too many subset arguments");
 	EidosAssertScriptRaise("NULL[,] = NULL;", 4, "too many subset arguments");
-	EidosAssertScriptSuccess("x = NULL; x[logical(0)] = NULL;", gStaticEidosValueVOID);	// technically legal, as no assignment is done
+	EidosAssertScriptSuccess_VOID("x = NULL; x[logical(0)] = NULL;");	// technically legal, as no assignment is done
 	EidosAssertScriptRaise("x = NULL; x[logical(0),] = NULL;", 11, "too many subset arguments");
 	EidosAssertScriptRaise("x = NULL; x[logical(0),logical(0)] = NULL;", 11, "too many subset arguments");
 	EidosAssertScriptRaise("x = NULL; x[,] = NULL;", 11, "too many subset arguments");
@@ -750,19 +750,19 @@ void _RunKeywordIfTests(void)
 {
 	// if
 	EidosAssertScriptSuccess_I("if (T) 23;", 23);
-	EidosAssertScriptSuccess("if (F) 23;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (F) 23;");
 	EidosAssertScriptSuccess_I("if (9) 23;", 23);
-	EidosAssertScriptSuccess("if (0) 23;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (0) 23;");
 	EidosAssertScriptSuccess_I("if (6 > 5) 23;", 23);
-	EidosAssertScriptSuccess("if (6 < 5) 23;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (6 < 5) 23;");
 	EidosAssertScriptRaise("if (6 == (6:9)) 23;", 0, "condition for if statement has size()");
 	EidosAssertScriptSuccess_I("if ((6 == (6:9))[0]) 23;", 23);
-	EidosAssertScriptSuccess("if ((6 == (6:9))[1]) 23;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if ((6 == (6:9))[1]) 23;");
 	EidosAssertScriptRaise("if (NAN) 23;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (_Test(6)) 23;", 0, "cannot be converted");
 	EidosAssertScriptRaise("if (NULL) 23;", 0, "condition for if statement has size()");
 	EidosAssertScriptSuccess_I("if (matrix(1)) 23;", 23);
-	EidosAssertScriptSuccess("if (matrix(0)) 23;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (matrix(0)) 23;");
 	EidosAssertScriptRaise("if (matrix(1:3)) 23;", 0, "condition for if statement has size()");
 	
 	// if-else
@@ -880,7 +880,7 @@ void _RunKeywordNextTests(void)
 	// next
 	EidosAssertScriptRaise("next;", 0, "encountered with no enclosing loop");
 	EidosAssertScriptRaise("if (T) next;", 7, "encountered with no enclosing loop");
-	EidosAssertScriptSuccess("if (F) next;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (F) next;");
 	EidosAssertScriptRaise("if (T) next; else 42;", 7, "encountered with no enclosing loop");
 	EidosAssertScriptSuccess_I("if (F) next; else 42;", 42);
 	EidosAssertScriptSuccess_I("if (T) 23; else next;", 23);
@@ -896,7 +896,7 @@ void _RunKeywordBreakTests(void)
 	// break
 	EidosAssertScriptRaise("break;", 0, "encountered with no enclosing loop");
 	EidosAssertScriptRaise("if (T) break;", 7, "encountered with no enclosing loop");
-	EidosAssertScriptSuccess("if (F) break;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (F) break;");
 	EidosAssertScriptRaise("if (T) break; else 42;", 7, "encountered with no enclosing loop");
 	EidosAssertScriptSuccess_I("if (F) break; else 42;", 42);
 	EidosAssertScriptSuccess_I("if (T) 23; else break;", 23);
@@ -910,30 +910,30 @@ void _RunKeywordBreakTests(void)
 void _RunKeywordReturnTests(void)
 {
 	// return
-	EidosAssertScriptSuccess("return;", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("return NULL;", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("return -13;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-13)));
-	EidosAssertScriptSuccess("if (T) return;", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("if (T) return NULL;", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("if (T) return -13;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-13)));
-	EidosAssertScriptSuccess("if (F) return;", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("if (F) return NULL;", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("if (F) return -13;", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("if (T) return; else return 42;", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("if (T) return NULL; else return 42;", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("if (T) return -13; else return 42;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-13)));
+	EidosAssertScriptSuccess_VOID("return;");
+	EidosAssertScriptSuccess_NULL("return NULL;");
+	EidosAssertScriptSuccess_I("return -13;", -13);
+	EidosAssertScriptSuccess_VOID("if (T) return;");
+	EidosAssertScriptSuccess_NULL("if (T) return NULL;");
+	EidosAssertScriptSuccess_I("if (T) return -13;", -13);
+	EidosAssertScriptSuccess_VOID("if (F) return;");
+	EidosAssertScriptSuccess_VOID("if (F) return NULL;");
+	EidosAssertScriptSuccess_VOID("if (F) return -13;");
+	EidosAssertScriptSuccess_VOID("if (T) return; else return 42;");
+	EidosAssertScriptSuccess_NULL("if (T) return NULL; else return 42;");
+	EidosAssertScriptSuccess_I("if (T) return -13; else return 42;", -13);
 	EidosAssertScriptSuccess_I("if (F) return; else return 42;", 42);
 	EidosAssertScriptSuccess_I("if (F) return -13; else return 42;", 42);
 	EidosAssertScriptSuccess_I("if (T) return 23; else return;", 23);
 	EidosAssertScriptSuccess_I("if (T) return 23; else return -13;", 23);
-	EidosAssertScriptSuccess("if (F) return 23; else return;", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("if (F) return 23; else return NULL;", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("if (F) return 23; else return -13;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-13)));
-	EidosAssertScriptSuccess("x=1; do { x=x*2; if (x>50) return; x=x+1; } while (x<100); x;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (F) return 23; else return;");
+	EidosAssertScriptSuccess_NULL("if (F) return 23; else return NULL;");
+	EidosAssertScriptSuccess_I("if (F) return 23; else return -13;", -13);
+	EidosAssertScriptSuccess_VOID("x=1; do { x=x*2; if (x>50) return; x=x+1; } while (x<100); x;");
 	EidosAssertScriptSuccess_I("x=1; do { x=x*2; if (x>50) return x-5; x=x+1; } while (x<100); x;", 57);
-	EidosAssertScriptSuccess("x=1; while (x<100) { x=x*2; if (x>50) return; x=x+1; } x;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("x=1; while (x<100) { x=x*2; if (x>50) return; x=x+1; } x;");
 	EidosAssertScriptSuccess_I("x=1; while (x<100) { x=x*2; if (x>50) return x-5; x=x+1; } x;", 57);
-	EidosAssertScriptSuccess("x=0; for (y in 1:10) { if (y==5) return; x=x+y; } x;", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("x=0; for (y in 1:10) { if (y==5) return; x=x+y; } x;");
 	EidosAssertScriptSuccess_I("x=0; for (y in 1:10) { if (y==5) return x-5; x=x+y; } x;", 5);
 }
 

@@ -56,6 +56,8 @@ int RunEidosTests(void);
 
 // Helper functions for testing
 extern void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP p_correct_result);
+extern void EidosAssertScriptSuccess_VOID(const std::string &p_script_string);
+extern void EidosAssertScriptSuccess_NULL(const std::string &p_script_string);
 extern void EidosAssertScriptSuccess_L(const std::string &p_script_string, eidos_logical_t p_logical);
 extern void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initializer_list<eidos_logical_t> p_logical_vec);
 extern void EidosAssertScriptSuccess_I(const std::string &p_script_string, int64_t p_integer);

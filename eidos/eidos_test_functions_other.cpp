@@ -49,15 +49,15 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("identical(cbind(matrix(1:6, nrow=1), matrix(7:12, nrow=1)), matrix(1:12, nrow=1));", true);
 	
 	// dim()
-	EidosAssertScriptSuccess("dim(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim(T);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim(1);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim(1.5);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim('foo');", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim(c(T, F));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim(c(1, 2));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim(c(1.5, 2.0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("dim(c('foo', 'bar'));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("dim(NULL);");
+	EidosAssertScriptSuccess_NULL("dim(T);");
+	EidosAssertScriptSuccess_NULL("dim(1);");
+	EidosAssertScriptSuccess_NULL("dim(1.5);");
+	EidosAssertScriptSuccess_NULL("dim('foo');");
+	EidosAssertScriptSuccess_NULL("dim(c(T, F));");
+	EidosAssertScriptSuccess_NULL("dim(c(1, 2));");
+	EidosAssertScriptSuccess_NULL("dim(c(1.5, 2.0));");
+	EidosAssertScriptSuccess_NULL("dim(c('foo', 'bar'));");
 	EidosAssertScriptSuccess_IV("dim(matrix(3));", {1, 1});
 	EidosAssertScriptSuccess_IV("dim(matrix(1:6, nrow=2));", {2, 3});
 	EidosAssertScriptSuccess_IV("dim(matrix(1:6, nrow=2, byrow=T));", {2, 3});
@@ -74,7 +74,7 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_IV("dim(array(1.0:48, c(2,3,4,2)));", {2, 3, 4, 2});
 	
 	// drop()
-	EidosAssertScriptSuccess("drop(NULL);", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("drop(NULL);");
 	EidosAssertScriptSuccess_L("identical(drop(integer(0)), integer(0));", true);
 	EidosAssertScriptSuccess_L("identical(drop(5), 5);", true);
 	EidosAssertScriptSuccess_L("identical(drop(5:9), 5:9);", true);
@@ -149,15 +149,15 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("A = matrix(1.0:6.0, ncol=2); B = matrix(1.0:6.0, nrow=2); identical(matrixMult(A, B), matrix(c(9.0, 12.0, 15.0, 19.0, 26.0, 33.0, 29.0, 40.0, 51.0), nrow=3));", true);
 	
 	// ncol()
-	EidosAssertScriptSuccess("ncol(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol(T);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol(1);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol(1.5);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol('foo');", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol(c(T, F));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol(c(1, 2));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol(c(1.5, 2.0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("ncol(c('foo', 'bar'));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("ncol(NULL);");
+	EidosAssertScriptSuccess_NULL("ncol(T);");
+	EidosAssertScriptSuccess_NULL("ncol(1);");
+	EidosAssertScriptSuccess_NULL("ncol(1.5);");
+	EidosAssertScriptSuccess_NULL("ncol('foo');");
+	EidosAssertScriptSuccess_NULL("ncol(c(T, F));");
+	EidosAssertScriptSuccess_NULL("ncol(c(1, 2));");
+	EidosAssertScriptSuccess_NULL("ncol(c(1.5, 2.0));");
+	EidosAssertScriptSuccess_NULL("ncol(c('foo', 'bar'));");
 	EidosAssertScriptSuccess_IV("ncol(matrix(3));", {1});
 	EidosAssertScriptSuccess_IV("ncol(matrix(1:6, nrow=2));", {3});
 	EidosAssertScriptSuccess_IV("ncol(matrix(1:6, nrow=2, byrow=T));", {3});
@@ -174,15 +174,15 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_IV("ncol(array(1.0:48, c(2,3,4,2)));", {3});
 	
 	// nrow()
-	EidosAssertScriptSuccess("nrow(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow(T);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow(1);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow(1.5);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow('foo');", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow(c(T, F));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow(c(1, 2));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow(c(1.5, 2.0));", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("nrow(c('foo', 'bar'));", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("nrow(NULL);");
+	EidosAssertScriptSuccess_NULL("nrow(T);");
+	EidosAssertScriptSuccess_NULL("nrow(1);");
+	EidosAssertScriptSuccess_NULL("nrow(1.5);");
+	EidosAssertScriptSuccess_NULL("nrow('foo');");
+	EidosAssertScriptSuccess_NULL("nrow(c(T, F));");
+	EidosAssertScriptSuccess_NULL("nrow(c(1, 2));");
+	EidosAssertScriptSuccess_NULL("nrow(c(1.5, 2.0));");
+	EidosAssertScriptSuccess_NULL("nrow(c('foo', 'bar'));");
 	EidosAssertScriptSuccess_IV("nrow(matrix(3));", {1});
 	EidosAssertScriptSuccess_IV("nrow(matrix(1:6, nrow=2));", {2});
 	EidosAssertScriptSuccess_IV("nrow(matrix(1:6, nrow=2, byrow=T));", {2});
@@ -241,7 +241,7 @@ void _RunFunctionFilesystemTests(std::string temp_path)
 	EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
 	EidosAssertScriptSuccess("sum(filesAtPath('/') == 'bin');", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("sum(filesAtPath('/', T) == '/bin');", gStaticEidosValue_Integer1);
-	EidosAssertScriptSuccess("filesAtPath('foo_is_a_bad_path');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("filesAtPath('foo_is_a_bad_path');");
 	
 	// writeFile()
 	EidosAssertScriptSuccess_L("writeFile('" + temp_path + "/EidosTest.txt', c(paste(0:4), paste(5:9)));", true);
@@ -249,7 +249,7 @@ void _RunFunctionFilesystemTests(std::string temp_path)
 	// readFile() – note that the readFile() tests depend on the previous writeFile() test
 	EidosAssertScriptSuccess_LV("readFile('" + temp_path + "/EidosTest.txt') == c(paste(0:4), paste(5:9));", {true, true});
 	EidosAssertScriptSuccess_L("all(asInteger(strsplit(paste(readFile('" + temp_path + "/EidosTest.txt')))) == 0:9);", true);
-	EidosAssertScriptSuccess("readFile('foo_is_a_bad_path.txt');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("readFile('foo_is_a_bad_path.txt');");
 	
 	// writeFile() with append
 	EidosAssertScriptSuccess_L("writeFile('" + temp_path + "/EidosTest.txt', 'foo', T);", true);
@@ -545,7 +545,7 @@ void _RunFunctionMiscTests_apply_sapply(void)
 	EidosAssertScriptSuccess_L("z = array(1:24, c(2,3,2,2)); identical(apply(z, c(2,3,0,1), 'sum(applyValue);'), array(c(1,7,13,19,2,8,14,20,3,9,15,21,4,10,16,22,5,11,17,23,6,12,18,24), c(2,2,2,3)));", true);
 	
 	// sapply()
-	EidosAssertScriptSuccess("x=integer(0); sapply(x, 'applyValue^2;');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("x=integer(0); sapply(x, 'applyValue^2;');");
 	EidosAssertScriptSuccess_FV("x=1:5; sapply(x, 'applyValue^2;');", {1, 4, 9, 16, 25});
 	EidosAssertScriptSuccess_IV("x=1:5; sapply(x, 'product(1:applyValue);');", {1, 2, 6, 24, 120});
 	EidosAssertScriptSuccess_SV("x=1:3; sapply(x, \"rep(''+applyValue, applyValue);\");", {"1", "2", "2", "3", "3", "3"});
@@ -649,20 +649,20 @@ void _RunFunctionMiscTests(std::string temp_path)
 {
 	// assert()
 	EidosAssertScriptRaise("assert();", 0, "missing required argument assertions");
-	EidosAssertScriptSuccess("assert(T);", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("assert(T);");
 	EidosAssertScriptRaise("assert(F);", 0, "assertion failed");
-	EidosAssertScriptSuccess("assert(c(T, T, T, T, T));", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("assert(c(T, T, T, T, T));");
 	EidosAssertScriptRaise("assert(c(F, F, F, T, F));", 0, "assertion failed");
 	EidosAssertScriptRaise("assert(c(F, F, F, F, F));", 0, "assertion failed");
-	EidosAssertScriptSuccess("assert(T, 'foo bar!');", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("assert(T, 'foo bar!');");
 	EidosAssertScriptRaise("assert(F, 'foo bar!');", 0, "foo bar!");
 
 	// beep() – this is commented out by default since it would confuse people if the Eidos self-test beeped...
-	//EidosAssertScriptSuccess("beep();", gStaticEidosValueNULL);
-	//EidosAssertScriptSuccess("beep('Submarine');", gStaticEidosValueNULL);
+	//EidosAssertScriptSuccess_NULL("beep();");
+	//EidosAssertScriptSuccess_NULL("beep('Submarine');");
 	
 	// citation()
-	EidosAssertScriptSuccess("citation();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("citation();");
 	EidosAssertScriptRaise("citation(NULL);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("citation(T);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("citation(3);", 0, "too many arguments supplied");
@@ -748,28 +748,28 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptSuccess_LV("exists(c('T', 'Q', 'F', 'PW', 'PI', 'D', 'E'));", {true, false, true, false, true, false, true});
 	
 	// functionSignature()
-	EidosAssertScriptSuccess("functionSignature();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("functionSignature('functionSignature');", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("functionSignature('foo');", gStaticEidosValueVOID);	// does not throw at present
+	EidosAssertScriptSuccess_VOID("functionSignature();");
+	EidosAssertScriptSuccess_VOID("functionSignature('functionSignature');");
+	EidosAssertScriptSuccess_VOID("functionSignature('foo');");	// does not throw at present
 	EidosAssertScriptRaise("functionSignature(string(0));", 0, "must be a singleton");
-	EidosAssertScriptSuccess("functionSignature(NULL);", gStaticEidosValueVOID);		// same as omitting the parameter
+	EidosAssertScriptSuccess_VOID("functionSignature(NULL);");		// same as omitting the parameter
 	EidosAssertScriptRaise("functionSignature(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("functionSignature(3);", 0, "cannot be type");
 	EidosAssertScriptRaise("functionSignature(3.5);", 0, "cannot be type");
 	EidosAssertScriptRaise("functionSignature(_Test(7));", 0, "cannot be type");
 	
 	// functionSource()
-	EidosAssertScriptSuccess("functionSource('foo');", gStaticEidosValueVOID);	 // does not throw at present
-	EidosAssertScriptSuccess("functionSource('mean');", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("functionSource('source');", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("functionSource('foo');");	 // does not throw at present
+	EidosAssertScriptSuccess_VOID("functionSource('mean');");
+	EidosAssertScriptSuccess_VOID("functionSource('source');");
 	
 	// ls()
-	EidosAssertScriptSuccess("ls();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("ls(F);", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("ls(T);", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("ls();");
+	EidosAssertScriptSuccess_VOID("ls(F);");
+	EidosAssertScriptSuccess_VOID("ls(T);");
 	
 	// license()
-	EidosAssertScriptSuccess("license();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("license();");
 	EidosAssertScriptRaise("license(NULL);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("license(T);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("license(3);", 0, "too many arguments supplied");
@@ -778,7 +778,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptRaise("license(_Test(7));", 0, "too many arguments supplied");
 	
 	// rm()
-	EidosAssertScriptSuccess("rm();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("rm();");
 	EidosAssertScriptRaise("x=37; rm('x'); x;", 15, "undefined identifier");
 	EidosAssertScriptSuccess_I("x=37; rm('y'); x;", 37);
 	EidosAssertScriptRaise("x=37; rm(); x;", 12, "undefined identifier");
@@ -787,7 +787,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptRaise("rm(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("rm(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("rm(F);", 0, "cannot be type");
-	EidosAssertScriptSuccess("rm(NULL);", gStaticEidosValueVOID);		// same as omitting the parameter
+	EidosAssertScriptSuccess_VOID("rm(NULL);");		// same as omitting the parameter
 	EidosAssertScriptRaise("rm(INF);", 0, "cannot be type");
 	EidosAssertScriptRaise("rm(NAN);", 0, "cannot be type");
 	EidosAssertScriptRaise("rm(E);", 0, "cannot be type");
@@ -878,14 +878,14 @@ void _RunClassTests(void)
 	// Test EidosObject methods, using EidosTestElement since EidosObject is an abstract base class
 	
 	// methodSignature()
-	EidosAssertScriptSuccess("_Test(7).methodSignature();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("_Test(7).methodSignature('methodSignature');", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("matrix(_Test(7)).methodSignature('methodSignature');", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("_Test(7).methodSignature();");
+	EidosAssertScriptSuccess_VOID("_Test(7).methodSignature('methodSignature');");
+	EidosAssertScriptSuccess_VOID("matrix(_Test(7)).methodSignature('methodSignature');");
 	
 	// propertySignature()
-	EidosAssertScriptSuccess("_Test(7).propertySignature();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("_Test(7).propertySignature('_yolk');", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("matrix(_Test(7)).propertySignature('_yolk');", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("_Test(7).propertySignature();");
+	EidosAssertScriptSuccess_VOID("_Test(7).propertySignature('_yolk');");
+	EidosAssertScriptSuccess_VOID("matrix(_Test(7)).propertySignature('_yolk');");
 	
 	// size() / length()
 	EidosAssertScriptSuccess("_Test(7).size();", gStaticEidosValue_Integer1);
@@ -897,24 +897,24 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess_I("matrix(rep(_Test(7), 5)).length();", 5);
 	
 	// str()
-	EidosAssertScriptSuccess("_Test(7).str();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("c(_Test(7), _Test(8), _Test(9)).str();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("matrix(_Test(7)).str();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("matrix(c(_Test(7), _Test(8), _Test(9))).str();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("_Test(7).str();");
+	EidosAssertScriptSuccess_VOID("c(_Test(7), _Test(8), _Test(9)).str();");
+	EidosAssertScriptSuccess_VOID("matrix(_Test(7)).str();");
+	EidosAssertScriptSuccess_VOID("matrix(c(_Test(7), _Test(8), _Test(9))).str();");
 	
 	
 	// Test EidosDictionaryUnretained properties and methods, using EidosDictionaryRetained
 	// since there's no way to instantiate an EidosDictionaryUnretained directly
 	
 	// setValue() / getValue()
-	EidosAssertScriptSuccess("x = Dictionary(); x.getValue('a');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("x = Dictionary(); x.getValue('a');");
 	EidosAssertScriptSuccess_LV("x = Dictionary(); x.setValue('a', c(T,F,T)); x.getValue('a');", {true,false,true});
 	EidosAssertScriptSuccess_IV("x = Dictionary(); x.setValue('a', 7:9); x.getValue('a');", {7,8,9});
 	EidosAssertScriptSuccess_FV("x = Dictionary(); x.setValue('a', 7.0:9); x.getValue('a');", {7,8,9});
 	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('baz', c('foo', 'bar')); x.getValue('baz');", {"foo", "bar"});
 	EidosAssertScriptSuccess_S("x = Dictionary(); y = Dictionary(); y.setValue('foo', 'bar'); x.setValue('a', y); x.getValue('a').getValue('foo');", "bar");
-	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('a', 7:9); x.setValue('a', NULL); x.getValue('a');", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("x = Dictionary(); y = Dictionary(); y.setValue('foo', 'bar'); x.setValue('a', y); x.getValue('a').setValue('foo', NULL); x.getValue('a').getValue('foo');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("x = Dictionary(); x.setValue('a', 7:9); x.setValue('a', NULL); x.getValue('a');");
+	EidosAssertScriptSuccess_NULL("x = Dictionary(); y = Dictionary(); y.setValue('foo', 'bar'); x.setValue('a', y); x.getValue('a').setValue('foo', NULL); x.getValue('a').getValue('foo');");
 	
 	// allKeys
 	EidosAssertScriptSuccess("x = Dictionary(); x.allKeys;", gStaticEidosValue_String_ZeroVec);
@@ -923,7 +923,7 @@ void _RunClassTests(void)
 	
 	// addKeysAndValuesFrom()
 	EidosAssertScriptSuccess("x = Dictionary(); y = x; x.setValue('bar', 2); y.getValue('bar');", gStaticEidosValue_Integer2);
-	EidosAssertScriptSuccess("x = Dictionary(); y = Dictionary(); y.addKeysAndValuesFrom(x); x.setValue('bar', 2); y.getValue('bar');", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("x = Dictionary(); y = Dictionary(); y.addKeysAndValuesFrom(x); x.setValue('bar', 2); y.getValue('bar');");
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); y = Dictionary(); y.addKeysAndValuesFrom(x); x.setValue('bar', 1); y.getValue('bar');", gStaticEidosValue_Integer2);
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); y = Dictionary(); y.addKeysAndValuesFrom(x); x.setValue('bar', 1); x.getValue('bar');", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); y = Dictionary(); y.addKeysAndValuesFrom(x); y.setValue('xyzzy', 17); sort(y.allKeys);", {"bar", "baz", "xyzzy"});
@@ -1098,7 +1098,7 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptSuccess_IV("function (fi)plus([fi x = 2]) { return x + 1; } plus(c(5, 6, 7));", {6, 7, 8});
 	EidosAssertScriptSuccess_I("function (fi)plus([fi x = 2]) { return x + 1; } plus();", 3);
 	EidosAssertScriptSuccess_IV("function (fi)plus([fi x = -2]) { return x + 1; } plus(c(5, 6, 7));", {6, 7, 8});
-	EidosAssertScriptSuccess("function (fi)plus([fi x = -2]) { return x + 1; } plus();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
+	EidosAssertScriptSuccess_I("function (fi)plus([fi x = -2]) { return x + 1; } plus();", -1);
 	
 	EidosAssertScriptSuccess_FV("function (fi)plus([fi x = 2.0]) { return x + 1; } plus(c(5.0, 6.0, 7.0));", {6.0, 7.0, 8.0});
 	EidosAssertScriptSuccess_F("function (fi)plus([fi x = 2.0]) { return x + 1; } plus();", 3.0);
@@ -1146,11 +1146,11 @@ void _RunUserDefinedFunctionTests(void)
 	// Mutual recursion
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(5); ", 16);
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(10); ", 56);
-	EidosAssertScriptSuccess("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(-10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-9)));
+	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(-10); ", -9);
 	
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return baz(x - 1); } function (i)baz(i x) { return x * foo(x); } foo(5); ", 153);
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return baz(x - 1); } function (i)baz(i x) { return x * foo(x); } foo(10); ", 2335699);
-	EidosAssertScriptSuccess("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return baz(x - 1); } function (i)baz(i x) { return x * foo(x); } foo(-10); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-9)));
+	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return baz(x - 1); } function (i)baz(i x) { return x * foo(x); } foo(-10); ", -9);
 	
 	// Scoping, defineConstant(), and defineGlobal()
 	EidosAssertScriptRaise("defineConstant('x', 10); function (i)plus(i x) { return x + 1; } plus(5);", 65, "cannot be redefined because it is a constant");
@@ -1244,8 +1244,8 @@ void _RunVoidEidosValueTests(void)
 	EidosAssertScriptRaise("function (void)foo(vN$) { return; } foo(NULL);", 21, "may not be declared to be singleton");
 	
 	// functions declared to return void must return void
-	EidosAssertScriptSuccess("function (void)foo(void) { 5; } foo();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("function (void)foo(void) { 5; return; } foo();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("function (void)foo(void) { 5; } foo();");
+	EidosAssertScriptSuccess_VOID("function (void)foo(void) { 5; return; } foo();");
 	EidosAssertScriptRaise("function (void)foo(void) { return 5; } foo();", 39, "return value must be void");
 	EidosAssertScriptRaise("function (void)foo(void) { return NULL; } foo();", 42, "return value must be void");
 	
@@ -1253,19 +1253,19 @@ void _RunVoidEidosValueTests(void)
 	EidosAssertScriptRaise("function (NULL)foo(void) { 5; } foo();", 32, "return value cannot be void");
 	EidosAssertScriptRaise("function (NULL)foo(void) { 5; return; } foo();", 40, "return value cannot be void");
 	EidosAssertScriptRaise("function (NULL)foo(void) { return 5; } foo();", 39, "return value cannot be type integer");
-	EidosAssertScriptSuccess("function (NULL)foo(void) { return NULL; } foo();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("function (NULL)foo(void) { return NULL; } foo();");
 	
 	// functions declared to return * may return anything but void
 	EidosAssertScriptRaise("function (*)foo(void) { 5; } foo();", 29, "return value cannot be void");
 	EidosAssertScriptRaise("function (*)foo(void) { 5; return; } foo();", 37, "return value cannot be void");
 	EidosAssertScriptSuccess_I("function (*)foo(void) { return 5; } foo();", 5);
-	EidosAssertScriptSuccess("function (*)foo(void) { return NULL; } foo();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("function (*)foo(void) { return NULL; } foo();");
 	
 	// functions declared to return vNlifso may return anything at all
-	EidosAssertScriptSuccess("function (vNlifso)foo(void) { 5; } foo();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("function (vNlifso)foo(void) { 5; return; } foo();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("function (vNlifso)foo(void) { 5; } foo();");
+	EidosAssertScriptSuccess_VOID("function (vNlifso)foo(void) { 5; return; } foo();");
 	EidosAssertScriptSuccess_I("function (vNlifso)foo(void) { return 5; } foo();", 5);
-	EidosAssertScriptSuccess("function (vNlifso)foo(void) { return NULL; } foo();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_NULL("function (vNlifso)foo(void) { return NULL; } foo();");
 	
 	// functions may not be declared as taking a parameter of type void
 	EidosAssertScriptRaise("function (void)foo(void x) { return; } foo();", 19, "void is not allowed");
@@ -1283,12 +1283,12 @@ void _RunVoidEidosValueTests(void)
 	
 	// functions *may* be declared as taking a parameter of type NULL, or returning NULL; this is new, with the new void support
 	// not sure why anybody would want to do this, of course, but hey, ours not to reason why...
-	EidosAssertScriptSuccess("function (void)foo(NULL x) { return; } foo(NULL);", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("function (void)bar([NULL x = NULL]) { return; } bar(NULL);", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("function (void)bar([NULL x = NULL]) { return; } bar();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("function (NULL)foo(NULL x) { return x; } foo(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("function (NULL)bar([NULL x = NULL]) { return x; } bar(NULL);", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("function (NULL)bar([NULL x = NULL]) { return x; } bar();", gStaticEidosValueNULL);
+	EidosAssertScriptSuccess_VOID("function (void)foo(NULL x) { return; } foo(NULL);");
+	EidosAssertScriptSuccess_VOID("function (void)bar([NULL x = NULL]) { return; } bar(NULL);");
+	EidosAssertScriptSuccess_VOID("function (void)bar([NULL x = NULL]) { return; } bar();");
+	EidosAssertScriptSuccess_NULL("function (NULL)foo(NULL x) { return x; } foo(NULL);");
+	EidosAssertScriptSuccess_NULL("function (NULL)bar([NULL x = NULL]) { return x; } bar(NULL);");
+	EidosAssertScriptSuccess_NULL("function (NULL)bar([NULL x = NULL]) { return x; } bar();");
 	
 	// functions may not be passed void arguments
 	EidosAssertScriptRaise("function (void)foo(void) { return; } foo(citation());", 37, "too many arguments");
@@ -1314,7 +1314,7 @@ void _RunVoidEidosValueTests(void)
 	
 	EidosAssertScriptRaise("citation()();", 8, "illegal operand for a function call");
 	EidosAssertScriptRaise("(citation())();", 9, "illegal operand for a function call");
-	EidosAssertScriptSuccess("(citation());", gStaticEidosValueVOID);				// about the only thing that is legal with void!
+	EidosAssertScriptSuccess_VOID("(citation());");				// about the only thing that is legal with void!
 	
 	EidosAssertScriptRaise("citation().test();", 10, "type void is not supported");
 	EidosAssertScriptRaise("citation().test = 5;", 16, "type void is not supported");
@@ -1385,12 +1385,12 @@ void _RunVoidEidosValueTests(void)
 	EidosAssertScriptRaise("citation() | T;", 11, "type void is not supported");
 	EidosAssertScriptRaise("citation() | citation();", 11, "type void is not supported");
 	
-	EidosAssertScriptSuccess("T ? citation() else F;", gStaticEidosValueVOID);		// also legal with void, as long as you don't try to use the result...
+	EidosAssertScriptSuccess_VOID("T ? citation() else F;");		// also legal with void, as long as you don't try to use the result...
 	EidosAssertScriptSuccess_L("F ? citation() else F;", false);
 	EidosAssertScriptSuccess_L("T ? F else citation();", false);
-	EidosAssertScriptSuccess("F ? F else citation();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("T ? citation() else citation();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("F ? citation() else citation();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("F ? F else citation();");
+	EidosAssertScriptSuccess_VOID("T ? citation() else citation();");
+	EidosAssertScriptSuccess_VOID("F ? citation() else citation();");
 	EidosAssertScriptRaise("citation() ? T else F;", 11, "size() != 1");
 	
 	EidosAssertScriptRaise("x = citation();", 2, "void may never be assigned");
@@ -1398,8 +1398,8 @@ void _RunVoidEidosValueTests(void)
 	// void may not be used in while, do-while, for, etc.
 	EidosAssertScriptRaise("if (citation()) T;", 0, "size() != 1");
 	EidosAssertScriptRaise("if (citation()) T; else F;", 0, "size() != 1");
-	EidosAssertScriptSuccess("if (T) citation(); else citation();", gStaticEidosValueVOID);
-	EidosAssertScriptSuccess("if (F) citation(); else citation();", gStaticEidosValueVOID);
+	EidosAssertScriptSuccess_VOID("if (T) citation(); else citation();");
+	EidosAssertScriptSuccess_VOID("if (F) citation(); else citation();");
 	
 	EidosAssertScriptRaise("while (citation()) F;", 0, "size() != 1");
 	
