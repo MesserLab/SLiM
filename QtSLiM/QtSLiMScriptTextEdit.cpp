@@ -2709,7 +2709,7 @@ void QtSLiMScriptTextEdit::toggleDebuggingForLine(int lineNumber)
     bool hasExistingCursor = false;
     
     //qDebug() << "toggleDebuggingForLine():" << lineNumber;
-    //qDebug() << "block contents:" << document()->findBlockByLineNumber(lineNumber).text();
+    //qDebug() << "block contents:" << document()->findBlockByNumber(lineNumber).text();
     
     for (int cursorIndex = 0; cursorIndex < (int)bugCursors.size(); cursorIndex++)
     {
@@ -2733,7 +2733,7 @@ void QtSLiMScriptTextEdit::toggleDebuggingForLine(int lineNumber)
     {
         // This line number does not currently have a debugging point; add one
         QTextDocument *doc = document();
-        QTextBlock block = doc->findBlockByLineNumber(lineNumber);
+        QTextBlock block = doc->findBlockByNumber(lineNumber);
         QString blockText = block.text();
         
         // Find the first non-whitespace character in the block; the debug point starts at that character
