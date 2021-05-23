@@ -2233,17 +2233,8 @@ EidosASTNode *EidosScript::Parse_ParamSpec(void)
 			
 			Match(EidosTokenType::kTokenAssign, "parameter specifier");
 			
-			if (current_token_type_ == EidosTokenType::kTokenIdentifier)
-			{
-				default_value = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
-				node->AddChild(default_value);
-				Match(EidosTokenType::kTokenIdentifier, "parameter specifier");
-			}
-			else
-			{
-				default_value = Parse_Constant();
-				node->AddChild(default_value);
-			}
+			default_value = Parse_DefaultValue();
+			node->AddChild(default_value);
 			
 			Match(EidosTokenType::kTokenRBracket, "parameter specifier");
 		}
@@ -2264,6 +2255,120 @@ EidosASTNode *EidosScript::Parse_ParamSpec(void)
 			parameter_id = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 			node->AddChild(parameter_id);
 			Match(EidosTokenType::kTokenIdentifier, "parameter specifier");
+		}
+	}
+	catch (...)
+	{
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+EidosASTNode *EidosScript::Parse_DefaultValue(void)
+{
+	EidosASTNode *node = nullptr;
+	
+	try
+	{
+		if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			Match(EidosTokenType::kTokenIdentifier, "default value");
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenNumber)
+		{
+			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			Match(EidosTokenType::kTokenNumber, "default value");
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenMinus)
+		{
+			// We allow a unary minus to precede a numeric constant; we make a minus node
+			// with the numeric constant below it, and we cache its numeric value right
+			// here since EidosASTNode::_OptimizeConstants() isn't smart enough to do it.
+			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			Consume();
+			
+			// attempt to figure out the numeric value; this can throw an EIDOS_TERMINATION
+			// exception, and we might be doing an error-tolerant parse, so be careful
+			EidosValue_SP negated_value;
+			
+			bool oldTerminateThrows = gEidosTerminateThrows;
+			if (!parse_make_bad_nodes_)
+				gEidosTerminateThrows = true;
+			
+			try
+			{
+				if (current_token_type_ == EidosTokenType::kTokenNumber)
+				{
+					EidosValue_SP numeric_value = EidosInterpreter::NumericValueForString(current_token_->token_string_, current_token_);	// can raise
+					
+					if (numeric_value->Type() == EidosValueType::kValueFloat)
+					{
+						double float_value = numeric_value->FloatAtIndex(0, current_token_);
+						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-float_value));
+					}
+					else if (numeric_value->Type() == EidosValueType::kValueInt)
+					{
+						int64_t int_value = numeric_value->IntAtIndex(0, current_token_);
+						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-int_value));	// note that overflow is not possible
+					}
+					else
+					{
+						EIDOS_TERMINATION << "ERROR (EidosScript::Parse_DefaultValue): (internal error) numeric token has unexpected Eidos type." << EidosTerminate(current_token_);
+					}
+				}
+			}
+			catch (...)
+			{
+				// negated_value remains nullptr; no need to do anything else here
+			}
+			
+			gEidosTerminateThrows = oldTerminateThrows;
+			
+			if (negated_value)
+			{
+				EidosASTNode *numeric_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+				Match(EidosTokenType::kTokenNumber, "default value");
+				
+				node->AddChild(numeric_node);
+				node->cached_literal_value_ = negated_value;	// cache the negated value for fast default argument processing
+			}
+			else
+			{
+				// unary minus preceded something other than a numeric constant; error
+				if (!parse_make_bad_nodes_)
+					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_DefaultValue): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
+				
+				// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing constant
+				EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
+				EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+				
+				node->AddChild(bad_node);
+			}
+		}
+		else if (current_token_type_ == EidosTokenType::kTokenString)
+		{
+			node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			Match(EidosTokenType::kTokenString, "default value");
+		}
+		else
+		{
+			// malformed default value
+			if (!parse_make_bad_nodes_)
+				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_DefaultValue): unexpected token '" << *current_token_ << "'." << EidosTerminate(current_token_);
+			
+			// We're doing an error-tolerant parse, so we introduce a bad node here as a placeholder for a missing constant
+			EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
+			EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+			
+			node = bad_node;
 		}
 	}
 	catch (...)

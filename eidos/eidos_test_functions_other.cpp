@@ -1094,6 +1094,31 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptSuccess("function (s)append(s x, s y) { return x + ',' + y; } append('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("foo,bar")));
 	EidosAssertScriptSuccess("function (s)append(s x, s y) { return x + ',' + y; } append('foo', c('bar','baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo,bar", "foo,baz"}));
 	
+	// Default arguments
+	EidosAssertScriptSuccess("function (fi)plus([fi x = 2]) { return x + 1; } plus(c(5, 6, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{6, 7, 8}));
+	EidosAssertScriptSuccess("function (fi)plus([fi x = 2]) { return x + 1; } plus();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3)));
+	EidosAssertScriptSuccess("function (fi)plus([fi x = -2]) { return x + 1; } plus(c(5, 6, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{6, 7, 8}));
+	EidosAssertScriptSuccess("function (fi)plus([fi x = -2]) { return x + 1; } plus();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
+	
+	EidosAssertScriptSuccess("function (fi)plus([fi x = 2.0]) { return x + 1; } plus(c(5.0, 6.0, 7.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{6.0, 7.0, 8.0}));
+	EidosAssertScriptSuccess("function (fi)plus([fi x = 2.0]) { return x + 1; } plus();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(3.0)));
+	EidosAssertScriptSuccess("function (fi)plus([fi x = -2.0]) { return x + 1; } plus(c(5.0, 6.0, 7.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{6.0, 7.0, 8.0}));
+	EidosAssertScriptSuccess("function (fi)plus([fi x = -2.0]) { return x + 1; } plus();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-1.0)));
+	
+	EidosAssertScriptSuccess("function (s)append(s x, [s y = 'foo']) { return x + ',' + y; } append('foo', c('bar','baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo,bar", "foo,baz"}));
+	EidosAssertScriptSuccess("function (s)append(s x, [s y = 'foo']) { return x + ',' + y; } append('bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar,foo"}));
+	
+	EidosAssertScriptSuccess("function (l)or(l x, [l y = T]) { return x | y; } or(c(T, F, T, F), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, true}));
+	EidosAssertScriptSuccess("function (l)or(l x, [l y = T]) { return x | y; } or(c(T, F, T, F), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
+	EidosAssertScriptSuccess("function (l)or(l x, [l y = T]) { return x | y; } or(c(T, F, T, F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, true}));
+	EidosAssertScriptSuccess("function (l)or(l x, [l y = F]) { return x | y; } or(c(T, F, T, F), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, true, true}));
+	EidosAssertScriptSuccess("function (l)or(l x, [l y = F]) { return x | y; } or(c(T, F, T, F), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
+	EidosAssertScriptSuccess("function (l)or(l x, [l y = F]) { return x | y; } or(c(T, F, T, F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, false}));
+	
+	EidosAssertScriptRaise("function (fi)plus([fi x = FOO]) { return x + 1; } plus();", 26, "default value must be");
+	EidosAssertScriptRaise("function (fi)plus([fi x = 9223372036854775808]) { return x + 1; } plus();", 26, "could not be represented");
+	EidosAssertScriptRaise("function (fi)plus([fi x = -FOO]) { return x + 1; } plus();", 27, "unexpected token");
+	
 	// Recursion
 	EidosAssertScriptSuccess("function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } fac(3); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(6)));
 	EidosAssertScriptSuccess("function (i)fac([i b=10]) { if (b <= 1) return 1; else return b*fac(b-1); } fac(5); ", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(120)));

@@ -132,6 +132,7 @@ public:
 	EidosASTNode *Parse_ObjectClassSpec(EidosASTNode *p_type_node);	// adds to type node
 	EidosASTNode *Parse_ParamList(void);
 	EidosASTNode *Parse_ParamSpec(void);
+	EidosASTNode *Parse_DefaultValue(void);
 };
 
 

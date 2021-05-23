@@ -6247,7 +6247,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 						else
 						{
 							delete sig;
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << EidosTerminate(p_node->token_);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << EidosTerminate(default_node->token_);
 						}
 					}
 					else
