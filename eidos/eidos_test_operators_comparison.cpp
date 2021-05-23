@@ -81,26 +81,26 @@ void _RunOperatorGtTests(void)
 	EidosAssertScriptSuccess_L("'foo' > 'foo';", false);
 	EidosAssertScriptRaise("_Test(9) > _Test(9);", 9, "cannot be used with type");
 	
-	EidosAssertScriptSuccess("T > c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5 > c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("5.0 > c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("'foo' > c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("T > c(T, F);", {false, true});
+	EidosAssertScriptSuccess_LV("5 > c(5, 6);", {false, false});
+	EidosAssertScriptSuccess_LV("5.0 > c(5.0, 6.0);", {false, false});
+	EidosAssertScriptSuccess_LV("'foo' > c('foo', 'bar');", {false, true});
 	
-	EidosAssertScriptSuccess("c(T, F) > T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("c(5, 6) > 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) > 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') > 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess_LV("c(T, F) > T;", {false, false});
+	EidosAssertScriptSuccess_LV("c(5, 6) > 5;", {false, true});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) > 5.0;", {false, true});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') > 'foo';", {false, false});
 	
-	EidosAssertScriptSuccess("c(T, F) > c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("c(5, 6) > c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) > c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("c('foo', 'bar') > c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess_LV("c(T, F) > c(T, T);", {false, false});
+	EidosAssertScriptSuccess_LV("c(5, 6) > c(5, 8);", {false, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) > c(5.0, 8.0);", {false, false});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') > c('foo', 'baz');", {false, false});
 	
 	EidosAssertScriptSuccess_L("NAN > NAN;", false);
 	EidosAssertScriptSuccess_L("NAN > 5.0;", false);
 	EidosAssertScriptSuccess_L("5.0 > NAN;", false);
-	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) > c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) > c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false}));
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, NAN) > c(5.0, 5.0, 5.0);", {false, true, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, 8.0) > c(5.0, 5.0, NAN);", {false, true, false});
 	
 	EidosAssertScriptRaise("c(5,6) > c(5,6,7);", 7, "operator requires that either");
 	
@@ -182,26 +182,26 @@ void _RunOperatorLtTests(void)
 	EidosAssertScriptSuccess_L("'foo' < 'foo';", false);
 	EidosAssertScriptRaise("_Test(9) < _Test(9);", 9, "cannot be used with type");
 	
-	EidosAssertScriptSuccess("T < c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("5 < c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5.0 < c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("'foo' < c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
+	EidosAssertScriptSuccess_LV("T < c(T, F);", {false, false});
+	EidosAssertScriptSuccess_LV("5 < c(5, 6);", {false, true});
+	EidosAssertScriptSuccess_LV("5.0 < c(5.0, 6.0);", {false, true});
+	EidosAssertScriptSuccess_LV("'foo' < c('foo', 'bar');", {false, false});
 	
-	EidosAssertScriptSuccess("c(T, F) < T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) < 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) < 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false}));
-	EidosAssertScriptSuccess("c('foo', 'bar') < 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("c(T, F) < T;", {false, true});
+	EidosAssertScriptSuccess_LV("c(5, 6) < 5;", {false, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) < 5.0;", {false, false});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') < 'foo';", {false, true});
 	
-	EidosAssertScriptSuccess("c(T, F) < c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) < c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) < c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') < c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("c(T, F) < c(T, T);", {false, true});
+	EidosAssertScriptSuccess_LV("c(5, 6) < c(5, 8);", {false, true});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) < c(5.0, 8.0);", {false, true});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') < c('foo', 'baz');", {false, true});
 	
 	EidosAssertScriptSuccess_L("NAN < NAN;", false);
 	EidosAssertScriptSuccess_L("NAN < 5.0;", false);
 	EidosAssertScriptSuccess_L("5.0 < NAN;", false);
-	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) < c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) < c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, false}));
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, NAN) < c(5.0, 5.0, 5.0);", {false, false, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, 8.0) < c(5.0, 5.0, NAN);", {false, false, false});
 	
 	EidosAssertScriptRaise("c(5,6) < c(5,6,7);", 7, "operator requires that either");
 	
@@ -283,26 +283,26 @@ void _RunOperatorGtEqTests(void)
 	EidosAssertScriptSuccess_L("'foo' >= 'foo';", true);
 	EidosAssertScriptRaise("_Test(9) >= _Test(9);", 9, "cannot be used with type");
 	
-	EidosAssertScriptSuccess("T >= c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("5 >= c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("5.0 >= c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("'foo' >= c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess_LV("T >= c(T, F);", {true, true});
+	EidosAssertScriptSuccess_LV("5 >= c(5, 6);", {true, false});
+	EidosAssertScriptSuccess_LV("5.0 >= c(5.0, 6.0);", {true, false});
+	EidosAssertScriptSuccess_LV("'foo' >= c('foo', 'bar');", {true, true});
 	
-	EidosAssertScriptSuccess("c(T, F) >= T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5, 6) >= 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) >= 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') >= 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess_LV("c(T, F) >= T;", {true, false});
+	EidosAssertScriptSuccess_LV("c(5, 6) >= 5;", {true, true});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) >= 5.0;", {true, true});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') >= 'foo';", {true, false});
 	
-	EidosAssertScriptSuccess("c(T, F) >= c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5, 6) >= c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) >= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c('foo', 'bar') >= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess_LV("c(T, F) >= c(T, T);", {true, false});
+	EidosAssertScriptSuccess_LV("c(5, 6) >= c(5, 8);", {true, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) >= c(5.0, 8.0);", {true, false});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') >= c('foo', 'baz');", {true, false});
 	
 	EidosAssertScriptSuccess_L("NAN >= NAN;", false);
 	EidosAssertScriptSuccess_L("NAN >= 5.0;", false);
 	EidosAssertScriptSuccess_L("5.0 >= NAN;", false);
-	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) >= c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) >= c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, false}));
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, NAN) >= c(5.0, 5.0, 5.0);", {true, true, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, 8.0) >= c(5.0, 5.0, NAN);", {true, true, false});
 	
 	EidosAssertScriptRaise("c(5,6) >= c(5,6,7);", 7, "operator requires that either");
 	
@@ -384,26 +384,26 @@ void _RunOperatorLtEqTests(void)
 	EidosAssertScriptSuccess_L("'foo' <= 'foo';", true);
 	EidosAssertScriptRaise("_Test(9) <= _Test(9);", 9, "cannot be used with type");
 	
-	EidosAssertScriptSuccess("T <= c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("5 <= c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("5.0 <= c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("'foo' <= c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess_LV("T <= c(T, F);", {true, false});
+	EidosAssertScriptSuccess_LV("5 <= c(5, 6);", {true, true});
+	EidosAssertScriptSuccess_LV("5.0 <= c(5.0, 6.0);", {true, true});
+	EidosAssertScriptSuccess_LV("'foo' <= c('foo', 'bar');", {true, false});
 	
-	EidosAssertScriptSuccess("c(T, F) <= T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("c(5, 6) <= 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) <= 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c('foo', 'bar') <= 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess_LV("c(T, F) <= T;", {true, true});
+	EidosAssertScriptSuccess_LV("c(5, 6) <= 5;", {true, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) <= 5.0;", {true, false});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') <= 'foo';", {true, true});
 	
-	EidosAssertScriptSuccess("c(T, F) <= c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("c(5, 6) <= c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) <= c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') <= c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true}));
+	EidosAssertScriptSuccess_LV("c(T, F) <= c(T, T);", {true, true});
+	EidosAssertScriptSuccess_LV("c(5, 6) <= c(5, 8);", {true, true});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) <= c(5.0, 8.0);", {true, true});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') <= c('foo', 'baz');", {true, true});
 	
 	EidosAssertScriptSuccess_L("NAN <= NAN;", false);
 	EidosAssertScriptSuccess_L("NAN <= 5.0;", false);
 	EidosAssertScriptSuccess_L("5.0 <= NAN;", false);
-	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) <= c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) <= c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, NAN) <= c(5.0, 5.0, 5.0);", {true, false, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, 8.0) <= c(5.0, 5.0, NAN);", {true, false, false});
 	
 	EidosAssertScriptRaise("c(5,6) <= c(5,6,7);", 7, "operator requires that either");
 	
@@ -485,29 +485,29 @@ void _RunOperatorEqTests(void)
 	EidosAssertScriptSuccess_L("'foo' == 'foo';", true);
 	EidosAssertScriptSuccess_L("_Test(9) == _Test(9);", false);	// not the same object
 	
-	EidosAssertScriptSuccess("T == c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("5 == c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("5.0 == c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("'foo' == c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("x = _Test(9); x == c(x, _Test(9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess_LV("T == c(T, F);", {true, false});
+	EidosAssertScriptSuccess_LV("5 == c(5, 6);", {true, false});
+	EidosAssertScriptSuccess_LV("5.0 == c(5.0, 6.0);", {true, false});
+	EidosAssertScriptSuccess_LV("'foo' == c('foo', 'bar');", {true, false});
+	EidosAssertScriptSuccess_LV("x = _Test(9); x == c(x, _Test(9));", {true, false});
 	
-	EidosAssertScriptSuccess("c(T, F) == T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5, 6) == 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) == 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c('foo', 'bar') == 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) == x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess_LV("c(T, F) == T;", {true, false});
+	EidosAssertScriptSuccess_LV("c(5, 6) == 5;", {true, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) == 5.0;", {true, false});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') == 'foo';", {true, false});
+	EidosAssertScriptSuccess_LV("x = _Test(9); c(x, _Test(9)) == x;", {true, false});
 	
-	EidosAssertScriptSuccess("c(T, F) == c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5, 6) == c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) == c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("c('foo', 'bar') == c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
-	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) == c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false}));
+	EidosAssertScriptSuccess_LV("c(T, F) == c(T, T);", {true, false});
+	EidosAssertScriptSuccess_LV("c(5, 6) == c(5, 8);", {true, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) == c(5.0, 8.0);", {true, false});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') == c('foo', 'baz');", {true, false});
+	EidosAssertScriptSuccess_LV("x = _Test(9); c(x, _Test(9)) == c(x, x);", {true, false});
 	
 	EidosAssertScriptSuccess_L("NAN == NAN;", false);
 	EidosAssertScriptSuccess_L("NAN == 5.0;", false);
 	EidosAssertScriptSuccess_L("5.0 == NAN;", false);
-	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) == c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
-	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) == c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, NAN) == c(5.0, 5.0, 5.0);", {true, false, false});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, 8.0) == c(5.0, 5.0, NAN);", {true, false, false});
 	
 	EidosAssertScriptRaise("c(5,6) == c(5,6,7);", 7, "operator requires that either");
 	
@@ -585,29 +585,29 @@ void _RunOperatorNotEqTests(void)
 	EidosAssertScriptSuccess_L("'foo' != 'foo';", false);
 	EidosAssertScriptSuccess_L("_Test(9) != _Test(9);", true);	// not the same object
 	
-	EidosAssertScriptSuccess("T != c(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5 != c(5, 6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("5.0 != c(5.0, 6.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("'foo' != c('foo', 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("x = _Test(9); x != c(x, _Test(9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("T != c(T, F);", {false, true});
+	EidosAssertScriptSuccess_LV("5 != c(5, 6);", {false, true});
+	EidosAssertScriptSuccess_LV("5.0 != c(5.0, 6.0);", {false, true});
+	EidosAssertScriptSuccess_LV("'foo' != c('foo', 'bar');", {false, true});
+	EidosAssertScriptSuccess_LV("x = _Test(9); x != c(x, _Test(9));", {false, true});
 	
-	EidosAssertScriptSuccess("c(T, F) != T;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) != 5;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) != 5.0;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') != 'foo';", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) != x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("c(T, F) != T;", {false, true});
+	EidosAssertScriptSuccess_LV("c(5, 6) != 5;", {false, true});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) != 5.0;", {false, true});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') != 'foo';", {false, true});
+	EidosAssertScriptSuccess_LV("x = _Test(9); c(x, _Test(9)) != x;", {false, true});
 	
-	EidosAssertScriptSuccess("c(T, F) != c(T, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5, 6) != c(5, 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0) != c(5.0, 8.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("c('foo', 'bar') != c('foo', 'baz');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("x = _Test(9); c(x, _Test(9)) != c(x, x);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("c(T, F) != c(T, T);", {false, true});
+	EidosAssertScriptSuccess_LV("c(5, 6) != c(5, 8);", {false, true});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0) != c(5.0, 8.0);", {false, true});
+	EidosAssertScriptSuccess_LV("c('foo', 'bar') != c('foo', 'baz');", {false, true});
+	EidosAssertScriptSuccess_LV("x = _Test(9); c(x, _Test(9)) != c(x, x);", {false, true});
 	
 	EidosAssertScriptSuccess_L("NAN != NAN;", true);
 	EidosAssertScriptSuccess_L("NAN != 5.0;", true);
 	EidosAssertScriptSuccess_L("5.0 != NAN;", true);
-	EidosAssertScriptSuccess("c(5.0, 6.0, NAN) != c(5.0, 5.0, 5.0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true}));
-	EidosAssertScriptSuccess("c(5.0, 6.0, 8.0) != c(5.0, 5.0, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true}));
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, NAN) != c(5.0, 5.0, 5.0);", {false, true, true});
+	EidosAssertScriptSuccess_LV("c(5.0, 6.0, 8.0) != c(5.0, 5.0, NAN);", {false, true, true});
 	
 	EidosAssertScriptRaise("c(5,6) != c(5,6,7);", 7, "operator requires that either");
 	

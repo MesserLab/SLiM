@@ -31,10 +31,10 @@ void _RunFunctionMathTests_a_through_f(void)
 	// abs()
 	EidosAssertScriptSuccess_I("abs(5);", 5);
 	EidosAssertScriptSuccess_I("abs(-5);", 5);
-	EidosAssertScriptSuccess("abs(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 7, 18, 12}));
+	EidosAssertScriptSuccess_IV("abs(c(-2, 7, -18, 12));", {2, 7, 18, 12});
 	EidosAssertScriptSuccess_F("abs(5.5);", 5.5);
 	EidosAssertScriptSuccess_F("abs(-5.5);", 5.5);
-	EidosAssertScriptSuccess("abs(c(-2.0, 7.0, -18.0, 12.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2, 7, 18, 12}));
+	EidosAssertScriptSuccess_FV("abs(c(-2.0, 7.0, -18.0, 12.0));", {2, 7, 18, 12});
 	EidosAssertScriptRaise("abs(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("abs('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("abs(_Test(7));", 0, "cannot be type");
@@ -47,7 +47,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptRaise("abs(-9223372036854775807 - 1);", 0, "most negative integer");
 	EidosAssertScriptRaise("abs(c(17, -9223372036854775807 - 1));", 0, "most negative integer");
 	EidosAssertScriptSuccess("abs(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("abs(c(-2.0, 7.0, -18.0, NAN, 12.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2, 7, 18, std::numeric_limits<double>::quiet_NaN(), 12}));
+	EidosAssertScriptSuccess_FV("abs(c(-2.0, 7.0, -18.0, NAN, 12.0));", {2, 7, 18, std::numeric_limits<double>::quiet_NaN(), 12});
 	
 	EidosAssertScriptSuccess_L("identical(abs(matrix(5)), matrix(5));", true);
 	EidosAssertScriptSuccess_L("identical(abs(matrix(-5)), matrix(5));", true);
@@ -74,7 +74,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("acos(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("acos(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("acos(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("acos(c(1, NAN, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("acos(c(1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(acos(matrix(0.5)), matrix(acos(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(acos(matrix(c(0.1, 0.2, 0.3))), matrix(acos(c(0.1, 0.2, 0.3))));", true);
@@ -95,7 +95,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("asin(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("asin(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("asin(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("asin(c(0, NAN, 0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("asin(c(0, NAN, 0));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(asin(matrix(0.5)), matrix(asin(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(asin(matrix(c(0.1, 0.2, 0.3))), matrix(asin(c(0.1, 0.2, 0.3))));", true);
@@ -116,7 +116,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("atan(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("atan(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("atan(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("atan(c(0, NAN, 0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("atan(c(0, NAN, 0));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(atan(matrix(0.5)), matrix(atan(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(atan(matrix(c(0.1, 0.2, 0.3))), matrix(atan(c(0.1, 0.2, 0.3))));", true);
@@ -143,7 +143,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptRaise("atan2(0.0, c(0.0, 1.0));", 0, "requires arguments of equal length");		// argument count mismatch
 	EidosAssertScriptSuccess("atan2(0.5, NAN);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("atan2(NAN, 0.5);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("atan2(c(0, NAN, 0, 0), c(1, 1, NAN, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("atan2(c(0, NAN, 0, 0), c(1, 1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(atan2(matrix(0.5), matrix(0.25)), matrix(atan2(0.5, 0.25)));", true);
 	EidosAssertScriptSuccess_L("identical(atan2(matrix(0.5), 0.25), matrix(atan2(0.5, 0.25)));", true);
@@ -155,7 +155,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	// ceil()
 	EidosAssertScriptSuccess_F("ceil(5.1);", 6.0);
 	EidosAssertScriptSuccess_F("ceil(-5.1);", -5.0);
-	EidosAssertScriptSuccess("ceil(c(-2.1, 7.1, -18.8, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 8, -18, 13}));
+	EidosAssertScriptSuccess_FV("ceil(c(-2.1, 7.1, -18.8, 12.8));", {-2.0, 8, -18, 13});
 	EidosAssertScriptRaise("ceil(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("ceil(5);", 0, "cannot be type");
 	EidosAssertScriptRaise("ceil('foo');", 0, "cannot be type");
@@ -166,7 +166,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("ceil(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("ceil(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("ceil(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("ceil(c(-2.1, 7.1, -18.8, NAN, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 8, -18, std::numeric_limits<double>::quiet_NaN(), 13}));
+	EidosAssertScriptSuccess_FV("ceil(c(-2.1, 7.1, -18.8, NAN, 12.8));", {-2.0, 8, -18, std::numeric_limits<double>::quiet_NaN(), 13});
 	
 	EidosAssertScriptSuccess_L("identical(ceil(matrix(0.3)), matrix(ceil(0.3)));", true);
 	EidosAssertScriptSuccess_L("identical(ceil(matrix(0.6)), matrix(ceil(0.6)));", true);
@@ -188,7 +188,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("cos(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("cos(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("cos(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("cos(c(0, NAN, 0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, std::numeric_limits<double>::quiet_NaN(), 1}));
+	EidosAssertScriptSuccess_FV("cos(c(0, NAN, 0));", {1, std::numeric_limits<double>::quiet_NaN(), 1});
 	
 	EidosAssertScriptSuccess_L("identical(cos(matrix(0.5)), matrix(cos(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(cos(matrix(c(0.1, 0.2, 0.3))), matrix(cos(c(0.1, 0.2, 0.3))));", true);
@@ -196,10 +196,10 @@ void _RunFunctionMathTests_a_through_f(void)
 	// cumProduct()
 	EidosAssertScriptSuccess_I("cumProduct(5);", 5);
 	EidosAssertScriptSuccess("cumProduct(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
-	EidosAssertScriptSuccess("cumProduct(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-2, -14, 252, 3024}));
+	EidosAssertScriptSuccess_IV("cumProduct(c(-2, 7, -18, 12));", {-2, -14, 252, 3024});
 	EidosAssertScriptSuccess_F("cumProduct(5.5);", 5.5);
 	EidosAssertScriptSuccess_F("cumProduct(-5.5);", -5.5);
-	EidosAssertScriptSuccess("cumProduct(c(-2.0, 7.0, -18.0, 12.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, -14.0, 252.0, 3024.0}));
+	EidosAssertScriptSuccess_FV("cumProduct(c(-2.0, 7.0, -18.0, 12.0));", {-2.0, -14.0, 252.0, 3024.0});
 	EidosAssertScriptRaise("cumProduct(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("cumProduct('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("cumProduct(_Test(7));", 0, "cannot be type");
@@ -214,7 +214,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptRaise("cumProduct(c(-922337203685477581, 10));", 0, "multiplication overflow");
 	EidosAssertScriptRaise("cumProduct(c(922337203685477581, 10));", 0, "multiplication overflow");
 #endif
-	EidosAssertScriptSuccess("cumProduct(c(5, 5, 3.0, NAN, 2.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{5.0, 25.0, 75.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
+	EidosAssertScriptSuccess_FV("cumProduct(c(5, 5, 3.0, NAN, 2.0));", {5.0, 25.0, 75.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	
 	EidosAssertScriptSuccess_L("identical(cumProduct(matrix(0.5)), matrix(cumProduct(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(cumProduct(matrix(c(0.1, 0.2, 0.3))), matrix(cumProduct(c(0.1, 0.2, 0.3))));", true);
@@ -222,10 +222,10 @@ void _RunFunctionMathTests_a_through_f(void)
 	// cumSum()
 	EidosAssertScriptSuccess_I("cumSum(5);", 5);
 	EidosAssertScriptSuccess("cumSum(-5);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-5)));
-	EidosAssertScriptSuccess("cumSum(c(-2, 7, -18, 12));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-2, 5, -13, -1}));
+	EidosAssertScriptSuccess_IV("cumSum(c(-2, 7, -18, 12));", {-2, 5, -13, -1});
 	EidosAssertScriptSuccess_F("cumSum(5.5);", 5.5);
 	EidosAssertScriptSuccess_F("cumSum(-5.5);", -5.5);
-	EidosAssertScriptSuccess("cumSum(c(-2.0, 7.0, -18.0, 12.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 5.0, -13.0, -1.0}));
+	EidosAssertScriptSuccess_FV("cumSum(c(-2.0, 7.0, -18.0, 12.0));", {-2.0, 5.0, -13.0, -1.0});
 	EidosAssertScriptRaise("cumSum(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("cumSum('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("cumSum(_Test(7));", 0, "cannot be type");
@@ -240,7 +240,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptRaise("cumSum(c(-9223372036854775807, -1, -1));", 0, "addition overflow");
 	EidosAssertScriptRaise("cumSum(c(9223372036854775807, 1, 1));", 0, "addition overflow");
 #endif
-	EidosAssertScriptSuccess("cumSum(c(5, 5, 3.0, NAN, 2.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{5.0, 10.0, 13.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()}));
+	EidosAssertScriptSuccess_FV("cumSum(c(5, 5, 3.0, NAN, 2.0));", {5.0, 10.0, 13.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	
 	EidosAssertScriptSuccess_L("identical(cumSum(matrix(0.5)), matrix(cumSum(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(cumSum(matrix(c(0.1, 0.2, 0.3))), matrix(cumSum(c(0.1, 0.2, 0.3))));", true);
@@ -259,7 +259,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("exp(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("exp(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("exp(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("exp(c(0, NAN, 0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{1, std::numeric_limits<double>::quiet_NaN(), 1}));
+	EidosAssertScriptSuccess_FV("exp(c(0, NAN, 0));", {1, std::numeric_limits<double>::quiet_NaN(), 1});
 	
 	EidosAssertScriptSuccess_L("identical(exp(matrix(0.5)), matrix(exp(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(exp(matrix(c(0.1, 0.2, 0.3))), matrix(exp(c(0.1, 0.2, 0.3))));", true);
@@ -267,7 +267,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	// floor()
 	EidosAssertScriptSuccess_F("floor(5.1);", 5.0);
 	EidosAssertScriptSuccess_F("floor(-5.1);", -6.0);
-	EidosAssertScriptSuccess("floor(c(-2.1, 7.1, -18.8, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-3.0, 7, -19, 12}));
+	EidosAssertScriptSuccess_FV("floor(c(-2.1, 7.1, -18.8, 12.8));", {-3.0, 7, -19, 12});
 	EidosAssertScriptRaise("floor(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("floor(5);", 0, "cannot be type");
 	EidosAssertScriptRaise("floor('foo');", 0, "cannot be type");
@@ -278,7 +278,7 @@ void _RunFunctionMathTests_a_through_f(void)
 	EidosAssertScriptSuccess("floor(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("floor(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("floor(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("floor(c(-2.1, 7.1, -18.8, NAN, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-3.0, 7, -19, std::numeric_limits<double>::quiet_NaN(), 12}));
+	EidosAssertScriptSuccess_FV("floor(c(-2.1, 7.1, -18.8, NAN, 12.8));", {-3.0, 7, -19, std::numeric_limits<double>::quiet_NaN(), 12});
 	
 	EidosAssertScriptSuccess_L("identical(floor(matrix(0.3)), matrix(floor(0.3)));", true);
 	EidosAssertScriptSuccess_L("identical(floor(matrix(0.6)), matrix(floor(0.6)));", true);
@@ -294,12 +294,12 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess_I("integerDiv(7, 3);", 2);
 	EidosAssertScriptSuccess_I("integerDiv(8, 3);", 2);
 	EidosAssertScriptSuccess_I("integerDiv(9, 3);", 3);
-	EidosAssertScriptSuccess("integerDiv(6:9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 2, 2, 3}));
-	EidosAssertScriptSuccess("integerDiv(6:9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 3, 4, 4}));
-	EidosAssertScriptSuccess("integerDiv(-6:-9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-2, -2, -2, -3}));
-	EidosAssertScriptSuccess("integerDiv(-6:-9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{-3, -3, -4, -4}));
-	EidosAssertScriptSuccess("integerDiv(6, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 2, 1, 1, 1}));
-	EidosAssertScriptSuccess("integerDiv(8:12, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 3, 2, 2, 2}));
+	EidosAssertScriptSuccess_IV("integerDiv(6:9, 3);", {2, 2, 2, 3});
+	EidosAssertScriptSuccess_IV("integerDiv(6:9, 2);", {3, 3, 4, 4});
+	EidosAssertScriptSuccess_IV("integerDiv(-6:-9, 3);", {-2, -2, -2, -3});
+	EidosAssertScriptSuccess_IV("integerDiv(-6:-9, 2);", {-3, -3, -4, -4});
+	EidosAssertScriptSuccess_IV("integerDiv(6, 2:6);", {3, 2, 1, 1, 1});
+	EidosAssertScriptSuccess_IV("integerDiv(8:12, 2:6);", {4, 3, 2, 2, 2});
 	EidosAssertScriptSuccess("integerDiv(-6, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
 	EidosAssertScriptSuccess("integerDiv(-7, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
 	EidosAssertScriptSuccess("integerDiv(-8, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
@@ -332,12 +332,12 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess("integerMod(7, 3);", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess_I("integerMod(8, 3);", 2);
 	EidosAssertScriptSuccess("integerMod(9, 3);", gStaticEidosValue_Integer0);
-	EidosAssertScriptSuccess("integerMod(6:9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 2, 0}));
-	EidosAssertScriptSuccess("integerMod(6:9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 1, 0, 1}));
-	EidosAssertScriptSuccess("integerMod(-6:-9, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, -1, -2, 0}));
-	EidosAssertScriptSuccess("integerMod(-6:-9, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, -1, 0, -1}));
-	EidosAssertScriptSuccess("integerMod(6, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 2, 1, 0}));
-	EidosAssertScriptSuccess("integerMod(8:12, 2:6);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{0, 0, 2, 1, 0}));
+	EidosAssertScriptSuccess_IV("integerMod(6:9, 3);", {0, 1, 2, 0});
+	EidosAssertScriptSuccess_IV("integerMod(6:9, 2);", {0, 1, 0, 1});
+	EidosAssertScriptSuccess_IV("integerMod(-6:-9, 3);", {0, -1, -2, 0});
+	EidosAssertScriptSuccess_IV("integerMod(-6:-9, 2);", {0, -1, 0, -1});
+	EidosAssertScriptSuccess_IV("integerMod(6, 2:6);", {0, 0, 2, 1, 0});
+	EidosAssertScriptSuccess_IV("integerMod(8:12, 2:6);", {0, 0, 2, 1, 0});
 	EidosAssertScriptSuccess("integerMod(-6, 3);", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess("integerMod(-7, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-1)));
 	EidosAssertScriptSuccess("integerMod(-8, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-2)));
@@ -370,7 +370,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess_L("isFinite(0.05);", true);
 	EidosAssertScriptSuccess_L("isFinite(INF);", false);
 	EidosAssertScriptSuccess_L("isFinite(NAN);", false);
-	EidosAssertScriptSuccess("isFinite(c(5/0, 0/0, 17.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, true}));	// INF, NAN, normal
+	EidosAssertScriptSuccess_LV("isFinite(c(5/0, 0/0, 17.0));", {false, false, true});	// INF, NAN, normal
 	EidosAssertScriptRaise("isFinite(1);", 0, "cannot be type");
 	EidosAssertScriptRaise("isFinite(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("isFinite('foo');", 0, "cannot be type");
@@ -391,7 +391,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess_L("isInfinite(0.05);", false);
 	EidosAssertScriptSuccess_L("isInfinite(INF);", true);
 	EidosAssertScriptSuccess_L("isInfinite(NAN);", false);
-	EidosAssertScriptSuccess("isInfinite(c(5/0, 0/0, 17.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false}));	// INF, NAN, normal
+	EidosAssertScriptSuccess_LV("isInfinite(c(5/0, 0/0, 17.0));", {true, false, false});	// INF, NAN, normal
 	EidosAssertScriptRaise("isInfinite(1);", 0, "cannot be type");
 	EidosAssertScriptRaise("isInfinite(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("isInfinite('foo');", 0, "cannot be type");
@@ -412,7 +412,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess_L("isNAN(0.05);", false);
 	EidosAssertScriptSuccess_L("isNAN(INF);", false);
 	EidosAssertScriptSuccess_L("isNAN(NAN);", true);
-	EidosAssertScriptSuccess("isNAN(c(5/0, 0/0, 17.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false}));	// INF, NAN, normal
+	EidosAssertScriptSuccess_LV("isNAN(c(5/0, 0/0, 17.0));", {false, true, false});	// INF, NAN, normal
 	EidosAssertScriptRaise("isNAN(1);", 0, "cannot be type");
 	EidosAssertScriptRaise("isNAN(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("isNAN('foo');", 0, "cannot be type");
@@ -442,7 +442,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess("log(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("log(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("log(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("log(c(1, NAN, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("log(c(1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(log(matrix(0.5)), matrix(log(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(log(matrix(c(0.1, 0.2, 0.3))), matrix(log(c(0.1, 0.2, 0.3))));", true);
@@ -461,7 +461,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess("log10(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("log10(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("log10(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("log10(c(1, NAN, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("log10(c(1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(log10(matrix(0.5)), matrix(log10(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(log10(matrix(c(0.1, 0.2, 0.3))), matrix(log10(c(0.1, 0.2, 0.3))));", true);
@@ -480,7 +480,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess("log2(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("log2(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("log2(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("log2(c(1, NAN, 1));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("log2(c(1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(log2(matrix(0.5)), matrix(log2(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(log2(matrix(c(0.1, 0.2, 0.3))), matrix(log2(c(0.1, 0.2, 0.3))));", true);
@@ -512,7 +512,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	// round()
 	EidosAssertScriptSuccess_F("round(5.1);", 5.0);
 	EidosAssertScriptSuccess_F("round(-5.1);", -5.0);
-	EidosAssertScriptSuccess("round(c(-2.1, 7.1, -18.8, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 7, -19, 13}));
+	EidosAssertScriptSuccess_FV("round(c(-2.1, 7.1, -18.8, 12.8));", {-2.0, 7, -19, 13});
 	EidosAssertScriptRaise("round(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("round(5);", 0, "cannot be type");
 	EidosAssertScriptRaise("round('foo');", 0, "cannot be type");
@@ -523,7 +523,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptSuccess("round(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("round(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("round(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("round(c(-2.1, 7.1, -18.8, NAN, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 7, -19, std::numeric_limits<double>::quiet_NaN(), 13}));
+	EidosAssertScriptSuccess_FV("round(c(-2.1, 7.1, -18.8, NAN, 12.8));", {-2.0, 7, -19, std::numeric_limits<double>::quiet_NaN(), 13});
 	
 	EidosAssertScriptSuccess_L("identical(round(matrix(0.3)), matrix(round(0.3)));", true);
 	EidosAssertScriptSuccess_L("identical(round(matrix(0.6)), matrix(round(0.6)));", true);
@@ -566,100 +566,100 @@ void _RunFunctionMathTests_setUnionIntersection(void)
 	
 	EidosAssertScriptSuccess_L("setUnion(c(T, T, T), logical(0));", true);
 	EidosAssertScriptSuccess_L("setUnion(logical(0), c(F, F, F));", false);
-	EidosAssertScriptSuccess("setUnion(c(F, F, T), logical(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("setUnion(logical(0), c(F, F, T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setUnion(c(F, F, T), logical(0));", {false, true});
+	EidosAssertScriptSuccess_LV("setUnion(logical(0), c(F, F, T));", {false, true});
 	EidosAssertScriptSuccess_I("setUnion(c(7, 7, 7), integer(0));", 7);
 	EidosAssertScriptSuccess_I("setUnion(integer(0), c(7, 7, 7));", 7);
-	EidosAssertScriptSuccess("setUnion(c(7, 8, 7), integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
-	EidosAssertScriptSuccess("setUnion(integer(0), c(7, 7, 8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
+	EidosAssertScriptSuccess_IV("setUnion(c(7, 8, 7), integer(0));", {7, 8});
+	EidosAssertScriptSuccess_IV("setUnion(integer(0), c(7, 7, 8));", {7, 8});
 	EidosAssertScriptSuccess_F("setUnion(c(3.2, 3.2, 3.2), float(0));", 3.2);
 	EidosAssertScriptSuccess_F("setUnion(float(0), c(3.2, 3.2, 3.2));", 3.2);
-	EidosAssertScriptSuccess("setUnion(c(4.2, 3.2, 3.2), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{4.2, 3.2}));
-	EidosAssertScriptSuccess("setUnion(float(0), c(3.2, 4.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 4.2}));
+	EidosAssertScriptSuccess_FV("setUnion(c(4.2, 3.2, 3.2), float(0));", {4.2, 3.2});
+	EidosAssertScriptSuccess_FV("setUnion(float(0), c(3.2, 4.2, 3.2));", {3.2, 4.2});
 	EidosAssertScriptSuccess_S("setUnion(c('foo', 'foo', 'foo'), string(0));", "foo");
 	EidosAssertScriptSuccess_S("setUnion(string(0), c('foo', 'foo', 'foo'));", "foo");
-	EidosAssertScriptSuccess("setUnion(c('foo', 'bar', 'foo'), string(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
-	EidosAssertScriptSuccess("setUnion(string(0), c('foo', 'foo', 'bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
+	EidosAssertScriptSuccess_SV("setUnion(c('foo', 'bar', 'foo'), string(0));", {"foo", "bar"});
+	EidosAssertScriptSuccess_SV("setUnion(string(0), c('foo', 'foo', 'bar'));", {"foo", "bar"});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setUnion(c(x, x, x), object())._yolk;", 7);
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setUnion(object(), c(x, x, x))._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setUnion(c(y, x, x), object())._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, 7}));
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setUnion(object(), c(x, x, y))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setUnion(c(y, x, x), object())._yolk;", {9, 7});
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setUnion(object(), c(x, x, y))._yolk;", {7, 9});
 	
 	EidosAssertScriptSuccess_L("setUnion(T, T);", true);
-	EidosAssertScriptSuccess("setUnion(F, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setUnion(F, T);", {false, true});
 	EidosAssertScriptSuccess_L("setUnion(F, F);", false);
-	EidosAssertScriptSuccess("setUnion(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setUnion(T, F);", {false, true});
 	EidosAssertScriptSuccess_I("setUnion(7, 7);", 7);
-	EidosAssertScriptSuccess("setUnion(8, 7);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, 7}));
+	EidosAssertScriptSuccess_IV("setUnion(8, 7);", {8, 7});
 	EidosAssertScriptSuccess_F("setUnion(3.2, 3.2);", 3.2);
-	EidosAssertScriptSuccess("setUnion(2.3, 3.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2.3, 3.2}));
+	EidosAssertScriptSuccess_FV("setUnion(2.3, 3.2);", {2.3, 3.2});
 	EidosAssertScriptSuccess_S("setUnion('foo', 'foo');", "foo");
-	EidosAssertScriptSuccess("setUnion('bar', 'foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "foo"}));
+	EidosAssertScriptSuccess_SV("setUnion('bar', 'foo');", {"bar", "foo"});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setUnion(x, x)._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setUnion(x, y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setUnion(x, y)._yolk;", {7, 9});
 	
 	EidosAssertScriptSuccess_L("setUnion(T, c(T, T));", true);
-	EidosAssertScriptSuccess("setUnion(F, c(T, T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("setUnion(F, c(F, T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("setUnion(T, c(F, F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setUnion(F, c(T, T));", {false, true});
+	EidosAssertScriptSuccess_LV("setUnion(F, c(F, T));", {false, true});
+	EidosAssertScriptSuccess_LV("setUnion(T, c(F, F));", {false, true});
 	EidosAssertScriptSuccess_I("setUnion(7, c(7, 7));", 7);
-	EidosAssertScriptSuccess("setUnion(8, c(7, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
-	EidosAssertScriptSuccess("setUnion(8, c(7, 8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
-	EidosAssertScriptSuccess("setUnion(8, c(7, 9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9, 8}));
+	EidosAssertScriptSuccess_IV("setUnion(8, c(7, 7));", {7, 8});
+	EidosAssertScriptSuccess_IV("setUnion(8, c(7, 8));", {7, 8});
+	EidosAssertScriptSuccess_IV("setUnion(8, c(7, 9));", {7, 9, 8});
 	EidosAssertScriptSuccess_F("setUnion(3.2, c(3.2, 3.2));", 3.2);
-	EidosAssertScriptSuccess("setUnion(2.3, c(3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 2.3}));
-	EidosAssertScriptSuccess("setUnion(2.3, c(3.2, 2.3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 2.3}));
-	EidosAssertScriptSuccess("setUnion(2.3, c(3.2, 7.6));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 7.6, 2.3}));
+	EidosAssertScriptSuccess_FV("setUnion(2.3, c(3.2, 3.2));", {3.2, 2.3});
+	EidosAssertScriptSuccess_FV("setUnion(2.3, c(3.2, 2.3));", {3.2, 2.3});
+	EidosAssertScriptSuccess_FV("setUnion(2.3, c(3.2, 7.6));", {3.2, 7.6, 2.3});
 	EidosAssertScriptSuccess_S("setUnion('foo', c('foo', 'foo'));", "foo");
-	EidosAssertScriptSuccess("setUnion('bar', c('foo', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
-	EidosAssertScriptSuccess("setUnion('bar', c('foo', 'bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
-	EidosAssertScriptSuccess("setUnion('bar', c('foo', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz", "bar"}));
+	EidosAssertScriptSuccess_SV("setUnion('bar', c('foo', 'foo'));", {"foo", "bar"});
+	EidosAssertScriptSuccess_SV("setUnion('bar', c('foo', 'bar'));", {"foo", "bar"});
+	EidosAssertScriptSuccess_SV("setUnion('bar', c('foo', 'baz'));", {"foo", "baz", "bar"});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setUnion(x, c(x, x))._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setUnion(y, c(x, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setUnion(y, c(x, y))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); setUnion(y, c(x, z))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, -5, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setUnion(y, c(x, x))._yolk;", {7, 9});
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setUnion(y, c(x, y))._yolk;", {7, 9});
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); setUnion(y, c(x, z))._yolk;", {7, -5, 9});
 	
 	EidosAssertScriptSuccess_L("setUnion(c(T, T), T);", true);
-	EidosAssertScriptSuccess("setUnion(c(T, T), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("setUnion(c(F, T), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("setUnion(c(F, F), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setUnion(c(T, T), F);", {false, true});
+	EidosAssertScriptSuccess_LV("setUnion(c(F, T), F);", {false, true});
+	EidosAssertScriptSuccess_LV("setUnion(c(F, F), T);", {false, true});
 	EidosAssertScriptSuccess_I("setUnion(c(7, 7), 7);", 7);
-	EidosAssertScriptSuccess("setUnion(c(7, 7), 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
-	EidosAssertScriptSuccess("setUnion(c(7, 8), 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
-	EidosAssertScriptSuccess("setUnion(c(7, 9), 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9, 8}));
+	EidosAssertScriptSuccess_IV("setUnion(c(7, 7), 8);", {7, 8});
+	EidosAssertScriptSuccess_IV("setUnion(c(7, 8), 8);", {7, 8});
+	EidosAssertScriptSuccess_IV("setUnion(c(7, 9), 8);", {7, 9, 8});
 	EidosAssertScriptSuccess_F("setUnion(c(3.2, 3.2), 3.2);", 3.2);
-	EidosAssertScriptSuccess("setUnion(c(3.2, 3.2), 2.3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 2.3}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, 2.3), 2.3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 2.3}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, 7.6), 2.3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 7.6, 2.3}));
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 3.2), 2.3);", {3.2, 2.3});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 2.3), 2.3);", {3.2, 2.3});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 7.6), 2.3);", {3.2, 7.6, 2.3});
 	EidosAssertScriptSuccess_S("setUnion(c('foo', 'foo'), 'foo');", "foo");
-	EidosAssertScriptSuccess("setUnion(c('foo', 'foo'), 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
-	EidosAssertScriptSuccess("setUnion(c('foo', 'bar'), 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
-	EidosAssertScriptSuccess("setUnion(c('foo', 'baz'), 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz", "bar"}));
+	EidosAssertScriptSuccess_SV("setUnion(c('foo', 'foo'), 'bar');", {"foo", "bar"});
+	EidosAssertScriptSuccess_SV("setUnion(c('foo', 'bar'), 'bar');", {"foo", "bar"});
+	EidosAssertScriptSuccess_SV("setUnion(c('foo', 'baz'), 'bar');", {"foo", "baz", "bar"});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setUnion(c(x, x), x)._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setUnion(c(x, x), y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setUnion(c(x, y), y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); setUnion(c(x, z), y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, -5, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setUnion(c(x, x), y)._yolk;", {7, 9});
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setUnion(c(x, y), y)._yolk;", {7, 9});
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); setUnion(c(x, z), y)._yolk;", {7, -5, 9});
 	
 	EidosAssertScriptSuccess_L("setUnion(c(T, T, T, T), c(T, T, T, T));", true);
-	EidosAssertScriptSuccess("setUnion(c(T, T, T, T), c(T, T, T, F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setUnion(c(T, T, T, T), c(T, T, T, F));", {false, true});
 	EidosAssertScriptSuccess_I("setUnion(c(7, 7, 7, 7), c(7, 7, 7, 7));", 7);
-	EidosAssertScriptSuccess("setUnion(c(7, 10, 7, 8), c(7, 9, 7, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 10, 8, 9}));
+	EidosAssertScriptSuccess_IV("setUnion(c(7, 10, 7, 8), c(7, 9, 7, 7));", {7, 10, 8, 9});
 	EidosAssertScriptSuccess_F("setUnion(c(3.2, 3.2, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", 3.2);
-	EidosAssertScriptSuccess("setUnion(c(3.2, 6.0, 7.9, 3.2), c(5.5, 6.0, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 6.0, 7.9, 5.5}));
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 6.0, 7.9, 3.2), c(5.5, 6.0, 3.2, 3.2));", {3.2, 6.0, 7.9, 5.5});
 	EidosAssertScriptSuccess_S("setUnion(c('foo', 'foo', 'foo', 'foo'), c('foo', 'foo', 'foo', 'foo'));", "foo");
-	EidosAssertScriptSuccess("setUnion(c('foo', 'bar', 'foo', 'foobaz'), c('foo', 'foo', 'baz', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar", "foobaz", "baz"}));
+	EidosAssertScriptSuccess_SV("setUnion(c('foo', 'bar', 'foo', 'foobaz'), c('foo', 'foo', 'baz', 'foo'));", {"foo", "bar", "foobaz", "baz"});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setUnion(c(x, x, x, x), c(x, x, x, x))._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setUnion(c(x, y, x, q), c(x, x, z, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9, 26, -5}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setUnion(c(x, y, x, q), c(x, x, z, x))._yolk;", {7, 9, 26, -5});
 	
-	EidosAssertScriptSuccess("setUnion(NAN, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, NAN, NAN, 3.2), NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, NAN, NAN, 3.2), 3.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setUnion(NAN, c(3.2, NAN, NAN, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setUnion(3.2, c(3.2, NAN, NAN, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, NAN, 3.2, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, 6.0, NAN, NAN, 7.9, 3.2), c(5.5, 6.0, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 6.0, std::numeric_limits<double>::quiet_NaN(), 7.9, 5.5}));
-	EidosAssertScriptSuccess("setUnion(c(3.2, 6.0, NAN, NAN, 7.9, 3.2), c(5.5, NAN, 6.0, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 6.0, std::numeric_limits<double>::quiet_NaN(), 7.9, 5.5}));
+	EidosAssertScriptSuccess_FV("setUnion(NAN, NAN);", {std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, NAN, NAN, 3.2), NAN);", {3.2, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, NAN, NAN, 3.2), 3.2);", {3.2, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setUnion(NAN, c(3.2, NAN, NAN, 3.2));", {3.2, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setUnion(3.2, c(3.2, NAN, NAN, 3.2));", {3.2, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", {3.2, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, NAN, 3.2, 3.2, 3.2));", {3.2, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 6.0, NAN, NAN, 7.9, 3.2), c(5.5, 6.0, 3.2, 3.2));", {3.2, 6.0, std::numeric_limits<double>::quiet_NaN(), 7.9, 5.5});
+	EidosAssertScriptSuccess_FV("setUnion(c(3.2, 6.0, NAN, NAN, 7.9, 3.2), c(5.5, NAN, 6.0, 3.2, 3.2));", {3.2, 6.0, std::numeric_limits<double>::quiet_NaN(), 7.9, 5.5});
 	
 	// setIntersection()
 	EidosAssertScriptSuccess("setIntersection(NULL, NULL);", gStaticEidosValueNULL);
@@ -767,29 +767,29 @@ void _RunFunctionMathTests_setUnionIntersection(void)
 	
 	EidosAssertScriptSuccess_L("setIntersection(c(T, T, T, T), c(T, T, T, T));", true);
 	EidosAssertScriptSuccess_L("setIntersection(c(T, T, T, T), c(T, T, T, F));", true);
-	EidosAssertScriptSuccess("setIntersection(c(T, T, F, T), c(T, T, T, F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setIntersection(c(T, T, F, T), c(T, T, T, F));", {false, true});
 	EidosAssertScriptSuccess_I("setIntersection(c(7, 7, 7, 7), c(7, 7, 7, 7));", 7);
 	EidosAssertScriptSuccess_I("setIntersection(c(7, 10, 7, 8), c(7, 9, 7, 7));", 7);
-	EidosAssertScriptSuccess("setIntersection(c(7, 10, 7, 8), c(7, 9, 8, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
+	EidosAssertScriptSuccess_IV("setIntersection(c(7, 10, 7, 8), c(7, 9, 8, 7));", {7, 8});
 	EidosAssertScriptSuccess_F("setIntersection(c(3.2, 3.2, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", 3.2);
 	EidosAssertScriptSuccess_F("setIntersection(c(3.2, 6.0, 7.9, 3.2), c(5.5, 1.3, 3.2, 3.2));", 3.2);
-	EidosAssertScriptSuccess("setIntersection(c(3.2, 6.0, 7.9, 3.2), c(5.5, 6.0, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 6.0}));
+	EidosAssertScriptSuccess_FV("setIntersection(c(3.2, 6.0, 7.9, 3.2), c(5.5, 6.0, 3.2, 3.2));", {3.2, 6.0});
 	EidosAssertScriptSuccess_S("setIntersection(c('foo', 'foo', 'foo', 'foo'), c('foo', 'foo', 'foo', 'foo'));", "foo");
 	EidosAssertScriptSuccess_S("setIntersection(c('foo', 'bar', 'foo', 'foobaz'), c('foo', 'foo', 'baz', 'foo'));", "foo");
-	EidosAssertScriptSuccess("setIntersection(c('foo', 'bar', 'foo', 'foobaz'), c('bar', 'foo', 'baz', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
+	EidosAssertScriptSuccess_SV("setIntersection(c('foo', 'bar', 'foo', 'foobaz'), c('bar', 'foo', 'baz', 'foo'));", {"foo", "bar"});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setIntersection(c(x, x, x, x), c(x, x, x, x))._yolk;", 7);
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setIntersection(c(x, y, x, q), c(x, x, z, x))._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setIntersection(c(x, y, x, q), c(y, x, z, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setIntersection(c(x, y, x, q), c(y, x, z, x))._yolk;", {7, 9});
 	
-	EidosAssertScriptSuccess("setIntersection(NAN, NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setIntersection(c(3.2, NAN, NAN, 3.2), NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setIntersection(c(3.2, NAN, NAN, 3.2), 3.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2}));
-	EidosAssertScriptSuccess("setIntersection(NAN, c(3.2, NAN, NAN, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setIntersection(3.2, c(3.2, NAN, NAN, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2}));
+	EidosAssertScriptSuccess_FV("setIntersection(NAN, NAN);", {std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setIntersection(c(3.2, NAN, NAN, 3.2), NAN);", {std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setIntersection(c(3.2, NAN, NAN, 3.2), 3.2);", {3.2});
+	EidosAssertScriptSuccess_FV("setIntersection(NAN, c(3.2, NAN, NAN, 3.2));", {std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setIntersection(3.2, c(3.2, NAN, NAN, 3.2));", {3.2});
 	EidosAssertScriptSuccess_F("setIntersection(c(3.2, 3.2, 3.2, NAN, NAN, 3.2), c(3.2, 3.2, 3.2, 3.2));", 3.2);
-	EidosAssertScriptSuccess("setIntersection(c(3.2, 3.2, 3.2, NAN, NAN, 3.2), c(3.2, NAN, 3.2, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setIntersection(c(3.2, 6.0, 7.9, NAN, NAN, 3.2), c(5.5, 6.0, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 6.0}));
-	EidosAssertScriptSuccess("setIntersection(c(3.2, 6.0, 7.9, NAN, NAN, 3.2), c(5.5, NAN, 6.0, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 6.0, std::numeric_limits<double>::quiet_NaN()}));
+	EidosAssertScriptSuccess_FV("setIntersection(c(3.2, 3.2, 3.2, NAN, NAN, 3.2), c(3.2, NAN, 3.2, 3.2, 3.2));", {3.2, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setIntersection(c(3.2, 6.0, 7.9, NAN, NAN, 3.2), c(5.5, 6.0, 3.2, 3.2));", {3.2, 6.0});
+	EidosAssertScriptSuccess_FV("setIntersection(c(3.2, 6.0, 7.9, NAN, NAN, 3.2), c(5.5, NAN, 6.0, 3.2, 3.2));", {3.2, 6.0, std::numeric_limits<double>::quiet_NaN()});
 }
 
 void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
@@ -824,23 +824,23 @@ void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
 	
 	EidosAssertScriptSuccess_L("setDifference(c(T, T, T), logical(0));", true);
 	EidosAssertScriptSuccess("setDifference(logical(0), c(F, F, F));", gStaticEidosValue_Logical_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c(F, F, T), logical(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setDifference(c(F, F, T), logical(0));", {false, true});
 	EidosAssertScriptSuccess("setDifference(logical(0), c(F, F, T));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess_I("setDifference(c(7, 7, 7), integer(0));", 7);
 	EidosAssertScriptSuccess("setDifference(integer(0), c(7, 7, 7));", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c(7, 8, 7), integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
+	EidosAssertScriptSuccess_IV("setDifference(c(7, 8, 7), integer(0));", {7, 8});
 	EidosAssertScriptSuccess("setDifference(integer(0), c(7, 7, 8));", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess_F("setDifference(c(3.2, 3.2, 3.2), float(0));", 3.2);
 	EidosAssertScriptSuccess("setDifference(float(0), c(3.2, 3.2, 3.2));", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c(4.2, 3.2, 3.2), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{4.2, 3.2}));
+	EidosAssertScriptSuccess_FV("setDifference(c(4.2, 3.2, 3.2), float(0));", {4.2, 3.2});
 	EidosAssertScriptSuccess("setDifference(float(0), c(3.2, 4.2, 3.2));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess_S("setDifference(c('foo', 'foo', 'foo'), string(0));", "foo");
 	EidosAssertScriptSuccess("setDifference(string(0), c('foo', 'foo', 'foo'));", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c('foo', 'bar', 'foo'), string(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
+	EidosAssertScriptSuccess_SV("setDifference(c('foo', 'bar', 'foo'), string(0));", {"foo", "bar"});
 	EidosAssertScriptSuccess("setDifference(string(0), c('foo', 'foo', 'bar'));", gStaticEidosValue_String_ZeroVec);
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setDifference(c(x, x, x), object())._yolk;", 7);
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setDifference(object(), c(x, x, x))._yolk;", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setDifference(c(y, x, x), object())._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, 7}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setDifference(c(y, x, x), object())._yolk;", {9, 7});
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setDifference(object(), c(x, x, y))._yolk;", gStaticEidosValue_Integer_ZeroVec);
 	
 	EidosAssertScriptSuccess("setDifference(T, T);", gStaticEidosValue_Logical_ZeroVec);
@@ -884,40 +884,40 @@ void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
 	EidosAssertScriptSuccess("setDifference(c(7, 7), 7);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess_I("setDifference(c(7, 7), 8);", 7);
 	EidosAssertScriptSuccess_I("setDifference(c(7, 8), 8);", 7);
-	EidosAssertScriptSuccess("setDifference(c(7, 9), 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("setDifference(c(7, 9), 8);", {7, 9});
 	EidosAssertScriptSuccess("setDifference(c(3.2, 3.2), 3.2);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess_F("setDifference(c(3.2, 3.2), 2.3);", 3.2);
 	EidosAssertScriptSuccess_F("setDifference(c(3.2, 2.3), 2.3);", 3.2);
-	EidosAssertScriptSuccess("setDifference(c(3.2, 7.6), 2.3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 7.6}));
+	EidosAssertScriptSuccess_FV("setDifference(c(3.2, 7.6), 2.3);", {3.2, 7.6});
 	EidosAssertScriptSuccess("setDifference(c('foo', 'foo'), 'foo');", gStaticEidosValue_String_ZeroVec);
 	EidosAssertScriptSuccess_S("setDifference(c('foo', 'foo'), 'bar');", "foo");
 	EidosAssertScriptSuccess_S("setDifference(c('foo', 'bar'), 'bar');", "foo");
-	EidosAssertScriptSuccess("setDifference(c('foo', 'baz'), 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz"}));
+	EidosAssertScriptSuccess_SV("setDifference(c('foo', 'baz'), 'bar');", {"foo", "baz"});
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setDifference(c(x, x), x)._yolk;", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setDifference(c(x, x), y)._yolk;", 7);
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setDifference(c(x, y), y)._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); setDifference(c(x, z), y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, -5}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); setDifference(c(x, z), y)._yolk;", {7, -5});
 	
 	EidosAssertScriptSuccess("setDifference(c(T, T, T, T), c(T, T, T, T));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setDifference(c(T, T, T, T), c(T, T, T, F));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setDifference(c(T, T, F, F), c(T, T, T, F));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setDifference(c(7, 7, 7, 7), c(7, 7, 7, 7));", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c(7, 10, 7, 10, 8), c(7, 9, 7, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10, 8}));
+	EidosAssertScriptSuccess_IV("setDifference(c(7, 10, 7, 10, 8), c(7, 9, 7, 7));", {10, 8});
 	EidosAssertScriptSuccess("setDifference(c(3.2, 3.2, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess_F("setDifference(c(3.2, 6.0, 7.9, 3.2, 7.9), c(5.5, 6.0, 3.2, 3.2));", 7.9);
 	EidosAssertScriptSuccess("setDifference(c('foo', 'foo', 'foo', 'foo'), c('foo', 'foo', 'foo', 'foo'));", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c('foo', 'bar', 'foobaz', 'foo', 'foobaz'), c('foo', 'foo', 'baz', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "foobaz"}));
+	EidosAssertScriptSuccess_SV("setDifference(c('foo', 'bar', 'foobaz', 'foo', 'foobaz'), c('foo', 'foo', 'baz', 'foo'));", {"bar", "foobaz"});
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setDifference(c(x, x, x, x), c(x, x, x, x))._yolk;", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setDifference(c(x, y, q, x, q), c(x, x, z, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, 26}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setDifference(c(x, y, q, x, q), c(x, x, z, x))._yolk;", {9, 26});
 	
 	EidosAssertScriptSuccess("setDifference(NAN, NAN);", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c(3.2, NAN, NAN, 3.2), NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2}));
-	EidosAssertScriptSuccess("setDifference(c(3.2, NAN, NAN, 3.2), 3.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN()}));
+	EidosAssertScriptSuccess_FV("setDifference(c(3.2, NAN, NAN, 3.2), NAN);", {3.2});
+	EidosAssertScriptSuccess_FV("setDifference(c(3.2, NAN, NAN, 3.2), 3.2);", {std::numeric_limits<double>::quiet_NaN()});
 	EidosAssertScriptSuccess("setDifference(NAN, c(3.2, NAN, NAN, 3.2));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("setDifference(3.2, c(3.2, NAN, NAN, 3.2));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("setDifference(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("setDifference(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, NAN, 3.2, 3.2, 3.2));", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setDifference(c(3.2, 6.0, NAN, NAN, 7.9, 3.2, 7.9), c(5.5, 6.0, 3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN(), 7.9}));
+	EidosAssertScriptSuccess_FV("setDifference(c(3.2, 6.0, NAN, NAN, 7.9, 3.2, 7.9), c(5.5, 6.0, 3.2, 3.2));", {std::numeric_limits<double>::quiet_NaN(), 7.9});
 	EidosAssertScriptSuccess_F("setDifference(c(3.2, 6.0, NAN, NAN, 7.9, 3.2, 7.9), c(5.5, NAN, 6.0, 3.2, 3.2));", 7.9);
 	
 	// setSymmetricDifference()
@@ -952,103 +952,103 @@ void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
 	
 	EidosAssertScriptSuccess_L("setSymmetricDifference(c(T, T, T), logical(0));", true);
 	EidosAssertScriptSuccess_L("setSymmetricDifference(logical(0), c(F, F, F));", false);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(F, F, T), logical(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
-	EidosAssertScriptSuccess("setSymmetricDifference(logical(0), c(F, F, T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(c(F, F, T), logical(0));", {false, true});
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(logical(0), c(F, F, T));", {false, true});
 	EidosAssertScriptSuccess_I("setSymmetricDifference(c(7, 7, 7), integer(0));", 7);
 	EidosAssertScriptSuccess_I("setSymmetricDifference(integer(0), c(7, 7, 7));", 7);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7, 8, 7), integer(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
-	EidosAssertScriptSuccess("setSymmetricDifference(integer(0), c(7, 7, 8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(c(7, 8, 7), integer(0));", {7, 8});
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(integer(0), c(7, 7, 8));", {7, 8});
 	EidosAssertScriptSuccess_F("setSymmetricDifference(c(3.2, 3.2, 3.2), float(0));", 3.2);
 	EidosAssertScriptSuccess_F("setSymmetricDifference(float(0), c(3.2, 3.2, 3.2));", 3.2);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(4.2, 3.2, 3.2), float(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{4.2, 3.2}));
-	EidosAssertScriptSuccess("setSymmetricDifference(float(0), c(3.2, 4.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 4.2}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(4.2, 3.2, 3.2), float(0));", {4.2, 3.2});
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(float(0), c(3.2, 4.2, 3.2));", {3.2, 4.2});
 	EidosAssertScriptSuccess_S("setSymmetricDifference(c('foo', 'foo', 'foo'), string(0));", "foo");
 	EidosAssertScriptSuccess_S("setSymmetricDifference(string(0), c('foo', 'foo', 'foo'));", "foo");
-	EidosAssertScriptSuccess("setSymmetricDifference(c('foo', 'bar', 'foo'), string(0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
-	EidosAssertScriptSuccess("setSymmetricDifference(string(0), c('foo', 'foo', 'bar'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
+	EidosAssertScriptSuccess_SV("setSymmetricDifference(c('foo', 'bar', 'foo'), string(0));", {"foo", "bar"});
+	EidosAssertScriptSuccess_SV("setSymmetricDifference(string(0), c('foo', 'foo', 'bar'));", {"foo", "bar"});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, x, x), object())._yolk;", 7);
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setSymmetricDifference(object(), c(x, x, x))._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(c(y, x, x), object())._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, 7}));
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(object(), c(x, x, y))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setSymmetricDifference(c(y, x, x), object())._yolk;", {9, 7});
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setSymmetricDifference(object(), c(x, x, y))._yolk;", {7, 9});
 	
 	EidosAssertScriptSuccess("setSymmetricDifference(T, T);", gStaticEidosValue_Logical_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(F, T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(F, T);", {false, true});
 	EidosAssertScriptSuccess("setSymmetricDifference(F, F);", gStaticEidosValue_Logical_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(T, F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(T, F);", {false, true});
 	EidosAssertScriptSuccess("setSymmetricDifference(7, 7);", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(8, 7);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, 7}));
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(8, 7);", {8, 7});
 	EidosAssertScriptSuccess("setSymmetricDifference(3.2, 3.2);", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(2.3, 3.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2.3, 3.2}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(2.3, 3.2);", {2.3, 3.2});
 	EidosAssertScriptSuccess("setSymmetricDifference('foo', 'foo');", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference('bar', 'foo');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "foo"}));
+	EidosAssertScriptSuccess_SV("setSymmetricDifference('bar', 'foo');", {"bar", "foo"});
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(x, x)._yolk;", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(x, y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setSymmetricDifference(x, y)._yolk;", {7, 9});
 	
 	EidosAssertScriptSuccess("setSymmetricDifference(T, c(T, T));", gStaticEidosValue_Logical_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(F, c(T, T));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(F, c(T, T));", {false, true});
 	EidosAssertScriptSuccess_L("setSymmetricDifference(F, c(F, T));", true);
-	EidosAssertScriptSuccess("setSymmetricDifference(T, c(F, F));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(T, c(F, F));", {false, true});
 	EidosAssertScriptSuccess("setSymmetricDifference(7, c(7, 7));", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(8, c(7, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(8, c(7, 7));", {7, 8});
 	EidosAssertScriptSuccess_I("setSymmetricDifference(8, c(7, 8));", 7);
-	EidosAssertScriptSuccess("setSymmetricDifference(8, c(7, 9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9, 8}));
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(8, c(7, 9));", {7, 9, 8});
 	EidosAssertScriptSuccess("setSymmetricDifference(3.2, c(3.2, 3.2));", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(2.3, c(3.2, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 2.3}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(2.3, c(3.2, 3.2));", {3.2, 2.3});
 	EidosAssertScriptSuccess_F("setSymmetricDifference(2.3, c(3.2, 2.3));", 3.2);
-	EidosAssertScriptSuccess("setSymmetricDifference(2.3, c(3.2, 7.6));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 7.6, 2.3}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(2.3, c(3.2, 7.6));", {3.2, 7.6, 2.3});
 	EidosAssertScriptSuccess("setSymmetricDifference('foo', c('foo', 'foo'));", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference('bar', c('foo', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
+	EidosAssertScriptSuccess_SV("setSymmetricDifference('bar', c('foo', 'foo'));", {"foo", "bar"});
 	EidosAssertScriptSuccess_S("setSymmetricDifference('bar', c('foo', 'bar'));", "foo");
-	EidosAssertScriptSuccess("setSymmetricDifference('bar', c('foo', 'baz'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz", "bar"}));
+	EidosAssertScriptSuccess_SV("setSymmetricDifference('bar', c('foo', 'baz'));", {"foo", "baz", "bar"});
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(x, c(x, x))._yolk;", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(y, c(x, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setSymmetricDifference(y, c(x, x))._yolk;", {7, 9});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setSymmetricDifference(y, c(x, y))._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); setSymmetricDifference(y, c(x, z))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, -5, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); setSymmetricDifference(y, c(x, z))._yolk;", {7, -5, 9});
 	
 	EidosAssertScriptSuccess("setSymmetricDifference(c(T, T), T);", gStaticEidosValue_Logical_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(T, T), F);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(c(T, T), F);", {false, true});
 	EidosAssertScriptSuccess_L("setSymmetricDifference(c(F, T), F);", true);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(F, F), T);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true}));
+	EidosAssertScriptSuccess_LV("setSymmetricDifference(c(F, F), T);", {false, true});
 	EidosAssertScriptSuccess("setSymmetricDifference(c(7, 7), 7);", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7, 7), 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 8}));
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(c(7, 7), 8);", {7, 8});
 	EidosAssertScriptSuccess_I("setSymmetricDifference(c(7, 8), 8);", 7);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7, 9), 8);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9, 8}));
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(c(7, 9), 8);", {7, 9, 8});
 	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, 3.2), 3.2);", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, 3.2), 2.3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 2.3}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(3.2, 3.2), 2.3);", {3.2, 2.3});
 	EidosAssertScriptSuccess_F("setSymmetricDifference(c(3.2, 2.3), 2.3);", 3.2);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, 7.6), 2.3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2, 7.6, 2.3}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(3.2, 7.6), 2.3);", {3.2, 7.6, 2.3});
 	EidosAssertScriptSuccess("setSymmetricDifference(c('foo', 'foo'), 'foo');", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c('foo', 'foo'), 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "bar"}));
+	EidosAssertScriptSuccess_SV("setSymmetricDifference(c('foo', 'foo'), 'bar');", {"foo", "bar"});
 	EidosAssertScriptSuccess_S("setSymmetricDifference(c('foo', 'bar'), 'bar');", "foo");
-	EidosAssertScriptSuccess("setSymmetricDifference(c('foo', 'baz'), 'bar');", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"foo", "baz", "bar"}));
+	EidosAssertScriptSuccess_SV("setSymmetricDifference(c('foo', 'baz'), 'bar');", {"foo", "baz", "bar"});
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, x), x)._yolk;", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, x), y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, x), y)._yolk;", {7, 9});
 	EidosAssertScriptSuccess_I("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, y), y)._yolk;", 7);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); setSymmetricDifference(c(x, z), y)._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{7, -5, 9}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); setSymmetricDifference(c(x, z), y)._yolk;", {7, -5, 9});
 	
 	EidosAssertScriptSuccess("setSymmetricDifference(c(T, T, T, T), c(T, T, T, T));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess_L("setSymmetricDifference(c(T, T, T, T), c(T, T, T, F));", false);
 	EidosAssertScriptSuccess("setSymmetricDifference(c(T, T, F, T), c(T, T, T, F));", gStaticEidosValue_Logical_ZeroVec);
 	EidosAssertScriptSuccess("setSymmetricDifference(c(7, 7, 7, 7), c(7, 7, 7, 7));", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7, 10, 7, 10, 8), c(7, 9, 7, 9, 7));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{10, 8, 9}));
+	EidosAssertScriptSuccess_IV("setSymmetricDifference(c(7, 10, 7, 10, 8), c(7, 9, 7, 9, 7));", {10, 8, 9});
 	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, 3.2, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7.3, 10.5, 7.3, 10.5, 8.9), c(7.3, 9.7, 7.3, 9.7, 7.3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10.5, 8.9, 9.7}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(7.3, 10.5, 7.3, 10.5, 8.9), c(7.3, 9.7, 7.3, 9.7, 7.3));", {10.5, 8.9, 9.7});
 	EidosAssertScriptSuccess("setSymmetricDifference(c('foo', 'foo', 'foo', 'foo'), c('foo', 'foo', 'foo', 'foo'));", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c('foo', 'bar', 'foo', 'bar', 'foobaz'), c('foo', 'baz', 'foo', 'baz', 'foo'));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{"bar", "foobaz", "baz"}));
+	EidosAssertScriptSuccess_SV("setSymmetricDifference(c('foo', 'bar', 'foo', 'bar', 'foobaz'), c('foo', 'baz', 'foo', 'baz', 'foo'));", {"bar", "foobaz", "baz"});
 	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); setSymmetricDifference(c(x, x, x, x), c(x, x, x, x))._yolk;", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setSymmetricDifference(c(x, y, x, y, z), c(x, q, x, q, x))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{9, -5, 26}));
+	EidosAssertScriptSuccess_IV("x = _Test(7); y = _Test(9); z = _Test(-5); q = _Test(26); setSymmetricDifference(c(x, y, x, y, z), c(x, q, x, q, x))._yolk;", {9, -5, 26});
 	
 	EidosAssertScriptSuccess("setSymmetricDifference(NAN, NAN);", gStaticEidosValue_Float_ZeroVec);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, NAN, NAN, 3.2), NAN);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2}));
-	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, NAN, NAN, 3.2), 3.2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN()}));
-	EidosAssertScriptSuccess("setSymmetricDifference(NAN, c(3.2, NAN, NAN, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{3.2}));
-	EidosAssertScriptSuccess("setSymmetricDifference(3.2, c(3.2, NAN, NAN, 3.2));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{std::numeric_limits<double>::quiet_NaN()}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(3.2, NAN, NAN, 3.2), NAN);", {3.2});
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(3.2, NAN, NAN, 3.2), 3.2);", {std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(NAN, c(3.2, NAN, NAN, 3.2));", {3.2});
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(3.2, c(3.2, NAN, NAN, 3.2));", {std::numeric_limits<double>::quiet_NaN()});
 	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, 3.2, 3.2, 3.2));", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, 3.2, NAN, NAN, 3.2, 3.2), c(3.2, NAN, 3.2, 3.2, 3.2));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("setSymmetricDifference(c(3.2, 3.2, 3.2, 3.2), c(3.2, NAN, NAN, 3.2, 3.2, 3.2));", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7.3, 10.5, NAN, NAN, 7.3, 10.5, 8.9), c(7.3, 9.7, 7.3, 9.7, 7.3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10.5, std::numeric_limits<double>::quiet_NaN(), 8.9, 9.7}));
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7.3, 10.5, NAN, NAN, 7.3, 10.5, 8.9), c(7.3, NAN, 9.7, 7.3, 9.7, 7.3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10.5, 8.9, 9.7}));
-	EidosAssertScriptSuccess("setSymmetricDifference(c(7.3, 10.5, 7.3, 10.5, 8.9), c(7.3, NAN, NAN, 9.7, 7.3, 9.7, 7.3));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{10.5, 8.9, std::numeric_limits<double>::quiet_NaN(), 9.7}));
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(7.3, 10.5, NAN, NAN, 7.3, 10.5, 8.9), c(7.3, 9.7, 7.3, 9.7, 7.3));", {10.5, std::numeric_limits<double>::quiet_NaN(), 8.9, 9.7});
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(7.3, 10.5, NAN, NAN, 7.3, 10.5, 8.9), c(7.3, NAN, 9.7, 7.3, 9.7, 7.3));", {10.5, 8.9, 9.7});
+	EidosAssertScriptSuccess_FV("setSymmetricDifference(c(7.3, 10.5, 7.3, 10.5, 8.9), c(7.3, NAN, NAN, 9.7, 7.3, 9.7, 7.3));", {10.5, 8.9, std::numeric_limits<double>::quiet_NaN(), 9.7});
 }
 
 void _RunFunctionMathTests_s_through_z(void)
@@ -1067,7 +1067,7 @@ void _RunFunctionMathTests_s_through_z(void)
 	EidosAssertScriptSuccess("sin(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("sin(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("sin(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("sin(c(0, NAN, 0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("sin(c(0, NAN, 0));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(sin(matrix(0.5)), matrix(sin(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(sin(matrix(c(0.1, 0.2, 0.3))), matrix(sin(c(0.1, 0.2, 0.3))));", true);
@@ -1075,10 +1075,10 @@ void _RunFunctionMathTests_s_through_z(void)
 	// sqrt()
 	EidosAssertScriptSuccess_F("sqrt(64);", 8);
 	EidosAssertScriptSuccess_L("isNAN(sqrt(-64));", true);
-	EidosAssertScriptSuccess("sqrt(c(4, -16, 9, 1024));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2, NAN, 3, 32}));
+	EidosAssertScriptSuccess_FV("sqrt(c(4, -16, 9, 1024));", {2, NAN, 3, 32});
 	EidosAssertScriptSuccess_F("sqrt(64.0);", 8);
 	EidosAssertScriptSuccess_L("isNAN(sqrt(-64.0));", true);
-	EidosAssertScriptSuccess("sqrt(c(4.0, -16.0, 9.0, 1024.0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{2, NAN, 3, 32}));
+	EidosAssertScriptSuccess_FV("sqrt(c(4.0, -16.0, 9.0, 1024.0));", {2, NAN, 3, 32});
 	EidosAssertScriptRaise("sqrt(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("sqrt('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sqrt(_Test(7));", 0, "cannot be type");
@@ -1088,7 +1088,7 @@ void _RunFunctionMathTests_s_through_z(void)
 	EidosAssertScriptSuccess("sqrt(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("sqrt(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("sqrt(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("sqrt(c(64, NAN, 9));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{8, std::numeric_limits<double>::quiet_NaN(), 3}));
+	EidosAssertScriptSuccess_FV("sqrt(c(64, NAN, 9));", {8, std::numeric_limits<double>::quiet_NaN(), 3});
 	
 	EidosAssertScriptSuccess_L("identical(sqrt(matrix(0.5)), matrix(sqrt(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(sqrt(matrix(c(0.1, 0.2, 0.3))), matrix(sqrt(c(0.1, 0.2, 0.3))));", true);
@@ -1152,7 +1152,7 @@ void _RunFunctionMathTests_s_through_z(void)
 	EidosAssertScriptSuccess("tan(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("tan(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("tan(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("tan(c(0, NAN, 0));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{0, std::numeric_limits<double>::quiet_NaN(), 0}));
+	EidosAssertScriptSuccess_FV("tan(c(0, NAN, 0));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
 	
 	EidosAssertScriptSuccess_L("identical(tan(matrix(0.5)), matrix(tan(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(tan(matrix(c(0.1, 0.2, 0.3))), matrix(tan(c(0.1, 0.2, 0.3))));", true);
@@ -1160,7 +1160,7 @@ void _RunFunctionMathTests_s_through_z(void)
 	// trunc()
 	EidosAssertScriptSuccess_F("trunc(5.1);", 5.0);
 	EidosAssertScriptSuccess_F("trunc(-5.1);", -5.0);
-	EidosAssertScriptSuccess("trunc(c(-2.1, 7.1, -18.8, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 7, -18, 12}));
+	EidosAssertScriptSuccess_FV("trunc(c(-2.1, 7.1, -18.8, 12.8));", {-2.0, 7, -18, 12});
 	EidosAssertScriptRaise("trunc(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("trunc(5);", 0, "cannot be type");
 	EidosAssertScriptRaise("trunc('foo');", 0, "cannot be type");
@@ -1171,7 +1171,7 @@ void _RunFunctionMathTests_s_through_z(void)
 	EidosAssertScriptSuccess("trunc(float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptRaise("trunc(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("trunc(NAN);", gStaticEidosValue_FloatNAN);
-	EidosAssertScriptSuccess("trunc(c(-2.1, 7.1, -18.8, NAN, 12.8));", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{-2.0, 7, -18, std::numeric_limits<double>::quiet_NaN(), 12}));
+	EidosAssertScriptSuccess_FV("trunc(c(-2.1, 7.1, -18.8, NAN, 12.8));", {-2.0, 7, -18, std::numeric_limits<double>::quiet_NaN(), 12});
 	
 	EidosAssertScriptSuccess_L("identical(trunc(matrix(0.3)), matrix(trunc(0.3)));", true);
 	EidosAssertScriptSuccess_L("identical(trunc(matrix(0.6)), matrix(trunc(0.6)));", true);

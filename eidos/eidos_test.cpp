@@ -144,7 +144,7 @@ void EidosAssertScriptSuccess_L(const std::string &p_script_string, eidos_logica
 	EidosAssertScriptSuccess(p_script_string, p_logical == true ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
-void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initializer_list<eidos_logical_t> &p_logical_vec)
+void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initializer_list<eidos_logical_t> p_logical_vec)
 {
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(p_logical_vec)));
 }
@@ -154,7 +154,7 @@ void EidosAssertScriptSuccess_I(const std::string &p_script_string, int64_t p_in
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_integer)));
 }
 
-void EidosAssertScriptSuccess_IV(const std::string &p_script_string, std::initializer_list<int64_t> &p_integer_vec)
+void EidosAssertScriptSuccess_IV(const std::string &p_script_string, std::initializer_list<int64_t> p_integer_vec)
 {
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_integer_vec)));
 }
@@ -164,7 +164,7 @@ void EidosAssertScriptSuccess_F(const std::string &p_script_string, double p_flo
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(p_float)));
 }
 
-void EidosAssertScriptSuccess_FV(const std::string &p_script_string, std::initializer_list<double> &p_float_vec)
+void EidosAssertScriptSuccess_FV(const std::string &p_script_string, std::initializer_list<double> p_float_vec)
 {
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(p_float_vec)));
 }
@@ -174,7 +174,7 @@ void EidosAssertScriptSuccess_S(const std::string &p_script_string, const char *
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(p_string)));
 }
 
-void EidosAssertScriptSuccess_SV(const std::string &p_script_string, std::initializer_list<const char *> &p_string_vec)
+void EidosAssertScriptSuccess_SV(const std::string &p_script_string, std::initializer_list<const char *> p_string_vec)
 {
 	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(p_string_vec)));
 }
@@ -1375,19 +1375,19 @@ void _RunSymbolsAndVariablesTests(void)
 	EidosAssertScriptSuccess_S("x = 'first'; x = 'foo'; x;", "foo");
 	EidosAssertScriptSuccess_L("x = 'first'; x = T; x;", true);
 	EidosAssertScriptSuccess("x = 'first'; x = NULL; x;", gStaticEidosValueNULL);
-	EidosAssertScriptSuccess("x = 1:5; y = x + 1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
-	EidosAssertScriptSuccess("x = 1:5; y = x + 1; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4, 5, 6}));
-	EidosAssertScriptSuccess("x = 1:5; y = x + 1; x = x + 1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4, 5, 6}));
-	EidosAssertScriptSuccess("x = 1:5; y = x + 1; x = x + 1; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4, 5, 6}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; x = x + 1; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3, 4, 5, 6}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; x = x + 1; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; x = x + x; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 4, 6, 8, 10}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; x = x + x; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; x[1] = 0; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 3, 4, 5}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; x[1] = 0; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; y[1] = 0; x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3, 4, 5}));
-	EidosAssertScriptSuccess("x = 1:5; y = x; y[1] = 0; y;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 0, 3, 4, 5}));
-	EidosAssertScriptSuccess("for (i in 1:3) { x = 1:5; x[1] = x[1] + 1; } x;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 3, 3, 4, 5}));
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x + 1; x;", {1, 2, 3, 4, 5});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x + 1; y;", {2, 3, 4, 5, 6});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x + 1; x = x + 1; x;", {2, 3, 4, 5, 6});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x + 1; x = x + 1; y;", {2, 3, 4, 5, 6});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; x = x + 1; x;", {2, 3, 4, 5, 6});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; x = x + 1; y;", {1, 2, 3, 4, 5});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; x = x + x; x;", {2, 4, 6, 8, 10});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; x = x + x; y;", {1, 2, 3, 4, 5});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; x[1] = 0; x;", {1, 0, 3, 4, 5});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; x[1] = 0; y;", {1, 2, 3, 4, 5});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; y[1] = 0; x;", {1, 2, 3, 4, 5});
+	EidosAssertScriptSuccess_IV("x = 1:5; y = x; y[1] = 0; y;", {1, 0, 3, 4, 5});
+	EidosAssertScriptSuccess_IV("for (i in 1:3) { x = 1:5; x[1] = x[1] + 1; } x;", {1, 3, 3, 4, 5});
 	
 	// some tests for Unicode in symbol names; both accented characters and emoji should be legal (and all other Unicode above 7-bit ASCII)
 	// note that "\u00E9" is &eacute; and "\u1F603" is a grinning face emoji
@@ -1455,21 +1455,21 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptRaise("integerDiv(x=6, 3);", 0, "unnamed argument may not follow after named arguments");
 	EidosAssertScriptSuccess_I("integerDiv(6, y=3);", 2);
 	
-	EidosAssertScriptSuccess("seq(1, 3, 1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
-	EidosAssertScriptSuccess("seq(1, 3, NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
-	EidosAssertScriptSuccess("seq(1, 3, by=1);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
-	EidosAssertScriptSuccess("seq(1, 3, by=NULL);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
+	EidosAssertScriptSuccess_IV("seq(1, 3, 1);", {1, 2, 3});
+	EidosAssertScriptSuccess_IV("seq(1, 3, NULL);", {1, 2, 3});
+	EidosAssertScriptSuccess_IV("seq(1, 3, by=1);", {1, 2, 3});
+	EidosAssertScriptSuccess_IV("seq(1, 3, by=NULL);", {1, 2, 3});
 	EidosAssertScriptRaise("seq(1, 3, x=1);", 0, "ran out of optional arguments");
 	EidosAssertScriptRaise("seq(1, 3, by=1, length=1, by=1);", 0, "supplied more than once");
 	EidosAssertScriptRaise("seq(1, 3, length=1, by=1);", 0, "supplied out of order");
-	EidosAssertScriptSuccess("seq(1, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
+	EidosAssertScriptSuccess_IV("seq(1, 3);", {1, 2, 3});
 	EidosAssertScriptRaise("seq(by=1, 1, 3);", 0, "named argument by skipped over required argument");
 	EidosAssertScriptRaise("seq(by=NULL, 1, 3);", 0, "named argument by skipped over required argument");
 	
 	EidosAssertScriptSuccess("c();", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess("c(NULL);", gStaticEidosValueNULL);
 	EidosAssertScriptSuccess_I("c(2);", 2);
-	EidosAssertScriptSuccess("c(1, 2, 3);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1, 2, 3}));
+	EidosAssertScriptSuccess_IV("c(1, 2, 3);", {1, 2, 3});
 	EidosAssertScriptRaise("c(x=2);", 0, "unrecognized named argument x");
 	EidosAssertScriptRaise("c(x=1, 2, 3);", 0, "unrecognized named argument x");
 	EidosAssertScriptRaise("c(1, x=2, 3);", 0, "unrecognized named argument x");
@@ -1544,43 +1544,43 @@ void _RunRuntimeErrorTests(void)
 void _RunVectorsAndSingletonsTests(void)
 {	
 	// test vector-to-singleton comparisons for integers, and multiplexing of methods and properties declared as singleton
-	EidosAssertScriptSuccess("rep(1:3, 2) == 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false, false, true, false}));
-	EidosAssertScriptSuccess("rep(1:3, 2) != 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, true, false, true}));
-	EidosAssertScriptSuccess("rep(1:3, 2) < 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false, true, false, false}));
-	EidosAssertScriptSuccess("rep(1:3, 2) <= 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, false, true, true, false}));
-	EidosAssertScriptSuccess("rep(1:3, 2) > 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, true, false, false, true}));
-	EidosAssertScriptSuccess("rep(1:3, 2) >= 2;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true, false, true, true}));
+	EidosAssertScriptSuccess_LV("rep(1:3, 2) == 2;", {false, true, false, false, true, false});
+	EidosAssertScriptSuccess_LV("rep(1:3, 2) != 2;", {true, false, true, true, false, true});
+	EidosAssertScriptSuccess_LV("rep(1:3, 2) < 2;", {true, false, false, true, false, false});
+	EidosAssertScriptSuccess_LV("rep(1:3, 2) <= 2;", {true, true, false, true, true, false});
+	EidosAssertScriptSuccess_LV("rep(1:3, 2) > 2;", {false, false, true, false, false, true});
+	EidosAssertScriptSuccess_LV("rep(1:3, 2) >= 2;", {false, true, true, false, true, true});
 	
-	EidosAssertScriptSuccess("2 == rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, false, false, true, false}));
-	EidosAssertScriptSuccess("2 != rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, true, true, false, true}));
-	EidosAssertScriptSuccess("2 > rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, false, false, true, false, false}));
-	EidosAssertScriptSuccess("2 >= rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{true, true, false, true, true, false}));
-	EidosAssertScriptSuccess("2 < rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, false, true, false, false, true}));
-	EidosAssertScriptSuccess("2 <= rep(1:3, 2);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{false, true, true, false, true, true}));
+	EidosAssertScriptSuccess_LV("2 == rep(1:3, 2);", {false, true, false, false, true, false});
+	EidosAssertScriptSuccess_LV("2 != rep(1:3, 2);", {true, false, true, true, false, true});
+	EidosAssertScriptSuccess_LV("2 > rep(1:3, 2);", {true, false, false, true, false, false});
+	EidosAssertScriptSuccess_LV("2 >= rep(1:3, 2);", {true, true, false, true, true, false});
+	EidosAssertScriptSuccess_LV("2 < rep(1:3, 2);", {false, false, true, false, false, true});
+	EidosAssertScriptSuccess_LV("2 <= rep(1:3, 2);", {false, true, true, false, true, true});
 	
 	EidosAssertScriptSuccess_I("_Test(2)._yolk;", 2);
-	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2, 3}));
-	EidosAssertScriptSuccess("_Test(2)[F]._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
+	EidosAssertScriptSuccess_IV("c(_Test(2),_Test(3))._yolk;", {2, 3});
+	EidosAssertScriptSuccess_IV("_Test(2)[F]._yolk;", {});
 	
 	EidosAssertScriptSuccess_I("_Test(2)._cubicYolk();", 8);
-	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{8, 27}));
-	EidosAssertScriptSuccess("_Test(2)[F]._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
+	EidosAssertScriptSuccess_IV("c(_Test(2),_Test(3))._cubicYolk();", {8, 27});
+	EidosAssertScriptSuccess_IV("_Test(2)[F]._cubicYolk();", {});
 	
 	EidosAssertScriptSuccess_I("_Test(2)._increment._yolk;", 3);
-	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._increment._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{3, 4}));
-	EidosAssertScriptSuccess("_Test(2)[F]._increment._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
+	EidosAssertScriptSuccess_IV("c(_Test(2),_Test(3))._increment._yolk;", {3, 4});
+	EidosAssertScriptSuccess_IV("_Test(2)[F]._increment._yolk;", {});
 	
 	EidosAssertScriptSuccess_I("_Test(2)._increment._cubicYolk();", 27);
-	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._increment._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{27, 64}));
-	EidosAssertScriptSuccess("_Test(2)[F]._increment._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
+	EidosAssertScriptSuccess_IV("c(_Test(2),_Test(3))._increment._cubicYolk();", {27, 64});
+	EidosAssertScriptSuccess_IV("_Test(2)[F]._increment._cubicYolk();", {});
 	
 	EidosAssertScriptSuccess_I("_Test(2)._squareTest()._yolk;", 4);
-	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._squareTest()._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{4, 9}));
-	EidosAssertScriptSuccess("_Test(2)[F]._squareTest()._yolk;", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
+	EidosAssertScriptSuccess_IV("c(_Test(2),_Test(3))._squareTest()._yolk;", {4, 9});
+	EidosAssertScriptSuccess_IV("_Test(2)[F]._squareTest()._yolk;", {});
 	
 	EidosAssertScriptSuccess_I("_Test(2)._squareTest()._cubicYolk();", 64);
-	EidosAssertScriptSuccess("c(_Test(2),_Test(3))._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{64, 729}));
-	EidosAssertScriptSuccess("_Test(2)[F]._squareTest()._cubicYolk();", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{}));
+	EidosAssertScriptSuccess_IV("c(_Test(2),_Test(3))._squareTest()._cubicYolk();", {64, 729});
+	EidosAssertScriptSuccess_IV("_Test(2)[F]._squareTest()._cubicYolk();", {});
 }
 
 	
