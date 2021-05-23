@@ -7115,7 +7115,7 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 		char *slim_record = provenance_table.record + provenance_table.record_offset[slim_record_index];
 		tsk_size_t slim_record_len = provenance_table.record_offset[slim_record_index + 1] - provenance_table.record_offset[slim_record_index];
 		std::string slim_record_str(slim_record, slim_record_len);
-		auto j = nlohmann::json::parse(slim_record_str);
+		auto j = nlohmann::json::parse(slim_record_str);	// no need for try/catch; this record parsed successfully above
 		
 		//std::cout << "Read provenance:\n" << slim_record_str << std::endl;
 		
