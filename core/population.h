@@ -76,6 +76,12 @@ public:
 	
 	SLiMSim &sim_;											// We have a reference back to our simulation
 	
+	// Object pools for individuals and genomes, kept population-wide
+	EidosObjectPool species_genome_pool_;					// a pool out of which genomes are allocated, for within-species locality of memory usage across genomes
+	EidosObjectPool species_individual_pool_;				// a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
+	std::vector<Genome *> species_genome_junkyard_nonnull;	// non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	std::vector<Genome *> species_genome_junkyard_null;		// null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	bool keeping_muttype_registries_ = false;				// if true, at least one MutationType is also keeping its own registry
 	bool any_muttype_call_count_used_ = false;				// if true, a muttype's muttype_registry_call_count_ has been incremented

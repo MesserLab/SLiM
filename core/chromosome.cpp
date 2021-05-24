@@ -780,7 +780,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 					if (mutation_callback->contains_element_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_element, p_genomic_element->CachedEidosValue());
 					if (mutation_callback->contains_subpop_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_genome->OwningSubpopulation()->SymbolTableEntry().second);
+						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_genome->OwningIndividual()->subpopulation_->SymbolTableEntry().second);
 					if (mutation_callback->contains_originalNuc_)
 					{
 						local_originalNuc.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
@@ -1782,7 +1782,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	if (parent)
 	{
 		parent_sex = parent->sex_;
-		parent_subpop = &parent->subpopulation_;
+		parent_subpop = parent->subpopulation_;
 		recombination_callbacks = sim_->ScriptBlocksMatching(sim_->Generation(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_);
 	}
 	

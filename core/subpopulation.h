@@ -43,6 +43,16 @@
  offspring generation.  So in some ways these schemes are similar, but they use a completely non-intersecting set of ivars.  The
  parental ivars are used by both WF and nonWF models, though.
  
+ BCH 23 May 2021: The above description is now somewhat out of date; adding a new comment rather than just revising in order to
+ keep a record of what has happened.  The separate genome/individual pools for each subpopulation proved to be a maintenance
+ nightmare, because of migrants; a migrating individual and its genome could not simply be moved to the new subpop, because that
+ subpop used different object pools, so the object states instead had to be re-created completely in new objects allocated out
+ of the new subpop's object pools.  Since the pointer referring to those objects was then actually changing, all references to
+ the objects needed to be patched with the new pointers, including inside Eidos objects.  This was slow, and very prone to
+ difficult-to-find bugs.  On balance, it was a bad idea, and is being ripped out now.  Instead, Population will keep the object
+ pools for the whole species.  For both efficiency and ease of implementation, Subpopulation will keep its own pointers to the
+ object pools and junkyard vectors, but these really belong to SLiMSim and are shared now.
+ 
  */
 
 #ifndef __SLiM__subpopulation__
@@ -146,11 +156,11 @@ public:
 	std::map<slim_objectid_t,double> migrant_fractions_;		// m[i]: fraction made up of migrants from subpopulation i per generation
 #endif	// SLIM_WF_ONLY
 	
-	EidosObjectPool *genome_pool_ = nullptr;		// a pool out of which genomes are allocated, for locality of memory usage across genomes
-	EidosObjectPool *individual_pool_ = nullptr;	// a pool out of which individuals are allocated, for locality of memory usage across individuals
-	
-	std::vector<Genome *> genome_junkyard_nonnull;	// non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	std::vector<Genome *> genome_junkyard_null;		// null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	// These object pools are owned by Population, and are used by all of its Subpopulations; we have references to them just for efficiency
+	EidosObjectPool &genome_pool_;					// NOT OWNED: a pool out of which genomes are allocated, for within-species locality of memory usage across genomes
+	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
+	std::vector<Genome *> &genome_junkyard_nonnull;	// NOT OWNED: non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	std::vector<Genome *> &genome_junkyard_null;	// NOT OWNED: null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	
 	std::vector<Genome *> parent_genomes_;			// OWNED: all genomes in the parental generation; each individual gets two genomes, males are XY (not YX)
 	EidosValue_SP cached_parent_genomes_value_;		// cached for the genomes property; reset() if changed
@@ -288,8 +298,6 @@ public:
 	slim_popsize_t DrawFemaleParentEqualProbability(void) const;							// draw a female from the subpopulation  with equal probabilities; SEX ONLY
 	slim_popsize_t DrawMaleParentEqualProbability(void) const;								// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
-	void MakeMemoryPools(size_t p_individual_capacity);
-	
 	// Returns a new genome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
 	Genome *_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null);	// internal use only
 	inline __attribute__((always_inline)) Genome *NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
@@ -397,13 +405,7 @@ public:
 			nonWF_offspring_genomes_.push_back(p_genome2);
 			nonWF_offspring_individuals_.push_back(p_individual);
 			
-			// Note we use the special EidosValue_Object_singleton() constructor that sets registered_for_patching_ to false
-			// and avoids registering the EidosValue in the address-patching registries.  This is safe because address patching
-			// only occurs as a side effect of takeMigrants(), and takeMigrants() cannot be called within a reproduction()
-			// callback, whereas we are *only* called in reproduction() callbacks; there is no way for this unregistered
-			// EidosValue to slip out to a context where it would need its address to be patched.  Avoiding the registry should
-			// make a speed difference; nevertheless, a gross hack.  See EidosValue_Object::EidosValue_Object() for comments.
-			EidosValue_Object_singleton *individual_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(p_individual, gSLiM_Individual_Class, false);
+			EidosValue_Object_singleton *individual_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(p_individual, gSLiM_Individual_Class);
 			
 			return EidosValue_SP(individual_value);
 		}
@@ -414,7 +416,7 @@ public:
 			FreeSubpopGenome(p_genome2);
 			
 			p_individual->~Individual();
-			individual_pool_->DisposeChunk(const_cast<Individual *>(p_individual));
+			individual_pool_.DisposeChunk(const_cast<Individual *>(p_individual));
 			
 			// TREE SEQUENCE RECORDING
 			SLiMSim &sim = population_.sim_;

@@ -44,7 +44,7 @@ bool Individual::s_any_individual_or_genome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) :
+Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) :
 	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
 	cached_fitness_UNSAFE_(p_fitness), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
 #ifdef SLIM_NONWF_ONLY
@@ -146,9 +146,7 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 void Individual::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
-	// The false parameter selects a constructor variant that prevents this self-cache from having its address patched;
-	// our self-pointer never changes.  See EidosValue_Object::EidosValue_Object() for comments on this disgusting hack.
-	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Individual_Class, false));
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Individual_Class));
 }
 
 const EidosClass *Individual::Class(void) const
@@ -158,7 +156,7 @@ const EidosClass *Individual::Class(void) const
 
 void Individual::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<p" << subpopulation_.subpopulation_id_ << ":i" << index_ << ">";
+	p_ostream << Class()->ClassName() << "<p" << subpopulation_->subpopulation_id_ << ":i" << index_ << ">";
 }
 
 EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
@@ -169,7 +167,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_subpopulation:		// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&subpopulation_, gSLiM_Subpopulation_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(subpopulation_, gSLiM_Subpopulation_Class));
 		}
 		case gID_index:				// ACCELERATED
 		{
@@ -226,14 +224,14 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 #endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
 		case gID_pedigreeParentIDs:
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeParentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
@@ -245,7 +243,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_pedigreeGrandparentIDs:
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeGrandparentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
@@ -259,14 +257,14 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_reproductiveOutput:				// ACCELERATED
 		{
-			if (!subpopulation_.population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(reproductive_output_));
 		}
 		case gID_spatialPosition:
 		{
-			SLiMSim &sim = subpopulation_.population_.sim_;
+			SLiMSim &sim = subpopulation_->population_.sim_;
 			
 			switch (sim.SpatialDimensionality())
 			{
@@ -505,7 +503,7 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_value
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		if (!value->subpopulation_.population_.sim_.PedigreesEnabledByUser())
+		if (!value->subpopulation_->population_.sim_.PedigreesEnabledByUser())
 			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->pedigree_id_, value_index);
@@ -543,7 +541,7 @@ EidosValue *Individual::GetProperty_Accelerated_tag(EidosObject **p_values, size
 #ifdef SLIM_NONWF_ONLY
 EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size)
 {
-	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_.population_.sim_.ModelType() == SLiMModelType::kModelTypeWF))
+	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_->population_.sim_.ModelType() == SLiMModelType::kModelTypeWF))
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
 	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
@@ -561,7 +559,7 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size
 
 EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size)
 {
-	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_.population_.sim_.PedigreesEnabledByUser())
+	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_->population_.sim_.PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
@@ -672,7 +670,7 @@ EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_va
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check_NORR(&value->subpopulation_, value_index);
+		object_result->set_object_element_no_check_NORR(value->subpopulation_, value_index);
 	}
 	
 	return object_result;
@@ -1036,7 +1034,7 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
-	SLiMSim &sim = subpopulation_.population_.sim_;
+	SLiMSim &sim = subpopulation_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "countOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
@@ -1085,7 +1083,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	EidosValue *individuals_value = p_arguments[0].get();
 	
 	int individuals_count = individuals_value->Count();
-	bool pedigree_tracking_enabled = subpopulation_.population_.sim_.PedigreesEnabledByUser();
+	bool pedigree_tracking_enabled = subpopulation_->population_.sim_.PedigreesEnabledByUser();
 	
 	if (individuals_count == 1)
 	{
@@ -1139,7 +1137,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 		return gStaticEidosValue_Float_ZeroVec;
 	
 	Individual *element0 = (Individual *)(p_elements[0]);
-	SLiMSim &sim = element0->subpopulation_.population_.sim_;
+	SLiMSim &sim = element0->subpopulation_->population_.sim_;
 	EidosValue *mutType_value = p_arguments[0].get();
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "sumOfMutationsOfType()");
 	
@@ -1206,7 +1204,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
-	SLiMSim &sim = subpopulation_.population_.sim_;
+	SLiMSim &sim = subpopulation_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "uniqueMutationsOfType()");
 	
 	// This code is adapted from uniqueMutations and follows its logic closely

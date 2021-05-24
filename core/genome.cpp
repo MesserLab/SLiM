@@ -45,7 +45,7 @@ slim_mutrun_index_t Genome::s_bulk_operation_mutrun_index_ = -1;
 SLiMBulkOperationHashTable Genome::s_bulk_operation_runs_;
 
 
-Genome::Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), subpop_(p_subpop), individual_(nullptr), genome_id_(-1)
+Genome::Genome(int p_mutrun_count, slim_position_t p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), individual_(nullptr), genome_id_(-1)
 {
 	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
 	if (p_is_null)
@@ -528,9 +528,7 @@ void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutru
 void Genome::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
-	// The false parameter selects a constructor variant that prevents this self-cache from having its address patched;
-	// our self-pointer never changes.  See EidosValue_Object::EidosValue_Object() for comments on this disgusting hack.
-	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Genome_Class, false));
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Genome_Class));
 }
 
 const EidosClass *Genome::Class(void) const
@@ -563,7 +561,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomePedigreeID:		// ACCELERATED
 		{
-			if (!subpop_->population_.sim_.PedigreesEnabledByUser())
+			if (!individual_->subpopulation_->population_.sim_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genome_id_));
@@ -632,7 +630,7 @@ EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObject **p_val
 	{
 		Genome *value = (Genome *)(p_values[value_index]);
 		
-		if (!value->subpop_->population_.sim_.PedigreesEnabledByUser())
+		if (!value->individual_->subpopulation_->population_.sim_.PedigreesEnabledByUser())
 			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->genome_id_, value_index);
@@ -749,7 +747,7 @@ EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << EidosTerminate();
 	
-	SLiMSim &sim = subpop_->population_.sim_;
+	SLiMSim &sim = individual_->subpopulation_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "containsMarkerMutation()");
 	slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex(0, nullptr));
 	slim_position_t last_position = sim.TheChromosome().last_position_;
@@ -860,7 +858,7 @@ EidosValue_SP Genome::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	SLiMSim &sim = subpop_->population_.sim_;
+	SLiMSim &sim = individual_->subpopulation_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "countOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
@@ -891,7 +889,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	SLiMSim &sim = subpop_->population_.sim_;
+	SLiMSim &sim = individual_->subpopulation_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "mutationsOfType()");
 	
 	// We want to return a singleton if we can, but we also want to avoid scanning through all our mutations twice.
@@ -1243,7 +1241,7 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	SLiMSim &sim = subpop_->population_.sim_;
+	SLiMSim &sim = individual_->subpopulation_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "positionsOfMutationsOfType()");
 	
 	// Return the positions of mutations of the given type
@@ -1278,7 +1276,7 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
-	SLiMSim &sim = subpop_->population_.sim_;
+	SLiMSim &sim = individual_->subpopulation_->population_.sim_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "sumOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
@@ -1560,7 +1558,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	{
 		Genome *genome0 = p_genomes[0];
 		
-		if (genome0->subpop_->population_.sim_.PedigreesEnabledByUser())
+		if (genome0->individual_->subpopulation_->population_.sim_.PedigreesEnabledByUser())
 		{
 			p_out << "##slimGenomePedigreeIDs=";
 			for (slim_popsize_t index = 0; index < (slim_popsize_t)p_genomes.size(); index++)
@@ -2116,7 +2114,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	
 	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
-	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	SLiMSim &sim = genome_0->individual_->subpopulation_->population_.sim_;
 	
 	if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && sim.RecordingTreeSequence())
 	{
@@ -2188,17 +2186,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		if (target_genome->IsNull())
 			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null genome." << EidosTerminate();
 		
-		target_genome->patch_pointer_ = target_genome;
+		target_genome->scratch_ = 1;
 	}
 	
 	for (int target_index = 0; target_index < target_size; ++target_index)
 	{
 		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 		
-		if (target_genome->patch_pointer_ != target_genome)
+		if (target_genome->scratch_ != 1)
 			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
 		
-		target_genome->patch_pointer_ = nullptr;
+		target_genome->scratch_ = 0;
 	}
 	
 	// Construct a vector of mutations to add that is sorted by position
@@ -2380,7 +2378,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	
 	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
-	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	SLiMSim &sim = genome_0->individual_->subpopulation_->population_.sim_;
 	
 	if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && sim.RecordingTreeSequence())
 	{
@@ -2546,17 +2544,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		if (target_genome->IsNull())
 			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot be called on a null genome." << EidosTerminate();
 		
-		target_genome->patch_pointer_ = target_genome;
+		target_genome->scratch_ = 1;
 	}
 	
 	for (int target_index = 0; target_index < target_size; ++target_index)
 	{
 		Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 		
-		if (target_genome->patch_pointer_ != target_genome)
+		if (target_genome->scratch_ != 1)
 			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
 		
-		target_genome->patch_pointer_ = nullptr;
+		target_genome->scratch_ = 0;
 	}
 	
 	// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
@@ -2609,7 +2607,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		if (target_size >= 1)
 		{
 			Genome *first_target = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
-			singleton_origin_subpop_id = first_target->subpop_->subpopulation_id_;
+			singleton_origin_subpop_id = first_target->individual_->subpopulation_->subpopulation_id_;
 		}
 	}
 	else if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
@@ -2813,7 +2811,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 	}
 	
 	Genome *genome_0 = target_genomes[0];
-	Population &population = genome_0->subpop_->population_;
+	Population &population = genome_0->individual_->subpopulation_->population_;
 	
 	// Have the Population tally for the target genomes
 	population.TallyMutationReferences(&target_genomes);
@@ -3717,7 +3715,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
-	SLiMSim &sim = genome_0->subpop_->population_.sim_;
+	SLiMSim &sim = genome_0->individual_->subpopulation_->population_.sim_;
 	Population &pop = sim.ThePopulation();
 	slim_generation_t generation = sim.Generation();
 	bool create_substitutions = substitute_value->LogicalAtIndex(0, nullptr);
@@ -3922,13 +3920,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			// just work automatically.
 			if (recording_tree_sequence_mutations)
 			{
-				// Mark all non-null genomes in the simulation that are not among the target genomes; we use patch_pointer_ as scratch
+				// Mark all non-null genomes in the simulation that are not among the target genomes
 				for (auto subpop_pair : sim.ThePopulation().subpops_)
 					for (Genome *genome : subpop_pair.second->parent_genomes_)
-						genome->patch_pointer_ = (genome->IsNull() ? nullptr : genome);
+						genome->scratch_ = (genome->IsNull() ? 0 : 1);
 				
 				for (int genome_index = 0; genome_index < target_size; ++genome_index)
-					((Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr))->patch_pointer_ = nullptr;
+					((Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr))->scratch_ = 0;
 				
 				// Figure out the unique chromosome positions that have changed (the uniqued set of mutation positions)
 				std::vector<slim_position_t> unique_positions;
@@ -3948,11 +3946,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				// Loop through those genomes and log the new derived state at each (unique) position
 				for (auto subpop_pair : sim.ThePopulation().subpops_)
 					for (Genome *genome : subpop_pair.second->parent_genomes_)
-						if (genome->patch_pointer_)
+						if (genome->scratch_ == 1)
 						{
 							for (slim_position_t position : unique_positions)
 								sim.RecordNewDerivedState(genome, position, *genome->derived_mutation_ids_at_position(position));
-							genome->patch_pointer_ = nullptr;
+							genome->scratch_ = 0;
 						}
 			}
 		}

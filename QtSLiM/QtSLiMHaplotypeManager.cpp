@@ -245,7 +245,7 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 	{
 		// Remember the subpop ID for each genome
 		for (Genome *genome : genomes)
-			genomeSubpopIDs.push_back(genome->subpop_->subpopulation_id_);
+			genomeSubpopIDs.push_back(genome->individual_->subpopulation_->subpopulation_id_);
 		
 		// Build our plotting data vectors.  Because we are a snapshot, we can't rely on our controller's data
 		// at all after this method returns; we have to remember everything we need to create our display list.

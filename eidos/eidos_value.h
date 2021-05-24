@@ -982,7 +982,6 @@ protected:
 	bool class_uses_retain_release_;	// cached from UsesRetainRelease() of class_; true until class_ is set, to catch errors
 	
 	EidosValue_Object(bool p_singleton, const EidosClass *p_class);
-	EidosValue_Object(bool p_singleton, const EidosClass *p_class, bool p_register_for_patching);		// a variant for self-pointer EidosValues; not for general use
 	
 	virtual int Count_Virtual(void) const override = 0;
 	

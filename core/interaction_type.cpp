@@ -2763,7 +2763,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	
 	// individuals1 is guaranteed to be singleton; let's get the info on it
 	Individual *ind1 = (Individual *)individuals1->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop1 = &(ind1->subpopulation_);
+	Subpopulation *subpop1 = ind1->subpopulation_;
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int ind1_index = ind1->index_;
@@ -2817,7 +2817,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 		{
 			Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
 			
-			if (subpop1 != &(ind2->subpopulation_))
+			if (subpop1 != ind2->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind2_index_in_subpop = ind2->index_;
@@ -2876,7 +2876,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 	
 	// individuals is guaranteed to be of length >= 1; let's get the info on it
 	Individual *ind_first = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop1 = &(ind_first->subpopulation_);
+	Subpopulation *subpop1 = ind_first->subpopulation_;
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
@@ -2904,7 +2904,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 		{
 			Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 			
-			if (subpop1 != &(ind->subpopulation_))
+			if (subpop1 != ind->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind_index_in_subpop = ind->index_;
@@ -2923,7 +2923,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 		{
 			Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 			
-			if (subpop1 != &(ind->subpopulation_))
+			if (subpop1 != ind->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind_index_in_subpop = ind->index_;
@@ -3014,7 +3014,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	
 	// Check the individual and subpop
 	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop = &(individual->subpopulation_);
+	Subpopulation *subpop = individual->subpopulation_;
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
@@ -3183,7 +3183,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 	{
 		// Check the individual and subpop
 		Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
-		Subpopulation *subpop = &(individual->subpopulation_);
+		Subpopulation *subpop = individual->subpopulation_;
 		slim_objectid_t subpop_id = subpop->subpopulation_id_;
 		int ind_index = individual->index_;
 		
@@ -3213,7 +3213,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		
 		// Try to do the subpop-level bookkeeping as little as possible
 		Individual *individual0 = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
-		Subpopulation *subpop = &(individual0->subpopulation_);
+		Subpopulation *subpop = individual0->subpopulation_;
 		slim_objectid_t subpop_id = subpop->subpopulation_id_;
 		auto subpop_data_iter = data_.find(subpop_id);
 		
@@ -3234,7 +3234,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 				if (ind_index < 0)
 					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 				
-				Subpopulation *ind_subpop = &(individual->subpopulation_);
+				Subpopulation *ind_subpop = individual->subpopulation_;
 				
 				if (ind_subpop != subpop)
 				{
@@ -3278,7 +3278,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	
 	// receiver_value is guaranteed to be singleton; let's get the info on it
 	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop1 = &(receiver->subpopulation_);
+	Subpopulation *subpop1 = receiver->subpopulation_;
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int receiver_index = receiver->index_;
@@ -3326,7 +3326,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 		{
 			Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 			
-			if (subpop1 != &(exerter->subpopulation_))
+			if (subpop1 != exerter->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t exerter_index_in_subpop = exerter->index_;
@@ -3363,7 +3363,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	
 	// Check the individual and subpop
 	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop = &(individual->subpopulation_);
+	Subpopulation *subpop = individual->subpopulation_;
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
@@ -3465,7 +3465,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	
 	// Check the individual and subpop
 	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop = &(individual->subpopulation_);
+	Subpopulation *subpop = individual->subpopulation_;
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
@@ -3669,7 +3669,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	
 	// receiver_value is guaranteed to be singleton; let's get the info on it
 	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop1 = &(receiver->subpopulation_);
+	Subpopulation *subpop1 = receiver->subpopulation_;
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int receiver_index = receiver->index_;
@@ -3719,7 +3719,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 			{
 				Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 				
-				if (subpop1 != &(exerter->subpopulation_))
+				if (subpop1 != exerter->subpopulation_)
 					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 				
 				slim_popsize_t exerter_index_in_subpop = (uint32_t)exerter->index_;
@@ -3798,7 +3798,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				{
 					Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 					
-					if (subpop1 != &(exerter->subpopulation_))
+					if (subpop1 != exerter->subpopulation_)
 						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 					
 					slim_popsize_t exerter_index_in_subpop = exerter->index_;
@@ -3851,7 +3851,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	
 	// individuals is guaranteed to have at least one value
 	Individual *first_ind = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
-	Subpopulation *subpop = &(first_ind->subpopulation_);
+	Subpopulation *subpop = first_ind->subpopulation_;
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	auto subpop_data_iter = data_.find(subpop_id);
 	
@@ -3896,7 +3896,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		{
 			Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 			
-			if (subpop != &(individual->subpopulation_))
+			if (subpop != individual->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
 			slim_popsize_t ind_index_in_subpop = individual->index_;

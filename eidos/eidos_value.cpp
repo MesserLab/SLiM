@@ -2093,8 +2093,6 @@ void EidosValue_Float_singleton::Sort(bool p_ascending)
 
 // See comments on EidosValue_Object::EidosValue_Object() below
 std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
-std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;
-std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;
 
 EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
 	class_uses_retain_release_(p_class == gEidosObject_Class ? true : p_class->UsesRetainRelease())
@@ -2108,12 +2106,6 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 	// is some way to do this without pushing the hack down into Eidos, but at the moment I'm not seeing it.
 	// On the bright side, this scheme actually seems pretty robust; the only way it fails is if somebody avoids
 	// using the constructor or the destructor for EidosValue_Object, I think, which seems unlikely.
-	
-	// BCH 11 January 2018: Sadly, I have found it necessary to extend this hack to Individual and Genome as well.
-	// See Subpopulation::ExecuteMethod_takeMigrants() for the rationale; basically, references to those classes
-	// need to be found and patched when migration occurs in nonWF models, for technical reasons.  I apologize
-	// in advance to anyone who encounters this hack.  I have also added registered_for_patching_ here, to allow
-	// us to avoid patching self-references; see the comments on the constructor below.
 	const std::string *element_type = &(class_->ClassName());
 										
 	if (element_type == &gEidosStr_Mutation)
@@ -2123,39 +2115,10 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 		
 		//std::cout << "pushed Mutation EidosValue_Object, count == " << gEidosValue_Object_Mutation_Registry.size() << std::endl;
 	}
-	else if (element_type == &gEidosStr_Genome)
-	{
-		gEidosValue_Object_Genome_Registry.push_back(this);
-		registered_for_patching_ = true;
-		
-		//std::cout << "pushed Genome EidosValue_Object, count == " << gEidosValue_Object_Genome_Registry.size() << std::endl;
-	}
-	else if (element_type == &gEidosStr_Individual)
-	{
-		gEidosValue_Object_Individual_Registry.push_back(this);
-		registered_for_patching_ = true;
-		
-		//std::cout << "pushed Individual EidosValue_Object, count == " << gEidosValue_Object_Individual_Registry.size() << std::endl;
-	}
 	else
 	{
-		// save a bit of time for other classes by avoiding the class check in the destructor, since it's free to do so
 		registered_for_patching_ = false;
 	}
-}
-
-EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class, __attribute__((unused)) bool p_register_for_patching) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
-	class_uses_retain_release_(p_class == gEidosObject_Class ? true : p_class->UsesRetainRelease())
-{
-	// This special constructor variant skips the registration done in the body of the standard constructor above.
-	// Note that the value of p_register_for_patching is UNUSED; its purpose is merely to select this alternative
-	// constructor, its value is irrelevant.  The reason we want to skip registration for some EidosValues is that
-	// they are self-pointers; some objects, such as Individual and Genome, contain a cached EidosValue that refers
-	// to the object, as an EidosValue self-reference.  Regardless of what pointer-patching may need to be done,
-	// such self-pointers should never be patched; you never want the self-pointer of one object to point to a
-	// different object!  Also, we make many of these self-pointers and they clog up the registries and make them
-	// slow, so we want to avoid registering them anyway.  See the constructor above for further comments.
-	registered_for_patching_ = false;
 }
 
 EidosValue_Object::~EidosValue_Object(void)
@@ -2163,41 +2126,14 @@ EidosValue_Object::~EidosValue_Object(void)
 	// See comment on EidosValue_Object::EidosValue_Object() above
 	if (registered_for_patching_)
 	{
-		const std::string *element_type = &(class_->ClassName());
+		auto erase_iter = std::find(gEidosValue_Object_Mutation_Registry.begin(), gEidosValue_Object_Mutation_Registry.end(), this);
 		
-		if (element_type == &gEidosStr_Mutation)
-		{
-			auto erase_iter = std::find(gEidosValue_Object_Mutation_Registry.begin(), gEidosValue_Object_Mutation_Registry.end(), this);
-			
-			if (erase_iter != gEidosValue_Object_Mutation_Registry.end())
-				gEidosValue_Object_Mutation_Registry.erase(erase_iter);
-			else
-				EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Mutation." << EidosTerminate(nullptr);
-			
-			//std::cout << "popped Mutation EidosValue_Object, count == " << gEidosValue_Object_Mutation_Registry.size() << std::endl;
-		}
-		else if (element_type == &gEidosStr_Genome)
-		{
-			auto erase_iter = std::find(gEidosValue_Object_Genome_Registry.begin(), gEidosValue_Object_Genome_Registry.end(), this);
-			
-			if (erase_iter != gEidosValue_Object_Genome_Registry.end())
-				gEidosValue_Object_Genome_Registry.erase(erase_iter);
-			else
-				EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Genome." << EidosTerminate(nullptr);
-			
-			//std::cout << "popped Genome EidosValue_Object, count == " << gEidosValue_Object_Genome_Registry.size() << std::endl;
-		}
-		else if (element_type == &gEidosStr_Individual)
-		{
-			auto erase_iter = std::find(gEidosValue_Object_Individual_Registry.begin(), gEidosValue_Object_Individual_Registry.end(), this);
-			
-			if (erase_iter != gEidosValue_Object_Individual_Registry.end())
-				gEidosValue_Object_Individual_Registry.erase(erase_iter);
-			else
-				EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Individual." << EidosTerminate(nullptr);
-			
-			//std::cout << "popped Individual EidosValue_Object, count == " << gEidosValue_Object_Individual_Registry.size() << std::endl;
-		}
+		if (erase_iter != gEidosValue_Object_Mutation_Registry.end())
+			gEidosValue_Object_Mutation_Registry.erase(erase_iter);
+		else
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object::~EidosValue_Object): (internal error) unregistered EidosValue_Object of class Mutation." << EidosTerminate(nullptr);
+		
+		//std::cout << "popped Mutation EidosValue_Object, count == " << gEidosValue_Object_Mutation_Registry.size() << std::endl;
 	}
 }
 
@@ -3275,22 +3211,6 @@ void EidosValue_Object_vector::erase_index(size_t p_index)
 
 EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObject *p_element1, const EidosClass *p_class) : EidosValue_Object(true, p_class), value_(p_element1)
 {
-	// we want to allow nullptr as a momentary placeholder, although in general a value should exist
-	if (p_element1)
-	{
-		DeclareClassFromElement(p_element1);
-		
-		if (class_uses_retain_release_)
-			static_cast<EidosDictionaryRetained *>(p_element1)->Retain();		// unsafe cast to avoid virtual function overhead
-	}
-}
-
-EidosValue_Object_singleton::EidosValue_Object_singleton(EidosObject *p_element1, const EidosClass *p_class, bool p_register_for_patching) : EidosValue_Object(true, p_class, p_register_for_patching), value_(p_element1)
-{
-	// This is a special variant constructor used for EidosValues that are self-pointers and should not be
-	// patched by the address-patching mechanism; see EidosValue_Object::EidosValue_Object() for comments.
-	// This variant should not be used by anybody who does not know exactly what they're doing!
-	
 	// we want to allow nullptr as a momentary placeholder, although in general a value should exist
 	if (p_element1)
 	{

@@ -94,8 +94,6 @@ private:
 private:
 	EidosValue_SP self_value_;									// cached EidosValue object for speed
 	
-	Genome *patch_pointer_;										// used only by Subpopulation::ExecuteMethod_takeMigrants(); see that method
-	
 #ifdef SLIMGUI
 public:
 #else
@@ -103,24 +101,19 @@ private:
 #endif
 	
 	GenomeType genome_type_ = GenomeType::kAutosome;			// SEX ONLY: the type of chromosome represented by this genome
+	int8_t scratch_;											// temporary scratch space that can be used locally in algorithms
 	
 	int32_t mutrun_count_;										// number of runs being used; 0 for a null genome, otherwise >= 1
 	slim_position_t mutrun_length_;								// the length, in base pairs, of each run; the last run may not use its full length
 	MutationRun_SP run_buffer_[SLIM_GENOME_MUTRUN_BUFSIZE];		// an internal buffer used to avoid allocation and memory nonlocality for simple models
 	MutationRun_SP *mutruns_;									// mutation runs; nullptr if a null genome OR an empty genome
 	
-	Subpopulation *subpop_;										// NOT OWNED: the Subpopulation this genome belongs to
 	Individual *individual_;									// NOT OWNED: the Individual this genome belongs to
 	slim_usertag_t tag_value_;									// a user-defined tag value
 	
 	// TREE SEQUENCE RECORDING
 	slim_genomeid_t genome_id_;		// a unique id assigned by SLiM, as a side effect of pedigree recording, that never changes
 	tsk_id_t tsk_node_id_;			// tskit's tsk_id_t for this genome, which is its index in the nodes table kept by the tree-seq code.
-	
-	// ********** BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE **********
-	//
-	// New ivars added above need to be handled in some way by Subpopulation::ExecuteMethod_takeMigrants(), which will
-	// need to transfer the values over to new Genome objects when migration of their parent individual occurs!
 	
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
@@ -133,12 +126,11 @@ public:
 	
 	Genome(const Genome &p_original) = delete;
 	Genome& operator= (const Genome &p_original) = delete;
-	Genome(Subpopulation *p_subpop, int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
+	Genome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
 	~Genome(void);
 	
 	inline __attribute__((always_inline)) slim_genomeid_t GenomeID(void)			{ return genome_id_; }
 	inline __attribute__((always_inline)) void SetGenomeID(slim_genomeid_t p_new_id){ genome_id_ = p_new_id; }	// should basically never be called
-	inline __attribute__((always_inline)) Subpopulation *OwningSubpopulation(void)	{ return subpop_; }
 	inline __attribute__((always_inline)) Individual *OwningIndividual(void)		{ return individual_; }
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG

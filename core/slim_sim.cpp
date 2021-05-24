@@ -4685,16 +4685,16 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 	{
 		Subpopulation &subpop = *iter.second;
 		
-		all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), subpop.genome_junkyard_nonnull.begin(), subpop.genome_junkyard_nonnull.end());
-		all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), subpop.genome_junkyard_null.begin(), subpop.genome_junkyard_null.end());
-		
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.parent_genomes_.begin(), subpop.parent_genomes_.end());
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.child_genomes_.begin(), subpop.child_genomes_.end());
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.nonWF_offspring_genomes_.begin(), subpop.nonWF_offspring_genomes_.end());
-		
-		genome_pool_usage += subpop.genome_pool_->MemoryUsageForAllNodes();
-		individual_pool_usage += subpop.individual_pool_->MemoryUsageForAllNodes();
 	}
+	
+	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_nonnull.begin(), population_.species_genome_junkyard_nonnull.end());
+	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_null.begin(), population_.species_genome_junkyard_null.end());
+	
+	genome_pool_usage += population_.species_genome_pool_.MemoryUsageForAllNodes();
+	individual_pool_usage += population_.species_individual_pool_.MemoryUsageForAllNodes();
 	
 	// Chromosome
 	{
@@ -5503,7 +5503,7 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
-	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_genome->subpop_->subpopulation_id_,
+	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_genome->individual_->subpopulation_->subpopulation_id_,
 		TSK_NULL, metadata, (tsk_size_t)metadata_length);
 	if (offspringTSKID < 0) handle_error("tsk_node_table_add_row", offspringTSKID);
 	
@@ -7494,7 +7494,7 @@ void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
 	p_metadata->age_ = p_individual->age_;
-	p_metadata->subpopulation_id_ = p_individual->subpopulation_.subpopulation_id_;
+	p_metadata->subpopulation_id_ = p_individual->subpopulation_->subpopulation_id_;
 	p_metadata->sex_ = p_individual->sex_;
 	
 	p_metadata->flags_ = 0;

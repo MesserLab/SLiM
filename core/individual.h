@@ -63,8 +63,6 @@ private:
 	
 	EidosValue_SP self_value_;						// cached EidosValue object for speed
 	
-	Individual *patch_pointer_;						// used only by Subpopulation::ExecuteMethod_takeMigrants(); see that method
-	
 	std::string color_;								// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
 	
@@ -103,16 +101,11 @@ public:
 #endif  // SLIM_NONWF_ONLY
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
-	Subpopulation &subpopulation_;		// the subpop to which we refer; we get deleted when our subpop gets destructed
+	Subpopulation *subpopulation_;		// the subpop to which we belong
 	eidos_logical_t migrant_;			// T if the individual has migrated in the current generation, F otherwise
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
 	double spatial_x_, spatial_y_, spatial_z_;
-	
-	// ********** BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE BEWARE **********
-	//
-	// New ivars added above need to be handled in some way by Subpopulation::ExecuteMethod_takeMigrants(), which will
-	// need to transfer the values over to the new Individual object when migration of the original individual occurs!
 	
 	//
 	//	This class should not be copied, in general, but the default copy constructor cannot be entirely
@@ -122,7 +115,7 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation &p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness);
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness);
 	inline virtual ~Individual(void) override { }
 	
 	inline __attribute__((always_inline)) void ClearColor(void) { color_.clear(); }

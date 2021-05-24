@@ -44,7 +44,8 @@
 #endif
 
 
-Population::Population(SLiMSim &p_sim) : sim_(p_sim)
+// the initial capacities for the genome and individual pools here are just guesses at balancing low default memory usage, maximizing locality, and minimization of additional allocs
+Population::Population(SLiMSim &p_sim) : sim_(p_sim), species_genome_pool_(sizeof(Genome), 16384), species_individual_pool_(sizeof(Individual), 8192)
 {
 }
 
@@ -81,6 +82,21 @@ Population::~Population(void)
 	
 	// dispose of any freed subpops
 	PurgeRemovedSubpopulations();
+	
+	// dispose of genomes within our junkyards
+	for (Genome *genome : species_genome_junkyard_nonnull)
+	{
+		genome->~Genome();
+		species_genome_pool_.DisposeChunk(const_cast<Genome *>(genome));
+	}
+	species_genome_junkyard_nonnull.clear();
+	
+	for (Genome *genome : species_genome_junkyard_null)
+	{
+		genome->~Genome();
+		species_genome_pool_.DisposeChunk(const_cast<Genome *>(genome));
+	}
+	species_genome_junkyard_null.clear();
 }
 
 void Population::RemoveAllSubpopulationInfo(void)

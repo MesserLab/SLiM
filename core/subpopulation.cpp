@@ -36,9 +36,6 @@
 #include <utility>
 #include <cmath>
 
-extern std::vector<EidosValue_Object *> gEidosValue_Object_Genome_Registry;		// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
-extern std::vector<EidosValue_Object *> gEidosValue_Object_Individual_Registry;	// this is in Eidos; see Subpopulation::ExecuteMethod_takeMigrants()
-
 
 #pragma mark -
 #pragma mark _SpatialMap
@@ -309,38 +306,6 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 #pragma mark Subpopulation
 #pragma mark -
 
-void Subpopulation::MakeMemoryPools(size_t p_individual_capacity)
-{
-	// We allocate new genomes and individuals out of shared memory pools, in an effort to keep them close
-	// together in memory so as to reap the benefits of locality in memory accesses.  This really does matter;
-	// when I switched from using vector<Genome> to vector<Genome *>, some models got as much as 50% slower,
-	// and adding these object pools gained back almost all of that loss.
-	if (genome_pool_ || individual_pool_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::MakeMemoryPools): (internal error) memory pools already allocated in MakeMemoryPools()." << EidosTerminate();
-	
-	{
-		size_t capacity = lround(pow(2.0, ceil(log2(p_individual_capacity * 2))));	// diploid
-		
-		if (capacity < 1024)
-			capacity = 1024;
-		
-		//std::cout << "sizeof(Genome) == " << sizeof(Genome) << std::endl;
-		
-		genome_pool_ = new EidosObjectPool(sizeof(Genome), capacity);
-	}
-	
-	{
-		size_t capacity = lround(pow(2.0, ceil(log2(p_individual_capacity))));
-		
-		if (capacity < 1024)
-			capacity = 1024;
-		
-		//std::cout << "sizeof(Individual) == " << sizeof(Individual) << std::endl;
-		
-		individual_pool_ = new EidosObjectPool(sizeof(Individual), capacity);
-	}
-}
-
 Genome *Subpopulation::_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
 {
 	// This gets called if a null genome is requested but the null junkyard is empty, or if a non-null genome is requested
@@ -376,7 +341,7 @@ Genome *Subpopulation::_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mu
 		}
 	}
 	
-	return new (genome_pool_->AllocateChunk()) Genome(this, p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
+	return new (genome_pool_.AllocateChunk()) Genome(p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
 }
 
 #ifdef SLIM_WF_ONLY
@@ -519,10 +484,6 @@ void Subpopulation::GenerateChildrenToFitWF()
 	
 	if (new_individual_count > old_individual_count)
 	{
-		// Make sure our memory pools for genomes and individuals are allocated
-		if (!genome_pool_ && !individual_pool_)
-			MakeMemoryPools(new_individual_count * 2);	// room for parents and children
-		
 		// We also have to make space for the pointers to the genomes and individuals
 		child_genomes_.reserve(new_individual_count * 2);
 		child_individuals_.reserve(new_individual_count);
@@ -539,7 +500,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 			// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
 			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
 			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
 			
 			child_genomes_.push_back(genome1);
 			child_genomes_.push_back(genome2);
@@ -559,7 +520,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 			FreeSubpopGenome(genome2);
 			
 			individual->~Individual();
-			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
 		
 		child_genomes_.resize(new_individual_count * 2);
@@ -609,10 +570,6 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) individuals or genomes already present in GenerateParentsToFit()." << EidosTerminate();
 	if ((parent_subpop_size_ == 0) && !p_allow_zero_size)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) subpop size of 0 requested." << EidosTerminate();
-	
-	// Make sure our memory pools for genomes and individuals are allocated
-	if (!genome_pool_ && !individual_pool_)
-		MakeMemoryPools(parent_subpop_size_ * 2);	// room for parents and children
 	
 	// We also have to make space for the pointers to the genomes and individuals
 	parent_genomes_.reserve(parent_subpop_size_ * 2);
@@ -687,7 +644,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			}
 			
 			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -715,7 +672,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 			genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 			
-			Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -773,11 +730,11 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		if (individual->index_ != ind_index)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->index_ and ind_index." << EidosTerminate();
 	
-		if (&(individual->subpopulation_) != this)
+		if (individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->subpopulation_ and subpopulation." << EidosTerminate();
 		
-		if ((genome1->subpop_ != this) || (genome2->subpop_ != this))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between genome->subpop_ and subpopulation." << EidosTerminate();
+		if ((genome1->individual_ != individual) || (genome2->individual_ != individual))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between genome->individual_ and individual." << EidosTerminate();
 		
 		if (!genome1->IsNull() && ((genome1->mutrun_count_ != mutrun_count) || (genome1->mutrun_length_ != mutrun_length)))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
@@ -901,11 +858,11 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (individual->index_ != ind_index)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->index_ and ind_index." << EidosTerminate();
 			
-			if (&(individual->subpopulation_) != this)
+			if (individual->subpopulation_ != this)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->subpopulation_ and subpopulation." << EidosTerminate();
 			
-			if ((genome1->subpop_ != this) || (genome2->subpop_ != this))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between genome->subpop_ and subpopulation." << EidosTerminate();
+			if ((genome1->individual_ != individual) || (genome2->individual_ != individual))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between genome->individual_ and individual." << EidosTerminate();
 			
 			if (!genome1->IsNull() && ((genome1->mutrun_count_ != mutrun_count) || (genome1->mutrun_length_ != mutrun_length)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
@@ -1009,7 +966,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
-	population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size)
+	population_(p_population), subpopulation_id_(p_subpopulation_id), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
+	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size)
 #ifdef SLIM_WF_ONLY
 	, child_subpop_size_(p_subpop_size)
 #endif	// SLIM_WF_ONLY
@@ -1058,7 +1016,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
 							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
-	population_(p_population), subpopulation_id_(p_subpopulation_id), parent_subpop_size_(p_subpop_size),
+	population_(p_population), subpopulation_id_(p_subpopulation_id), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
+	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size),
 #ifdef SLIM_WF_ONLY
 	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
 #endif	// SLIM_WF_ONLY
@@ -1159,13 +1118,13 @@ Subpopulation::~Subpopulation(void)
 		for (Genome *genome : parent_genomes_)
 		{
 			genome->~Genome();
-			genome_pool_->DisposeChunk(const_cast<Genome *>(genome));
+			genome_pool_.DisposeChunk(const_cast<Genome *>(genome));
 		}
 		
 		for (Individual *individual : parent_individuals_)
 		{
 			individual->~Individual();
-			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
 	}
 	
@@ -1175,31 +1134,16 @@ Subpopulation::~Subpopulation(void)
 		for (Genome *genome : child_genomes_)
 		{
 			genome->~Genome();
-			genome_pool_->DisposeChunk(const_cast<Genome *>(genome));
+			genome_pool_.DisposeChunk(const_cast<Genome *>(genome));
 		}
 		
 		for (Individual *individual : child_individuals_)
 		{
 			individual->~Individual();
-			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
 	}
 #endif	// SLIM_WF_ONLY
-	
-	for (Genome *genome : genome_junkyard_nonnull)
-	{
-		genome->~Genome();
-		genome_pool_->DisposeChunk(const_cast<Genome *>(genome));
-	}
-	
-	for (Genome *genome : genome_junkyard_null)
-	{
-		genome->~Genome();
-		genome_pool_->DisposeChunk(const_cast<Genome *>(genome));
-	}
-	
-	delete genome_pool_;
-	delete individual_pool_;
 	
 	for (const auto &map_pair : spatial_maps_)
 	{
@@ -3481,7 +3425,7 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 			FreeSubpopGenome(genome2);
 			
 			individual->~Individual();
-			individual_pool_->DisposeChunk(const_cast<Individual *>(individual));
+			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 			
 			individuals_died = true;
 		}
@@ -4098,7 +4042,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	EidosValue *parent_value = p_arguments[0].get();
 	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex(0, nullptr);
 	IndividualSex parent_sex = parent->sex_;
-	Subpopulation &parent_subpop = parent->subpopulation_;
+	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
 	// Check for some other illegal setups
 	if (parent->index_ == -1)
@@ -4112,7 +4056,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
@@ -4183,7 +4127,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	EidosValue *parent1_value = p_arguments[0].get();
 	Individual *parent1 = (Individual *)parent1_value->ObjectElementAtIndex(0, nullptr);
 	IndividualSex parent1_sex = parent1->sex_;
-	Subpopulation &parent1_subpop = parent1->subpopulation_;
+	Subpopulation &parent1_subpop = *parent1->subpopulation_;
 	
 	if ((parent1_sex != IndividualSex::kFemale) && (parent1_sex != IndividualSex::kHermaphrodite))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): parent1 must be female in sexual models (or hermaphroditic in non-sexual models)." << EidosTerminate();
@@ -4192,7 +4136,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	EidosValue *parent2_value = p_arguments[1].get();
 	Individual *parent2 = (Individual *)parent2_value->ObjectElementAtIndex(0, nullptr);
 	IndividualSex parent2_sex = parent2->sex_;
-	Subpopulation &parent2_subpop = parent2->subpopulation_;
+	Subpopulation &parent2_subpop = *parent2->subpopulation_;
 	
 	if ((parent2_sex != IndividualSex::kMale) && (parent2_sex != IndividualSex::kHermaphrodite))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): parent2 must be male in sexual models (or hermaphroditic in non-sexual models)." << EidosTerminate();
@@ -4213,7 +4157,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
@@ -4304,7 +4248,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	
 	if (pedigrees_enabled)
 		individual->TrackParentageWithoutParents();
@@ -4497,7 +4441,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
@@ -4622,10 +4566,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
 			// we tally things, SLiMgui display purposes, as if it were generated in the parental subpops and then moved
 			// this is pretty gross, but runs only in SLiMgui, so whatever :->
-			Subpopulation *strand1_subpop = (strand1_parent ? &strand1_parent->subpopulation_ : nullptr);
-			Subpopulation *strand2_subpop = (strand2_parent ? &strand2_parent->subpopulation_ : nullptr);
-			Subpopulation *strand3_subpop = (strand3_parent ? &strand3_parent->subpopulation_ : nullptr);
-			Subpopulation *strand4_subpop = (strand4_parent ? &strand4_parent->subpopulation_ : nullptr);
+			Subpopulation *strand1_subpop = (strand1_parent ? strand1_parent->subpopulation_ : nullptr);
+			Subpopulation *strand2_subpop = (strand2_parent ? strand2_parent->subpopulation_ : nullptr);
+			Subpopulation *strand3_subpop = (strand3_parent ? strand3_parent->subpopulation_ : nullptr);
+			Subpopulation *strand4_subpop = (strand4_parent ? strand4_parent->subpopulation_ : nullptr);
 			bool both_offspring_strands_inherited = (strand1_subpop && strand3_subpop);
 			double strand1_weight = 0.0, strand2_weight = 0.0, strand3_weight = 0.0, strand4_weight = 0.0;
 			
@@ -4686,10 +4630,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
 		// we tally things, SLiMgui display purposes, as if it were generated in the parental subpops and then moved
 		// this is pretty gross, but runs only in SLiMgui, so whatever :->
-		Subpopulation *strand1_subpop = (strand1_parent ? &strand1_parent->subpopulation_ : nullptr);
-		Subpopulation *strand2_subpop = (strand2_parent ? &strand2_parent->subpopulation_ : nullptr);
-		Subpopulation *strand3_subpop = (strand3_parent ? &strand3_parent->subpopulation_ : nullptr);
-		Subpopulation *strand4_subpop = (strand4_parent ? &strand4_parent->subpopulation_ : nullptr);
+		Subpopulation *strand1_subpop = (strand1_parent ? strand1_parent->subpopulation_ : nullptr);
+		Subpopulation *strand2_subpop = (strand2_parent ? strand2_parent->subpopulation_ : nullptr);
+		Subpopulation *strand3_subpop = (strand3_parent ? strand3_parent->subpopulation_ : nullptr);
+		Subpopulation *strand4_subpop = (strand4_parent ? strand4_parent->subpopulation_ : nullptr);
 		bool both_offspring_strands_inherited = (strand1_subpop && strand3_subpop);
 		double strand1_weight = 0.0, strand2_weight = 0.0, strand3_weight = 0.0, strand4_weight = 0.0;
 		
@@ -4765,7 +4709,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	EidosValue *parent_value = p_arguments[0].get();
 	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex(0, nullptr);
 	IndividualSex parent_sex = parent->sex_;
-	Subpopulation &parent_subpop = parent->subpopulation_;
+	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
 	if (parent_sex != IndividualSex::kHermaphrodite)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): parent must be hermaphroditic in addSelfed()." << EidosTerminate();
@@ -4782,7 +4726,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
-	Individual *individual = new (individual_pool_->AllocateChunk()) Individual(*this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
@@ -4850,43 +4794,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	
 	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
 	int migrant_count = migrants_value->Count();
+	int moved_count = 0;
 	
 	if (migrant_count == 0)
 		return gStaticEidosValueVOID;
 	
-	// So, we want to loop through migrants, add them all to the focal subpop (changing their subpop ivar and their index), and remove them from their
-	// old subpop.  This is tricky because Genome and Individual are allocated out of subpop-specific pools; we can't just use the same objects in a
-	// new subpop, because the objects wouldn't know how to free themselves, their owning subpop might cease to exist out from under them, etc.  So
-	// instead, we have to play a shell game: make a new individual and genomes in the focal subpop, use swap() to move the internal information from
-	// old to new, dispose of the old objects, add the new objects to the focal subpop.  Unfortunately, it's even a bit more complex than that, because
-	// this is all done mid-script, so the user can have references to the original individual/genomes.  We want the switcheroo to be invisible to the
-	// user; so we will actually go into the Eidos symbol tables and patch references to the old individual/genomes into references to the new ones.
-	// We do that patching relatively quickly by storing the new (patch) pointer inside each object that needs patching; that adds 8 bytes to the size
-	// of Individual and Genome just to support this method, which sucks, but without that the patching algorithm would be O(N*M) in the number of
-	// migrants and the number of Genome/Individual elements in EidosValue variables, which would be really painful for large models; now it is O(N+M).
-	
-	// I think this might possibly be the most disgusting code I have ever written.  Sorry.  This is the price we pay for allocating Genomes and
-	// Individuals out of subpop-specific pools; if it weren't for that, this method would be trivial and beautiful.  That optimization is worth it,
-	// though – memory locality is king.
-	std::vector<Genome *> old_genome_ptrs, new_genome_ptrs;
-	std::vector<Individual *> old_individual_ptrs, new_individual_ptrs;
-	
-	// First, clear our genome and individual caches in all subpopulations; we don't want to have to do the work of patching them below, and any
-	// subpops involved in the migration will be invalidated anyway so this probably isn't even that much overkill in most models.  Note that the
-	// child genomes/individuals caches don't need to be thrown way, because they aren't used in nonWF models and this is a nonWF-only method.
-	for (auto subpop_pair : population_.subpops_)
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		
-		subpop->cached_parent_genomes_value_.reset();
-		subpop->cached_parent_individuals_value_.reset();
-	}
-	
-	// Then loop over the migrants and move them one by one
+	// Loop over the migrants and move them one by one
 	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
 	{
 		Individual *migrant = (Individual *)migrants_value->ObjectElementAtIndex(migrant_index, nullptr);
-		Subpopulation *source_subpop = &migrant->subpopulation_;
+		Subpopulation *source_subpop = migrant->subpopulation_;
 		
 		if (source_subpop != this)
 		{
@@ -4897,8 +4814,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			
 			slim_popsize_t source_subpop_size = source_subpop->parent_subpop_size_;
 			slim_popsize_t source_subpop_index = migrant->index_;
-			Genome *genome1 = migrant->genome1_;
-			Genome *genome2 = migrant->genome2_;
 			
 			if (source_subpop_index < 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not move an individual that is not visible in a subpopulation.  This error may also occur if you try to migrate the same individual more than once in a single takeMigrants() call (i.e., if the migrants vector is not uniqued)." << EidosTerminate();
@@ -4956,82 +4871,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				source_subpop->parent_genomes_.resize(source_subpop_size * 2);
 			}
 			
-			// mark the migrant as invisible in its original subpopulation; this prevents us from trying to migrate the same individual twice
-			migrant->index_ = -1;
-			
-			// make the transmogrified individual and genomes, from our own pools
-			// passing p_is_null==true to NewSubpopGenome() is correct here; we transfer mutruns from the old genomes, so
-			// we get a new null genome from the pool, and then after swapping a null genome will be returned to the pool
-			Genome *genome1_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
-			Genome *genome2_transmogrified = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
-			Individual *migrant_transmogrified = new (individual_pool_->AllocateChunk()) Individual(*this, -1, -1, genome1_transmogrified, genome2_transmogrified, IndividualSex::kHermaphrodite, -1, NAN);
-			
-			// swap over the original individual and genome internals; skip self_value_ and subpop_ and genome1_ and genome2_
-			// actually, for most values we can just copy since we don't care what state is left in the original object
-			genome1_transmogrified->genome_type_ = genome1->genome_type_;
-			std::swap(genome1->mutrun_count_, genome1_transmogrified->mutrun_count_);
-			std::swap(genome1->mutrun_length_, genome1_transmogrified->mutrun_length_);
-			if (genome1->mutruns_ == genome1->run_buffer_)
-			{
-				// if the original genome points into its internal buffer, swap internal buffer contents and point into our internal buffer
-				std::swap(genome1->run_buffer_, genome1_transmogrified->run_buffer_);
-				genome1_transmogrified->mutruns_ = genome1_transmogrified->run_buffer_;
-			}
-			else
-			{
-				// if the original genome points to an external buffer, ignore the internal buffer and just swap external buffers
-				std::swap(genome1->mutruns_, genome1_transmogrified->mutruns_);
-			}
-			genome1->mutruns_ = nullptr;
-			genome1_transmogrified->tag_value_ = genome1->tag_value_;
-			genome1_transmogrified->genome_id_ = genome1->genome_id_;
-			genome1_transmogrified->tsk_node_id_ = genome1->tsk_node_id_;
-			
-			genome2_transmogrified->genome_type_ = genome2->genome_type_;
-			std::swap(genome2->mutrun_count_, genome2_transmogrified->mutrun_count_);
-			std::swap(genome2->mutrun_length_, genome2_transmogrified->mutrun_length_);
-			if (genome2->mutruns_ == genome2->run_buffer_)
-			{
-				// if the original genome points into its internal buffer, swap internal buffer contents and point into our internal buffer
-				std::swap(genome2->run_buffer_, genome2_transmogrified->run_buffer_);
-				genome2_transmogrified->mutruns_ = genome2_transmogrified->run_buffer_;
-			}
-			else
-			{
-				// if the original genome points to an external buffer, ignore the internal buffer and just swap external buffers
-				std::swap(genome2->mutruns_, genome2_transmogrified->mutruns_);
-			}
-			genome2->mutruns_ = nullptr;
-			genome2_transmogrified->tag_value_ = genome2->tag_value_;
-			genome2_transmogrified->genome_id_ = genome2->genome_id_;
-			genome2_transmogrified->tsk_node_id_ = genome2->tsk_node_id_;
-			
-			migrant_transmogrified->color_ = migrant->color_;
-			migrant_transmogrified->color_red_ = migrant->color_red_;
-			migrant_transmogrified->color_green_ = migrant->color_green_;
-			migrant_transmogrified->color_blue_ = migrant->color_blue_;
-			migrant_transmogrified->pedigree_id_ = migrant->pedigree_id_;
-			migrant_transmogrified->pedigree_p1_ = migrant->pedigree_p1_;
-			migrant_transmogrified->pedigree_p2_ = migrant->pedigree_p2_;
-			migrant_transmogrified->pedigree_g1_ = migrant->pedigree_g1_;
-			migrant_transmogrified->pedigree_g2_ = migrant->pedigree_g2_;
-			migrant_transmogrified->pedigree_g3_ = migrant->pedigree_g3_;
-			migrant_transmogrified->pedigree_g4_ = migrant->pedigree_g4_;
-			migrant_transmogrified->reproductive_output_ = migrant->reproductive_output_;
-			migrant_transmogrified->tag_value_ = migrant->tag_value_;
-			migrant_transmogrified->tagF_value_ = migrant->tagF_value_;
-			migrant_transmogrified->fitness_scaling_ = migrant->fitness_scaling_;
-			migrant_transmogrified->cached_fitness_UNSAFE_ = migrant->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe
-			migrant_transmogrified->sex_ = migrant->sex_;
-#ifdef SLIM_NONWF_ONLY
-			migrant_transmogrified->age_ = migrant->age_;
-#endif  // SLIM_NONWF_ONLY
-			migrant_transmogrified->spatial_x_ = migrant->spatial_x_;
-			migrant_transmogrified->spatial_y_ = migrant->spatial_y_;
-			migrant_transmogrified->spatial_z_ = migrant->spatial_z_;
-			
-			// insert the transmogrified instances into ourselves
-			if ((migrant_transmogrified->sex_ == IndividualSex::kFemale) && (parent_first_male_index_ < parent_subpop_size_))
+			// insert the migrant into ourselves
+			if ((migrant->sex_ == IndividualSex::kFemale) && (parent_first_male_index_ < parent_subpop_size_))
 			{
 				// room has to be made for females by shifting the first male and changing the first male index
 				Individual *backfill = parent_individuals_[parent_first_male_index_];
@@ -5041,10 +4882,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				parent_genomes_.push_back(parent_genomes_[parent_first_male_index_ * 2 + 1]);
 				backfill->index_ = parent_subpop_size_;
 				
-				parent_individuals_[parent_first_male_index_] = migrant_transmogrified;
-				parent_genomes_[parent_first_male_index_ * 2] = genome1_transmogrified;
-				parent_genomes_[parent_first_male_index_ * 2 + 1] = genome2_transmogrified;
-				migrant_transmogrified->index_ = parent_first_male_index_;
+				parent_individuals_[parent_first_male_index_] = migrant;
+				parent_genomes_[parent_first_male_index_ * 2] = migrant->genome1_;
+				parent_genomes_[parent_first_male_index_ * 2 + 1] = migrant->genome2_;
+				migrant->subpopulation_ = this;
+				migrant->index_ = parent_first_male_index_;
 				
 				parent_subpop_size_++;
 				parent_first_male_index_++;
@@ -5052,173 +4894,36 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			else
 			{
 				// males and hermaphrodites can just be added to the end; so can females, if no males are present
-				parent_individuals_.push_back(migrant_transmogrified);
-				parent_genomes_.push_back(genome1_transmogrified);
-				parent_genomes_.push_back(genome2_transmogrified);
-				migrant_transmogrified->index_ = parent_subpop_size_;
+				parent_individuals_.push_back(migrant);
+				parent_genomes_.push_back(migrant->genome1_);
+				parent_genomes_.push_back(migrant->genome2_);
+				migrant->subpopulation_ = this;
+				migrant->index_ = parent_subpop_size_;
 				
 				parent_subpop_size_++;
-				if (migrant_transmogrified->sex_ == IndividualSex::kFemale)
+				if (migrant->sex_ == IndividualSex::kFemale)
 					parent_first_male_index_++;
 			}
 			
 			// set the migrant flag of the migrated individual; note this is not set if the individual was already in the destination subpop
-			migrant_transmogrified->migrant_ = true;
+			migrant->migrant_ = true;
 			
-			// track all the old and new pointers
-			old_genome_ptrs.push_back(genome1);
-			old_genome_ptrs.push_back(genome2);
-			old_individual_ptrs.push_back(migrant);
-			
-			new_genome_ptrs.push_back(genome1_transmogrified);
-			new_genome_ptrs.push_back(genome2_transmogrified);
-			new_individual_ptrs.push_back(migrant_transmogrified);
+			moved_count++;
 		}
 	}
 	
-	// Get rid of the EidosValue for the migrants, so we don't waste time below fixing it
-	EidosValue_SP *migrants_arg_non_const = const_cast<EidosValue_SP *>(p_arguments.data() + 0);
-	
-	(*migrants_arg_non_const).reset();		// very very naughty; strictly, undefined behavior, but should be fine
-	migrants_value = nullptr;
-	
-	migrant_count = (int)old_individual_ptrs.size();		// the number that actually migrated
-	
-	// Patch all references to the transmogrified genomes and individuals.  We do this by (1) zeroing out the patch_pointer_
-	// ivar in all genomes and individuals that are accessible through EidosValues, (2) setting patch_pointer_ in all of
-	// the genomes and individuals that need to be patched, and then (3) patching the pointers in all EidosValues.
-	if (migrant_count)
+	if (moved_count)
 	{
-		// Zero out patch_pointer_ in all Genome objects referenced by EidosValues
-		for (EidosValue_Object *genome_value : gEidosValue_Object_Genome_Registry)
+		// First, clear our genome and individual caches in all subpopulations; any subpops involved in
+		// the migration would be invalidated anyway so this probably isn't even that much overkill in
+		// most models.  Note that the child genomes/individuals caches don't need to be thrown away,
+		// because they aren't used in nonWF models and this is a nonWF-only method.
+		for (auto subpop_pair : population_.subpops_)
 		{
-			if (genome_value->IsSingleton())
-			{
-				EidosValue_Object_singleton *genome_singleton = (EidosValue_Object_singleton *)genome_value;
-				Genome *genome = (Genome *)genome_singleton->ObjectElementValue();
-				
-				genome->patch_pointer_ = nullptr;
-			}
-			else
-			{
-				EidosValue_Object_vector *genome_vector = (EidosValue_Object_vector *)genome_value;
-				
-				EidosObject * const *vec_data = genome_vector->data();
-				size_t vec_size = genome_vector->size();
-				
-				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
-				{
-					Genome *genome = ((Genome *)vec_data[vec_index]);
-					
-					genome->patch_pointer_ = nullptr;
-				}
-			}
-		}
-		
-		// Zero out patch_pointer_ in all Individual objects referenced by EidosValues
-		for (EidosValue_Object *individual_value : gEidosValue_Object_Individual_Registry)
-		{
-			if (individual_value->IsSingleton())
-			{
-				EidosValue_Object_singleton *individual_singleton = (EidosValue_Object_singleton *)individual_value;
-				Individual *individual = (Individual *)individual_singleton->ObjectElementValue();
-				
-				individual->patch_pointer_ = nullptr;
-			}
-			else
-			{
-				EidosValue_Object_vector *individual_vector = (EidosValue_Object_vector *)individual_value;
-				
-				EidosObject * const *vec_data = individual_vector->data();
-				size_t vec_size = individual_vector->size();
-				
-				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
-				{
-					Individual *individual = ((Individual *)vec_data[vec_index]);
-					
-					individual->patch_pointer_ = nullptr;
-				}
-			}
-		}
-		
-		// If there are any EidosValues of Genome class, set up patch_pointer_ in all genomes that need patching
-		if (gEidosValue_Object_Genome_Registry.size())
-		{
-			for (int migrant_index = 0; migrant_index < migrant_count * 2; ++migrant_index)
-			{
-				Genome *old_genome = old_genome_ptrs[migrant_index];
-				Genome *new_genome = new_genome_ptrs[migrant_index];
-				
-				old_genome->patch_pointer_ = new_genome;
-			}
-		}
-		
-		// If there are any EidosValues of Individual class, set up patch_pointer_ in all individuals that need patching
-		if (gEidosValue_Object_Individual_Registry.size())
-		{
-			for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
-			{
-				Individual *old_individual = old_individual_ptrs[migrant_index];
-				Individual *new_individual = new_individual_ptrs[migrant_index];
-				
-				old_individual->patch_pointer_ = new_individual;
-			}
-		}
-		
-		// Use patch_pointer_ to patch all Genome objects referenced by EidosValues
-		for (EidosValue_Object *genome_value : gEidosValue_Object_Genome_Registry)
-		{
-			if (genome_value->IsSingleton())
-			{
-				EidosValue_Object_singleton *genome_singleton = (EidosValue_Object_singleton *)genome_value;
-				Genome *genome = (Genome *)genome_singleton->ObjectElementValue();
-				
-				if (genome->patch_pointer_)
-					genome_singleton->ObjectElementValue_Mutable() = genome->patch_pointer_;
-			}
-			else
-			{
-				EidosValue_Object_vector *genome_vector = (EidosValue_Object_vector *)genome_value;
-				
-				EidosObject **vec_data = genome_vector->data();
-				size_t vec_size = genome_vector->size();
-				
-				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
-				{
-					Genome *genome = ((Genome *)vec_data[vec_index]);
-					
-					if (genome->patch_pointer_)
-						vec_data[vec_index] = genome->patch_pointer_;
-				}
-			}
-		}
-		
-		// Use patch_pointer_ to patch all Individual objects referenced by EidosValues
-		for (EidosValue_Object *individual_value : gEidosValue_Object_Individual_Registry)
-		{
-			if (individual_value->IsSingleton())
-			{
-				EidosValue_Object_singleton *individual_singleton = (EidosValue_Object_singleton *)individual_value;
-				Individual *individual = (Individual *)individual_singleton->ObjectElementValue();
-				
-				if (individual->patch_pointer_)
-					individual_singleton->ObjectElementValue_Mutable() = individual->patch_pointer_;
-			}
-			else
-			{
-				EidosValue_Object_vector *individual_vector = (EidosValue_Object_vector *)individual_value;
-				
-				EidosObject **vec_data = individual_vector->data();
-				size_t vec_size = individual_vector->size();
-				
-				for (size_t vec_index = 0; vec_index < vec_size; ++vec_index)
-				{
-					Individual *individual = ((Individual *)vec_data[vec_index]);
-					
-					if (individual->patch_pointer_)
-						vec_data[vec_index] = individual->patch_pointer_;
-				}
-			}
+			Subpopulation *subpop = subpop_pair.second;
+			
+			subpop->cached_parent_genomes_value_.reset();
+			subpop->cached_parent_individuals_value_.reset();
 		}
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
@@ -5227,19 +4932,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		
 		for (auto int_type : interactionTypes)
 			int_type.second->Invalidate();
-	}
-	
-	// Finally, dispose of the old individuals and genomes, in their respective subpops; there should be no references to
-	// them any more, since we have removed them from their subpopulation and have patched out all EidosValue references.
-	for (Genome *genome : old_genome_ptrs)
-		(genome->subpop_)->FreeSubpopGenome(genome);
-	
-	for (Individual *individual : old_individual_ptrs)
-	{
-		EidosObjectPool *pool = (individual->subpopulation_).individual_pool_;
-		
-		individual->~Individual();
-		pool->DisposeChunk(const_cast<Individual *>(individual));
 	}
 	
 	return gStaticEidosValueVOID;
@@ -6087,7 +5779,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	
 	if (excluded_individual)
 	{
-		if (&excluded_individual->subpopulation_ != this)
+		if (excluded_individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): the excluded individual must belong to the subpopulation being sampled." << EidosTerminate(nullptr);
 		if (excluded_individual->index_ == -1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): the excluded individual must be a valid, visible individual (not a newly generated child)." << EidosTerminate(nullptr);
@@ -6363,7 +6055,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	
 	if (excluded_individual)
 	{
-		if (&excluded_individual->subpopulation_ != this)
+		if (excluded_individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must belong to the subpopulation being subset." << EidosTerminate(nullptr);
 		if (excluded_individual->index_ == -1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must be a valid, visible individual (not a newly generated child)." << EidosTerminate(nullptr);
