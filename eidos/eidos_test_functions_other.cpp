@@ -819,6 +819,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 	// source()
 	if (Eidos_SlashTmpExists())
 		EidosAssertScriptSuccess_I("path = '" + temp_path + "/EidosSourceTest.txt'; writeFile(path, 'x=9*9;'); source(path); x;", 81);
+	EidosAssertScriptRaise("source('/this/path/presumably/does/not/exist/foo_bar_baz_12345.eidos');", 0, "file not found at path");
 	
 	// stop()
 	EidosAssertScriptRaise("stop();", 0, "stop() called");
