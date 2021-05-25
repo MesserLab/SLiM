@@ -95,6 +95,8 @@ std::string EidosStringFormat(const std::string& format, Args ... args)
 
 // Source code for built-in functions that are implemented in Eidos.  These strings are globals mostly so the
 // formatting of the code looks nice in Xcode; they are used only by EidosInterpreter::BuiltInFunctions().
+
+// - (void)source(string$ filePath, [logical$ chdir = F])
 const char *gEidosSourceCode_source =
 R"({
 	warn = suppressWarnings(T);
@@ -102,8 +104,20 @@ R"({
 	suppressWarnings(warn);
 	if (isNULL(lines))
 		stop("source(): file not found at path '" + filePath + "'");
+	
+	_changedwd = (chdir & strcontains(filePath, "/"));
+	if (_changedwd) {
+		components = strsplit(filePath, "/");
+		pathComponents = components[seqLen(length(components) - 1)];
+		path = paste(pathComponents, sep="/");
+		_oldwd = setwd(path);
+		_changedwd = T;
+	}
+	
 	_executeLambda_OUTER(paste(lines, sep='\n'));
-	return;
+	
+	if (_changedwd)
+		setwd(_oldwd);
 })";
 
 
@@ -375,7 +389,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//
 		//	built-in user-defined functions
 		//
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_source,	gEidosSourceCode_source,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_source,	gEidosSourceCode_source,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath)->AddLogical_OS("chdir", gStaticEidosValue_LogicalF));
 		
 		
 		// ************************************************************************************

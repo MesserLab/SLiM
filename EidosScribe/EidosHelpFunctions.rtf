@@ -5396,24 +5396,34 @@ Prior to Eidos 1.6 (SLiM 2.6),
 
 \f1\fs18 \cf0 (void)source(string$
 \f2 \'a0
-\f1 filePath)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f1 filePath\cf2 , [logical$\'a0chdir\'a0=\'a0F]\cf0 )\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf0 Executes the contents of an Eidos source file
+\f0\b\fs20 \cf2 Executes the contents of an Eidos source file
 \f3\b0  found at the filesystem path 
 \f1\fs18 filePath
-\f2\fs20 .
-\f3   This is essentially shorthand for calling 
+\f3\fs20 .  This is essentially shorthand for calling 
 \f1\fs18 readFile()
 \f3\fs20 , joining the read lines with newlines to form a single string using 
 \f1\fs18 paste()
 \f3\fs20 , and then passing that string to 
 \f1\fs18 executeLambda()
-\f2\fs20 .
-\f3   The source file must consist of complete Eidos statements.  Regardless of what the last executed source line evaluates to, 
+\f3\fs20 .  The source file must consist of complete Eidos statements.  Regardless of what the last executed source line evaluates to, 
 \f1\fs18 source()
-\f3\fs20  has no return value.
-\f2 \
+\f3\fs20  has no return value.  If no file exists at 
+\f1\fs18 filePath
+\f3\fs20 , an error will be raised.\
+The 
+\f1\fs18 chdir
+\f3\fs20  parameter controls the current working directory in effect while the source file is executed.  If 
+\f1\fs18 chdir
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20  (the default), the current working directory will remain unchanged.  If 
+\f1\fs18 chdir
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the current working directory will be temporarily changed to the filesystem path at which the source file is located, and restored after execution of the source file is complete.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)stop([Ns$

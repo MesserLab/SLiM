@@ -818,7 +818,12 @@ void _RunFunctionMiscTests(std::string temp_path)
 	
 	// source()
 	if (Eidos_SlashTmpExists())
-		EidosAssertScriptSuccess_I("path = '" + temp_path + "/EidosSourceTest.txt'; writeFile(path, 'x=9*9;'); source(path); x;", 81);
+	{
+		EidosAssertScriptSuccess_I("path = '" + temp_path + "'; file = path + '/EidosSourceTest.txt'; writeFile(file, 'x=9*9;'); source(file); x;", 81);														// finds the file and executes it correctly
+		EidosAssertScriptSuccess_L("path = '" + temp_path + "'; file = path + '/EidosSourceTest2.txt'; writeFile(file, 'x = getwd();'); d = getwd(); source(file, chdir=F); x == d;", true);					// doesn't change the wd with chdir=F
+		EidosAssertScriptSuccess_L("path = '" + temp_path + "'; file = path + '/EidosSourceTest3.txt'; writeFile(file, 'x = getwd();'); d = getwd(); source(file, chdir=T); d == getwd();", true);				// any change is temporary with chdir=T
+		EidosAssertScriptSuccess_L("path = '" + temp_path + "'; file = path + '/EidosSourceTest3.txt'; writeFile(file, 'x = getwd();'); source(file, chdir=T); setwd(path); d = getwd(); x == d;", true);		// change is correct with chdir=T; might not match temp_path due to symlinks
+	}
 	EidosAssertScriptRaise("source('/this/path/presumably/does/not/exist/foo_bar_baz_12345.eidos');", 0, "file not found at path");
 	
 	// stop()
