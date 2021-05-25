@@ -24,6 +24,7 @@ development head:
 	add survival() callbacks governing mortality in nonWF models
 	modify Eidos grammar for function declarations slightly, to allow a unary minus preceding a numeric default argument value
 	switch from Subpopulation-level object pools for genome/individual to Population-level object pools; get rid of a lot of ugly code as a result, particularly in takeMigrants()
+	minor policy change: removeMutations() will no longer warn when called from a late() event in nonWF, or an early() event in WF, *if* it was asked to create a substitution
 
 
 version 3.6 (build 2784; Eidos version 2.6):

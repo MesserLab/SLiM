@@ -4057,7 +4057,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	}
 	
 	// issue a warning if removeMutations() was called at a questionable time, but only if the mutations removed were non-neutral
-	if (any_nonneutral_removed && !sim.warned_early_mutation_remove_)
+	// BCH: added the !create_substitutions check; if a substitution is being created, then it can be assumed that the mutation is fixed
+	// in the model and is thus deemed by the model to make no difference to fitness outcomes (mutations that matter to fitness outcomes
+	// should not be removed when they fix anyway).  This is maybe not absolutely 100% clear, but models that handle their own fixation,
+	// like haploid models and haplodiploid models, should not have to see/suppress this warning.
+	if (any_nonneutral_removed && !create_substitutions && !sim.warned_early_mutation_remove_)
 	{
 		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
 		{
