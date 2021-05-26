@@ -193,6 +193,12 @@ public:
 	// individuals here are kept in the order in which they were generated, not in order by sex or anything else.
 	std::vector<Genome *> nonWF_offspring_genomes_;
 	std::vector<Individual *> nonWF_offspring_individuals_;
+	
+	// In nonWF models, survival() callbacks can move individuals to new subpopulations.  These individuals are kept in a
+	// temporary holding pen, similar to how newly generated individuals are kept.  They are moved after all survival()
+	// callbacks have finished.  The difference, compared to reproduction, is that the individuals in this holding pen
+	// already belong to a subpopulation; they are not removed until they get moved to their new destination.
+	std::vector<Individual *> nonWF_survival_moved_individuals_;
 #endif  // SLIM_NONWF_ONLY
 	
 	// the lifetime reproductive output of all individuals that died in the last mortality event; cleared each generation

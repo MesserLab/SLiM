@@ -3117,6 +3117,7 @@ void Subpopulation::ReproduceSubpopulation(void)
 #ifdef SLIM_NONWF_ONLY
 void Subpopulation::MergeReproductionOffspring(void)
 {
+	// NOTE: this method is called by Population::ResolveSurvivalPhaseMovement() as well as by reproduction, since the logic is identical!
 	int new_count = (int)nonWF_offspring_individuals_.size();
 	
 	if (sex_enabled_)
@@ -3213,6 +3214,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 #endif
 	
 	SLiMSim &sim = population_.sim_;
+	Subpopulation *move_destination = nullptr;
 	
 	for (SLiMEidosBlock *survival_callback : p_survival_callbacks)
 	{
@@ -3300,15 +3302,19 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 						{
 							// T or F means change the existing decision to that value
 							p_surviving = result->LogicalAtIndex(0, nullptr);
+							move_destination = nullptr;		// cancel a previously made move decision; T/F says "do not move"
 						}
 						else if ((result_type == EidosValueType::kValueObject) &&
 								 (result->Count() == 1) &&
-								 (((EidosValue_Object *)result)->Class() == gSLiM_Individual_Class))
+								 (((EidosValue_Object *)result)->Class() == gSLiM_Subpopulation_Class))
 						{
 							// a Subpopulation object means the individual should move to that subpop (and live); this is done in a post-pass
+							// moving to one's current subpopulation is not-moving; it is equivalent to returning T (i.e., forces survival)
 							p_surviving = true;
 							
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplySurvivalCallbacks): (internal error) moving individuals with survival() callbacks is not yet implemented." << EidosTerminate(survival_callback->identifier_token_);
+							Subpopulation *destination = (Subpopulation *)result->ObjectElementAtIndex(0, survival_callback->identifier_token_);
+							if (destination != this)
+								move_destination = destination;
 						}
 						else
 						{
@@ -3322,6 +3328,13 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 				}
 			}
 		}
+	}
+	
+	if (move_destination)
+	{
+		// if the callbacks used settled upon a decision of moving the individual, note that now; we do this in a delayed fashion
+		// so that if there is more than one survival() callback active, we register only the final verdict after all callbacks
+		move_destination->nonWF_survival_moved_individuals_.push_back(p_individual);
 	}
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)

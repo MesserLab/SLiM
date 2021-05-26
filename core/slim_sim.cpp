@@ -3824,7 +3824,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 1: Generate offspring: call reproduce() callbacks
+	// Stage 1: Generate offspring: call reproduction() callbacks
 	//
 	{
 		// increment the tree-seq generation at the start of reproduction; note that in first() events it is one less than generation_!
@@ -4108,6 +4108,21 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 				// Handle survival, using the callbacks
 				subpop->ViabilitySelection(subpop_survival_callbacks);
 			}
+			
+			// Callbacks could have requested that individuals move rather than dying; check for that
+			bool any_moved = false;
+			
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+			{
+				if ((subpop_pair.second)->nonWF_survival_moved_individuals_.size())
+				{
+					any_moved = true;
+					break;
+				}
+			}
+			
+			if (any_moved)
+				population_.ResolveSurvivalPhaseMovement();
 			
 			// the stage is done, so deregister script blocks as requested
 			DeregisterScheduledScriptBlocks();

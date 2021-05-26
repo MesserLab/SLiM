@@ -357,6 +357,116 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 		removed_subpops_.emplace_back(&p_subpop);
 	}
 }
+
+// move individuals as requested by survival() callbacks
+void Population::ResolveSurvivalPhaseMovement(void)
+{
+	// So, we have a survival() callback that has requested that some individuals move during the selection/viability phase.
+	// We want to handle this as efficiently as we can; we could have many individuals moving between subpops in arbitrary
+	// ways.  We will remove all moving individuals from their current subpops in a single pass, and then add them to their
+	// new subpops in a single pass.  If just one individual is moving, this will be inefficient since the algorithm is O(N)
+	// in the number of individuals, but I think it makes sense to optimize for the many-moving case for now.
+	bool sex_enabled = sim_.SexEnabled();
+	
+	// mark all individuals in all subpops as not-moving
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		for (Individual *individual : (subpop_pair.second)->parent_individuals_)
+			individual->scratch_ = 0;
+	
+	// mark moving individuals in all subpops as moving
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		for (Individual *individual : (subpop_pair.second)->nonWF_survival_moved_individuals_)
+			individual->scratch_ = 1;
+	
+	// loop through subpops and remove all individuals that are leaving, compacting downwards; similar to Subpopulation::ViabilitySelection()
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	{ 
+		Subpopulation *subpop = subpop_pair.second;
+		Genome **genome_data = subpop->parent_genomes_.data();
+		Individual **individual_data = subpop->parent_individuals_.data();
+		int remaining_genome_index = 0;
+		int remaining_individual_index = 0;
+		int females_leaving = 0;
+		bool individuals_leaving = false;
+		
+		for (int individual_index = 0; individual_index < subpop->parent_subpop_size_; ++individual_index)
+		{
+			Individual *individual = individual_data[individual_index];
+			bool remaining = (individual->scratch_ == 0);
+			
+			if (remaining)
+			{
+				// individuals that remain get copied down to the next available slot
+				if (remaining_individual_index != individual_index)
+				{
+					genome_data[remaining_genome_index] = genome_data[individual_index * 2];
+					genome_data[remaining_genome_index + 1] = genome_data[individual_index * 2 + 1];
+					individual_data[remaining_individual_index] = individual;
+					
+					// fix the individual's index_
+					individual_data[remaining_individual_index]->index_ = remaining_individual_index;
+				}
+				
+				remaining_genome_index += 2;
+				remaining_individual_index++;
+			}
+			else
+			{
+				// individuals that do not remain get tallied and removed at the end
+				if (sex_enabled && (individual->sex_ == IndividualSex::kFemale))
+					females_leaving++;
+				
+				individuals_leaving = true;
+			}
+		}
+		
+		// Then fix our bookkeeping for the first male index, subpop size, caches, etc.
+		if (individuals_leaving)
+		{
+			subpop->parent_subpop_size_ = remaining_individual_index;
+			
+			if (sex_enabled)
+				subpop->parent_first_male_index_ -= females_leaving;
+			
+			subpop->parent_genomes_.resize(subpop->parent_subpop_size_ * 2);
+			subpop->parent_individuals_.resize(subpop->parent_subpop_size_);
+			
+			subpop->cached_parent_genomes_value_.reset();
+			subpop->cached_parent_individuals_value_.reset();
+		}
+	}
+	
+	// loop through subpops and append individuals that are arriving; we do this using Subpopulation::MergeReproductionOffspring()
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	{ 
+		Subpopulation *subpop = subpop_pair.second;
+		
+		subpop->nonWF_offspring_individuals_.swap(subpop->nonWF_survival_moved_individuals_);
+		
+		for (Individual *individual : subpop->nonWF_offspring_individuals_)
+		{
+			subpop->nonWF_offspring_genomes_.push_back(individual->genome1_);
+			subpop->nonWF_offspring_genomes_.push_back(individual->genome2_);
+			
+#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+			// tally this as an incoming migrant for SLiMgui
+			++subpop->gui_migrants_[individual->subpopulation_->subpopulation_id_];
+#endif
+			
+			individual->subpopulation_ = subpop;
+			individual->migrant_ = true;
+		}
+		
+		subpop->MergeReproductionOffspring();
+	}
+	
+	// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
+	// selectively invalidate only the subpops involved in the migrations that occurred
+	auto &interactionTypes = sim_.InteractionTypes();
+	
+	for (auto int_type : interactionTypes)
+		int_type.second->Invalidate();
+}
 #endif  // SLIM_NONWF_ONLY
 
 void Population::PurgeRemovedSubpopulations(void)

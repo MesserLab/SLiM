@@ -250,6 +250,9 @@ public:
 #ifdef SLIM_NONWF_ONLY
 	// remove subpopulation p_subpop_id from the model entirely
 	void RemoveSubpopulation(Subpopulation &p_subpop);
+	
+	// move individuals as requested by survival() callbacks
+	void ResolveSurvivalPhaseMovement(void);
 #endif  // SLIM_NONWF_ONLY
 	
 	void PurgeRemovedSubpopulations(void);
