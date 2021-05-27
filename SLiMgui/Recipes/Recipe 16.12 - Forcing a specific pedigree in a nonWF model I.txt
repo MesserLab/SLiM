@@ -36,21 +36,13 @@ reproduction() {
 early() {
 	// density-dependence
 	p1.fitnessScaling = K / p1.individualCount;
-	
-	// remember the extant individual tags
-	sim.setValue("extant", sim.subpopulations.individuals.tag);
 }
-late() {
-	// log out the individuals that died
-	oldExtant = sim.getValue("extant");
-	newExtant = sim.subpopulations.individuals.tag;
-	survived = (match(oldExtant, newExtant) >= 0);
-	died = oldExtant[!survived];
-	
-	for (indTag in died)
-	{
-		line = sim.generation + " " + indTag;
+survival() {
+	if (!surviving) {
+		// log the death
+		line = sim.generation + " " + individual.tag;
 		writeFile("~/Desktop/death.txt", line, append=T);
 	}
+	return NULL;
 }
 100 late() { sim.simulationFinished(); }

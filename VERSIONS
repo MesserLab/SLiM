@@ -29,6 +29,7 @@ development head:
 	add [logical$ chdir = F] argument to source(), mirroring R's parameter of the same name, to make include-style usage of source() simpler (#190)
 	add the ability to relocate an individual with a survival() callback, to enable sperm storage and other such models where life continues after death
 	add recipe 16.22, sperm storage with a survival() callback
+	revise recipe 16.12 to use a survival() callback
 
 
 version 3.6 (build 2784; Eidos version 2.6):
