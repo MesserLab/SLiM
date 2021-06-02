@@ -1,0 +1,44 @@
+// Keywords: automixis, parthenogenesis, sex determination, mating systems, sexual types
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 500);	// carrying capacity
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+reproduction() {
+	// we focus on the reproduction of the females here
+	if (individual.tag == 1)
+	{
+		if (runif(1) < 0.7)
+		{
+			// choose a male mate and produce a son or daughter
+			mate = subpop.sampleIndividuals(1, tag=0);
+			offspring = subpop.addCrossed(individual, mate);
+			offspring.tag = rbinom(1, 1, 0.5);
+		}
+		else
+		{
+			// reproduce through automixis to produce a daughter
+			offspring = subpop.addSelfed(individual);
+			offspring.tag = 1;
+		}
+	}
+}
+1 early() {
+	sim.addSubpop("p1", K);
+	
+	// assign random sexes (0 = male, 1 = female)
+	p1.individuals.tag = rbinom(p1.individualCount, 1, 0.5);
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+1:2000 late() {
+	ratio = sum(p1.individuals.tag == 0) / p1.individualCount;
+	catn(sim.generation + ": " + ratio);
+}

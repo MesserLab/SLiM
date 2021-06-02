@@ -30,6 +30,7 @@ development head:
 	add the ability to relocate an individual with a survival() callback, to enable sperm storage and other such models where life continues after death
 	add recipe 16.22, sperm storage with a survival() callback
 	revise recipe 16.12 to use a survival() callback
+	add recipe 16.23, tracking separate sexes in script nonWF style
 
 
 version 3.6 (build 2784; Eidos version 2.6):
