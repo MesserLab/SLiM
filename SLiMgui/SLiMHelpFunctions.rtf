@@ -1612,8 +1612,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub :\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1625,7 +1626,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i \expnd0\expndtw0\kerning0
 H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
@@ -1663,7 +1665,13 @@ H
 \f1\fs18 \cf2 (float$)calcHeterozygosity(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calculates the heterozygosity for a vector of genomes, based upon the frequencies of mutations in the genomes.  Often 
+\f2\fs20 \cf2 Calculates the heterozygosity for a vector of genomes, based upon the frequencies of mutations in the genomes.  The result is the 
+\f3\i expected
+\f2\i0  heterozygosity, for the individuals to which the genomes belong, assuming that they are under Hardy-Weinberg equilibrium; this can be compared to the 
+\f3\i observed
+\f2\i0  heterozygosity of an individual, as calculated by 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20 .  Often 
 \f1\fs18 genomes
 \f2\fs20  will be all of the genomes in a subpopulation, or in the entire population, but any genome vector may be used.  By default, with 
 \f1\fs18 muts=NULL
