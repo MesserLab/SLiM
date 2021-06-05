@@ -50,15 +50,16 @@ private:
 	// we store the spare array in CSR format, with an offset for each row
 	// see https://medium.com/@jmaxg3/101-ways-to-store-a-sparse-matrix-c7f2bf15a229
 	// we do not sort by column within a row; we do a linear search for the column
-	uint32_t *row_offsets_;			// offsets into columns/values for each row; for N rows, N+1 entries (extra end entry)
+	// BCH 6/5/2021: expanding to 64-bit for some ivars to accommodate models with > 2 billion interactions
+	uint64_t *row_offsets_;			// offsets into columns/values for each row; for N rows, N+1 entries (extra end entry)
 	uint32_t *columns_;				// the column indices for the non-empty values in each row
 	sa_distance_t *distances_;		// a distance value for each non-empty entry
 	sa_strength_t *strengths_;		// a strength value for each non-empty entry
 	
 	uint32_t nrows_, ncols_;		// the number of rows and columns; determined at construction time
 	uint32_t nrows_set_;			// the number of rows that have been configured (at least partially, during building)
-	uint32_t nnz_;					// the number of non-zero entries in the sparse array (also at row_offsets[nrows_set])
-	uint32_t nnz_capacity_;			// the number of non-zero entries allocated for at present
+	uint64_t nnz_;					// the number of non-zero entries in the sparse array (also at row_offsets[nrows_set])
+	uint64_t nnz_capacity_;			// the number of non-zero entries allocated for at present
 	
 	bool finished_;					// if true, Finished() has been called and the sparse array is ready to use
 	
@@ -113,7 +114,7 @@ public:
 		ResizeToFitNNZ();
 		
 		// add intervening empty rows
-		uint32_t offset = row_offsets_[nrows_set_];
+		uint64_t offset = row_offsets_[nrows_set_];
 		
 		while (p_row + 1 > nrows_set_)
 			row_offsets_[++nrows_set_] = offset;

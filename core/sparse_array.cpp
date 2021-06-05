@@ -39,7 +39,7 @@ SparseArray::SparseArray(unsigned int p_nrows, unsigned int p_ncols)
 	nnz_ = 0;
 	nnz_capacity_ = 1024;
 	
-	row_offsets_ = (uint32_t *)malloc((nrows_ + 1) * sizeof(uint32_t));
+	row_offsets_ = (uint64_t *)malloc((nrows_ + 1) * sizeof(uint64_t));
 	columns_ = (uint32_t *)malloc(nnz_capacity_ * sizeof(uint32_t));
 	distances_ = (sa_distance_t *)malloc(nnz_capacity_ * sizeof(sa_distance_t));
 	strengths_ = (sa_strength_t *)malloc(nnz_capacity_ * sizeof(sa_strength_t));
@@ -89,7 +89,7 @@ void SparseArray::Reset(unsigned int p_nrows, unsigned int p_ncols)
 	nrows_set_ = 0;
 	nnz_ = 0;
 	
-	row_offsets_ = (uint32_t *)realloc(row_offsets_, (nrows_ + 1) * sizeof(uint32_t));
+	row_offsets_ = (uint64_t *)realloc(row_offsets_, (nrows_ + 1) * sizeof(uint64_t));
 	
 	row_offsets_[nrows_set_] = 0;
 	finished_ = false;
@@ -127,7 +127,7 @@ void SparseArray::AddRowDistances(uint32_t p_row, const uint32_t *p_columns, con
 	ResizeToFitNNZ();
 	
 	// copy over the new entries; no bounds check on columns, for speed
-	uint32_t offset = row_offsets_[nrows_set_];
+	uint64_t offset = row_offsets_[nrows_set_];
 	
 	row_offsets_[++nrows_set_] = offset + p_row_nnz;
 	memcpy(columns_ + offset, p_columns, p_row_nnz * sizeof(uint32_t));
@@ -151,7 +151,7 @@ void SparseArray::AddRowInteractions(uint32_t p_row, const uint32_t *p_columns, 
 	ResizeToFitNNZ();
 	
 	// copy over the new entries; no bounds check on columns, for speed
-	uint32_t offset = row_offsets_[nrows_set_];
+	uint64_t offset = row_offsets_[nrows_set_];
 	
 	row_offsets_[++nrows_set_] = offset + p_row_nnz;
 	memcpy(columns_ + offset, p_columns, p_row_nnz * sizeof(uint32_t));
@@ -185,7 +185,7 @@ void SparseArray::AddEntryInteraction(uint32_t p_row, uint32_t p_column, sa_dist
 	ResizeToFitNNZ();
 	
 	// add intervening empty rows
-	uint32_t offset = row_offsets_[nrows_set_];
+	uint64_t offset = row_offsets_[nrows_set_];
 	
 	while (p_row + 1 > nrows_set_)
 		row_offsets_[++nrows_set_] = offset;
@@ -202,7 +202,7 @@ void SparseArray::Finished(void)
 	if (finished_)
 		EIDOS_TERMINATION << "ERROR (SparseArray::Finished): finishing sparse array that is already finished." << EidosTerminate(nullptr);
 	
-	uint32_t offset = row_offsets_[nrows_set_];
+	uint64_t offset = row_offsets_[nrows_set_];
 	
 	while (nrows_set_ < nrows_)
 		row_offsets_[++nrows_set_] = offset;
@@ -225,11 +225,11 @@ sa_distance_t SparseArray::Distance(uint32_t p_row, uint32_t p_column) const
 		EIDOS_TERMINATION << "ERROR (SparseArray::Distance): column out of range." << EidosTerminate(nullptr);
 	
 	// get the offset into columns/values for p_row, and the number of entries for this row
-	uint32_t offset = row_offsets_[p_row];
-	uint32_t offset_next = row_offsets_[p_row + 1];
+	uint64_t offset = row_offsets_[p_row];
+	uint64_t offset_next = row_offsets_[p_row + 1];
 	
 	// scan for the requested column
-	for (uint32_t index = offset; index < offset_next; ++index)
+	for (uint64_t index = offset; index < offset_next; ++index)
 	{
 		if (columns_[index] == p_column)
 			return distances_[index];
@@ -254,11 +254,11 @@ sa_strength_t SparseArray::Strength(uint32_t p_row, uint32_t p_column) const
 		EIDOS_TERMINATION << "ERROR (SparseArray::Strength): column out of range." << EidosTerminate(nullptr);
 	
 	// get the offset into columns/values for p_row, and the number of entries for this row
-	uint32_t offset = row_offsets_[p_row];
-	uint32_t offset_next = row_offsets_[p_row + 1];
+	uint64_t offset = row_offsets_[p_row];
+	uint64_t offset_next = row_offsets_[p_row + 1];
 	
 	// scan for the requested column
-	for (uint32_t index = offset; index < offset_next; ++index)
+	for (uint64_t index = offset; index < offset_next; ++index)
 	{
 		if (columns_[index] == p_column)
 			return strengths_[index];
@@ -283,11 +283,11 @@ void SparseArray::PatchStrength(uint32_t p_row, uint32_t p_column, sa_strength_t
 		EIDOS_TERMINATION << "ERROR (SparseArray::PatchStrength): column out of range." << EidosTerminate(nullptr);
 	
 	// get the offset into columns/values for p_row, and the number of entries for this row
-	uint32_t offset = row_offsets_[p_row];
-	uint32_t offset_next = row_offsets_[p_row + 1];
+	uint64_t offset = row_offsets_[p_row];
+	uint64_t offset_next = row_offsets_[p_row + 1];
 	
 	// scan for the requested column
-	for (uint32_t index = offset; index < offset_next; ++index)
+	for (uint64_t index = offset; index < offset_next; ++index)
 	{
 		if (columns_[index] == p_column)
 		{
@@ -313,11 +313,11 @@ const sa_distance_t *SparseArray::DistancesForRow(uint32_t p_row, uint32_t *p_ro
 		EIDOS_TERMINATION << "ERROR (SparseArray::DistancesForRow): row out of range." << EidosTerminate(nullptr);
 	
 	// get the offset into columns/values for p_row, and the number of entries for this row
-	uint32_t offset = row_offsets_[p_row];
-	uint32_t count = row_offsets_[p_row + 1] - offset;
+	uint64_t offset = row_offsets_[p_row];
+	uint64_t count = row_offsets_[p_row + 1] - offset;
 	
 	// return info; note that a non-null pointer is returned even if count==0
-	*p_row_nnz = count;
+	*p_row_nnz = (uint32_t)count;	// cast should be safe, the number of rows/columns is 32-bit
 	if (p_row_columns)
 		*p_row_columns = columns_ + offset;
 	return distances_ + offset;
@@ -336,11 +336,11 @@ const sa_strength_t *SparseArray::StrengthsForRow(uint32_t p_row, uint32_t *p_ro
 		EIDOS_TERMINATION << "ERROR (SparseArray::StrengthsForRow): row out of range." << EidosTerminate(nullptr);
 	
 	// get the offset into columns/values for p_row, and the number of entries for this row
-	uint32_t offset = row_offsets_[p_row];
-	uint32_t count = row_offsets_[p_row + 1] - offset;
+	uint64_t offset = row_offsets_[p_row];
+	uint64_t count = row_offsets_[p_row + 1] - offset;
 	
 	// return info; note that a non-null pointer is returned even if count==0
-	*p_row_nnz = count;
+	*p_row_nnz = (uint32_t)count;	// cast should be safe, the number of rows/columns is 32-bit
 	if (p_row_columns)
 		*p_row_columns = columns_ + offset;
 	return strengths_ + offset;
@@ -359,11 +359,11 @@ void SparseArray::InteractionsForRow(uint32_t p_row, uint32_t *p_row_nnz, uint32
 		EIDOS_TERMINATION << "ERROR (SparseArray::InteractionsForRow): row out of range." << EidosTerminate(nullptr);
 	
 	// get the offset into columns/values for p_row, and the number of entries for this row
-	uint32_t offset = row_offsets_[p_row];
-	uint32_t count = row_offsets_[p_row + 1] - offset;
+	uint64_t offset = row_offsets_[p_row];
+	uint64_t count = row_offsets_[p_row + 1] - offset;
 	
 	// return info; note that a non-null pointer is returned even if count==0
-	*p_row_nnz = count;
+	*p_row_nnz = (uint32_t)count;	// cast should be safe, the number of rows/columns is 32-bit
 	if (p_row_columns)
 		*p_row_columns = columns_ + offset;
 	if (p_row_distances)

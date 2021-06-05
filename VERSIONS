@@ -31,6 +31,7 @@ development head:
 	add recipe 16.22, sperm storage with a survival() callback
 	revise recipe 16.12 to use a survival() callback
 	add recipe 16.23, tracking separate sexes in script nonWF style
+	fix InteractionType to allow > 2 billion interactions in a model (switch from uint32_t to uint64_t)
 
 
 version 3.6 (build 2784; Eidos version 2.6):
