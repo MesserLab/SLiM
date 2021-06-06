@@ -36,6 +36,7 @@
 class QtSLiMWindow;
 class Genome;
 class QtSLiMHaplotypeProgress;
+class QtSLiMPushButton;
 
 
 class QtSLiMHaplotypeManager : public QObject
@@ -147,6 +148,9 @@ public:
     virtual ~QtSLiMHaplotypeView(void) override;
     
     void setDelegate(QtSLiMHaplotypeManager *delegate) { delegate_ = delegate; delegate_->setParent(this); }
+    
+public slots:
+    void actionButtonRunMenu(QtSLiMPushButton *actionButton);    
     
 private:
     QtSLiMHaplotypeManager *delegate_ = nullptr;

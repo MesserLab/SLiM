@@ -75,20 +75,55 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
             window->setWindowIcon(QIcon());
 #endif
             
-            // Make the window layout
+            // Install the haplotype view in the window
+            QtSLiMHaplotypeView *haplotypeView = new QtSLiMHaplotypeView(nullptr);
             QVBoxLayout *topLayout = new QVBoxLayout;
             
             window->setLayout(topLayout);
             topLayout->setMargin(0);
             topLayout->setSpacing(0);
-            
-            // Make a new haplotype view and add it to the layout
-            QtSLiMHaplotypeView *haplotypeView = new QtSLiMHaplotypeView(nullptr);
-            
             topLayout->addWidget(haplotypeView);
             
             // The haplotype manager is owned by the graph view, as a delegate object
             haplotypeView->setDelegate(haplotypeManager);
+            
+            // Add a horizontal layout at the bottom, for the action button, and maybe other cruft, over time
+            QHBoxLayout *buttonLayout = nullptr;
+            
+            {
+                buttonLayout = new QHBoxLayout;
+                
+                buttonLayout->setMargin(5);
+                buttonLayout->setSpacing(5);
+                topLayout->addLayout(buttonLayout);
+                
+                QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+                buttonLayout->addItem(rightSpacer);
+                
+                // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
+                QtSLiMPushButton *actionButton = new QtSLiMPushButton(window);
+                actionButton->setObjectName(QString::fromUtf8("actionButton"));
+                actionButton->setMinimumSize(QSize(20, 20));
+                actionButton->setMaximumSize(QSize(20, 20));
+                actionButton->setFocusPolicy(Qt::NoFocus);
+                QIcon icon4;
+                icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
+                icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
+                actionButton->setIcon(icon4);
+                actionButton->setIconSize(QSize(20, 20));
+                actionButton->qtslimSetBaseName("action");
+                actionButton->setCheckable(true);
+                actionButton->setFlat(true);
+#if QT_CONFIG(tooltip)
+                actionButton->setToolTip("<html><head/><body><p>configure plot</p></body></html>");
+#endif // QT_CONFIG(tooltip)
+                buttonLayout->addWidget(actionButton);
+                
+                connect(actionButton, &QPushButton::pressed, haplotypeView, [actionButton, haplotypeView]() { actionButton->qtslimSetHighlight(true); haplotypeView->actionButtonRunMenu(actionButton); });
+                connect(actionButton, &QPushButton::released, haplotypeView, [actionButton]() { actionButton->qtslimSetHighlight(false); });
+                
+                actionButton->setEnabled(true);
+            }
             
             // make window actions for all global menu items
             // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
@@ -1677,7 +1712,7 @@ void QtSLiMHaplotypeView::paintGL()
     // inset and frame with gray
     QRect interior = rect();
     
-    interior.adjust(5, 5, -5, -5);
+    interior.adjust(5, 5, -5, 0);   // 0 because the action button layout already has margin
     painter.fillRect(interior, Qt::gray);
     interior.adjust(1, 1, -1, -1);
     
@@ -1687,6 +1722,14 @@ void QtSLiMHaplotypeView::paintGL()
         delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr);
         painter.endNativePainting();
     }
+}
+
+void QtSLiMHaplotypeView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
+{
+    contextMenuEvent(nullptr);
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    p_actionButton->qtslimSetHighlight(false);
 }
 
 void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
@@ -1702,7 +1745,8 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
     QAction *exportPlot = contextMenu.addAction("Export Plot...");
     
     // Run the context menu synchronously
-    QAction *action = contextMenu.exec(p_event->globalPos());
+    QPoint menuPos = (p_event ? p_event->globalPos() : QCursor::pos());
+    QAction *action = contextMenu.exec(menuPos);
     
     // Act upon the chosen action; we just do it right here instead of dealing with slots
     if (action)
