@@ -2116,6 +2116,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
 	SLiMSim &sim = genome_0->individual_->subpopulation_->population_.sim_;
 	
+#ifdef SLIM_NONWF_ONLY
 	if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && sim.RecordingTreeSequence())
 	{
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
@@ -2127,6 +2128,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): " << "addMutations() cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
 		}
 	}
+#endif	// SLIM_NONWF_ONLY
 	
 	// check for other semantic issues
 	Population &pop = sim.ThePopulation();
@@ -2380,6 +2382,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
 	SLiMSim &sim = genome_0->individual_->subpopulation_->population_.sim_;
 	
+#ifdef SLIM_NONWF_ONLY
 	if ((sim.ModelType() == SLiMModelType::kModelTypeNonWF) && sim.RecordingTreeSequence())
 	{
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
@@ -2391,6 +2394,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
 		}
 	}
+#endif	// SLIM_NONWF_ONLY
 	
 	// check for other semantic issues
 	Population &pop = sim.ThePopulation();

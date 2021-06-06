@@ -4701,8 +4701,12 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 		Subpopulation &subpop = *iter.second;
 		
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.parent_genomes_.begin(), subpop.parent_genomes_.end());
+#ifdef SLIM_WF_ONLY
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.child_genomes_.begin(), subpop.child_genomes_.end());
+#endif	// SLIM_WF_ONLY
+#ifdef SLIM_NONWF_ONLY
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.nonWF_offspring_genomes_.begin(), subpop.nonWF_offspring_genomes_.end());
+#endif	// SLIM_NONWF_ONLY
 	}
 	
 	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_nonnull.begin(), population_.species_genome_junkyard_nonnull.end());
@@ -4762,7 +4766,13 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 		{
 			Subpopulation &subpop = *iter.second;
 			
-			p_usage->individualObjects_count += (subpop.parent_subpop_size_ + subpop.child_subpop_size_ + subpop.nonWF_offspring_individuals_.size());
+			p_usage->individualObjects_count += subpop.parent_subpop_size_;
+#ifdef SLIM_WF_ONLY
+			p_usage->individualObjects_count += subpop.child_subpop_size_;
+#endif	// SLIM_WF_ONLY
+#ifdef SLIM_NONWF_ONLY
+			p_usage->individualObjects_count += subpop.nonWF_offspring_individuals_.size();
+#endif	// SLIM_WF_ONLY
 		}
 		
 		p_usage->individualObjects = sizeof(Individual) * p_usage->individualObjects_count;
@@ -4867,6 +4877,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 		p_usage->subpopulationObjects = sizeof(Subpopulation) * p_usage->subpopulationObjects_count;
 		
 		p_usage->subpopulationFitnessCaches = 0;
+#ifdef SLIM_WF_ONLY
 		for (auto iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
@@ -4876,6 +4887,7 @@ void SLiMSim::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p
 			if (subpop.cached_male_fitness_)
 				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
 		}
+#endif	// SLIM_WF_ONLY
 		
 		p_usage->subpopulationParentTables = 0;
 		for (auto iter : population_.subpops_)
@@ -6625,16 +6637,26 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 		}
 		
 		// now we're at the slot for this subpopulation, so construct it and write it out
+#ifdef SLIM_WF_ONLY
 		size_t migration_rec_count = subpop->migrant_fractions_.size();
+#else
+		size_t migration_rec_count = 0;
+#endif	// SLIM_WF_ONLY
 		size_t metadata_length = sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec);
 		SubpopulationMetadataRec *metadata_rec = (SubpopulationMetadataRec *)malloc(metadata_length);
-		SubpopulationMigrationMetadataRec *migration_rec_base = (SubpopulationMigrationMetadataRec *)(metadata_rec + 1);
 		
 		metadata_rec->subpopulation_id_ = subpop->subpopulation_id_;
+#ifdef SLIM_WF_ONLY
 		metadata_rec->selfing_fraction_ = subpop->selfing_fraction_;
 		metadata_rec->female_clone_fraction_ = subpop->female_clone_fraction_;
 		metadata_rec->male_clone_fraction_ = subpop->male_clone_fraction_;
 		metadata_rec->sex_ratio_ = subpop->parent_sex_ratio_;
+#else
+		metadata_rec->selfing_fraction_ = 0.0;
+		metadata_rec->female_clone_fraction_ = 0.0;
+		metadata_rec->male_clone_fraction_ = 0.0;
+		metadata_rec->sex_ratio_ = 0.0;
+#endif	// SLIM_WF_ONLY
 		metadata_rec->bounds_x0_ = subpop->bounds_x0_;
 		metadata_rec->bounds_x1_ = subpop->bounds_x1_;
 		metadata_rec->bounds_y0_ = subpop->bounds_y0_;
@@ -6643,6 +6665,8 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 		metadata_rec->bounds_z1_ = subpop->bounds_z1_;
 		metadata_rec->migration_rec_count_ = (uint32_t)migration_rec_count;
 		
+#ifdef SLIM_WF_ONLY
+		SubpopulationMigrationMetadataRec *migration_rec_base = (SubpopulationMigrationMetadataRec *)(metadata_rec + 1);
 		int migration_index = 0;
 		
 		for (std::pair<slim_objectid_t,double> migration_pair : subpop->migrant_fractions_)
@@ -6651,6 +6675,7 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 			migration_rec_base[migration_index].migration_rate_ = migration_pair.second;
 			migration_index++;
 		}
+#endif	// SLIM_WF_ONLY
 		
 		tsk_population_id = tsk_population_table_add_row(&p_tables->populations, (char *)metadata_rec, (uint32_t)metadata_length);
 		last_id_written++;
@@ -7508,7 +7533,11 @@ void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
+#ifdef SLIM_NONWF_ONLY
 	p_metadata->age_ = p_individual->age_;
+#else
+	p_metadata->age_ = -1;
+#endif	// SLIM_NONWF_ONLY
 	p_metadata->subpopulation_id_ = p_individual->subpopulation_->subpopulation_id_;
 	p_metadata->sex_ = p_individual->sex_;
 	
@@ -8136,7 +8165,9 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				individual->genome1_->genome_id_ = pedigree_id * 2;
 				individual->genome2_->genome_id_ = pedigree_id * 2 + 1;
 				
+#ifdef SLIM_NONWF_ONLY
 				individual->age_ = subpop_info.age_[tabulation_index];
+#endif	// SLIM_NONWF_ONLY
 				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
 				individual->spatial_y_ = subpop_info.spatial_y_[tabulation_index];
 				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
@@ -8193,7 +8224,6 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): malformed population metadata; this file cannot be read." << EidosTerminate();
 		
 		SubpopulationMetadataRec *metadata = (SubpopulationMetadataRec *)metadata_char;
-		SubpopulationMigrationMetadataRec *migration_recs = (SubpopulationMigrationMetadataRec *)(metadata + 1);
 		slim_objectid_t subpop_id = metadata->subpopulation_id_;
 		Subpopulation *subpop = SubpopulationWithID(subpop_id);
 		
@@ -8218,6 +8248,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		}
 		
+#ifdef SLIM_WF_ONLY
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			subpop->selfing_fraction_ = metadata->selfing_fraction_;
@@ -8236,6 +8267,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			if (sex_enabled_ && ((subpop->child_sex_ratio_ < 0.0) || (subpop->child_sex_ratio_ > 1.0)))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): out-of-range value for sex ratio; this file cannot be read." << EidosTerminate();
 		}
+#endif	// SLIM_WF_ONLY
 		
 		subpop->bounds_x0_ = metadata->bounds_x0_;
 		subpop->bounds_x1_ = metadata->bounds_x1_;
@@ -8260,6 +8292,9 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (migration_rec_count > 0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): migration rates cannot be provided in a nonWF model; this file cannot be read." << EidosTerminate();
 		
+#ifdef SLIM_WF_ONLY
+		SubpopulationMigrationMetadataRec *migration_recs = (SubpopulationMigrationMetadataRec *)(metadata + 1);
+		
 		for (size_t migration_index = 0; migration_index < migration_rec_count; ++migration_index)
 		{
 			slim_objectid_t source_id = migration_recs[migration_index].source_subpop_id_;
@@ -8274,6 +8309,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			
 			subpop->migrant_fractions_.insert(std::pair<slim_objectid_t, double>(source_id, rate));
 		}
+#endif
 	}
 }
 

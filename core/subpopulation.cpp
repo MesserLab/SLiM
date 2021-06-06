@@ -986,12 +986,10 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFitWF(p_record_in_treeseq);
+	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
 	GenerateChildrenToFitWF();
 #elif defined(SLIM_NONWF_ONLY)
-	if (p_source_subpop)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): (internal error) Subpopulation can be constructed with a source subpop only in the WF case." << EidosTerminate();
-	GenerateIndividualsToFitNonWF(0.0);
+	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
 #endif
 	
 #ifdef SLIM_WF_ONLY
@@ -1037,12 +1035,10 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFitWF(p_record_in_treeseq);
+	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
 	GenerateChildrenToFitWF();
 #elif defined(SLIM_NONWF_ONLY)
-	if (p_source_subpop)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): (internal error) Subpopulation can be constructed with a source subpop only in the WF case." << EidosTerminate();
-	GenerateIndividualsToFitNonWF(p_sex_ratio);
+	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
 #endif
 	
 #ifdef SLIM_WF_ONLY
@@ -1086,8 +1082,10 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		// non-zero value to the .trees file, and that was confusing Peter's test code.  So now we explicitly set the ivars to 0.0 here,
 		// now that we're done using the value.  This might also occur when a new subpop is created in a nonWF model; the initial sex ratio
 		// value might have been sticking around permanently in the ivar, even though it would not be accurate any more.  BCH 9/7/2020
+#ifdef SLIM_WF_ONLY
 		parent_sex_ratio_ = 0.0;
 		child_sex_ratio_ = 0.0;
+#endif	// SLIM_WF_ONLY
 	}
 }
 
@@ -3474,6 +3472,7 @@ size_t Subpopulation::MemoryUsageForParentTables(void)
 {
 	size_t usage = 0;
 	
+#ifdef SLIM_WF_ONLY
 	if (lookup_parent_)
 		usage += lookup_parent_->K * (sizeof(size_t) + sizeof(double));
 	
@@ -3482,6 +3481,7 @@ size_t Subpopulation::MemoryUsageForParentTables(void)
 	
 	if (lookup_male_parent_)
 		usage += lookup_male_parent_->K * (sizeof(size_t) + sizeof(double));
+#endif	// SLIM_WF_ONLY
 	
 	return usage;
 }
